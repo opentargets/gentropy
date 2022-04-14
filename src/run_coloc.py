@@ -213,128 +213,130 @@ def main(cfg: DictConfig) -> None:
         .drop("posteriors", "allABF", "lH0abf", "lH1abf", "lH2abf", "lH3abf", "lH4abf")
     )
 
-    # STEP 3: Add metadata to results
-    phenotypeIdGene = (
-        spark.read.option("header", "true")
-        .option("sep", "\t")
-        .csv(cfg.coloc.phenotype_id_gene)
-    )
+    # # STEP 3: Add metadata to results
+    # phenotypeIdGene = (
+    #     spark.read.option("header", "true")
+    #     .option("sep", "\t")
+    #     .csv(cfg.coloc.phenotype_id_gene)
+    # )
 
-    # Adding study, variant and study-variant metadata from credible set
-    credSetStudyMeta = credSet.select(
-        "studyKey",
-        F.col("study_id").alias("study"),
-        "bio_feature",
-        F.col("phenotype_id").alias("phenotype"),
-    ).distinct()
+    # # Adding study, variant and study-variant metadata from credible set
+    # credSetStudyMeta = credSet.select(
+    #     "studyKey",
+    #     F.col("study_id").alias("study"),
+    #     "bio_feature",
+    #     F.col("phenotype_id").alias("phenotype"),
+    # ).distinct()
 
-    credSetVariantMeta = credSet.select(
-        F.col("lead_variant_id"),
-        F.col("lead_chrom").alias("chrom"),
-        F.col("lead_pos").alias("pos"),
-        F.col("lead_ref").alias("ref"),
-        F.col("lead_alt").alias("alt"),
-    ).distinct()
+    # credSetVariantMeta = credSet.select(
+    #     F.col("lead_variant_id"),
+    #     F.col("lead_chrom").alias("chrom"),
+    #     F.col("lead_pos").alias("pos"),
+    #     F.col("lead_ref").alias("ref"),
+    #     F.col("lead_alt").alias("alt"),
+    # ).distinct()
 
-    sumstatsLeftVarRightStudyInfo = (
-        spark.read.parquet(cfg.coloc.sumstats_filtered)
-        .withColumn(
-            "right_studyKey",
-            F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
-        )
-        .withColumn(
-            "left_lead_variant_id",
-            F.concat_ws("_", F.col("chrom"), F.col("pos"), F.col("ref"), F.col("alt")),
-        )
-        .withColumnRenamed("beta", "left_var_right_study_beta")
-        .withColumnRenamed("se", "left_var_right_study_se")
-        .withColumnRenamed("pval", "left_var_right_study_pval")
-        .withColumnRenamed("is_cc", "left_var_right_isCC")
-        # Only keep required columns
-        .select(
-            "left_lead_variant_id",
-            "right_studyKey",
-            "left_var_right_study_beta",
-            "left_var_right_study_se",
-            "left_var_right_study_pval",
-            "left_var_right_isCC",
-        )
-    )
+    # sumstatsLeftVarRightStudyInfo = (
+    #     spark.read.parquet(cfg.coloc.sumstats_filtered)
+    #     .withColumn(
+    #         "right_studyKey",
+    #         F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
+    #     )
+    #     .withColumn(
+    #         "left_lead_variant_id",
+    #         F.concat_ws("_", F.col("chrom"), F.col("pos"), F.col("ref"), F.col("alt")),
+    #     )
+    #     .withColumnRenamed("beta", "left_var_right_study_beta")
+    #     .withColumnRenamed("se", "left_var_right_study_se")
+    #     .withColumnRenamed("pval", "left_var_right_study_pval")
+    #     .withColumnRenamed("is_cc", "left_var_right_isCC")
+    #     # Only keep required columns
+    #     .select(
+    #         "left_lead_variant_id",
+    #         "right_studyKey",
+    #         "left_var_right_study_beta",
+    #         "left_var_right_study_se",
+    #         "left_var_right_study_pval",
+    #         "left_var_right_isCC",
+    #     )
+    # )
 
-    colocWithMetadata = (
-        coloc.join(
-            reduce(
-                lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
-                credSetStudyMeta.columns,
-                credSetStudyMeta,
-            ),
-            on="left_studyKey",
-            how="left",
-        )
-        .join(
-            reduce(
-                lambda DF, col: DF.withColumnRenamed(col, "right_" + col),
-                credSetStudyMeta.columns,
-                credSetStudyMeta,
-            ),
-            on="right_studyKey",
-            how="left",
-        )
-        .join(
-            reduce(
-                lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
-                credSetVariantMeta.columns,
-                credSetVariantMeta,
-            ),
-            on="left_lead_variant_id",
-            how="left",
-        )
-        .join(
-            reduce(
-                lambda DF, col: DF.withColumnRenamed(col, "right_" + col),
-                credSetVariantMeta.columns,
-                credSetVariantMeta,
-            ),
-            on="right_lead_variant_id",
-            how="left",
-        )
-        .join(
-            sumstatsLeftVarRightStudyInfo,
-            on=["left_lead_variant_id", "right_studyKey"],
-            how="left",
-        )
-        .drop("left_lead_variant_id", "right_lead_variant_id")
-        .drop("left_bio_feature", "left_phenotype")
-        .join(
-            phenotypeIdGene.select(
-                F.col("phenotype_id").alias("right_phenotype"),
-                F.col("gene_id").alias("right_gene_id"),
-            ),
-            on="right_phenotype",
-            how="left",
-        )
-        .withColumn(
-            "right_gene_id",
-            F.when(
-                F.col("right_phenotype").startswith("ENSG"), F.col("right_phenotype")
-            ).otherwise(F.col("right_gene_id")),
-        )
-        .withColumn(
-            "right_gene_id",
-            F.when(
-                F.col("right_study") == "GTEx-sQTL",
-                F.regexp_extract(F.col("right_phenotype"), ":(ENSG.*)$", 1),
-            ).otherwise(F.col("right_gene_id")),
-        )
-        .drop("left_studyKey", "right_studyKey")
-    )
+    # colocWithMetadata = (
+    #     coloc.join(
+    #         reduce(
+    #             lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
+    #             credSetStudyMeta.columns,
+    #             credSetStudyMeta,
+    #         ),
+    #         on="left_studyKey",
+    #         how="left",
+    #     )
+    #     .join(
+    #         reduce(
+    #             lambda DF, col: DF.withColumnRenamed(col, "right_" + col),
+    #             credSetStudyMeta.columns,
+    #             credSetStudyMeta,
+    #         ),
+    #         on="right_studyKey",
+    #         how="left",
+    #     )
+    #     .join(
+    #         reduce(
+    #             lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
+    #             credSetVariantMeta.columns,
+    #             credSetVariantMeta,
+    #         ),
+    #         on="left_lead_variant_id",
+    #         how="left",
+    #     )
+    #     .join(
+    #         reduce(
+    #             lambda DF, col: DF.withColumnRenamed(col, "right_" + col),
+    #             credSetVariantMeta.columns,
+    #             credSetVariantMeta,
+    #         ),
+    #         on="right_lead_variant_id",
+    #         how="left",
+    #     )
+    #     .join(
+    #         sumstatsLeftVarRightStudyInfo,
+    #         on=["left_lead_variant_id", "right_studyKey"],
+    #         how="left",
+    #     )
+    #     .drop("left_lead_variant_id", "right_lead_variant_id")
+    #     .drop("left_bio_feature", "left_phenotype")
+    #     .join(
+    #         phenotypeIdGene.select(
+    #             F.col("phenotype_id").alias("right_phenotype"),
+    #             F.col("gene_id").alias("right_gene_id"),
+    #         ),
+    #         on="right_phenotype",
+    #         how="left",
+    #     )
+    #     .withColumn(
+    #         "right_gene_id",
+    #         F.when(
+    #             F.col("right_phenotype").startswith("ENSG"), F.col("right_phenotype")
+    #         ).otherwise(F.col("right_gene_id")),
+    #     )
+    #     .withColumn(
+    #         "right_gene_id",
+    #         F.when(
+    #             F.col("right_study") == "GTEx-sQTL",
+    #             F.regexp_extract(F.col("right_phenotype"), ":(ENSG.*)$", 1),
+    #         ).otherwise(F.col("right_gene_id")),
+    #     )
+    #     .drop("left_studyKey", "right_studyKey")
+    # )
 
-    # Write output
-    (
-        colocWithMetadata.write.partitionBy("left_chrom")
-        .mode("overwrite")
-        .parquet(cfg.coloc.output)
-    )
+    # # Write output
+    # (
+    #     colocWithMetadata.write.partitionBy("left_chrom")
+    #     .mode("overwrite")
+    #     .parquet(cfg.coloc.output)
+    # )
+
+    (coloc.write.partitionBy("left_chrom").mode("overwrite").parquet(cfg.coloc.output))
 
     # TODO: compute model averaged effect size ratios
     # https://github.com/tobyjohnson/gtx/blob/9afa9597a51d0ff44536bc5c8eddd901ab3e867c/R/coloc.R#L91
