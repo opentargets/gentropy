@@ -14,8 +14,8 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
     --region=${CLUSTER_REGION} \
     --metadata 'PIP_PACKAGES=omegaconf hydra-core' \
     --initialization-actions gs://goog-dataproc-initialization-actions-europe-west1/python/pip-install.sh                                                  \
-    --master-machine-type=n1-standard-96 \
-    --single-node
+    --master-machine-type=n1-highmem-96 \
+    --single-node \
     --max-idle=5m
 ```
 
@@ -24,6 +24,6 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
 ```bash
 gcloud dataproc jobs submit pyspark run_coloc.py \
     --cluster=${CLUSTER_NAME} \
-    --files=utils.py,config/config.yaml
-    --project=open-targets-genetics
+    --files=config/config.yaml,utils.py \
+    --region=${CLUSTER_REGION}
 ```
