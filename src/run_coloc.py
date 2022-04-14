@@ -7,6 +7,7 @@ configurations under the assumption of a single causal variant for each trait.
 Logic reproduced from: https://github.com/chr1swallace/coloc/blob/main/R/claudia.R
 """
 
+import os
 from functools import reduce
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
@@ -19,7 +20,7 @@ from omegaconf import DictConfig
 from utils import getLogsum, getPosteriors
 
 
-@hydra.main(config_path="config", config_name="config")
+@hydra.main(config_path=os.getcwd(), config_name="config")
 def main(cfg: DictConfig) -> None:
     """
     Run colocalisation analysis
