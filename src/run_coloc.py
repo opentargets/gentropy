@@ -213,6 +213,8 @@ def main(cfg: DictConfig) -> None:
         .drop("posteriors", "allABF", "lH0abf", "lH1abf", "lH2abf", "lH3abf", "lH4abf")
     )
 
+    (coloc.write.mode("overwrite").parquet(cfg.coloc.output))
+
     # # STEP 3: Add metadata to results
     # phenotypeIdGene = (
     #     spark.read.option("header", "true")
@@ -335,8 +337,6 @@ def main(cfg: DictConfig) -> None:
     #     .mode("overwrite")
     #     .parquet(cfg.coloc.output)
     # )
-
-    (coloc.write.partitionBy("left_chrom").mode("overwrite").parquet(cfg.coloc.output))
 
     # TODO: compute model averaged effect size ratios
     # https://github.com/tobyjohnson/gtx/blob/9afa9597a51d0ff44536bc5c8eddd901ab3e867c/R/coloc.R#L91
