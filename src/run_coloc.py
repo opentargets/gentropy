@@ -95,7 +95,6 @@ def main(cfg: DictConfig) -> None:
         .drop("left_logABF", "right_logABF", "tag_variant_id")
         # distinct to get study-pair info
         .distinct()
-        .persist()
     )
 
     overlappingLeft = overlappingPeaks.join(
