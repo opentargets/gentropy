@@ -52,15 +52,6 @@ def main(cfg: DictConfig) -> None:
         )
     )
 
-    # Priors
-    # priorc1 Prior on variant being causal for trait 1
-    # priorc2 Prior on variant being causal for trait 2
-    # priorc12 Prior on variant being causal for traits 1 and 2
-    priors = spark.createDataFrame(
-        [(cfg.coloc.priorc1, cfg.coloc.priorc2, cfg.coloc.priorc12)],
-        ("priorc1", "priorc2", "priorc12"),
-    )
-
     columnsToJoin = ["studyKey", "tag_variant_id", "lead_variant_id", "type", "logABF"]
     renameColumns = ["studyKey", "lead_variant_id", "type", "logABF"]
 
@@ -157,9 +148,13 @@ def main(cfg: DictConfig) -> None:
         .withColumn("logsum2", logsum(F.col("right_logABF")))
         .withColumn("logsum12", logsum(F.col("sum_logABF")))
         .drop("left_logABF", "right_logABF", "sum_logABF")
-        #
         # Add priors
-        .crossJoin(priors)
+        # priorc1 Prior on variant being causal for trait 1
+        .withColumn("priorc1", F.lit(cfg.coloc.priorc1))
+        # priorc2 Prior on variant being causal for trait 2
+        .withColumn("priorc2", F.lit(cfg.coloc.priorc2))
+        # priorc12 Prior on variant being causal for traits 1 and 2
+        .withColumn("priorc12", F.lit(cfg.coloc.priorc12))
         # h0-h2
         .withColumn("lH0abf", F.lit(0))
         .withColumn("lH1abf", F.log(F.col("priorc1")) + F.col("logsum1"))
@@ -212,8 +207,6 @@ def main(cfg: DictConfig) -> None:
         # clean up
         .drop("posteriors", "allABF", "lH0abf", "lH1abf", "lH2abf", "lH3abf", "lH4abf")
     )
-
-    coloc.explain()
 
     (coloc.write.mode("overwrite").parquet(cfg.coloc.output))
 
