@@ -82,6 +82,7 @@ def main(cfg: DictConfig) -> None:
         .filter(F.col("left_type") == "gwas")
         # Get all study/peak pairs where at least one tagging variant overlap:
         .join(rightDf, on="tag_variant_id", how="inner")
+        # Different study keys
         .filter(
             # Remove rows with identical study:
             (F.col("left_studyKey") != F.col("right_studyKey"))
@@ -211,6 +212,8 @@ def main(cfg: DictConfig) -> None:
         # clean up
         .drop("posteriors", "allABF", "lH0abf", "lH1abf", "lH2abf", "lH3abf", "lH4abf")
     )
+
+    coloc.explain()
 
     (coloc.write.mode("overwrite").parquet(cfg.coloc.output))
 
