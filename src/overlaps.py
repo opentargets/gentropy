@@ -26,6 +26,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         )
     )
 
+    # Columnns to be used as left and right
     renameColumns = ["studyKey", "lead_variant_id", "type", "logABF"]
     columnsToJoin = renameColumns + ["tag_variant_id"]
 
