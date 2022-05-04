@@ -83,7 +83,7 @@ def main(cfg: DictConfig) -> None:
             (F.col("right_type") != "gwas")
             | (F.col("left_studyKey") > F.col("right_studyKey"))
         )
-        # remove overlapping tag variant isnfo
+        # remove overlapping tag variant info
         .drop("left_logABF", "right_logABF", "tag_variant_id")
         # distinct to get study-pair info
         .distinct()
