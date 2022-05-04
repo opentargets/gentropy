@@ -24,6 +24,6 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
 ```bash
 gcloud dataproc jobs submit pyspark run_coloc.py \
     --cluster=${CLUSTER_NAME} \
-    --files=config.yaml,utils.py \
+    --files=config.yaml,coloc.py,colocMetadata.py,overlaps.py \
     --region=${CLUSTER_REGION}
 ```
