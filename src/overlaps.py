@@ -26,8 +26,8 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         )
     )
 
-    columnsToJoin = ["studyKey", "tag_variant_id", "lead_variant_id", "type", "logABF"]
     renameColumns = ["studyKey", "lead_variant_id", "type", "logABF"]
+    columnsToJoin = renameColumns + ["tag_variant_id"]
 
     leftDf = reduce(
         lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
