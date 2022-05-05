@@ -3,7 +3,6 @@ Utilities to perform colocalisation analysis
 """
 
 from pyspark.ml.linalg import VectorUDT, Vectors
-from pyspark.ml.linalg import VectorUDT
 import numpy as np
 import pyspark.sql.types as T
 import pyspark.sql.functions as F
@@ -51,7 +50,19 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
     logsum = F.udf(getLogsum, T.DoubleType())
     posteriors = F.udf(getPosteriors, VectorUDT())
 
-    signalPairsCols = ["studyKey", "lead_variant_id", "type"]
+    signalPairsCols = [
+        "studyKey",
+        "lead_variant_id",
+        "type",
+        "study_id",
+        "phenotype_id",
+        "bio_feature",
+        "lead_chrom",
+        "lead_pos",
+        "lead_ref",
+        "lead_alt",
+    ]
+
     coloc = (
         overlappingSignals
         # Before summarizing logABF columns nulls need to be filled with 0:
