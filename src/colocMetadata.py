@@ -71,15 +71,18 @@ def addColocSumstatsInfo(spark: SparkSession, coloc, sumstatsPath: str):
         )
     )
 
-    colocWithMetadata = (
-        sumstatsLeftVarRightStudyInfo.join(
-            F.broadcast(coloc),
-            on=["left_lead_variant_id", "right_studyKey"],
-            how="right",
-        )
-        .drop("left_lead_variant_id", "right_lead_variant_id")
+    # join info from sumstats
+    colocWithMetadata = sumstatsLeftVarRightStudyInfo.join(
+        coloc,
+        on=["left_lead_variant_id", "right_studyKey"],
+        how="right",
+    )
+
+    # clean unnecessary columns
+    result = (
+        colocWithMetadata.drop("left_lead_variant_id", "right_lead_variant_id")
         .drop("left_bio_feature", "left_phenotype")
         .drop("left_studyKey", "right_studyKey")
     )
 
-    return colocWithMetadata
+    return result

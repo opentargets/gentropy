@@ -44,15 +44,21 @@ def main(cfg: DictConfig) -> None:
     )
 
     # 3. Add molecular trait genes (metadata)
-    colocWithMetadata = addMolecularTraitPhenotypeGenes(
+    colocWithGenes = addMolecularTraitPhenotypeGenes(
         spark, coloc, cfg.coloc.phenotype_id_gene
     )
 
-    # 4. Add more info from sumstats (metadata)
-    colocWithMetadata = addColocSumstatsInfo(spark, coloc, cfg.coloc.sumstats_filtered)
+    # # 4. Add more info from sumstats (metadata)
+    # colocWithAllMetadata = addColocSumstatsInfo(
+    #     spark, colocWithGenes, cfg.coloc.sumstats_filtered
+    # )
 
     # Write output
-    (colocWithMetadata.write.mode("overwrite").parquet(cfg.coloc.output))
+    (
+        colocWithGenes.write.partitionBy("left_chrom")
+        .mode("overwrite")
+        .parquet(cfg.coloc.output)
+    )
 
     # TODO: compute model averaged effect size ratios
     # https://github.com/tobyjohnson/gtx/blob/9afa9597a51d0ff44536bc5c8eddd901ab3e867c/R/coloc.R#L91
