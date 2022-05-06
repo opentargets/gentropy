@@ -36,14 +36,6 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
 
     Args:
         overlappingSignals: DataFrame with overlapping signals
-
-    Returns:
-        DataFrame with columns:
-            # gene1: Gene 1
-            # gene2: Gene 2
-            # overlap: Number of overlapping signals
-            # p_coloc: Posterior probability of colocalisation
-            # p_coloc_prior: Prior probability of colocalisation
     """
 
     # register udfs

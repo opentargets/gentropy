@@ -31,7 +31,6 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         "studyKey",
         "lead_variant_id",
         "type",
-        "logABF",
     ]
     metadataCols = [
         "study_id",
@@ -45,13 +44,13 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
 
     leftDf = reduce(
         lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
-        idCols + metadataCols,
-        credSet.select(idCols + metadataCols + ["tag_variant_id"]).distinct(),
+        idCols + metadataCols + ["logABF"],
+        credSet.select(idCols + metadataCols + ["logABF", "tag_variant_id"]),
     )
     rightDf = reduce(
         lambda DF, col: DF.withColumnRenamed(col, "right_" + col),
-        idCols + metadataCols,
-        credSet.select(idCols + metadataCols + ["tag_variant_id"]).distinct(),
+        idCols + metadataCols + ["logABF"],
+        credSet.select(idCols + metadataCols + ["logABF", "tag_variant_id"]),
     )
 
     overlappingPeaks = (
@@ -81,38 +80,27 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
     )
 
     overlappingLeft = overlappingPeaks.join(
-        leftDf.select(
-            "left_studyKey", "left_lead_variant_id", "tag_variant_id", "left_logABF"
-        ),
+        leftDf,
         on=["left_studyKey", "left_lead_variant_id"],
         how="inner",
     )
     overlappingRight = overlappingPeaks.join(
-        rightDf.select(
-            "right_studyKey", "right_lead_variant_id", "tag_variant_id", "right_logABF"
-        ),
+        rightDf,
         on=["right_studyKey", "right_lead_variant_id"],
         how="inner",
     )
 
-    overlappingSignals = (
-        overlappingLeft.alias("a")
-        # .drop(
-        #     *["left_" + col for col in columnsForOne]
-        #     + ["right_" + col for col in columnsForOne]
-        # )
-        .join(
-            overlappingRight.alias("b"),
-            on=[
-                "tag_variant_id",
-                "left_lead_variant_id",
-                "right_lead_variant_id",
-                "left_studyKey",
-                "right_studyKey",
-                "right_type",
-                "left_type",
-            ],
-            how="outer",
-        )
+    overlappingSignals = overlappingLeft.alias("a").join(
+        overlappingRight.alias("b"),
+        on=[
+            "tag_variant_id",
+            "left_lead_variant_id",
+            "right_lead_variant_id",
+            "left_studyKey",
+            "right_studyKey",
+            "right_type",
+            "left_type",
+        ],
+        how="outer",
     )
     return overlappingSignals
