@@ -81,12 +81,12 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
 
     overlappingLeft = overlappingPeaks.join(
         leftDf,
-        on=["left_studyKey", "left_lead_variant_id"],
+        on=["left_studyKey", "left_lead_variant_id", "left_type"],
         how="inner",
     )
     overlappingRight = overlappingPeaks.join(
         rightDf,
-        on=["right_studyKey", "right_lead_variant_id"],
+        on=["right_studyKey", "right_lead_variant_id", "right_type"],
         how="inner",
     )
 
