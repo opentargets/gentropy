@@ -19,19 +19,21 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
     """
     credSet = (
         spark.read.parquet(credSetPath)
-        .distinct()
-        .withColumn(
+        # .repartition("lead_chrom")
+        .distinct().withColumn(
             "studyKey",
             F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
         )
     )
 
     # Columnns to be used as left and right
-    renameColumns = [
+    idCols = [
         "studyKey",
         "lead_variant_id",
         "type",
         "logABF",
+    ]
+    metadataCols = [
         "study_id",
         "phenotype_id",
         "bio_feature",
@@ -40,18 +42,16 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         "lead_ref",
         "lead_alt",
     ]
-    # All columns to be used
-    columnsToJoin = renameColumns + ["tag_variant_id"]
 
     leftDf = reduce(
         lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
-        renameColumns,
-        credSet.select(columnsToJoin).distinct(),
+        idCols + metadataCols,
+        credSet.select(idCols + metadataCols + ["tag_variant_id"]).distinct(),
     )
     rightDf = reduce(
         lambda DF, col: DF.withColumnRenamed(col, "right_" + col),
-        renameColumns,
-        credSet.select(columnsToJoin).distinct(),
+        idCols + metadataCols,
+        credSet.select(idCols + metadataCols + ["tag_variant_id"]).distinct(),
     )
 
     overlappingPeaks = (
@@ -70,8 +70,12 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             (F.col("right_type") != "gwas")
             | (F.col("left_studyKey") > F.col("right_studyKey"))
         )
-        # remove overlapping tag variant info
-        .drop("left_logABF", "right_logABF", "tag_variant_id")
+        # drop unnecesarry data for finding overlapping signals
+        .drop(
+            *["left_" + col for col in metadataCols + ["logABF"]]
+            + ["right_" + col for col in metadataCols + ["logABF"]]
+            + ["tag_variant_id"]
+        )
         # distinct to get study-pair info
         .distinct()
     )
@@ -83,14 +87,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         on=["left_studyKey", "left_lead_variant_id"],
         how="inner",
     )
-    overlappingRight = overlappingPeaks.select(
-        "right_studyKey",
-        "right_lead_variant_id",
-        "right_type",
-        "left_studyKey",
-        "left_lead_variant_id",
-        "left_type",
-    ).join(
+    overlappingRight = overlappingPeaks.join(
         rightDf.select(
             "right_studyKey", "right_lead_variant_id", "tag_variant_id", "right_logABF"
         ),
@@ -98,17 +95,24 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         how="inner",
     )
 
-    overlappingSignals = overlappingLeft.alias("a").join(
-        overlappingRight.alias("b"),
-        on=[
-            "tag_variant_id",
-            "left_lead_variant_id",
-            "right_lead_variant_id",
-            "left_studyKey",
-            "right_studyKey",
-            "right_type",
-            "left_type",
-        ],
-        how="outer",
+    overlappingSignals = (
+        overlappingLeft.alias("a")
+        # .drop(
+        #     *["left_" + col for col in columnsForOne]
+        #     + ["right_" + col for col in columnsForOne]
+        # )
+        .join(
+            overlappingRight.alias("b"),
+            on=[
+                "tag_variant_id",
+                "left_lead_variant_id",
+                "right_lead_variant_id",
+                "left_studyKey",
+                "right_studyKey",
+                "right_type",
+                "left_type",
+            ],
+            how="outer",
+        )
     )
     return overlappingSignals

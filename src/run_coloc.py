@@ -12,7 +12,7 @@ import hydra
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from omegaconf import DictConfig
-from colocMetadata import addColocMetadata
+from colocMetadata import addColocSumstatsInfo, addMolecularTraitPhenotypeGenes
 from coloc import colocalisation
 from overlaps import findOverlappingSignals
 
@@ -21,10 +21,6 @@ from overlaps import findOverlappingSignals
 def main(cfg: DictConfig) -> None:
     """
     Run colocalisation analysis
-    It runs in 3 blocks:
-        1. Calculate overlapping signals in OT genetics portal
-        2. Perform colocalisation
-        3. Add metadata to results
     """
 
     sparkConf = SparkConf()
@@ -47,15 +43,16 @@ def main(cfg: DictConfig) -> None:
         cfg.coloc.priorc12,
     )
 
-    # 3. Add metadata to results
-    colocWithMetadata = addColocMetadata(spark, coloc, cfg)
+    # 3. Add molecular trait genes (metadata)
+    colocWithMetadata = addMolecularTraitPhenotypeGenes(
+        spark, coloc, cfg.coloc.phenotype_id_gene
+    )
+
+    # 4. Add more info from sumstats (metadata)
+    colocWithMetadata = addColocSumstatsInfo(spark, coloc, cfg.coloc.sumstats_filtered)
 
     # Write output
-    (
-        colocWithMetadata.write
-        # .partitionBy("left_chrom")
-        .mode("overwrite").parquet(cfg.coloc.output)
-    )
+    (colocWithMetadata.write.mode("overwrite").parquet(cfg.coloc.output))
 
     # TODO: compute model averaged effect size ratios
     # https://github.com/tobyjohnson/gtx/blob/9afa9597a51d0ff44536bc5c8eddd901ab3e867c/R/coloc.R#L91

@@ -54,13 +54,13 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
         "studyKey",
         "lead_variant_id",
         "type",
-        "study_id",
-        "phenotype_id",
-        "bio_feature",
-        "lead_chrom",
-        "lead_pos",
-        "lead_ref",
-        "lead_alt",
+        # "study_id",
+        # "phenotype_id",
+        # "bio_feature",
+        # "lead_chrom",
+        # "lead_pos",
+        # "lead_ref",
+        # "lead_alt",
     ]
 
     coloc = (
@@ -85,6 +85,21 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
             Fml.array_to_vector(F.collect_list(F.col("sum_logABF"))).alias(
                 "sum_logABF"
             ),
+            # carrying over information and renaming columns (backwards compatible)
+            F.first("left_study_id").alias("left_study"),
+            F.first("left_phenotype_id").alias("left_phenotype"),
+            F.first("left_bio_feature").alias("left_bio_feature"),
+            F.first("left_lead_chrom").alias("left_chrom"),
+            F.first("left_lead_pos").alias("left_pos"),
+            F.first("left_lead_ref").alias("left_ref"),
+            F.first("left_lead_alt").alias("left_alt"),
+            F.first("right_study_id").alias("right_study"),
+            F.first("right_phenotype_id").alias("right_phenotype"),
+            F.first("right_bio_feature").alias("right_bio_feature"),
+            F.first("right_lead_chrom").alias("right_chrom"),
+            F.first("right_lead_pos").alias("right_pos"),
+            F.first("right_lead_ref").alias("right_ref"),
+            F.first("right_lead_alt").alias("right_alt"),
         )
         # Log sums
         .withColumn("logsum1", logsum(F.col("left_logABF")))
