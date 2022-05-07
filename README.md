@@ -17,7 +17,7 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
     --master-machine-type=n1-highmem-32 \
     --enable-component-gateway \
     --single-node \
-    --max-idle=5m
+    --max-idle=15m
 ```
 
 ### Submit job
