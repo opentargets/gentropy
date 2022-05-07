@@ -15,6 +15,7 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
     --metadata 'PIP_PACKAGES=omegaconf hydra-core' \
     --initialization-actions gs://goog-dataproc-initialization-actions-europe-west1/python/pip-install.sh                                                  \
     --master-machine-type=n1-highmem-32 \
+    --enable-component-gateway \
     --single-node \
     --max-idle=5m
 ```
