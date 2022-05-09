@@ -17,13 +17,9 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             # gene2: Gene 2
             # overlap: Number of overlapping signals
     """
-    credSet = (
-        spark.read.parquet(credSetPath)
-        # .repartition("lead_chrom")
-        .distinct().withColumn(
-            "studyKey",
-            F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
-        )
+    credSet = spark.read.parquet(credSetPath).withColumn(
+        "studyKey",
+        F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
     )
 
     # Columnns to be used as left and right
