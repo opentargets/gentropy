@@ -1,10 +1,6 @@
 coloc:
   # Credible sets (Coloc input)
-  credible_set: gs://genetics-portal-dev-analysis/dsuveges/test_credible_set_chr22.parquet # chr22 parquet
-
-  # TODO: once the full credible set is in parquet. Add 2 hydra configs one for chr22 and one for all
-  # https://hydra.cc/docs/tutorials/basic/your_first_app/config_groups/
-  # credible_set: gs://genetics-portal-dev-staging/finemapping/220224_merged/credset/ # all in JSON
+  credible_set: gs://ot-team/dochoa/220224_merged_credset/chrom=22/
 
   # coloc parameters:
   # priorc1 Prior on variant being causal for trait 1
