@@ -70,13 +70,9 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             | (F.col("left_studyKey") > F.col("right_studyKey"))
         )
         # drop unnecesarry data for finding overlapping signals
-        .drop(
-            *["left_" + col for col in metadataCols + ["logABF"]]
-            + ["right_" + col for col in metadataCols + ["logABF"]]
-            + ["tag_variant_id"]
-        )
-        # distinct to get study-pair info
-        .distinct()
+        .select(
+            *["left_" + col for col in idCols] + ["right_" + col for col in idCols]
+        ).distinct()
     )
 
     overlappingLeft = overlappingPeaks.join(
