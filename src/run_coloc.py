@@ -55,9 +55,9 @@ def main(cfg: DictConfig) -> None:
 
     # Write output
     (
-        colocWithGenes.write.partitionBy("left_chrom")
-        .mode("overwrite")
-        .parquet(cfg.coloc.output)
+        colocWithGenes.write
+        # .partitionBy("left_chrom")
+        .mode("overwrite").parquet(cfg.coloc.output)
     )
 
     # TODO: compute model averaged effect size ratios

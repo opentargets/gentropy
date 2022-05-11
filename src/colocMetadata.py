@@ -14,7 +14,7 @@ def addMolecularTraitPhenotypeGenes(
         .option("sep", "\t")
         .csv(phenotype2genePath)
         .select(
-            F.col("phenotype_id").alias("right_phenotype"),
+            F.col("phenotype_id").alias("right_phenotype_id"),
             F.col("gene_id").alias("right_gene_id"),
         )
     )
@@ -22,20 +22,21 @@ def addMolecularTraitPhenotypeGenes(
     colocWithMetadata = (
         colocResult.join(
             F.broadcast(phenotypeIdGene),
-            on="right_phenotype",
+            on="right_phenotype_id",
             how="left",
         )
         .withColumn(
             "right_gene_id",
             F.when(
-                F.col("right_phenotype").startswith("ENSG"), F.col("right_phenotype")
+                F.col("right_phenotype_id").startswith("ENSG"),
+                F.col("right_phenotype_id"),
             ).otherwise(F.col("right_gene_id")),
         )
         .withColumn(
             "right_gene_id",
             F.when(
-                F.col("right_study") == "GTEx-sQTL",
-                F.regexp_extract(F.col("right_phenotype"), ":(ENSG.*)$", 1),
+                F.col("right_study_id") == "GTEx-sQTL",
+                F.regexp_extract(F.col("right_phenotype_id"), ":(ENSG.*)$", 1),
             ).otherwise(F.col("right_gene_id")),
         )
     )
@@ -81,7 +82,7 @@ def addColocSumstatsInfo(spark: SparkSession, coloc, sumstatsPath: str):
     # clean unnecessary columns
     result = (
         colocWithMetadata.drop("left_lead_variant_id", "right_lead_variant_id")
-        .drop("left_bio_feature", "left_phenotype")
+        .drop("left_bio_feature", "left_phenotype_id")
         .drop("left_studyKey", "right_studyKey")
     )
 
