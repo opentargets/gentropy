@@ -1,6 +1,7 @@
 from functools import reduce
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
+from pyspark.sql.window import Window
 
 
 def findOverlappingSignals(spark: SparkSession, credSetPath: str):
@@ -38,61 +39,40 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         "lead_alt",
     ]
 
-    leftDf = reduce(
-        lambda DF, col: DF.withColumnRenamed(col, "left_" + col),
-        idCols + metadataCols + ["logABF"],
-        credSet.select(idCols + metadataCols + ["logABF", "tag_variant_id"]),
+    # Creating nested map with all tags in the study-lead variant
+    wind1 = Window.partitionBy(idCols)
+    credSetWithTagObjects = (
+        credSet.withColumn("tag_object", F.create_map("tag_variant_id", "logABF"))
+        .withColumn("all_tags", F.collect_list("tag_object").over(wind1))
+        .select(idCols + metadataCols + ["tag_variant_id", "all_tags"])
     )
-    rightDf = reduce(
-        lambda DF, col: DF.withColumnRenamed(col, "right_" + col),
-        idCols + metadataCols + ["logABF"],
-        credSet.select(idCols + metadataCols + ["logABF", "tag_variant_id"]),
+
+    # Self join with complex condition
+    overlappingTags = (
+        credSetWithTagObjects.alias("left")
+        .filter(F.col("type") == "gwas")
+        .join(
+            credSetWithTagObjects.alias("right"),
+            on=[
+                F.col("left.tag_variant_id") == F.col("right.tag_variant_id"),
+                F.col("left.studyKey") != F.col("right.studyKey"),
+                (F.col("right.type") != "gwas")
+                | (F.col("left.studyKey") > F.col("right.studyKey")),
+            ],
+            how="inner",
+        )
     )
+
+    # Drop multiple tags for the same peak pair
+    wind2 = Window.partitionBy(
+        ["left." + i for i in idCols] + ["right." + i for i in idCols]
+    ).orderBy("left.tag_variant_id")
 
     overlappingPeaks = (
-        leftDf
-        # molecular traits always on the right-side
-        .filter(F.col("left_type") == "gwas")
-        # Get all study/peak pairs where at least one tagging variant overlap:
-        .join(rightDf, on="tag_variant_id", how="inner")
-        # Different study keys
-        .filter(
-            # Remove rows with identical study:
-            (F.col("left_studyKey") != F.col("right_studyKey"))
-        )
-        # Keep only the upper triangle where both study is gwas
-        .filter(
-            (F.col("right_type") != "gwas")
-            | (F.col("left_studyKey") > F.col("right_studyKey"))
-        )
-        # drop unnecesarry data for finding overlapping signals
-        .select(
-            *["left_" + col for col in idCols] + ["right_" + col for col in idCols]
-        ).distinct()
+        overlappingTags.withColumn("row_number", F.row_number().over(wind2))
+        .where(F.col("row_number") == 1)
+        .drop("row_number", "left.tag_variant_id", "right.tag_variant_id")
     )
 
-    overlappingLeft = overlappingPeaks.join(
-        leftDf,
-        on=["left_studyKey", "left_lead_variant_id", "left_type"],
-        how="inner",
-    )
-    overlappingRight = overlappingPeaks.join(
-        rightDf,
-        on=["right_studyKey", "right_lead_variant_id", "right_type"],
-        how="inner",
-    )
-
-    overlappingSignals = overlappingLeft.alias("a").join(
-        overlappingRight.alias("b"),
-        on=[
-            "tag_variant_id",
-            "left_lead_variant_id",
-            "right_lead_variant_id",
-            "left_studyKey",
-            "right_studyKey",
-            "right_type",
-            "left_type",
-        ],
-        how="outer",
-    )
-    return overlappingSignals
+    # TODO: rename columns to make them unambiguous
+    # TODO: new version of all_tags containing the nulls
