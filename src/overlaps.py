@@ -47,7 +47,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         .select(idCols + metadataCols + ["tag_variant_id", "all_tags"])
     )
 
-    # Self join with complex condition
+    # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
     overlappingTags = (
         credSetWithTagObjects.alias("left")
         .filter(F.col("type") == "gwas")
@@ -55,7 +55,6 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             credSetWithTagObjects.alias("right"),
             on=[
                 F.col("left.tag_variant_id") == F.col("right.tag_variant_id"),
-                F.col("left.studyKey") != F.col("right.studyKey"),
                 (F.col("right.type") != "gwas")
                 | (F.col("left.studyKey") > F.col("right.studyKey")),
             ],
