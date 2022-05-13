@@ -6,7 +6,6 @@ from pyspark.ml.linalg import VectorUDT, Vectors
 import numpy as np
 import pyspark.sql.types as T
 import pyspark.sql.functions as F
-from pyspark.sql.window import Window
 import pyspark.ml.functions as Fml
 
 
@@ -43,56 +42,16 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
     logsum = F.udf(getLogsum, T.DoubleType())
     posteriors = F.udf(getPosteriors, VectorUDT())
 
-    signalPairsCols = [
-        "studyKey",
-        "lead_variant_id",
-        "type",
-        # "study_id",
-        # "phenotype_id",
-        # "bio_feature",
-        # "lead_chrom",
-        # "lead_pos",
-        # "lead_ref",
-        # "lead_alt",
-    ]
-
-    windowSpec = Window.partitionBy(
-        ["left_" + col for col in signalPairsCols]
-        + ["right_" + col for col in signalPairsCols]
-    ).orderBy("tag_variant_id")
-    windowSpecAgg = Window.partitionBy(
-        ["left_" + col for col in signalPairsCols]
-        + ["right_" + col for col in signalPairsCols]
-    )
     coloc = (
-        overlappingSignals
-        # Before summarizing logABF columns nulls need to be filled with 0:
-        .fillna(0, subset=["left_logABF", "right_logABF"])
-        # Grouping data by peak and collect list of the sums:
-        .withColumn("sum_logABF", F.col("left_logABF") + F.col("right_logABF"))
-        # Group by overlapping peak and generating dense vectors of logABF:
-        .withColumn("row_number", F.row_number().over(windowSpec))
-        .withColumn("coloc_n_vars", F.count("tag_variant_id").over(windowSpecAgg))
-        .withColumn(
-            "left_logABF",
-            Fml.array_to_vector(
-                F.collect_list(F.col("left_logABF")).over(windowSpecAgg)
-            ),
-        )
-        .withColumn(
-            "right_logABF",
-            Fml.array_to_vector(
-                F.collect_list(F.col("right_logABF")).over(windowSpecAgg)
-            ),
-        )
-        .withColumn(
+        overlappingSignals.withColumn(
             "sum_logABF",
-            Fml.array_to_vector(
-                F.collect_list(F.col("sum_logABF")).over(windowSpecAgg)
+            F.expr(
+                "transform(arrays_zip(left_logABF, right_logABF), x -> x.left_logABF + x.right_logABF)"
             ),
         )
-        .filter(F.col("row_number") == 1)
-        .drop("row_number")
+        .withColumn("left_logABF", Fml.array_to_vector(F.col("left_logABF")))
+        .withColumn("right_logABF", Fml.array_to_vector(F.col("right_logABF")))
+        .withColumn("sum_logABF", Fml.array_to_vector(F.col("sum_logABF")))
         # Log sums
         .withColumn("logsum1", logsum(F.col("left_logABF")))
         .withColumn("logsum2", logsum(F.col("right_logABF")))
