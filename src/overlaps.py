@@ -90,7 +90,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
                 F.map_zip_with(
                     "left_all_tags",
                     "right_all_tags",
-                    lambda k, v1, v2: F.coalesce(v1, F.lit(0.0)),
+                    lambda k, v1, v2: F.coalesce(v1, F.lit(0)),
                 )
             )
             # ),
@@ -102,7 +102,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
                 F.map_zip_with(
                     "left_all_tags",
                     "right_all_tags",
-                    lambda k, v1, v2: F.coalesce(v2, F.lit(0.0)),
+                    lambda k, v1, v2: F.coalesce(v2, F.lit(0)),
                 )
             )
             # ),

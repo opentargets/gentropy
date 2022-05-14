@@ -2,32 +2,35 @@
 Utilities to perform colocalisation analysis
 """
 
-from pyspark.ml.linalg import VectorUDT, Vectors
-import numpy as np
-import pyspark.sql.types as T
+import pyspark.sql.column as Column
 import pyspark.sql.functions as F
-import pyspark.ml.functions as Fml
 
 
-def getLogsum(logABF: VectorUDT):
+def logsum(logABF: Column):
     """
     This function calculates the log of the sum of the exponentiated
     logs taking out the max, i.e. insuring that the sum is not Inf
-    """
-
+    Numpy equivalent:
     themax = np.max(logABF)
     result = themax + np.log(np.sum(np.exp(logABF - themax)))
-    return float(result)
+    """
+    themax = F.array_max(logABF)
+    expVector = F.transform(logABF, lambda c: F.exp(c - themax))
+    summedval = F.aggregate(expVector, F.lit(0.0), lambda acc, x: acc + x)
+    result = themax + F.log(summedval)
+    return result
 
 
-def getPosteriors(allAbfs: VectorUDT):
+def posteriors(allABF: Column):
     """
     Calculates the posterior probability of each hypothesis given the evidence.
-    """
-
+    Numpy equivalent:
     diff = allAbfs - getLogsum(allAbfs)
     abfsPosteriors = np.exp(diff)
-    return Vectors.dense(abfsPosteriors)
+    """
+    theLogsum = logsum(allABF)
+    diff = F.transform(allABF, lambda c: F.exp(c - theLogsum))
+    return diff
 
 
 def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
@@ -38,10 +41,6 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
         overlappingSignals: DataFrame with overlapping signals
     """
 
-    # register udfs
-    logsum = F.udf(getLogsum, T.DoubleType())
-    posteriors = F.udf(getPosteriors, VectorUDT())
-
     coloc = (
         overlappingSignals.withColumn(
             "sum_logABF",
@@ -49,9 +48,7 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
                 "transform(arrays_zip(left_logABF, right_logABF), x -> x.left_logABF + x.right_logABF)"
             ),
         )
-        .withColumn("left_logABF", Fml.array_to_vector(F.col("left_logABF")))
-        .withColumn("right_logABF", Fml.array_to_vector(F.col("right_logABF")))
-        .withColumn("sum_logABF", Fml.array_to_vector(F.col("sum_logABF")))
+        .withColumn("coloc_n_vars", F.size(F.col("sum_logABF")))
         # Log sums
         .withColumn("logsum1", logsum(F.col("left_logABF")))
         .withColumn("logsum2", logsum(F.col("right_logABF")))
@@ -65,7 +62,7 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
         # priorc12 Prior on variant being causal for traits 1 and 2
         .withColumn("priorc12", F.lit(priorc12))
         # h0-h2
-        .withColumn("lH0abf", F.lit(0))
+        .withColumn("lH0abf", F.lit(0.0))
         .withColumn("lH1abf", F.log(F.col("priorc1")) + F.col("logsum1"))
         .withColumn("lH2abf", F.log(F.col("priorc2")) + F.col("logsum2"))
         # h3
@@ -94,8 +91,8 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
         .drop("priorc1", "priorc2", "priorc12", "logsum1", "logsum2", "logsum12")
         # posteriors
         .withColumn(
-            "allABF",
-            Fml.array_to_vector(
+            "posteriors",
+            posteriors(
                 F.array(
                     F.col("lH0abf"),
                     F.col("lH1abf"),
@@ -105,7 +102,6 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
                 )
             ),
         )
-        .withColumn("posteriors", Fml.vector_to_array(posteriors(F.col("allABF"))))
         .withColumn("coloc_h0", F.col("posteriors").getItem(0))
         .withColumn("coloc_h1", F.col("posteriors").getItem(1))
         .withColumn("coloc_h2", F.col("posteriors").getItem(2))
