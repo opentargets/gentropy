@@ -9,6 +9,13 @@ import pyspark.sql.functions as F
 import pyspark.ml.functions as Fml
 
 
+def getSumVectors(vec1: VectorUDT, vec2: VectorUDT):
+    """
+    Sums two vectors
+    """
+    return Vectors.dense(vec1 + vec2)
+
+
 def getLogsum(logABF: VectorUDT):
     """
     This function calculates the log of the sum of the exponentiated
@@ -41,19 +48,17 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
     # register udfs
     logsum = F.udf(getLogsum, T.DoubleType())
     posteriors = F.udf(getPosteriors, VectorUDT())
+    sumVectors = F.udf(getSumVectors, VectorUDT())
 
     coloc = (
         overlappingSignals.withColumn(
-            "sum_logABF",
-            F.expr(
-                "transform(arrays_zip(left_logABF, right_logABF), x -> x.left_logABF + x.right_logABF)"
-            ),
+            "sum_logABF", sumVectors(F.col("left_logABF"), F.col("right_logABF"))
         )
-        .withColumn("coloc_n_vars", F.size(F.col("sum_logABF")))
+        # TODO: add coloc_n_vars variable with size of the vector for backwards compatibility
         # Log sums
-        .withColumn("logsum1", logsum(Fml.array_to_vector(F.col("left_logABF"))))
-        .withColumn("logsum2", logsum(Fml.array_to_vector(F.col("right_logABF"))))
-        .withColumn("logsum12", logsum(Fml.array_to_vector(F.col("sum_logABF"))))
+        .withColumn("logsum1", logsum(F.col("left_logABF")))
+        .withColumn("logsum2", logsum(F.col("right_logABF")))
+        .withColumn("logsum12", logsum(F.col("sum_logABF")))
         .drop("left_logABF", "right_logABF", "sum_logABF")
         # Add priors
         # priorc1 Prior on variant being causal for trait 1
@@ -88,7 +93,7 @@ def colocalisation(overlappingSignals, priorc1, priorc2, priorc12):
         .drop("right_logsum", "left_logsum", "sumlogsum", "max", "logdiff")
         # h4
         .withColumn("lH4abf", F.log(F.col("priorc12")) + F.col("logsum12"))
-        # cleaning
+        # # cleaning
         .drop("priorc1", "priorc2", "priorc12", "logsum1", "logsum2", "logsum12")
         # posteriors
         .withColumn(

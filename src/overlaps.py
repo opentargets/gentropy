@@ -1,6 +1,7 @@
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
+import pyspark.ml.functions as Fml
 
 
 def findOverlappingSignals(spark: SparkSession, credSetPath: str):
@@ -41,11 +42,15 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
     # Creating nested map with all tags in the study-lead variant
     wind1 = Window.partitionBy(idCols)
     credSetWithTagObjects = (
-        credSet.withColumn("all_tag_ids", F.collect_list("tag_variant_id").over(wind1))
-        .withColumn("all_logABFs", F.collect_list("logABF").over(wind1))
+        credSet
         # Exclude studies without logABFs available
-        .filter(F.size("all_logABFs") == F.size("all_tag_ids"))
-        .withColumn("all_tags", F.map_from_arrays("all_tag_ids", "all_logABFs"))
+        .filter(F.col("logABF").isNotNull())
+        .withColumn(
+            "all_tags",
+            F.map_from_entries(
+                F.collect_list(F.struct("tag_variant_id", "logABF")).over(wind1)
+            ),
+        )
         .select(idCols + metadataCols + ["tag_variant_id", "all_tags"])
     )
 
@@ -62,50 +67,47 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             ],
             how="inner",
         )
+        .drop("left.tag_variant_id", "right.tag_variant_id")
     )
 
-    # Rename columns in left and right to make them unique
-    colsToRename = idCols + metadataCols + ["tag_variant_id", "all_tags"]
+    # Rename columns in left and right to make them unambiguous
+    colsToRename = idCols + metadataCols + ["all_tags"]
     selectExpr = ["left." + col + " as " + "left_" + col for col in colsToRename] + [
         "right." + col + " as " + "right_" + col for col in colsToRename
     ]
-    overlappingTags = overlappingTags.selectExpr(*selectExpr)
-
-    # Keep only one record per overlapping peak
-    wind2 = Window.partitionBy(
-        ["left_" + i for i in idCols] + ["right_" + i for i in idCols]
-    ).orderBy("left_tag_variant_id")
     overlappingPeaks = (
-        overlappingTags.withColumn("row_number", F.row_number().over(wind2))
-        .where(F.col("row_number") == 1)
-        .drop("row_number", "left_tag_variant_id", "right_tag_variant_id")
+        overlappingTags.selectExpr(
+            *selectExpr
+        )  # Keep only one record per overlapping peak
+        # TODO: think whether this could be optimised
+        .dropDuplicates(["left_" + i for i in idCols] + ["right_" + i for i in idCols])
     )
 
     # Exctract logABF vectors for each vector mapped by tag_variant_id
     overlappingPeaksWithArrays = (
         overlappingPeaks.withColumn(
             "left_logABF",
-            # Fml.array_to_vector(
-            F.map_values(
-                F.map_zip_with(
-                    "left_all_tags",
-                    "right_all_tags",
-                    lambda k, v1, v2: F.coalesce(v1, F.lit(0)),
+            Fml.array_to_vector(
+                F.map_values(
+                    F.map_zip_with(
+                        "left_all_tags",
+                        "right_all_tags",
+                        lambda k, v1, v2: F.coalesce(v1, F.lit(0.0)),
+                    )
                 )
-            )
-            # ),
+            ),
         )
         .withColumn(
             "right_logABF",
-            # Fml.array_to_vector(
-            F.map_values(
-                F.map_zip_with(
-                    "left_all_tags",
-                    "right_all_tags",
-                    lambda k, v1, v2: F.coalesce(v2, F.lit(0)),
+            Fml.array_to_vector(
+                F.map_values(
+                    F.map_zip_with(
+                        "left_all_tags",
+                        "right_all_tags",
+                        lambda k, v1, v2: F.coalesce(v2, F.lit(0.0)),
+                    )
                 )
-            )
-            # ),
+            ),
         )
         .drop("right_all_tags", "left_all_tags")
     )
