@@ -65,14 +65,15 @@ def main(cfg: DictConfig) -> None:
 
     # For debugging
     # (
-    #     coloc
-    #     .filter(
-    #         (F.col("left_studyKey") == "gwas_NEALE2_20003_1140909872") &
-    #         (F.col("right_studyKey") ==
-    # "sqtl_GTEx-sQTL_chr22:17791301:17806239:clu_21824:ENSG00000243156_Ovary") &
-    #         (F.col("left_lead_variant_id") == "22:16590692:CAA:C") &
-    #         (F.col("right_lead_variant_id") == "22:17806438:G:A"))
-    #     .show(vertical = True)
+    #     coloc.filter(
+    #         (F.col("left_studyKey") == "gwas_NEALE2_20003_1140909872")
+    #         & (
+    #             F.col("right_studyKey")
+    #             == "sqtl_GTEx-sQTL_chr22:17791301:17806239:clu_21824:ENSG00000243156_Ovary"
+    #         )
+    #         & (F.col("left_lead_variant_id") == "22:16590692:CAA:C")
+    #         & (F.col("right_lead_variant_id") == "22:17806438:G:A")
+    #     ).show(vertical=True)
     # )
 
 
