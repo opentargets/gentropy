@@ -12,16 +12,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         spark: SparkSession
         credSetPath: Path to credible sets
 
-    Returns:
-        DataFrame with columns:
-            # gene1: Gene 1
-            # gene2: Gene 2
-            # overlap: Number of overlapping signals
     """
-    credSet = spark.read.parquet(credSetPath).withColumn(
-        "studyKey",
-        F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
-    )
 
     # Columnns to be used as left and right
     idCols = [
@@ -39,12 +30,16 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         "lead_alt",
     ]
 
-    # Creating nested map with all tags in the study-lead variant
     wind1 = Window.partitionBy(idCols)
-    credSetWithTagObjects = (
-        credSet
+    credSet = (
+        spark.read.parquet(credSetPath)
+        .withColumn(
+            "studyKey",
+            F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
+        )
         # Exclude studies without logABFs available
         .filter(F.col("logABF").isNotNull())
+        # Creating nested map with all tags in the study-lead variant
         .withColumn(
             "all_tags",
             F.map_from_entries(
@@ -55,11 +50,12 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
     )
 
     # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-    overlappingTags = (
-        credSetWithTagObjects.alias("left")
+    colsToRename = idCols + metadataCols + ["all_tags"]
+    overlappingPeaks = (
+        credSet.alias("left")
         .filter(F.col("type") == "gwas")
         .join(
-            credSetWithTagObjects.alias("right"),
+            credSet.alias("right"),
             on=[
                 F.col("left.tag_variant_id") == F.col("right.tag_variant_id"),
                 (F.col("right.type") != "gwas")
@@ -68,22 +64,16 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             how="inner",
         )
         .drop("left.tag_variant_id", "right.tag_variant_id")
+        # Keep only one record per overlapping peak
+        .dropDuplicates(*["left." + i for i in idCols] + ["right." + i for i in idCols])
+        # Rename columns to make them unambiguous
+        .selectExpr(
+            *["left." + col + " as " + "left_" + col for col in colsToRename]
+            + ["right." + col + " as " + "right_" + col for col in colsToRename]
+        )
     )
 
-    # Rename columns in left and right to make them unambiguous
-    colsToRename = idCols + metadataCols + ["all_tags"]
-    selectExpr = ["left." + col + " as " + "left_" + col for col in colsToRename] + [
-        "right." + col + " as " + "right_" + col for col in colsToRename
-    ]
-    overlappingPeaks = (
-        overlappingTags.selectExpr(
-            *selectExpr
-        )  # Keep only one record per overlapping peak
-        # TODO: think whether this could be optimised
-        .dropDuplicates(["left_" + i for i in idCols] + ["right_" + i for i in idCols])
-    )
-
-    # Exctract logABF vectors for each vector mapped by tag_variant_id
+    #  For each comparison, logABF vectors are the same size mapped by tag_variant_id
     overlappingPeaksWithArrays = (
         overlappingPeaks.withColumn(
             "left_logABF",
