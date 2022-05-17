@@ -71,6 +71,8 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             *["left." + col + " as " + "left_" + col for col in colsToRename]
             + ["right." + col + " as " + "right_" + col for col in colsToRename]
         )
+        # Keep only one record per overlapping peak
+        .dropDuplicates(["left_" + i for i in idCols] + ["right_" + i for i in idCols])
     )
 
     #  For each comparison, logABF vectors are the same size mapped by tag_variant_id (incl 0.0 on empty)
