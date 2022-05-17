@@ -64,8 +64,6 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
             how="inner",
         )
         .drop("left.tag_variant_id", "right.tag_variant_id")
-        # Keep only one record per overlapping peak
-        .dropDuplicates(*["left." + i for i in idCols] + ["right." + i for i in idCols])
         # Rename columns to make them unambiguous
         .selectExpr(
             *["left." + col + " as " + "left_" + col for col in colsToRename]
