@@ -1,6 +1,6 @@
 coloc:
   # Credible sets (Coloc input)
-  credible_set: gs://ot-team/dochoa/220224_merged_credset/chrom=22/
+  credible_set: gs://ot-team/dochoa/220224_merged_credset/
 
   # coloc parameters:
   # priorc1 Prior on variant being causal for trait 1
