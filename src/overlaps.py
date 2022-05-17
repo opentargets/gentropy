@@ -73,7 +73,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         )
     )
 
-    #  For each comparison, logABF vectors are the same size mapped by tag_variant_id
+    #  For each comparison, logABF vectors are the same size mapped by tag_variant_id (incl 0.0 on empty)
     overlappingPeaksWithArrays = (
         overlappingPeaks.withColumn(
             "left_logABF",
