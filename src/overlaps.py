@@ -51,8 +51,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         .join(
             credSetToSelfJoin.alias("right"),
             on=[
-                F.col("left.lead_chrom") == F.col("chrom"),
-                F.col("right.lead_chrom") == F.col("chrom"),                
+                F.col("left.chrom") == F.col("right.chrom"),
                 F.col("left.tag_variant_id") == F.col("right.tag_variant_id"),
                 (F.col("right.type") != "gwas")
                 | (F.col("left.studyKey") > F.col("right.studyKey")),
