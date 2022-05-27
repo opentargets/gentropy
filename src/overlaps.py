@@ -36,7 +36,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         # TODO: xxhash64()
         .withColumn(
             "studyKey",
-            F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
+            F.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
         )
         # Exclude studies without logABFs available
         .filter(F.col("logABF").isNotNull())
@@ -51,6 +51,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         .join(
             credSetToSelfJoin.alias("right"),
             on=[
+                F.col("left.chrom") == F.col("right.chrom"),
                 F.col("left.tag_variant_id") == F.col("right.tag_variant_id"),
                 (F.col("right.type") != "gwas")
                 | (F.col("left.studyKey") > F.col("right.studyKey")),
@@ -65,6 +66,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
         )
         # Keep only one record per overlapping peak
         .dropDuplicates(["left_" + i for i in idCols] + ["right_" + i for i in idCols])
+        .cache()
     )
 
     overlappingLeft = credSet.selectExpr(
