@@ -32,7 +32,7 @@ def findOverlappingSignals(spark: SparkSession, credSetPath: str):
     credSet = (
         spark.read.parquet(credSetPath)
         # TODO: for debugging
-        .filter(F.col("chrom") == "22")
+        # .filter(F.col("chrom") == "22")
         # TODO: xxhash64()
         .withColumn(
             "studyKey",
