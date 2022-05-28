@@ -14,7 +14,7 @@ from pyspark.sql import SparkSession
 from omegaconf import DictConfig
 from colocMetadata import addColocSumstatsInfo, addMolecularTraitPhenotypeGenes
 from coloc import colocalisation
-from overlaps import findOverlappingSignals
+from overlaps import findAllVsAllOverlappingSignals
 
 
 @hydra.main(config_path=os.getcwd(), config_name="config")
@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
     spark = SparkSession.builder.config(conf=sparkConf).master("local[*]").getOrCreate()
 
     # 1. Obtain overlapping signals in OT genetics portal
-    overlappingSignals = findOverlappingSignals(spark, cfg.coloc.credible_set)
+    overlappingSignals = findAllVsAllOverlappingSignals(spark, cfg.coloc.credible_set)
 
     # 2. Perform colocalisation analysis
     coloc = colocalisation(

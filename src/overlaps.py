@@ -2,7 +2,7 @@ import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 
 
-def findOverlappingSignals(spark: SparkSession, credSetPath: str):
+def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
     """
     Find overlapping signals between all pairs of cred sets (exploded at the tag variant level)
 
