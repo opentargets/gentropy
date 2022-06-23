@@ -23,14 +23,15 @@ def main(cfg: DictConfig) -> None:
     Run colocalisation analysis
     """
 
-    sparkConf = SparkConf()
-    sparkConf = sparkConf.set("spark.hadoop.fs.gs.requester.pays.mode", "AUTO")
-    sparkConf = sparkConf.set(
-        "spark.hadoop.fs.gs.requester.pays.project.id", "open-targets-eu-dev"
+    sparkConf = (
+        SparkConf()
+        .set("spark.hadoop.fs.gs.requester.pays.mode", "AUTO")
+        .set("spark.hadoop.fs.gs.requester.pays.project.id", cfg.project.id)
+        .set("spark.sql.broadcastTimeout", "36000")
     )
 
     # establish spark connection
-    spark = SparkSession.builder.config(conf=sparkConf).master("local[*]").getOrCreate()
+    spark = SparkSession.builder.config(conf=sparkConf).master("yarn").getOrCreate()
 
     # 1. Obtain overlapping signals in OT genetics portal
     overlappingSignals = findAllVsAllOverlappingSignals(spark, cfg.coloc.credible_set)
@@ -44,19 +45,19 @@ def main(cfg: DictConfig) -> None:
     )
 
     # 3. Add molecular trait genes (metadata)
-    # colocWithGenes = addMolecularTraitPhenotypeGenes(
-    #     spark, coloc, cfg.coloc.phenotype_id_gene
-    # )
+    colocWithGenes = addMolecularTraitPhenotypeGenes(
+        spark, coloc, cfg.coloc.phenotype_id_gene
+    )
 
-    # # 4. Add more info from sumstats (metadata)
+    # 4. Add more info from sumstats (metadata)
     # colocWithAllMetadata = addColocSumstatsInfo(
     #     spark, colocWithGenes, cfg.coloc.sumstats_filtered
     # )
 
     # Write output
-    (coloc.write.mode("overwrite").parquet(cfg.coloc.output))
+    (colocWithGenes.write.mode("overwrite").parquet(cfg.coloc.output))
 
-    # TODO: compute model averaged effect size ratios
+    # TODO: New feature: compute model averaged effect size ratios
     # https://github.com/tobyjohnson/gtx/blob/9afa9597a51d0ff44536bc5c8eddd901ab3e867c/R/coloc.R#L91
 
     # For debugging

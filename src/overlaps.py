@@ -72,7 +72,7 @@ def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
         [col + " as " + "left_" + col for col in idCols + metadataCols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(
-        F.broadcast(overlappingPeaks.orderBy(["left_" + i for i in idCols])),
+        overlappingPeaks.sortWithinPartitions(["left_" + i for i in idCols]),
         on=["left_" + i for i in idCols],
         how="inner",
     )
@@ -81,7 +81,7 @@ def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
         [col + " as " + "right_" + col for col in idCols + metadataCols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(
-        F.broadcast(overlappingPeaks.orderBy(["right_" + i for i in idCols])),
+        overlappingPeaks.sortWithinPartitions(["right_" + i for i in idCols]),
         on=["right_" + i for i in idCols],
         how="inner",
     )

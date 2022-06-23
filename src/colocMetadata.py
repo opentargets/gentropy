@@ -14,7 +14,7 @@ def addMolecularTraitPhenotypeGenes(
         .option("sep", "\t")
         .csv(phenotype2genePath)
         .select(
-            F.col("phenotype_id").alias("right_phenotype_id"),
+            F.col("phenotype_id").alias("right_phenotype"),
             F.col("gene_id").alias("right_gene_id"),
         )
     )
@@ -22,21 +22,21 @@ def addMolecularTraitPhenotypeGenes(
     colocWithMetadata = (
         colocResult.join(
             F.broadcast(phenotypeIdGene),
-            on="right_phenotype_id",
+            on="right_phenotype",
             how="left",
         )
         .withColumn(
             "right_gene_id",
             F.when(
-                F.col("right_phenotype_id").startswith("ENSG"),
-                F.col("right_phenotype_id"),
+                F.col("right_phenotype").startswith("ENSG"),
+                F.col("right_phenotype"),
             ).otherwise(F.col("right_gene_id")),
         )
         .withColumn(
             "right_gene_id",
             F.when(
-                F.col("right_study_id") == "GTEx-sQTL",
-                F.regexp_extract(F.col("right_phenotype_id"), ":(ENSG.*)$", 1),
+                F.col("right_study") == "GTEx-sQTL",
+                F.regexp_extract(F.col("right_phenotype"), ":(ENSG.*)$", 1),
             ).otherwise(F.col("right_gene_id")),
         )
     )
@@ -51,18 +51,20 @@ def addColocSumstatsInfo(spark: SparkSession, coloc, sumstatsPath: str):
         .repartition("chrom")
         .withColumn(
             "right_studyKey",
-            F.concat_ws("_", *["type", "study_id", "phenotype_id", "bio_feature"]),
+            F.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
         )
         .withColumn(
             "left_lead_variant_id",
             F.concat_ws("_", F.col("chrom"), F.col("pos"), F.col("ref"), F.col("alt")),
         )
+        .withColumnRenamed("chrom", "left_chrom")
         .withColumnRenamed("beta", "left_var_right_study_beta")
         .withColumnRenamed("se", "left_var_right_study_se")
         .withColumnRenamed("pval", "left_var_right_study_pval")
         .withColumnRenamed("is_cc", "left_var_right_isCC")
         # Only keep required columns
         .select(
+            "left_chrom",
             "left_lead_variant_id",
             "right_studyKey",
             "left_var_right_study_beta",
@@ -73,17 +75,16 @@ def addColocSumstatsInfo(spark: SparkSession, coloc, sumstatsPath: str):
     )
 
     # join info from sumstats
-    colocWithMetadata = sumstatsLeftVarRightStudyInfo.join(
-        coloc,
-        on=["left_lead_variant_id", "right_studyKey"],
-        how="right",
-    )
-
-    # clean unnecessary columns
-    result = (
-        colocWithMetadata.drop("left_lead_variant_id", "right_lead_variant_id")
-        .drop("left_bio_feature", "left_phenotype_id")
+    colocWithMetadata = (
+        sumstatsLeftVarRightStudyInfo.join(
+            F.broadcast(coloc),
+            on=["left_chrom", "left_lead_variant_id", "right_studyKey"],
+            how="right",
+        )
+        # clean unnecessary columns
+        .drop("left_lead_variant_id", "right_lead_variant_id")
+        .drop("left_bio_feature", "left_phenotype")
         .drop("left_studyKey", "right_studyKey")
     )
 
-    return result
+    return colocWithMetadata
