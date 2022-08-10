@@ -2,6 +2,9 @@ import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 
 
+
+
+
 def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
     """
     Find overlapping signals between all pairs of cred sets (exploded at the tag variant level)
@@ -13,12 +16,12 @@ def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
     """
 
     # Columnns to be used as left and right
-      idCols = [
-          "chrom",
-          "studyKey",
-          "lead_variant_id",
-          "type",
-      ]
+    idCols = [
+        "chrom",
+        "studyKey",
+        "lead_variant_id",
+        "type",
+    ]
     metadataCols = [
         "study_id",
         "phenotype_id",
