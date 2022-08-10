@@ -13,12 +13,12 @@ def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
     """
 
     # Columnns to be used as left and right
-        idCols = [
-        "chrom",
-        "studyKey",
-        "lead_variant_id",
-        "type",
-    ]
+      idCols = [
+          "chrom",
+          "studyKey",
+          "lead_variant_id",
+          "type",
+      ]
     metadataCols = [
         "study_id",
         "phenotype_id",
