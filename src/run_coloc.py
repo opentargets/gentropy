@@ -23,7 +23,7 @@ def main(cfg: DictConfig) -> None:
     Run colocalisation analysis
     """
 
-    sparkConf = (
+    spark_conf = (
         SparkConf()
         .set("spark.hadoop.fs.gs.requester.pays.mode", "AUTO")
         .set("spark.hadoop.fs.gs.requester.pays.project.id", cfg.project.id)
@@ -31,7 +31,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     # establish spark connection
-    spark = SparkSession.builder.config(conf=sparkConf).master("yarn").getOrCreate()
+    spark = SparkSession.builder.config(conf=spark_conf).master("yarn").getOrCreate()
 
     # 1. Obtain overlapping signals in OT genetics portal
     overlapping_signals = find_all_vs_all_overlapping_signals(
