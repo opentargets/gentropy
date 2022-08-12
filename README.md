@@ -1,4 +1,7 @@
 [![status: experimental](https://github.com/GIScience/badges/raw/master/status/experimental.svg)](https://github.com/GIScience/badges#experimental)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Build Status](https://github.com/opentargets/genetics_spark_coloc/actions/workflows/black.yml/badge.svg)](https://github.com/opentargets/genetics_spark_coloc/actions/)
+[![Build Status](https://github.com/opentargets/genetics_spark_coloc/actions/workflows/pylint.yml/badge.svg)](https://github.com/opentargets/genetics_spark_coloc/actions/)
 
 # genetics_spark_coloc
 Computing colocalisation analysis using PySpark from credible sets
@@ -32,7 +35,7 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
 gcloud dataproc jobs submit pyspark run_coloc.py \
     --cluster=${CLUSTER_NAME} \
     --files=config.yaml\
-    --py-files=coloc.py,colocMetadata.py,overlaps.py \
+    --py-files=coloc.py,coloc_metadata.py,overlaps.py \
     --project=${PROJECT} \
     --region=${CLUSTER_REGION}
 ```

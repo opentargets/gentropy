@@ -1,25 +1,28 @@
+"""Find overlapping signals susceptible of colocalisation analysis
+"""
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 
 
-def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
+def find_all_vs_all_overlapping_signals(spark: SparkSession, credset_path: str):
     """
     Find overlapping signals between all pairs of cred sets (exploded at the tag variant level)
+    Any study-lead variant pair with at least one overlapping tag variant is considered
 
     Args:
         spark: SparkSession
-        credSetPath: Path to credible sets
+        credset_path: Path to credible sets
 
     """
 
     # Columnns to be used as left and right
-    idCols = [
+    id_cols = [
         "chrom",
         "studyKey",
         "lead_variant_id",
         "type",
     ]
-    metadataCols = [
+    metadata_cols = [
         "study_id",
         "phenotype_id",
         "bio_feature",
@@ -29,10 +32,9 @@ def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
         "lead_alt",
     ]
 
-    credSet = (
-        spark.read.parquet(credSetPath)
-        # TODO: for debugging
-        # .filter(F.col("chrom") == "22")
+    credset = (
+        spark.read.parquet(credset_path)
+        # .filter(F.col("chrom") == "22") # for debugging
         .withColumn(
             "studyKey",
             F.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
@@ -42,13 +44,13 @@ def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
     )
 
     # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-    colsToRename = idCols
-    credSetToSelfJoin = credSet.select(idCols + ["tag_variant_id"])
-    overlappingPeaks = (
-        credSetToSelfJoin.alias("left")
+    cols_to_rename = id_cols
+    credset_to_self_join = credset.select(id_cols + ["tag_variant_id"])
+    overlapping_peaks = (
+        credset_to_self_join.alias("left")
         .filter(F.col("type") == "gwas")
         .join(
-            credSetToSelfJoin.alias("right"),
+            credset_to_self_join.alias("right"),
             on=[
                 F.col("left.chrom") == F.col("right.chrom"),
                 F.col("left.tag_variant_id") == F.col("right.tag_variant_id"),
@@ -60,38 +62,40 @@ def findAllVsAllOverlappingSignals(spark: SparkSession, credSetPath: str):
         .drop("left.tag_variant_id", "right.tag_variant_id")
         # Rename columns to make them unambiguous
         .selectExpr(
-            *["left." + col + " as " + "left_" + col for col in colsToRename]
-            + ["right." + col + " as " + "right_" + col for col in colsToRename]
+            *["left." + col + " as " + "left_" + col for col in cols_to_rename]
+            + ["right." + col + " as " + "right_" + col for col in cols_to_rename]
         )
         # Keep only one record per overlapping peak
-        .dropDuplicates(["left_" + i for i in idCols] + ["right_" + i for i in idCols])
+        .dropDuplicates(
+            ["left_" + i for i in id_cols] + ["right_" + i for i in id_cols]
+        )
         .cache()
     )
 
-    overlappingLeft = credSet.selectExpr(
-        [col + " as " + "left_" + col for col in idCols + metadataCols + ["logABF"]]
+    overlapping_left = credset.selectExpr(
+        [col + " as " + "left_" + col for col in id_cols + metadata_cols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(
-        overlappingPeaks.sortWithinPartitions(["left_" + i for i in idCols]),
-        on=["left_" + i for i in idCols],
+        overlapping_peaks.sortWithinPartitions(["left_" + i for i in id_cols]),
+        on=["left_" + i for i in id_cols],
         how="inner",
     )
 
-    overlappingRight = credSet.selectExpr(
-        [col + " as " + "right_" + col for col in idCols + metadataCols + ["logABF"]]
+    overlapping_right = credset.selectExpr(
+        [col + " as " + "right_" + col for col in id_cols + metadata_cols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(
-        overlappingPeaks.sortWithinPartitions(["right_" + i for i in idCols]),
-        on=["right_" + i for i in idCols],
+        overlapping_peaks.sortWithinPartitions(["right_" + i for i in id_cols]),
+        on=["right_" + i for i in id_cols],
         how="inner",
     )
 
-    overlappingSignals = overlappingLeft.join(
-        overlappingRight,
-        on=["right_" + i for i in idCols]
-        + ["left_" + i for i in idCols]
+    overlapping_signals = overlapping_left.join(
+        overlapping_right,
+        on=["right_" + i for i in id_cols]
+        + ["left_" + i for i in id_cols]
         + ["tag_variant_id"],
         how="outer",
     )
 
-    return overlappingSignals
+    return overlapping_signals
