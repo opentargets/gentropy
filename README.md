@@ -32,7 +32,7 @@ gcloud dataproc clusters create ${CLUSTER_NAME} \
 gcloud dataproc jobs submit pyspark run_coloc.py \
     --cluster=${CLUSTER_NAME} \
     --files=config.yaml\
-    --py-files=coloc.py,colocMetadata.py,overlaps.py \
+    --py-files=coloc.py,coloc_metadata.py,overlaps.py \
     --project=${PROJECT} \
     --region=${CLUSTER_REGION}
 ```
