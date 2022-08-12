@@ -12,7 +12,7 @@ import hydra
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from omegaconf import DictConfig
-from coloc_metadata import add_coloc_sumstats_info, add_moleculartrait_phenotype_genes
+from coloc_metadata import add_moleculartrait_phenotype_genes
 from coloc import colocalisation
 from overlaps import find_all_vs_all_overlapping_signals
 
@@ -52,6 +52,8 @@ def main(cfg: DictConfig) -> None:
     )
 
     # 4. Add more info from sumstats (metadata)
+    # Adds backwards compatibility with production schema
+    # Note: First implementation in add_coloc_sumstats_info hasn't been fully tested
     # colocWithAllMetadata = addColocSumstatsInfo(
     #     spark, coloc_with_genes, cfg.coloc.sumstats_filtered
     # )
