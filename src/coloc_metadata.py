@@ -4,24 +4,24 @@ import pyspark.sql.functions as F
 from omegaconf import DictConfig
 
 
-def addMolecularTraitPhenotypeGenes(
-    spark: SparkSession, colocResult: SparkSession, phenotype2genePath
+def add_moleculartrait_phenotype_genes(
+    spark: SparkSession, coloc_result: SparkSession, phenotype2gene_path
 ):
 
     # Mapping between molecular trait phenotypes and genes
-    phenotypeIdGene = (
+    phenotype_id = (
         spark.read.option("header", "true")
         .option("sep", "\t")
-        .csv(phenotype2genePath)
+        .csv(phenotype2gene_path)
         .select(
             F.col("phenotype_id").alias("right_phenotype"),
             F.col("gene_id").alias("right_gene_id"),
         )
     )
 
-    colocWithMetadata = (
-        colocResult.join(
-            F.broadcast(phenotypeIdGene),
+    coloc_with_metadata = (
+        coloc_result.join(
+            F.broadcast(phenotype_id),
             on="right_phenotype",
             how="left",
         )
@@ -40,14 +40,14 @@ def addMolecularTraitPhenotypeGenes(
             ).otherwise(F.col("right_gene_id")),
         )
     )
-    return colocWithMetadata
+    return coloc_with_metadata
 
 
-def addColocSumstatsInfo(spark: SparkSession, coloc, sumstatsPath: str):
+def add_coloc_sumstats_info(spark: SparkSession, coloc, sumstats_path: str):
 
-    sumstatsLeftVarRightStudyInfo = (
-        # sumstatsPath ~250Gb dataset
-        spark.read.parquet(sumstatsPath)
+    sumstats_leftvar_rightstudy = (
+        # sumstats_path ~250Gb dataset
+        spark.read.parquet(sumstats_path)
         .repartition("chrom")
         .withColumn(
             "right_studyKey",
@@ -75,8 +75,8 @@ def addColocSumstatsInfo(spark: SparkSession, coloc, sumstatsPath: str):
     )
 
     # join info from sumstats
-    colocWithMetadata = (
-        sumstatsLeftVarRightStudyInfo.join(
+    coloc_with_metadata = (
+        sumstats_leftvar_rightstudy.join(
             F.broadcast(coloc),
             on=["left_chrom", "left_lead_variant_id", "right_studyKey"],
             how="right",
@@ -87,4 +87,4 @@ def addColocSumstatsInfo(spark: SparkSession, coloc, sumstatsPath: str):
         .drop("left_studyKey", "right_studyKey")
     )
 
-    return colocWithMetadata
+    return coloc_with_metadata

@@ -12,9 +12,9 @@ import hydra
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from omegaconf import DictConfig
-from colocMetadata import addColocSumstatsInfo, addMolecularTraitPhenotypeGenes
+from coloc_metadata import add_coloc_sumstats_info, add_moleculartrait_phenotype_genes
 from coloc import colocalisation
-from overlaps import findAllVsAllOverlappingSignals
+from overlaps import find_all_vs_all_overlapping_signals
 
 
 @hydra.main(config_path=os.getcwd(), config_name="config")
@@ -23,7 +23,7 @@ def main(cfg: DictConfig) -> None:
     Run colocalisation analysis
     """
 
-    sparkConf = (
+    spark_conf = (
         SparkConf()
         .set("spark.hadoop.fs.gs.requester.pays.mode", "AUTO")
         .set("spark.hadoop.fs.gs.requester.pays.project.id", cfg.project.id)
@@ -31,31 +31,33 @@ def main(cfg: DictConfig) -> None:
     )
 
     # establish spark connection
-    spark = SparkSession.builder.config(conf=sparkConf).master("yarn").getOrCreate()
+    spark = SparkSession.builder.config(conf=spark_conf).master("yarn").getOrCreate()
 
     # 1. Obtain overlapping signals in OT genetics portal
-    overlappingSignals = findAllVsAllOverlappingSignals(spark, cfg.coloc.credible_set)
+    overlapping_signals = find_all_vs_all_overlapping_signals(
+        spark, cfg.coloc.credible_set
+    )
 
     # 2. Perform colocalisation analysis
     coloc = colocalisation(
-        overlappingSignals,
+        overlapping_signals,
         cfg.coloc.priorc1,
         cfg.coloc.priorc2,
         cfg.coloc.priorc12,
     )
 
     # 3. Add molecular trait genes (metadata)
-    colocWithGenes = addMolecularTraitPhenotypeGenes(
+    coloc_with_genes = add_moleculartrait_phenotype_genes(
         spark, coloc, cfg.coloc.phenotype_id_gene
     )
 
     # 4. Add more info from sumstats (metadata)
     # colocWithAllMetadata = addColocSumstatsInfo(
-    #     spark, colocWithGenes, cfg.coloc.sumstats_filtered
+    #     spark, coloc_with_genes, cfg.coloc.sumstats_filtered
     # )
 
     # Write output
-    (colocWithGenes.write.mode("overwrite").parquet(cfg.coloc.output))
+    (coloc_with_genes.write.mode("overwrite").parquet(cfg.coloc.output))
 
 
 if __name__ == "__main__":
