@@ -1,3 +1,5 @@
+"""Find overlapping signals susceptible of colocalisation analysis
+"""
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 
@@ -5,6 +7,7 @@ from pyspark.sql import SparkSession
 def find_all_vs_all_overlapping_signals(spark: SparkSession, credset_path: str):
     """
     Find overlapping signals between all pairs of cred sets (exploded at the tag variant level)
+    Any study-lead variant pair with at least one overlapping tag variant is considered
 
     Args:
         spark: SparkSession
@@ -31,8 +34,7 @@ def find_all_vs_all_overlapping_signals(spark: SparkSession, credset_path: str):
 
     credset = (
         spark.read.parquet(credset_path)
-        # TODO: for debugging
-        # .filter(F.col("chrom") == "22")
+        # .filter(F.col("chrom") == "22") # for debugging
         .withColumn(
             "studyKey",
             F.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),

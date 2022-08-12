@@ -1,12 +1,23 @@
-from functools import reduce
+"""Functions to add metadata to colocation results
+"""
+
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
-from omegaconf import DictConfig
 
 
 def add_moleculartrait_phenotype_genes(
-    spark: SparkSession, coloc_result: SparkSession, phenotype2gene_path
+    spark: SparkSession, coloc_result, phenotype2gene_path
 ):
+    """Add Ensembl gene id to molecular trait phenotype IDs
+
+    Args:
+        spark (SparkSession): Spark session
+        coloc_result: Results from colocalisation analysis
+        phenotype2gene_path: Path of lookup table
+
+    Returns:
+        Dataframe: Coloc datasets with gene IDs for molecular trait phenotypes
+    """
 
     # Mapping between molecular trait phenotypes and genes
     phenotype_id = (
@@ -44,6 +55,16 @@ def add_moleculartrait_phenotype_genes(
 
 
 def add_coloc_sumstats_info(spark: SparkSession, coloc, sumstats_path: str):
+    """Adds relevant metadata to colocalisation results from summary stats
+
+    Args:
+        spark (SparkSession): Spark session
+        coloc (Dataframe): Colocalisation results
+        sumstats_path (str): Summary stats dataset
+
+    Returns:
+        _type_: Colocalisation results with summary stats metadata added
+    """
 
     sumstats_leftvar_rightstudy = (
         # sumstats_path ~250Gb dataset
