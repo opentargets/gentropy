@@ -10,11 +10,11 @@ packages = [
 ]
 [tool.poetry.dependencies]
 python = "^3.10"
-pyspark = "^3.3.0"
 hydra-core = "^1.2.0"
 numpy = "^1.23.2"
 
 [tool.poetry.dev-dependencies]
+pyspark = "^3.3.0"
 black = "^22.6.0"
 pylint = "^2.14.5"
 
