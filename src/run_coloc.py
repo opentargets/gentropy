@@ -12,9 +12,9 @@ import hydra
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from omegaconf import DictConfig
-from coloc_metadata import add_moleculartrait_phenotype_genes
-from coloc import colocalisation
-from overlaps import find_all_vs_all_overlapping_signals
+from coloc_utils.coloc_metadata import add_moleculartrait_phenotype_genes
+from coloc_utils.coloc import colocalisation
+from coloc_utils.overlaps import find_all_vs_all_overlapping_signals
 
 
 @hydra.main(config_path=os.getcwd(), config_name="config")
