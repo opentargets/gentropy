@@ -2,10 +2,10 @@
 Utilities to perform colocalisation analysis
 """
 import numpy as np
-from pyspark.ml.linalg import VectorUDT, Vectors
-from pyspark.sql.types import DoubleType
-import pyspark.sql.functions as F
 import pyspark.ml.functions as Fml
+import pyspark.sql.functions as F
+from pyspark.ml.linalg import Vectors, VectorUDT
+from pyspark.sql.types import DoubleType
 
 
 def get_logsum(log_abf: VectorUDT):

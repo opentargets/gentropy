@@ -1,5 +1,6 @@
 """Find overlapping signals susceptible of colocalisation analysis
 """
+
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 
