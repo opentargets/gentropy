@@ -1,8 +1,8 @@
 """Functions to add metadata to colocation results
 """
 
-from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
+from pyspark.sql import SparkSession
 
 
 def add_moleculartrait_phenotype_genes(
