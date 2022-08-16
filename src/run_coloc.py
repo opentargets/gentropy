@@ -9,7 +9,6 @@ Logic reproduced from: https://github.com/chr1swallace/coloc/blob/main/R/claudia
 
 import hydra
 from omegaconf import DictConfig
-from pyspark import SparkConf
 from pyspark.sql import SparkSession
 
 from coloc_utils.coloc import colocalisation
@@ -23,15 +22,8 @@ def main(cfg: DictConfig) -> None:
     Run colocalisation analysis
     """
 
-    spark_conf = (
-        SparkConf()
-        .set("spark.hadoop.fs.gs.requester.pays.mode", "AUTO")
-        .set("spark.hadoop.fs.gs.requester.pays.project.id", cfg.project.id)
-        .set("spark.sql.broadcastTimeout", "36000")
-    )
-
     # establish spark connection
-    spark = SparkSession.builder.config(conf=spark_conf).master("yarn").getOrCreate()
+    spark = SparkSession.builder.master("yarn").getOrCreate()
 
     # 1. Obtain overlapping signals in OT genetics portal
     overlapping_signals = find_all_vs_all_overlapping_signals(
