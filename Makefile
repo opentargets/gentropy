@@ -33,7 +33,7 @@ build: clean ## Build Python Package with Dependencies
 	@cp ./configs/*.yaml ./dist
 	@mv ./dist/${SRC_WITH_DEPS}.zip ./dist/${APP_NAME}_${VERSION_NO}.zip
 	
-prepare_coloc: ## Create machine
+prepare_coloc: ## Create machine for coloc
 	gcloud dataproc clusters create ${COLOC_CLUSTER_NAME} \
 		--image-version=2.0 \
 		--project=${PROJECT_ID} \
@@ -45,7 +45,7 @@ prepare_coloc: ## Create machine
 		--single-node \
 		--max-idle=10m
 
-run_coloc: ## Submit job
+run_coloc: ## Submit coloc job to created machine
 	gcloud dataproc jobs submit pyspark ./dist/run_coloc.py \
     --cluster=${COLOC_CLUSTER_NAME} \
     --files=./dist/coloc.yaml \
