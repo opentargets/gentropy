@@ -49,6 +49,6 @@ run_coloc: ## Submit coloc job to created machine
 	gcloud dataproc jobs submit pyspark ./dist/run_coloc.py \
     --cluster=${COLOC_CLUSTER_NAME} \
     --files=./dist/coloc.yaml \
-	--py-files=./dist/${APP_NAME}_${VERSION_NO}.zip \
+    --py-files=./dist/${APP_NAME}_${VERSION_NO}.zip \
     --project=${PROJECT_ID} \
     --region=${REGION}
