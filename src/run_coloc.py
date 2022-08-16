@@ -7,7 +7,6 @@ configurations under the assumption of a single causal variant for each trait.
 Logic reproduced from: https://github.com/chr1swallace/coloc/blob/main/R/claudia.R
 """
 
-import os
 import hydra
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
