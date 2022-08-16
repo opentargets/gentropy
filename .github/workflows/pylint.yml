@@ -15,9 +15,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: cache poetry install
-        uses: actions/cache@v2
-        with:
-          path: ~/.local
+      uses: actions/cache@v2
+      with:
+        path: ~/.local
     - name: Install poetry
       uses: snok/install-poetry@v1
         with:
