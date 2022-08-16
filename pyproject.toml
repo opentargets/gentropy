@@ -6,15 +6,15 @@ authors = ["Open Targets core team"]
 license = "Apache License v2"
 exclude = ["src/*.py"]
 packages = [
-    { include = "src/**/*.py" },
+    { include = "**/*.py", from = "src"},
 ]
 [tool.poetry.dependencies]
 python = "^3.10"
 hydra-core = "^1.2.0"
-numpy = "^1.23.2"
 
 [tool.poetry.dev-dependencies]
 pyspark = "^3.3.0"
+numpy = "^1.23.2"
 black = "^22.6.0"
 pylint = "^2.14.5"
 
