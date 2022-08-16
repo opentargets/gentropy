@@ -51,9 +51,9 @@ def colocalisation(overlapping_signals, priorc1, priorc2, priorc12):
     coloc = (
         overlapping_signals
         # Before summarizing log_abf columns nulls need to be filled with 0:
-        .fillna(0, subset=["left_log_abf", "right_log_abf"])
+        .fillna(0, subset=["left_logABF", "right_logABF"])
         # Sum of log_abfs for each pair of signals
-        .withColumn("sum_log_abf", F.col("left_log_abf") + F.col("right_log_abf"))
+        .withColumn("sum_log_abf", F.col("left_logABF") + F.col("right_logABF"))
         # Group by overlapping peak and generating dense vectors of log_abf:
         .groupBy(
             *["left_" + col for col in signal_pairs_cols]
@@ -61,11 +61,11 @@ def colocalisation(overlapping_signals, priorc1, priorc2, priorc12):
         )
         .agg(
             F.count("*").alias("coloc_n_vars"),
-            Fml.array_to_vector(F.collect_list(F.col("left_log_abf"))).alias(
-                "left_log_abf"
+            Fml.array_to_vector(F.collect_list(F.col("left_logABF"))).alias(
+                "left_logABF"
             ),
-            Fml.array_to_vector(F.collect_list(F.col("right_log_abf"))).alias(
-                "right_log_abf"
+            Fml.array_to_vector(F.collect_list(F.col("right_logABF"))).alias(
+                "right_logABF"
             ),
             Fml.array_to_vector(F.collect_list(F.col("sum_log_abf"))).alias(
                 "sum_log_abf"
@@ -84,10 +84,10 @@ def colocalisation(overlapping_signals, priorc1, priorc2, priorc12):
             F.first("right_lead_ref").alias("right_ref"),
             F.first("right_lead_alt").alias("right_alt"),
         )
-        .withColumn("logsum1", logsum(F.col("left_log_abf")))
-        .withColumn("logsum2", logsum(F.col("right_log_abf")))
+        .withColumn("logsum1", logsum(F.col("left_logABF")))
+        .withColumn("logsum2", logsum(F.col("right_logABF")))
         .withColumn("logsum12", logsum(F.col("sum_log_abf")))
-        .drop("left_log_abf", "right_log_abf", "sum_log_abf")
+        .drop("left_logABF", "right_logABF", "sum_log_abf")
         # Add priors
         # priorc1 Prior on variant being causal for trait 1
         .withColumn("priorc1", F.lit(priorc1))
