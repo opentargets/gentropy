@@ -17,7 +17,7 @@ from coloc_utils.coloc import colocalisation
 from coloc_utils.overlaps import find_all_vs_all_overlapping_signals
 
 
-@hydra.main(config_path=os.getcwd(), config_name="config")
+@hydra.main(config_name="coloc")
 def main(cfg: DictConfig) -> None:
     """
     Run colocalisation analysis
