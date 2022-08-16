@@ -45,13 +45,6 @@ prepare_coloc: ## Create machine
 		--single-node \
 		--max-idle=10m
 
-# run: ## Run the dataproc serverless job
-# 	gcloud beta dataproc batches submit --project ${PROJECT_ID} --region ${REGION} pyspark \
-# 	gs://${CODE_BUCKET}/dist/main.py --py-files=gs://${CODE_BUCKET}/dist/${APP_NAME}_${VERSION_NO}.zip \
-# 	--subnet default --properties spark.executor.instances=2,spark.driver.cores=4,spark.executor.cores=4,spark.app.name=spark_serverless_repo_exemplar \
-# 	--jars gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.23.2.jar \
-# 	-- --project=${PROJECT_ID} --file-uri=gs://${DATA_BUCKET}/stocks.csv --temp-bq-bucket=${TEMP_BUCKET}
-
 run_coloc: ## Submit job
 	gcloud dataproc jobs submit pyspark ./dist/run_coloc.py \
     --cluster=${COLOC_CLUSTER_NAME} \
