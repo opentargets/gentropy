@@ -7,13 +7,20 @@ configurations under the assumption of a single causal variant for each trait.
 Logic reproduced from: https://github.com/chr1swallace/coloc/blob/main/R/claudia.R
 """
 
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import hydra
-from omegaconf import DictConfig
 from pyspark.sql import SparkSession
 
 from coloc_utils.coloc import colocalisation
 from coloc_utils.coloc_metadata import add_moleculartrait_phenotype_genes
 from coloc_utils.overlaps import find_all_vs_all_overlapping_signals
+
+if TYPE_CHECKING:
+    from omegaconf import DictConfig
 
 
 @hydra.main(config_name="coloc")

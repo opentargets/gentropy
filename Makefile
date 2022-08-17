@@ -32,7 +32,7 @@ build: clean ## Build Python Package with Dependencies
 	@cp ./src/*.py ./dist
 	@cp ./configs/*.yaml ./dist
 	@mv ./dist/${SRC_WITH_DEPS}.zip ./dist/${APP_NAME}_${VERSION_NO}.zip
-	
+
 prepare_coloc: ## Create machine for coloc
 	gcloud dataproc clusters create ${COLOC_CLUSTER_NAME} \
 		--image-version=2.0 \

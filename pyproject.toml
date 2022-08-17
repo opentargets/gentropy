@@ -15,8 +15,7 @@ hydra-core = "^1.2.0"
 [tool.poetry.dev-dependencies]
 pyspark = "^3.3.0"
 numpy = "^1.23.2"
-black = "^22.6.0"
-pylint = "^2.14.5"
+pre-commit = "^2.15.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

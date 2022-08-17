@@ -1,13 +1,19 @@
 """Functions to add metadata to colocation results
 """
 
-import pyspark.sql.functions as F
-from pyspark.sql import SparkSession
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pyspark.sql.functions as f
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame, SparkSession
 
 
 def add_moleculartrait_phenotype_genes(
-    spark: SparkSession, coloc_result, phenotype2gene_path
-):
+    spark: SparkSession, coloc_result: DataFrame, phenotype2gene_path: str
+) -> DataFrame:
     """Add Ensembl gene id to molecular trait phenotype IDs
 
     Args:
@@ -25,36 +31,38 @@ def add_moleculartrait_phenotype_genes(
         .option("sep", "\t")
         .csv(phenotype2gene_path)
         .select(
-            F.col("phenotype_id").alias("right_phenotype"),
-            F.col("gene_id").alias("right_gene_id"),
+            f.col("phenotype_id").alias("right_phenotype"),
+            f.col("gene_id").alias("right_gene_id"),
         )
     )
 
     coloc_with_metadata = (
         coloc_result.join(
-            F.broadcast(phenotype_id),
+            f.broadcast(phenotype_id),
             on="right_phenotype",
             how="left",
         )
         .withColumn(
             "right_gene_id",
-            F.when(
-                F.col("right_phenotype").startswith("ENSG"),
-                F.col("right_phenotype"),
-            ).otherwise(F.col("right_gene_id")),
+            f.when(
+                f.col("right_phenotype").startswith("ENSG"),
+                f.col("right_phenotype"),
+            ).otherwise(f.col("right_gene_id")),
         )
         .withColumn(
             "right_gene_id",
-            F.when(
-                F.col("right_study") == "GTEx-sQTL",
-                F.regexp_extract(F.col("right_phenotype"), ":(ENSG.*)$", 1),
-            ).otherwise(F.col("right_gene_id")),
+            f.when(
+                f.col("right_study") == "GTEx-sQTL",
+                f.regexp_extract(f.col("right_phenotype"), ":(ENSG.*)$", 1),
+            ).otherwise(f.col("right_gene_id")),
         )
     )
     return coloc_with_metadata
 
 
-def add_coloc_sumstats_info(spark: SparkSession, coloc, sumstats_path: str):
+def add_coloc_sumstats_info(
+    spark: SparkSession, coloc: DataFrame, sumstats_path: str
+) -> DataFrame:
     """Adds relevant metadata to colocalisation results from summary stats
 
     Args:
@@ -72,11 +80,11 @@ def add_coloc_sumstats_info(spark: SparkSession, coloc, sumstats_path: str):
         .repartition("chrom")
         .withColumn(
             "right_studyKey",
-            F.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
+            f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
         )
         .withColumn(
             "left_lead_variant_id",
-            F.concat_ws("_", F.col("chrom"), F.col("pos"), F.col("ref"), F.col("alt")),
+            f.concat_ws("_", f.col("chrom"), f.col("pos"), f.col("ref"), f.col("alt")),
         )
         .withColumnRenamed("chrom", "left_chrom")
         .withColumnRenamed("beta", "left_var_right_study_beta")
@@ -98,7 +106,7 @@ def add_coloc_sumstats_info(spark: SparkSession, coloc, sumstats_path: str):
     # join info from sumstats
     coloc_with_metadata = (
         sumstats_leftvar_rightstudy.join(
-            F.broadcast(coloc),
+            f.broadcast(coloc),
             on=["left_chrom", "left_lead_variant_id", "right_studyKey"],
             how="right",
         )
