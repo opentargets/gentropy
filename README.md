@@ -1,5 +1,4 @@
 [![status: experimental](https://github.com/GIScience/badges/raw/master/status/experimental.svg)](https://github.com/GIScience/badges#experimental)
-[![Build Status](https://github.com/opentargets/genetics_spark_coloc/actions/workflows/lints.yml/badge.svg)](https://github.com/opentargets/genetics_spark_coloc/actions/)
 
 # genetics_spark_coloc
 Computing colocalisation analysis using PySpark from credible sets
