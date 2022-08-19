@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "genetics_spark_coloc"
+version = "0.1.0"
+description = "Colocalisation analysis on genetics portal credible sets"
+authors = ["Open Targets core team"]
+license = "Apache License v2"
+exclude = ["src/*.py"]
+packages = [
+    { include = "**/*.py", from = "src"},
+]
+[tool.poetry.dependencies]
+python = "^3.8"
+hydra-core = "^1.2.0"
+
+[tool.poetry.dev-dependencies]
+pyspark = "^3.3.0"
+numpy = "^1.23.2"
+pre-commit = "^2.15.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

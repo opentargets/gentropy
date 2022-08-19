@@ -1,10 +1,19 @@
 """Find overlapping signals susceptible of colocalisation analysis
 """
-import pyspark.sql.functions as F
-from pyspark.sql import SparkSession
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pyspark.sql.functions as f
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame, SparkSession
 
 
-def find_all_vs_all_overlapping_signals(spark: SparkSession, credset_path: str):
+def find_all_vs_all_overlapping_signals(
+    spark: SparkSession, credset_path: str
+) -> DataFrame:
     """
     Find overlapping signals between all pairs of cred sets (exploded at the tag variant level)
     Any study-lead variant pair with at least one overlapping tag variant is considered
@@ -34,13 +43,13 @@ def find_all_vs_all_overlapping_signals(spark: SparkSession, credset_path: str):
 
     credset = (
         spark.read.parquet(credset_path)
-        # .filter(F.col("chrom") == "22") # for debugging
+        # .filter(f.col('chrom') == '22') # for debugging
         .withColumn(
             "studyKey",
-            F.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
+            f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
         )
         # Exclude studies without logABFs available
-        .filter(F.col("logABF").isNotNull())
+        .filter(f.col("logABF").isNotNull())
     )
 
     # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
@@ -48,14 +57,14 @@ def find_all_vs_all_overlapping_signals(spark: SparkSession, credset_path: str):
     credset_to_self_join = credset.select(id_cols + ["tag_variant_id"])
     overlapping_peaks = (
         credset_to_self_join.alias("left")
-        .filter(F.col("type") == "gwas")
+        .filter(f.col("type") == "gwas")
         .join(
             credset_to_self_join.alias("right"),
             on=[
-                F.col("left.chrom") == F.col("right.chrom"),
-                F.col("left.tag_variant_id") == F.col("right.tag_variant_id"),
-                (F.col("right.type") != "gwas")
-                | (F.col("left.studyKey") > F.col("right.studyKey")),
+                f.col("left.chrom") == f.col("right.chrom"),
+                f.col("left.tag_variant_id") == f.col("right.tag_variant_id"),
+                (f.col("right.type") != "gwas")
+                | (f.col("left.studyKey") > f.col("right.studyKey")),
             ],
             how="inner",
         )

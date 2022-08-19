@@ -7,31 +7,30 @@ configurations under the assumption of a single causal variant for each trait.
 Logic reproduced from: https://github.com/chr1swallace/coloc/blob/main/R/claudia.R
 """
 
-import os
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import hydra
-from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from omegaconf import DictConfig
-from coloc_metadata import add_moleculartrait_phenotype_genes
-from coloc import colocalisation
-from overlaps import find_all_vs_all_overlapping_signals
+
+from coloc_utils.coloc import colocalisation
+from coloc_utils.coloc_metadata import add_moleculartrait_phenotype_genes
+from coloc_utils.overlaps import find_all_vs_all_overlapping_signals
+
+if TYPE_CHECKING:
+    from omegaconf import DictConfig
 
 
-@hydra.main(config_path=os.getcwd(), config_name="config")
+@hydra.main(config_name="coloc")
 def main(cfg: DictConfig) -> None:
     """
     Run colocalisation analysis
     """
 
-    spark_conf = (
-        SparkConf()
-        .set("spark.hadoop.fs.gs.requester.pays.mode", "AUTO")
-        .set("spark.hadoop.fs.gs.requester.pays.project.id", cfg.project.id)
-        .set("spark.sql.broadcastTimeout", "36000")
-    )
-
     # establish spark connection
-    spark = SparkSession.builder.config(conf=spark_conf).master("yarn").getOrCreate()
+    spark = SparkSession.builder.master("yarn").getOrCreate()
 
     # 1. Obtain overlapping signals in OT genetics portal
     overlapping_signals = find_all_vs_all_overlapping_signals(

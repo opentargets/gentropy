@@ -1,5 +1,3 @@
-project:
-  id: "open-targets-genetics-dev"
 coloc:
   # Credible sets (Coloc input)
   credible_set: gs://ot-team/dochoa/220224_merged_credset/
