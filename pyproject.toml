@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "genetics_spark_coloc"
+name = "genetics_etl_python"
 version = "0.1.0"
-description = "Colocalisation analysis on genetics portal credible sets"
+description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache License v2"
 exclude = ["src/*.py"]

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 
-@hydra.main(config_name="coloc")
+@hydra.main(config_name="config")
 def main(cfg: DictConfig) -> None:
     """
     Run colocalisation analysis
