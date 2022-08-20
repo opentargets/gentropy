@@ -16,6 +16,7 @@ hydra-core = "^1.2.0"
 pyspark = "^3.3.0"
 numpy = "^1.23.2"
 pre-commit = "^2.15.0"
+black = {version = "^22.6.0", allow-prereleases = true}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
