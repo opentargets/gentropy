@@ -1,7 +1,8 @@
 [![status: experimental](https://github.com/GIScience/badges/raw/master/status/experimental.svg)](https://github.com/GIScience/badges#experimental)
 
-# genetics_spark_coloc
-Computing colocalisation analysis using PySpark from credible sets
+# Genetics Portal Python ETL
+
+Genetics portal ETL steps (Python)
 
 ### Requirements
 
