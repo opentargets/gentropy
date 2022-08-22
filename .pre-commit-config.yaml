@@ -74,3 +74,10 @@ repos:
     hooks:
       - id: flake8
         additional_dependencies: *flake8_deps
+
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.0.0
+    hooks:
+      - id: commitlint
+        additional_dependencies: ['@commitlint/config-conventional']
+        stages: [commit-msg]
