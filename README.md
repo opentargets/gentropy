@@ -15,3 +15,12 @@ Genetics portal ETL steps (Python)
 ```bash
 make help
 ```
+
+### Setup development environment
+
+```
+make setup-dev
+
+#VS-code
+code . #...and select interpreter
+```

@@ -18,6 +18,15 @@ clean: ## CleanUp Prior to Build
 	@rm -Rf ./${SRC_WITH_DEPS}
 	@rm -f requirements.txt
 
+setup-dev: ## Setup dev environment
+	@echo "Installing dependencies..."
+	@poetry install --remove-untracked
+	@echo "Initialising environment shell..."
+	@echo "Setting up pre-commit..."
+	@poetry run pre-commit install
+	@poetry run pre-commit autoupdate
+	@echo "You are ready to code!"
+
 build: clean ## Build Python Package with Dependencies
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
 	@mkdir -p ./dist
