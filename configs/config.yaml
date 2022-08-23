@@ -16,3 +16,21 @@ coloc:
 
   # Outputs
   output: gs://ot-team/dochoa/coloc
+
+intervals:
+  liftover_chain_file: gs://genetics-portal-input/v2g_input/grch37_to_grch38.over.chain
+  gene_index: gs://genetics-portal-input/v2g_input/geneset.protein_coding.parquet
+  max_length_difference: 100
+  output: gs://genetics-portal-dev-data/dev_intervals
+
+  # An atlas of active enhancers across human cell types and tissues
+  anderson_file: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
+
+  # Lineage-Specific Genome Architecture Links Enhancers and Non-coding Disease Variants to Target Gene Promoters
+  javierre_dataset: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
+
+  # A compendium of promoter-centered long-range chromatin interactions in the human genome
+  jung_file: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
+
+  # The accessible chromatin landscape of the human genome
+  thurman_file: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz

@@ -11,6 +11,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8"
 hydra-core = "^1.2.0"
+pyliftover = "^0.4"
 
 [tool.poetry.dev-dependencies]
 pyspark = "^3.3.0"
