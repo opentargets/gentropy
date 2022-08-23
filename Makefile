@@ -21,7 +21,6 @@ clean: ## CleanUp Prior to Build
 setup-dev: ## Setup dev environment
 	@echo "Installing dependencies..."
 	@poetry install --remove-untracked
-	@echo "Initialising environment shell..."
 	@echo "Setting up pre-commit..."
 	@poetry run pre-commit install
 	@poetry run pre-commit autoupdate
