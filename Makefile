@@ -24,6 +24,7 @@ setup-dev: ## Setup dev environment
 	@echo "Setting up pre-commit..."
 	@poetry run pre-commit install
 	@poetry run pre-commit autoupdate
+	@poetry run pre-commit install --hook-type commit-msg
 	@echo "You are ready to code!"
 
 build: clean ## Build Python Package with Dependencies
