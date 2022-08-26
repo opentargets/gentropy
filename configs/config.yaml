@@ -34,3 +34,17 @@ intervals:
 
   # The accessible chromatin landscape of the human genome
   thurman_file: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
+
+
+cheers:
+  # Peaks file normalized
+  peaks_file: gs://genetics-portal-dev-analysis/ba13/OTAR034_CHEERS_epimap_Jul22/Full_epimap_adjusted.txt
+  #SNPs file
+  snp_file: gs://genetics-portal-dev-analysis/ba13/OTAR034_CHEERS_epimap_Jul22/example_GCST004131
+  # Output stat
+  out_stats_file: gs://genetics-portal-dev-analysis/ba13/OTAR034_CHEERS_epimap_Jul22/example_GCST004131_out_stat
+  # Output peaks
+  out_unique_peaks_file: gs://genetics-portal-dev-analysis/ba13/OTAR034_CHEERS_epimap_Jul22/example_GCST004131_out_peaks
+  # Output peaks overlap
+  out_snp_peak_overlaps_file: gs://genetics-portal-dev-analysis/ba13/OTAR034_CHEERS_epimap_Jul22/example_GCST004131_out_overlaps
+
