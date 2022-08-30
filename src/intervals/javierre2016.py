@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import argparse
-import logging
+from typing import TYPE_CHECKING
 
-import pyspark
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.conf import SparkConf
-from pyspark.sql import SparkSession, dataframe
 
-from intervals.Liftover import LiftOverSpark
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
+
+    from common.ETLSession import ETLSession
+    from intervals.Liftover import LiftOverSpark
 
 
 class ParseJavierre:
@@ -39,21 +39,23 @@ class ParseJavierre:
 
     def __init__(
         self: ParseJavierre,
+        etl: ETLSession,
         javierre_parquet: str,
-        gene_index: dataframe,
+        gene_index: DataFrame,
         lift: LiftOverSpark,
     ) -> None:
 
-        logging.info("Parsing Javierre 2016 data...")
-        logging.info(f"Reading data from {javierre_parquet}")
+        self.etl = etl
+
+        etl.logger.info("Parsing Javierre 2016 data...")
+        etl.logger.info(f"Reading data from {javierre_parquet}")
 
         # Read gene index:
         genes = self.prepare_gene_index(gene_index)
 
         # Read Javierre data:
         javierre_raw = (
-            SparkSession.getActiveSession()
-            .read.parquet(javierre_parquet)
+            etl.spark.read.parquet(javierre_parquet)
             # Splitting name column into chromosome, start, end, and score:
             .withColumn("name_split", f.split(f.col("name"), r":|-|,"))
             .withColumn(
@@ -153,9 +155,9 @@ class ParseJavierre:
             )
             .persist()
         )
-        logging.info(f"Number of rows: {self.javierre_intervals.count()}")
+        etl.logger.info(f"Number of rows: {self.javierre_intervals.count()}")
 
-    def get_intervals(self: ParseJavierre) -> dataframe:
+    def get_intervals(self: ParseJavierre) -> DataFrame:
         return self.javierre_intervals
 
     def qc_intervals(self: ParseJavierre) -> None:
@@ -164,19 +166,18 @@ class ParseJavierre:
         """
 
         # Get numbers:
-        logging.info(f"Size of Javierre data: {self.javierre_intervals.count()}")
-        logging.info(
+        self.etl.logger.info(
+            f"Size of Javierre data: {self.javierre_intervals.count()}"
+        )
+        self.etl.logger.info(
             f'Number of unique intervals: {self.javierre_intervals.select("start", "end").distinct().count()}'
         )
-        logging.info(
+        self.etl.logger.info(
             f'Number genes in the Javierre dataset: {self.javierre_intervals.select("gene_id").distinct().count()}'
         )
 
-    def save_parquet(self: ParseJavierre, output_file: str) -> None:
-        self.javierre_intervals.write.mode("overwrite").parquet(output_file)
-
     @staticmethod
-    def prepare_gene_index(gene_index: dataframe) -> dataframe:
+    def prepare_gene_index(gene_index: DataFrame) -> DataFrame:
         """Pre-processing the gene dataset
         - selecting and renaming relevant columns
         - remove 'chr' from chromosome column
@@ -192,77 +193,3 @@ class ParseJavierre:
             "gene_id",
             "TSS",
         ).persist()
-
-
-def main(
-    javierre_data_file: str, gene_index_file: str, chain_file: str, output_file: str
-) -> None:
-
-    spark_conf = (
-        SparkConf()
-        .set("spark.driver.memory", "10g")
-        .set("spark.executor.memory", "10g")
-        .set("spark.driver.maxResultSize", "0")
-        .set("spark.debug.maxToStringFields", "2000")
-        .set("spark.sql.execution.arrow.maxRecordsPerBatch", "500000")
-        .set("spark.driver.bindAddress", "127.0.0.1")
-    )
-    spark = (
-        pyspark.sql.SparkSession.builder.config(conf=spark_conf)
-        .master("local[*]")
-        .getOrCreate()
-    )
-
-    logging.info("Reading genes and initializeing liftover.")
-
-    # Initialize LiftOver and gene objects:
-    gene_index = spark.read.parquet(gene_index_file)
-    lift = LiftOverSpark(chain_file)
-
-    # Initialze the parser:
-    logging.info("Starting Javierre data processing.")
-    javierre = ParseJavierre(javierre_data_file, gene_index, lift)
-
-    # run QC:
-    logging.info("Running QC on the intervals.")
-    javierre.qc_intervals()
-
-    # Save data:
-    logging.info(f"Saving data to {output_file}.")
-    javierre.save_parquet(output_file)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        "Wrapper for the the Javierre interval data parser."
-    )
-    parser.add_argument(
-        "--javierre_file",
-        type=str,
-        help="Path to the pre-processed parquet dataset (.parquet).",
-    )
-    parser.add_argument(
-        "--gene_index", type=str, help="Path to the gene index file (.parquet)"
-    )
-    parser.add_argument(
-        "--chain_file", type=str, help="Path to the chain file (.chain)"
-    )
-    parser.add_argument(
-        "--output_file", type=str, help="Path to the output file (.parquet)"
-    )
-    args = parser.parse_args()
-
-    # Initialize logging:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # Just print out some of the arguments:
-    logging.info(f"Javierre file: {args.javierre_file}")
-    logging.info(f"Gene index file: {args.gene_index}")
-    logging.info(f"Chain file: {args.chain_file}")
-    logging.info(f"Output file: {args.output_file}")
-
-    main(args.javierre_file, args.gene_index, args.chain_file, args.output_file)

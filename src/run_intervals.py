@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import logging
-from datetime import date
 from functools import reduce
 from typing import TYPE_CHECKING
 
 import hydra
-from pyspark.sql import SparkSession
 
+from common.ETLSession import ETLSession
 from intervals.andersson2014 import ParseAndersson
 from intervals.javierre2016 import ParseJavierre
 from intervals.jung2019 import ParseJung
@@ -18,46 +16,52 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 
-@hydra.main(config_name="config")
+@hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
 
-    # establish spark connection
-    spark = SparkSession.builder.master("yarn").getOrCreate()
-
-    chain_file = cfg.intervals.liftover_chain_file
-    max_difference = cfg.intervals.max_length_difference
+    etl = ETLSession(cfg)
 
     # Open and process gene file:
-    gene_index = spark.read.parquet(cfg.intervals.gene_index).persist()
+    gene_index = etl.spark.read.parquet(cfg.etl.intervals.inputs.gene_index).persist()
 
     # Initialize liftover object:
-    lift = LiftOverSpark(chain_file, max_difference)
+    lift = LiftOverSpark(
+        cfg.etl.intervals.inputs.liftover_chain_file,
+        cfg.etl.intervals.parameters.max_length_difference,
+    )
 
     # Parsing datasets:
     datasets = [
         # Parsing Andersson data:
-        ParseAndersson(cfg.intervals.anderson_file, gene_index, lift).get_intervals(),
+        ParseAndersson(
+            etl, cfg.etl.intervals.inputs.anderson_file, gene_index, lift
+        ).get_intervals(),
         # Parsing Javierre data:
-        ParseJavierre(cfg.intervals.javierre_dataset, gene_index, lift).get_intervals(),
+        ParseJavierre(
+            etl, cfg.etl.intervals.inputs.javierre_dataset, gene_index, lift
+        ).get_intervals(),
         # Parsing Jung data:
-        ParseJung(cfg.intervals.jung_file, gene_index, lift).get_intervals(),
+        ParseJung(
+            etl, cfg.etl.intervals.inputs.jung_file, gene_index, lift
+        ).get_intervals(),
         # Parsing Thurman data:
-        ParseThurman(cfg.intervals.thurman_file, gene_index, lift).get_intervals(),
+        ParseThurman(
+            etl, cfg.etl.intervals.inputs.thurman_file, gene_index, lift
+        ).get_intervals(),
     ]
 
     # Combining all datasets into a single dataframe, where missing columns are filled with nulls:
     df = reduce(lambda x, y: x.unionByName(y, allowMissingColumns=True), datasets)
 
-    logging.info(f"Number of interval data: {df.count()}")
-    logging.info(f"Writing data to: {cfg.intervals.output}")
+    etl.logger.info(f"Number of interval data: {df.count()}")
+    etl.logger.info(f"Writing data to: {cfg.etl.intervals.outputs.intervals}")
 
     # Saving data:
-    version = date.today().strftime("%y%m%d")
     (
         df.orderBy("chrom", "start")
         .repartition(200)
-        .write.mode("overwrite")
-        .parquet(cfg.intervals.output + f"/interval_{version}")
+        .write.mode(cfg.environment.sparkWriteMode)
+        .parquet(cfg.etl.intervals.outputs.intervals)
     )
 
 

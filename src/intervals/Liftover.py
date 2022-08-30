@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import argparse
-import logging
 from typing import TYPE_CHECKING
 
 import gcsfs
-import pyspark
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyliftover import LiftOver
 
 if TYPE_CHECKING:
-    from pyspark.sql import dataframe
+    from pyspark.sql import DataFrame
 
 
 class LiftOverSpark:
@@ -58,12 +55,12 @@ class LiftOverSpark:
 
     def convert_intervals(
         self: LiftOverSpark,
-        df: dataframe,
+        df: DataFrame,
         chrom_col: str,
         start_col: str,
         end_col: str,
         filter: bool = True,
-    ) -> dataframe:
+    ) -> DataFrame:
         """
         Convert genomic intervals to liftover coordinates
 
@@ -127,8 +124,8 @@ class LiftOverSpark:
             return mapped_df.persist()
 
     def convert_coordinates(
-        self: LiftOverSpark, df: dataframe, chrom_name: str, pos_name: str
-    ) -> list:
+        self: LiftOverSpark, df: DataFrame, chrom_name: str, pos_name: str
+    ) -> DataFrame:
         """
         Converts genomic coordinates to coordinates on an other build
 
@@ -158,107 +155,3 @@ class LiftOverSpark:
         )
 
         return mapped
-
-
-def generate_genomic_coordinate_data(
-    chrom: str = "chrom", start: str = "start", end: str = "end"
-) -> dataframe:
-    """
-    Generate small data for liftover column.
-    """
-
-    # These entries already contains the mapped coordinates.
-    coordinates = """
-        chr20:48400001-48500000_chr20:49783463-49883463
-        chrX:1000001-1000100_chrX:1039265-1039365
-        chr1:10000001-10001000_chr1:9939942-9940942
-        chr2:5000001-5001000_chr2:4952410-4953410
-    """
-    return (
-        spark.createDataFrame(
-            [{"coordinates": coordinate} for coordinate in coordinates.split()]
-        )
-        .withColumn("old_coordinates", f.split(f.col("coordinates"), "_")[0])
-        .withColumn("new_coordinates", f.split(f.col("coordinates"), "_")[1])
-        .withColumn("old_coordinates_split", f.split(f.col("old_coordinates"), ":|-"))
-        .withColumn(
-            chrom, f.regexp_replace(f.col("old_coordinates_split")[0], "chr", "")
-        )
-        .withColumn(start, f.col("old_coordinates_split")[1].cast(t.IntegerType()))
-        .withColumn(end, f.col("old_coordinates_split")[2].cast(t.IntegerType()))
-        .select(chrom, start, end, "new_coordinates")
-        .persist()
-    )
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Wrapper for the the LiftOver module.")
-    parser.add_argument(
-        "--chain_file", type=str, help="Path to the chain file (.chain)"
-    )
-    parser.add_argument(
-        "--max_distance",
-        type=int,
-        help="Maximum distance between the length of the mapped region and the original region.",
-    )
-    parser.add_argument(
-        "--data_file",
-        type=str,
-        help="Path to a dataset (parquet) to lift over.",
-        required=False,
-    )
-    parser.add_argument(
-        "--coordinate_columns",
-        type=str,
-        help="Comma separated list of columns to lift over eg. chr,start,end",
-        required=False,
-    )
-    parser.add_argument(
-        "--output_file", type=str, help="Output parquet file.", required=False
-    )
-    args = parser.parse_args()
-
-    # Initialize spark session:
-    spark = pyspark.sql.SparkSession.builder.master("local[*]").getOrCreate()
-
-    # Initialize logging:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # Parse column names:
-    (chrom, start, end) = (
-        args.coordinate_columns.split(",")
-        if args.coordinate_columns
-        else ("chr", "start", "end")
-    )
-
-    # Just print out some of the arguments:
-    logging.info(f"Data file (parquet): {args.data_file}")
-    logging.info(f"Chain file: {args.chain_file}")
-    logging.info(f"Max distance: {args.max_distance}")
-    logging.info(f"Chromosome column name: {chrom}")
-    logging.info(f"Start column name: {start}")
-    logging.info(f"End column name: {end}")
-
-    # If data file is not given generate data:
-    if args.data_file is None:
-        data = generate_genomic_coordinate_data(chrom, start, end)
-    else:
-        data = spark.read.parquet(args.data_file).persist()
-    logging.info(f"Dataframe has {data.count()} rows.")
-    logging.info(f"Data: \n{data.show(2, truncate=False, vertical=True)}")
-
-    # Initialize LiftOver object:
-    lift = LiftOverSpark(args.chain_file, args.max_distance)
-
-    # Lift over the data:
-    new_data = lift.convert_intervals(data, chrom, start, end, filter=False)
-
-    if args.output_file is not None:
-        logging.info(f"Saving data: {args.output_file}")
-        new_data.write.mode("overwrite").parquet(args.output_file)
-
-    logging.info(f"New data: \n{new_data.show(2, truncate=False, vertical=True)}")

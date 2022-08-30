@@ -11,11 +11,6 @@ Genetics portal ETL steps (Python)
 - gcloud installed and authorised to your GCP Project
 - gsutil
 - [make](https://www.gnu.org/software/make/) build tool
-### How to run
-
-```bash
-make help
-```
 
 ### Setup development environment
 
@@ -24,4 +19,32 @@ make setup-dev
 
 #VS-code
 code . #...and select interpreter
+```
+
+### Configuration
+
+We use [hydra](https://hydra.cc) for managing the ETL configuration. The `configs` directory contains the source YAMLs neccessary to produce an instance of the configuration. To manually run an instance of the configuration run:
+
+```bash
+poetry run python ./utils/configure.py --cfg job # add --resolve to resolve interpolations
+```
+
+A local instance of the configuration file can be used in `src/config.yaml` for debugging purposes (gitignored).
+
+Configurations can be modified using hydra options.
+
+```bash
+poetry run python ./utils/configure.py environment=local
+```
+
+
+### Build
+
+Use `make build` to create a bundle that will contain the neccessary code, configuration and dependencies to run the ETL pipeline. The build is stored in `dist/` (gitignored).
+
+
+### More help
+
+```bash
+make help
 ```

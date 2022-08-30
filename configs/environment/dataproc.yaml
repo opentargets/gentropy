@@ -1,0 +1,3 @@
+sparkUri: yarn
+storage: gs://genetics_etl_python_playground
+sparkWriteMode: overwrite
