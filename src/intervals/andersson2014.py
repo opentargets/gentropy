@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import argparse
-import logging
+from typing import TYPE_CHECKING
 
 import pandas as pd
-import pyspark
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.conf import SparkConf
-from pyspark.sql import SparkSession, dataframe
 
-from intervals.Liftover import LiftOverSpark
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
+
+    from common.ETLSession import ETLSession
+    from intervals.Liftover import LiftOverSpark
 
 
 class ParseAndersson:
@@ -42,18 +42,20 @@ class ParseAndersson:
 
     def __init__(
         self: ParseAndersson,
+        etl: ETLSession,
         anderson_data_file: str,
-        gene_index: dataframe,
+        gene_index: DataFrame,
         lift: LiftOverSpark,
     ) -> None:
 
-        logging.info("Parsing Andersson 2014 data...")
-        logging.info(f"Reading data from {anderson_data_file}")
+        self.etl = etl
+
+        etl.logger.info("Parsing Andersson 2014 data...")
+        etl.logger.info(f"Reading data from {anderson_data_file}")
 
         # Read the anderson file:
         parserd_anderson_df = (
-            SparkSession.getActiveSession()
-            .createDataFrame(
+            etl.spark.createDataFrame(
                 pd.read_csv(
                     anderson_data_file, sep="\t", header=0, low_memory=False, skiprows=1
                 )
@@ -126,9 +128,9 @@ class ParseAndersson:
             .persist()
         )
 
-        logging.info(f"Number of rows: {self.anderson_intervals.count()}")
+        etl.logger.info(f"Number of rows: {self.anderson_intervals.count()}")
 
-    def get_intervals(self: ParseAndersson) -> dataframe:
+    def get_intervals(self: ParseAndersson) -> DataFrame:
         return self.anderson_intervals
 
     def qc_intervals(self: ParseAndersson) -> None:
@@ -137,85 +139,12 @@ class ParseAndersson:
         """
 
         # Get numbers:
-        logging.info(f"Size of Andersson data: {self.anderson_intervals.count()}")
-        logging.info(
+        self.etl.logger.info(
+            f"Size of Andersson data: {self.anderson_intervals.count()}"
+        )
+        self.etl.logger.info(
             f'Number of unique intervals: {self.anderson_intervals.select("start", "end").distinct().count()}'
         )
-        logging.info(
+        self.etl.logger.info(
             f'Number genes in the Andersson dataset: {self.anderson_intervals.select("gene_id").distinct().count()}'
         )
-
-    def save_parquet(self: ParseAndersson, output_file: str) -> None:
-        self.anderson_intervals.write.mode("overwrite").parquet(output_file)
-
-
-def main(
-    anderson_data_file: str, gene_index_file: str, chain_file: str, output_file: str
-) -> None:
-
-    spark_conf = (
-        SparkConf()
-        .set("spark.driver.memory", "10g")
-        .set("spark.executor.memory", "10g")
-        .set("spark.driver.maxResultSize", "0")
-        .set("spark.debug.maxToStringFields", "2000")
-        .set("spark.sql.execution.arrow.maxRecordsPerBatch", "500000")
-        .set("spark.driver.bindAddress", "127.0.0.1")
-    )
-    spark = (
-        pyspark.sql.SparkSession.builder.config(conf=spark_conf)
-        .master("local[*]")
-        .getOrCreate()
-    )
-
-    logging.info("Reading genes and initializeing liftover.")
-
-    # Initialize LiftOver and gene objects:
-    gene_index = spark.read.parquet(gene_index_file)
-    lift = LiftOverSpark(chain_file)
-
-    # Initialze the parser:
-    logging.info("Starting Andersson data processing.")
-    anderson = ParseAndersson(anderson_data_file, gene_index, lift)
-
-    # run QC:
-    logging.info("Running QC on the anderson intervals.")
-    anderson.qc_intervals()
-
-    # Save data:
-    logging.info(f"Saving data to {output_file}.")
-    anderson.save_parquet(output_file)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        "Wrapper for the the Anderson interval data parser."
-    )
-    parser.add_argument(
-        "--anderson_file", type=str, help="Path to the anderson file (.bed)"
-    )
-    parser.add_argument(
-        "--gene_index", type=str, help="Path to the gene index file (.csv)"
-    )
-    parser.add_argument(
-        "--chain_file", type=str, help="Path to the chain file (.chain)"
-    )
-    parser.add_argument(
-        "--output_file", type=str, help="Path to the output file (.parquet)"
-    )
-    args = parser.parse_args()
-
-    # Initialize logging:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # Just print out some of the arguments:
-    logging.info(f"Anderson file: {args.anderson_file}")
-    logging.info(f"Gene index file: {args.gene_index}")
-    logging.info(f"Chain file: {args.chain_file}")
-    logging.info(f"Output file: {args.output_file}")
-
-    main(args.anderson_file, args.gene_index, args.chain_file, args.output_file)

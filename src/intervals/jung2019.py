@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import argparse
-import logging
+from typing import TYPE_CHECKING
 
-import pyspark
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.conf import SparkConf
-from pyspark.sql import SparkSession, dataframe
 
-from intervals.Liftover import LiftOverSpark
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
+
+    from common.ETLSession import ETLSession
+    from intervals.Liftover import LiftOverSpark
 
 
 class ParseJung:
@@ -36,16 +36,21 @@ class ParseJung:
     PMID = "31501517"
 
     def __init__(
-        self: ParseJung, jung_data: str, gene_index: dataframe, lift: LiftOverSpark
+        self: ParseJung,
+        etl: ETLSession,
+        jung_data: str,
+        gene_index: DataFrame,
+        lift: LiftOverSpark,
     ) -> None:
 
-        logging.info("Parsing Jung 2019 data...")
-        logging.info(f"Reading data from {jung_data}")
+        etl.logger.info("Parsing Jung 2019 data...")
+        etl.logger.info(f"Reading data from {jung_data}")
+
+        self.etl = etl
 
         # Read Jung data:
         jung_raw = (
-            SparkSession.getActiveSession()
-            .read.csv(jung_data, sep=",", header=True)
+            etl.spark.read.csv(jung_data, sep=",", header=True)
             .withColumn("interval", f.split(f.col("Interacting_fragment"), r"\."))
             .select(
                 # Parsing intervals:
@@ -91,9 +96,9 @@ class ParseJung:
             .persist()
         )
 
-        logging.info(f"Number of rows: {self.jung_intervals.count()}")
+        etl.logger.info(f"Number of rows: {self.jung_intervals.count()}")
 
-    def get_intervals(self: ParseJung) -> dataframe:
+    def get_intervals(self: ParseJung) -> DataFrame:
         return self.jung_intervals
 
     def qc_intervals(self: ParseJung) -> None:
@@ -102,83 +107,10 @@ class ParseJung:
         """
 
         # Get numbers:
-        logging.info(f"Size of Jung data: {self.jung_intervals.count()}")
-        logging.info(
+        self.etl.logger.info(f"Size of Jung data: {self.jung_intervals.count()}")
+        self.etl.logger.info(
             f'Number of unique intervals: {self.jung_intervals.select("start", "end").distinct().count()}'
         )
-        logging.info(
+        self.etl.logger.info(
             f'Number genes in the Jung dataset: {self.jung_intervals.select("gene_id").distinct().count()}'
         )
-
-    def save_parquet(self: ParseJung, output_file: str) -> None:
-        self.jung_intervals.write.mode("overwrite").parquet(output_file)
-
-
-def main(
-    jung_data_file: str, gene_index_file: str, chain_file: str, output_file: str
-) -> None:
-
-    spark_conf = (
-        SparkConf()
-        .set("spark.driver.memory", "10g")
-        .set("spark.executor.memory", "10g")
-        .set("spark.driver.maxResultSize", "0")
-        .set("spark.debug.maxToStringFields", "2000")
-        .set("spark.sql.execution.arrow.maxRecordsPerBatch", "500000")
-        .set("spark.driver.bindAddress", "127.0.0.1")
-    )
-    spark = (
-        pyspark.sql.SparkSession.builder.config(conf=spark_conf)
-        .master("local[*]")
-        .getOrCreate()
-    )
-
-    logging.info("Reading genes and initializeing liftover.")
-
-    # Initialize LiftOver and gene objects:
-    gene_index = spark.read.parquet(gene_index_file)
-    lift = LiftOverSpark(chain_file)
-
-    # Initialze the parser:
-    logging.info("Starting Jung 2019 data processing.")
-    jung = ParseJung(jung_data_file, gene_index, lift)
-
-    # run QC:
-    logging.info("Running QC on the intervals.")
-    jung.qc_intervals()
-
-    # Save data:
-    logging.info(f"Saving data to {output_file}.")
-    jung.save_parquet(output_file)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Wrapper for the the Jung interval data parser.")
-    parser.add_argument(
-        "--jung_file", type=str, help="Path to the raw csv dataset (.csv)."
-    )
-    parser.add_argument(
-        "--gene_index", type=str, help="Path to the gene index file (.parquet)"
-    )
-    parser.add_argument(
-        "--chain_file", type=str, help="Path to the chain file (.chain)"
-    )
-    parser.add_argument(
-        "--output_file", type=str, help="Path to the output file (.parquet)"
-    )
-    args = parser.parse_args()
-
-    # Initialize logging:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # Just print out some of the arguments:
-    logging.info(f"Jung csv input file: {args.jung_file}")
-    logging.info(f"Gene index file: {args.gene_index}")
-    logging.info(f"Chain file: {args.chain_file}")
-    logging.info(f"Output file: {args.output_file}")
-
-    main(args.jung_file, args.gene_index, args.chain_file, args.output_file)

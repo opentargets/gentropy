@@ -36,11 +36,11 @@ build: clean ## Build Python Package with Dependencies
 	@cd ./${SRC_WITH_DEPS}
 	@find . -name "*.pyc" -delete
 	@cd ./${SRC_WITH_DEPS} && zip -x "*.git*" -x "*.DS_Store" -x "*.pyc" -x "*/*__pycache__*/" -x ".idea*" -r ../dist/${SRC_WITH_DEPS}.zip .
+	@mv ./dist/${SRC_WITH_DEPS}.zip ./dist/${APP_NAME}_${VERSION_NO}.zip
 	@rm -Rf ./${SRC_WITH_DEPS}
 	@rm -f requirements.txt
 	@cp ./src/*.py ./dist
-	@cp ./configs/*.yaml ./dist
-	@mv ./dist/${SRC_WITH_DEPS}.zip ./dist/${APP_NAME}_${VERSION_NO}.zip
+	@poetry run python ./utils/configure.py --cfg job > ./dist/config.yaml
 
 prepare_coloc: ## Create machine for coloc
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
