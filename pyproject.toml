@@ -9,12 +9,12 @@ packages = [
     { include = "**/*.py", from = "src"},
 ]
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "3.8"
 hydra-core = "^1.2.0"
 pyliftover = "^0.4"
 
 [tool.poetry.dev-dependencies]
-pyspark = "^3.3.0"
+pyspark = "3.1.3"
 numpy = "^1.23.2"
 pre-commit = "^2.15.0"
 black = {version = "^22.6.0", allow-prereleases = true}
