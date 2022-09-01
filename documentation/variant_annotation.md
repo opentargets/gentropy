@@ -1,8 +1,8 @@
-# Variant annotation pipeline
+# Generating variant annotation
 
-Workflow to produce variant annotation dataset for Open Targets Genetics Portal. The dataset is derived from the GnomAD 3.1 release, whith some modification. This dataset is used to generate annotation for all the variants the Portal has association information on. Also the variant index is derived from this dataset.
+This workflow produce variant annotation dataset for Open Targets Genetics Portal. The dataset is derived from the GnomAD 3.1 release, whith some modification. This dataset is used to generate annotation for all the variants the Portal, which has association information.
 
-In this release of the variant annotation pipeline there is no allele frequency or variant call quality filter.
+**Important**: in this release of the variant annotation pipeline there is **no** allele frequency or variant call quality filter.
 
 Steps:
 
@@ -12,49 +12,19 @@ Steps:
 
 ## Usage
 
-For detailed description and the applied defaults of the script, please run `generate_variant_annotation.py -h`.
-
-### Start dataproc spark server
-
-The dataproc cluster is single node, high-mem, with the most recent version of hail (`v.0.2.77`) as of 2021-10-05.
+All parameters required for the run are read from the configuration provided by hydra.
 
 ```bash
-gcloud dataproc clusters create hail-test-single \
-    --image-version=2.0.6-debian10 \
-    --properties="^|||^spark:spark.task.maxFailures=20|||spark:spark.driver.extraJavaOptions=-Xss4M|||spark:spark.executor.extraJavaOptions=-Xss4M|||hdfs:dfs.replication=1|||spark:spark.driver.memory=1146g" \
-    --initialization-actions="gs://hail-common/hailctl/dataproc/0.2.77/init_notebook.py" \
-    --metadata="^|||^WHEEL=gs://hail-common/hailctl/dataproc/0.2.77/hail-0.2.77-py3-none-any.whl|||PKGS=aiohttp==3.7.4|aiohttp_session>=2.7,<2.8|asyncinit>=0.2.4,<0.3|avro>=1.10,<1.11|azure-identity==1.6.0|azure-storage-blob==12.8.1|bokeh>1.3,<2.0|boto3>=1.17,<2.0|botocore>=1.20,<2.0|decorator<5|Deprecated>=1.2.10,<1.3|dill>=0.3.1.1,<0.4|gcsfs==0.8.0|fsspec==0.9.0|google-auth==1.27.0|humanize==1.0.0|hurry.filesize==0.9|janus>=0.6,<0.7|nest_asyncio|numpy<2|pandas>=1.1.0,<1.1.5|parsimonious<0.9|PyJWT|python-json-logger==0.1.11|requests==2.25.1|scipy>1.2,<1.7|sortedcontainers==2.1.0|tabulate==0.8.3|tqdm==4.42.1|google-cloud-storage==1.25.*" \
-    --master-machine-type=m1-megamem-96 \
-    --master-boot-disk-size=100GB \
-    --secondary-worker-boot-disk-size=40GB \
-    --worker-boot-disk-size=40GB \
-    --single-node \
-    --worker-machine-type=n1-standard-8 \
-    --region=europe-west1 \
-    --initialization-action-timeout=20m \
-    --project=open-targets-genetics-dev
-```
-
-### Submit job to dataproc server
-
-```bash
-CLUSTER="hail-test-single"
-PROJECT="open-targets-genetics-dev"
-REGION="europe-west1"
-TODAY=$(date "+%Y-%m-%d")
-
-gcloud dataproc jobs submit pyspark \
-  --cluster=${CLUSTER} \
-  --project=${PROJECT} \
-  --region=${REGION} \
-  generate_variant_annotation.py -- \
-  --outputFolder gs://genetics-portal-dev-raw/variant_index/${TODAY}
+python generate_variant_annotation.py
 ```
 
 ## Output schema
 
+The output is partitioned by chromosome and saved in parquet format.
+
 ```schema
 root
+ |-- id: string (nullable = true)
  |-- locus: struct (nullable = true)
  |    |-- contig: string (nullable = true)
  |    |-- position: integer (nullable = true)
