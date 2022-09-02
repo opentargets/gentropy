@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -56,7 +55,6 @@ def concordance_filter(df: DataFrame) -> DataFrame:
       with concordant alleles with the risk allele of the association.
     """
 
-    logging.info("Dropping discordant mappings...")
     return (
         df
         # Adding column with the reverse-complement of the risk allele:
@@ -145,7 +143,6 @@ def read_associations_data(
     etl.logger.info(
         f'Number of variants: {association_df.select("snp_ids").distinct().count()}'
     )
-    etl.logger.info(f"Assocation schema: {association_df.show(1, False, True)}")
 
     return association_df
 
@@ -268,7 +265,6 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
     etl.logger.info(
         f'Number of variants: {parsed_associations.select("snp_ids").distinct().count()}'
     )
-    etl.logger.info(f"Assocation: {parsed_associations.show(2, False, True)}")
 
     return parsed_associations
 
@@ -277,26 +273,82 @@ def deduplicate(df: DataFrame) -> DataFrame:
     raise NotImplementedError
 
 
-def map_variants(df: DataFrame) -> DataFrame:
-    raise NotImplementedError
+def map_variants(
+    parsed_associations: DataFrame, etl: ETLSession, varian_annotation: str
+) -> DataFrame:
+    """
+    It reads the variant annotation from the `varian_annotation` path, and joins it with the parsed
+    associations
+
+    Args:
+    parsed_associations (DataFrame): DataFrame
+    etl (ETLSession): ETLSession
+    varian_annotation (str): The path to the variant annotation file.
+
+    Returns:
+    A dataframe with the following columns:
+        - chr_id
+        - chr_pos
+        - rsid_gnomad
+        - ref
+        - alt
+        - variant_id
+        - study_id
+        - trait
+        - pval
+        - pval_text
+        - beta
+        - beta_text
+        -
+    """
+    # Loading variant annotation and join with parsed associations:
+    etl.logger.info("Loading variant annotation and joining with associations.")
+
+    # Reading and joining variant annotation:
+    variants = etl.spark.read.parquet(varian_annotation).select(
+        f.col("chr").alias("chr_id"),
+        f.col("pos_b38").alias("chr_pos"),
+        f.col("rsid").alias("rsid_gnomad"),
+        f.col("ref").alias("ref"),
+        f.col("alt").alias("alt"),
+        f.col("id").alias("variant_id"),
+    )
+
+    # data1.join(broadcast(data2), data1.id == data2.id)
+
+    mapped_associations = variants.join(
+        f.broadcast(parsed_associations), on=["chr_id", "chr_pos"], how="right"
+    ).persist()
+
+    return mapped_associations
 
 
 def ingest_gwas_catalog_associations(etl: ETLSession, cfg: DictConfig) -> DataFrame:
+    """
+    Main function to ingest/process/map GWAS Catalog association before the data should be joined with the studies.
 
-    gwas_association_file = cfg.gwas_ingest.input.gwas_catalog_associations
-    pvalue_cutoff = cfg.gwas_ingest.parameters.p_value_cutoff
-    logger = etl.logger
+    Args:
+      etl (ETLSession): ETLSession
+      cfg (DictConfig): DictConfig
+
+    Returns:
+      A DataFrame
+    """
+
+    gwas_association_file = cfg.etl.gwas_ingest.inputs.gwas_catalog_associations
+    pvalue_cutoff = cfg.etl.gwas_ingest.parameters.p_value_cutoff
+    variant_annotation = cfg.etl.gwas_ingest.inputs.variant_annotation
 
     gwas_associations = (
-        # 1. Read associations.
+        # 1. Read associations:
         read_associations_data(etl, gwas_association_file, pvalue_cutoff)
-        # 2. Process -> apply filter
-        .transform(process_associations, args=[logger])
-        # 3. Map
-        # .transform(map_variants)
-        # # 4. Remove discordants:
-        # .transform(concordance_filter)
-        # # 5. deduplicate associations:
+        # 2. Process -> apply filter:
+        .transform(lambda df: process_associations(df, etl))
+        # 3. Map variants to GnomAD3:
+        .transform(lambda df: map_variants(df, etl, variant_annotation))
+        # 4. Remove discordants:
+        .transform(concordance_filter)
+        # 5. deduplicate associations:
         # .transform(deduplicate).persist()
     )
 
