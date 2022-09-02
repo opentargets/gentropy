@@ -52,3 +52,16 @@ variant_annotation:
   parameters:
     partition_count: 256
   machine: ${machine.coloc}
+
+gwas_ingest:
+  inputs:
+    variant_annotation: gs://ot-team/dsuveges/variant_annotation/2022-08-11
+    gwas_catalog_associations: gs://ot-team/dsuveges/v2d_files/gwas_associations_2022-06-27.tsv
+    gwas_catalog_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_2022_08_16.tsv
+    gwas_catalog_unpublished_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_unpublished_2022_08_16.tsv
+  outputs:
+    gwas_output_folder: gs://ot-team/dsuveges/v2d_files/
+  parameters:
+    ingest_unpublished_studies: False
+    p_value_cutoff: 5e-8
+  machine: ${machine.default}
