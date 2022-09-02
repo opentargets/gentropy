@@ -31,7 +31,8 @@ build: clean ## Build Python Package with Dependencies
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
 	@mkdir -p ./dist
 	@poetry update
-	@poetry export -f requirements.txt --without-hashes -o requirements.txt
+	@poetry export -f requirements.txt --without-hashes -o raw_requirements.txt
+	@grep -v pywin raw_requirements.txt > requirements.txt
 	@poetry run pip install . -r requirements.txt -t ${SRC_WITH_DEPS}
 	@cd ./${SRC_WITH_DEPS}
 	@find . -name "*.pyc" -delete
