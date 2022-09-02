@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
+from pyspark.sql.window import Window
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -273,6 +274,53 @@ def deduplicate(df: DataFrame) -> DataFrame:
     raise NotImplementedError
 
 
+def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
+    """
+    > For each association, keeping all mappings with matching rsIDs,
+    there is no mapping with matching rsId is found, keep all mappings.
+
+    Args:
+      df: The dataframe to filter with the following columns:
+        - association_id
+        - rsid_gwas_catalog
+        - rsid_gnomad
+
+    Returns:
+      A dataframe with identical columns.
+    """
+
+    # Windowing through all associations:
+    w = Window.partitionBy("association_id")
+
+    return (
+        df
+        # See if the GnomAD variant that was mapped to a given association has a matching rsId:
+        .withColumn(
+            "matching_rsId",
+            f.when(
+                f.size(
+                    f.array_intersect(f.col("rsid_gwas_catalog"), f.col("rsid_gnomad"))
+                )
+                > 0,
+                True,
+            ).otherwise(False),
+        )
+        .withColumn(
+            "successful_mapping_exists",
+            f.when(
+                f.array_contains(f.collect_set(f.col("matching_rsId")).over(w), True),
+                True,
+            ).otherwise(False),
+        )
+        .filter(
+            (f.col("matching_rsId") & f.col("successful_mapping_exists"))
+            | (~f.col("matching_rsId") & ~f.col("successful_mapping_exists"))
+        )
+        .drop("successful_mapping_exists", "matching_rsId")
+        .persist()
+    )
+
+
 def map_variants(
     parsed_associations: DataFrame, etl: ETLSession, varian_annotation: str
 ) -> DataFrame:
@@ -314,8 +362,6 @@ def map_variants(
         f.col("id").alias("variant_id"),
     )
 
-    # data1.join(broadcast(data2), data1.id == data2.id)
-
     mapped_associations = variants.join(
         f.broadcast(parsed_associations), on=["chr_id", "chr_pos"], how="right"
     ).persist()
@@ -348,8 +394,8 @@ def ingest_gwas_catalog_associations(etl: ETLSession, cfg: DictConfig) -> DataFr
         .transform(lambda df: map_variants(df, etl, variant_annotation))
         # 4. Remove discordants:
         .transform(concordance_filter)
-        # 5. deduplicate associations:
-        # .transform(deduplicate).persist()
+        # 5. deduplicate associations by matching rsIDs:
+        .transform(filter_assoc_by_rsid).persist()
     )
 
     return gwas_associations

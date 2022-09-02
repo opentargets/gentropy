@@ -90,8 +90,8 @@ repos:
   - repo: local
     hooks:
       - id: unittests
-        name: run unit tests
-        entry: python -m unittest
+        name: run pytest
+        entry: pytest
         language: system
         pass_filenames: false
-        args: ['discover', '-v', '-s', './test/']
+        args: ['./test/']
