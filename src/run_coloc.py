@@ -14,10 +14,10 @@ from typing import TYPE_CHECKING
 
 import hydra
 
-from coloc_utils.coloc import colocalisation
-from coloc_utils.coloc_metadata import add_moleculartrait_phenotype_genes
-from coloc_utils.overlaps import find_all_vs_all_overlapping_signals
-from common.ETLSession import ETLSession
+from etl.coloc_utils.coloc import colocalisation
+from etl.coloc_utils.coloc_metadata import add_moleculartrait_phenotype_genes
+from etl.coloc_utils.overlaps import find_all_vs_all_overlapping_signals
+from etl.common.ETLSession import ETLSession
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig

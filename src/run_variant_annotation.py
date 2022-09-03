@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 import hail as hl
 import pyspark.sql.functions as f
 
-from common.ETLSession import ETLSession
+from etl.common.ETLSession import ETLSession
 
 # Population of interest:
 POPULATIONS = {
@@ -33,16 +33,15 @@ def main(cfg: DictConfig) -> None:
     # establish spark connection
     etl = ETLSession(cfg)
 
-    etl.logger.info("Colocalisation step started")
+    etl.logger.info("Variant annotation step started")
 
     # Extracting parameters:
-    gnomad_file = cfg.variant_annotation.gnomad_file
-    chain_file = cfg.variant_annotation.chain_file
-    output_file = cfg.variant_annotation.output_file
+    gnomad_file = cfg.etl.variant_annotation.inputs.gnomad_file
+    chain_file = cfg.etl.variant_annotation.inputs.chain_file
+    output_file = cfg.etl.variant_annotation.outputs.variant_annotation
 
     # Report parametrs
     etl.logger.info(f"GnomAD file: {gnomad_file}")
-    etl.logger.info(f"Chains file: {chain_file}")
     etl.logger.info(f"Chain file: {chain_file}")
     etl.logger.info(f"Output folder: {output_file}")
 
@@ -163,7 +162,7 @@ def main(cfg: DictConfig) -> None:
         # Adding new column:
         .withColumn("chr", f.col("chrom_b38"))
         # Writing data partitioned by chromosome:
-        .write.mode("overwrite")
+        .write.mode(cfg.environment.sparkWriteMode)
         .partitionBy("chr")
         .parquet(output_file)
     )

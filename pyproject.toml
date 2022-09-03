@@ -1,12 +1,11 @@
 [tool.poetry]
-name = "genetics_etl_python"
+name = "otgenetics"
 version = "0.1.0"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache License v2"
-exclude = ["src/*.py"]
 packages = [
-    { include = "**/*.py", from = "src"},
+    { include = "etl", from = "src"},
 ]
 [tool.poetry.dependencies]
 python = "3.8.13"

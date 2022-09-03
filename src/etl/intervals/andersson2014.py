@@ -7,10 +7,9 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
-
     from common.ETLSession import ETLSession
     from intervals.Liftover import LiftOverSpark
+    from pyspark.sql import DataFrame
 
 
 class ParseAndersson:

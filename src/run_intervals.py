@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 
 import hydra
 
-from common.ETLSession import ETLSession
-from intervals.andersson2014 import ParseAndersson
-from intervals.javierre2016 import ParseJavierre
-from intervals.jung2019 import ParseJung
-from intervals.Liftover import LiftOverSpark
-from intervals.thurman2012 import ParseThurman
+from etl.common.ETLSession import ETLSession
+from etl.intervals.andersson2014 import ParseAndersson
+from etl.intervals.javierre2016 import ParseJavierre
+from etl.intervals.jung2019 import ParseJung
+from etl.intervals.Liftover import LiftOverSpark
+from etl.intervals.thurman2012 import ParseThurman
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
