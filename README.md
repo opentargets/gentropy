@@ -12,7 +12,6 @@ Genetics portal ETL steps (Python)
 - gcloud installed and authorised to your GCP Project
 - gsutil
 - [make](https://www.gnu.org/software/make/) build tool
-- [openBLAS](https://github.com/xianyi/OpenBLAS) and [LAPACK](https://netlib.org/lapack/)
 
 ### Setup development environment
 
