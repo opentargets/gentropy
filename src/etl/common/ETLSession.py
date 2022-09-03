@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
 
-from common import Log4j
+from etl.common import Log4j
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig

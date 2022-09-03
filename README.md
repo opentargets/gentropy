@@ -7,14 +7,36 @@ Genetics portal ETL steps (Python)
 
 ### Requirements
 
+- [pyenv](https://github.com/pyenv/pyenv)
 - [Poetry](https://python-poetry.org/docs/)
 - gcloud installed and authorised to your GCP Project
 - gsutil
 - [make](https://www.gnu.org/software/make/) build tool
+- [openBLAS](https://github.com/xianyi/OpenBLAS) and [LAPACK](https://netlib.org/lapack/)
 
 ### Setup development environment
 
+Ensure python version described in `.python-version` is available
+
+```bash
+pyenv versions
 ```
+
+Otherwise, install
+
+```bash
+pyenv install 3.8.13
+```
+
+Make sure you are using the local Python version
+
+``` bash
+python -V
+#Python 3.8.13
+poetry env use 3.8
+```
+
+``` bash
 make setup-dev
 
 #VS-code
