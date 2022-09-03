@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pytest
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import functions as f
 
-from src.gwas_ingest.process_associations import filter_assoc_by_rsid
-
-if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+from src.gwas_ingest.process_associations import (
+    concordance_filter,
+    filter_assoc_by_rsid,
+)
 
 
 @pytest.fixture
@@ -19,6 +18,61 @@ def get_spark() -> SparkSession:
         .config("spark.driver.bindAddress", "127.0.0.1")
         .getOrCreate()
     )
+
+
+@pytest.fixture
+def mock_concordance_filter_data(get_spark: SparkSession) -> DataFrame:
+    return get_spark.createDataFrame(
+        [
+            {
+                "id": 0,
+                "risk_allele": "A",
+                "ref": "A",
+                "alt": "T",
+                "concordant": True,
+            },  # Concordant positive, ref.
+            {
+                "id": 1,
+                "risk_allele": "A",
+                "ref": "G",
+                "alt": "A",
+                "concordant": True,
+            },  # Concordant positive, alt.
+            {
+                "id": 2,
+                "risk_allele": "A",
+                "ref": "T",
+                "alt": "G",
+                "concordant": True,
+            },  # Concordant negative, ref.
+            {
+                "id": 3,
+                "risk_allele": "A",
+                "ref": "G",
+                "alt": "T",
+                "concordant": True,
+            },  # Concordant negative, alt.
+            {
+                "id": 4,
+                "risk_allele": "?",
+                "ref": "G",
+                "alt": "T",
+                "concordant": True,
+            },  # Concordant ambigious.
+            {
+                "id": 5,
+                "risk_allele": "ATCG",
+                "ref": "C",
+                "alt": "T",
+                "concordant": False,
+            },  # discordant.
+        ]
+    ).persist()
+
+
+@pytest.fixture
+def call_concordance_filter(mock_concordance_filter_data: DataFrame) -> DataFrame:
+    return mock_concordance_filter_data.transform(concordance_filter).persist()
 
 
 @pytest.fixture
@@ -127,3 +181,39 @@ def test_filter_assoc_by_rsid__right_rows_are_kept(
 
     kept = call_rsid_filter.transform(filter_assoc_by_rsid).select("retain").collect()
     assert all([d["retain"] for d in kept])
+
+
+def test_concordance_filter__type(call_concordance_filter: DataFrame) -> None:
+    """Testing if the function returns the right type"""
+    assert isinstance(call_concordance_filter, DataFrame)
+
+
+def test_concordance_filter__all_columns_returned(
+    call_concordance_filter: DataFrame, mock_concordance_filter_data: DataFrame
+) -> None:
+    """Testing if the function returns the right type"""
+    source_columns = mock_concordance_filter_data.columns
+    processed_columns = call_concordance_filter.columns
+
+    assert any([column in processed_columns for column in source_columns])
+
+
+def test_concordance_filter__right_rows_retained(
+    call_concordance_filter: DataFrame, mock_concordance_filter_data: DataFrame
+) -> None:
+    """Testing if the filter generated the expected output."""
+    target_ids = [
+        row["id"]
+        for row in (
+            mock_concordance_filter_data.filter(f.col("concordant"))
+            .select("id")
+            .orderBy("id")
+            .collect()
+        )
+    ]
+    filtered_ids = [
+        row["id"]
+        for row in (call_concordance_filter.select("id").orderBy("id").collect())
+    ]
+
+    assert filtered_ids == target_ids
