@@ -60,7 +60,7 @@ gwas_ingest:
     gwas_catalog_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_2022_08_16.tsv
     gwas_catalog_unpublished_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_unpublished_2022_08_16.tsv
   outputs:
-    gwas_output_folder: gs://ot-team/dsuveges/v2d_files/
+    gwas_catalog_associations: ${etl.outputs}/gwas_catalog_associations
   parameters:
     ingest_unpublished_studies: False
     p_value_cutoff: 5e-8

@@ -8,10 +8,9 @@ from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 if TYPE_CHECKING:
-    from omegaconf import DictConfig
     from pyspark.sql import DataFrame
 
-    from common.ETLSession import ETLSession
+    from etl.common.ETLSession import ETLSession
 
 ASSOCIATION_COLUMNS_MAP = {
     # Variant related columns:
@@ -369,33 +368,38 @@ def map_variants(
     return mapped_associations
 
 
-def ingest_gwas_catalog_associations(etl: ETLSession, cfg: DictConfig) -> DataFrame:
+def ingest_gwas_catalog_associations(
+    etl: ETLSession,
+    gwas_association_path: str,
+    variant_annotation_path: str,
+    pvalue_cutoff: float,
+) -> DataFrame:
+
     """
     Main function to ingest/process/map GWAS Catalog association before the data should be joined with the studies.
 
     Args:
       etl (ETLSession): ETLSession
-      cfg (DictConfig): DictConfig
+      gwas_association_path (str): GWAS catalogue dataset path
+      variant_annotation_path (str): variant annotation dataset path
+      pvalue_cutoff (float): GWAS significance threshold
+
 
     Returns:
       A DataFrame
     """
 
-    gwas_association_file = cfg.etl.gwas_ingest.inputs.gwas_catalog_associations
-    pvalue_cutoff = cfg.etl.gwas_ingest.parameters.p_value_cutoff
-    variant_annotation = cfg.etl.gwas_ingest.inputs.variant_annotation
-
     gwas_associations = (
         # 1. Read associations:
-        read_associations_data(etl, gwas_association_file, pvalue_cutoff)
+        read_associations_data(etl, gwas_association_path, pvalue_cutoff)
         # 2. Process -> apply filter:
         .transform(lambda df: process_associations(df, etl))
         # 3. Map variants to GnomAD3:
-        .transform(lambda df: map_variants(df, etl, variant_annotation))
+        .transform(lambda df: map_variants(df, etl, variant_annotation_path))
         # 4. Remove discordants:
         .transform(concordance_filter)
         # 5. deduplicate associations by matching rsIDs:
-        .transform(filter_assoc_by_rsid).persist()
+        .transform(filter_assoc_by_rsid)
     )
 
     return gwas_associations
