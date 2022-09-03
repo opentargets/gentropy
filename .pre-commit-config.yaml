@@ -89,9 +89,9 @@ repos:
 
   - repo: local
     hooks:
-      - id: unittests
-        name: run pytest
+      - id: pytest-check
+        name: pytest-check
         entry: pytest
         language: system
         pass_filenames: false
-        args: ['./test/']
+        always_run: true
