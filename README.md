@@ -1,5 +1,7 @@
 [![status: experimental](https://github.com/GIScience/badges/raw/master/status/experimental.svg)](https://github.com/GIScience/badges#experimental)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python/main.svg](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python)
+![Pytest workflow](https://github.com/opentargets/genetics_etl_python/actions/workflows/pytest.yaml/badge.svg)
 
 # Genetics Portal Python ETL
 
@@ -58,11 +60,9 @@ Configurations can be modified using hydra options.
 poetry run python ./utils/configure.py environment=local
 ```
 
-
 ### Build
 
 Use `make build` to create a bundle that will contain the neccessary code, configuration and dependencies to run the ETL pipeline. The build is stored in `dist/` (gitignored).
-
 
 ### More help
 
