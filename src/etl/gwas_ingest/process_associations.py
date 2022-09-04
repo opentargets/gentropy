@@ -8,7 +8,7 @@ from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
 
@@ -35,6 +35,47 @@ ASSOCIATION_COLUMNS_MAP = {
     "95% CI (TEXT)": "confidence_interval",  # Confidence interval of the association, string: split into lower and upper bound.
     "CONTEXT": "context",
 }
+
+
+def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
+    """
+    > We take the maximum minor allele frequency across all populations, and then drop all but the row
+    with the highest minor allele frequency from all mappings. This process is population name agnostic,
+    the only assumption is the field name is `allele_frequencies` and it is a structType.
+
+    Args:
+      df (DataFrame): DataFrame
+
+    Returns:
+      A DataFrame with identical columns
+    """
+    # parsing population names from schema:
+    pop_names = [
+        field for field in df.schema.fields if field.name == "allele_frequencies"
+    ][0].dataType.fieldNames()
+
+    def af2maf(c: Column) -> Column:
+        """Column function to calculate minor allele frequency from allele frequency"""
+        return f.when(c > 0.5, 1 - c).otherwise(c)
+
+    # Windowing through all associations. Within an associations, rows are ordered by the maximum MAF:
+    w = Window.partitionBy("association_id").orderBy(f.desc("maxMAF"))
+
+    return (
+        df.withColumn(
+            "maxMAF",
+            f.array_max(
+                f.array(
+                    *[af2maf(f.col(f"allele_frequencies.{pop}")) for pop in pop_names]
+                )
+            ),
+        )
+        .drop("allele_frequencies")
+        .withColumn("row_number", f.row_number().over(w))
+        .filter(f.col("row_number") == 1)
+        .drop("row_number")
+        .persist()
+    )
 
 
 def concordance_filter(df: DataFrame) -> DataFrame:
@@ -401,6 +442,8 @@ def ingest_gwas_catalog_associations(
         .transform(concordance_filter)
         # 5. deduplicate associations by matching rsIDs:
         .transform(filter_assoc_by_rsid)
+        # 6. deduplication by MAF:
+        .transform(filter_assoc_by_maf)
     )
 
     return gwas_associations
