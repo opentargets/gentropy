@@ -7,5 +7,10 @@
   "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
   "python.linting.mypyEnabled": true,
-  "python.linting.mypyCategorySeverity.error": "Information"
+  "python.linting.mypyCategorySeverity.error": "Information",
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }
