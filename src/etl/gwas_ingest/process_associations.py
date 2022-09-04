@@ -359,6 +359,7 @@ def map_variants(
         f.col("ref").alias("ref"),
         f.col("alt").alias("alt"),
         f.col("id").alias("variant_id"),
+        f.col("af").alias("allele_frequencies"),
     )
 
     mapped_associations = variants.join(
