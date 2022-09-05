@@ -6,9 +6,10 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 if TYPE_CHECKING:
-    from common.ETLSession import ETLSession
-    from intervals.Liftover import LiftOverSpark
     from pyspark.sql import DataFrame
+
+    from etl.common.ETLSession import ETLSession
+    from etl.intervals.Liftover import LiftOverSpark
 
 
 class ParseJavierre:
