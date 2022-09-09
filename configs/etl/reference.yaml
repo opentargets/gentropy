@@ -51,7 +51,7 @@ variant_annotation:
     variant_annotation: ${etl.outputs}/variant_annotation
   parameters:
     partition_count: 256
-  machine: ${machine.coloc}
+  machine: ${machine.variant_annotation}
 
 gwas_ingest:
   inputs:

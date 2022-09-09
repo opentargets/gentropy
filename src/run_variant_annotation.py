@@ -29,24 +29,19 @@ POPULATIONS = {
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
-
-    # establish spark connection
     etl = ETLSession(cfg)
-
-    etl.logger.info("Variant annotation step started")
+    hl.init(sc=etl.spark.sparkContext)
 
     # Extracting parameters:
-    gnomad_file = cfg.etl.variant_annotation.inputs.gnomad_file
     chain_file = cfg.etl.variant_annotation.inputs.chain_file
     output_file = cfg.etl.variant_annotation.outputs.variant_annotation
 
-    # Report parametrs
-    etl.logger.info(f"GnomAD file: {gnomad_file}")
-    etl.logger.info(f"Chain file: {chain_file}")
-    etl.logger.info(f"Output folder: {output_file}")
-
     # Load data
-    ht = hl.read_table(gnomad_file)
+    ht = hl.read_table(
+        cfg.etl.variant_annotation.inputs.gnomad_file,
+        _n_partitions=cfg.etl.variant_annotation.parameters.partition_count,
+        _load_refs=False,
+    )
 
     # Assert that all alleles are biallelic:
     assert ht.all(
@@ -63,7 +58,6 @@ def main(cfg: DictConfig) -> None:
             **{pop: ht.freq[index].AF for pop, index in population_indices.items()}
         )
     )
-
     # Add chain file
     grch37 = hl.get_reference("GRCh37")
     grch38 = hl.get_reference("GRCh38")
@@ -134,6 +128,7 @@ def main(cfg: DictConfig) -> None:
         # Select columns and convert to pyspark:
         ht.select(*col_order)
         .to_spark(flatten=False)
+        .repartition(cfg.etl.variant_annotation.parameters.partition_count)
         # Creating new column based on the transcript_consequences
         .select(
             "*",
@@ -157,8 +152,21 @@ def main(cfg: DictConfig) -> None:
         )
         # Generate variant id column:
         .withColumn("id", f.concat_ws("_", "chrom_b38", "pos_b38", "ref", "alt"))
+        # Create new allele frequency column:
+        .withColumn(
+            "alleleFrequencies",
+            f.array(
+                *[
+                    f.struct(
+                        f.col(f"af.{pop}").alias("alleleFrequency"),
+                        f.lit(pop).alias("populationName"),
+                    )
+                    for pop in POPULATIONS
+                ]
+            ),
+        )
         # Drop unused column:
-        .drop("transcript_consequences")
+        .drop("transcript_consequences", "af")
         # Adding new column:
         .withColumn("chr", f.col("chrom_b38"))
         # Writing data partitioned by chromosome:
