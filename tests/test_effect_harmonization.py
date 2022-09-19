@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pytest
 
-from etl.gwas_ingest.effect_harmonization import get_reverse_complement, is_palindrom
+from etl.gwas_ingest.effect_harmonization import get_reverse_complement
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession
@@ -29,11 +29,6 @@ def mock_allele_columns(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture
-def call_is_palindrom(mock_allele_columns: DataFrame) -> DataFrame:
-    return mock_allele_columns.transform(lambda df: is_palindrom(df, "allele"))
-
-
-@pytest.fixture
 def call_get_reverse_complement(mock_allele_columns: DataFrame) -> DataFrame:
     return mock_allele_columns.transform(
         lambda df: get_reverse_complement(df, "allele")
@@ -45,14 +40,5 @@ def test_reverse_complement(call_get_reverse_complement: DataFrame) -> None:
     assert (
         call_get_reverse_complement.filter(
             f.col("reverseComp") != f.col("revcomp_allele")
-        ).count()
-    ) == 0
-
-
-def test_is_palindrom(call_is_palindrom: DataFrame) -> None:
-
-    assert (
-        call_is_palindrom.filter(
-            f.col("isPalindrom") != f.col("is_allele_palindrom")
         ).count()
     ) == 0
