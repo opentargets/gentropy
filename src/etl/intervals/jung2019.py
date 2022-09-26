@@ -76,20 +76,23 @@ class ParseJung:
                 f.explode(f.split(f.col("gene_name"), ";")).alias("gene_name"),
                 "tissue",
             )
+            .alias("intervals")
             # Joining with genes:
             .join(
-                gene_index.select("gene_name", "gene_id"), on="gene_name", how="inner"
+                gene_index.alias("genes"),
+                on=[f.col("intervals.gene_name") == f.col("genes.symbols")],
+                how="inner",
             )
             # Finalize dataset:
             .select(
-                "chrom",
+                "chromosome",
                 "start",
                 "end",
-                "gene_id",
-                "tissue",
-                f.lit(self.DATASET_NAME).alias("dataset_name"),
-                f.lit(self.DATA_TYPE).alias("data_type"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experiment_type"),
+                "geneId",
+                f.col("tissue").alias("bioFeature"),
+                f.lit(self.DATASET_NAME).alias("datasetName"),
+                f.lit(self.DATA_TYPE).alias("dataType"),
+                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
                 f.lit(self.PMID).alias("pmid"),
             )
             .drop_duplicates()
@@ -112,5 +115,5 @@ class ParseJung:
             f'Number of unique intervals: {self.jung_intervals.select("start", "end").distinct().count()}'
         )
         self.etl.logger.info(
-            f'Number genes in the Jung dataset: {self.jung_intervals.select("gene_id").distinct().count()}'
+            f'Number genes in the Jung dataset: {self.jung_intervals.select("geneId").distinct().count()}'
         )
