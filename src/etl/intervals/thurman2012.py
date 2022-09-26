@@ -73,22 +73,25 @@ class ParseThurman:
             )
             # Lift over to the GRCh38 build:
             .transform(lambda df: lift.convert_intervals(df, "chrom", "start", "end"))
+            .alias("intervals")
             # Map gene names to gene IDs:
             .join(
-                gene_index.select("gene_id", "gene_name"), how="inner", on="gene_name"
+                gene_index.alias("genes"),
+                on=[f.col("intervals.gene_name") == f.col("genes.symbols")],
+                how="inner",
             )
             # Select relevant columns and add constant columns:
             .select(
-                "chrom",
+                "chromosome",
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
-                "gene_id",
+                "geneId",
                 "score",
-                f.lit(self.DATASET_NAME).alias("dataset_name"),
-                f.lit(self.DATA_TYPE).alias("data_type"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experiment_type"),
+                f.lit(self.DATASET_NAME).alias("datasetName"),
+                f.lit(self.DATA_TYPE).alias("dataType"),
+                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
                 f.lit(self.PMID).alias("pmid"),
-                f.lit(self.BIO_FEATURE).alias("bio_feature"),
+                f.lit(self.BIO_FEATURE).alias("bioFeature"),
             )
             .distinct()
             .persist()
@@ -109,5 +112,5 @@ class ParseThurman:
             f'Number of unique intervals: {self.Thurman_intervals.select("start", "end").distinct().count()}'
         )
         self.etl.logger.info(
-            f'Number genes in the Thurman dataset: {self.Thurman_intervals.select("gene_id").distinct().count()}'
+            f'Number genes in the Thurman dataset: {self.Thurman_intervals.select("geneId").distinct().count()}'
         )

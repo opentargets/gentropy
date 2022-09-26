@@ -89,11 +89,6 @@ class ParseAndersson:
             .persist()
         )
 
-        # Prepare gene set:
-        genes = gene_index.withColumnRenamed("gene_name", "gene_symbol").select(
-            "gene_symbol", "chr", "gene_id", "TSS"
-        )
-
         self.anderson_intervals = (
             # Lift over the intervals:
             lift.convert_intervals(parserd_anderson_df, "chrom", "start", "end")
@@ -101,29 +96,34 @@ class ParseAndersson:
             .withColumnRenamed("mapped_start", "start")
             .withColumnRenamed("mapped_end", "end")
             .distinct()
-            # Joining with the gene index (unfortunately we are losing a bunch of genes here due to old symbols):
-            .join(genes, on="gene_symbol", how="left")
+            # Joining with the gene index
+            .alias("intervals")
+            .join(
+                gene_index.alias("genes"),
+                on=[f.col("intervals.gene_symbol") == f.col("genes.symbols")],
+                how="left",
+            )
             .filter(
                 # Drop rows where the gene is not on the same chromosome
-                (f.col("chrom") == f.regexp_replace(f.col("chr"), "chr", ""))
+                (f.col("chrom") == f.col("chromosome"))
                 # Drop rows where the TSS is far from the start of the region
                 & (
-                    f.abs((f.col("start") + f.col("end")) / 2 - f.col("TSS"))
+                    f.abs((f.col("start") + f.col("end")) / 2 - f.col("tss"))
                     <= self.TWOSIDED_THRESHOLD
                 )
             )
             # Select relevant columns:
             .select(
-                "chrom",
+                "chromosome",
                 "start",
                 "end",
-                "gene_id",
+                "geneId",
                 "score",
-                f.lit(self.DATASET_NAME).alias("dataset_name"),
-                f.lit(self.DATA_TYPE).alias("data_type"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experiment_type"),
+                f.lit(self.DATASET_NAME).alias("datasetName"),
+                f.lit(self.DATA_TYPE).alias("dataType"),
+                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
                 f.lit(self.PMID).alias("pmid"),
-                f.lit(self.BIO_FEATURE).alias("bio_feature"),
+                f.lit(self.BIO_FEATURE).alias("bioFeature"),
             )
             .persist()
         )
@@ -146,5 +146,5 @@ class ParseAndersson:
             f'Number of unique intervals: {self.anderson_intervals.select("start", "end").distinct().count()}'
         )
         self.etl.logger.info(
-            f'Number genes in the Andersson dataset: {self.anderson_intervals.select("gene_id").distinct().count()}'
+            f'Number genes in the Andersson dataset: {self.anderson_intervals.select("geneId").distinct().count()}'
         )
