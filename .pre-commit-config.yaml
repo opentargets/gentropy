@@ -12,7 +12,6 @@ repos:
       - id: check-yaml
       - id: pretty-format-json
         args:
-          - --indent 4
           - --autofix
           - --no-ensure-ascii
           - --no-sort-keys
