@@ -90,9 +90,9 @@ class ParseJung:
                 "end",
                 "geneId",
                 f.col("tissue").alias("bioFeature"),
-                f.lit(self.DATASET_NAME).alias("dataset_name"),
-                f.lit(self.DATA_TYPE).alias("data_type"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experiment_type"),
+                f.lit(self.DATASET_NAME).alias("datasetName"),
+                f.lit(self.DATA_TYPE).alias("dataType"),
+                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
                 f.lit(self.PMID).alias("pmid"),
             )
             .drop_duplicates()
