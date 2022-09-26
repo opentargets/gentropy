@@ -7,6 +7,7 @@ import hydra
 
 from etl.common.ETLSession import ETLSession
 from etl.intervals.andersson2014 import ParseAndersson
+from etl.intervals.helpers import prepare_gene_interval_lut
 from etl.intervals.javierre2016 import ParseJavierre
 from etl.intervals.jung2019 import ParseJung
 from etl.intervals.Liftover import LiftOverSpark
@@ -22,7 +23,9 @@ def main(cfg: DictConfig) -> None:
     etl = ETLSession(cfg)
 
     # Open and process gene file:
-    gene_index = etl.spark.read.parquet(cfg.etl.intervals.inputs.gene_index).persist()
+    gene_index = prepare_gene_interval_lut(
+        etl.spark.read.parquet(cfg.etl.intervals.inputs.gene_index)
+    )
 
     # Initialize liftover object:
     lift = LiftOverSpark(
@@ -58,8 +61,7 @@ def main(cfg: DictConfig) -> None:
 
     # Saving data:
     (
-        df.orderBy("chrom", "start")
-        .repartition(200)
+        df.repartitionByRange("chromosome", "start")
         .write.mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.intervals.outputs.intervals)
     )

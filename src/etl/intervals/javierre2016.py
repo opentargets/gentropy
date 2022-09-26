@@ -50,9 +50,6 @@ class ParseJavierre:
         etl.logger.info("Parsing Javierre 2016 data...")
         etl.logger.info(f"Reading data from {javierre_parquet}")
 
-        # Read gene index:
-        genes = self.prepare_gene_index(gene_index)
-
         # Read Javierre data:
         javierre_raw = (
             etl.spark.read.parquet(javierre_parquet)
@@ -107,24 +104,29 @@ class ParseJavierre:
 
         # Once the intervals are lifted, extracting the unique intervals:
         unique_intervals_with_genes = (
-            javierre_remapped.select(
-                "chrom",
+            javierre_remapped.alias("intervals")
+            .select(
+                f.col("chrom"),
                 f.col("start").cast(t.IntegerType()),
                 f.col("end").cast(t.IntegerType()),
             )
             .distinct()
-            .join(genes, on=["chrom"], how="left")
+            .join(
+                gene_index.alias("genes"),
+                on=[f.col("intervals.chrom") == f.col("genes.chromosome")],
+                how="left",
+            )
             .filter(
                 (
-                    (f.col("start") >= f.col("gene_start"))
-                    & (f.col("start") <= f.col("gene_end"))
+                    (f.col("start") >= f.col("genomicLocation.start"))
+                    & (f.col("start") <= f.col("genomicLocation.end"))
                 )
                 | (
-                    (f.col("end") >= f.col("gene_start"))
-                    & (f.col("end") <= f.col("gene_end"))
+                    (f.col("end") >= f.col("genomicLocation.start"))
+                    & (f.col("end") <= f.col("genomicLocation.end"))
                 )
             )
-            .select("chrom", "start", "end", "gene_id", "TSS")
+            .select("chrom", "start", "end", "geneId", "tss")
         )
 
         # Joining back the data:
@@ -134,23 +136,25 @@ class ParseJavierre:
             )
             .filter(
                 # Drop rows where the TSS is far from the start of the region
-                f.abs((f.col("start") + f.col("end")) / 2 - f.col("TSS"))
+                f.abs((f.col("start") + f.col("end")) / 2 - f.col("tss"))
                 <= self.TWOSIDED_THRESHOLD
             )
             # For each gene, keep only the highest scoring interval:
-            .groupBy("name_chr", "name_start", "name_end", "gene_id", "bio_feature")
+            .groupBy(
+                "name_chr", "name_start", "name_end", "genes.geneId", "bio_feature"
+            )
             .agg(f.max(f.col("name_score")).alias("score"))
             # Create the output:
             .select(
-                f.col("name_chr").alias("chrom"),
+                f.col("name_chr").alias("chromosome"),
                 f.col("name_start").alias("start"),
                 f.col("name_end").alias("end"),
                 f.col("score"),
-                f.col("gene_id").alias("gene_id"),
-                f.col("bio_feature").alias("cell_type"),
-                f.lit(self.DATASET_NAME).alias("dataset_name"),
-                f.lit(self.DATA_TYPE).alias("data_type"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experiment_type"),
+                f.col("genes.geneId").alias("geneId"),
+                f.col("bio_feature").alias("bioFeature"),
+                f.lit(self.DATASET_NAME).alias("datasetName"),
+                f.lit(self.DATA_TYPE).alias("dataType"),
+                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
                 f.lit(self.PMID).alias("pmid"),
             )
             .persist()
@@ -173,23 +177,5 @@ class ParseJavierre:
             f'Number of unique intervals: {self.javierre_intervals.select("start", "end").distinct().count()}'
         )
         self.etl.logger.info(
-            f'Number genes in the Javierre dataset: {self.javierre_intervals.select("gene_id").distinct().count()}'
+            f'Number genes in the Javierre dataset: {self.javierre_intervals.select("geneId").distinct().count()}'
         )
-
-    @staticmethod
-    def prepare_gene_index(gene_index: DataFrame) -> DataFrame:
-        """Pre-processing the gene dataset
-        - selecting and renaming relevant columns
-        - remove 'chr' from chromosome column
-
-        :param gene_index: Path to the gene parquet file
-        :return: Spark Dataframe
-        """
-        # Reading gene annotations:
-        return gene_index.select(
-            f.regexp_replace(f.col("chr"), "chr", "").alias("chrom"),
-            f.col("start").cast(t.IntegerType()).alias("gene_start"),
-            f.col("end").cast(t.IntegerType()).alias("gene_end"),
-            "gene_id",
-            "TSS",
-        ).persist()

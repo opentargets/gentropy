@@ -24,7 +24,7 @@ intervals:
     # Originally gs://genetics-portal-input/v2g_input/grch37_to_grch38.over.chain
     liftover_chain_file: ${etl.inputs}/v2g_input/grch37_to_grch38.over.chain
     # Originally gs://genetics-portal-input/v2g_input/geneset.protein_coding.parquet
-    gene_index: ${etl.inputs}/v2g_input/geneset.protein_coding.parquet
+    gene_index: ${etl.inputs}/v2g_input/targets
     # An atlas of active enhancers across human cell types and tissues
     # Originally: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
     anderson_file: ${etl.inputs}/v2g_input/andersson2014/enhancer_tss_associations.bed
