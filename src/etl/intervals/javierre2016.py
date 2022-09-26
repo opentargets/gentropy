@@ -118,12 +118,12 @@ class ParseJavierre:
             )
             .filter(
                 (
-                    (f.col("intervals.start") >= f.col("genes.start"))
-                    & (f.col("intervals.start") <= f.col("genes.end"))
+                    (f.col("start") >= f.col("genomicLocation.start"))
+                    & (f.col("start") <= f.col("genomicLocation.end"))
                 )
                 | (
-                    (f.col("intervals.end") >= f.col("genes.start"))
-                    & (f.col("intervals.end") <= f.col("genes.end"))
+                    (f.col("end") >= f.col("genomicLocation.start"))
+                    & (f.col("end") <= f.col("genomicLocation.end"))
                 )
             )
             .select("chrom", "start", "end", "geneId", "tss")
@@ -140,7 +140,9 @@ class ParseJavierre:
                 <= self.TWOSIDED_THRESHOLD
             )
             # For each gene, keep only the highest scoring interval:
-            .groupBy("name_chr", "name_start", "name_end", "gene_id", "bio_feature")
+            .groupBy(
+                "name_chr", "name_start", "name_end", "genes.geneId", "bio_feature"
+            )
             .agg(f.max(f.col("name_score")).alias("score"))
             # Create the output:
             .select(
@@ -148,7 +150,7 @@ class ParseJavierre:
                 f.col("name_start").alias("start"),
                 f.col("name_end").alias("end"),
                 f.col("score"),
-                f.col("gene_id").alias("geneId"),
+                f.col("genes.geneId").alias("geneId"),
                 f.col("bio_feature").alias("bioFeature"),
                 f.lit(self.DATASET_NAME).alias("datasetName"),
                 f.lit(self.DATA_TYPE).alias("dataType"),

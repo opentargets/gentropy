@@ -82,7 +82,7 @@ class ParseThurman:
             )
             # Select relevant columns and add constant columns:
             .select(
-                "chromosome",
+                f.col("chrom").alias("chromosome"),
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
                 "geneId",

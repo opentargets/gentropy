@@ -61,7 +61,7 @@ def main(cfg: DictConfig) -> None:
 
     # Saving data:
     (
-        df.repartitionByRange("chrom", "start")
+        df.repartitionByRange("chromosome", "start")
         .write.mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.intervals.outputs.intervals)
     )
