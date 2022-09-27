@@ -51,7 +51,7 @@
     {
       "metadata": {},
       "name": "pmid",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
@@ -62,20 +62,20 @@
     },
     {
       "metadata": {},
-      "name": "dataset_name",
-      "nullable": true,
+      "name": "datasetName",
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "data_type",
-      "nullable": true,
+      "name": "dataType",
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "experiment_type",
-      "nullable": true,
+      "name": "experimentType",
+      "nullable": false,
       "type": "string"
     }
   ],

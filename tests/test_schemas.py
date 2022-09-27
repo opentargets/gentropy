@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql.types import StructType
 
-from etl.json import SCHEMA_DIR
-
 if TYPE_CHECKING:
     from pytest import Metafunc
+
+SCHEMA_DIR = "src/etl/json/schemas"
 
 
 def pytest_generate_tests(metafunc: Metafunc) -> None:

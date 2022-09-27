@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType
 
 from etl.common import Log4j
-from etl.json import SCHEMA_DIR
+from etl.json import schemas
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -28,7 +28,7 @@ class ETLSession:
 
     def read_parquet(self: ETLSession, path: str, schema_json: str) -> DataFrame:
         core_schema = json.loads(
-            Path(SCHEMA_DIR, schema_json).read_text(encoding="utf-8")
+            pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
         )
         schema = StructType.fromJson(core_schema)
         df = self.spark.read.schema(schema).format("parquet").load(path)

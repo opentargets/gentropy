@@ -12,6 +12,7 @@ from etl.intervals.javierre2016 import ParseJavierre
 from etl.intervals.jung2019 import ParseJung
 from etl.intervals.Liftover import LiftOverSpark
 from etl.intervals.thurman2012 import ParseThurman
+from etl.json import validate_df_schema
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -24,7 +25,7 @@ def main(cfg: DictConfig) -> None:
 
     # Open and process gene file:
     gene_index = prepare_gene_interval_lut(
-        etl.spark.read.parquet(cfg.etl.intervals.inputs.gene_index)
+        etl.read_parquet(cfg.etl.intervals.inputs.gene_index, "targets.json")
     )
 
     # Initialize liftover object:
@@ -58,6 +59,8 @@ def main(cfg: DictConfig) -> None:
 
     etl.logger.info(f"Number of interval data: {df.count()}")
     etl.logger.info(f"Writing data to: {cfg.etl.intervals.outputs.intervals}")
+
+    validate_df_schema(df, "intervals.json")
 
     # Saving data:
     (

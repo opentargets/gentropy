@@ -1,20 +1,21 @@
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
 import json
-import os
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pyspark.sql.types import StructType
 
+from etl.json import schemas
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-SCHEMA_DIR = os.path.join(os.path.dirname(__file__), "schemas")
-
 
 def validate_df_schema(df: DataFrame, schema_json: str) -> None:
-    core_schema = json.loads(Path(SCHEMA_DIR, schema_json).read_text(encoding="utf-8"))
+    core_schema = json.loads(
+        pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
+    )
     expected_schema = StructType.fromJson(core_schema)
     observed_schema = df.schema
     missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
