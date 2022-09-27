@@ -64,6 +64,10 @@ poetry run python ./utils/configure.py environment=local
 
 Use `make build` to create a bundle that will contain the neccessary code, configuration and dependencies to run the ETL pipeline. The build is stored in `dist/` (gitignored).
 
+### Development guidelines
+
+- DataFrame schemas must be validated when reading (`etl.read_parquet`) and writing (`validate_df_schema`).
+- ...
 ### More help
 
 ```bash
