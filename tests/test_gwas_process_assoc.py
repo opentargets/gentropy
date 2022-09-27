@@ -6,8 +6,46 @@ from pyspark.sql import functions as f
 
 from etl.gwas_ingest.process_associations import (
     concordance_filter,
+    filter_assoc_by_maf,
     filter_assoc_by_rsid,
 )
+
+
+@pytest.fixture
+def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
+    return (
+        spark.createDataFrame(
+            [
+                # Simple case:
+                {"aid": 1, "pop1": 0.1, "pop2": 0.4, "keep": True},
+                {"aid": 1, "pop1": 0.1, "pop2": 0.2, "keep": False},
+                # Flip AF -> MAF required:
+                {"aid": 2, "pop1": 0.9, "pop2": 0.6, "keep": True},
+                {"aid": 2, "pop1": 0.1, "pop2": 0.8, "keep": False},
+                # Missing values handled properly:
+                {"aid": 3, "pop1": None, "pop2": 0.1, "keep": False},
+                {"aid": 3, "pop1": 0.1, "pop2": 0.2, "keep": True},
+                {"aid": 4, "pop1": None, "pop2": 0.6, "keep": True},
+                {"aid": 4, "pop1": 0.1, "pop2": 0.3, "keep": False},
+            ]
+        )
+        .withColumn(
+            "allele_frequencies",
+            f.struct(f.col("pop1").alias("pop1"), f.col("pop2").alias("pop2")),
+        )
+        .select(
+            f.col("aid").alias("association_id"),
+            "allele_frequencies",
+            "keep",
+            f.monotonically_increasing_id().alias("id"),
+        )
+        .persist()
+    )
+
+
+@pytest.fixture
+def call_maf_filter(mock_maf_filter_data: DataFrame) -> DataFrame:
+    return mock_maf_filter_data.transform(filter_assoc_by_maf)
 
 
 @pytest.fixture
@@ -207,5 +245,18 @@ def test_concordance_filter__right_rows_retained(
         row["id"]
         for row in (call_concordance_filter.select("id").orderBy("id").collect())
     ]
+
+    assert filtered_ids == target_ids
+
+
+def test_maf_filter__right_rows_retained(
+    call_maf_filter: DataFrame, mock_maf_filter_data: DataFrame
+) -> None:
+    """Testing if the filter generated the expected output."""
+    target_ids = [
+        row["id"]
+        for row in (mock_maf_filter_data.filter(f.col("keep")).orderBy("id").collect())
+    ]
+    filtered_ids = [row["id"] for row in (call_maf_filter.orderBy("id").collect())]
 
     assert filtered_ids == target_ids

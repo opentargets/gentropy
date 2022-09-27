@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
+from etl.gwas_ingest.effect_harmonization import harmonize_effect
 from etl.gwas_ingest.process_associations import ingest_gwas_catalog_associations
 
 
@@ -24,7 +25,7 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.gwas_ingest.inputs.gwas_catalog_associations,
         cfg.etl.gwas_ingest.inputs.variant_annotation,
         cfg.etl.gwas_ingest.parameters.p_value_cutoff,
-    )
+    ).transform(harmonize_effect)
 
     etl.logger.info(
         f"Writing data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_associations}"
