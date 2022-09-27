@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import sys
+from statistics import NormalDist
 from typing import TYPE_CHECKING
 
-import scipy.stats as st
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -37,7 +37,7 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         .withColumn(
             "zscore",
             f.udf(
-                lambda pv: float(abs(st.norm.ppf(pv / 2))) if pv else None,
+                lambda pv: NormalDist().inv_cdf((1 + pv) / 2.0) if pv else None,
                 t.FloatType(),
             )(f.col(f"parsed_${pvalcol}")),
         )
@@ -87,6 +87,8 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
     Args:
       df (DataFrame): DataFrame
     """
+    # The z-score corresponding to p-value: 0.05
+    zscore_95 = 1.96
 
     return (
         df.withColumn(
@@ -106,8 +108,8 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
         .withColumn(
             "beta_conf_intervals",
             f.array(
-                f.col("beta") - f.lit(1.96) * f.col("beta") / f.col("zscore"),
-                f.col("beta") + f.lit(1.96) * f.col("beta") / f.col("zscore"),
+                f.col("beta") - f.lit(zscore_95) * f.col("beta") / f.col("zscore"),
+                f.col("beta") + f.lit(zscore_95) * f.col("beta") / f.col("zscore"),
             ),
         )
         .withColumn("beta_ci_lower", f.array_min(f.col("beta_conf_intervals")))
@@ -140,6 +142,9 @@ def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
     Returns:
         A dataframe with the odds ratio harmonized.
     """
+    # The z-score corresponding to p-value: 0.05
+    zscore_95 = 1.96
+
     return (
         df.withColumn(
             "odds_ratio",
@@ -157,10 +162,12 @@ def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
             "odds_ratio_conf_intervals",
             f.array(
                 f.exp(
-                    f.col("odds_ratio_estimate") - f.lit(1.96) * f.col("odds_ratio_se")
+                    f.col("odds_ratio_estimate")
+                    - f.lit(zscore_95) * f.col("odds_ratio_se")
                 ),
                 f.exp(
-                    f.col("odds_ratio_estimate") + f.lit(1.96) * f.col("odds_ratio_se")
+                    f.col("odds_ratio_estimate")
+                    + f.lit(zscore_95) * f.col("odds_ratio_se")
                 ),
             ),
         )

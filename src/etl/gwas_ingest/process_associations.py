@@ -39,9 +39,11 @@ ASSOCIATION_COLUMNS_MAP = {
 
 def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
     """
-    > We take the maximum minor allele frequency across all populations, and then drop all but the row
-    with the highest minor allele frequency from all mappings. This process is population name agnostic,
-    the only assumption is the field name is `allele_frequencies` and it is a structType.
+    If an association is mapped to multiple concordant (or at least not discordant) variants,
+    we only keep the one that has the highest minor allele frequency.
+
+    This filter is based on the assumption that GWAS Studies are focusing on common variants mostly.
+    This filter especially designed to filter out rare alleles of multialleleics with matching rsIDs.
 
     Args:
       df (DataFrame): DataFrame
