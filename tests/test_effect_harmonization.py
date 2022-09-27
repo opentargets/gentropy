@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 def mock_allele_columns(spark: SparkSession) -> DataFrame:
     return spark.createDataFrame(
         [
-            {"allele": "A", "reverseComp": "T", "isPalindrom": False},
+            {"allele": "A", "reverseComp": "T", "isPalindrome": False},
             {"allele": "C", "reverseComp": "G", "isPalindrom": False},
             {"allele": "T", "reverseComp": "A", "isPalindrom": False},
             {"allele": "G", "reverseComp": "C", "isPalindrom": False},

@@ -2,7 +2,7 @@
 
 ## Documentation of the individual steps
 
-- Colocalizatin Pipeline
+- Colocalization Pipeline
 - Chromatin Element Enrichment Ranking by Specificity (CEERS) pipeline
 - [Interval pipeline](intervals.md)
 - [Variant annotation pipeline](variant_annotation.md)

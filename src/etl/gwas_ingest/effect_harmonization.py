@@ -48,7 +48,7 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
 
 def get_reverse_complement(df: DataFrame, allele_col: str) -> DataFrame:
     """
-    This function return with column of reverse complement allele of a spcified allele column
+    This function returns a data frame with an additional column containing the reverse complement allele of a specified allele column
 
     Args:
       df (DataFrame): DataFrame
@@ -73,7 +73,7 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
     - The beta is flipped (multiplied by -1) if:
         1) the effect needs harmonization and
         2) the annotation of the effect is annotated as decrease
-    - The 95% confidence interval of the effect is calculed using the z-score
+    - The 95% confidence interval of the effect is calculated using the z-score
     - Irrelevant columns are dropped.
 
 
@@ -122,8 +122,8 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
 
 def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
     """
-    The harmonization of the beta follows the logic:
-    - The effect is flipped (reciprocal value is calcualted) if the effect needs harmonization
+    The harmonization of the odds ratios follows the logic:
+    - The effect is flipped (reciprocal value is calculated) if the effect needs harmonization
     - The 95% confidence interval is calculated using the z-score
     - Irrelevant columns are dropped.
 
@@ -180,15 +180,15 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
         # Get reverse complement of the alleles of the mapped variants:
         .transform(lambda df: get_reverse_complement(df, "alt"))
         .transform(lambda df: get_reverse_complement(df, "ref"))
-        # A variant is palindrome, if the refernece and alt alleles are reverse complement of each other:
+        # A variant is palindromic if the reference and alt alleles are reverse complement of each other:
         # eg. T -> A: in such cases we cannot disambigate the effect, which means we cannot be sure if
-        # the effect is given the to the alt allele on the positive strand or the ref allele on
+        # the effect is given to the alt allele on the positive strand or the ref allele on
         # The negative strand.
         .withColumn(
             "is_palindrome",
             f.when(f.col("ref") == f.col("revcomp_alt"), True).otherwise(False),
         )
-        # We harmonizing the effect on the alternative allele:
+        # We are harmonizing the effect on the alternative allele:
         # Adding a flag to trigger harmonization if: risk == ref or risk == revcomp(ref):
         .withColumn(
             "needs_harmonization",

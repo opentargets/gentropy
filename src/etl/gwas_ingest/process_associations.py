@@ -58,7 +58,7 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
         """Column function to calculate minor allele frequency from allele frequency"""
         return f.when(c > 0.5, 1 - c).otherwise(c)
 
-    # Windowing through all associations. Within an associations, rows are ordered by the maximum MAF:
+    # Windowing through all associations. Within an association, rows are ordered by the maximum MAF:
     w = Window.partitionBy("association_id").orderBy(f.desc("maxMAF"))
 
     return (
@@ -80,7 +80,7 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
 
 def concordance_filter(df: DataFrame) -> DataFrame:
     """
-    This function filters for variants with concordant alleles witht the association's reported risk allele.
+    This function filters for variants with concordant alleles with the association's reported risk allele.
     A risk allele is considered concordant if:
     - equal to the alt allele
     - equal to the ref allele

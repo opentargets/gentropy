@@ -8,5 +8,5 @@ This pipeline ingest the curated GWAS Catalog associations and studies. Prepares
 2. Map associated variants to GnomAD variants based on the annotated chromosome:position (on GRCh38).
 3. Harmonize effect size, calucate Z-score + direction of effect.
 4. Read and process study table (parse ancestry, sample size etc).
-5. Join with association on `study_accession`. Split studies when necessary.
+5. Join study table with associations on `study_accession`. Split studies when necessary on the basis that one study describes one trait only.
 6. Split data into top-loci and study tables and save.
