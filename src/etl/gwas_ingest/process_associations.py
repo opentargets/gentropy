@@ -8,7 +8,7 @@ from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
 
@@ -37,9 +37,52 @@ ASSOCIATION_COLUMNS_MAP = {
 }
 
 
+def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
+    """
+    If an association is mapped to multiple concordant (or at least not discordant) variants,
+    we only keep the one that has the highest minor allele frequency.
+
+    This filter is based on the assumption that GWAS Studies are focusing on common variants mostly.
+    This filter especially designed to filter out rare alleles of multialleleics with matching rsIDs.
+
+    Args:
+      df (DataFrame): DataFrame
+
+    Returns:
+      A DataFrame with identical columns
+    """
+    # parsing population names from schema:
+    pop_names = [
+        field for field in df.schema.fields if field.name == "allele_frequencies"
+    ][0].dataType.fieldNames()
+
+    def af2maf(c: Column) -> Column:
+        """Column function to calculate minor allele frequency from allele frequency"""
+        return f.when(c > 0.5, 1 - c).otherwise(c)
+
+    # Windowing through all associations. Within an association, rows are ordered by the maximum MAF:
+    w = Window.partitionBy("association_id").orderBy(f.desc("maxMAF"))
+
+    return (
+        df.withColumn(
+            "maxMAF",
+            f.array_max(
+                f.array(
+                    *[af2maf(f.col(f"allele_frequencies.{pop}")) for pop in pop_names]
+                )
+            ),
+        )
+        .drop("allele_frequencies")
+        .withColumn("row_number", f.row_number().over(w))
+        .filter(f.col("row_number") == 1)
+        .drop("row_number")
+        .persist()
+    )
+
+
 def concordance_filter(df: DataFrame) -> DataFrame:
     """
-    This function filters for variants with concordant alleles witht the association's reported risk allele.
+    This function filters for variants with concordant alleles with the association's reported risk allele.
     A risk allele is considered concordant if:
     - equal to the alt allele
     - equal to the ref allele
@@ -359,6 +402,7 @@ def map_variants(
         f.col("ref").alias("ref"),
         f.col("alt").alias("alt"),
         f.col("id").alias("variant_id"),
+        f.col("af").alias("allele_frequencies"),
     )
 
     mapped_associations = variants.join(
@@ -400,6 +444,8 @@ def ingest_gwas_catalog_associations(
         .transform(concordance_filter)
         # 5. deduplicate associations by matching rsIDs:
         .transform(filter_assoc_by_rsid)
+        # 6. deduplication by MAF:
+        .transform(filter_assoc_by_maf)
     )
 
     return gwas_associations
