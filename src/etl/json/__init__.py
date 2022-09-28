@@ -24,9 +24,9 @@ def validate_df_schema(df: DataFrame, schema_json: str) -> None:
     if missing_struct_fields:
         raise Exception(error_message)
 
-    # Mandatory fields not in dataset
-    mandatory_fields = [x for x in expected_schema if not x.nullable]
-    missing_required_fields = [x for x in mandatory_fields if x not in observed_schema]
+    # Required fields not in dataset
+    required_fields = [x for x in expected_schema if not x.nullable]
+    missing_required_fields = [x for x in required_fields if x not in observed_schema]
     error_message = f"The {missing_required_fields} StructFields are required but missing from the DataFrame schema: {expected_schema}"
     if missing_required_fields:
         raise Exception(error_message)
