@@ -13,12 +13,27 @@ if TYPE_CHECKING:
 
 
 def validate_df_schema(df: DataFrame, schema_json: str) -> None:
+    """
+    It checks that the schema of a DataFrame is valid against a controlled schema
+
+    Args:
+      df (DataFrame): The DataFrame to validate
+      schema_json (str): The name of the schema file in the schemas folder
+    """
     core_schema = json.loads(
         pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
     )
     expected_schema = StructType.fromJson(core_schema)
     observed_schema = df.schema
+    # Observed fields not in schema
     missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
     error_message = f"The {missing_struct_fields} StructFields are not included in the {schema_json} DataFrame schema: {expected_schema}"
     if missing_struct_fields:
+        raise Exception(error_message)
+
+    # Required fields not in dataset
+    required_fields = [x for x in expected_schema if not x.nullable]
+    missing_required_fields = [x for x in required_fields if x not in observed_schema]
+    error_message = f"The {missing_required_fields} StructFields are required but missing from the DataFrame schema: {expected_schema}"
+    if missing_required_fields:
         raise Exception(error_message)
