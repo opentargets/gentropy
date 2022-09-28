@@ -13,6 +13,13 @@ if TYPE_CHECKING:
 
 
 def validate_df_schema(df: DataFrame, schema_json: str) -> None:
+    """
+    It checks that the schema of a DataFrame is valid against a controlled schema
+
+    Args:
+      df (DataFrame): The DataFrame to validate
+      schema_json (str): The name of the schema file in the schemas folder
+    """
     core_schema = json.loads(
         pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
     )
