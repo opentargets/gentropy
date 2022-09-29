@@ -75,8 +75,6 @@ def main(cfg: DictConfig) -> None:
     ht = ht.annotate(
         # Updating CADD column:
         cadd=ht.cadd.rename({"raw_score": "raw"}).drop("has_duplicate"),
-        # Adding locus as new column:
-        locus_GRCh38=ht.locus,
     )
 
     # Drop all global annotations:
@@ -102,7 +100,6 @@ def main(cfg: DictConfig) -> None:
 
     # Sort columns
     col_order = [
-        "locus_GRCh38",
         "chrom",
         "pos",
         "chrom_b37",
