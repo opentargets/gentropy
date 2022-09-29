@@ -11,6 +11,7 @@ import hail as hl
 import pyspark.sql.functions as f
 
 from etl.common.ETLSession import ETLSession
+from etl.json import validate_df_schema
 
 # Population of interest:
 POPULATIONS = {
@@ -115,7 +116,7 @@ def main(cfg: DictConfig) -> None:
     ]
 
     # Convert data:
-    (
+    variants = (
         # Select columns and convert to pyspark:
         ht.select(*col_order)
         .to_spark(flatten=False)
@@ -154,9 +155,14 @@ def main(cfg: DictConfig) -> None:
         )
         # Drop unused column:
         .drop("locus", "alleles", "transcript_consequences", "af")
-        # Writing data partitioned by chromosome:
+    )
+
+    validate_df_schema(variants, "variant_annotation.json")
+
+    # Writing data partitioned by chromosome:
+    (
+        variants.partitionBy("chr")
         .write.mode(cfg.environment.sparkWriteMode)
-        .partitionBy("chr")
         .parquet(output_file)
     )
 
