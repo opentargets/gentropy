@@ -153,7 +153,7 @@ def main(cfg: DictConfig) -> None:
             ),
         )
         # Drop unused column:
-        .drop("transcript_consequences", "af")
+        .drop("locus", "alleles", "transcript_consequences", "af")
         # Writing data partitioned by chromosome:
         .write.mode(cfg.environment.sparkWriteMode)
         .partitionBy("chr")
