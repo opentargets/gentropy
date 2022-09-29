@@ -47,6 +47,7 @@ prepare_variant_annotation:  ## Create cluster for variant annotation
         --metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
         --initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
         --single-node
+        --max-idle=10m
 
 prepare_intervals: ## Create cluster for intervals data generation
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
