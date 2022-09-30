@@ -45,7 +45,7 @@ class ETLSession:
         return self.spark.read.schema(schema).format("parquet").load(path)
 
     @staticmethod
-    def nullify_empty_array(column: str) -> DataFrame:
+    def nullify_empty_array(column: str) -> str:
         """
         Return null when a Spark Column has an array of size 0, otherwise return the array.
 
