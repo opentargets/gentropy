@@ -53,6 +53,18 @@ variant_annotation:
     partition_count: 256
   machine: ${machine.coloc}
 
+variant_index:
+  inputs:
+    variant_annotation: ${etl.outputs}/variant_annotation
+    credible_sets: ${etl.outputs}/credible_sets
+    gene_index: ${etl.inputs}/v2g_input/targets
+  outputs:
+    variant_index: ${etl.outputs}/variant_index
+  parameters:
+    tss_distance_threshold: 500000
+    partition_count: 100
+  machine: ${machine.default}
+
 gwas_ingest:
   inputs:
     variant_annotation: gs://ot-team/dsuveges/variant_annotation/2022-08-11
