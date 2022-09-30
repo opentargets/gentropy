@@ -27,10 +27,32 @@ class ETLSession:
         self.logger = Log4j.Log4j(self.spark)
 
     def read_parquet(self: ETLSession, path: str, schema_json: str) -> DataFrame:
+        """
+        Reads a parquet file from the given path and returns a DataFrame with the given schema
+
+        Args:
+          self (ETLSession): ETLSession
+          path (str): The path to the parquet file.
+          schema_json (str): The name of the schema file in the schemas package.
+
+        Returns:
+          A DataFrame
+        """
         core_schema = json.loads(
             pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
         )
         schema = StructType.fromJson(core_schema)
-        df = self.spark.read.schema(schema).format("parquet").load(path)
+        return self.spark.read.schema(schema).format("parquet").load(path)
 
-        return df
+    @staticmethod
+    def nullify_empty_array(column: str) -> DataFrame:
+        """
+        Return null when a Spark Column has an array of size 0, otherwise return the array.
+
+        Args:
+          column (str): The name of the column to be nullified.
+
+        Returns:
+          A string containing a Spark expression.
+        """
+        return f"if(size({column})==0, null, {column})"
