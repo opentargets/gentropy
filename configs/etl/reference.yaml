@@ -62,6 +62,20 @@ variant_index:
     variant_index: ${etl.outputs}/variant_index
   parameters:
     tss_distance_threshold: 500000
+    approved_biotypes:
+      - 3prime_overlapping_ncRNA
+      - antisense
+      - bidirectional_promoter_lncRNA
+      - IG_C_gene
+      - IG_D_gene
+      - IG_J_gene
+      - IG_V_gene
+      - lincRNA
+      - macro_lncRNA
+      - non_coding
+      - protein_coding
+      - sense_intronic
+      - sense_overlapping
     partition_count: 100
   machine: ${machine.default}
 
