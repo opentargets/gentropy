@@ -1,5 +1,4 @@
-"""Functions to add metadata to colocation results
-"""
+"""Functions to add metadata to colocation results."""
 
 from __future__ import annotations
 
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
 def add_moleculartrait_phenotype_genes(
     spark: SparkSession, coloc_result: DataFrame, phenotype2gene_path: str
 ) -> DataFrame:
-    """Add Ensembl gene id to molecular trait phenotype IDs
+    """Add Ensembl gene id to molecular trait phenotype IDs.
 
     Args:
         spark (SparkSession): Spark session
@@ -22,9 +21,8 @@ def add_moleculartrait_phenotype_genes(
         phenotype2gene_path: Path of lookup table
 
     Returns:
-        Dataframe: Coloc datasets with gene IDs for molecular trait phenotypes
+        DataFrame: Coloc datasets with gene IDs for molecular trait phenotypes
     """
-
     # Mapping between molecular trait phenotypes and genes
     phenotype_id = (
         spark.read.option("header", "true")
@@ -63,17 +61,16 @@ def add_moleculartrait_phenotype_genes(
 def add_coloc_sumstats_info(
     spark: SparkSession, coloc: DataFrame, sumstats_path: str
 ) -> DataFrame:
-    """Adds relevant metadata to colocalisation results from summary stats
+    """Adds relevant metadata to colocalisation results from summary stats.
 
     Args:
         spark (SparkSession): Spark session
-        coloc (Dataframe): Colocalisation results
+        coloc (DataFrame): Colocalisation results
         sumstats_path (str): Summary stats dataset
 
     Returns:
-        _type_: Colocalisation results with summary stats metadata added
+        DataFrame: Colocalisation results with summary stats metadata added
     """
-
     sumstats_leftvar_rightstudy = (
         # sumstats_path ~250Gb dataset
         spark.read.parquet(sumstats_path)

@@ -1,3 +1,4 @@
+"""LiftOver support."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -12,8 +13,7 @@ if TYPE_CHECKING:
 
 
 class LiftOverSpark:
-    """
-    LiftOver class for mapping genomic coordinates to an other genome build.
+    """LiftOver class for mapping genomic coordinates to an other genome build.
 
     The input is a Spark DataFrame with a chromosome and position column. This classs can
     also map regions, if a start and end positions are provided.
@@ -30,11 +30,12 @@ class LiftOverSpark:
     def __init__(
         self: LiftOverSpark, chain_file: str, max_difference: int = None
     ) -> None:
-        """
-        :param chain_file: Path to the chain file. Local or google bucket. Chainfile is not gzipped!
-        :param max_difference: Maximum difference between the length of the mapped region and the original region.
-        """
+        """Intialise LiftOverSpark object.
 
+        Args:
+            chain_file (str): Path to the chain file
+            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to None.
+        """
         self.chain_file = chain_file
 
         # Initializing liftover object by opening the chain file:
@@ -61,18 +62,18 @@ class LiftOverSpark:
         end_col: str,
         filter: bool = True,
     ) -> DataFrame:
+        """Convert genomic intervals to liftover coordinates.
+
+        Args:
+            df (DataFrame): spark Dataframe with chromosome, start and end columns.
+            chrom_col (str): Name of the chromosome column.
+            start_col (str): Name of the start column.
+            end_col (str): Name of the end column.
+            filter (bool): If True, filter is applied on the mapped data, otherwise return everything. Defaults to True.
+
+        Returns:
+            DataFrame: Liftovered intervals
         """
-        Convert genomic intervals to liftover coordinates
-
-        :param df: spark Dataframe with chromosome, start and end columns.
-        :param chrom_col: Name of the chromosome column.
-        :param start_col: Name of the start column.
-        :param end_col: Name of the end column.
-        :param filter: If True, filter is applied on the mapped data, otherwise return everything. Default: True.
-
-        :return: filtered Spark Dataframe with the mapped start and end coordinates.
-        """
-
         # Lift over start coordinates, changing to 1-based coordinates:
         start_df = (
             df.withColumn(start_col, f.col(start_col) + 1)
@@ -126,16 +127,16 @@ class LiftOverSpark:
     def convert_coordinates(
         self: LiftOverSpark, df: DataFrame, chrom_name: str, pos_name: str
     ) -> DataFrame:
+        """Converts genomic coordinates to coordinates on an other build.
+
+        Args:
+            df (DataFrame): Spark Dataframe with chromosome and position columns.
+            chrom_name (str): Name of the chromosome column.
+            pos_name (str): Name of the position column.
+
+        Returns:
+            DataFrame: Spark Dataframe with the mapped position column.
         """
-        Converts genomic coordinates to coordinates on an other build
-
-        :param df: Spark Dataframe with chromosome and position columns.
-        :param chrom_name: Name of the chromosome column.
-        :param pos_name: Name of the position column.
-
-        :return: Spark Dataframe with the mapped position column.
-        """
-
         mapped = (
             df.withColumn(
                 "mapped", self.liftover_udf(f.col(chrom_name), f.col(pos_name))

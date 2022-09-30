@@ -1,21 +1,38 @@
 {
+  "[python]": {
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+  "[jsonc]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.formatOnSave": true
+  },
+  "json.format.keepLines": true,
   "python.linting.flake8Enabled": true,
   "python.linting.flake8CategorySeverity.F": "Information",
   "python.linting.flake8CategorySeverity.E": "Information",
   "python.linting.flake8CategorySeverity.W": "Information",
-  "python.formatting.provider": "black",
-  "[python]": {
-    "editor.formatOnPaste": false,
-    "editor.formatOnSave": true
-  },
   "python.linting.mypyEnabled": true,
   "python.linting.mypyCategorySeverity.error": "Information",
+  "python.linting.pydocstyleEnabled": true,
+  "python.linting.pydocstyleArgs": [
+    "--convention=google"
+  ],
+  "python.formatting.provider": "black",
+  "isort.args": [
+    "--profile",
+    "black"
+  ],
+  "autoDocstring.docstringFormat": "google",
   "python.testing.pytestArgs": [
     "tests"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "editor.tabSize": 4,
-  "editor.insertSpaces": true,
-  "editor.detectIndentation": false
+  "docwriter.style": "Google"
 }

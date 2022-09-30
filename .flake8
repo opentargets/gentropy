@@ -1,4 +1,6 @@
 [flake8]
+exclude =
+    dist
 min_python_version = 3.8.0
 max-line-length = 88
 ban-relative-imports = True
@@ -11,3 +13,6 @@ extend-ignore =
     E501,
     # E800 Found commented out code
     E800
+strictness=short
+docstring_style=google
+docstring-convention=google

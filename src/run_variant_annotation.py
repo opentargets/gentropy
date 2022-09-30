@@ -1,3 +1,4 @@
+"""Step to generate variant annotation dataset."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -29,7 +30,7 @@ POPULATIONS = {
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
-
+    """Run variant annotation generation."""
     # establish spark connection
     etl = ETLSession(cfg)
 

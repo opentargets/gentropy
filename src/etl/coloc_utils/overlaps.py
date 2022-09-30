@@ -1,5 +1,4 @@
-"""Find overlapping signals susceptible of colocalisation analysis
-"""
+"""Find overlapping signals susceptible of colocalisation analysis."""
 
 from __future__ import annotations
 
@@ -14,16 +13,21 @@ if TYPE_CHECKING:
 def find_all_vs_all_overlapping_signals(
     spark: SparkSession, credset_path: str
 ) -> DataFrame:
-    """
+    """Find overlapping signals.
+
     Find overlapping signals between all pairs of cred sets (exploded at the tag variant level)
-    Any study-lead variant pair with at least one overlapping tag variant is considered
+    Any study-lead variant pair with at least one overlapping tag variant is considered.
+
+    All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
+    appearing on the right side.
 
     Args:
-        spark: SparkSession
-        credset_path: Path to credible sets
+        spark (SparkSession): current Spark session
+        credset_path (str): Path to credible sets
 
+    Returns:
+        DataFrame: overlapping peaks to be compared
     """
-
     # Columnns to be used as left and right
     id_cols = [
         "chrom",
