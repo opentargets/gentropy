@@ -1,6 +1,6 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-CLUSTER_NAME ?= ds-genetics-python-etl
+CLUSTER_NAME ?= il-genetics-python-etl
 PROJECT_NUMBER ?= $$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)")
 APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
@@ -42,7 +42,7 @@ prepare_variant_annotation:  ## Create cluster for variant annotation
         --image-version=2.0 \
         --project=${PROJECT_ID} \
         --region=${REGION} \
-        --master-machine-type=n1-megamem-96 \
+        --master-machine-type=m1-megamem-96 \
         --enable-component-gateway \
         --metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
         --initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
