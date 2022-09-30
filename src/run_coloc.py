@@ -1,5 +1,4 @@
-"""
-Compute all vs all Bayesian colocalisation analysis for all Genetics Portal
+"""Compute all vs all Bayesian colocalisation analysis for all Genetics Portal.
 
 This script calculates posterior probabilities of different causal variants
 configurations under the assumption of a single causal variant for each trait.
@@ -25,10 +24,7 @@ if TYPE_CHECKING:
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
-    """
-    Run colocalisation analysis
-    """
-
+    """Run colocalisation analysis."""
     # establish spark connection
     etl = ETLSession(cfg)
 

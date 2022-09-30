@@ -1,3 +1,4 @@
+"""Process GWAS catalog associations."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -38,7 +39,8 @@ ASSOCIATION_COLUMNS_MAP = {
 
 
 def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
-    """
+    """Filter associations by Minor Allele Frequency.
+
     If an association is mapped to multiple concordant (or at least not discordant) variants,
     we only keep the one that has the highest minor allele frequency.
 
@@ -46,10 +48,10 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
     This filter especially designed to filter out rare alleles of multialleleics with matching rsIDs.
 
     Args:
-      df (DataFrame): DataFrame
+        df (DataFrame): associations
 
     Returns:
-      A DataFrame with identical columns
+        DataFrame: associations filtered by allelic frequency
     """
     # parsing population names from schema:
     pop_names = [
@@ -57,7 +59,7 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
     ][0].dataType.fieldNames()
 
     def af2maf(c: Column) -> Column:
-        """Column function to calculate minor allele frequency from allele frequency"""
+        """Column function to calculate minor allele frequency from allele frequency."""
         return f.when(c > 0.5, 1 - c).otherwise(c)
 
     # Windowing through all associations. Within an association, rows are ordered by the maximum MAF:
@@ -81,7 +83,8 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
 
 
 def concordance_filter(df: DataFrame) -> DataFrame:
-    """
+    """Concordance filter.
+
     This function filters for variants with concordant alleles with the association's reported risk allele.
     A risk allele is considered concordant if:
     - equal to the alt allele
@@ -91,13 +94,11 @@ def concordance_filter(df: DataFrame) -> DataFrame:
     - Or the risk allele is ambigious, noted by '?'
 
     Args:
-      df (DataFrame): DataFrame
+        df (DataFrame): associations
 
     Returns:
-      A dataframe with identical columns, except with filtered rows for variants
-      with concordant alleles with the risk allele of the association.
+        DataFrame: associations filtered for variants with concordant alleles with the risk allele.
     """
-
     return (
         df
         # Adding column with the reverse-complement of the risk allele:
@@ -138,21 +139,19 @@ def concordance_filter(df: DataFrame) -> DataFrame:
 def read_associations_data(
     etl: ETLSession, gwas_association_file: str, pvalue_cutoff: float
 ) -> DataFrame:
-    """
+    """Read GWASCatalog associations.
+
     It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
     applies some pre-defined filters on the data
 
-    The function returns a `DataFrame` with the GWAS Catalog associations
-
     Args:
-      etl (ETLSession): ETLSession
-      gwas_association_file (str): The path to the GWAS Catalog associations file.
-      pvalue_cutoff (float): The p-value threshold for filtering associations.
+        etl (ETLSession): current ETL session
+        gwas_association_file (str): path to association file CSV
+        pvalue_cutoff (float): association p-value cut-off
 
     Returns:
-      A dataframe with the GWAS Catalog associations.
+        DataFrame: `DataFrame` with the GWAS Catalog associations
     """
-
     etl.logger.info("Starting ingesting GWAS Catalog associations...")
 
     # Reading and filtering associations:
@@ -191,9 +190,8 @@ def read_associations_data(
 
 
 def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFrame:
-    """
-    - The function takes a dataframe as input, and returns a dataframe as output.
-    - The output dataframe is the parsed GWAS catalog associations file.
+    """Post-process associations DataFrame.
+
     - The function does the following:
         - Adds a unique identifier to each association.
         - Processes the variant related columns.
@@ -203,22 +201,22 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
         - Provides some stats on the filtered association dataset.
 
     Args:
-      association_df (DataFrame): DataFrame
+        association_df (DataFrame): associations
+        etl (ETLSession): current ETL session
 
     Returns:
-      A dataframe with the following columns:
-        - association_id
-        - snp_id_current
-        - chr_id
-        - chr_pos
-        - snp_ids
-        - risk_allele
-        - rsid_gwas_catalog
-        - efo
-        - exponent
-        - mantissa
+        DataFrame: associations including the next columns:
+            - association_id
+            - snp_id_current
+            - chr_id
+            - chr_pos
+            - snp_ids
+            - risk_allele
+            - rsid_gwas_catalog
+            - efo
+            - exponent
+            - mantissa
     """
-
     # Processing associations:
     parsed_associations = (
         # spark.read.csv(associations, sep='\t', header=True)
@@ -313,24 +311,22 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
 
 
 def deduplicate(df: DataFrame) -> DataFrame:
+    """Deduplicate DataFrame (not implemented)."""
     raise NotImplementedError
 
 
 def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
-    """
-    > For each association, keeping all mappings with matching rsIDs,
-    there is no mapping with matching rsId is found, keep all mappings.
+    """Filter associations by rsid.
 
     Args:
-      df: The dataframe to filter with the following columns:
-        - association_id
-        - rsid_gwas_catalog
-        - rsid_gnomad
+        df (DataFrame): associations requiring:
+            - association_id
+            - rsid_gwas_catalog
+            - rsid_gnomad
 
     Returns:
-      A dataframe with identical columns.
+        DataFrame: filtered associations
     """
-
     # Windowing through all associations:
     w = Window.partitionBy("association_id")
 
@@ -364,38 +360,23 @@ def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
 
 
 def map_variants(
-    parsed_associations: DataFrame, etl: ETLSession, varian_annotation: str
+    parsed_associations: DataFrame, etl: ETLSession, variant_annotation: str
 ) -> DataFrame:
-    """
-    It reads the variant annotation from the `varian_annotation` path, and joins it with the parsed
-    associations
+    """Add variant metadata in associations.
 
     Args:
-    parsed_associations (DataFrame): DataFrame
-    etl (ETLSession): ETLSession
-    varian_annotation (str): The path to the variant annotation file.
+        parsed_associations (DataFrame): associations
+        etl (ETLSession): current ETL session
+        variant_annotation (str): variant annotation path
 
     Returns:
-    A dataframe with the following columns:
-        - chr_id
-        - chr_pos
-        - rsid_gnomad
-        - ref
-        - alt
-        - variant_id
-        - study_id
-        - trait
-        - pval
-        - pval_text
-        - beta
-        - beta_text
-        -
+        DataFrame: associations with variant metadata
     """
     # Loading variant annotation and join with parsed associations:
     etl.logger.info("Loading variant annotation and joining with associations.")
 
     # Reading and joining variant annotation:
-    variants = etl.spark.read.parquet(varian_annotation).select(
+    variants = etl.spark.read.parquet(variant_annotation).select(
         f.col("chr").alias("chr_id"),
         f.col("pos_b38").alias("chr_pos"),
         f.col("rsid").alias("rsid_gnomad"),
@@ -418,21 +399,17 @@ def ingest_gwas_catalog_associations(
     variant_annotation_path: str,
     pvalue_cutoff: float,
 ) -> DataFrame:
-
-    """
-    Main function to ingest/process/map GWAS Catalog association before the data should be joined with the studies.
+    """Ingest/process/map GWAS Catalog association.
 
     Args:
-      etl (ETLSession): ETLSession
-      gwas_association_path (str): GWAS catalogue dataset path
-      variant_annotation_path (str): variant annotation dataset path
-      pvalue_cutoff (float): GWAS significance threshold
-
+        etl (ETLSession): current ETL session
+        gwas_association_path (str): GWAS catalogue dataset path
+        variant_annotation_path (str): variant annotation dataset path
+        pvalue_cutoff (float): GWAS significance threshold
 
     Returns:
-      A DataFrame
+        DataFrame: Post-processed GWASCatalog associations
     """
-
     gwas_associations = (
         # 1. Read associations:
         read_associations_data(etl, gwas_association_path, pvalue_cutoff)

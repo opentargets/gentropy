@@ -1,3 +1,4 @@
+"""GWAS Catalog study ingestion."""
 from __future__ import annotations
 
 from functools import reduce
@@ -38,7 +39,15 @@ STUDY_COLUMNS_MAP = {
 
 
 def get_sumstats_location(etl: ETLSession, summarystats_list: str) -> DataFrame:
+    """Get summary stat locations.
 
+    Args:
+        etl (ETLSession): current ETL session
+        summarystats_list (str): filepath of table listing summary stats
+
+    Returns:
+        DataFrame: _description_
+    """
     gwas_sumstats_location = "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics"
 
     return (
@@ -66,17 +75,17 @@ def read_study_table(
     unpublished_gwas_study_file: str,
     read_unpublished: bool,
 ) -> DataFrame:
-    """
-    This function reads the study table and returns a Spark DataFrame with the columns renamed to match the names
-    in the `STUDY_COLUMNS_MAP` dictionary
+    """Read GWASCatalog study table.
 
     Args:
-      read_unpublished (bool): bool=False. Defaults to False. Indicating if unpublished studies should be read.
+        etl (ETLSession): ETL session
+        gwas_study_file (str): GWAS studies filepath
+        unpublished_gwas_study_file (str): Unpublished GWAS studies filepath
+        read_unpublished (bool): Indicating if unpublished studies should be read.
 
     Returns:
-      A dataframe with the columns specified in STUDY_COLUMNS_MAP.
+        DataFrame: _description_
     """
-
     # Reading the study table:
     study_table = etl.spark.read.csv(gwas_study_file, sep="\t", header=True)
 
@@ -119,20 +128,14 @@ def read_study_table(
 
 
 def extract_sample_sizes(df: DataFrame) -> DataFrame:
-    """
-    It takes a dataframe with a column called `initial_sample_size` and returns a dataframe with columns
-    `n_cases`, `n_controls`, and `n_samples`
+    """Extract GWAS Catalog study sample sizes.
 
     Args:
-      df (pyspark.sql.DataFrame): pyspark.sql.DataFrame
+        df (DataFrame): Df with a column called `initial_sample_size`
 
     Returns:
-      A dataframe with the columns:
-        - n_cases
-        - n_controls
-        - n_samples
+        DataFrame: df with columns `n_cases`, `n_controls`, and `n_samples`
     """
-
     columns = df.columns
 
     return (
