@@ -1,4 +1,10 @@
-"""Enhancer-TSS correlation (Andersson et al. 2014) intervals."""
+"""Enhancer-TSS correlation (Andersson et al. 2014) intervals.
+
+As part of the [FANTOM5](https://fantom.gsc.riken.jp/5/) genome mapping effort, this publication aims to report on actively transcribed enhancers from the majority of human tissues. ([Link](https://www.nature.com/articles/nature12787) to the publication)
+
+The dataset is not allows to resolve individual tissues, the biotype is `aggregate`. However the aggregation provides a score quantifying the association of the genomic region and the gene.
+
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

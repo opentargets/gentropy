@@ -1,4 +1,9 @@
-"""DHS-promoter correlation (Thurnman, 2012) intervals."""
+"""DHS-promoter correlation (Thurnman, 2012) intervals.
+
+In this projet cis regulatory elements were mapped using DNase I hypersensitive site (DHSs) mapping. ([Link](https://www.nature.com/articles/nature11232) to the publication)
+
+This is also an aggregated dataset, so no cellular or tissue annotation is preserved, however scores are given.
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
