@@ -43,6 +43,13 @@ interrogate = "^1.5.0"
 isort = "^5.10.1"
 darglint = "^1.8.1"
 flake8-docstrings = "^1.6.0"
+mkdocs = "*"
+mkdocstrings-python = "*"
+mkdocs-material = "*"
+mkdocs-section-index = "^0.3.4"
+mkdocs-git-revision-date-localized-plugin = "^1.1.0"
+mkdocs-autolinks-plugin = "^0.6.0"
+mkdocs-minify-plugin = "^0.5.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
