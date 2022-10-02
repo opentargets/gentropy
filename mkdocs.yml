@@ -14,7 +14,7 @@ repo_url: https://github.com/opentargets/genetics_etl_python
 
 nav:
   - index.md
-  - installation.md
+  - roadmap.md
   - Reference:
     - reference.md
     - GWAS Catalog ingestion: modules/gwas_ingest.md
