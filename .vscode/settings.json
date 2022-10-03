@@ -4,6 +4,7 @@
   "python.linting.flake8CategorySeverity.E": "Information",
   "python.linting.flake8CategorySeverity.W": "Information",
   "python.formatting.provider": "black",
+  "python.formatting.blackArgs": [],
   "[python]": {
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true
