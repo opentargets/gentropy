@@ -1,4 +1,10 @@
-"""PCHI-C (Jung, 2019) intervals."""
+"""PCHI-C (Jung, 2019) intervals.
+
+Promoter capture Hi-C was used to map long-range chromatin interactions for 18,943 well-annotated promoters for protein-coding genes in 27 human tissue types. ([Link](https://www.nature.com/articles/s41588-019-0494-8) to the publication)
+
+This dataset provides tissue level annotation, but no cell type or biofeature is given. Also scores are not provided.
+
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

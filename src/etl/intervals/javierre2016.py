@@ -1,4 +1,10 @@
-"""PCHi-C intervals (Javierre et al. 2016)."""
+"""PCHi-C intervals (Javierre et al. 2016).
+
+Javierre and colleagues uses promoter capture Hi-C to identify interacting regions of 31,253 promoters in 17 human primary hematopoietic cell types. ([Link](https://www.sciencedirect.com/science/article/pii/S0092867416313228) to the publication)
+
+The dataset provides cell type resolution, however these cell types are not resolved to tissues. Scores are also preserved.
+
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

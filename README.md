@@ -1,7 +1,8 @@
 [![status: experimental](https://github.com/GIScience/badges/raw/master/status/experimental.svg)](https://github.com/GIScience/badges#experimental)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python/main.svg)](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python)
 ![Pytest workflow](https://github.com/opentargets/genetics_etl_python/actions/workflows/pytest.yaml/badge.svg)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python/main.svg)](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python)
 
 # Genetics Portal Python ETL
 
@@ -14,6 +15,7 @@ Genetics portal ETL steps (Python)
 - gcloud installed and authorised to your GCP Project
 - gsutil
 - [make](https://www.gnu.org/software/make/) build tool
+- OpenBLAS and LAPACK libraries (for scipy). [more info](https://stackoverflow.com/questions/69954587/no-blas-lapack-libraries-found-when-installing-scipy)
 
 ### Setup development environment
 
