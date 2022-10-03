@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from etl.json import validate_df_schema
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
@@ -343,4 +345,8 @@ def ingest_gwas_catalog_studies(
 
     ancestry_data = parse_ancestries(etl, ancestry_file)
 
-    return study_data.join(ancestry_data, on="studyAccession", how="left").persist()
+    studies = study_data.join(ancestry_data, on="studyAccession", how="left")
+
+    validate_df_schema(studies, "studies.json")
+
+    return studies
