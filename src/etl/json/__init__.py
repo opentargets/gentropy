@@ -1,3 +1,4 @@
+"""JSON helper functions."""
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
@@ -13,12 +14,14 @@ if TYPE_CHECKING:
 
 
 def validate_df_schema(df: DataFrame, schema_json: str) -> None:
-    """
-    It checks that the schema of a DataFrame is valid against a controlled schema
+    """Validate DataFrame schema based on JSON.
 
     Args:
-      df (DataFrame): The DataFrame to validate
-      schema_json (str): The name of the schema file in the schemas folder
+        df (DataFrame): DataFrame to validate
+        schema_json (str): schema name (e.g. targets.json)
+
+    Raises:
+        Exception: DataFrame schema is not valid
     """
     core_schema = json.loads(
         pkg_resources.read_text(schemas, schema_json, encoding="utf-8")

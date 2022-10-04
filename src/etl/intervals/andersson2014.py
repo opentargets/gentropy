@@ -1,3 +1,10 @@
+"""Enhancer-TSS correlation (Andersson et al. 2014) intervals.
+
+As part of the [FANTOM5](https://fantom.gsc.riken.jp/5/) genome mapping effort, this publication aims to report on actively transcribed enhancers from the majority of human tissues. ([Link](https://www.nature.com/articles/nature12787) to the publication)
+
+The dataset is not allows to resolve individual tissues, the biotype is `aggregate`. However the aggregation provides a score quantifying the association of the genomic region and the gene.
+
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -14,12 +21,7 @@ if TYPE_CHECKING:
 
 
 class ParseAndersson:
-    """
-    Parse the anderson file and return a dataframe with the intervals.
-
-    :param anderson_file: Path to the anderson file (.bed).
-    :param gene_index: PySpark dataframe with the gene index.
-    :param lift: LiftOverSpark object.
+    """Parse the anderson file and return a dataframe with the intervals.
 
     **Summary of the logic**
 
@@ -47,7 +49,14 @@ class ParseAndersson:
         gene_index: DataFrame,
         lift: LiftOverSpark,
     ) -> None:
+        """Intialise Andersson parser.
 
+        Args:
+            etl (ETLSession): Spark session
+            anderson_data_file (str): Anderson et al. filepath
+            gene_index (DataFrame): gene index information
+            lift (LiftOverSpark): LiftOverSpark object
+        """
         self.etl = etl
 
         etl.logger.info("Parsing Andersson 2014 data...")
@@ -131,13 +140,11 @@ class ParseAndersson:
         etl.logger.info(f"Number of rows: {self.anderson_intervals.count()}")
 
     def get_intervals(self: ParseAndersson) -> DataFrame:
+        """Get formatted interval data."""
         return self.anderson_intervals
 
     def qc_intervals(self: ParseAndersson) -> None:
-        """
-        Perform QC on the anderson intervals.
-        """
-
+        """Perform QC on the anderson intervals."""
         # Get numbers:
         self.etl.logger.info(
             f"Size of Andersson data: {self.anderson_intervals.count()}"

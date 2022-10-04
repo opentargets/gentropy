@@ -1,3 +1,4 @@
+"""Harmonisation of GWAS stats."""
 from __future__ import annotations
 
 import sys
@@ -12,15 +13,14 @@ if TYPE_CHECKING:
 
 
 def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
-    """
-    This function converts a p-value to a z-score
+    """Convert p-value to z-score.
 
     Args:
-      df (DataFrame): DataFrame
-      pvalcol (str): The name of the column containing the p-values.
+        df (DataFrame): input DataFrame
+        pvalcol (str): name of the p-value column
 
     Returns:
-      A dataframe with a 'zscore' column.
+        DataFrame: Input DataFrame with an extra `zscore` column
     """
     return (
         df
@@ -47,17 +47,15 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
 
 
 def get_reverse_complement(df: DataFrame, allele_col: str) -> DataFrame:
-    """
-    This function returns a data frame with an additional column containing the reverse complement allele of a specified allele column
+    """Get reverse complement allele of a specified allele column.
 
     Args:
-      df (DataFrame): DataFrame
-      allele_col (str): the name of the column containing the allele
+        df (DataFrame): input DataFrame
+        allele_col (str): the name of the column containing the allele
 
     Returns:
-      A dataframe with a new column called revcomp_{allele_col}
+        DataFrame: A dataframe with a new column called revcomp_{allele_col}
     """
-
     return df.withColumn(
         f"revcomp_{allele_col}",
         f.when(
@@ -68,7 +66,8 @@ def get_reverse_complement(df: DataFrame, allele_col: str) -> DataFrame:
 
 
 def harmonise_beta(df: DataFrame) -> DataFrame:
-    """
+    """Harmonise betas.
+
     The harmonization of the beta follows the logic:
     - The beta is flipped (multiplied by -1) if:
         1) the effect needs harmonization and
@@ -76,16 +75,15 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
     - The 95% confidence interval of the effect is calculated using the z-score
     - Irrelevant columns are dropped.
 
-
-    The function returns a dataframe with the following columns:
-
-    - beta
-    - beta_ci_lower
-    - beta_ci_upper
-    - beta_direction
-
     Args:
-      df (DataFrame): DataFrame
+        df (DataFrame): summary stat DataFrame
+
+    Returns:
+        DataFrame: input DataFrame with harmonised beta columns:
+            - beta
+            - beta_ci_lower
+            - beta_ci_upper
+            - beta_direction
     """
     # The z-score corresponding to p-value: 0.05
     zscore_95 = 1.96
@@ -123,24 +121,22 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
 
 
 def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
-    """
+    """Harmonise odds ratio.
+
     The harmonization of the odds ratios follows the logic:
     - The effect is flipped (reciprocal value is calculated) if the effect needs harmonization
     - The 95% confidence interval is calculated using the z-score
     - Irrelevant columns are dropped.
 
-    The function returns a dataframe with the following columns:
-
-    - odds_ratio
-    - odds_ratio_ci_lower
-    - odds_ratio_ci_upper
-    - odds_ratio_direction
-
     Args:
-        df (DataFrame): DataFrame
+        df (DataFrame): summary stat DataFrame
 
     Returns:
-        A dataframe with the odds ratio harmonized.
+        DataFrame: odds ratio with harmonised OR in columns:
+            - odds_ratio
+            - odds_ratio_ci_lower
+            - odds_ratio_ci_upper
+            - odds_ratio_direction
     """
     # The z-score corresponding to p-value: 0.05
     zscore_95 = 1.96
@@ -182,6 +178,14 @@ def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
 
 
 def harmonize_effect(df: DataFrame) -> DataFrame:
+    """Harmonisation of effects.
+
+    Args:
+        df (DataFrame): GWASCatalog stats
+
+    Returns:
+        DataFrame: Harmonised GWASCatalog stats
+    """
     return (
         df
         # Get reverse complement of the alleles of the mapped variants:

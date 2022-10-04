@@ -1,12 +1,15 @@
-name: tests
-on: [pull_request]
+name: docs
+on:
+  push:
+    branches:
+      - main
 jobs:
-  test:
+  docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Set up Python 3.8.13
         uses: actions/setup-python@v2
         with:
@@ -25,6 +28,8 @@ jobs:
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --without docs --no-interaction --no-root
-      - name: Run tests
-        run: poetry run pytest --cov=src/ tests/
+        run: poetry install --no-interaction --no-root
+      - name: Install library
+        run: poetry install --without tests --no-interaction
+      - name: Publish docs
+        run: poetry run mkdocs gh-deploy --force

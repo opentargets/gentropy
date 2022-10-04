@@ -1,3 +1,10 @@
+"""PCHi-C intervals (Javierre et al. 2016).
+
+Javierre and colleagues uses promoter capture Hi-C to identify interacting regions of 31,253 promoters in 17 human primary hematopoietic cell types. ([Link](https://www.sciencedirect.com/science/article/pii/S0092867416313228) to the publication)
+
+The dataset provides cell type resolution, however these cell types are not resolved to tissues. Scores are also preserved.
+
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -13,12 +20,7 @@ if TYPE_CHECKING:
 
 
 class ParseJavierre:
-    """
-    Parser Javierre 2016 dataset
-
-    :param javierre_parquet: path to the parquet file containing the Javierre 2016 data after processing it (see notebooks/Javierre_data_pre-process.ipynb)
-    :param gene_index: Pyspark dataframe containing the gene index
-    :param lift: LiftOverSpark object
+    """Javierre 2016 dataset parsers.
 
     **Summary of the logic:**
 
@@ -44,7 +46,14 @@ class ParseJavierre:
         gene_index: DataFrame,
         lift: LiftOverSpark,
     ) -> None:
+        """Initialise Javierre parser.
 
+        Args:
+            etl (ETLSession): ETL session
+            javierre_parquet (str): path to the parquet file containing the Javierre 2016 data after processing it (see notebooks/Javierre_data_pre-process.ipynb)
+            gene_index (DataFrame): Pyspark dataframe containing the gene index
+            lift (LiftOverSpark): LiftOverSpark object
+        """
         self.etl = etl
 
         etl.logger.info("Parsing Javierre 2016 data...")
@@ -162,13 +171,11 @@ class ParseJavierre:
         etl.logger.info(f"Number of rows: {self.javierre_intervals.count()}")
 
     def get_intervals(self: ParseJavierre) -> DataFrame:
+        """Get preformatted Javierre intervals."""
         return self.javierre_intervals
 
     def qc_intervals(self: ParseJavierre) -> None:
-        """
-        Perform QC on the anderson intervals.
-        """
-
+        """Perform QC on the anderson intervals."""
         # Get numbers:
         self.etl.logger.info(
             f"Size of Javierre data: {self.javierre_intervals.count()}"

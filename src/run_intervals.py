@@ -1,3 +1,4 @@
+"""Step to parse interval data."""
 from __future__ import annotations
 
 from functools import reduce
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
-
+    """Run interval parsers."""
     etl = ETLSession(cfg)
 
     # Open and process gene file:

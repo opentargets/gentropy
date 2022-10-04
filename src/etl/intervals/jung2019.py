@@ -1,3 +1,10 @@
+"""PCHI-C (Jung, 2019) intervals.
+
+Promoter capture Hi-C was used to map long-range chromatin interactions for 18,943 well-annotated promoters for protein-coding genes in 27 human tissue types. ([Link](https://www.nature.com/articles/s41588-019-0494-8) to the publication)
+
+This dataset provides tissue level annotation, but no cell type or biofeature is given. Also scores are not provided.
+
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -13,12 +20,7 @@ if TYPE_CHECKING:
 
 
 class ParseJung:
-    """
-    Parser Jung 2019 dataset
-
-    :param jung_data: path to the csv file containing the Jung 2019 data
-    :param gene_index: Pyspark dataframe containing the gene index
-    :param lift: LiftOverSpark object
+    """Parser Jung 2019 dataset.
 
     **Summary of the logic:**
 
@@ -42,7 +44,14 @@ class ParseJung:
         gene_index: DataFrame,
         lift: LiftOverSpark,
     ) -> None:
+        """Initialise Jung parser.
 
+        Args:
+            etl (ETLSession): current ETL session
+            jung_data (str): path to the csv file containing the Jung 2019 data
+            gene_index (DataFrame): DataFrame containing the gene index
+            lift (LiftOverSpark): LiftOverSpark object
+        """
         etl.logger.info("Parsing Jung 2019 data...")
         etl.logger.info(f"Reading data from {jung_data}")
 
@@ -102,13 +111,15 @@ class ParseJung:
         etl.logger.info(f"Number of rows: {self.jung_intervals.count()}")
 
     def get_intervals(self: ParseJung) -> DataFrame:
+        """Get preformatted intervals from Jung.
+
+        Returns:
+            DataFrame: Jung intervals
+        """
         return self.jung_intervals
 
     def qc_intervals(self: ParseJung) -> None:
-        """
-        Perform QC on the Jung intervals.
-        """
-
+        """Perform QC on the Jung intervals."""
         # Get numbers:
         self.etl.logger.info(f"Size of Jung data: {self.jung_intervals.count()}")
         self.etl.logger.info(

@@ -1,3 +1,9 @@
+"""DHS-promoter correlation (Thurnman, 2012) intervals.
+
+In this projet cis regulatory elements were mapped using DNase I hypersensitive site (DHSs) mapping. ([Link](https://www.nature.com/articles/nature11232) to the publication)
+
+This is also an aggregated dataset, so no cellular or tissue annotation is preserved, however scores are given.
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -11,8 +17,6 @@ if TYPE_CHECKING:
     from etl.common.ETLSession import ETLSession
     from etl.intervals.Liftover import LiftOverSpark
 
-
-class ParseThurman:
     """
     Parser Thurman 2012 dataset
 
@@ -25,6 +29,10 @@ class ParseThurman:
     - Lifting over coordinates to GRCh38
     - Mapping genes names to gene IDs -> we might need to measure the loss of genes if there are obsoleted names.
     """
+
+
+class ParseThurman:
+    """Parser Thurman dataset."""
 
     # Constants:
     DATASET_NAME = "thurman2012"
@@ -40,7 +48,14 @@ class ParseThurman:
         gene_index: DataFrame,
         lift: LiftOverSpark,
     ) -> None:
+        """Initialise Thurnman parser.
 
+        Args:
+            etl (ETLSession): current ETL session
+            thurman_datafile (str): filepath to thurnman dataset
+            gene_index (DataFrame): gene/target index
+            lift (LiftOverSpark): LiftOverSpark object
+        """
         self.etl = etl
 
         etl.logger.info("Parsing Thurman 2012 data...")
@@ -99,13 +114,11 @@ class ParseThurman:
         etl.logger.info(f"Number of rows: {self.Thurman_intervals.count()}")
 
     def get_intervals(self: ParseThurman) -> DataFrame:
+        """Get Thurman intervals."""
         return self.Thurman_intervals
 
     def qc_intervals(self: ParseThurman) -> None:
-        """
-        Perform QC on the anderson intervals.
-        """
-
+        """Perform QC on the anderson intervals."""
         # Get numbers:
         self.etl.logger.info(f"Size of Thurman data: {self.Thurman_intervals.count()}")
         self.etl.logger.info(

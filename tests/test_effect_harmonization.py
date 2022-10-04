@@ -1,3 +1,4 @@
+"""Tests on effect harmonisation."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def mock_allele_columns(spark: SparkSession) -> DataFrame:
+    """Mock Dataframe to test harmonisation."""
     return spark.createDataFrame(
         [
             {"allele": "A", "reverseComp": "T", "isPalindrome": False},
@@ -30,13 +32,14 @@ def mock_allele_columns(spark: SparkSession) -> DataFrame:
 
 @pytest.fixture
 def call_get_reverse_complement(mock_allele_columns: DataFrame) -> DataFrame:
+    """Test reverse complement on mock data."""
     return mock_allele_columns.transform(
         lambda df: get_reverse_complement(df, "allele")
     )
 
 
 def test_reverse_complement(call_get_reverse_complement: DataFrame) -> None:
-
+    """Test reverse complement."""
     assert (
         call_get_reverse_complement.filter(
             f.col("reverseComp") != f.col("revcomp_allele")
