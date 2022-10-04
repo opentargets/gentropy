@@ -119,7 +119,7 @@ def main(cfg: DictConfig) -> None:
                 "ref": "referenceAllele",
                 "alt": "alternateAllele",
                 "allele_type": "alleleType",
-                "rsid": "rsId",
+                "rsid": "rsIds",
                 "af": "alleleFrequencies",
             }
         )
@@ -132,7 +132,7 @@ def main(cfg: DictConfig) -> None:
             "alternateAllele",
             "alleleType",
             "vep",
-            "rsId",
+            "rsIds",
             "alleleFrequencies",
             "cadd",
             "filters",
@@ -161,7 +161,12 @@ def main(cfg: DictConfig) -> None:
             ),
         )
         # Generate variant id column:
-        .withColumn("id", f.concat_ws("_", "chrom", "pos", "ref", "alt"))
+        .withColumn(
+            "id",
+            f.concat_ws(
+                "_", "chromosome", "position", "referenceAllele", "alternateAllele"
+            ),
+        )
         # Create new allele frequency column:
         .withColumn(
             "alleleFrequencies",
