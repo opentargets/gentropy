@@ -1,3 +1,4 @@
+"""Step to generate variant annotation dataset."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -30,6 +31,8 @@ POPULATIONS = {
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
+    """Run variant annotation generation."""
+    # establish spark connection
     etl = ETLSession(cfg)
     hl.init(sc=etl.spark.sparkContext)
 
@@ -45,14 +48,20 @@ def main(cfg: DictConfig) -> None:
     )
 
     # Assert that all alleles are biallelic:
-    assert ht.all(ht.alleles.length() == 2), "Mono- or multiallelic variants have been found."
+    assert ht.all(
+        ht.alleles.length() == 2
+    ), "Mono- or multiallelic variants have been found."
 
     # Extracting AF indices of populations:
     population_indices = ht.globals.freq_index_dict.collect()[0]
     population_indices = {pop: population_indices[f"{pop}-adj"] for pop in POPULATIONS}
 
     # Generate struct for alt. allele frequency in selected populations:
-    ht = ht.annotate(af=hl.struct(**{pop: ht.freq[index].AF for pop, index in population_indices.items()}))
+    ht = ht.annotate(
+        af=hl.struct(
+            **{pop: ht.freq[index].AF for pop, index in population_indices.items()}
+        )
+    )
     # Add chain file
     grch37 = hl.get_reference("GRCh37")
     grch38 = hl.get_reference("GRCh38")
@@ -124,17 +133,21 @@ def main(cfg: DictConfig) -> None:
         # Creating new column based on the transcript_consequences
         .select(
             "*",
-            f.expr("filter(vep.transcript_consequences, array -> array.canonical == True)").alias(
-                "transcript_consequences"
-            ),
+            f.expr(
+                "filter(vep.transcript_consequences, array -> array.canonical == True)"
+            ).alias("transcript_consequences"),
         )
         # Re-creating the vep column with the new transcript consequence object:
         .withColumn(
             "vep",
             f.struct(
                 f.col("vep.most_severe_consequence").alias("most_severe_consequence"),
-                f.col("vep.motif_feature_consequences").alias("motif_feature_consequences"),
-                f.col("vep.regulatory_feature_consequences").alias("regulatory_feature_consequences"),
+                f.col("vep.motif_feature_consequences").alias(
+                    "motif_feature_consequences"
+                ),
+                f.col("vep.regulatory_feature_consequences").alias(
+                    "regulatory_feature_consequences"
+                ),
                 f.col("transcript_consequences").alias("transcript_consequences"),
             ),
         )

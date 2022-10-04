@@ -1,0 +1,59 @@
+site_name: Genetics Portal Pipeline
+
+plugins:
+  - search
+  - mkdocstrings
+  - section-index
+  - git-revision-date-localized
+  - autolinks
+  - minify:
+      minify_html: true
+
+repo_name: opentargets/genetics_etl_python
+repo_url: https://github.com/opentargets/genetics_etl_python
+
+nav:
+  - index.md
+  - roadmap.md
+  - Reference:
+    - reference.md
+    - GWAS Catalog ingestion: modules/gwas_ingest.md
+    - Interval data: modules/intervals.md
+    - Colocalisation: modules/colocalisation.md
+    - Schemas: modules/schemas.md
+
+theme:
+  name: "material"
+  favicon: assets/favicon.png
+  logo: assets/otlogo.png
+
+  features:
+    - navigation.instant
+    - navigation.top
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+
+  palette:
+    # Light mode
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: blue grey
+      accent: light blue
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: blue grey
+      accent: light blue
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/genetics_etl_python

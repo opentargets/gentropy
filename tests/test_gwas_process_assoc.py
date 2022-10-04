@@ -1,3 +1,5 @@
+"""Tests to assess gwas catalog ingestion."""
+
 from __future__ import annotations
 
 import pytest
@@ -13,6 +15,14 @@ from etl.gwas_ingest.process_associations import (
 
 @pytest.fixture
 def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
+    """Mock minor allele frequency DataFrame for filtering.
+
+    Args:
+        spark (SparkSession): Spark session
+
+    Returns:
+        DataFrame: Mock minor allele frequency DataFrame
+    """
     return (
         spark.createDataFrame(
             [
@@ -45,11 +55,20 @@ def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
 
 @pytest.fixture
 def call_maf_filter(mock_maf_filter_data: DataFrame) -> DataFrame:
+    """Test filter association by MAF based on mock DataFrame."""
     return mock_maf_filter_data.transform(filter_assoc_by_maf)
 
 
 @pytest.fixture
 def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
+    """Mock DataFrame to assess allele concordance.
+
+    Args:
+        spark (SparkSession): Spark session
+
+    Returns:
+        DataFrame: Mock allele concordances
+    """
     data = [
         (
             0,
@@ -100,16 +119,26 @@ def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
 
 @pytest.fixture
 def call_concordance_filter(mock_concordance_filter_data: DataFrame) -> DataFrame:
+    """Test allele concordance filter based on mock DataFrame."""
     return mock_concordance_filter_data.transform(concordance_filter)
 
 
 @pytest.fixture
 def call_rsid_filter(mock_rsid_filter: DataFrame) -> DataFrame:
+    """Test filter association by rsid based on mock DataFrame."""
     return mock_rsid_filter.transform(filter_assoc_by_rsid)
 
 
 @pytest.fixture
 def mock_rsid_filter(spark: SparkSession) -> DataFrame:
+    """Mock DataFrame to evaluate rsids.
+
+    Args:
+        spark (SparkSession): Spark session
+
+    Returns:
+        DataFrame: Configurations of rsids in resources and expected outcomes
+    """
     data = [
         # Assoc id 1: matching rsId exist:
         (
@@ -188,7 +217,7 @@ def mock_rsid_filter(spark: SparkSession) -> DataFrame:
 def test_filter_assoc_by_rsid__all_columns_are_there(
     mock_rsid_filter: DataFrame, call_rsid_filter: DataFrame
 ) -> None:
-    """Testing if the returned dataframe contains all columns from the source:"""
+    """Testing if the returned dataframe contains all columns from the source."""
     source_columns = mock_rsid_filter.columns
     processed_columns = call_rsid_filter.columns
 
@@ -199,7 +228,6 @@ def test_filter_assoc_by_rsid__right_rows_are_dropped(
     call_rsid_filter: DataFrame,
 ) -> None:
     """Testing if all the retained columns should not be dropped."""
-
     dropped = call_rsid_filter.transform(filter_assoc_by_rsid).select("drop").collect()
     assert not any([d["drop"] for d in dropped])
 
@@ -208,20 +236,19 @@ def test_filter_assoc_by_rsid__right_rows_are_kept(
     call_rsid_filter: DataFrame,
 ) -> None:
     """Testing if all the retained columns should be kept."""
-
     kept = call_rsid_filter.transform(filter_assoc_by_rsid).select("retain").collect()
     assert all([d["retain"] for d in kept])
 
 
 def test_concordance_filter__type(call_concordance_filter: DataFrame) -> None:
-    """Testing if the function returns the right type"""
+    """Testing if the function returns the right type."""
     assert isinstance(call_concordance_filter, DataFrame)
 
 
 def test_concordance_filter__all_columns_returned(
     call_concordance_filter: DataFrame, mock_concordance_filter_data: DataFrame
 ) -> None:
-    """Testing if the function returns the right type"""
+    """Testing if the function returns the right type."""
     source_columns = mock_concordance_filter_data.columns
     processed_columns = call_concordance_filter.columns
 

@@ -1,3 +1,4 @@
+"""Step to run GWASCatalog ingestion."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -14,7 +15,7 @@ from etl.gwas_ingest.process_associations import ingest_gwas_catalog_association
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
-
+    """Run GWASCatalog ingestion."""
     # establish spark connection
     etl = ETLSession(cfg)
 

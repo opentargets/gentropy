@@ -1,6 +1,4 @@
-"""
-Utilities to perform colocalisation analysis
-"""
+"""Utilities to perform colocalisation analysis."""
 
 from __future__ import annotations
 
@@ -17,21 +15,31 @@ if TYPE_CHECKING:
 
 
 def get_logsum(log_abf: VectorUDT) -> DoubleType:
-    """
+    """Calculates logsum of vector.
+
     This function calculates the log of the sum of the exponentiated
     logs taking out the max, i.e. insuring that the sum is not Inf
-    """
 
+    Args:
+        log_abf (VectorUDT): log approximate bayes factor
+
+    Returns:
+        DoubleType: logsum
+    """
     themax = np.max(log_abf)
     result = themax + np.log(np.sum(np.exp(log_abf - themax)))
     return float(result)
 
 
 def get_posteriors(all_abfs: VectorUDT) -> VectorUDT:
-    """
-    Calculates the posterior probability of each hypothesis given the evidence.
-    """
+    """Calculate posterior probabilities for each hypothesis.
 
+    Args:
+        all_abfs (VectorUDT): h0-h4 bayes factors
+
+    Returns:
+        VectorUDT: Posterior
+    """
     diff = all_abfs - get_logsum(all_abfs)
     abfs_posteriors = np.exp(diff)
     return Vectors.dense(abfs_posteriors)
@@ -40,13 +48,17 @@ def get_posteriors(all_abfs: VectorUDT) -> VectorUDT:
 def colocalisation(
     overlapping_signals: DataFrame, priorc1: float, priorc2: float, priorc12: float
 ) -> DataFrame:
-    """
-    Compute Bayesian colocalisation analysis for all pairs of credible sets
+    """Calculate bayesian colocalisation based on overlapping signals.
 
     Args:
-        overlapping_signals: DataFrame with overlapping signals
-    """
+        overlapping_signals (DataFrame): overlapping peaks
+        priorc1 (float): p1 prior
+        priorc2 (float): p2 prior
+        priorc12 (float): p12 prior
 
+    Returns:
+        DataFrame: Colocalisation results
+    """
     signal_pairs_cols = [
         "chrom",
         "studyKey",

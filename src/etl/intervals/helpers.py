@@ -1,3 +1,4 @@
+"""Interval helper functions."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -9,11 +10,17 @@ if TYPE_CHECKING:
 
 
 def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
-    """Pre-processing the gene dataset
-    :param gene_index: gene index dataframe
-    :return: Spark Dataframe
-    """
+    """Gene symbol lookup table.
 
+    Pre-processess gene/target dataset to create lookup table of gene symbols, including
+    obsoleted gene symbols.
+
+    Args:
+        gene_index (DataFrame): gene/target DataFrame
+
+    Returns:
+        DataFrame: Gene LUT for symbol mapping
+    """
     # Prepare gene set:
     genes = (
         # Include TSS
