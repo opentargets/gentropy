@@ -173,7 +173,7 @@ def main(cfg: DictConfig) -> None:
             f.array(
                 *[
                     f.struct(
-                        f.col(f"af.{pop}").alias("alleleFrequency"),
+                        f.col(f"alleleFrequencies.{pop}").alias("alleleFrequency"),
                         f.lit(pop).alias("populationName"),
                     )
                     for pop in POPULATIONS
