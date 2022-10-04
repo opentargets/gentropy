@@ -40,12 +40,12 @@ def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
             ]
         )
         .withColumn(
-            "allele_frequencies",
+            "alleleFrequencies",
             f.struct(f.col("pop1").alias("pop1"), f.col("pop2").alias("pop2")),
         )
         .select(
-            f.col("aid").alias("association_id"),
-            "allele_frequencies",
+            f.col("aid").alias("associationId"),
+            "alleleFrequencies",
             "keep",
             f.monotonically_increasing_id().alias("id"),
         )
@@ -113,7 +113,7 @@ def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
             False,
         ),  # discordant.
     ]
-    df = spark.createDataFrame(data, ["id", "risk_allele", "ref", "alt", "concordant"])
+    df = spark.createDataFrame(data, ["id", "riskAllele", "ref", "alt", "concordant"])
     return df
 
 
@@ -209,7 +209,7 @@ def mock_rsid_filter(spark: SparkSession) -> DataFrame:
         ),
     ]
     df = spark.createDataFrame(
-        data, ["association_id", "rsid_gwas_catalog", "rsid_gnomad", "retain", "drop"]
+        data, ["associationId", "rsidGwasCatalog", "rsidGnomad", "retain", "drop"]
     )
     return df
 
