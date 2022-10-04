@@ -42,6 +42,6 @@ def test_reverse_complement(call_get_reverse_complement: DataFrame) -> None:
     """Test reverse complement."""
     assert (
         call_get_reverse_complement.filter(
-            f.col("reverseComp") != f.col("revcompAllele")
+            f.col("reverseComp") != f.col("revcomp_allele")
         ).count()
     ) == 0
