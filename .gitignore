@@ -2,3 +2,4 @@ dist/
 src/config.yaml
 **/__pycache__/
 outputs/
+src/etl/.DS_Store

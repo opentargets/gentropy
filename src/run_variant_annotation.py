@@ -12,7 +12,6 @@ import hail as hl
 import pyspark.sql.functions as f
 
 from etl.common.ETLSession import ETLSession
-from etl.json import validate_df_schema
 
 # Population of interest:
 POPULATIONS = {
@@ -111,17 +110,30 @@ def main(cfg: DictConfig) -> None:
     # Convert data:
     variants = (
         # Select columns and convert to pyspark:
-        ht.selectExpr(
-            "chrom AS chromosome",
-            "pos AS position",
-            "chrom_b37 AS chromosomeB37",
-            "pos_b37 AS positionB37",
-            "ref AS referenceAllele",
-            "alt AS alternateAllele",
-            "allele_type AS alleleType",
+        ht.rename(
+            {
+                "chrom": "chromosome",
+                "pos": "position",
+                "chrom_b37": "chromosomeB37",
+                "pos_b37": "positionB37",
+                "ref": "referenceAllele",
+                "alt": "alternateAllele",
+                "allele_type": "alleleType",
+                "rsid": "rsId",
+                "af": "alleleFrequencies",
+            }
+        )
+        .select(
+            "chromosome",
+            "position",
+            "chromosomeB37",
+            "positionB37",
+            "referenceAllele",
+            "alternateAllele",
+            "alleleType",
             "vep",
-            "rsid AS rsId",
-            "af AS alleleFrequencies",
+            "rsId",
+            "alleleFrequencies",
             "cadd",
             "filters",
         )
@@ -164,14 +176,14 @@ def main(cfg: DictConfig) -> None:
             ),
         )
         # Drop unused column:
-        .drop("locus", "alleles", "transcript_consequences", "af")
+        .drop("locus", "alleles", "transcript_consequences", "alleleFrequencies")
     )
 
-    validate_df_schema(variants, "variant_annotation.json")
+    # validate_df_schema(variants, "variant_annotation.json")
 
     # Writing data partitioned by chromosome:
     (
-        variants.partitionBy("chr")
+        variants.partitionBy("chromosome")
         .write.mode(cfg.environment.sparkWriteMode)
         .parquet(output_file)
     )
