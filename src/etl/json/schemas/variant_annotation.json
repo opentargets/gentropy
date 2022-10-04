@@ -1,583 +1,583 @@
 {
-    "fields": [
-        {
+  "fields": [
+    {
+      "metadata": {},
+      "name": "chrom",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "pos",
+      "nullable": false,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "chrom_b37",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "pos_b37",
+      "nullable": true,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "ref",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "alt",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "allele_type",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "vep",
+      "nullable": false,
+      "type": {
+        "fields": [
+          {
             "metadata": {},
-            "name": "chrom",
-            "nullable": false,
-            "type": "string"
-        },
-        {
-            "metadata": {},
-            "name": "pos",
-            "nullable": false,
-            "type": "integer"
-        },
-        {
-            "metadata": {},
-            "name": "chrom_b37",
+            "name": "most_severe_consequence",
             "nullable": true,
             "type": "string"
-        },
-        {
+          },
+          {
             "metadata": {},
-            "name": "pos_b37",
+            "name": "motif_feature_consequences",
             "nullable": true,
-            "type": "integer"
-        },
-        {
-            "metadata": {},
-            "name": "ref",
-            "nullable": false,
-            "type": "string"
-        },
-        {
-            "metadata": {},
-            "name": "alt",
-            "nullable": false,
-            "type": "string"
-        },
-        {
-            "metadata": {},
-            "name": "allele_type",
-            "nullable": false,
-            "type": "string"
-        },
-        {
-            "metadata": {},
-            "name": "vep",
-            "nullable": false,
             "type": {
+              "containsNull": true,
+              "elementType": {
                 "fields": [
-                    {
-                        "metadata": {},
-                        "name": "most_severe_consequence",
-                        "nullable": true,
-                        "type": "string"
-                    },
-                    {
-                        "metadata": {},
-                        "name": "motif_feature_consequences",
-                        "nullable": true,
-                        "type": {
-                            "containsNull": true,
-                            "elementType": {
-                                "fields": [
-                                    {
-                                        "metadata": {},
-                                        "name": "allele_num",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "consequence_terms",
-                                        "nullable": true,
-                                        "type": {
-                                            "containsNull": true,
-                                            "elementType": "string",
-                                            "type": "array"
-                                        }
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "high_inf_pos",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "impact",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "minimised",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "motif_feature_id",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "motif_name",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "motif_pos",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "motif_score_change",
-                                        "nullable": true,
-                                        "type": "double"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "strand",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "variant_allele",
-                                        "nullable": true,
-                                        "type": "string"
-                                    }
-                                ],
-                                "type": "struct"
-                            },
-                            "type": "array"
-                        }
-                    },
-                    {
-                        "metadata": {},
-                        "name": "regulatory_feature_consequences",
-                        "nullable": true,
-                        "type": {
-                            "containsNull": true,
-                            "elementType": {
-                                "fields": [
-                                    {
-                                        "metadata": {},
-                                        "name": "allele_num",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "biotype",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "consequence_terms",
-                                        "nullable": true,
-                                        "type": {
-                                            "containsNull": true,
-                                            "elementType": "string",
-                                            "type": "array"
-                                        }
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "impact",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "minimised",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "regulatory_feature_id",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "variant_allele",
-                                        "nullable": true,
-                                        "type": "string"
-                                    }
-                                ],
-                                "type": "struct"
-                            },
-                            "type": "array"
-                        }
-                    },
-                    {
-                        "metadata": {},
-                        "name": "transcript_consequences",
-                        "nullable": true,
-                        "type": {
-                            "containsNull": true,
-                            "elementType": {
-                                "fields": [
-                                    {
-                                        "metadata": {},
-                                        "name": "allele_num",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "amino_acids",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "appris",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "biotype",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "canonical",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "ccds",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "cdna_start",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "cdna_end",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "cds_end",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "cds_start",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "codons",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "consequence_terms",
-                                        "nullable": true,
-                                        "type": {
-                                            "containsNull": true,
-                                            "elementType": "string",
-                                            "type": "array"
-                                        }
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "distance",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "domains",
-                                        "nullable": true,
-                                        "type": {
-                                            "containsNull": true,
-                                            "elementType": {
-                                                "fields": [
-                                                    {
-                                                        "metadata": {},
-                                                        "name": "db",
-                                                        "nullable": true,
-                                                        "type": "string"
-                                                    },
-                                                    {
-                                                        "metadata": {},
-                                                        "name": "name",
-                                                        "nullable": true,
-                                                        "type": "string"
-                                                    }
-                                                ],
-                                                "type": "struct"
-                                            },
-                                            "type": "array"
-                                        }
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "exon",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "gene_id",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "gene_pheno",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "gene_symbol",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "gene_symbol_source",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "hgnc_id",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "hgvsc",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "hgvsp",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "hgvs_offset",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "impact",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "intron",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "lof",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "lof_flags",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "lof_filter",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "lof_info",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "minimised",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "polyphen_prediction",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "polyphen_score",
-                                        "nullable": true,
-                                        "type": "double"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "protein_end",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "protein_start",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "protein_id",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "sift_prediction",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "sift_score",
-                                        "nullable": true,
-                                        "type": "double"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "strand",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "swissprot",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "transcript_id",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "trembl",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "tsl",
-                                        "nullable": true,
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "uniparc",
-                                        "nullable": true,
-                                        "type": "string"
-                                    },
-                                    {
-                                        "metadata": {},
-                                        "name": "variant_allele",
-                                        "nullable": true,
-                                        "type": "string"
-                                    }
-                                ],
-                                "type": "struct"
-                            },
-                            "type": "array"
-                        }
+                  {
+                    "metadata": {},
+                    "name": "allele_num",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "consequence_terms",
+                    "nullable": true,
+                    "type": {
+                      "containsNull": true,
+                      "elementType": "string",
+                      "type": "array"
                     }
+                  },
+                  {
+                    "metadata": {},
+                    "name": "high_inf_pos",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "impact",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "minimised",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "motif_feature_id",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "motif_name",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "motif_pos",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "motif_score_change",
+                    "nullable": true,
+                    "type": "double"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "strand",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "variant_allele",
+                    "nullable": true,
+                    "type": "string"
+                  }
                 ],
                 "type": "struct"
+              },
+              "type": "array"
             }
-        },
-        {
+          },
+          {
             "metadata": {},
-            "name": "rsid",
+            "name": "regulatory_feature_consequences",
             "nullable": true,
             "type": {
-                "containsNull": true,
-                "elementType": "string",
-                "type": "array"
-            }
-        },
-        {
-            "metadata": {},
-            "name": "cadd",
-            "nullable": false,
-            "type": {
+              "containsNull": true,
+              "elementType": {
                 "fields": [
-                    {
-                        "metadata": {},
-                        "name": "phred",
-                        "nullable": true,
-                        "type": "float"
-                    },
-                    {
-                        "metadata": {},
-                        "name": "raw",
-                        "nullable": true,
-                        "type": "float"
+                  {
+                    "metadata": {},
+                    "name": "allele_num",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "biotype",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "consequence_terms",
+                    "nullable": true,
+                    "type": {
+                      "containsNull": true,
+                      "elementType": "string",
+                      "type": "array"
                     }
+                  },
+                  {
+                    "metadata": {},
+                    "name": "impact",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "minimised",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "regulatory_feature_id",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "variant_allele",
+                    "nullable": true,
+                    "type": "string"
+                  }
                 ],
                 "type": "struct"
+              },
+              "type": "array"
             }
-        },
-        {
+          },
+          {
             "metadata": {},
-            "name": "filters",
-            "nullable": false,
+            "name": "transcript_consequences",
+            "nullable": true,
             "type": {
-                "containsNull": true,
-                "elementType": "string",
-                "type": "array"
-            }
-        },
-        {
-            "metadata": {},
-            "name": "id",
-            "nullable": false,
-            "type": "string"
-        },
-        {
-            "metadata": {},
-            "name": "alleleFrequencies",
-            "nullable": false,
-            "type": {
-                "containsNull": true,
-                "elementType": {
-                    "fields": [
-                        {
+              "containsNull": true,
+              "elementType": {
+                "fields": [
+                  {
+                    "metadata": {},
+                    "name": "allele_num",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "amino_acids",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "appris",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "biotype",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "canonical",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "ccds",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "cdna_start",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "cdna_end",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "cds_end",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "cds_start",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "codons",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "consequence_terms",
+                    "nullable": true,
+                    "type": {
+                      "containsNull": true,
+                      "elementType": "string",
+                      "type": "array"
+                    }
+                  },
+                  {
+                    "metadata": {},
+                    "name": "distance",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "domains",
+                    "nullable": true,
+                    "type": {
+                      "containsNull": true,
+                      "elementType": {
+                        "fields": [
+                          {
                             "metadata": {},
-                            "name": "alleleFrequency",
-                            "nullable": true,
-                            "type": "double"
-                        },
-                        {
-                            "metadata": {},
-                            "name": "populationName",
+                            "name": "db",
                             "nullable": true,
                             "type": "string"
-                        }
-                    ],
-                    "type": "struct"
-                },
-                "type": "array"
+                          },
+                          {
+                            "metadata": {},
+                            "name": "name",
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        ],
+                        "type": "struct"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  {
+                    "metadata": {},
+                    "name": "exon",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "gene_id",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "gene_pheno",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "gene_symbol",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "gene_symbol_source",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "hgnc_id",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "hgvsc",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "hgvsp",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "hgvs_offset",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "impact",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "intron",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "lof",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "lof_flags",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "lof_filter",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "lof_info",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "minimised",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "polyphen_prediction",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "polyphen_score",
+                    "nullable": true,
+                    "type": "double"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "protein_end",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "protein_start",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "protein_id",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "sift_prediction",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "sift_score",
+                    "nullable": true,
+                    "type": "double"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "strand",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "swissprot",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "transcript_id",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "trembl",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "tsl",
+                    "nullable": true,
+                    "type": "integer"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "uniparc",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "variant_allele",
+                    "nullable": true,
+                    "type": "string"
+                  }
+                ],
+                "type": "struct"
+              },
+              "type": "array"
             }
-        }
-    ],
-    "type": "struct"
+          }
+        ],
+        "type": "struct"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "rsid",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": "string",
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "cadd",
+      "nullable": false,
+      "type": {
+        "fields": [
+          {
+            "metadata": {},
+            "name": "phred",
+            "nullable": true,
+            "type": "float"
+          },
+          {
+            "metadata": {},
+            "name": "raw",
+            "nullable": true,
+            "type": "float"
+          }
+        ],
+        "type": "struct"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "filters",
+      "nullable": false,
+      "type": {
+        "containsNull": true,
+        "elementType": "string",
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "id",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "alleleFrequencies",
+      "nullable": false,
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "alleleFrequency",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
+              "name": "populationName",
+              "nullable": true,
+              "type": "string"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    }
+  ],
+  "type": "struct"
 }
