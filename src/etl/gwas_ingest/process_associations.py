@@ -15,25 +15,25 @@ if TYPE_CHECKING:
 
 ASSOCIATION_COLUMNS_MAP = {
     # Variant related columns:
-    "STRONGEST SNP-RISK ALLELE": "strongest_snp_risk_allele",  # variant id and the allele is extracted (; separated list)
-    "CHR_ID": "chr_id",  # Mapped genomic location of the variant (; separated list)
-    "CHR_POS": "chr_pos",
-    "RISK ALLELE FREQUENCY": "risk_allele_frequency",
+    "STRONGEST SNP-RISK ALLELE": "strongestSnpRiskAllele",  # variant id and the allele is extracted (; separated list)
+    "CHR_ID": "chrId",  # Mapped genomic location of the variant (; separated list)
+    "CHR_POS": "chrPos",
+    "RISK ALLELE FREQUENCY": "riskAlleleFrequency",
     "CNV": "cnv",  # Flag if a variant is a copy number variant
-    "SNP_ID_CURRENT": "snp_id_current",  #
-    "SNPS": "snp_ids",  # List of all SNPs associated with the variant
+    "SNP_ID_CURRENT": "snpIdCurrent",  #
+    "SNPS": "snpIds",  # List of all SNPs associated with the variant
     # Study related columns:
-    "STUDY ACCESSION": "study_accession",
+    "STUDY ACCESSION": "studyAccession",
     # Disease/Trait related columns:
-    "DISEASE/TRAIT": "disease_trait",  # Reported trait of the study
-    "MAPPED_TRAIT_URI": "mapped_trait_uri",  # Mapped trait URIs of the study
+    "DISEASE/TRAIT": "diseaseTrait",  # Reported trait of the study
+    "MAPPED_TRAIT_URI": "mappedTraitUri",  # Mapped trait URIs of the study
     "MERGED": "merged",
-    "P-VALUE (TEXT)": "p_value_text",  # Extra information on the association.
+    "P-VALUE (TEXT)": "pvalueText",  # Extra information on the association.
     # Association details:
-    "P-VALUE": "p_value",  # p-value of the association, string: split into exponent and mantissa.
-    "PVALUE_MLOG": "pvalue_mlog",  # -log10(p-value) of the association, float
-    "OR or BETA": "or_beta",  # Effect size of the association, Odds ratio or beta
-    "95% CI (TEXT)": "confidence_interval",  # Confidence interval of the association, string: split into lower and upper bound.
+    "P-VALUE": "pvalue",  # p-value of the association, string: split into exponent and mantissa.
+    "PVALUE_MLOG": "pvalueMlog",  # -log10(p-value) of the association, float
+    "OR or BETA": "effectSize",  # Effect size of the association, Odds ratio or beta
+    "95% CI (TEXT)": "confidenceInterval",  # Confidence interval of the association, string: split into lower and upper bound.
     "CONTEXT": "context",
 }
 
@@ -55,7 +55,7 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
     """
     # parsing population names from schema:
     pop_names = [
-        field for field in df.schema.fields if field.name == "allele_frequencies"
+        field for field in df.schema.fields if field.name == "alleleFrequencies"
     ][0].dataType.fieldNames()
 
     def af2maf(c: Column) -> Column:
@@ -63,18 +63,18 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
         return f.when(c > 0.5, 1 - c).otherwise(c)
 
     # Windowing through all associations. Within an association, rows are ordered by the maximum MAF:
-    w = Window.partitionBy("association_id").orderBy(f.desc("maxMAF"))
+    w = Window.partitionBy("associationId").orderBy(f.desc("maxMAF"))
 
     return (
         df.withColumn(
             "maxMAF",
             f.array_max(
                 f.array(
-                    *[af2maf(f.col(f"allele_frequencies.{pop}")) for pop in pop_names]
+                    *[af2maf(f.col(f"alleleFrequencies.{pop}")) for pop in pop_names]
                 )
             ),
         )
-        .drop("allele_frequencies")
+        .drop("alleleFrequencies")
         .withColumn("row_number", f.row_number().over(w))
         .filter(f.col("row_number") == 1)
         .drop("row_number")
@@ -103,35 +103,35 @@ def concordance_filter(df: DataFrame) -> DataFrame:
         df
         # Adding column with the reverse-complement of the risk allele:
         .withColumn(
-            "risk_allele_reverse_complement",
+            "riskAlleleReverseComplement",
             f.when(
-                f.col("risk_allele").rlike(r"^[ACTG]+$"),
-                f.reverse(f.translate(f.col("risk_allele"), "ACTG", "TGAC")),
-            ).otherwise(f.col("risk_allele")),
+                f.col("riskAllele").rlike(r"^[ACTG]+$"),
+                f.reverse(f.translate(f.col("riskAllele"), "ACTG", "TGAC")),
+            ).otherwise(f.col("riskAllele")),
         )
         # Adding columns flagging concordance:
         .withColumn(
-            "is_concordant",
+            "isConcordant",
             # If risk allele is found on the positive strand:
             f.when(
-                (f.col("risk_allele") == f.col("ref"))
-                | (f.col("risk_allele") == f.col("alt")),
+                (f.col("riskAllele") == f.col("ref"))
+                | (f.col("riskAllele") == f.col("alt")),
                 True,
             )
             # If risk allele is found on the negative strand:
             .when(
-                (f.col("risk_allele_reverse_complement") == f.col("ref"))
-                | (f.col("risk_allele_reverse_complement") == f.col("alt")),
+                (f.col("riskAlleleReverseComplement") == f.col("ref"))
+                | (f.col("riskAlleleReverseComplement") == f.col("alt")),
                 True,
             )
             # If risk allele is ambiguous, still accepted: < This condition could be reconsidered
-            .when(f.col("risk_allele") == "?", True)
+            .when(f.col("riskAllele") == "?", True)
             # Allele is discordant:
             .otherwise(False),
         )
         # Dropping discordant associations:
-        .filter(f.col("is_concordant"))
-        .drop("is_concordant", "risk_allele_reverse_complement")
+        .filter(f.col("isConcordant"))
+        .drop("isConcordant", "riskAlleleReverseComplement")
         .persist()
     )
 
@@ -165,25 +165,25 @@ def read_associations_data(
             ]
         )
         # Cast minus log p-value as float:
-        .withColumn("pvalue_mlog", f.col("pvalue_mlog").cast(t.FloatType()))
+        .withColumn("pvalueMlog", f.col("pvalueMlog").cast(t.FloatType()))
         # Apply some pre-defined filters on the data:
         # 1. Dropping associations based on variant x variant interactions
         # 2. Dropping sub-significant associations
         # 3. Dropping associations without genomic location
         .filter(
-            ~f.col("chr_id").contains(" x ")
-            & (f.col("pvalue_mlog") >= -np.log10(pvalue_cutoff))
-            & (f.col("chr_pos").isNotNull() & f.col("chr_id").isNotNull())
+            ~f.col("chrId").contains(" x ")
+            & (f.col("pvalueMlog") >= -np.log10(pvalue_cutoff))
+            & (f.col("chrPos").isNotNull() & f.col("chrId").isNotNull())
         ).persist()
     )
 
     # Providing stats on the filtered association dataset:
     etl.logger.info(f"Number of associations: {association_df.count()}")
     etl.logger.info(
-        f'Number of studies: {association_df.select("study_accession").distinct().count()}'
+        f'Number of studies: {association_df.select("studyAccession").distinct().count()}'
     )
     etl.logger.info(
-        f'Number of variants: {association_df.select("snp_ids").distinct().count()}'
+        f'Number of variants: {association_df.select("snpIds").distinct().count()}'
     )
 
     return association_df
@@ -206,13 +206,13 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
 
     Returns:
         DataFrame: associations including the next columns:
-            - association_id
-            - snp_id_current
-            - chr_id
-            - chr_pos
-            - snp_ids
-            - risk_allele
-            - rsid_gwas_catalog
+            - associationId
+            - snpIdCurrent
+            - chrId
+            - chrPos
+            - snpIds
+            - riskAllele
+            - rsidGwasCatalog
             - efo
             - exponent
             - mantissa
@@ -222,7 +222,7 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
         # spark.read.csv(associations, sep='\t', header=True)
         association_df
         # Adding association identifier for future deduplication:
-        .withColumn("association_id", f.monotonically_increasing_id())
+        .withColumn("associationId", f.monotonically_increasing_id())
         # Processing variant related columns:
         #   - Sorting out current rsID field: <- why do we need this? rs identifiers should always come from the GnomAD dataset.
         #   - Removing variants with no genomic mappings -> losing ~3% of all associations
@@ -233,48 +233,44 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
         #   - The risk allele is extracted from the 'STRONGEST SNP-RISK ALLELE' column.
         # The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good.
         .withColumn(
-            "snp_id_current",
+            "snpIdCurrent",
             f.when(
-                f.col("snp_id_current").rlike("^[0-9]*$"),
-                f.format_string("rs%s", f.col("snp_id_current")),
-            ).otherwise(f.col("snp_id_current")),
+                f.col("snpIdCurrent").rlike("^[0-9]*$"),
+                f.format_string("rs%s", f.col("snpIdCurrent")),
+            ).otherwise(f.col("snpIdCurrent")),
         )
         # Variant notation (chr, pos, snp id) are split into array:
-        .withColumn("chr_id", f.split(f.col("chr_id"), ";"))
-        .withColumn("chr_pos", f.split(f.col("chr_pos"), ";"))
+        .withColumn("chrId", f.split(f.col("chrId"), ";"))
+        .withColumn("chrPos", f.split(f.col("chrPos"), ";"))
         .withColumn(
-            "strongest_snp_risk_allele",
-            f.split(f.col("strongest_snp_risk_allele"), "; "),
+            "strongestSnpRiskAllele",
+            f.split(f.col("strongestSnpRiskAllele"), "; "),
         )
-        .withColumn("snp_ids", f.split(f.col("snp_ids"), "; "))
+        .withColumn("snpIds", f.split(f.col("snpIds"), "; "))
         # Variant fields are joined together in a matching list, then extracted into a separate rows again:
         .withColumn(
             "VARIANT",
             f.explode(
-                f.arrays_zip(
-                    "chr_id", "chr_pos", "strongest_snp_risk_allele", "snp_ids"
-                )
+                f.arrays_zip("chrId", "chrPos", "strongestSnpRiskAllele", "snpIds")
             ),
         )
         # Updating variant columns:
-        .withColumn("snp_ids", f.col("VARIANT.snp_ids"))
-        .withColumn("chr_id", f.col("VARIANT.chr_id"))
-        .withColumn("chr_pos", f.col("VARIANT.chr_pos").cast(t.IntegerType()))
-        .withColumn(
-            "strongest_snp_risk_allele", f.col("VARIANT.strongest_snp_risk_allele")
-        )
+        .withColumn("snpIds", f.col("VARIANT.snpIds"))
+        .withColumn("chrId", f.col("VARIANT.chrId"))
+        .withColumn("chrPos", f.col("VARIANT.chrPos").cast(t.IntegerType()))
+        .withColumn("strongestSnpRiskAllele", f.col("VARIANT.strongestSnpRiskAllele"))
         # Extracting risk allele:
         .withColumn(
-            "risk_allele", f.split(f.col("strongest_snp_risk_allele"), "-").getItem(1)
+            "riskAllele", f.split(f.col("strongestSnpRiskAllele"), "-").getItem(1)
         )
         # Create a unique set of SNPs linked to the assocition:
         .withColumn(
-            "rsid_gwas_catalog",
+            "rsidGwasCatalog",
             f.array_distinct(
                 f.array(
-                    f.split(f.col("strongest_snp_risk_allele"), "-").getItem(0),
-                    f.col("snp_id_current"),
-                    f.col("snp_ids"),
+                    f.split(f.col("strongestSnpRiskAllele"), "-").getItem(0),
+                    f.col("snpIdCurrent"),
+                    f.col("snpIds"),
                 )
             ),
         )
@@ -284,27 +280,27 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
         #   - Associations are exploded to all EFO terms.
         #   - EFO terms in the study table is not considered as association level EFO annotation has priority (via p-value text)
         # Process EFO URIs: -> why do we explode?
-        # .withColumn('efo', F.explode(F.expr(r"regexp_extract_all(mapped_trait_uri, '([A-Z]+_[0-9]+)')")))
+        # .withColumn('efo', F.explode(F.expr(r"regexp_extract_all(mappedTraitUri, '([A-Z]+_[0-9]+)')")))
         .withColumn(
-            "efo", f.expr(r"regexp_extract_all(mapped_trait_uri, '([A-Z]+_[0-9]+)')")
+            "efo", f.expr(r"regexp_extract_all(mappedTraitUri, '([A-Z]+_[0-9]+)')")
         )
         # Splitting p-value into exponent and mantissa:
         .withColumn(
-            "exponent", f.split(f.col("p_value"), "E").getItem(1).cast("integer")
+            "exponent", f.split(f.col("pvalue"), "E").getItem(1).cast("integer")
         )
-        .withColumn("mantissa", f.split(f.col("p_value"), "E").getItem(0).cast("float"))
+        .withColumn("mantissa", f.split(f.col("pvalue"), "E").getItem(0).cast("float"))
         # Cleaning up:
-        .drop("mapped_trait_uri", "strongest_snp_risk_allele", "VARIANT")
+        .drop("mappedTraitUri", "strongestSnpRiskAllele", "VARIANT")
         .persist()
     )
 
     # Providing stats on the filtered association dataset:
     etl.logger.info(f"Number of associations: {parsed_associations.count()}")
     etl.logger.info(
-        f'Number of studies: {parsed_associations.select("study_accession").distinct().count()}'
+        f'Number of studies: {parsed_associations.select("studyAccession").distinct().count()}'
     )
     etl.logger.info(
-        f'Number of variants: {parsed_associations.select("snp_ids").distinct().count()}'
+        f'Number of variants: {parsed_associations.select("snpIds").distinct().count()}'
     )
 
     return parsed_associations
@@ -320,41 +316,39 @@ def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
 
     Args:
         df (DataFrame): associations requiring:
-            - association_id
-            - rsid_gwas_catalog
-            - rsid_gnomad
+            - associationId
+            - rsidGwasCatalog
+            - rsidGnomad
 
     Returns:
         DataFrame: filtered associations
     """
     # Windowing through all associations:
-    w = Window.partitionBy("association_id")
+    w = Window.partitionBy("associationId")
 
     return (
         df
         # See if the GnomAD variant that was mapped to a given association has a matching rsId:
         .withColumn(
-            "matching_rsId",
+            "matchingRsId",
             f.when(
-                f.size(
-                    f.array_intersect(f.col("rsid_gwas_catalog"), f.col("rsid_gnomad"))
-                )
+                f.size(f.array_intersect(f.col("rsidGwasCatalog"), f.col("rsidGnomad")))
                 > 0,
                 True,
             ).otherwise(False),
         )
         .withColumn(
-            "successful_mapping_exists",
+            "successfulMappingExists",
             f.when(
-                f.array_contains(f.collect_set(f.col("matching_rsId")).over(w), True),
+                f.array_contains(f.collect_set(f.col("matchingRsId")).over(w), True),
                 True,
             ).otherwise(False),
         )
         .filter(
-            (f.col("matching_rsId") & f.col("successful_mapping_exists"))
-            | (~f.col("matching_rsId") & ~f.col("successful_mapping_exists"))
+            (f.col("matchingRsId") & f.col("successfulMappingExists"))
+            | (~f.col("matchingRsId") & ~f.col("successfulMappingExists"))
         )
-        .drop("successful_mapping_exists", "matching_rsId")
+        .drop("successfulMappingExists", "matchingRsId")
         .persist()
     )
 
@@ -377,17 +371,17 @@ def map_variants(
 
     # Reading and joining variant annotation:
     variants = etl.spark.read.parquet(variant_annotation).select(
-        f.col("chr").alias("chr_id"),
-        f.col("pos_b38").alias("chr_pos"),
-        f.col("rsid").alias("rsid_gnomad"),
+        f.col("chr").alias("chrId"),
+        f.col("pos").alias("chrPos"),
+        f.col("rsid").alias("rsidGnomad"),
         f.col("ref").alias("ref"),
         f.col("alt").alias("alt"),
         f.col("id").alias("variant_id"),
-        f.col("af").alias("allele_frequencies"),
+        f.col("af").alias("alleleFrequencies"),
     )
 
     mapped_associations = variants.join(
-        f.broadcast(parsed_associations), on=["chr_id", "chr_pos"], how="right"
+        f.broadcast(parsed_associations), on=["chrId", "chrPos"], how="right"
     ).persist()
 
     return mapped_associations
