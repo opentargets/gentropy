@@ -25,8 +25,7 @@ def main(cfg: DictConfig) -> None:
 
     # Extract what are the nearest genes (protein coding and of other types) to each variant
     gene_idx = (
-        # TODO READ GENE INDEX schema
-        etl.spark.read.parquet(cfg.variant_index.inputs.gene_index)
+        etl.read_parquet(cfg.variant_index.inputs.gene_index, "targets.json")
         .withColumn(
             "tss",
             get_gene_tss(
@@ -61,7 +60,7 @@ def main(cfg: DictConfig) -> None:
         any_gene_distances, on="variantId", how="outer"
     ).withColumnRenamed("variantId", "id")
 
-    #
+    # Join the variant index with the credible sets
     variant_idx, invalid_variants = join_variants_w_credset(
         etl,
         cfg.etl.variant_index.inputs.variant_annotation,
@@ -72,9 +71,10 @@ def main(cfg: DictConfig) -> None:
         ["id"]
     )
 
-    etl.logger.info(f"Writing data to: {cfg.etl.variant_index.outputs.variant_index}")
-
-    # TODO: write ordered output
+    etl.logger.info(
+        f"Writing variant index to: {cfg.etl.variant_index.outputs.variant_index}"
+    )
+    # TODO - validate the output
     variant_idx.write.mode(cfg.environment.sparkWriteMode).parquet(
         cfg.etl.variant_index.outputs.variant_index
     )
