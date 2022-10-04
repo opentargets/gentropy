@@ -12,28 +12,42 @@ if TYPE_CHECKING:
 from etl.common.spark_helpers import get_record_with_minimum_value, nullify_empty_array
 
 
-def get_variants_intersect(
+def join_variants_w_credset(
     etl: ETLSession,
     variant_annotation_path: str,
     credible_sets_path: str,
     partition_count: int,
-) -> DataFrame:
-    """
-    It reads the variant annotation file, and subsets it to only contain the variants present in the credible sets
+) -> tuple[DataFrame, DataFrame]:
+    """Returns two dataframes: one is the variant index, filtered to contain only the variants present in the credible sets;
+    the second is the variants of the credible set that are not present in the variant annotation.
 
     Args:
-      etl (ETLSession): ETLSession
-      variant_annotation_path (str): The path to the variant annotation file.
-      credible_sets_path (str): the path to the credible sets file
+        etl (ETLSession): ETLSession
+        variant_annotation_path (str): The path to the variant annotation file.
+        credible_sets_path (str): the path to the credible sets file
 
     Returns:
-      A dataframe with all the variants of interest and their annotation.
+        variant_idx (DataFrame): A dataframe with all the variants of interest and their annotation.
+        fallen_variants (DataFrame): A dataframe with the variants of the credible filtered out of the variant index.
     """
-    return (
-        read_variant_annotation(etl, variant_annotation_path)
-        .join(get_variants_from_credset(etl, credible_sets_path), on="id", how="inner")
+    _df = (
+        get_variants_from_credset(etl, credible_sets_path)
+        .join(
+            read_variant_annotation(etl, variant_annotation_path), on="id", how="left"
+        )
+        .withColumn(
+            "variantInGnomad", f.coalesce(f.col("variantInGnomad"), f.lit(False))
+        )
+    )
+
+    variant_idx = (
+        _df.filter(f.col("variantInGnomad"))
+        .drop("variantInGnomad")
         .repartition(partition_count)
     )
+    invalid_variants = _df.filter(~f.col("variantInGnomad"))
+
+    return variant_idx, invalid_variants
 
 
 def get_variants_from_credset(etl: ETLSession, credible_sets_path: str) -> DataFrame:
@@ -110,6 +124,7 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         # filters/rsid are arrays that can be empty, in this case we convert them to null
         .withColumn("filters", nullify_empty_array(f.col("filters")))
         .withColumn("rsIds", nullify_empty_array(f.col("rsid")))
+        .withColumn("variantInGnomad", f.lit(True))
         .drop("rsid")
     )
 

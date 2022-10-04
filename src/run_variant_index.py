@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 from etl.common.ETLSession import ETLSession
 from etl.variant_index.variant_index import (
     calculate_dist_to_gene,
-    get_variants_intersect,
+    join_variants_w_credset,
 )
 from src.etl.common.utils import get_gene_tss
 
@@ -61,24 +61,25 @@ def main(cfg: DictConfig) -> None:
         any_gene_distances, on="variantId", how="outer"
     ).withColumnRenamed("variantId", "id")
 
-    variants = (
-        get_variants_intersect(
-            etl,
-            cfg.etl.variant_index.inputs.variant_annotation,
-            cfg.etl.variant_index.inputs.credible_sets,
-            cfg.etl.variant_index.parameters.partition_count,
-        )
-        .join(distances, on="id", how="left")
-        .dropDuplicates(["id"])
+    #
+    variant_idx, invalid_variants = join_variants_w_credset(
+        etl,
+        cfg.etl.variant_index.inputs.variant_annotation,
+        cfg.etl.variant_index.inputs.credible_sets,
+        cfg.etl.variant_index.parameters.partition_count,
+    )
+    variant_idx = variant_idx.join(distances, on="id", how="left").dropDuplicates(
+        ["id"]
     )
 
     etl.logger.info(f"Writing data to: {cfg.etl.variant_index.outputs.variant_index}")
 
     # TODO: write ordered output
-    (
-        variants.write.mode(cfg.environment.sparkWriteMode).parquet(
-            cfg.etl.variant_index.outputs.variant_index
-        )
+    variant_idx.write.mode(cfg.environment.sparkWriteMode).parquet(
+        cfg.etl.variant_index.outputs.variant_index
+    )
+    invalid_variants.write.mode(cfg.environment.sparkWriteMode).parquet(
+        cfg.etl.variant_index.outputs.variant_invalid
     )
 
 
