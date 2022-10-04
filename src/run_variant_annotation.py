@@ -108,26 +108,23 @@ def main(cfg: DictConfig) -> None:
         )
     )
 
-    # Sort columns
-    col_order = [
-        "chrom",
-        "pos",
-        "chrom_b37",
-        "pos_b37",
-        "ref",
-        "alt",
-        "allele_type",
-        "vep",
-        "rsid",
-        "af",
-        "cadd",
-        "filters",
-    ]
-
     # Convert data:
     variants = (
         # Select columns and convert to pyspark:
-        ht.select(*col_order)
+        ht.selectExpr(
+            "chrom AS chromosome",
+            "pos AS position",
+            "chrom_b37 AS chromosomeB37",
+            "pos_b37 AS positionB37",
+            "ref AS referenceAllele",
+            "alt AS alternateAllele",
+            "allele_type AS alleleType",
+            "vep",
+            "rsid AS rsId",
+            "af AS alleleFrequencies",
+            "cadd",
+            "filters",
+        )
         .to_spark(flatten=False)
         .repartition(cfg.etl.variant_annotation.parameters.partition_count)
         # Creating new column based on the transcript_consequences
@@ -141,14 +138,14 @@ def main(cfg: DictConfig) -> None:
         .withColumn(
             "vep",
             f.struct(
-                f.col("vep.most_severe_consequence").alias("most_severe_consequence"),
+                f.col("vep.most_severe_consequence").alias("mostSevereConsequence"),
                 f.col("vep.motif_feature_consequences").alias(
-                    "motif_feature_consequences"
+                    "motifFeatureConsequences"
                 ),
                 f.col("vep.regulatory_feature_consequences").alias(
-                    "regulatory_feature_consequences"
+                    "regulatoryFeatureConsequences"
                 ),
-                f.col("transcript_consequences").alias("transcript_consequences"),
+                f.col("transcript_consequences").alias("transcriptConsequences"),
             ),
         )
         # Generate variant id column:
