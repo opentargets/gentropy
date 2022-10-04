@@ -43,16 +43,3 @@ class ETLSession:
         )
         schema = StructType.fromJson(core_schema)
         return self.spark.read.schema(schema).format("parquet").load(path)
-
-    @staticmethod
-    def nullify_empty_array(column: str) -> str:
-        """
-        Return null when a Spark Column has an array of size 0, otherwise return the array.
-
-        Args:
-          column (str): The name of the column to be nullified.
-
-        Returns:
-          A string containing a Spark expression.
-        """
-        return f"if(size({column})==0, null, {column})"
