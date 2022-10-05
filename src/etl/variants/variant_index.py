@@ -1,3 +1,4 @@
+"""Helper functions to generate the variant index."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -18,17 +19,17 @@ def join_variants_w_credset(
     credible_sets_path: str,
     partition_count: int,
 ) -> tuple[DataFrame, DataFrame]:
-    """Returns two dataframes: one is the variant index, filtered to contain only the variants present in the credible sets;
-    the second is the variants of the credible set that are not present in the variant annotation.
+    """Returns two dataframes: one is the variant index, filtered to contain only the variants present in the credible sets; the second is the variants of the credible set that are not present in the variant annotation.
 
     Args:
         etl (ETLSession): ETLSession
-        variant_annotation_path (str): The path to the variant annotation file.
+        variant_annotation_path (str): The path to the variant annotation file
         credible_sets_path (str): the path to the credible sets file
+        partition_count (int): The number of partitions to use for the output
 
     Returns:
-        variant_idx (DataFrame): A dataframe with all the variants of interest and their annotation.
-        fallen_variants (DataFrame): A dataframe with the variants of the credible filtered out of the variant index.
+        variant_idx (DataFrame): A dataframe with all the variants of interest and their annotation
+        fallen_variants (DataFrame): A dataframe with the variants of the credible filtered out of the variant index
     """
     _df = (
         get_variants_from_credset(etl, credible_sets_path)
@@ -51,15 +52,14 @@ def join_variants_w_credset(
 
 
 def get_variants_from_credset(etl: ETLSession, credible_sets_path: str) -> DataFrame:
-    """
-    It reads the credible sets from the given path, extracts the lead and tag variants
+    """It reads the credible sets from the given path, extracts the lead and tag variants.
 
     Args:
-      etl (ETLSession): ETLSession
-      credible_sets_path (str): the path to the credible sets
+        etl (ETLSession): ETLSession
+        credible_sets_path (str): the path to the credible sets
 
     Returns:
-      A dataframe with all variants contained in the credible sets
+        DataFrame: A dataframe with all variants contained in the credible sets
     """
     credset = etl.spark.read.parquet(credible_sets_path).select(
         "leadVariantId", "tagVariantId"
@@ -72,17 +72,15 @@ def get_variants_from_credset(etl: ETLSession, credible_sets_path: str) -> DataF
 
 
 def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> DataFrame:
-    """
-    It reads the variant annotation parquet file and formats it to follow the OTG variant model.
+    """It reads the variant annotation parquet file and formats it to follow the OTG variant model.
 
     Args:
-      etl (ETLSession): ETLSession
-      variant_annotation_path (str): path to the variant annotation parquet file
+        etl (ETLSession): ETLSession
+        variant_annotation_path (str): path to the variant annotation parquet file
 
     Returns:
-      A dataframe of variants and their annotation
+        DataFrame: A dataframe of variants and their annotation
     """
-
     # TODO: read input with read_parquet providing schema
     return (
         etl.spark.read.parquet(variant_annotation_path)
@@ -134,7 +132,16 @@ def calculate_dist_to_gene(
     variant_idx: DataFrame,
     tss_distance_threshold: int,
 ) -> DataFrame:
+    """For each variant, find the closest gene within a certain distance of the variant's position.
 
+    Args:
+        gene_idx (DataFrame): filtered genes dataset
+        variant_idx (DataFrame): variants dataset
+        tss_distance_threshold (int): The maximum distance from the TSS to consider a variant to be near to a gene
+
+    Returns:
+        DataFrame: A dataframe with the variantId, geneId, and distance
+    """
     return (
         variant_idx.select(f.col("id").alias("variantId"), "chromosome", "position")
         .join(f.broadcast(gene_idx), on="chromosome", how="inner")

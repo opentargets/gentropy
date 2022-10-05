@@ -1,3 +1,4 @@
+"""Variant index generation."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -9,16 +10,13 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
-from etl.variant_index.variant_index import (
-    calculate_dist_to_gene,
-    join_variants_w_credset,
-)
+from etl.variants.variant_index import calculate_dist_to_gene, join_variants_w_credset
 from src.etl.common.utils import get_gene_tss
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
-
+    """Run variant index generation."""
     etl = ETLSession(cfg)
 
     etl.logger.info("Generating variant index...")
