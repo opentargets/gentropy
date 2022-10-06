@@ -290,12 +290,12 @@ def ingest_gwas_catalog_studies(
     """
     # Read GWAS Catalogue raw data
     gwas_studies = read_study_table(etl, study_file)
-    ancestry_data = parse_ancestries(etl, ancestry_file)
+    gwas_ancestries = parse_ancestries(etl, ancestry_file)
 
     study_size_df = extract_discovery_sample_sizes(gwas_studies)
     ss_studies = get_sumstats_location(etl, summary_stats_list)
 
-    study_data = (
+    studies = (
         gwas_studies
         # Add study sizes:
         .join(study_size_df, on="studyAccession", how="left")
@@ -306,6 +306,7 @@ def ingest_gwas_catalog_studies(
             how="left",
         )
         .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
+        .join(gwas_ancestries, on="studyAccession", how="left")
         .select(
             "*",
             parse_efos("mappedTraitUri").alias("efos"),
@@ -313,10 +314,6 @@ def ingest_gwas_catalog_studies(
         )
         .drop("initialSampleSize", "mappedBackgroundTraitUri", "mappedTraitUri")
     )
-
-    ancestry_data = parse_ancestries(etl, ancestry_file)
-
-    studies = study_data.join(ancestry_data, on="studyAccession", how="left")
 
     validate_df_schema(studies, "studies.json")
 

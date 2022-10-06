@@ -15,7 +15,6 @@ from etl.gwas_ingest.study_ingestion import ingest_gwas_catalog_studies
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
     """Run GWASCatalog ingestion."""
-    # establish spark connection
     etl = ETLSession(cfg)
 
     etl.logger.info("Ingesting GWAS Catalog data...")
