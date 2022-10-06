@@ -45,51 +45,31 @@ def main(cfg: DictConfig) -> None:
         _load_refs=False,
     )
 
-    # Assert that all alleles are biallelic:
-    assert ht.all(
-        ht.alleles.length() == 2
-    ), "Mono- or multiallelic variants have been found."
-
-    # Extracting AF indices of populations:
+    # Generate struct for alt. allele frequency in selected populations:
     population_indices = ht.globals.freq_index_dict.collect()[0]
     population_indices = {pop: population_indices[f"{pop}-adj"] for pop in POPULATIONS}
-
-    # Generate struct for alt. allele frequency in selected populations:
     ht = ht.annotate(
-        af=hl.struct(
+        alleleFrequencies=hl.struct(
             **{pop: ht.freq[index].AF for pop, index in population_indices.items()}
         )
     )
-    # Add chain file
+
+    # Liftover
     grch37 = hl.get_reference("GRCh37")
     grch38 = hl.get_reference("GRCh38")
     grch38.add_liftover(chain_file, grch37)
-
-    # Liftover
     ht = ht.annotate(locus_GRCh37=hl.liftover(ht.locus, "GRCh37"))
 
     # Adding build-specific coordinates to the table:
     ht = ht.annotate(
-        chrom=ht.locus.contig.replace("chr", ""),
-        pos=ht.locus.position,
-        chrom_b37=ht.locus_GRCh37.contig.replace("chr", ""),
-        pos_b37=ht.locus_GRCh37.position,
-        ref=ht.alleles[0],
-        alt=ht.alleles[1],
-        allele_type=ht.allele_info.allele_type,
-    )
-
-    # Updating table:
-    ht = ht.annotate(
-        # Updating CADD column:
+        chromosome=ht.locus.contig.replace("chr", ""),
+        position=ht.locus.position,
+        chromosomeB37=ht.locus_GRCh37.contig.replace("chr", ""),
+        positionB37=ht.locus_GRCh37.position,
+        referenceAllele=ht.alleles[0],
+        alternateAllele=ht.alleles[1],
+        alleleType=ht.allele_info.allele_type,
         cadd=ht.cadd.rename({"raw_score": "raw"}).drop("has_duplicate"),
-    )
-
-    # Drop all global annotations:
-    ht = ht.select_globals()
-
-    # Drop unnecessary VEP fields
-    ht = ht.annotate(
         vep=ht.vep.drop(
             "assembly_name",
             "allele_string",
@@ -103,53 +83,21 @@ def main(cfg: DictConfig) -> None:
             "start",
             "strand",
             "variant_class",
-        )
+        ).rename({"rsid": "rsIds"}),
     )
 
     # Convert data:
     variants = (
-        # Select columns and convert to pyspark:
-        ht.rename(
-            {
-                "chrom": "chromosome",
-                "pos": "position",
-                "chrom_b37": "chromosomeB37",
-                "pos_b37": "positionB37",
-                "ref": "referenceAllele",
-                "alt": "alternateAllele",
-                "allele_type": "alleleType",
-                "rsid": "rsIds",
-                "af": "alleleFrequencies",
-            }
-        )
-        .select(
-            "chromosome",
-            "position",
-            "chromosomeB37",
-            "positionB37",
-            "referenceAllele",
-            "alternateAllele",
-            "alleleType",
-            "vep",
-            "rsIds",
-            "alleleFrequencies",
-            "cadd",
-            "filters",
-        )
+        ht.select_globals()
         .to_spark(flatten=False)
+        # Drop non biallelic variants
+        .filter(f.size(f.col("alleles")) == 2)
         # Creating new column based on the transcript_consequences
         .select(
             "*",
             f.expr(
                 "filter(vep.transcript_consequences, array -> array.canonical == True)"
             ).alias("transcript_consequences"),
-            f.concat_ws(
-                "_", "chromosome", "position", "referenceAllele", "alternateAllele"
-            ).alias("id"),
-        )
-        # Re-creating the vep column with the new transcript consequence object:
-        .withColumn(
-            "vep",
             f.struct(
                 f.col("vep.most_severe_consequence").alias("mostSevereConsequence"),
                 f.col("vep.motif_feature_consequences").alias(
@@ -159,11 +107,10 @@ def main(cfg: DictConfig) -> None:
                     "regulatoryFeatureConsequences"
                 ),
                 f.col("transcript_consequences").alias("transcriptConsequences"),
-            ),
-        )
-        # Create new allele frequency column:
-        .withColumn(
-            "alleleFrequencies",
+            ).alias("vep"),
+            f.concat_ws(
+                "_", "chromosome", "position", "referenceAllele", "alternateAllele"
+            ).alias("id"),
             f.array(
                 *[
                     f.struct(
@@ -172,9 +119,8 @@ def main(cfg: DictConfig) -> None:
                     )
                     for pop in POPULATIONS
                 ]
-            ),
+            ).alias("alleleFrequencies"),
         )
-        # Drop unused column:
         .drop("locus", "alleles", "transcript_consequences", "alleleFrequencies")
     )
 
