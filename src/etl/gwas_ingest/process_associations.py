@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 ASSOCIATION_COLUMNS_MAP = {
     # Variant related columns:
     "STRONGEST SNP-RISK ALLELE": "strongestSnpRiskAllele",  # variant id and the allele is extracted (; separated list)
-    "CHR_ID": "chrId",  # Mapped genomic location of the variant (; separated list)
-    "CHR_POS": "chrPos",
+    "CHR_ID": "chromosome",  # Mapped genomic location of the variant (; separated list)
+    "CHR_POS": "position",
     "RISK ALLELE FREQUENCY": "riskAlleleFrequency",
     "CNV": "cnv",  # Flag if a variant is a copy number variant
     "SNP_ID_CURRENT": "snpIdCurrent",  #
@@ -38,25 +38,28 @@ ASSOCIATION_COLUMNS_MAP = {
 }
 
 
-def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
+def filter_assoc_by_maf(associations: DataFrame) -> DataFrame:
     """Filter associations by Minor Allele Frequency.
 
     If an association is mapped to multiple concordant (or at least not discordant) variants,
     we only keep the one that has the highest minor allele frequency.
 
     This filter is based on the assumption that GWAS Studies are focusing on common variants mostly.
-    This filter especially designed to filter out rare alleles of multialleleics with matching rsIDs.
+    This filter is especially designed to filter out rare alleles of multiallelics with matching rsIDs.
 
     Args:
-        df (DataFrame): associations
+        associations (DataFrame): associations
 
     Returns:
         DataFrame: associations filtered by allelic frequency
     """
     # parsing population names from schema:
-    pop_names = [
-        field for field in df.schema.fields if field.name == "alleleFrequencies"
-    ][0].dataType.fieldNames()
+    for field in associations.schema.fields:
+        if field.name == "alleleFrequencies" and isinstance(
+            field.dataType, t.StructType
+        ):
+            pop_names = field.dataType.fieldNames()
+            break
 
     def af2maf(c: Column) -> Column:
         """Column function to calculate minor allele frequency from allele frequency."""
@@ -66,7 +69,7 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
     w = Window.partitionBy("associationId").orderBy(f.desc("maxMAF"))
 
     return (
-        df.withColumn(
+        associations.withColumn(
             "maxMAF",
             f.array_max(
                 f.array(
@@ -74,10 +77,9 @@ def filter_assoc_by_maf(df: DataFrame) -> DataFrame:
                 )
             ),
         )
-        .drop("alleleFrequencies")
         .withColumn("row_number", f.row_number().over(w))
         .filter(f.col("row_number") == 1)
-        .drop("row_number")
+        .drop("row_number", "alleleFrequencies")
         .persist()
     )
 
@@ -265,7 +267,7 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
         )
         # Create a unique set of SNPs linked to the assocition:
         .withColumn(
-            "rsidGwasCatalog",
+            "rsIdsGwasCatalog",
             f.array_distinct(
                 f.array(
                     f.split(f.col("strongestSnpRiskAllele"), "-").getItem(0),
@@ -317,13 +319,12 @@ def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
     Args:
         df (DataFrame): associations requiring:
             - associationId
-            - rsidGwasCatalog
+            - rsIdsGwasCatalog
             - rsidGnomad
 
     Returns:
         DataFrame: filtered associations
     """
-    # Windowing through all associations:
     w = Window.partitionBy("associationId")
 
     return (
@@ -332,7 +333,9 @@ def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
         .withColumn(
             "matchingRsId",
             f.when(
-                f.size(f.array_intersect(f.col("rsidGwasCatalog"), f.col("rsidGnomad")))
+                f.size(
+                    f.array_intersect(f.col("rsIdsGwasCatalog"), f.col("rsidGnomad"))
+                )
                 > 0,
                 True,
             ).otherwise(False),
@@ -354,36 +357,37 @@ def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
 
 
 def map_variants(
-    parsed_associations: DataFrame, etl: ETLSession, variant_annotation: str
+    parsed_associations: DataFrame, variant_annotation_path: str, etl: ETLSession
 ) -> DataFrame:
     """Add variant metadata in associations.
 
     Args:
         parsed_associations (DataFrame): associations
         etl (ETLSession): current ETL session
-        variant_annotation (str): variant annotation path
+        variant_annotation_path (str): variant annotation path
 
     Returns:
         DataFrame: associations with variant metadata
     """
-    # Loading variant annotation and join with parsed associations:
-    etl.logger.info("Loading variant annotation and joining with associations.")
-
-    # Reading and joining variant annotation:
-    variants = etl.spark.read.parquet(variant_annotation).select(
-        f.col("chr").alias("chrId"),
-        f.col("pos").alias("chrPos"),
-        f.col("rsid").alias("rsidGnomad"),
-        f.col("ref").alias("ref"),
-        f.col("alt").alias("alt"),
-        f.col("id").alias("variant_id"),
-        f.col("af").alias("alleleFrequencies"),
+    variants = etl.spark.read.parquet(variant_annotation_path).select(
+        f.col("id").alias("variantId"),
+        "chromosome",
+        "position",
+        "rsIdsGnomad",
+        "referenceAllele",
+        "alternateAllele",
+        "alleleFrequencies",
     )
 
     mapped_associations = variants.join(
-        f.broadcast(parsed_associations), on=["chrId", "chrPos"], how="right"
+        f.broadcast(parsed_associations), on=["chromosome", "position"], how="right"
     ).persist()
-
+    assoc_without_variant = mapped_associations.filter(
+        f.col("variantId").isNull()
+    ).count()
+    etl.logger.info(
+        f"Loading variant annotation and joining with associations... {assoc_without_variant} associations outside gnomAD"
+    )
     return mapped_associations
 
 
@@ -404,13 +408,13 @@ def ingest_gwas_catalog_associations(
     Returns:
         DataFrame: Post-processed GWASCatalog associations
     """
-    gwas_associations = (
+    return (
         # 1. Read associations:
         read_associations_data(etl, gwas_association_path, pvalue_cutoff)
         # 2. Process -> apply filter:
         .transform(lambda df: process_associations(df, etl))
         # 3. Map variants to GnomAD3:
-        .transform(lambda df: map_variants(df, etl, variant_annotation_path))
+        .transform(lambda df: map_variants(df, variant_annotation_path, etl))
         # 4. Remove discordants:
         .transform(concordance_filter)
         # 5. deduplicate associations by matching rsIDs:
@@ -418,5 +422,3 @@ def ingest_gwas_catalog_associations(
         # 6. deduplication by MAF:
         .transform(filter_assoc_by_maf)
     )
-
-    return gwas_associations
