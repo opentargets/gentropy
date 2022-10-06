@@ -97,16 +97,17 @@ def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
     """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
     Args:
-        df (DataFrame): Df with a column called `initial_sample_size`
+        df (DataFrame): gwas studies table with a column called `initialSampleSize`
 
     Returns:
-        DataFrame: df with columns `n_cases`, `n_controls`, and `n_samples`
+        DataFrame: df with columns `nCases`, `nControls`, and `nSamples` per `studyAccession`
     """
-    columns = df.columns
-
     return (
-        df.withColumn(
-            "samples", f.explode_outer(f.split(f.col("initialSampleSize"), r",\s+"))
+        df.select(
+            "studyAccession",
+            f.explode_outer(f.split(f.col("initialSampleSize"), r",\s+")).alias(
+                "samples"
+            ),
         )
         # Extracting the sample size from the string:
         .withColumn(
@@ -115,21 +116,18 @@ def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
                 f.regexp_replace(f.col("samples"), ",", ""), r"[0-9,]+", 0
             ).cast(t.IntegerType()),
         )
-        # Extracting number of cases:
-        .withColumn(
-            "nCases",
-            f.when(f.col("samples").contains("cases"), f.col("sampleSize")).otherwise(
-                f.lit(0)
-            ),
-        )
-        .withColumn(
-            "nControls",
-            f.when(
-                f.col("samples").contains("controls"), f.col("sampleSize")
-            ).otherwise(f.lit(0)),
+        .select(
+            "studyAccession",
+            "sampleSize",
+            f.when(f.col("samples").contains("cases"), f.col("sampleSize"))
+            .otherwise(f.lit(0))
+            .alias("nCases"),
+            f.when(f.col("samples").contains("controls"), f.col("sampleSize"))
+            .otherwise(f.lit(0))
+            .alias("nControls"),
         )
         # Aggregating sample sizes for all ancestries:
-        .groupBy(columns)
+        .groupBy("studyAccession")
         .agg(
             f.sum("nCases").alias("nCases"),
             f.sum("nControls").alias("nControls"),
@@ -290,24 +288,30 @@ def ingest_gwas_catalog_studies(
     Returns:
         DataFrame: Parsed and annotated GWAS Catalog study table.
     """
+    # Read GWAS Catalogue raw data
+    gwas_studies = read_study_table(etl, study_file)
+    ancestry_data = parse_ancestries(etl, ancestry_file)
+
+    study_size_df = extract_discovery_sample_sizes(gwas_studies)
+    ss_studies = get_sumstats_location(etl, summary_stats_list)
+
     study_data = (
-        # reading study table:
-        read_study_table(etl, study_file)
-        # Parse sample size:
-        .transform(extract_discovery_sample_sizes)
+        gwas_studies
+        # Add study sizes:
+        .join(study_size_df, on="studyAccession", how="left")
         # Adding summary stats location:
         .join(
-            get_sumstats_location(etl, summary_stats_list),
+            ss_studies,
             on="studyAccession",
             how="left",
         )
         .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
         .select(
             "*",
-            parse_efos(f.col("mappedTraitUri")).alias("efos"),
-            parse_efos(f.col("mappedBackgroundTraitUri")).alias("backgroundEfos"),
+            parse_efos("mappedTraitUri").alias("efos"),
+            parse_efos("mappedBackgroundTraitUri").alias("backgroundEfos"),
         )
-        .drop("mappedBackgroundTraitUri", "mappedTraitUri")
+        .drop("initialSampleSize", "mappedBackgroundTraitUri", "mappedTraitUri")
     )
 
     ancestry_data = parse_ancestries(etl, ancestry_file)
