@@ -10,7 +10,7 @@ from pyspark.sql import types as t
 from etl.json import validate_df_schema
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
 
@@ -87,14 +87,13 @@ def annotate_summary_stats(
         DataFrame: the sumstats annotation contains the path and a flag indicating if
         sumstats are available.
     """
+    # TODO perform a join
     sumstats = get_sumstats_location(etl, summarystats_list)
 
-    studies_annotated = df.join(sumstats, on="studyAccession", how="left").withColumn(
+    return df.join(sumstats, on="studyAccession", how="left").withColumn(
         "hasSumstats",
         f.when(f.col("summarystatsLocation").isNotNull(), True).otherwise(False),
     )
-
-    return studies_annotated
 
 
 def read_study_table(etl: ETLSession, gwas_study_file: str) -> DataFrame:
@@ -127,9 +126,7 @@ def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
     columns = df.columns
 
     return (
-        df
-        # .withColumn('samples', F.explode_outer(F.col('initial_sample_size')))
-        .withColumn(
+        df.withColumn(
             "samples", f.explode_outer(f.split(f.col("initialSampleSize"), r",\s+"))
         )
         # Extracting the sample size from the string:
@@ -163,35 +160,18 @@ def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
     )
 
 
-def parse_disease(df: DataFrame) -> DataFrame:
-    """Extracing EFO identifiers.
+def parse_efos(c: Column) -> Column:
+    """Extracting EFO identifiers.
 
     This function parses EFO identifiers from a comma-separated list of EFO URIs.
-    Also, drops all other disease mapping related columns. Processes both the measured
-    and backgroud traits
 
     Args:
-        df (DataFrame): Full study table
+        c (Column): column with a list of EFO IDs
 
     Returns:
-        DataFrame: with parsed disease columns.
+        Column: column with a list of parsed EFO IDs
     """
-    return (
-        df.withColumn(
-            "efos", f.expr(r"regexp_extract_all(mappedTraitUri, '([A-Z]+_[0-9]+)')")
-        )
-        .withColumn(
-            "backgroundEfos",
-            f.expr(r"regexp_extract_all(mappedBackgroundTraitUri, '([A-Z]+_[0-9]+)')"),
-        )
-        .drop(
-            "mappedTrait",
-            "mappedTraitUri",
-            "backgroundTrait",
-            "mappedBackgroundTraitUri",
-            "mappedBackgroundTrait",
-        )
-    )
+    return f.expr(f"regexp_extract_all({c}, '([A-Z]+_[0-9]+)')")
 
 
 def column2camel_case(s: str) -> str:
@@ -337,9 +317,13 @@ def ingest_gwas_catalog_studies(
         # Parse sample size:
         .transform(extract_discovery_sample_sizes)
         # Adding summary stats location:
-        .transform(lambda df: annotate_summary_stats(etl, df, summary_stats_list))
-        # parsing disease annotation:
-        .transform(parse_disease)
+        .transform(
+            lambda df: annotate_summary_stats(etl, df, summary_stats_list)
+        ).select(
+            "*",
+            parse_efos(f.col("mappedTraitUri")).alias("efos"),
+            parse_efos(f.col("mappedBackgroundTraitUri")).alias("backgroundEfos"),
+        )
     )
 
     ancestry_data = parse_ancestries(etl, ancestry_file)
