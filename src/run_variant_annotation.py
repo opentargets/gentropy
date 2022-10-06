@@ -42,7 +42,6 @@ def main(cfg: DictConfig) -> None:
     # Load data
     ht = hl.read_table(
         cfg.etl.variant_annotation.inputs.gnomad_file,
-        _n_partitions=cfg.etl.variant_annotation.parameters.partition_count,
         _load_refs=False,
     )
 
@@ -138,13 +137,15 @@ def main(cfg: DictConfig) -> None:
             "filters",
         )
         .to_spark(flatten=False)
-        .repartition(cfg.etl.variant_annotation.parameters.partition_count)
         # Creating new column based on the transcript_consequences
         .select(
             "*",
             f.expr(
                 "filter(vep.transcript_consequences, array -> array.canonical == True)"
             ).alias("transcript_consequences"),
+            f.concat_ws(
+                "_", "chromosome", "position", "referenceAllele", "alternateAllele"
+            ).alias("id"),
         )
         # Re-creating the vep column with the new transcript consequence object:
         .withColumn(
@@ -158,13 +159,6 @@ def main(cfg: DictConfig) -> None:
                     "regulatoryFeatureConsequences"
                 ),
                 f.col("transcript_consequences").alias("transcriptConsequences"),
-            ),
-        )
-        # Generate variant id column:
-        .withColumn(
-            "id",
-            f.concat_ws(
-                "_", "chromosome", "position", "referenceAllele", "alternateAllele"
             ),
         )
         # Create new allele frequency column:
@@ -188,8 +182,8 @@ def main(cfg: DictConfig) -> None:
 
     # Writing data partitioned by chromosome:
     (
-        variants.partitionBy("chromosome")
-        .write.mode(cfg.environment.sparkWriteMode)
+        variants.write.mode(cfg.environment.sparkWriteMode)
+        .partitionBy("chromosome")
         .parquet(output_file)
     )
 

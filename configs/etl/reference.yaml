@@ -49,8 +49,6 @@ variant_annotation:
     chain_file: gs://hail-common/references/grch38_to_grch37.over.chain.gz
   outputs:
     variant_annotation: ${etl.outputs}/variant_annotation
-  parameters:
-    partition_count: 256
   machine: ${machine.variant_annotation}
 
 gwas_ingest:
