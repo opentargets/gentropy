@@ -48,25 +48,24 @@ def get_sumstats_location(etl: ETLSession, summarystats_list: str) -> DataFrame:
         summarystats_list (str): filepath of table listing summary stats
 
     Returns:
-        DataFrame: _description_
+        DataFrame: dataframe with each GCST with summary stats and its location
     """
-    gwas_sumstats_location = "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics"
+    gwas_sumstats_base_uri = "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics"
 
     sumstats = (
         etl.spark.read.csv(summarystats_list, sep="\t", header=False)
-        .withColumn("_c0", f.regexp_replace(f.col("_c0"), r"^\.\/", ""))
-        .withColumn(
-            "summarystatsLocation",
+        .select(
             f.concat(
-                f.lit(gwas_sumstats_location),
-                f.col("_c0"),
+                f.lit(gwas_sumstats_base_uri),
+                f.regexp_replace(f.col("_c0"), r"^\.\/", ""),
+            ).alias("summarystatsLocation")
+        )
+        .select(
+            f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)\/", 1).alias(
+                "studyAccession"
             ),
+            "summarystatsLocation",
         )
-        .withColumn(
-            "studyAccession",
-            f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)\/", 1),
-        )
-        .select("studyAccession", "summarystatsLocation")
         .persist()
     )
 
