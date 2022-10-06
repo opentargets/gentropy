@@ -54,46 +54,25 @@ def get_sumstats_location(etl: ETLSession, summarystats_list: str) -> DataFrame:
 
     sumstats = (
         etl.spark.read.csv(summarystats_list, sep="\t", header=False)
-        .select(
+        .withColumn(
+            "summarystatsLocation",
             f.concat(
                 f.lit(gwas_sumstats_base_uri),
                 f.regexp_replace(f.col("_c0"), r"^\.\/", ""),
-            ).alias("summarystatsLocation")
+            ),
         )
         .select(
             f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)\/", 1).alias(
                 "studyAccession"
             ),
             "summarystatsLocation",
+            f.lit(True).alias("hasSumstats"),
         )
         .persist()
     )
 
     print(f"Number of studies with harmonized summary stats: {sumstats.count()}")
     return sumstats
-
-
-def annotate_summary_stats(
-    etl: ETLSession, df: DataFrame, summarystats_list: str
-) -> DataFrame:
-    """This function adds ftp location of harmonized summary statistics when available.
-
-    Args:
-        etl (ETLSession): ETLSession
-        df (DataFrame): GWAS Catalog study table
-        summarystats_list (str): path to table listing harmonized summary stats
-
-    Returns:
-        DataFrame: the sumstats annotation contains the path and a flag indicating if
-        sumstats are available.
-    """
-    # TODO perform a join
-    sumstats = get_sumstats_location(etl, summarystats_list)
-
-    return df.join(sumstats, on="studyAccession", how="left").withColumn(
-        "hasSumstats",
-        f.when(f.col("summarystatsLocation").isNotNull(), True).otherwise(False),
-    )
 
 
 def read_study_table(etl: ETLSession, gwas_study_file: str) -> DataFrame:
@@ -160,13 +139,13 @@ def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
     )
 
 
-def parse_efos(c: Column) -> Column:
+def parse_efos(c: str) -> Column:
     """Extracting EFO identifiers.
 
     This function parses EFO identifiers from a comma-separated list of EFO URIs.
 
     Args:
-        c (Column): column with a list of EFO IDs
+        c (str): name of column with a list of EFO IDs
 
     Returns:
         Column: column with a list of parsed EFO IDs
@@ -317,13 +296,18 @@ def ingest_gwas_catalog_studies(
         # Parse sample size:
         .transform(extract_discovery_sample_sizes)
         # Adding summary stats location:
-        .transform(
-            lambda df: annotate_summary_stats(etl, df, summary_stats_list)
-        ).select(
+        .join(
+            get_sumstats_location(etl, summary_stats_list),
+            on="studyAccession",
+            how="left",
+        )
+        .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
+        .select(
             "*",
             parse_efos(f.col("mappedTraitUri")).alias("efos"),
             parse_efos(f.col("mappedBackgroundTraitUri")).alias("backgroundEfos"),
         )
+        .drop("mappedBackgroundTraitUri", "mappedTraitUri")
     )
 
     ancestry_data = parse_ancestries(etl, ancestry_file)
