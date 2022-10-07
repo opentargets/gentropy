@@ -182,7 +182,7 @@ def column2camel_case(s: str) -> str:
 
 
 def parse_ancestries(etl: ETLSession, ancestry_file: str) -> DataFrame:
-    """Extracing sample sizes and ancestry information.
+    """Extracting sample sizes and ancestry information.
 
     This function parses the ancestry data. Also get counts for the europeans in the same
     discovery stage.
@@ -254,12 +254,13 @@ def parse_ancestries(etl: ETLSession, ancestry_file: str) -> DataFrame:
             f.when(f.col("european").isNull(), f.lit(0)).otherwise(f.col("european")),
         )
         .withColumn(
-            "other", f.when(f.col("other").isNull(), f.lit(0)).otherwise(f.col("other"))
+            "initialSampleCountOther",
+            f.when(f.col("other").isNull(), f.lit(0)).otherwise(f.col("other")),
         )
         .withColumn(
             "initialSampleCount", f.col("initialSampleCountEuropean") + f.col("other")
         )
-        .drop("european", "other")
+        .drop("european", "other", "initialSampleCountOther")
     )
 
     return ancestry_stages.join(
