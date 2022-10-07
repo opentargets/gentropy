@@ -71,7 +71,9 @@ def get_sumstats_location(etl: ETLSession, summarystats_list: str) -> DataFrame:
         .persist()
     )
 
-    print(f"Number of studies with harmonized summary stats: {sumstats.count()}")
+    etl.logger.info(
+        f"Number of studies with harmonized summary stats: {sumstats.count()}"
+    )
     return sumstats
 
 

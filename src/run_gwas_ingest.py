@@ -46,7 +46,9 @@ def main(cfg: DictConfig) -> None:
     )
 
     # Saving temporary output:
-    gwas_studies.write.parquet(cfg.etl.gwas_ingest.outputs.gwas_catalog_studies)
+    gwas_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
+        cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
+    )
 
 
 if __name__ == "__main__":
