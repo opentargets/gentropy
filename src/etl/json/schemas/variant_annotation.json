@@ -4,6 +4,12 @@
     {
       "name": "id",
       "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "chromosome",
+      "type": "string",
       "nullable": true,
       "metadata": {}
     },
@@ -69,14 +75,14 @@
             {
               "name": "populationName",
               "type": "string",
-              "nullable": true,
+              "nullable": false,
               "metadata": {}
             }
           ]
         },
-        "containsNull": true
+        "containsNull": false
       },
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
@@ -560,24 +566,18 @@
           }
         ]
       },
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
-      "name": "chromosome",
-      "type": "integer",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "metadata": {},
       "name": "filters",
-      "nullable": true,
       "type": {
-        "containsNull": true,
+        "type": "array",
         "elementType": "string",
-        "type": "array"
-      }
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
     }
   ]
 }

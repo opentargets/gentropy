@@ -12,7 +12,6 @@ import hail as hl
 import pyspark.sql.functions as f
 
 from etl.common.ETLSession import ETLSession
-from etl.json import validate_df_schema
 
 # Population of interest:
 POPULATIONS = {
@@ -44,7 +43,7 @@ def main(cfg: DictConfig) -> None:
     ht = hl.read_table(
         cfg.etl.variant_annotation.inputs.gnomad_file,
         _load_refs=False,
-    ).head(1000)
+    )
 
     # Generate struct for alt. allele frequency in selected populations:
     population_indices = ht.globals.freq_index_dict.collect()[0]
@@ -135,8 +134,8 @@ def main(cfg: DictConfig) -> None:
             "filters",
         )
     )
-
-    validate_df_schema(variants, "variant_annotation.json")
+    print(variants.schema.jsonValue())
+    # validate_df_schema(variants, "variant_annotation.json")
 
     # Writing data partitioned by chromosome:
     (
