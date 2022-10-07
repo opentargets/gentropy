@@ -8,6 +8,8 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
+from etl.gwas_ingest.study_ingestion import parse_efos
+
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
@@ -116,14 +118,14 @@ def concordance_filter(df: DataFrame) -> DataFrame:
             "isConcordant",
             # If risk allele is found on the positive strand:
             f.when(
-                (f.col("riskAllele") == f.col("ref"))
-                | (f.col("riskAllele") == f.col("alt")),
+                (f.col("riskAllele") == f.col("referenceAllele"))
+                | (f.col("riskAllele") == f.col("alternateAllele")),
                 True,
             )
             # If risk allele is found on the negative strand:
             .when(
-                (f.col("riskAlleleReverseComplement") == f.col("ref"))
-                | (f.col("riskAlleleReverseComplement") == f.col("alt")),
+                (f.col("riskAlleleReverseComplement") == f.col("referenceAllele"))
+                | (f.col("riskAlleleReverseComplement") == f.col("alternateAllele")),
                 True,
             )
             # If risk allele is ambiguous, still accepted: < This condition could be reconsidered
@@ -221,76 +223,62 @@ def process_associations(association_df: DataFrame, etl: ETLSession) -> DataFram
     """
     # Processing associations:
     parsed_associations = (
-        # spark.read.csv(associations, sep='\t', header=True)
-        association_df
-        # Adding association identifier for future deduplication:
-        .withColumn("associationId", f.monotonically_increasing_id())
-        # Processing variant related columns:
-        #   - Sorting out current rsID field: <- why do we need this? rs identifiers should always come from the GnomAD dataset.
-        #   - Removing variants with no genomic mappings -> losing ~3% of all associations
-        #   - Multiple variants can correspond to a single association.
-        #   - Variant identifiers are stored in the SNPS column, while the mapped coordinates are stored in the CHR_ID and CHR_POS columns.
-        #   - All these fields are split into arrays, then they are paired with the same index eg. first ID is paired with first coordinate, and so on
-        #   - Then the association is exploded to all variants.
-        #   - The risk allele is extracted from the 'STRONGEST SNP-RISK ALLELE' column.
-        # The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good.
-        .withColumn(
-            "snpIdCurrent",
+        association_df.select(
+            # Adding association identifier for future deduplication:
+            f.monotonically_increasing_id().alias("associationId"),
+            # Processing variant related columns:
+            #   - Sorting out current rsID field: <- why do we need this? rs identifiers should always come from the GnomAD dataset.
+            #   - Removing variants with no genomic mappings -> losing ~3% of all associations
+            #   - Multiple variants can correspond to a single association.
+            #   - Variant identifiers are stored in the SNPS column, while the mapped coordinates are stored in the CHR_ID and CHR_POS columns.
+            #   - All these fields are split into arrays, then they are paired with the same index eg. first ID is paired with first coordinate, and so on
+            #   - Then the association is exploded to all variants.
+            #   - The risk allele is extracted from the 'STRONGEST SNP-RISK ALLELE' column.
+            # The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good.
             f.when(
                 f.col("snpIdCurrent").rlike("^[0-9]*$"),
                 f.format_string("rs%s", f.col("snpIdCurrent")),
-            ).otherwise(f.col("snpIdCurrent")),
-        )
-        # Variant notation (chr, pos, snp id) are split into array:
-        .withColumn("chrId", f.split(f.col("chrId"), ";"))
-        .withColumn("chrPos", f.split(f.col("chrPos"), ";"))
-        .withColumn(
-            "strongestSnpRiskAllele",
-            f.split(f.col("strongestSnpRiskAllele"), "; "),
-        )
-        .withColumn("snpIds", f.split(f.col("snpIds"), "; "))
-        # Variant fields are joined together in a matching list, then extracted into a separate rows again:
-        .withColumn(
-            "VARIANT",
+            )
+            .otherwise(f.col("snpIdCurrent"))
+            .alias("snpIdCurrent"),
+            # Variant fields are joined together in a matching list, then extracted into a separate rows again:
             f.explode(
-                f.arrays_zip("chrId", "chrPos", "strongestSnpRiskAllele", "snpIds")
-            ),
+                f.arrays_zip(
+                    f.split(f.col("chromosome"), ";"),
+                    f.split(f.col("position"), ";"),
+                    f.split(f.col("strongestSnpRiskAllele"), "; "),
+                    f.split(f.col("snpIds"), "; "),
+                )
+            ).alias("VARIANT"),
+            # Extracting variant fields:
+            f.col("VARIANT.chromosome").alias("chromosome"),
+            f.col("VARIANT.position").alias("position"),
+            f.col("VARIANT.snpIds").alias("snpIds"),
+            f.col("VARIANT.strongestSnpRiskAllele").alias("strongestSnpRiskAllele"),
         )
-        # Updating variant columns:
-        .withColumn("snpIds", f.col("VARIANT.snpIds"))
-        .withColumn("chrId", f.col("VARIANT.chrId"))
-        .withColumn("chrPos", f.col("VARIANT.chrPos").cast(t.IntegerType()))
-        .withColumn("strongestSnpRiskAllele", f.col("VARIANT.strongestSnpRiskAllele"))
-        # Extracting risk allele:
-        .withColumn(
-            "riskAllele", f.split(f.col("strongestSnpRiskAllele"), "-").getItem(1)
-        )
-        # Create a unique set of SNPs linked to the assocition:
-        .withColumn(
-            "rsIdsGwasCatalog",
+        .select(
+            "*",
+            f.split(f.col("strongestSnpRiskAllele"), "-")
+            .getItem(1)
+            .alias("riskAllele"),
+            # Create a unique set of SNPs linked to the assocition:
             f.array_distinct(
                 f.array(
                     f.split(f.col("strongestSnpRiskAllele"), "-").getItem(0),
                     f.col("snpIdCurrent"),
                     f.col("snpIds"),
                 )
-            ),
+            ).alias("rsIdsGwasCatalog"),
+            # Processing EFO terms:
+            #   - Multiple EFO terms can correspond to a single association.
+            #   - EFO terms are stored as full URIS, separated by semicolons.
+            #   - Associations are exploded to all EFO terms.
+            #   - EFO terms in the study table is not considered as association level EFO annotation has priority (via p-value text)
+            # Process EFO URIs: -> why do we explode?
+            parse_efos("mappedTraitUri").alias("efos"),
+            f.split(f.col("pvalue"), "E").getItem(1).cast("integer").alias("exponent"),
+            f.split(f.col("pvalue"), "E").getItem(0).cast("float").alias("mantissa"),
         )
-        # Processing EFO terms:
-        #   - Multiple EFO terms can correspond to a single association.
-        #   - EFO terms are stored as full URIS, separated by semicolons.
-        #   - Associations are exploded to all EFO terms.
-        #   - EFO terms in the study table is not considered as association level EFO annotation has priority (via p-value text)
-        # Process EFO URIs: -> why do we explode?
-        # .withColumn('efo', F.explode(F.expr(r"regexp_extract_all(mappedTraitUri, '([A-Z]+_[0-9]+)')")))
-        .withColumn(
-            "efo", f.expr(r"regexp_extract_all(mappedTraitUri, '([A-Z]+_[0-9]+)')")
-        )
-        # Splitting p-value into exponent and mantissa:
-        .withColumn(
-            "exponent", f.split(f.col("pvalue"), "E").getItem(1).cast("integer")
-        )
-        .withColumn("mantissa", f.split(f.col("pvalue"), "E").getItem(0).cast("float"))
         # Cleaning up:
         .drop("mappedTraitUri", "strongestSnpRiskAllele", "VARIANT")
         .persist()
