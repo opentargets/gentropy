@@ -39,13 +39,11 @@ def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
                 {"aid": 4, "pop1": 0.1, "pop2": 0.3, "keep": False},
             ]
         )
-        .withColumn(
-            "alleleFrequencies",
-            f.struct(f.col("pop1").alias("pop1"), f.col("pop2").alias("pop2")),
-        )
         .select(
             f.col("aid").alias("associationId"),
-            "alleleFrequencies",
+            f.struct(f.col("pop1").alias("pop1"), f.col("pop2").alias("pop2")).alias(
+                "alleleFrequencies"
+            ),
             "keep",
             f.monotonically_increasing_id().alias("id"),
         )
@@ -113,8 +111,7 @@ def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
             False,
         ),  # discordant.
     ]
-    df = spark.createDataFrame(data, ["id", "riskAllele", "ref", "alt", "concordant"])
-    return df
+    return spark.createDataFrame(data, ["id", "riskAllele", "ref", "alt", "concordant"])
 
 
 @pytest.fixture
@@ -208,10 +205,9 @@ def mock_rsid_filter(spark: SparkSession) -> DataFrame:
             True,
         ),
     ]
-    df = spark.createDataFrame(
+    return spark.createDataFrame(
         data, ["associationId", "rsidGwasCatalog", "rsidGnomad", "retain", "drop"]
     )
-    return df
 
 
 def test_filter_assoc_by_rsid__all_columns_are_there(
@@ -220,8 +216,8 @@ def test_filter_assoc_by_rsid__all_columns_are_there(
     """Testing if the returned dataframe contains all columns from the source."""
     source_columns = mock_rsid_filter.columns
     processed_columns = call_rsid_filter.columns
-
-    assert any([column in processed_columns for column in source_columns])
+    # any([column in processed_columns for column in source_columns])
+    assert any(column in processed_columns for column in source_columns)
 
 
 def test_filter_assoc_by_rsid__right_rows_are_dropped(
@@ -229,7 +225,7 @@ def test_filter_assoc_by_rsid__right_rows_are_dropped(
 ) -> None:
     """Testing if all the retained columns should not be dropped."""
     dropped = call_rsid_filter.transform(filter_assoc_by_rsid).select("drop").collect()
-    assert not any([d["drop"] for d in dropped])
+    assert not any(d["drop"] for d in dropped)
 
 
 def test_filter_assoc_by_rsid__right_rows_are_kept(
@@ -237,7 +233,7 @@ def test_filter_assoc_by_rsid__right_rows_are_kept(
 ) -> None:
     """Testing if all the retained columns should be kept."""
     kept = call_rsid_filter.transform(filter_assoc_by_rsid).select("retain").collect()
-    assert all([d["retain"] for d in kept])
+    assert all(d["retain"] for d in kept)
 
 
 def test_concordance_filter__type(call_concordance_filter: DataFrame) -> None:
@@ -252,7 +248,7 @@ def test_concordance_filter__all_columns_returned(
     source_columns = mock_concordance_filter_data.columns
     processed_columns = call_concordance_filter.columns
 
-    assert any([column in processed_columns for column in source_columns])
+    assert any(column in processed_columns for column in source_columns)
 
 
 def test_concordance_filter__right_rows_retained(
