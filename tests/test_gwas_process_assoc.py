@@ -111,7 +111,9 @@ def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
             False,
         ),  # discordant.
     ]
-    return spark.createDataFrame(data, ["id", "riskAllele", "ref", "alt", "concordant"])
+    return spark.createDataFrame(
+        data, ["id", "riskAllele", "referenceAllele", "alternateAllele", "concordant"]
+    )
 
 
 @pytest.fixture
@@ -206,7 +208,7 @@ def mock_rsid_filter(spark: SparkSession) -> DataFrame:
         ),
     ]
     return spark.createDataFrame(
-        data, ["associationId", "rsidGwasCatalog", "rsidGnomad", "retain", "drop"]
+        data, ["associationId", "rsIdsGwasCatalog", "rsIdsGnomad", "retain", "drop"]
     )
 
 
@@ -216,7 +218,6 @@ def test_filter_assoc_by_rsid__all_columns_are_there(
     """Testing if the returned dataframe contains all columns from the source."""
     source_columns = mock_rsid_filter.columns
     processed_columns = call_rsid_filter.columns
-    # any([column in processed_columns for column in source_columns])
     assert any(column in processed_columns for column in source_columns)
 
 

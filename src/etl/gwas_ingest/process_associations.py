@@ -308,7 +308,7 @@ def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
         df (DataFrame): associations requiring:
             - associationId
             - rsIdsGwasCatalog
-            - rsidGnomad
+            - rsIdsGnomad
 
     Returns:
         DataFrame: filtered associations
@@ -322,7 +322,7 @@ def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
             "matchingRsId",
             f.when(
                 f.size(
-                    f.array_intersect(f.col("rsIdsGwasCatalog"), f.col("rsidGnomad"))
+                    f.array_intersect(f.col("rsIdsGwasCatalog"), f.col("rsIdsGnomad"))
                 )
                 > 0,
                 True,
