@@ -1,40 +1,42 @@
 """GWAS Catalog study ingestion."""
 from __future__ import annotations
 
-from functools import reduce
+import re
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from etl.json import validate_df_schema
+
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
 
 STUDY_COLUMNS_MAP = {
     # 'DATE ADDED TO CATALOG': 'date_added_to_catalog',
-    "PUBMED ID": "pubmed_id",
-    "FIRST AUTHOR": "first_author",
-    "DATE": "publication_date",
+    "PUBMED ID": "pubmedId",
+    "FIRST AUTHOR": "firstAuthor",
+    "DATE": "publicationDate",
     "JOURNAL": "journal",
     "LINK": "link",
     "STUDY": "study",
-    "DISEASE/TRAIT": "disease_trait",
-    "INITIAL SAMPLE SIZE": "initial_sample_size",
+    "DISEASE/TRAIT": "diseaseTrait",
+    "INITIAL SAMPLE SIZE": "initialSampleSize",
     # 'REPLICATION SAMPLE SIZE': 'replication_sample_size',
     # 'PLATFORM [SNPS PASSING QC]': 'platform',
     # 'ASSOCIATION COUNT': 'association_count',
-    "MAPPED_TRAIT": "mapped_trait",
-    "MAPPED_TRAIT_URI": "mapped_trait_uri",
-    "STUDY ACCESSION": "study_accession",
+    # "MAPPED_TRAIT": "mappedTrait",
+    "MAPPED_TRAIT_URI": "mappedTraitUri",
+    "STUDY ACCESSION": "studyAccession",
     # 'GENOTYPING TECHNOLOGY': 'genotyping_technology',
-    "SUMMARY STATS LOCATION": "summary_stats_location",
+    # "SUMMARY STATS LOCATION": "summaryStatsLocation",
     # 'SUBMISSION DATE': 'submission_date',
     # 'STATISTICAL MODEL': 'statistical_model',
-    "BACKGROUND TRAIT": "background_trait",
-    "MAPPED BACKGROUND TRAIT": "mapped_background_trait",
-    "MAPPED BACKGROUND TRAIT URI": "mapped_background_trait_uri",
+    # "BACKGROUND TRAIT": "backgroundTrait",
+    # "MAPPED BACKGROUND TRAIT": "mappedBackgroundTrait",
+    "MAPPED BACKGROUND TRAIT URI": "mappedBackgroundTraitUri",
 }
 
 
@@ -46,129 +48,276 @@ def get_sumstats_location(etl: ETLSession, summarystats_list: str) -> DataFrame:
         summarystats_list (str): filepath of table listing summary stats
 
     Returns:
-        DataFrame: _description_
+        DataFrame: dataframe with each GCST with summary stats and its location
     """
-    gwas_sumstats_location = "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics"
+    gwas_sumstats_base_uri = "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics"
 
-    return (
+    sumstats = (
         etl.spark.read.csv(summarystats_list, sep="\t", header=False)
-        .withColumn("has_summarystats", f.lit(True))
         .withColumn(
-            "summarystats_location",
+            "summarystatsLocation",
             f.concat(
-                f.lit(gwas_sumstats_location),
-                f.col("_c0"),
+                f.lit(gwas_sumstats_base_uri),
+                f.regexp_replace(f.col("_c0"), r"^\.\/", ""),
             ),
         )
-        .withColumn(
-            "study_accession",
-            f.regexp_extract(f.col("summarystats_location"), r"\/(GCST\d+)\/", 1),
+        .select(
+            f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)\/", 1).alias(
+                "studyAccession"
+            ),
+            "summarystatsLocation",
+            f.lit(True).alias("hasSumstats"),
         )
-        .select("study_accession", "has_summarystats", "summarystats_location")
         .persist()
     )
 
+    etl.logger.info(
+        f"Number of studies with harmonized summary stats: {sumstats.count()}"
+    )
+    return sumstats
 
-def read_study_table(
-    etl: ETLSession,
-    gwas_study_file: str,
-    unpublished_gwas_study_file: str,
-    read_unpublished: bool,
-) -> DataFrame:
+
+def read_study_table(etl: ETLSession, gwas_study_file: str) -> DataFrame:
     """Read GWASCatalog study table.
 
     Args:
         etl (ETLSession): ETL session
         gwas_study_file (str): GWAS studies filepath
-        unpublished_gwas_study_file (str): Unpublished GWAS studies filepath
-        read_unpublished (bool): Indicating if unpublished studies should be read.
 
     Returns:
-        DataFrame: _description_
+        DataFrame: Study table.
     """
-    # Reading the study table:
-    study_table = etl.spark.read.csv(gwas_study_file, sep="\t", header=True)
-
-    if read_unpublished:
-
-        # Reading the unpublished study table:
-        unpublished_study_table = (
-            etl.spark.read.csv(unpublished_gwas_study_file, sep="\t", header=True)
-            # The column names are expected to be the same in both tables, so this should be gone at some point:
-            .withColumnRenamed("MAPPED TRAIT", "MAPPED_TRAIT").withColumnRenamed(
-                "MAPPED TRAIT URI", "MAPPED_TRAIT_URI"
-            )
-        )
-
-        # Expression to replace "not yet cureated" string with nulls:
-        expressions = [
-            (
-                column,
-                f.when(f.col(column) == "not yet curated", f.lit(None)).otherwise(
-                    f.col(column)
-                ),
-            )
-            for column in STUDY_COLUMNS_MAP.keys()
-        ]
-        unpublished_study_table = reduce(
-            lambda DF, value: DF.withColumn(*value),
-            expressions,
-            unpublished_study_table,
-        )
-
-        study_table = study_table.union(unpublished_study_table)
-
-    # Selecting and renaming relevant columns:
-    return study_table.select(
+    return etl.spark.read.csv(gwas_study_file, sep="\t", header=True).select(
         *[
             f.col(old_name).alias(new_name)
             for old_name, new_name in STUDY_COLUMNS_MAP.items()
         ]
-    ).persist()
+    )
 
 
-def extract_sample_sizes(df: DataFrame) -> DataFrame:
-    """Extract GWAS Catalog study sample sizes.
+def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
+    """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
     Args:
-        df (DataFrame): Df with a column called `initial_sample_size`
+        df (DataFrame): gwas studies table with a column called `initialSampleSize`
 
     Returns:
-        DataFrame: df with columns `n_cases`, `n_controls`, and `n_samples`
+        DataFrame: df with columns `nCases`, `nControls`, and `nSamples` per `studyAccession`
     """
-    columns = df.columns
-
     return (
-        df
-        # .withColumn('samples', F.explode_outer(F.col('initial_sample_size')))
-        .withColumn(
-            "samples", f.explode_outer(f.split(f.col("initial_sample_size"), r",\s+"))
+        df.select(
+            "studyAccession",
+            f.explode_outer(f.split(f.col("initialSampleSize"), r",\s+")).alias(
+                "samples"
+            ),
         )
         # Extracting the sample size from the string:
         .withColumn(
-            "sample_size",
+            "sampleSize",
             f.regexp_extract(
                 f.regexp_replace(f.col("samples"), ",", ""), r"[0-9,]+", 0
             ).cast(t.IntegerType()),
         )
-        # Extracting number of cases:
-        .withColumn(
-            "n_cases",
-            f.when(f.col("samples").contains("cases"), f.col("sample_size")).otherwise(
-                f.lit(0)
-            ),
+        .select(
+            "studyAccession",
+            "sampleSize",
+            f.when(f.col("samples").contains("cases"), f.col("sampleSize"))
+            .otherwise(f.lit(0))
+            .alias("nCases"),
+            f.when(f.col("samples").contains("controls"), f.col("sampleSize"))
+            .otherwise(f.lit(0))
+            .alias("nControls"),
         )
-        .withColumn(
-            "n_controls",
-            f.when(
-                f.col("samples").contains("controls"), f.col("sample_size")
-            ).otherwise(f.lit(0)),
-        )
-        .groupBy(columns)
+        # Aggregating sample sizes for all ancestries:
+        .groupBy("studyAccession")
         .agg(
-            f.sum("n_cases").alias("n_cases"),
-            f.sum("n_controls").alias("n_controls"),
-            f.sum("sample_size").alias("n_samples"),
+            f.sum("nCases").alias("nCases"),
+            f.sum("nControls").alias("nControls"),
+            f.sum("sampleSize").alias("nSamples"),
         )
         .persist()
     )
+
+
+def parse_efos(c: str) -> Column:
+    """Extracting EFO identifiers.
+
+    This function parses EFO identifiers from a comma-separated list of EFO URIs.
+
+    Args:
+        c (str): name of column with a list of EFO IDs
+
+    Returns:
+        Column: column with a list of parsed EFO IDs
+    """
+    return f.expr(f"regexp_extract_all({c}, '([A-Z]+_[0-9]+)')")
+
+
+def column2camel_case(s: str) -> str:
+    """A helper function to convert column names to camel cases.
+
+    Args:
+        s (str): a single column name
+
+    Returns:
+        str: spark expression to select and rename the column
+    """
+
+    def string2camelcase(s: str) -> str:
+        """Converting a string to camelcase.
+
+        Args:
+            s (str): a random string
+
+        Returns:
+            str: Camel cased string
+        """
+        # Removing a bunch of unwanted characters from the column names:
+        s = re.sub(r"[\/\(\)\-]+", " ", s)
+
+        first, *rest = s.split(" ")
+        return "".join([first.lower(), *map(str.capitalize, rest)])
+
+    return f"`{s}` as {string2camelcase(s)}"
+
+
+def parse_ancestries(etl: ETLSession, ancestry_file: str) -> DataFrame:
+    """Extracting sample sizes and ancestry information.
+
+    This function parses the ancestry data. Also get counts for the europeans in the same
+    discovery stage.
+
+    Args:
+        etl (ETLSession): ETL session
+        ancestry_file (str): File name of the ancestry table as downloaded from the GWAS Catalog
+
+    Returns:
+        DataFrame: Slimmed and cleaned version of the ancestry annotation.
+    """
+    # Reading ancestry data:
+    ancestry = (
+        etl.spark.read.csv(ancestry_file, sep="\t", header=True)
+        # Convert column headers to camelcase:
+        .transform(
+            lambda df: df.select(*[f.expr(column2camel_case(x)) for x in df.columns])
+        )
+    )
+
+    # Get a high resolution dataset on experimental stage:
+    ancestry_stages = (
+        ancestry.groupBy("studyAccession")
+        .pivot("stage")
+        .agg(
+            f.collect_set(
+                f.struct(
+                    f.col("numberOfIndividuals").alias("sampleSize"),
+                    f.col("broadAncestralCategory").alias("ancestry"),
+                )
+            )
+        )
+        .withColumnRenamed("initial", "discoverySamples")
+        .withColumnRenamed("replication", "replicationSamples")
+    )
+
+    # Generate information on the ancestry composition of the discovery stage, and calculate
+    # the proportion of the Europeans:
+    europeans_deconvoluted = (
+        ancestry
+        # Focus on discovery stage:
+        .filter(f.col("stage") == "initial")
+        # Sorting ancestries if European:
+        .withColumn(
+            "ancestryFlag",
+            # Excluding finnish:
+            f.when(
+                f.col("initialSampleDescription").contains("Finnish"), f.lit("other")
+            )
+            # Excluding Icelandic population:
+            .when(
+                f.col("initialSampleDescription").contains("Icelandic"), f.lit("other")
+            )
+            # Including European ancestry:
+            .when(f.col("broadAncestralCategory") == "European", f.lit("european"))
+            # Exclude all other population:
+            .otherwise("other"),
+        )
+        # Grouping by study accession and initial sample description:
+        .groupBy("studyAccession")
+        .pivot("ancestryFlag")
+        .agg(
+            # Summarizing sample sizes for all ancestries:
+            f.sum(f.col("numberOfIndividuals"))
+        )
+        # Do aritmetics to make sure we have the right proportion of european in the set:
+        .withColumn(
+            "initialSampleCountEuropean",
+            f.when(f.col("european").isNull(), f.lit(0)).otherwise(f.col("european")),
+        )
+        .withColumn(
+            "initialSampleCountOther",
+            f.when(f.col("other").isNull(), f.lit(0)).otherwise(f.col("other")),
+        )
+        .withColumn(
+            "initialSampleCount", f.col("initialSampleCountEuropean") + f.col("other")
+        )
+        .drop("european", "other", "initialSampleCountOther")
+    )
+
+    return ancestry_stages.join(
+        europeans_deconvoluted, on="studyAccession", how="outer"
+    )
+
+
+def ingest_gwas_catalog_studies(
+    etl: ETLSession, study_file: str, ancestry_file: str, summary_stats_list: str
+) -> DataFrame:
+    """This function ingests study level metadata from the GWAS Catalog.
+
+    The following information is aggregated/extracted:
+    - All publication related information retained.
+    - Mapped measured and background traits parsed.
+    - Flagged if harmonized summary statistics datasets available.
+    - If available, the ftp path to these files presented.
+    - Ancestries from the discovery and replication stages are structured with sample counts.
+    - Case/control counts extracted.
+    - The number of samples with European ancestry extracted.
+
+    Args:
+        etl (ETLSession): ETLSession
+        study_file (str): path to the GWAS Catalog study table v1.0.3.
+        ancestry_file (str): path to the GWAS Catalog ancestry table.
+        summary_stats_list (str): path to the GWAS Catalog harmonized summary statistics list.
+
+    Returns:
+        DataFrame: Parsed and annotated GWAS Catalog study table.
+    """
+    # Read GWAS Catalogue raw data
+    gwas_studies = read_study_table(etl, study_file)
+    gwas_ancestries = parse_ancestries(etl, ancestry_file)
+
+    study_size_df = extract_discovery_sample_sizes(gwas_studies)
+    ss_studies = get_sumstats_location(etl, summary_stats_list)
+
+    studies = (
+        gwas_studies
+        # Add study sizes:
+        .join(study_size_df, on="studyAccession", how="left")
+        # Adding summary stats location:
+        .join(
+            ss_studies,
+            on="studyAccession",
+            how="left",
+        )
+        .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
+        .join(gwas_ancestries, on="studyAccession", how="left")
+        .select(
+            "*",
+            parse_efos("mappedTraitUri").alias("efos"),
+            parse_efos("mappedBackgroundTraitUri").alias("backgroundEfos"),
+        )
+        .drop("initialSampleSize", "mappedBackgroundTraitUri", "mappedTraitUri")
+    )
+
+    validate_df_schema(studies, "studies.json")
+
+    return studies
