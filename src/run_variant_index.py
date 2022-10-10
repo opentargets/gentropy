@@ -4,14 +4,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import hydra
-import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
-from etl.variants.variant_index import calculate_dist_to_gene, join_variants_w_credset
-from src.etl.common.utils import get_gene_tss
+from etl.variants.variant_index import main as generate_variant_index
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
@@ -19,65 +17,27 @@ def main(cfg: DictConfig) -> None:
     """Run variant index generation."""
     etl = ETLSession(cfg)
 
-    etl.logger.info("Generating variant index...")
-
-    # Extract what are the nearest genes (protein coding and of other types) to each variant
-    gene_idx = (
-        etl.read_parquet(cfg.variant_index.inputs.gene_index, "targets.json")
-        .withColumn(
-            "tss",
-            get_gene_tss(
-                f.col("genomicLocation.strand"),
-                f.col("genomicLocation.start"),
-                f.col("genomicLocation.end"),
-            ),
-        )
-        .select(
-            f.col("id").alias("geneId"), "genomicLocation.chromosome", "tss", "biotype"
-        )
-    )
-    coding_gene_distances = calculate_dist_to_gene(
-        gene_idx.filter(f.col("biotype") == "protein_coding"),
-        cfg.variant_index.coding_gene_dist_path,
-        cfg.variant_index.parameters.tss_distance_threshold,
-    ).selectExpr(
-        "variantId",
-        "geneId as geneIdAny",
-        "distance as geneIdProtCodingDistance",
-    )
-    any_gene_distances = calculate_dist_to_gene(
-        gene_idx,
-        cfg.variant_index.any_gene_dist_path,
-        cfg.variant_index.parameters.tss_distance_threshold,
-    ).selectExpr(
-        "variantId",
-        "geneId as geneIdProtCoding",
-        "distance as geneIdAnyDistance",
-    )
-    distances = coding_gene_distances.join(
-        any_gene_distances, on="variantId", how="outer"
-    ).withColumnRenamed("variantId", "id")
-
-    # Join the variant index with the credible sets
-    variant_idx, invalid_variants = join_variants_w_credset(
+    variant_idx, invalid_variants = generate_variant_index(
         etl,
-        cfg.etl.variant_index.inputs.variant_annotation,
-        cfg.etl.variant_index.inputs.credible_sets,
-        cfg.etl.variant_index.parameters.partition_count,
-    )
-    variant_idx = variant_idx.join(distances, on="id", how="left").dropDuplicates(
-        ["id"]
+        cfg.variant_index.inputs.variant_annotation,
+        cfg.variant_index.inputs.credible_sets,
+        cfg.variant_index.inputs.gene_index,
+        cfg.variant_index.parameters.partition_count,
+        cfg.variant_index.parameters.tss_distance_threshold,
     )
 
+    etl.logger.info(
+        f"Writing invalid variants from the credible set to: {cfg.etl.variant_index.outputs.variant_invalid}"
+    )
+    invalid_variants.write.mode(cfg.environment.sparkWriteMode).parquet(
+        cfg.etl.variant_index.outputs.variant_invalid
+    )
     etl.logger.info(
         f"Writing variant index to: {cfg.etl.variant_index.outputs.variant_index}"
     )
     # TODO - validate the output
     variant_idx.write.mode(cfg.environment.sparkWriteMode).parquet(
         cfg.etl.variant_index.outputs.variant_index
-    )
-    invalid_variants.write.mode(cfg.environment.sparkWriteMode).parquet(
-        cfg.etl.variant_index.outputs.variant_invalid
     )
 
 

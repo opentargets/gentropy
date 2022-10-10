@@ -11,6 +11,64 @@ if TYPE_CHECKING:
     from etl.common.ETLSession import ETLSession
 
 from etl.common.spark_helpers import get_record_with_minimum_value, nullify_empty_array
+from etl.common.utils import get_gene_tss
+
+
+def main(
+    etl: ETLSession,
+    variant_annotation_path: str,
+    credible_sets_path: str,
+    gene_idx_path: str,
+    variants_partition_count: int,
+    tss_distance_threshold: int,
+) -> tuple[DataFrame, DataFrame]:
+    """Main function to generate a variant index from the variant annotation dataset."""
+    etl.logger.info("Generating variant index...")
+
+    # Join the variant index with the credible sets
+    variant_idx, invalid_variants = join_variants_w_credset(
+        etl, variant_annotation_path, credible_sets_path, variants_partition_count
+    )
+
+    # Extract what are the nearest genes (protein coding and of other types) to each variant
+    gene_idx = etl.read_parquet(gene_idx_path, "targets.json").select(
+        f.col("id").alias("geneId"),
+        "genomicLocation.chromosome",
+        "biotype",
+        get_gene_tss(
+            f.col("genomicLocation.strand"),
+            f.col("genomicLocation.start"),
+            f.col("genomicLocation.end"),
+        ).alias("tss"),
+    )
+    coding_gene_distances = find_closest_gene(
+        gene_idx.filter(f.col("biotype") == "protein_coding"),
+        variant_idx,
+        tss_distance_threshold,
+    ).selectExpr(
+        "variantId",
+        "geneId as geneIdAny",
+        "distance as geneIdProtCodingDistance",
+    )
+    any_gene_distances = find_closest_gene(
+        gene_idx,
+        variant_idx,
+        tss_distance_threshold,
+    ).selectExpr(
+        "variantId",
+        "geneId as geneIdProtCoding",
+        "distance as geneIdAnyDistance",
+    )
+    distances = coding_gene_distances.join(
+        any_gene_distances, on="variantId", how="outer"
+    ).withColumnRenamed("variantId", "id")
+
+    # Join the variant index with the gene distances
+    variant_idx = variant_idx.join(distances, on="id", how="left").dropDuplicates(
+        ["id"]
+    )
+
+    return variant_idx, invalid_variants
 
 
 def join_variants_w_credset(
@@ -127,23 +185,23 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
     )
 
 
-def calculate_dist_to_gene(
+def find_closest_gene(
+    variant_set: DataFrame,
     gene_idx: DataFrame,
-    variant_idx: DataFrame,
     tss_distance_threshold: int,
 ) -> DataFrame:
-    """For each variant, find the closest gene within a certain distance of the variant's position.
+    """For a set of variants, find the closest gene within a certain distance of the variant's position.
 
     Args:
+        variant_set (DataFrame): variants dataset with the columns `id`, `chromosome`, `position`
         gene_idx (DataFrame): filtered genes dataset
-        variant_idx (DataFrame): variants dataset
         tss_distance_threshold (int): The maximum distance from the TSS to consider a variant to be near to a gene
 
     Returns:
         DataFrame: A dataframe with the variantId, geneId, and distance
     """
     return (
-        variant_idx.select(f.col("id").alias("variantId"), "chromosome", "position")
+        variant_set.select(f.col("id").alias("variantId"), "chromosome", "position")
         .join(f.broadcast(gene_idx), on="chromosome", how="inner")
         .withColumn("distance", f.abs(f.col("position") - f.col("tss")))
         .filter(f.col("distance") <= tss_distance_threshold)
