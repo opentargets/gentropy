@@ -1,3 +1,4 @@
+"""Common utilities in Spark that can be used across the project."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -14,6 +15,7 @@ def nullify_empty_array(column: Column) -> Column:
 
     Args:
         column (Column): The Spark Column to be processed.
+
     Returns:
         Column: Nullified column when the array is empty.
     """
@@ -23,10 +25,7 @@ def nullify_empty_array(column: Column) -> Column:
 def get_record_with_minimum_value(
     df: DataFrame, grouping_col: str, sorting_col: str
 ) -> DataFrame:
-    """
-    Returns the record with the minimum value of the sorting column
-    within each group of the grouping column.
-    """
+    """Returns the record with the minimum value of the sorting column within each group of the grouping column."""
     w = Window.partitionBy(grouping_col).orderBy(sorting_col)
     return (
         df.withColumn("row_number", f.row_number().over(w))
@@ -38,10 +37,7 @@ def get_record_with_minimum_value(
 def get_record_with_maximum_value(
     df: DataFrame, grouping_col: str, sorting_col: str
 ) -> DataFrame:
-    """
-    Returns the record with the maximum value of the sorting column
-    within each group of the grouping column.
-    """
+    """Returns the record with the maximum value of the sorting column within each group of the grouping column."""
     w = Window.partitionBy(grouping_col).orderBy(f.col(sorting_col).desc())
     return (
         df.withColumn("row_number", f.row_number().over(w))
@@ -51,7 +47,7 @@ def get_record_with_maximum_value(
 
 
 def get_gene_tss(strand_col: Column, start_col: Column, end_col: Column) -> Column:
-    """Returns the TSS of a gene based on its orientation
+    """Returns the TSS of a gene based on its orientation.
 
     Args:
         strand_col (Column): Column containing 1 if the coding strand of the gene is forward, and -1 if it is reverse.
@@ -61,5 +57,4 @@ def get_gene_tss(strand_col: Column, start_col: Column, end_col: Column) -> Colu
     Returns:
         Column: Column containing the TSS of the gene.
     """
-
     return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
