@@ -93,7 +93,9 @@ def main(cfg: DictConfig) -> None:
 
     # Convert data:
     variants = (
-        ht.select_globals().to_spark(flatten=False)
+        ht.select_globals()
+        .to_spark(flatten=False)
+        .repartition(cfg.etl.variant_annotation.parameters.partition_count)
         # Drop non biallelic variants
         .filter(f.size(f.col("alleles")) == 2)
         # Creating new column based on the transcript_consequences
