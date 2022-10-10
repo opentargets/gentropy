@@ -178,8 +178,8 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
                 f.col("vep.transcript_consequences.sift_score").alias("siftScore"),
             ).alias("vep"),
             # filters/rsid are arrays that can be empty, in this case we convert them to null
-            nullify_empty_array("filters").alias("filters"),
-            nullify_empty_array("rsIds").alias("rsIds"),
+            nullify_empty_array(f.col("filters")).alias("filters"),
+            nullify_empty_array(f.col("rsIds")).alias("rsIds"),
             f.lit(True).alias("variantInGnomad"),
         )
     )
