@@ -153,35 +153,28 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         "cadd",
         "filters",
     ]
-    return (
-        # TODO: read input with read_parquet providing schema
-        etl.spark.read.parquet(variant_annotation_path).select(
-            *unchanged_cols,
-            # schema of the variant index is the same as the variant annotation
-            # except for `vep` which is slimmed and reshaped
-            # TODO: convert vep annotation from arr to struct of arrays
-            f.struct(
-                f.col("vep.most_severe_consequence").alias("mostSevereConsequence"),
-                f.col("vep.regulatory_feature_consequences").alias(
-                    "regulatoryFeatureConsequences"
-                ),
-                f.col("vep.motif_feature_consequences").alias(
-                    "motifFeatureConsequences"
-                ),
-                "vep.transcript_consequences.lof",
-                f.col("vep.transcript_consequences.lof_flags").alias("lofFlags"),
-                f.col("vep.transcript_consequences.lof_filter").alias("lofFilter"),
-                f.col("vep.transcript_consequences.lof_info").alias("lofInfo"),
-                f.col("vep.transcript_consequences.polyphen_score").alias(
-                    "polyphenScore"
-                ),
-                f.col("vep.transcript_consequences.sift_score").alias("siftScore"),
-            ).alias("vep"),
-            # filters/rsid are arrays that can be empty, in this case we convert them to null
-            nullify_empty_array(f.col("filters")).alias("filters"),
-            nullify_empty_array(f.col("rsIds")).alias("rsIds"),
-            f.lit(True).alias("variantInGnomad"),
-        )
+    return etl.read_parquet(variant_annotation_path, "targets.json").select(
+        *unchanged_cols,
+        # schema of the variant index is the same as the variant annotation
+        # except for `vep` which is slimmed and reshaped
+        # TODO: convert vep annotation from arr to struct of arrays
+        f.struct(
+            f.col("vep.most_severe_consequence").alias("mostSevereConsequence"),
+            f.col("vep.regulatory_feature_consequences").alias(
+                "regulatoryFeatureConsequences"
+            ),
+            f.col("vep.motif_feature_consequences").alias("motifFeatureConsequences"),
+            "vep.transcript_consequences.lof",
+            f.col("vep.transcript_consequences.lof_flags").alias("lofFlags"),
+            f.col("vep.transcript_consequences.lof_filter").alias("lofFilter"),
+            f.col("vep.transcript_consequences.lof_info").alias("lofInfo"),
+            f.col("vep.transcript_consequences.polyphen_score").alias("polyphenScore"),
+            f.col("vep.transcript_consequences.sift_score").alias("siftScore"),
+        ).alias("vep"),
+        # filters/rsid are arrays that can be empty, in this case we convert them to null
+        nullify_empty_array(f.col("filters")).alias("filters"),
+        nullify_empty_array(f.col("rsIds")).alias("rsIds"),
+        f.lit(True).alias("variantInGnomad"),
     )
 
 

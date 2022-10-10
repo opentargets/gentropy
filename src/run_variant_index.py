@@ -36,6 +36,7 @@ def main(cfg: DictConfig) -> None:
         f"Writing variant index to: {cfg.etl.variant_index.outputs.variant_index}"
     )
     # TODO - validate the output
+    print(variant_idx.schema.jsonValue())
     variant_idx.write.mode(cfg.environment.sparkWriteMode).parquet(
         cfg.etl.variant_index.outputs.variant_index
     )

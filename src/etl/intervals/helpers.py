@@ -25,7 +25,6 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
     """
     # Prepare gene set:
     genes = (
-        # Include TSS TODO
         gene_index.withColumn(
             "tss",
             get_gene_tss(
