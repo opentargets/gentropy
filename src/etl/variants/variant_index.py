@@ -81,21 +81,24 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
     Returns:
         DataFrame: A dataframe of variants and their annotation
     """
-    # TODO: read input with read_parquet providing schema
+    unchanged_cols = [
+        "id",
+        "chromosome",
+        "position",
+        "referenceAllele",
+        "alternateAllele",
+        "chromosomeB37",
+        "positionB37",
+        "alleleType",
+        "rsIds",
+        "alleleFrequencies",
+        "cadd",
+        "filters",
+    ]
     return (
-        etl.spark.read.parquet(variant_annotation_path)
-        .select(
-            "id",
-            f.col("chrom").alias("chromosome"),
-            f.col("pos").alias("position"),
-            f.col("ref").alias("referenceAllele"),
-            f.col("alt").alias("alternateAllele"),
-            f.col("chrom_b37").alias("chromosomeB37"),
-            f.col("pos_b37").alias("positionB37"),
-            f.col("allele_type").alias("alleleType"),
-            f.col("rsid").alias("rsId"),
-            "alleleFrequencies",
-            "cadd",
+        # TODO: read input with read_parquet providing schema
+        etl.spark.read.parquet(variant_annotation_path).select(
+            *unchanged_cols,
             # schema of the variant index is the same as the variant annotation
             # except for `vep` which is slimmed and reshaped
             # TODO: convert vep annotation from arr to struct of arrays
@@ -116,14 +119,11 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
                 ),
                 f.col("vep.transcript_consequences.sift_score").alias("siftScore"),
             ).alias("vep"),
-            "filters",
-            "rsid",
+            # filters/rsid are arrays that can be empty, in this case we convert them to null
+            nullify_empty_array("filters").alias("filters"),
+            nullify_empty_array("rsIds").alias("rsIds"),
+            f.lit(True).alias("variantInGnomad"),
         )
-        # filters/rsid are arrays that can be empty, in this case we convert them to null
-        .withColumn("filters", nullify_empty_array(f.col("filters")))
-        .withColumn("rsIds", nullify_empty_array(f.col("rsid")))
-        .withColumn("variantInGnomad", f.lit(True))
-        .drop("rsid")
     )
 
 
