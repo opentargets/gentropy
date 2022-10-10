@@ -12,6 +12,7 @@ import hail as hl
 import pyspark.sql.functions as f
 
 from etl.common.ETLSession import ETLSession
+from etl.json import validate_df_schema
 
 # Population of interest:
 POPULATIONS = {
@@ -134,8 +135,8 @@ def main(cfg: DictConfig) -> None:
             "filters",
         )
     )
-    print(variants.schema.jsonValue())
-    # validate_df_schema(variants, "variant_annotation.json")
+
+    validate_df_schema(variants, "variant_annotation.json")
 
     # Writing data partitioned by chromosome:
     (
