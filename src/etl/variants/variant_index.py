@@ -92,7 +92,9 @@ def join_variants_w_credset(
     _df = (
         get_variants_from_credset(etl, credible_sets_path)
         .join(
-            read_variant_annotation(etl, variant_annotation_path), on="id", how="left"
+            read_variant_annotation(etl, variant_annotation_path),
+            on=["id", "chromosome"],
+            how="left",
         )
         .withColumn(
             "variantInGnomad", f.coalesce(f.col("variantInGnomad"), f.lit(False))
@@ -176,6 +178,32 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         nullify_empty_array(f.col("rsIds")).alias("rsIds"),
         f.lit(True).alias("variantInGnomad"),
     )
+
+
+def parse_vep(va: DataFrame) -> DataFrame:
+    """It parses the vep annotation from a string to a struct of arrays."""
+    vep = (
+        va.withColumn(
+            "transcriptConsequences", f.explode("vep.transcript_consequences")
+        )
+        .select("id", "transcriptConsequences.*")
+        # Remove EntrezGene IDs
+        .filter(f.col("gene_symbol_source") == "HGNC")
+        .groupBy("id", "gene_id")
+        .agg(
+            f.collect_set("transcript_id").alias("transcriptIds"),
+            nullify_empty_array(f.collect_set("polyphen_score")).alias("polyphenScore"),
+            nullify_empty_array(f.collect_set("sift_score")).alias("siftScore"),
+            nullify_empty_array(f.flatten(f.collect_set("consequence_terms"))).alias(
+                "consequenceTerms"
+            ),
+            nullify_empty_array(f.collect_set("lof_flags")).alias("lofFlags"),
+            nullify_empty_array(f.collect_set("lof_filter")).alias("lofFilter"),
+            nullify_empty_array(f.collect_set("lof_info")).alias("lofInfo"),
+        )
+    )
+    print("WIP")
+    return vep
 
 
 def find_closest_gene(
