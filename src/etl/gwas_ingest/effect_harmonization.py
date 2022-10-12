@@ -21,6 +21,19 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
 
     Returns:
         DataFrame: Input DataFrame with an extra `zscore` column
+
+    Examples:
+        >>> d = [{"id": "t1", "pval": "0.05"},{"id": "t2", "pval": "1e-300"}, {"id": "t3", "pval": "0.9"}]
+        >>> df = spark.createDataFrame(d)
+        >>> pval_to_zscore(df, "pval").show()
+        +---+------+-----------+
+        | id|  pval|     zscore|
+        +---+------+-----------+
+        | t1|  0.05|0.062706776|
+        | t2|1e-300|        0.0|
+        | t3|   0.9|  1.6448535|
+        +---+------+-----------+
+        <BLANKLINE>
     """
     return (
         df
