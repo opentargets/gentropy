@@ -201,12 +201,7 @@
     <span class=p>)</span>
 
     <span class=k>return</span> <span class=n>overlapping_signals</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.coloc_utils.coloc></a> <div class="doc doc-contents first"> <p>Utilities to perform colocalisation analysis.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.coloc_utils.coloc.colocalisation class="doc doc-heading"> <code class="highlight language-python"><span class=n>colocalisation</span><span class=p>(</span><span class=n>overlapping_signals</span><span class=p>,</span> <span class=n>priorc1</span><span class=p>,</span> <span class=n>priorc2</span><span class=p>,</span> <span class=n>priorc12</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Calculate bayesian colocalisation based on overlapping signals.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>overlapping_signals</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>overlapping peaks</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>priorc1</code></td> <td> <code>float</code> </td> <td><p>p1 prior</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>priorc2</code></td> <td> <code>float</code> </td> <td><p>p2 prior</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>priorc12</code></td> <td> <code>float</code> </td> <td><p>p12 prior</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Colocalisation results</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/coloc_utils/coloc.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 48</span>
-<span class=normal> 49</span>
-<span class=normal> 50</span>
-<span class=normal> 51</span>
-<span class=normal> 52</span>
-<span class=normal> 53</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.coloc_utils.coloc></a> <div class="doc doc-contents first"> <p>Utilities to perform colocalisation analysis.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.coloc_utils.coloc.colocalisation class="doc doc-heading"> <code class="highlight language-python"><span class=n>colocalisation</span><span class=p>(</span><span class=n>overlapping_signals</span><span class=p>,</span> <span class=n>priorc1</span><span class=p>,</span> <span class=n>priorc2</span><span class=p>,</span> <span class=n>priorc12</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Calculate bayesian colocalisation based on overlapping signals.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>overlapping_signals</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>overlapping peaks</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>priorc1</code></td> <td> <code>float</code> </td> <td><p>p1 prior</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>priorc2</code></td> <td> <code>float</code> </td> <td><p>p2 prior</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>priorc12</code></td> <td> <code>float</code> </td> <td><p>p12 prior</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Colocalisation results</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/coloc_utils/coloc.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 53</span>
 <span class=normal> 54</span>
 <span class=normal> 55</span>
 <span class=normal> 56</span>
@@ -325,7 +320,12 @@
 <span class=normal>169</span>
 <span class=normal>170</span>
 <span class=normal>171</span>
-<span class=normal>172</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>colocalisation</span><span class=p>(</span>
+<span class=normal>172</span>
+<span class=normal>173</span>
+<span class=normal>174</span>
+<span class=normal>175</span>
+<span class=normal>176</span>
+<span class=normal>177</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>colocalisation</span><span class=p>(</span>
     <span class=n>overlapping_signals</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>priorc1</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>priorc2</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>priorc12</span><span class=p>:</span> <span class=nb>float</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Calculate bayesian colocalisation based on overlapping signals.</span>
@@ -450,7 +450,7 @@
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;posteriors&quot;</span><span class=p>,</span> <span class=s2>&quot;allABF&quot;</span><span class=p>,</span> <span class=s2>&quot;lH0abf&quot;</span><span class=p>,</span> <span class=s2>&quot;lH1abf&quot;</span><span class=p>,</span> <span class=s2>&quot;lH2abf&quot;</span><span class=p>,</span> <span class=s2>&quot;lH3abf&quot;</span><span class=p>,</span> <span class=s2>&quot;lH4abf&quot;</span><span class=p>)</span>
     <span class=p>)</span>
     <span class=k>return</span> <span class=n>coloc</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.coloc_utils.coloc.get_logsum class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_logsum</span><span class=p>(</span><span class=n>log_abf</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Calculates logsum of vector.</p> <p>This function calculates the log of the sum of the exponentiated logs taking out the max, i.e. insuring that the sum is not Inf</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>log_abf</code></td> <td> <code><span title="pyspark.ml.linalg.VectorUDT">VectorUDT</span></code> </td> <td><p>log approximate bayes factor</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DoubleType</code></td> <td> <code><span title="pyspark.sql.types.DoubleType">DoubleType</span></code> </td> <td><p>logsum</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/coloc_utils/coloc.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>17</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.coloc_utils.coloc.get_logsum class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_logsum</span><span class=p>(</span><span class=n>log_abf</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Calculates logsum of vector.</p> <p>This function calculates the log of the sum of the exponentiated logs taking out the max, i.e. insuring that the sum is not Inf</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>log_abf</code></td> <td> <code><span title="pyspark.ml.linalg.VectorUDT">VectorUDT</span></code> </td> <td><p>log approximate bayes factor</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>float</code></td> <td> <code>float</code> </td> <td><p>logsum</p></td> </tr> </tbody> </table> <details class=example> <summary>Example</summary> <blockquote> <blockquote> <blockquote> <p>l = [0.2, 0.1, 0.05, 0] round(get_logsum(l), 6) 1.476557</p> </blockquote> </blockquote> </blockquote> </details> <details class=quote> <summary>Source code in <code>etl/coloc_utils/coloc.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>17</span>
 <span class=normal>18</span>
 <span class=normal>19</span>
 <span class=normal>20</span>
@@ -464,7 +464,12 @@
 <span class=normal>28</span>
 <span class=normal>29</span>
 <span class=normal>30</span>
-<span class=normal>31</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_logsum</span><span class=p>(</span><span class=n>log_abf</span><span class=p>:</span> <span class=n>VectorUDT</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DoubleType</span><span class=p>:</span>
+<span class=normal>31</span>
+<span class=normal>32</span>
+<span class=normal>33</span>
+<span class=normal>34</span>
+<span class=normal>35</span>
+<span class=normal>36</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_logsum</span><span class=p>(</span><span class=n>log_abf</span><span class=p>:</span> <span class=n>VectorUDT</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Calculates logsum of vector.</span>
 
 <span class=sd>    This function calculates the log of the sum of the exponentiated</span>
@@ -474,23 +479,28 @@
 <span class=sd>        log_abf (VectorUDT): log approximate bayes factor</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        DoubleType: logsum</span>
+<span class=sd>        float: logsum</span>
+
+<span class=sd>    Example:</span>
+<span class=sd>        &gt;&gt;&gt; l = [0.2, 0.1, 0.05, 0]</span>
+<span class=sd>        &gt;&gt;&gt; round(get_logsum(l), 6)</span>
+<span class=sd>        1.476557</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=n>themax</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=n>log_abf</span><span class=p>)</span>
     <span class=n>result</span> <span class=o>=</span> <span class=n>themax</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_abf</span> <span class=o>-</span> <span class=n>themax</span><span class=p>)))</span>
     <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.coloc_utils.coloc.get_posteriors class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_posteriors</span><span class=p>(</span><span class=n>all_abfs</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Calculate posterior probabilities for each hypothesis.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>all_abfs</code></td> <td> <code><span title="pyspark.ml.linalg.VectorUDT">VectorUDT</span></code> </td> <td><p>h0-h4 bayes factors</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>VectorUDT</code></td> <td> <code><span title="pyspark.ml.linalg.VectorUDT">VectorUDT</span></code> </td> <td><p>Posterior</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/coloc_utils/coloc.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>34</span>
-<span class=normal>35</span>
-<span class=normal>36</span>
-<span class=normal>37</span>
-<span class=normal>38</span>
-<span class=normal>39</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.coloc_utils.coloc.get_posteriors class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_posteriors</span><span class=p>(</span><span class=n>all_abfs</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Calculate posterior probabilities for each hypothesis.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>all_abfs</code></td> <td> <code><span title="pyspark.ml.linalg.VectorUDT">VectorUDT</span></code> </td> <td><p>h0-h4 bayes factors</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>VectorUDT</code></td> <td> <code><span title="pyspark.ml.linalg.VectorUDT">VectorUDT</span></code> </td> <td><p>Posterior</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/coloc_utils/coloc.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>39</span>
 <span class=normal>40</span>
 <span class=normal>41</span>
 <span class=normal>42</span>
 <span class=normal>43</span>
 <span class=normal>44</span>
-<span class=normal>45</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_posteriors</span><span class=p>(</span><span class=n>all_abfs</span><span class=p>:</span> <span class=n>VectorUDT</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VectorUDT</span><span class=p>:</span>
+<span class=normal>45</span>
+<span class=normal>46</span>
+<span class=normal>47</span>
+<span class=normal>48</span>
+<span class=normal>49</span>
+<span class=normal>50</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_posteriors</span><span class=p>(</span><span class=n>all_abfs</span><span class=p>:</span> <span class=n>VectorUDT</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VectorUDT</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Calculate posterior probabilities for each hypothesis.</span>
 
 <span class=sd>    Args:</span>

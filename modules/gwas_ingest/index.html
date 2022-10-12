@@ -1233,23 +1233,23 @@
     <span class=p>)</span>
 
     <span class=k>return</span> <span class=n>association_df</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.gwas_ingest.effect_harmonization></a> <div class="doc doc-contents first"> <p>Harmonisation of GWAS stats.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.get_reverse_complement class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Get reverse complement allele of a specified allele column.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>allele_col</code></td> <td> <code>str</code> </td> <td><p>the name of the column containing the allele</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe with a new column called revcomp_{allele_col}</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>49</span>
-<span class=normal>50</span>
-<span class=normal>51</span>
-<span class=normal>52</span>
-<span class=normal>53</span>
-<span class=normal>54</span>
-<span class=normal>55</span>
-<span class=normal>56</span>
-<span class=normal>57</span>
-<span class=normal>58</span>
-<span class=normal>59</span>
-<span class=normal>60</span>
-<span class=normal>61</span>
-<span class=normal>62</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.gwas_ingest.effect_harmonization></a> <div class="doc doc-contents first"> <p>Harmonisation of GWAS stats.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.get_reverse_complement class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Get reverse complement allele of a specified allele column.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>allele_col</code></td> <td> <code>str</code> </td> <td><p>the name of the column containing the allele</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe with a new column called revcomp_{allele_col}</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>62</span>
 <span class=normal>63</span>
 <span class=normal>64</span>
-<span class=normal>65</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>65</span>
+<span class=normal>66</span>
+<span class=normal>67</span>
+<span class=normal>68</span>
+<span class=normal>69</span>
+<span class=normal>70</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span>
+<span class=normal>75</span>
+<span class=normal>76</span>
+<span class=normal>77</span>
+<span class=normal>78</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Get reverse complement allele of a specified allele column.</span>
 
 <span class=sd>    Args:</span>
@@ -1266,20 +1266,7 @@
             <span class=n>f</span><span class=o>.</span><span class=n>reverse</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=n>allele_col</span><span class=p>),</span> <span class=s2>&quot;ACTG&quot;</span><span class=p>,</span> <span class=s2>&quot;TGAC&quot;</span><span class=p>)),</span>
         <span class=p>),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_beta class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise betas.</p> <p>The harmonization of the beta follows the logic: - The beta is flipped (multiplied by -1) if: 1) the effect needs harmonization and 2) the annotation of the effect is annotated as decrease - The 95% confidence interval of the effect is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame with harmonised beta columns: - beta - beta_ci_lower - beta_ci_upper - beta_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 68</span>
-<span class=normal> 69</span>
-<span class=normal> 70</span>
-<span class=normal> 71</span>
-<span class=normal> 72</span>
-<span class=normal> 73</span>
-<span class=normal> 74</span>
-<span class=normal> 75</span>
-<span class=normal> 76</span>
-<span class=normal> 77</span>
-<span class=normal> 78</span>
-<span class=normal> 79</span>
-<span class=normal> 80</span>
-<span class=normal> 81</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_beta class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise betas.</p> <p>The harmonization of the beta follows the logic: - The beta is flipped (multiplied by -1) if: 1) the effect needs harmonization and 2) the annotation of the effect is annotated as decrease - The 95% confidence interval of the effect is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame with harmonised beta columns: - beta - beta_ci_lower - beta_ci_upper - beta_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 81</span>
 <span class=normal> 82</span>
 <span class=normal> 83</span>
 <span class=normal> 84</span>
@@ -1318,7 +1305,20 @@
 <span class=normal>117</span>
 <span class=normal>118</span>
 <span class=normal>119</span>
-<span class=normal>120</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>120</span>
+<span class=normal>121</span>
+<span class=normal>122</span>
+<span class=normal>123</span>
+<span class=normal>124</span>
+<span class=normal>125</span>
+<span class=normal>126</span>
+<span class=normal>127</span>
+<span class=normal>128</span>
+<span class=normal>129</span>
+<span class=normal>130</span>
+<span class=normal>131</span>
+<span class=normal>132</span>
+<span class=normal>133</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Harmonise betas.</span>
 
 <span class=sd>    The harmonization of the beta follows the logic:</span>
@@ -1371,20 +1371,7 @@
         <span class=p>)</span>
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;beta_conf_intervals&quot;</span><span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_odds_ratio class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise odds ratio.</p> <p>The harmonization of the odds ratios follows the logic: - The effect is flipped (reciprocal value is calculated) if the effect needs harmonization - The 95% confidence interval is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>odds ratio with harmonised OR in columns: - odds_ratio - odds_ratio_ci_lower - odds_ratio_ci_upper - odds_ratio_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>123</span>
-<span class=normal>124</span>
-<span class=normal>125</span>
-<span class=normal>126</span>
-<span class=normal>127</span>
-<span class=normal>128</span>
-<span class=normal>129</span>
-<span class=normal>130</span>
-<span class=normal>131</span>
-<span class=normal>132</span>
-<span class=normal>133</span>
-<span class=normal>134</span>
-<span class=normal>135</span>
-<span class=normal>136</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_odds_ratio class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise odds ratio.</p> <p>The harmonization of the odds ratios follows the logic: - The effect is flipped (reciprocal value is calculated) if the effect needs harmonization - The 95% confidence interval is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>odds ratio with harmonised OR in columns: - odds_ratio - odds_ratio_ci_lower - odds_ratio_ci_upper - odds_ratio_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>136</span>
 <span class=normal>137</span>
 <span class=normal>138</span>
 <span class=normal>139</span>
@@ -1425,7 +1412,20 @@
 <span class=normal>174</span>
 <span class=normal>175</span>
 <span class=normal>176</span>
-<span class=normal>177</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>177</span>
+<span class=normal>178</span>
+<span class=normal>179</span>
+<span class=normal>180</span>
+<span class=normal>181</span>
+<span class=normal>182</span>
+<span class=normal>183</span>
+<span class=normal>184</span>
+<span class=normal>185</span>
+<span class=normal>186</span>
+<span class=normal>187</span>
+<span class=normal>188</span>
+<span class=normal>189</span>
+<span class=normal>190</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Harmonise odds ratio.</span>
 
 <span class=sd>    The harmonization of the odds ratios follows the logic:</span>
@@ -1480,20 +1480,7 @@
         <span class=p>)</span>
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;odds_ratio_conf_intervals&quot;</span><span class=p>,</span> <span class=s2>&quot;odds_ratio_se&quot;</span><span class=p>,</span> <span class=s2>&quot;odds_ratio_estimate&quot;</span><span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonize_effect class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonisation of effects.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWASCatalog stats</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Harmonised GWASCatalog stats</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>180</span>
-<span class=normal>181</span>
-<span class=normal>182</span>
-<span class=normal>183</span>
-<span class=normal>184</span>
-<span class=normal>185</span>
-<span class=normal>186</span>
-<span class=normal>187</span>
-<span class=normal>188</span>
-<span class=normal>189</span>
-<span class=normal>190</span>
-<span class=normal>191</span>
-<span class=normal>192</span>
-<span class=normal>193</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonize_effect class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonisation of effects.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWASCatalog stats</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Harmonised GWASCatalog stats</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>193</span>
 <span class=normal>194</span>
 <span class=normal>195</span>
 <span class=normal>196</span>
@@ -1541,7 +1528,20 @@
 <span class=normal>238</span>
 <span class=normal>239</span>
 <span class=normal>240</span>
-<span class=normal>241</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>241</span>
+<span class=normal>242</span>
+<span class=normal>243</span>
+<span class=normal>244</span>
+<span class=normal>245</span>
+<span class=normal>246</span>
+<span class=normal>247</span>
+<span class=normal>248</span>
+<span class=normal>249</span>
+<span class=normal>250</span>
+<span class=normal>251</span>
+<span class=normal>252</span>
+<span class=normal>253</span>
+<span class=normal>254</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Harmonisation of effects.</span>
 
 <span class=sd>    Args:</span>
@@ -1603,7 +1603,17 @@
             <span class=n>f</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;beta_direction&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;odds_ratio_direction&quot;</span><span class=p>)),</span>
         <span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.pval_to_zscore class="doc doc-heading"> <code class="highlight language-python"><span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>pvalcol</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Convert p-value to z-score.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>pvalcol</code></td> <td> <code>str</code> </td> <td><p>name of the p-value column</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Input DataFrame with an extra <code>zscore</code> column</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>15</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.pval_to_zscore class="doc doc-heading"> <code class="highlight language-python"><span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>pvalcol</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Convert p-value to z-score.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>pvalcol</code></td> <td> <code>str</code> </td> <td><p>name of the p-value column</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Input DataFrame with an extra <code>zscore</code> column</p></td> </tr> </tbody> </table> <p><strong>Examples:</strong></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>d</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t1&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;0.05&quot;</span><span class=p>},{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t2&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;1e-300&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t3&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;0.9&quot;</span><span class=p>}]</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>df</span> <span class=o>=</span> <span class=n>spark</span><span class=o>.</span><span class=n>createDataFrame</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+<span class=go>+---+------+-----------+</span>
+<span class=go>| id|  pval|     zscore|</span>
+<span class=go>+---+------+-----------+</span>
+<span class=go>| t1|  0.05|0.062706776|</span>
+<span class=go>| t2|1e-300|        0.0|</span>
+<span class=go>| t3|   0.9|  1.6448535|</span>
+<span class=go>+---+------+-----------+</span>
+</code></pre></div> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>15</span>
 <span class=normal>16</span>
 <span class=normal>17</span>
 <span class=normal>18</span>
@@ -1634,7 +1644,20 @@
 <span class=normal>43</span>
 <span class=normal>44</span>
 <span class=normal>45</span>
-<span class=normal>46</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>pvalcol</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>46</span>
+<span class=normal>47</span>
+<span class=normal>48</span>
+<span class=normal>49</span>
+<span class=normal>50</span>
+<span class=normal>51</span>
+<span class=normal>52</span>
+<span class=normal>53</span>
+<span class=normal>54</span>
+<span class=normal>55</span>
+<span class=normal>56</span>
+<span class=normal>57</span>
+<span class=normal>58</span>
+<span class=normal>59</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>pvalcol</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Convert p-value to z-score.</span>
 
 <span class=sd>    Args:</span>
@@ -1643,6 +1666,19 @@
 
 <span class=sd>    Returns:</span>
 <span class=sd>        DataFrame: Input DataFrame with an extra `zscore` column</span>
+
+<span class=sd>    Examples:</span>
+<span class=sd>        &gt;&gt;&gt; d = [{&quot;id&quot;: &quot;t1&quot;, &quot;pval&quot;: &quot;0.05&quot;},{&quot;id&quot;: &quot;t2&quot;, &quot;pval&quot;: &quot;1e-300&quot;}, {&quot;id&quot;: &quot;t3&quot;, &quot;pval&quot;: &quot;0.9&quot;}]</span>
+<span class=sd>        &gt;&gt;&gt; df = spark.createDataFrame(d)</span>
+<span class=sd>        &gt;&gt;&gt; pval_to_zscore(df, &quot;pval&quot;).show()</span>
+<span class=sd>        +---+------+-----------+</span>
+<span class=sd>        | id|  pval|     zscore|</span>
+<span class=sd>        +---+------+-----------+</span>
+<span class=sd>        | t1|  0.05|0.062706776|</span>
+<span class=sd>        | t2|1e-300|        0.0|</span>
+<span class=sd>        | t3|   0.9|  1.6448535|</span>
+<span class=sd>        +---+------+-----------+</span>
+<span class=sd>        &lt;BLANKLINE&gt;</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=p>(</span>
         <span class=n>df</span>
