@@ -42,7 +42,7 @@ prepare_variant_annotation:  ## Create cluster for variant annotation
         --image-version=2.0 \
         --project=${PROJECT_ID} \
         --region=${REGION} \
-		--master-machine-type=n1-highmem-32 \
+		--master-machine-type=n1-highmem-96 \
         --enable-component-gateway \
         --metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
         --initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \

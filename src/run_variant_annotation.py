@@ -45,6 +45,8 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.variant_annotation.inputs.gnomad_file,
         _load_refs=False,
     )
+    # Drop non biallelic variants
+    ht = ht.filter(ht.alleles.length() == 2)
 
     # Generate struct for alt. allele frequency in selected populations:
     population_indices = ht.globals.freq_index_dict.collect()[0]
@@ -93,11 +95,7 @@ def main(cfg: DictConfig) -> None:
 
     # Convert data:
     variants = (
-        ht.select_globals()
-        .to_spark(flatten=False)
-        .repartition(cfg.etl.variant_annotation.parameters.partition_count)
-        # Drop non biallelic variants
-        .filter(f.size(f.col("alleles")) == 2)
+        ht.select_globals().to_spark(flatten=False)
         # Creating new column based on the transcript_consequences
         .select(
             f.concat_ws(
