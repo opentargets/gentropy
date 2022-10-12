@@ -28,8 +28,8 @@ def get_logsum(log_abf: VectorUDT) -> float:
 
     Example:
         >>> l = [0.2, 0.1, 0.05, 0]
-        >>> get_logsum(l)
-        1.4765565422390647
+        >>> round(get_logsum(l), 6)
+        1.476557
     """
     themax = np.max(log_abf)
     result = themax + np.log(np.sum(np.exp(log_abf - themax)))
