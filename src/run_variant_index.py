@@ -19,11 +19,11 @@ def main(cfg: DictConfig) -> None:
 
     variant_idx, invalid_variants = generate_variant_index(
         etl,
-        cfg.variant_index.inputs.variant_annotation,
-        cfg.variant_index.inputs.credible_sets,
-        cfg.variant_index.inputs.gene_index,
-        cfg.variant_index.parameters.partition_count,
-        cfg.variant_index.parameters.tss_distance_threshold,
+        cfg.etl.variant_index.inputs.variant_annotation,
+        cfg.etl.variant_index.inputs.credible_sets,
+        cfg.etl.variant_index.inputs.gene_index,
+        cfg.etl.variant_index.parameters.partition_count,
+        cfg.etl.variant_index.parameters.tss_distance_threshold,
     )
 
     etl.logger.info(

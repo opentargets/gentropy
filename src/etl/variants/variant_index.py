@@ -42,8 +42,8 @@ def main(
         ).alias("tss"),
     )
     coding_gene_distances = find_closest_gene(
-        gene_idx.filter(f.col("biotype") == "protein_coding"),
         variant_idx,
+        gene_idx.filter(f.col("biotype") == "protein_coding"),
         tss_distance_threshold,
     ).selectExpr(
         "variantId",
@@ -51,8 +51,8 @@ def main(
         "distance as geneIdProtCodingDistance",
     )
     any_gene_distances = find_closest_gene(
-        gene_idx,
         variant_idx,
+        gene_idx,
         tss_distance_threshold,
     ).selectExpr(
         "variantId",
@@ -207,23 +207,23 @@ def parse_vep(va: DataFrame) -> DataFrame:
 
 
 def find_closest_gene(
-    variant_set: DataFrame,
-    gene_idx: DataFrame,
+    variants_df: DataFrame,
+    genes_df: DataFrame,
     tss_distance_threshold: int,
 ) -> DataFrame:
     """For a set of variants, find the closest gene within a certain distance of the variant's position.
 
     Args:
-        variant_set (DataFrame): variants dataset with the columns `id`, `chromosome`, `position`
-        gene_idx (DataFrame): filtered genes dataset
+        variants_df (DataFrame): variants dataset with the columns `id`, `chromosome`, `position`
+        genes_df (DataFrame): filtered genes dataset
         tss_distance_threshold (int): The maximum distance from the TSS to consider a variant to be near to a gene
 
     Returns:
         DataFrame: A dataframe with the variantId, geneId, and distance
     """
     return (
-        variant_set.select(f.col("id").alias("variantId"), "chromosome", "position")
-        .join(f.broadcast(gene_idx), on="chromosome", how="inner")
+        variants_df.select(f.col("id").alias("variantId"), "chromosome", "position")
+        .join(f.broadcast(genes_df), on="chromosome", how="inner")
         .withColumn("distance", f.abs(f.col("position") - f.col("tss")))
         .filter(f.col("distance") <= tss_distance_threshold)
         .transform(
