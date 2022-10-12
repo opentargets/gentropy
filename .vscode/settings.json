@@ -28,7 +28,9 @@
   ],
   "autoDocstring.docstringFormat": "google",
   "python.testing.pytestArgs": [
-    "tests"
+    ".",
+    "--doctest-modules",
+    "--cov=src/"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,

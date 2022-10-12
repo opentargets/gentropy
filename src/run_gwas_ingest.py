@@ -9,33 +9,45 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
-from etl.gwas_ingest.effect_harmonization import harmonize_effect
-from etl.gwas_ingest.process_associations import ingest_gwas_catalog_associations
+from etl.gwas_ingest.study_ingestion import ingest_gwas_catalog_studies
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
     """Run GWASCatalog ingestion."""
-    # establish spark connection
     etl = ETLSession(cfg)
 
     etl.logger.info("Ingesting GWAS Catalog data...")
 
-    assoc = ingest_gwas_catalog_associations(
+    # This section is commented out for testing study ingestion:
+    # assoc = ingest_gwas_catalog_associations(
+    #     etl,
+    #     cfg.etl.gwas_ingest.inputs.gwas_catalog_associations,
+    #     cfg.etl.gwas_ingest.inputs.variant_annotation,
+    #     cfg.etl.gwas_ingest.parameters.p_value_cutoff,
+    # ).transform(harmonize_effect)
+    #
+    # etl.logger.info(
+    #     f"Writing data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_associations}"
+    # )
+    #
+    # (
+    #     assoc.write.mode(cfg.environment.sparkWriteMode).parquet(
+    #         cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
+    #     )
+    # )
+    #
+    # Ingest GWAS Catalog studies:
+    gwas_studies = ingest_gwas_catalog_studies(
         etl,
-        cfg.etl.gwas_ingest.inputs.gwas_catalog_associations,
-        cfg.etl.gwas_ingest.inputs.variant_annotation,
-        cfg.etl.gwas_ingest.parameters.p_value_cutoff,
-    ).transform(harmonize_effect)
-
-    etl.logger.info(
-        f"Writing data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_associations}"
+        cfg.etl.gwas_ingest.inputs.gwas_catalog_studies,
+        cfg.etl.gwas_ingest.inputs.gwas_catalog_ancestries,
+        cfg.etl.gwas_ingest.inputs.summary_stats_list,
     )
 
-    (
-        assoc.write.mode(cfg.environment.sparkWriteMode).parquet(
-            cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
-        )
+    # Saving temporary output:
+    gwas_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
+        cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
     )
 
 
