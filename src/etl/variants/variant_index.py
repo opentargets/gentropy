@@ -64,8 +64,10 @@ def main(
     ).withColumnRenamed("variantId", "id")
 
     # Join the variant index with the gene distances
-    variant_idx = variant_idx.join(distances, on="id", how="left").dropDuplicates(
-        ["id"]
+    variant_idx = (
+        variant_idx.join(distances, on="id", how="left")
+        .dropDuplicates(["id"])
+        .persist()
     )
 
     return variant_idx, invalid_variants
@@ -122,11 +124,13 @@ def get_variants_from_credset(etl: ETLSession, credible_sets_path: str) -> DataF
         DataFrame: A dataframe with all variants contained in the credible sets
     """
     credset = etl.spark.read.parquet(credible_sets_path).select(
-        "leadVariantId", "tagVariantId"
+        "leadVariantId",
+        "tagVariantId",
+        f.split(f.col("leadVariantId"), "_")[0].alias("chromosome"),
     )
     return (
-        credset.selectExpr("leadVariantId as id")
-        .union(credset.selectExpr("tagVariantId as id"))
+        credset.selectExpr("leadVariantId as id", "chromosome")
+        .union(credset.selectExpr("tagVariantId as id", "chromosome"))
         .dropDuplicates(["id"])
     )
 
@@ -150,10 +154,8 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         "chromosomeB37",
         "positionB37",
         "alleleType",
-        "rsIds",
         "alleleFrequencies",
         "cadd",
-        "filters",
     ]
     return etl.read_parquet(variant_annotation_path, "targets.json").select(
         *unchanged_cols,
@@ -161,17 +163,17 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         # except for `vep` which is slimmed and reshaped
         # TODO: convert vep annotation from arr to struct of arrays
         f.struct(
-            f.col("vep.most_severe_consequence").alias("mostSevereConsequence"),
-            f.col("vep.regulatory_feature_consequences").alias(
+            f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
+            f.col("vep.regulatoryFeatureConsequences").alias(
                 "regulatoryFeatureConsequences"
             ),
-            f.col("vep.motif_feature_consequences").alias("motifFeatureConsequences"),
-            "vep.transcript_consequences.lof",
-            f.col("vep.transcript_consequences.lof_flags").alias("lofFlags"),
-            f.col("vep.transcript_consequences.lof_filter").alias("lofFilter"),
-            f.col("vep.transcript_consequences.lof_info").alias("lofInfo"),
-            f.col("vep.transcript_consequences.polyphen_score").alias("polyphenScore"),
-            f.col("vep.transcript_consequences.sift_score").alias("siftScore"),
+            f.col("vep.motifFeatureConsequences").alias("motifFeatureConsequences"),
+            "vep.transcriptConsequences.lof",
+            f.col("vep.transcriptConsequences.lof_flags").alias("lofFlags"),
+            f.col("vep.transcriptConsequences.lof_filter").alias("lofFilter"),
+            f.col("vep.transcriptConsequences.lof_info").alias("lofInfo"),
+            f.col("vep.transcriptConsequences.polyphen_score").alias("polyphenScore"),
+            f.col("vep.transcriptConsequences.sift_score").alias("siftScore"),
         ).alias("vep"),
         # filters/rsid are arrays that can be empty, in this case we convert them to null
         nullify_empty_array(f.col("filters")).alias("filters"),
@@ -183,9 +185,7 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
 def parse_vep(va: DataFrame) -> DataFrame:
     """It parses the vep annotation from a string to a struct of arrays."""
     vep = (
-        va.withColumn(
-            "transcriptConsequences", f.explode("vep.transcript_consequences")
-        )
+        va.withColumn("transcriptConsequences", f.explode("vep.transcriptConsequences"))
         .select("id", "transcriptConsequences.*")
         # Remove EntrezGene IDs
         .filter(f.col("gene_symbol_source") == "HGNC")
