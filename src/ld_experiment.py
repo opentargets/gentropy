@@ -94,6 +94,10 @@ indexpath = f"gs://gcp-public-data--gnomad/release/{version}/ld/gnomad.genomes.r
 bm = BlockMatrix.read(bmpath)
 ld_index = hl.read_table(indexpath)
 
+# TODO: handle the diagonal
+# complete the other half of the matrix
+bm = bm + bm.T
+
 # TODO: toplocis missing in LD reference will be dropped here
 # TODO: toploci_ld_index could be contained insde region_ld_index
 toploci_ld_index = (
@@ -107,8 +111,7 @@ region_ld_index = (
     .persist()
 )
 
-
-# TODO: check _localize
+# TODO: do I need to use localise?
 start, stop = hl.linalg.utils.locus_windows(
     region_ld_index.locus, ld_window, _localize=False
 )
@@ -157,3 +160,29 @@ results = (
     .drop("i", "j")
     .rename({"entry": "r2"})
 )
+
+out = (
+    results.to_spark()
+    .persist()
+    .sort(f.col("r2").desc())
+    .filter(f.col("`toploci_variant.position`") == "13847526")
+)
+
+
+# # Querying pair of variants
+# var1 = (hl.parse_locus('21:15219847', 'GRCh37'), ['T', 'C'])
+# var2 = (hl.parse_locus('21:15207860', 'GRCh37'), ['G', 'A'])
+
+# idx1 = ld_index.filter((ld_index.locus == var1[0]) & (ld_index.alleles == var1[1])).idx.collect()[0]
+# idx2 = ld_index.filter(
+#     (ld_index.locus == var2[0]) & (ld_index.alleles == var2[1])
+# ).idx.collect()[0]
+
+# if idx1 > idx2:
+#     temp = idx1
+#     idx1 = idx2
+#     idx2 = temp
+
+# bm[idx2, idx1]
+
+# gnomad.variant_qc.ld.get_r_for_pair_of_variants(bm, ld_index, var1, var2)
