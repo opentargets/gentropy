@@ -106,7 +106,7 @@ def join_variants_w_credset(
     variant_idx = (
         _df.filter(f.col("variantInGnomad"))
         .drop("variantInGnomad")
-        .repartition(partition_count)
+        .coalesce(partition_count)
     )
     invalid_variants = _df.filter(~f.col("variantInGnomad"))
 
