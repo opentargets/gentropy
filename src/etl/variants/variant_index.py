@@ -126,6 +126,7 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
             f.col("vep.motifFeatureConsequences").alias("motifFeatureConsequences"),
             f.struct(
                 f.col("vep.transcriptConsequences.gene_id").alias("geneId"),
+                f.col("vep.transcriptConsequences.transcript_id").alias("transcriptId"),
                 f.col("vep.transcriptConsequences.consequence_terms").alias(
                     "consequenceTerms"
                 ),
