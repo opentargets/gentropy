@@ -55,7 +55,7 @@ variant_annotation:
 
 variant_index:
   inputs:
-    variant_annotation: ${etl.outputs}/variant_annotation
+    variant_annotation: ${etl.outputs}/variant_annotation_test
     credible_sets: ${etl.outputs}/credible_sets
   outputs:
     variant_index: ${etl.outputs}/variant_index

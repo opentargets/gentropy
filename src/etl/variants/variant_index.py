@@ -10,24 +10,7 @@ if TYPE_CHECKING:
 
     from etl.common.ETLSession import ETLSession
 
-from etl.common.spark_helpers import get_record_with_minimum_value, nullify_empty_array
-
-
-def main(
-    etl: ETLSession,
-    variant_annotation_path: str,
-    credible_sets_path: str,
-    variants_partition_count: int,
-) -> tuple[DataFrame, DataFrame]:
-    """Main function to generate a variant index from the variant annotation dataset."""
-    etl.logger.info("Generating variant index...")
-
-    # Join the variant index with the credible sets
-    variant_idx, invalid_variants = join_variants_w_credset(
-        etl, variant_annotation_path, credible_sets_path, variants_partition_count
-    )
-
-    return variant_idx, invalid_variants
+from etl.common.spark_helpers import nullify_empty_array
 
 
 def join_variants_w_credset(
@@ -35,8 +18,8 @@ def join_variants_w_credset(
     variant_annotation_path: str,
     credible_sets_path: str,
     partition_count: int,
-) -> tuple[DataFrame, DataFrame]:
-    """Returns two dataframes: one is the variant index, filtered to contain only the variants present in the credible sets; the second is the variants of the credible set that are not present in the variant annotation.
+) -> DataFrame:
+    """Returns a dataframe with the variants from the credible sets and their annotation, if the variant is in gnomad.
 
     Args:
         etl (ETLSession): ETLSession
@@ -48,7 +31,7 @@ def join_variants_w_credset(
         variant_idx (DataFrame): A dataframe with all the variants of interest and their annotation
         fallen_variants (DataFrame): A dataframe with the variants of the credible filtered out of the variant index
     """
-    _df = (
+    return (
         read_variant_annotation(etl, variant_annotation_path)
         .join(
             f.broadcast(get_variants_from_credset(etl, credible_sets_path)),
@@ -60,11 +43,6 @@ def join_variants_w_credset(
         )
         .coalesce(partition_count)
     )
-
-    variant_idx = _df.filter(f.col("variantInGnomad")).drop("variantInGnomad")
-    invalid_variants = _df.filter(~f.col("variantInGnomad"))
-
-    return variant_idx, invalid_variants
 
 
 def get_variants_from_credset(etl: ETLSession, credible_sets_path: str) -> DataFrame:
@@ -111,7 +89,7 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         "alleleFrequencies",
         "cadd",
     ]
-    return etl.read_parquet(variant_annotation_path, "variant.json").select(
+    return etl.spark.read.parquet(variant_annotation_path).select(
         *unchanged_cols,
         # schema of the variant index is the same as the variant annotation
         # except for `vep` which is slimmed
@@ -127,7 +105,7 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
                 f.col("vep.transcriptConsequences.consequence_terms").alias(
                     "consequenceTerms"
                 ),
-                "vep.distance",
+                "vep.transcriptConsequences.distance",
                 "vep.transcriptConsequences.lof",
                 f.col("vep.transcriptConsequences.lof_flags").alias("lofFlags"),
                 f.col("vep.transcriptConsequences.lof_filter").alias("lofFilter"),
@@ -142,31 +120,4 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         nullify_empty_array(f.col("filters")).alias("filters"),
         nullify_empty_array(f.col("rsIds")).alias("rsIds"),
         f.lit(True).alias("variantInGnomad"),
-    )
-
-
-def find_closest_gene(
-    variants_df: DataFrame,
-    genes_df: DataFrame,
-    tss_distance_threshold: int,
-) -> DataFrame:
-    """For a set of variants, find the closest gene within a certain distance of the variant's position.
-
-    Args:
-        variants_df (DataFrame): variants dataset with the columns `id`, `chromosome`, `position`
-        genes_df (DataFrame): filtered genes dataset
-        tss_distance_threshold (int): The maximum distance from the TSS to consider a variant to be near to a gene
-
-    Returns:
-        DataFrame: A dataframe with the variantId, geneId, and distance
-    """
-    return (
-        variants_df.select(f.col("id").alias("variantId"), "chromosome", "position")
-        .join(f.broadcast(genes_df), on="chromosome", how="inner")
-        .withColumn("distance", f.abs(f.col("position") - f.col("tss")))
-        .filter(f.col("distance") <= tss_distance_threshold)
-        .transform(
-            lambda df: get_record_with_minimum_value(df, "variantId", "distance")
-        )
-        .select("variantId", "geneId", "distance")
     )
