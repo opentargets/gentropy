@@ -123,7 +123,7 @@ def generate_variant_annotation(
                 ),
                 # Non canonical transcripts are filtered out
                 f.expr(
-                    "filter(vepRaw.transcript_consequences, array -> array.canonical == True)"
+                    "filter(vepRaw.transcript_consequences, array -> (array.canonical == 1))"
                 ).alias("transcriptConsequences"),
             ).alias("vep"),
             "filters",
