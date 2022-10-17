@@ -21,9 +21,7 @@ def main(cfg: DictConfig) -> None:
         etl,
         cfg.etl.variant_index.inputs.variant_annotation,
         cfg.etl.variant_index.inputs.credible_sets,
-        cfg.etl.variant_index.inputs.gene_index,
         cfg.etl.variant_index.parameters.partition_count,
-        cfg.etl.variant_index.parameters.tss_distance_threshold,
     )
 
     etl.logger.info(

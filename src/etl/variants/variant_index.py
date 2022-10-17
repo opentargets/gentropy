@@ -11,16 +11,13 @@ if TYPE_CHECKING:
     from etl.common.ETLSession import ETLSession
 
 from etl.common.spark_helpers import get_record_with_minimum_value, nullify_empty_array
-from etl.common.utils import get_gene_tss
 
 
 def main(
     etl: ETLSession,
     variant_annotation_path: str,
     credible_sets_path: str,
-    gene_idx_path: str,
     variants_partition_count: int,
-    tss_distance_threshold: int,
 ) -> tuple[DataFrame, DataFrame]:
     """Main function to generate a variant index from the variant annotation dataset."""
     etl.logger.info("Generating variant index...")
@@ -28,46 +25,6 @@ def main(
     # Join the variant index with the credible sets
     variant_idx, invalid_variants = join_variants_w_credset(
         etl, variant_annotation_path, credible_sets_path, variants_partition_count
-    )
-
-    # Extract what are the nearest genes (protein coding and of other types) to each variant
-    gene_idx = etl.read_parquet(gene_idx_path, "targets.json").select(
-        f.col("id").alias("geneId"),
-        "genomicLocation.chromosome",
-        "biotype",
-        get_gene_tss(
-            f.col("genomicLocation.strand"),
-            f.col("genomicLocation.start"),
-            f.col("genomicLocation.end"),
-        ).alias("tss"),
-    )
-    coding_gene_distances = find_closest_gene(
-        variant_idx,
-        gene_idx.filter(f.col("biotype") == "protein_coding"),
-        tss_distance_threshold,
-    ).selectExpr(
-        "variantId",
-        "geneId as geneIdAny",
-        "distance as geneIdProtCodingDistance",
-    )
-    any_gene_distances = find_closest_gene(
-        variant_idx,
-        gene_idx,
-        tss_distance_threshold,
-    ).selectExpr(
-        "variantId",
-        "geneId as geneIdProtCoding",
-        "distance as geneIdAnyDistance",
-    )
-    distances = coding_gene_distances.join(
-        any_gene_distances, on="variantId", how="outer"
-    ).withColumnRenamed("variantId", "id")
-
-    # Join the variant index with the gene distances
-    variant_idx = (
-        variant_idx.join(distances, on="id", how="left")
-        .dropDuplicates(["id"])
-        .persist()
     )
 
     return variant_idx, invalid_variants
@@ -92,11 +49,11 @@ def join_variants_w_credset(
         fallen_variants (DataFrame): A dataframe with the variants of the credible filtered out of the variant index
     """
     _df = (
-        get_variants_from_credset(etl, credible_sets_path)
+        read_variant_annotation(etl, variant_annotation_path)
         .join(
-            read_variant_annotation(etl, variant_annotation_path),
+            f.broadcast(get_variants_from_credset(etl, credible_sets_path)),
             on=["id", "chromosome"],
-            how="left",
+            how="right",
         )
         .withColumn(
             "variantInGnomad", f.coalesce(f.col("variantInGnomad"), f.lit(False))
@@ -160,7 +117,7 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
     return etl.read_parquet(variant_annotation_path, "variant.json").select(
         *unchanged_cols,
         # schema of the variant index is the same as the variant annotation
-        # except for `vep` which is slimmed and reshaped
+        # except for `vep` which is slimmed
         f.struct(
             f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
             f.col("vep.regulatoryFeatureConsequences").alias(
@@ -168,6 +125,11 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
             ),
             f.col("vep.motifFeatureConsequences").alias("motifFeatureConsequences"),
             f.struct(
+                f.col("vep.transcriptConsequences.gene_id").alias("geneId"),
+                f.col("vep.transcriptConsequences.consequence_terms").alias(
+                    "consequenceTerms"
+                ),
+                "vep.distance",
                 "vep.transcriptConsequences.lof",
                 f.col("vep.transcriptConsequences.lof_flags").alias("lofFlags"),
                 f.col("vep.transcriptConsequences.lof_filter").alias("lofFilter"),
@@ -183,30 +145,6 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         nullify_empty_array(f.col("rsIds")).alias("rsIds"),
         f.lit(True).alias("variantInGnomad"),
     )
-
-
-def parse_vep(va: DataFrame) -> DataFrame:
-    """It parses the vep annotation from a string to a struct of arrays."""
-    vep = (
-        va.withColumn("transcriptConsequences", f.explode("vep.transcriptConsequences"))
-        .select("id", "transcriptConsequences.*")
-        # Remove EntrezGene IDs
-        .filter(f.col("gene_symbol_source") == "HGNC")
-        .groupBy("id", "gene_id")
-        .agg(
-            f.collect_set("transcript_id").alias("transcriptIds"),
-            nullify_empty_array(f.collect_set("polyphen_score")).alias("polyphenScore"),
-            nullify_empty_array(f.collect_set("sift_score")).alias("siftScore"),
-            nullify_empty_array(f.flatten(f.collect_set("consequence_terms"))).alias(
-                "consequenceTerms"
-            ),
-            nullify_empty_array(f.collect_set("lof_flags")).alias("lofFlags"),
-            nullify_empty_array(f.collect_set("lof_filter")).alias("lofFilter"),
-            nullify_empty_array(f.collect_set("lof_info")).alias("lofInfo"),
-        )
-    )
-    print("WIP")
-    return vep
 
 
 def find_closest_gene(

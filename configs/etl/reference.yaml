@@ -57,12 +57,10 @@ variant_index:
   inputs:
     variant_annotation: ${etl.outputs}/variant_annotation
     credible_sets: ${etl.outputs}/credible_sets
-    gene_index: ${etl.inputs}/v2g_input/targets
   outputs:
     variant_index: ${etl.outputs}/variant_index
     variant_invalid: ${etl.outputs}/invalid/credible_sets
   parameters:
-    tss_distance_threshold: 500000
     partition_count: 200
   machine: ${machine.default}
 
