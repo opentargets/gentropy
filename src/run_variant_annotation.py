@@ -29,10 +29,8 @@ def main(cfg: DictConfig) -> None:
 
     etl.logger.info("Variant annotation converted to Spark DF. Saving...")
     # Writing data partitioned by chromosome and position:
-    # TODO: try coalesce(400) and bucketBy
     (
-        variants.repartition("chromosome")
-        .orderBy("position")
+        variants.coalesce(400)
         .write.mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.variant_annotation.outputs.variant_annotation)
     )
