@@ -16,7 +16,6 @@ Schemas for each dataset are defined in the `json.schemas` module.
 ### Variant index
 1. The variant annotation dataset is further processed to follow our variant model definition.
 2. The dataset is filtered to only include variants that are present in the credible set. The variants in the credible set that are filtered out are written in the invalid variants file.
-3. We determine which is the nearest gene to the variant —both protein-coding and non-coding—  within a 500 kb range.
 
 ::: etl.variants
 ::: etl.variants.variant_index
