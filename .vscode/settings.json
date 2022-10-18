@@ -3,6 +3,11 @@
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true
   },
+  "python.terminal.launchArgs": [
+    "-m",
+    "IPython",
+    "--no-autoindent"
+  ],
   "[jsonc]": {
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
