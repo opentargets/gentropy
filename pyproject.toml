@@ -58,7 +58,7 @@ pytest-sugar = "^0.9.5"
 
 
 [tool.poetry.group.dev.dependencies]
-pydocstyle = "^6.1.1"
+ipython = "^8.5.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
