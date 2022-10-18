@@ -28,7 +28,7 @@ def main(cfg: DictConfig) -> None:
     etl.logger.info(
         f"Writing invalid variants from the credible set to: {cfg.etl.variant_index.outputs.variant_invalid}"
     )
-    variants_df.filter(~f.col("variantInGnomad")).write.mode(
+    variants_df.filter(~f.col("variantInGnomad")).select("id").write.mode(
         cfg.environment.sparkWriteMode
     ).parquet(cfg.etl.variant_index.outputs.variant_invalid)
 
