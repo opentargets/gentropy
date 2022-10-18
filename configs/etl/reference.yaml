@@ -58,10 +58,8 @@ variant_index:
     variant_annotation: ${etl.outputs}/variant_annotation_test
     credible_sets: ${etl.outputs}/credible_sets
   outputs:
-    variant_index: ${etl.outputs}/variant_index
-    variant_invalid: ${etl.outputs}/invalid/credible_sets
-  parameters:
-    partition_count: 200
+    variant_index: ${etl.outputs}/variant_index_broadcast
+    variant_invalid: ${etl.outputs}/invalid/credible_sets_broadcast
   machine: ${machine.default}
 
 gwas_ingest:
