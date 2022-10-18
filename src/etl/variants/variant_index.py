@@ -17,7 +17,6 @@ def join_variants_w_credset(
     etl: ETLSession,
     variant_annotation_path: str,
     credible_sets_path: str,
-    partition_count: int,
 ) -> DataFrame:
     """Returns a dataframe with the variants from the credible sets and their annotation, if the variant is in gnomad.
 
@@ -25,23 +24,20 @@ def join_variants_w_credset(
         etl (ETLSession): ETLSession
         variant_annotation_path (str): The path to the variant annotation file
         credible_sets_path (str): the path to the credible sets file
-        partition_count (int): The number of partitions to use for the output
 
     Returns:
         variant_idx (DataFrame): A dataframe with all the variants of interest and their annotation
-        fallen_variants (DataFrame): A dataframe with the variants of the credible filtered out of the variant index
+
+    The join is performed in a 2 stage process to minimise data shuffling:
+        - `credset` is broadcasted to all executors to join it with the variant annotation.
+        - left join with `credset` to bring all the variants of the credible sets.
     """
-    return (
-        read_variant_annotation(etl, variant_annotation_path)
-        .join(
-            f.broadcast(get_variants_from_credset(etl, credible_sets_path)),
-            on=["id", "chromosome"],
-            how="right",
-        )
-        .withColumn(
-            "variantInGnomad", f.coalesce(f.col("variantInGnomad"), f.lit(False))
-        )
-        .coalesce(partition_count)
+    va = read_variant_annotation(etl, variant_annotation_path)
+    credset = get_variants_from_credset(etl, credible_sets_path).drop("chromosome")
+
+    credset_gnomad_overlap = va.join(f.broadcast(credset), on="id", how="inner")
+    return credset.join(credset_gnomad_overlap, on="id", how="left").withColumn(
+        "variantInGnomad", f.coalesce(f.col("variantInGnomad"), f.lit(False))
     )
 
 
