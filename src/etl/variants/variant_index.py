@@ -85,33 +85,10 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         "alleleFrequencies",
         "cadd",
     ]
+
     return etl.spark.read.parquet(variant_annotation_path).select(
         *unchanged_cols,
-        # schema of the variant index is the same as the variant annotation
-        # except for `vep` which is slimmed
-        f.struct(
-            f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
-            f.col("vep.regulatoryFeatureConsequences").alias(
-                "regulatoryFeatureConsequences"
-            ),
-            f.col("vep.motifFeatureConsequences").alias("motifFeatureConsequences"),
-            f.struct(
-                f.col("vep.transcriptConsequences.gene_id").alias("geneId"),
-                f.col("vep.transcriptConsequences.transcript_id").alias("transcriptId"),
-                f.col("vep.transcriptConsequences.consequence_terms").alias(
-                    "consequenceTerms"
-                ),
-                "vep.transcriptConsequences.distance",
-                "vep.transcriptConsequences.lof",
-                f.col("vep.transcriptConsequences.lof_flags").alias("lofFlags"),
-                f.col("vep.transcriptConsequences.lof_filter").alias("lofFilter"),
-                f.col("vep.transcriptConsequences.lof_info").alias("lofInfo"),
-                f.col("vep.transcriptConsequences.polyphen_score").alias(
-                    "polyphenScore"
-                ),
-                f.col("vep.transcriptConsequences.sift_score").alias("siftScore"),
-            ).alias("transcriptConsequences"),
-        ).alias("vep"),
+        f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
         # filters/rsid are arrays that can be empty, in this case we convert them to null
         nullify_empty_array(f.col("filters")).alias("filters"),
         nullify_empty_array(f.col("rsIds")).alias("rsIds"),
