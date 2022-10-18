@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
+from etl.json import validate_df_schema
 from etl.variants.variant_index import join_variants_w_credset
 
 
@@ -22,7 +23,6 @@ def main(cfg: DictConfig) -> None:
         etl,
         cfg.etl.variant_index.inputs.variant_annotation,
         cfg.etl.variant_index.inputs.credible_sets,
-        cfg.etl.variant_index.parameters.partition_count,
     ).persist()
 
     etl.logger.info(
@@ -31,11 +31,11 @@ def main(cfg: DictConfig) -> None:
     variants_df.filter(~f.col("variantInGnomad")).write.mode(
         cfg.environment.sparkWriteMode
     ).parquet(cfg.etl.variant_index.outputs.variant_invalid)
+
     etl.logger.info(
         f"Writing variant index to: {cfg.etl.variant_index.outputs.variant_index}"
     )
-    # TODO - validate the output
-    print(variants_df.drop("variantInGnomad").schema.jsonValue())
+    validate_df_schema(variants_df.drop("variantInGnomad"), "variant_index.json")
     variants_df.filter(f.col("variantInGnomad")).drop("variantInGnomad").write.mode(
         cfg.environment.sparkWriteMode
     ).parquet(cfg.etl.variant_index.outputs.variant_index)
