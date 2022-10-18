@@ -121,9 +121,9 @@ def generate_variant_annotation(
                 f.col("vepRaw.regulatory_feature_consequences").alias(
                     "regulatoryFeatureConsequences"
                 ),
-                # Non canonical transcripts are filtered out
+                # Non canonical transcripts and gene IDs other than ensembl are filtered out
                 f.expr(
-                    "filter(vepRaw.transcript_consequences, array -> (array.canonical == 1))"
+                    "filter(vepRaw.transcript_consequences, array -> (array.canonical == 1) and (array.gene_symbol_source == 'HGNC'))"
                 ).alias("transcriptConsequences"),
             ).alias("vep"),
             "filters",
