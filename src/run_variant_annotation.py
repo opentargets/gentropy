@@ -31,7 +31,8 @@ def main(cfg: DictConfig) -> None:
     # Writing data partitioned by chromosome and position:
     (
         variants.coalesce(cfg.etl.variant_annotation.parameters.partition_count)
-        .write.mode(cfg.environment.sparkWriteMode)
+        .write.partitionBy("chromosome")
+        .mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.variant_annotation.outputs.variant_annotation)
     )
 
