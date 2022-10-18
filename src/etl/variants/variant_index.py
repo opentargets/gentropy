@@ -33,12 +33,14 @@ def join_variants_w_credset(
         - left join with `credset` to bring all the variants of the credible sets.
     """
     va = read_variant_annotation(etl, variant_annotation_path)
-    credset = get_variants_from_credset(etl, credible_sets_path).drop("chromosome")
+    credset = get_variants_from_credset(etl, credible_sets_path)
 
-    credset_gnomad_overlap = va.join(f.broadcast(credset), on="id", how="inner")
-    return credset.join(credset_gnomad_overlap, on="id", how="left").withColumn(
-        "variantInGnomad", f.coalesce(f.col("variantInGnomad"), f.lit(False))
+    credset_gnomad_overlap = va.join(
+        f.broadcast(credset), on=["id", "chromosome"], how="inner"
     )
+    return credset.join(
+        credset_gnomad_overlap, on=["id", "chromosome"], how="left"
+    ).withColumn("variantInGnomad", f.coalesce(f.col("variantInGnomad"), f.lit(False)))
 
 
 def get_variants_from_credset(etl: ETLSession, credible_sets_path: str) -> DataFrame:
@@ -86,7 +88,7 @@ def read_variant_annotation(etl: ETLSession, variant_annotation_path: str) -> Da
         "cadd",
     ]
 
-    return etl.spark.read.parquet(variant_annotation_path).select(
+    return etl.read_parquet(variant_annotation_path, "variant_annotation.json").select(
         *unchanged_cols,
         f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
         # filters/rsid are arrays that can be empty, in this case we convert them to null
