@@ -11,6 +11,6 @@ coloc:
   max_idle: 10m
 
 variant_annotation:
-  master_machine_type: 'n1-megamem-96'
+  master_machine_type: 'n1-highmem-96'
   single_node: true
   max_idle: 10m
