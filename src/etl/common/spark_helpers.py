@@ -18,6 +18,17 @@ def nullify_empty_array(column: Column) -> Column:
 
     Returns:
         Column: Nullified column when the array is empty.
+
+    Examples:
+    >>> df = spark.createDataFrame([[], [1, 2, 3]], "array<int>")
+    >>> df.withColumn("new", nullify_empty_array(df.value)).show()
+    +---------+---------+
+    |    value|      new|
+    +---------+---------+
+    |       []|     null|
+    |[1, 2, 3]|[1, 2, 3]|
+    +---------+---------+
+    <BLANKLINE>
     """
     return f.when(f.size(column) != 0, column)
 
@@ -56,5 +67,29 @@ def get_gene_tss(strand_col: Column, start_col: Column, end_col: Column) -> Colu
 
     Returns:
         Column: Column containing the TSS of the gene.
+
+    Examples:
+    >>> df = spark.createDataFrame(
+    ...     [[1, 100, 150],
+    ...     [-1, 200, 250],
+    ...     [1, 300, 350]],
+    ...     ["strand", "start", "end"])
+    >>> df.withColumn(
+    ...     "tss",
+    ...     get_gene_tss(
+    ...         f.col("strand"),
+    ...         f.col("start"),
+    ...         f.col("end"),
+    ...     )
+    ... ).show()
+    +------+-----+---+---+
+    |strand|start|end|tss|
+    +------+-----+---+---+
+    |     1|  100|150|100|
+    |    -1|  200|250|250|
+    |     1|  300|350|300|
+    +------+-----+---+---+
+    <BLANKLINE>
+
     """
     return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
