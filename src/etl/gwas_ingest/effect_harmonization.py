@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import sys
-from scipy.stats import norm
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
+from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -51,7 +51,7 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         .withColumn(
             "zscore",
             f.udf(
-                lambda pv: float(abs(norm.ppf((float(pv))/2))) if pv else None,
+                lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
                 t.FloatType(),
             )(f.col(f"parsed_${pvalcol}")),
         )
