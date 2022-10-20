@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import sys
-from statistics import NormalDist
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
+from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -23,17 +23,21 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         DataFrame: Input DataFrame with an extra `zscore` column
 
     Examples:
-        >>> d = [{"id": "t1", "pval": "0.05"},{"id": "t2", "pval": "1e-300"}, {"id": "t3", "pval": "0.9"}]
+        >>> d = d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
         >>> df = spark.createDataFrame(d)
         >>> pval_to_zscore(df, "pval").show()
-        +---+------+-----------+
-        | id|  pval|     zscore|
-        +---+------+-----------+
-        | t1|  0.05|0.062706776|
-        | t2|1e-300|        0.0|
-        | t3|   0.9|  1.6448535|
-        +---+------+-----------+
+        +---+-------+----------+
+        | id|   pval|    zscore|
+        +---+-------+----------+
+        | t1|      1|       0.0|
+        | t2|    0.9|0.12566137|
+        | t3|   0.05|  1.959964|
+        | t4| 1e-300| 37.537838|
+        | t5|1e-1000| 37.537838|
+        | t6|     NA|      null|
+        +---+-------+----------+
         <BLANKLINE>
+
     """
     return (
         df
@@ -50,7 +54,7 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         .withColumn(
             "zscore",
             f.udf(
-                lambda pv: NormalDist().inv_cdf((1 + pv) / 2.0) if pv else None,
+                lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
                 t.FloatType(),
             )(f.col(f"parsed_${pvalcol}")),
         )
