@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sys
-from statistics import NormalDist
+from scipy.stats import norm
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
@@ -26,13 +26,14 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         >>> d = [{"id": "t1", "pval": "0.05"},{"id": "t2", "pval": "1e-300"}, {"id": "t3", "pval": "0.9"}]
         >>> df = spark.createDataFrame(d)
         >>> pval_to_zscore(df, "pval").show()
-        +---+------+-----------+
-        | id|  pval|     zscore|
-        +---+------+-----------+
-        | t1|  0.05|0.062706776|
-        | t2|1e-300|        0.0|
-        | t3|   0.9|  1.6448535|
-        +---+------+-----------+
+            +---+----+----------+
+            | id|pval|    zscore|
+            +---+----+----------+
+            | t1|0.05|  1.959964|
+            | t2|1e-3| 3.2905266|
+            | t3| 0.9|0.12566137|
+            +---+----+----------+
+
         <BLANKLINE>
     """
     return (
@@ -50,7 +51,7 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         .withColumn(
             "zscore",
             f.udf(
-                lambda pv: NormalDist().inv_cdf((1 + (1 - pv)) / 2.0) if pv else None,
+                lambda pv: float(abs(norm.ppf((float(pv))/2))) if pv else None,
                 t.FloatType(),
             )(f.col(f"parsed_${pvalcol}")),
         )
