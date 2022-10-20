@@ -23,22 +23,21 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         DataFrame: Input DataFrame with an extra `zscore` column
 
     Examples:
-        >>> d = [{"id": "t5", "pval": "1"}, {"id": "t3", "pval": "0.9"}, {"id": "t1", "pval": "0.05"}, {"id": "t2", "pval": "1e-300"}, {"id": "t4", "pval": "1e-1000"}, {"id": "t4", "pval": "NA"}]
+        >>> d = d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
         >>> df = spark.createDataFrame(d)
         >>> pval_to_zscore(df, "pval").show()
         +---+-------+----------+
         | id|   pval|    zscore|
         +---+-------+----------+
-        | t5|      1|       0.0|
-        | t3|    0.9|0.12566137|
-        | t1|   0.05|  1.959964|
-        | t2| 1e-300| 37.537838|
-        | t4|1e-1000| 37.537838|
-        | t4|     NA|      null|
+        | t1|      1|       0.0|
+        | t2|    0.9|0.12566137|
+        | t3|   0.05|  1.959964|
+        | t4| 1e-300| 37.537838|
+        | t5|1e-1000| 37.537838|
+        | t6|     NA|      null|
         +---+-------+----------+
-
-
         <BLANKLINE>
+
     """
     return (
         df
