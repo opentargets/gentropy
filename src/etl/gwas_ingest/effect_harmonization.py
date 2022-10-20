@@ -50,7 +50,7 @@ def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
         .withColumn(
             "zscore",
             f.udf(
-                lambda pv: NormalDist().inv_cdf((1 + pv) / 2.0) if pv else None,
+                lambda pv: NormalDist().inv_cdf((1 + (1 - pv)) / 2.0) if pv else None,
                 t.FloatType(),
             )(f.col(f"parsed_${pvalcol}")),
         )
