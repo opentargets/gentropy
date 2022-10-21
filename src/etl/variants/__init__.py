@@ -1,4 +1,3 @@
-
 """This module contains logic to manage variant related logic. pipeline the GnomAD3.1 dataset and generates variant annotation dataset.
 
 ## Components
