@@ -47,11 +47,11 @@ v2g:
   inputs:
     variant_annotation: ${etl.outputs}/variant_annotation
     variant_index: ${etl.outputs}/variant_index
+    vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
   outputs:
     vep: ${etl.outputs}/v2g/vep
   parameters:
     # Define per data type a window for the distance between the variant and the gene
-    vep_distance_threshold: 500000
     tss_distance_threshold: 500000
   machine: ${machine.default}
 

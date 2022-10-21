@@ -14,30 +14,47 @@ def main(
     etl: ETLSession,
     variant_index_path: str,
     variant_annotation_path: str,
-    gene_distance_threshold: int,
     variant_consequence_lut_path: str,
 ) -> DataFrame:
-    """Placeholder."""
+    """Extracts variant to gene assignments from the variant index and the features predicted by VEP.
+
+    Args:
+        etl (ETLSession): ETL session,
+        variant_index_path (str): The path to the OTG variant index
+        variant_annotation_path (str): The path to the variant annotation file
+        variant_consequence_lut_path (str): The path to the LUT between the functional consequences and their assigned V2G score
+
+    Returns:
+        DataFrame: High and medium severity variant to gene assignments
+    """
     # function that takes the index, gets the vep data and parses it
-    va = etl.spark.read.parquet(variant_annotation_path).select(
-        "id", "vep.transcriptConsequences"
+    va = (
+        etl.spark.read.parquet(variant_annotation_path)
+        .filter(f.size("vep.transcriptConsequences") != 0)
+        .select("id", "vep.transcriptConsequences")
     )
     vi = etl.spark.read.parquet(variant_index_path).select("id")
     annotated_variants = va.join(vi, on="id", how="inner")
 
-    return parse_vep(
-        etl, annotated_variants, gene_distance_threshold, variant_consequence_lut_path
-    )
+    return parse_vep(etl, annotated_variants, variant_consequence_lut_path)
 
 
 def parse_vep(
     etl: ETLSession,
     variants_df: DataFrame,
-    gene_distance_threshold: int,
     variant_consequence_lut_path: str,
 ) -> DataFrame:
-    """Placeholder."""
-    # TODO: refactor to accept columns?
+    """Creates a dataset with variant to gene assignments based on VEP.
+
+    Args:
+        etl (ETLSession): ETL session
+        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequences"
+        variant_consequence_lut_path (str): Path to the table with the variant consequences sorted by severity
+
+    Returns:
+        DataFrame: High and medium severity variant to gene assignments
+    """
+    # TODO: test this function
     consequences_lut = etl.spark.read.csv(
         variant_consequence_lut_path, sep="\t", header=True
     ).select(
@@ -45,25 +62,24 @@ def parse_vep(
         f.col("v2g_score").alias("score"),
     )
 
-    vep = (
+    return (
         variants_df.withColumn("tc", f.explode("transcriptConsequences"))
         .select(
             "id",
             f.col("tc.gene_id").alias("geneId"),
-            "tc.consequence_terms",
-            f.col("tc.distance").alias("distance"),
+            f.explode("tc.consequence_terms").alias("variantFunctionalConsequence"),
         )
-        .filter(f.col("distance") <= gene_distance_threshold)
         # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
         .join(
-            f.broadcast(consequences_lut), on="variantFunctionalConsequence", how="left"
+            f.broadcast(consequences_lut),
+            on="variantFunctionalConsequence",
+            how="inner",
         )
-        # This aggregation is very expensive - can i just keep the first consequence?
+        .filter(f.col("score") != 0)
         .transform(
             lambda df: get_record_with_maximum_value(df, ["id", "geneId"], "score")
         )
     )
-    return vep
 
 
 def get_record_with_maximum_value(
