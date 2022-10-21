@@ -20,10 +20,6 @@ Steps:
 1. The variant annotation dataset is further processed to follow our variant model definition.
 2. The dataset is filtered to only include variants that are present in the credible set. The variants in the credible set that are filtered out are written in the invalid variants file.
 
-::: etl.variants
-::: etl.variants.variant_index
-    :members:
-    :show-inheritance:
 """
 
 from __future__ import annotations
