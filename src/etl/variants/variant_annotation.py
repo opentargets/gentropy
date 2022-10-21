@@ -30,7 +30,16 @@ POPULATIONS = {
 def generate_variant_annotation(
     etl: ETLSession, gnomad_variants_path: str, chain_file_path: str
 ) -> DataFrame:
-    """Main function to generate a variant index from the variant annotation dataset."""
+    """Creates a dataset with several annotations derived from GnomAD.
+
+    Args:
+        etl (ETLSession): ETL session
+        gnomad_variants_path (str): Path to the GnomAD variants dataset
+        chain_file_path (str): Chain to liftover from grch38 to grch37
+
+    Returns:
+        DataFrame: Subset of variant annotations derived from GnomAD
+    """
     etl.logger.info("Generating variant annotation...")
 
     hl.init(sc=etl.spark.sparkContext)

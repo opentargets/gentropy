@@ -17,6 +17,7 @@ nav:
   - roadmap.md
   - Reference:
     - reference.md
+    - Variants: modules/variants.md
     - GWAS Catalog ingestion: modules/gwas_ingest.md
     - Interval data: modules/intervals.md
     - Colocalisation: modules/colocalisation.md
