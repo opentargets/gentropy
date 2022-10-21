@@ -57,13 +57,13 @@ v2g:
 
 variant_annotation:
   inputs:
-    gnomad_file: gs://gcp-public-data--gnomad/release/3.1.1/ht/genomes/gnomad.genomes.v3.1.1.sites.ht
+    gnomad_file: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
     chain_file: gs://hail-common/references/grch38_to_grch37.over.chain.gz
   outputs:
-    variant_annotation: ${etl.outputs}/variant_annotation
+    variant_annotation: ${etl.outputs}/variant_annotation_broadcast_part
   parameters:
-    partition_count: 256
-  machine: ${machine.coloc}
+    partition_count: 400
+  machine: ${machine.variant_annotation}
 
 gwas_ingest:
   inputs:

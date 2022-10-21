@@ -7,11 +7,14 @@ The dataset is not allows to resolve individual tissues, the biotype is `aggrega
 """
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
+import json
 from typing import TYPE_CHECKING
 
-import pandas as pd
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+
+from etl.json import schemas
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -62,13 +65,19 @@ class ParseAndersson:
         etl.logger.info("Parsing Andersson 2014 data...")
         etl.logger.info(f"Reading data from {anderson_data_file}")
 
+        # Expected andersson et al. schema:
+        schema = t.StructType.fromJson(
+            json.loads(
+                pkg_resources.read_text(schemas, "andersson2014.json", encoding="utf-8")
+            )
+        )
+
         # Read the anderson file:
         parserd_anderson_df = (
-            etl.spark.createDataFrame(
-                pd.read_csv(
-                    anderson_data_file, sep="\t", header=0, low_memory=False, skiprows=1
-                )
-            )
+            etl.spark.read.option("delimiter", "\t")
+            .option("header", "true")
+            .schema(schema)
+            .csv(anderson_data_file)
             # Parsing score column and casting as float:
             .withColumn("score", f.col("score").cast("float") / f.lit(1000))
             # Parsing the 'name' column:
