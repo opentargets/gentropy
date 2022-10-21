@@ -2243,7 +2243,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "3.8.13"
-content-hash = "caa12af62b567c35927b494b64872b258c863a4696e847857d6b2f5d296c4309"
+content-hash = "76b28a3230fb14168d0b19e541c82a38eaba23c563aca6d67070989f9f7886f7"
 
 [metadata.files]
 aiohttp = [
