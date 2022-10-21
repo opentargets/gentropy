@@ -1010,10 +1010,7 @@
     <span class=bp>self</span><span class=o>.</span><span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
         <span class=sa>f</span><span class=s1>&#39;Number genes in the Javierre dataset: </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>javierre_intervals</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;geneId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span><span class=o>.</span><span class=n>count</span><span class=p>()</span><span class=si>}</span><span class=s1>&#39;</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.intervals.andersson2014></a> <div class="doc doc-contents first"> <p>Enhancer-TSS correlation (Andersson et al. 2014) intervals.</p> <p>As part of the <a href=https://fantom.gsc.riken.jp/5/ >FANTOM5</a> genome mapping effort, this publication aims to report on actively transcribed enhancers from the majority of human tissues. (<a href=https://www.nature.com/articles/nature12787>Link</a> to the publication)</p> <p>The dataset is not allows to resolve individual tissues, the biotype is <code>aggregate</code>. However the aggregation provides a score quantifying the association of the genomic region and the gene.</p> <div class="doc doc-children"> <div class="doc doc-object doc-class"> <h2 id=etl.intervals.andersson2014.ParseAndersson class="doc doc-heading"> <code>ParseAndersson</code> </h2> <div class="doc doc-contents "> <p>Parse the anderson file and return a dataframe with the intervals.</p> <p><strong>Summary of the logic</strong></p> <ul> <li>Reading .bed file (input)</li> <li>Parsing the names column -&gt; chr, start, end, gene, score</li> <li>Mapping the coordinates to the new build -&gt; liftover</li> <li>Joining with target index by gene symbol (some loss as input uses obsoleted terms)</li> <li>Dropping rows where the gene is on other chromosomes</li> <li>Dropping rows where the gene TSS is too far from the midpoint of the intervals</li> <li>Adding constant columns for this dataset</li> </ul> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 23</span>
-<span class=normal> 24</span>
-<span class=normal> 25</span>
-<span class=normal> 26</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.intervals.andersson2014></a> <div class="doc doc-contents first"> <p>Enhancer-TSS correlation (Andersson et al. 2014) intervals.</p> <p>As part of the <a href=https://fantom.gsc.riken.jp/5/ >FANTOM5</a> genome mapping effort, this publication aims to report on actively transcribed enhancers from the majority of human tissues. (<a href=https://www.nature.com/articles/nature12787>Link</a> to the publication)</p> <p>The dataset is not allows to resolve individual tissues, the biotype is <code>aggregate</code>. However the aggregation provides a score quantifying the association of the genomic region and the gene.</p> <div class="doc doc-children"> <div class="doc doc-object doc-class"> <h2 id=etl.intervals.andersson2014.ParseAndersson class="doc doc-heading"> <code>ParseAndersson</code> </h2> <div class="doc doc-contents "> <p>Parse the anderson file and return a dataframe with the intervals.</p> <p><strong>Summary of the logic</strong></p> <ul> <li>Reading .bed file (input)</li> <li>Parsing the names column -&gt; chr, start, end, gene, score</li> <li>Mapping the coordinates to the new build -&gt; liftover</li> <li>Joining with target index by gene symbol (some loss as input uses obsoleted terms)</li> <li>Dropping rows where the gene is on other chromosomes</li> <li>Dropping rows where the gene TSS is too far from the midpoint of the intervals</li> <li>Adding constant columns for this dataset</li> </ul> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 26</span>
 <span class=normal> 27</span>
 <span class=normal> 28</span>
 <span class=normal> 29</span>
@@ -1144,7 +1141,16 @@
 <span class=normal>154</span>
 <span class=normal>155</span>
 <span class=normal>156</span>
-<span class=normal>157</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>ParseAndersson</span><span class=p>:</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span>
+<span class=normal>161</span>
+<span class=normal>162</span>
+<span class=normal>163</span>
+<span class=normal>164</span>
+<span class=normal>165</span>
+<span class=normal>166</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>ParseAndersson</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Parse the anderson file and return a dataframe with the intervals.</span>
 
 <span class=sd>    **Summary of the logic**</span>
@@ -1186,13 +1192,19 @@
         <span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Parsing Andersson 2014 data...&quot;</span><span class=p>)</span>
         <span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Reading data from </span><span class=si>{</span><span class=n>anderson_data_file</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
 
+        <span class=c1># Expected andersson et al. schema:</span>
+        <span class=n>schema</span> <span class=o>=</span> <span class=n>t</span><span class=o>.</span><span class=n>StructType</span><span class=o>.</span><span class=n>fromJson</span><span class=p>(</span>
+            <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span>
+                <span class=n>pkg_resources</span><span class=o>.</span><span class=n>read_text</span><span class=p>(</span><span class=n>schemas</span><span class=p>,</span> <span class=s2>&quot;andersson2014.json&quot;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&quot;utf-8&quot;</span><span class=p>)</span>
+            <span class=p>)</span>
+        <span class=p>)</span>
+
         <span class=c1># Read the anderson file:</span>
         <span class=n>parserd_anderson_df</span> <span class=o>=</span> <span class=p>(</span>
-            <span class=n>etl</span><span class=o>.</span><span class=n>spark</span><span class=o>.</span><span class=n>createDataFrame</span><span class=p>(</span>
-                <span class=n>pd</span><span class=o>.</span><span class=n>read_csv</span><span class=p>(</span>
-                    <span class=n>anderson_data_file</span><span class=p>,</span> <span class=n>sep</span><span class=o>=</span><span class=s2>&quot;</span><span class=se>\t</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>header</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>low_memory</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>skiprows</span><span class=o>=</span><span class=mi>1</span>
-                <span class=p>)</span>
-            <span class=p>)</span>
+            <span class=n>etl</span><span class=o>.</span><span class=n>spark</span><span class=o>.</span><span class=n>read</span><span class=o>.</span><span class=n>option</span><span class=p>(</span><span class=s2>&quot;delimiter&quot;</span><span class=p>,</span> <span class=s2>&quot;</span><span class=se>\t</span><span class=s2>&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>option</span><span class=p>(</span><span class=s2>&quot;header&quot;</span><span class=p>,</span> <span class=s2>&quot;true&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>schema</span><span class=p>(</span><span class=n>schema</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>csv</span><span class=p>(</span><span class=n>anderson_data_file</span><span class=p>)</span>
             <span class=c1># Parsing score column and casting as float:</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=s2>&quot;float&quot;</span><span class=p>)</span> <span class=o>/</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>1000</span><span class=p>))</span>
             <span class=c1># Parsing the &#39;name&#39; column:</span>
@@ -1279,10 +1291,7 @@
         <span class=bp>self</span><span class=o>.</span><span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
             <span class=sa>f</span><span class=s1>&#39;Number genes in the Andersson dataset: </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>anderson_intervals</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;geneId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span><span class=o>.</span><span class=n>count</span><span class=p>()</span><span class=si>}</span><span class=s1>&#39;</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.andersson2014.ParseAndersson.__init__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__init__</span><span class=p>(</span><span class=n>etl</span><span class=p>,</span> <span class=n>anderson_data_file</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>,</span> <span class=n>lift</span><span class=p>)</span></code> </h3> <div class="doc doc-contents "> <p>Intialise Andersson parser.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>etl</code></td> <td> <code><span title="etl.common.ETLSession.ETLSession">ETLSession</span></code> </td> <td><p>Spark session</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>anderson_data_file</code></td> <td> <code>str</code> </td> <td><p>Anderson et al. filepath</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>gene_index</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>gene index information</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>lift</code></td> <td> <code><a class="autorefs autorefs-internal" title="etl.intervals.Liftover.LiftOverSpark" href="#etl.intervals.Liftover.LiftOverSpark">LiftOverSpark</a></code> </td> <td><p>LiftOverSpark object</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 45</span>
-<span class=normal> 46</span>
-<span class=normal> 47</span>
-<span class=normal> 48</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.andersson2014.ParseAndersson.__init__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__init__</span><span class=p>(</span><span class=n>etl</span><span class=p>,</span> <span class=n>anderson_data_file</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>,</span> <span class=n>lift</span><span class=p>)</span></code> </h3> <div class="doc doc-contents "> <p>Intialise Andersson parser.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>etl</code></td> <td> <code><span title="etl.common.ETLSession.ETLSession">ETLSession</span></code> </td> <td><p>Spark session</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>anderson_data_file</code></td> <td> <code>str</code> </td> <td><p>Anderson et al. filepath</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>gene_index</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>gene index information</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>lift</code></td> <td> <code><a class="autorefs autorefs-internal" title="etl.intervals.Liftover.LiftOverSpark" href="#etl.intervals.Liftover.LiftOverSpark">LiftOverSpark</a></code> </td> <td><p>LiftOverSpark object</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 48</span>
 <span class=normal> 49</span>
 <span class=normal> 50</span>
 <span class=normal> 51</span>
@@ -1374,7 +1383,16 @@
 <span class=normal>137</span>
 <span class=normal>138</span>
 <span class=normal>139</span>
-<span class=normal>140</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
+<span class=normal>140</span>
+<span class=normal>141</span>
+<span class=normal>142</span>
+<span class=normal>143</span>
+<span class=normal>144</span>
+<span class=normal>145</span>
+<span class=normal>146</span>
+<span class=normal>147</span>
+<span class=normal>148</span>
+<span class=normal>149</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>ParseAndersson</span><span class=p>,</span>
     <span class=n>etl</span><span class=p>:</span> <span class=n>ETLSession</span><span class=p>,</span>
     <span class=n>anderson_data_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
@@ -1394,13 +1412,19 @@
     <span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Parsing Andersson 2014 data...&quot;</span><span class=p>)</span>
     <span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Reading data from </span><span class=si>{</span><span class=n>anderson_data_file</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
 
+    <span class=c1># Expected andersson et al. schema:</span>
+    <span class=n>schema</span> <span class=o>=</span> <span class=n>t</span><span class=o>.</span><span class=n>StructType</span><span class=o>.</span><span class=n>fromJson</span><span class=p>(</span>
+        <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span>
+            <span class=n>pkg_resources</span><span class=o>.</span><span class=n>read_text</span><span class=p>(</span><span class=n>schemas</span><span class=p>,</span> <span class=s2>&quot;andersson2014.json&quot;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&quot;utf-8&quot;</span><span class=p>)</span>
+        <span class=p>)</span>
+    <span class=p>)</span>
+
     <span class=c1># Read the anderson file:</span>
     <span class=n>parserd_anderson_df</span> <span class=o>=</span> <span class=p>(</span>
-        <span class=n>etl</span><span class=o>.</span><span class=n>spark</span><span class=o>.</span><span class=n>createDataFrame</span><span class=p>(</span>
-            <span class=n>pd</span><span class=o>.</span><span class=n>read_csv</span><span class=p>(</span>
-                <span class=n>anderson_data_file</span><span class=p>,</span> <span class=n>sep</span><span class=o>=</span><span class=s2>&quot;</span><span class=se>\t</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>header</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>low_memory</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>skiprows</span><span class=o>=</span><span class=mi>1</span>
-            <span class=p>)</span>
-        <span class=p>)</span>
+        <span class=n>etl</span><span class=o>.</span><span class=n>spark</span><span class=o>.</span><span class=n>read</span><span class=o>.</span><span class=n>option</span><span class=p>(</span><span class=s2>&quot;delimiter&quot;</span><span class=p>,</span> <span class=s2>&quot;</span><span class=se>\t</span><span class=s2>&quot;</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>option</span><span class=p>(</span><span class=s2>&quot;header&quot;</span><span class=p>,</span> <span class=s2>&quot;true&quot;</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>schema</span><span class=p>(</span><span class=n>schema</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>csv</span><span class=p>(</span><span class=n>anderson_data_file</span><span class=p>)</span>
         <span class=c1># Parsing score column and casting as float:</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=s2>&quot;float&quot;</span><span class=p>)</span> <span class=o>/</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>1000</span><span class=p>))</span>
         <span class=c1># Parsing the &#39;name&#39; column:</span>
@@ -1470,23 +1494,23 @@
     <span class=p>)</span>
 
     <span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Number of rows: </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>anderson_intervals</span><span class=o>.</span><span class=n>count</span><span class=p>()</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.andersson2014.ParseAndersson.get_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_intervals</span><span class=p>()</span></code> </h3> <div class="doc doc-contents "> <p>Get formatted interval data.</p> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>142</span>
-<span class=normal>143</span>
-<span class=normal>144</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_intervals</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>ParseAndersson</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.andersson2014.ParseAndersson.get_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_intervals</span><span class=p>()</span></code> </h3> <div class="doc doc-contents "> <p>Get formatted interval data.</p> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>151</span>
+<span class=normal>152</span>
+<span class=normal>153</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_intervals</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>ParseAndersson</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Get formatted interval data.&quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>anderson_intervals</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.andersson2014.ParseAndersson.qc_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>qc_intervals</span><span class=p>()</span></code> </h3> <div class="doc doc-contents "> <p>Perform QC on the anderson intervals.</p> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>146</span>
-<span class=normal>147</span>
-<span class=normal>148</span>
-<span class=normal>149</span>
-<span class=normal>150</span>
-<span class=normal>151</span>
-<span class=normal>152</span>
-<span class=normal>153</span>
-<span class=normal>154</span>
-<span class=normal>155</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.andersson2014.ParseAndersson.qc_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>qc_intervals</span><span class=p>()</span></code> </h3> <div class="doc doc-contents "> <p>Perform QC on the anderson intervals.</p> <details class=quote> <summary>Source code in <code>etl/intervals/andersson2014.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>155</span>
 <span class=normal>156</span>
-<span class=normal>157</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>qc_intervals</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>ParseAndersson</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span>
+<span class=normal>161</span>
+<span class=normal>162</span>
+<span class=normal>163</span>
+<span class=normal>164</span>
+<span class=normal>165</span>
+<span class=normal>166</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>qc_intervals</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>ParseAndersson</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Perform QC on the anderson intervals.&quot;&quot;&quot;</span>
     <span class=c1># Get numbers:</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>etl</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>

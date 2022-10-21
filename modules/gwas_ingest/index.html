@@ -1233,23 +1233,23 @@
     <span class=p>)</span>
 
     <span class=k>return</span> <span class=n>association_df</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.gwas_ingest.effect_harmonization></a> <div class="doc doc-contents first"> <p>Harmonisation of GWAS stats.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.get_reverse_complement class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Get reverse complement allele of a specified allele column.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>allele_col</code></td> <td> <code>str</code> </td> <td><p>the name of the column containing the allele</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe with a new column called revcomp_{allele_col}</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>66</span>
-<span class=normal>67</span>
-<span class=normal>68</span>
-<span class=normal>69</span>
-<span class=normal>70</span>
-<span class=normal>71</span>
-<span class=normal>72</span>
-<span class=normal>73</span>
-<span class=normal>74</span>
-<span class=normal>75</span>
-<span class=normal>76</span>
-<span class=normal>77</span>
-<span class=normal>78</span>
-<span class=normal>79</span>
-<span class=normal>80</span>
-<span class=normal>81</span>
-<span class=normal>82</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.gwas_ingest.effect_harmonization></a> <div class="doc doc-contents first"> <p>Harmonisation of GWAS stats.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.get_reverse_complement class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Get reverse complement allele of a specified allele column.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>allele_col</code></td> <td> <code>str</code> </td> <td><p>the name of the column containing the allele</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe with a new column called revcomp_{allele_col}</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>51</span>
+<span class=normal>52</span>
+<span class=normal>53</span>
+<span class=normal>54</span>
+<span class=normal>55</span>
+<span class=normal>56</span>
+<span class=normal>57</span>
+<span class=normal>58</span>
+<span class=normal>59</span>
+<span class=normal>60</span>
+<span class=normal>61</span>
+<span class=normal>62</span>
+<span class=normal>63</span>
+<span class=normal>64</span>
+<span class=normal>65</span>
+<span class=normal>66</span>
+<span class=normal>67</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_reverse_complement</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>allele_col</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Get reverse complement allele of a specified allele column.</span>
 
 <span class=sd>    Args:</span>
@@ -1266,7 +1266,22 @@
             <span class=n>f</span><span class=o>.</span><span class=n>reverse</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=n>allele_col</span><span class=p>),</span> <span class=s2>&quot;ACTG&quot;</span><span class=p>,</span> <span class=s2>&quot;TGAC&quot;</span><span class=p>)),</span>
         <span class=p>),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_beta class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise betas.</p> <p>The harmonization of the beta follows the logic: - The beta is flipped (multiplied by -1) if: 1) the effect needs harmonization and 2) the annotation of the effect is annotated as decrease - The 95% confidence interval of the effect is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame with harmonised beta columns: - beta - beta_ci_lower - beta_ci_upper - beta_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 85</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_beta class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise betas.</p> <p>The harmonization of the beta follows the logic: - The beta is flipped (multiplied by -1) if: 1) the effect needs harmonization and 2) the annotation of the effect is annotated as decrease - The 95% confidence interval of the effect is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame with harmonised beta columns: - beta - beta_ci_lower - beta_ci_upper - beta_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 70</span>
+<span class=normal> 71</span>
+<span class=normal> 72</span>
+<span class=normal> 73</span>
+<span class=normal> 74</span>
+<span class=normal> 75</span>
+<span class=normal> 76</span>
+<span class=normal> 77</span>
+<span class=normal> 78</span>
+<span class=normal> 79</span>
+<span class=normal> 80</span>
+<span class=normal> 81</span>
+<span class=normal> 82</span>
+<span class=normal> 83</span>
+<span class=normal> 84</span>
+<span class=normal> 85</span>
 <span class=normal> 86</span>
 <span class=normal> 87</span>
 <span class=normal> 88</span>
@@ -1303,22 +1318,7 @@
 <span class=normal>119</span>
 <span class=normal>120</span>
 <span class=normal>121</span>
-<span class=normal>122</span>
-<span class=normal>123</span>
-<span class=normal>124</span>
-<span class=normal>125</span>
-<span class=normal>126</span>
-<span class=normal>127</span>
-<span class=normal>128</span>
-<span class=normal>129</span>
-<span class=normal>130</span>
-<span class=normal>131</span>
-<span class=normal>132</span>
-<span class=normal>133</span>
-<span class=normal>134</span>
-<span class=normal>135</span>
-<span class=normal>136</span>
-<span class=normal>137</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>122</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_beta</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Harmonise betas.</span>
 
 <span class=sd>    The harmonization of the beta follows the logic:</span>
@@ -1371,7 +1371,22 @@
         <span class=p>)</span>
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;beta_conf_intervals&quot;</span><span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_odds_ratio class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise odds ratio.</p> <p>The harmonization of the odds ratios follows the logic: - The effect is flipped (reciprocal value is calculated) if the effect needs harmonization - The 95% confidence interval is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>odds ratio with harmonised OR in columns: - odds_ratio - odds_ratio_ci_lower - odds_ratio_ci_upper - odds_ratio_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>140</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonise_odds_ratio class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonise odds ratio.</p> <p>The harmonization of the odds ratios follows the logic: - The effect is flipped (reciprocal value is calculated) if the effect needs harmonization - The 95% confidence interval is calculated using the z-score - Irrelevant columns are dropped.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>summary stat DataFrame</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>odds ratio with harmonised OR in columns: - odds_ratio - odds_ratio_ci_lower - odds_ratio_ci_upper - odds_ratio_direction</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>125</span>
+<span class=normal>126</span>
+<span class=normal>127</span>
+<span class=normal>128</span>
+<span class=normal>129</span>
+<span class=normal>130</span>
+<span class=normal>131</span>
+<span class=normal>132</span>
+<span class=normal>133</span>
+<span class=normal>134</span>
+<span class=normal>135</span>
+<span class=normal>136</span>
+<span class=normal>137</span>
+<span class=normal>138</span>
+<span class=normal>139</span>
+<span class=normal>140</span>
 <span class=normal>141</span>
 <span class=normal>142</span>
 <span class=normal>143</span>
@@ -1410,22 +1425,7 @@
 <span class=normal>176</span>
 <span class=normal>177</span>
 <span class=normal>178</span>
-<span class=normal>179</span>
-<span class=normal>180</span>
-<span class=normal>181</span>
-<span class=normal>182</span>
-<span class=normal>183</span>
-<span class=normal>184</span>
-<span class=normal>185</span>
-<span class=normal>186</span>
-<span class=normal>187</span>
-<span class=normal>188</span>
-<span class=normal>189</span>
-<span class=normal>190</span>
-<span class=normal>191</span>
-<span class=normal>192</span>
-<span class=normal>193</span>
-<span class=normal>194</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>179</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonise_odds_ratio</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Harmonise odds ratio.</span>
 
 <span class=sd>    The harmonization of the odds ratios follows the logic:</span>
@@ -1480,7 +1480,22 @@
         <span class=p>)</span>
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;odds_ratio_conf_intervals&quot;</span><span class=p>,</span> <span class=s2>&quot;odds_ratio_se&quot;</span><span class=p>,</span> <span class=s2>&quot;odds_ratio_estimate&quot;</span><span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonize_effect class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonisation of effects.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWASCatalog stats</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Harmonised GWASCatalog stats</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>197</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.harmonize_effect class="doc doc-heading"> <code class="highlight language-python"><span class=n>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Harmonisation of effects.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWASCatalog stats</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Harmonised GWASCatalog stats</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/gwas_ingest/effect_harmonization.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>182</span>
+<span class=normal>183</span>
+<span class=normal>184</span>
+<span class=normal>185</span>
+<span class=normal>186</span>
+<span class=normal>187</span>
+<span class=normal>188</span>
+<span class=normal>189</span>
+<span class=normal>190</span>
+<span class=normal>191</span>
+<span class=normal>192</span>
+<span class=normal>193</span>
+<span class=normal>194</span>
+<span class=normal>195</span>
+<span class=normal>196</span>
+<span class=normal>197</span>
 <span class=normal>198</span>
 <span class=normal>199</span>
 <span class=normal>200</span>
@@ -1526,22 +1541,7 @@
 <span class=normal>240</span>
 <span class=normal>241</span>
 <span class=normal>242</span>
-<span class=normal>243</span>
-<span class=normal>244</span>
-<span class=normal>245</span>
-<span class=normal>246</span>
-<span class=normal>247</span>
-<span class=normal>248</span>
-<span class=normal>249</span>
-<span class=normal>250</span>
-<span class=normal>251</span>
-<span class=normal>252</span>
-<span class=normal>253</span>
-<span class=normal>254</span>
-<span class=normal>255</span>
-<span class=normal>256</span>
-<span class=normal>257</span>
-<span class=normal>258</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>243</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>harmonize_effect</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Harmonisation of effects.</span>
 
 <span class=sd>    Args:</span>
@@ -1574,7 +1574,7 @@
             <span class=p>)</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span><span class=kc>False</span><span class=p>),</span>
         <span class=p>)</span>
         <span class=c1># Z-score is needed to calculate 95% confidence interval:</span>
-        <span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=s2>&quot;p_value&quot;</span><span class=p>))</span>
+        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;zscore&quot;</span><span class=p>,</span> <span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;p_value&quot;</span><span class=p>)))</span>
         <span class=c1># Annotation provides information if the effect is odds-ratio or beta:</span>
         <span class=c1># Effect is lost for variants with palindromic alleles.</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
@@ -1603,9 +1603,9 @@
             <span class=n>f</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;beta_direction&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;odds_ratio_direction&quot;</span><span class=p>)),</span>
         <span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.pval_to_zscore class="doc doc-heading"> <code class="highlight language-python"><span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>pvalcol</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Convert p-value to z-score.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>input DataFrame</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>pvalcol</code></td> <td> <code>str</code> </td> <td><p>name of the p-value column</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Input DataFrame with an extra <code>zscore</code> column</p></td> </tr> </tbody> </table> <p><strong>Examples:</strong></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>d</span> <span class=o>=</span> <span class=n>d</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t1&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;1&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t2&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;0.9&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t3&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;0.05&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t4&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;1e-300&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t5&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;1e-1000&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t6&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;NA&quot;</span><span class=p>}]</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.gwas_ingest.effect_harmonization.pval_to_zscore class="doc doc-heading"> <code class="highlight language-python"><span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>pvalcol</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Convert p-value column to z-score column.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>pvalcol</code></td> <td> <code><span title="pyspark.sql.Column">Column</span></code> </td> <td><p>pvalues to be casted to floats.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Column</code></td> <td> <code><span title="pyspark.sql.Column">Column</span></code> </td> <td><p>p-values transformed to z-scores</p></td> </tr> </tbody> </table> <p><strong>Examples:</strong></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>d</span> <span class=o>=</span> <span class=n>d</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t1&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;1&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t2&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;0.9&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t3&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;0.05&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t4&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;1e-300&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t5&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;1e-1000&quot;</span><span class=p>},</span> <span class=p>{</span><span class=s2>&quot;id&quot;</span><span class=p>:</span> <span class=s2>&quot;t6&quot;</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>:</span> <span class=s2>&quot;NA&quot;</span><span class=p>}]</span>
 <span class=gp>&gt;&gt;&gt; </span><span class=n>df</span> <span class=o>=</span> <span class=n>spark</span><span class=o>.</span><span class=n>createDataFrame</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
-<span class=gp>&gt;&gt;&gt; </span><span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=s2>&quot;pval&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+<span class=gp>&gt;&gt;&gt; </span><span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;zscore&quot;</span><span class=p>,</span> <span class=n>pval_to_zscore</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;pval&quot;</span><span class=p>)))</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
 <span class=go>+---+-------+----------+</span>
 <span class=go>| id|   pval|    zscore|</span>
 <span class=go>+---+-------+----------+</span>
@@ -1649,35 +1649,19 @@
 <span class=normal>45</span>
 <span class=normal>46</span>
 <span class=normal>47</span>
-<span class=normal>48</span>
-<span class=normal>49</span>
-<span class=normal>50</span>
-<span class=normal>51</span>
-<span class=normal>52</span>
-<span class=normal>53</span>
-<span class=normal>54</span>
-<span class=normal>55</span>
-<span class=normal>56</span>
-<span class=normal>57</span>
-<span class=normal>58</span>
-<span class=normal>59</span>
-<span class=normal>60</span>
-<span class=normal>61</span>
-<span class=normal>62</span>
-<span class=normal>63</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>pval_to_zscore</span><span class=p>(</span><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>pvalcol</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
-    <span class=sd>&quot;&quot;&quot;Convert p-value to z-score.</span>
+<span class=normal>48</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>pval_to_zscore</span><span class=p>(</span><span class=n>pvalcol</span><span class=p>:</span> <span class=n>Column</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Column</span><span class=p>:</span>
+    <span class=sd>&quot;&quot;&quot;Convert p-value column to z-score column.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        df (DataFrame): input DataFrame</span>
-<span class=sd>        pvalcol (str): name of the p-value column</span>
+<span class=sd>        pvalcol (Column): pvalues to be casted to floats.</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        DataFrame: Input DataFrame with an extra `zscore` column</span>
+<span class=sd>        Column: p-values transformed to z-scores</span>
 
 <span class=sd>    Examples:</span>
 <span class=sd>        &gt;&gt;&gt; d = d = [{&quot;id&quot;: &quot;t1&quot;, &quot;pval&quot;: &quot;1&quot;}, {&quot;id&quot;: &quot;t2&quot;, &quot;pval&quot;: &quot;0.9&quot;}, {&quot;id&quot;: &quot;t3&quot;, &quot;pval&quot;: &quot;0.05&quot;}, {&quot;id&quot;: &quot;t4&quot;, &quot;pval&quot;: &quot;1e-300&quot;}, {&quot;id&quot;: &quot;t5&quot;, &quot;pval&quot;: &quot;1e-1000&quot;}, {&quot;id&quot;: &quot;t6&quot;, &quot;pval&quot;: &quot;NA&quot;}]</span>
 <span class=sd>        &gt;&gt;&gt; df = spark.createDataFrame(d)</span>
-<span class=sd>        &gt;&gt;&gt; pval_to_zscore(df, &quot;pval&quot;).show()</span>
+<span class=sd>        &gt;&gt;&gt; df.withColumn(&quot;zscore&quot;, pval_to_zscore(f.col(&quot;pval&quot;))).show()</span>
 <span class=sd>        +---+-------+----------+</span>
 <span class=sd>        | id|   pval|    zscore|</span>
 <span class=sd>        +---+-------+----------+</span>
@@ -1691,26 +1675,12 @@
 <span class=sd>        &lt;BLANKLINE&gt;</span>
 
 <span class=sd>    &quot;&quot;&quot;</span>
-    <span class=k>return</span> <span class=p>(</span>
-        <span class=n>df</span>
-        <span class=c1># Converting string p-values to float:</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=sa>f</span><span class=s2>&quot;parsed_$</span><span class=si>{</span><span class=n>pvalcol</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=n>pvalcol</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>FloatType</span><span class=p>())</span>
-        <span class=p>)</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=sa>f</span><span class=s2>&quot;parsed_$</span><span class=si>{</span><span class=n>pvalcol</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>,</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;parsed_$</span><span class=si>{</span><span class=n>pvalcol</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>sys</span><span class=o>.</span><span class=n>float_info</span><span class=o>.</span><span class=n>min</span><span class=p>)</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;parsed_$</span><span class=si>{</span><span class=n>pvalcol</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-            <span class=p>),</span>
-        <span class=p>)</span>
-        <span class=c1># Convert pvalues to z-score:</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=s2>&quot;zscore&quot;</span><span class=p>,</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>udf</span><span class=p>(</span>
-                <span class=k>lambda</span> <span class=n>pv</span><span class=p>:</span> <span class=nb>float</span><span class=p>(</span><span class=nb>abs</span><span class=p>(</span><span class=n>norm</span><span class=o>.</span><span class=n>ppf</span><span class=p>((</span><span class=nb>float</span><span class=p>(</span><span class=n>pv</span><span class=p>))</span> <span class=o>/</span> <span class=mi>2</span><span class=p>)))</span> <span class=k>if</span> <span class=n>pv</span> <span class=k>else</span> <span class=kc>None</span><span class=p>,</span>
-                <span class=n>t</span><span class=o>.</span><span class=n>FloatType</span><span class=p>(),</span>
-            <span class=p>)(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;parsed_$</span><span class=si>{</span><span class=n>pvalcol</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)),</span>
-        <span class=p>)</span>
-        <span class=c1># Dropping helper column:</span>
-        <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;parsed_$</span><span class=si>{</span><span class=n>pvalcol</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
+    <span class=n>pvalue_float</span> <span class=o>=</span> <span class=n>pvalcol</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>FloatType</span><span class=p>())</span>
+    <span class=n>pvalue_nozero</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>pvalue_float</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>sys</span><span class=o>.</span><span class=n>float_info</span><span class=o>.</span><span class=n>min</span><span class=p>)</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span>
+        <span class=n>pvalue_float</span>
     <span class=p>)</span>
+    <span class=k>return</span> <span class=n>f</span><span class=o>.</span><span class=n>udf</span><span class=p>(</span>
+        <span class=k>lambda</span> <span class=n>pv</span><span class=p>:</span> <span class=nb>float</span><span class=p>(</span><span class=nb>abs</span><span class=p>(</span><span class=n>norm</span><span class=o>.</span><span class=n>ppf</span><span class=p>((</span><span class=nb>float</span><span class=p>(</span><span class=n>pv</span><span class=p>))</span> <span class=o>/</span> <span class=mi>2</span><span class=p>)))</span> <span class=k>if</span> <span class=n>pv</span> <span class=k>else</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>t</span><span class=o>.</span><span class=n>FloatType</span><span class=p>(),</span>
+    <span class=p>)(</span><span class=n>pvalue_nozero</span><span class=p>)</span>
 </code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <hr> <div class=md-source-file> <small> Last update: <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 1, 2022</span> </small> </div> </article> </div> </div> <a href=# class="md-top md-icon" data-md-component=top hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg> Back to top </a> </main> <footer class=md-footer> <nav class="md-footer__inner md-grid" aria-label=Footer> <a href=../../reference/ class="md-footer__link md-footer__link--prev" aria-label="Previous: Reference" rel=prev> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg> </div> <div class=md-footer__title> <div class=md-ellipsis> <span class=md-footer__direction> Previous </span> Reference </div> </div> </a> <a href=../intervals/ class="md-footer__link md-footer__link--next" aria-label="Next: Interval data" rel=next> <div class=md-footer__title> <div class=md-ellipsis> <span class=md-footer__direction> Next </span> Interval data </div> </div> <div class="md-footer__button md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg> </div> </a> </nav> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> Made with <a href=https://squidfunk.github.io/mkdocs-material/ target=_blank rel=noopener> Material for MkDocs </a> </div> <div class=md-social> <a href=https://github.com/genetics_etl_python target=_blank rel=noopener title=github.com class=md-social__link> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 496 512"><!-- Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg> </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"base": "../..", "features": ["navigation.instant", "navigation.top", "content.code.annotate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.ecf98df9.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script> <script src=../../assets/javascripts/bundle.2ab50757.min.js></script> </body> </html>
