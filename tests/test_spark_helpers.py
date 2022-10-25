@@ -28,10 +28,12 @@ def mock_variant_df(spark: SparkSession) -> DataFrame:
     )
 
 
-def test_get_record_with_minimum_value_group_one_col(df: DataFrame) -> None:
+def test_get_record_with_minimum_value_group_one_col(
+    mock_variant_df: DataFrame,
+) -> None:
     """Test the util that return the row with the minimum value in a window by grouping per one column."""
     grouping_col, sorting_col = "chromosome", "position"
-    df = df.transform(
+    df = mock_variant_df.transform(
         lambda df: get_record_with_minimum_value(df, grouping_col, sorting_col)
     )
     assert (
@@ -39,10 +41,14 @@ def test_get_record_with_minimum_value_group_one_col(df: DataFrame) -> None:
     ), 10116
 
 
-def test_get_record_with_maximum_value_group_two_cols(df: DataFrame) -> None:
+def test_get_record_with_maximum_value_group_two_cols(
+    mock_variant_df: DataFrame,
+) -> None:
     """Test the util that return the row with the minimum value in a window by grouping per two columns."""
     grouping_col, sorting_col = ["chromosome", "alleleType"], "position"
-    df = df.transform(
-        lambda df: get_record_with_maximum_value(df, grouping_col, sorting_col)
+    df = mock_variant_df.transform(
+        lambda df: get_record_with_maximum_value(
+            mock_variant_df, grouping_col, sorting_col
+        )
     )
     assert df.count(), 3
