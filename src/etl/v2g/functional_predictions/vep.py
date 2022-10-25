@@ -4,9 +4,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql import DataFrame, Window
+from pyspark.sql import Window
 
 if TYPE_CHECKING:
+    from pyspark.sql import Column, DataFrame
+
     from etl.common.ETLSession import ETLSession
 
 
@@ -83,10 +85,10 @@ def parse_vep(
 
 
 def get_record_with_maximum_value(
-    df: DataFrame, grouping_col: str | list[str], sorting_col: str | list[str]
+    df: DataFrame, grouping_cols: Column | str | list[Column | str], sorting_col: str
 ) -> DataFrame:
     """Returns the record with the maximum value of the sorting column within each group of the grouping column."""
-    w = Window.partitionBy(grouping_col).orderBy(f.col(sorting_col).desc())
+    w = Window.partitionBy(grouping_cols).orderBy(f.col(sorting_col).desc())
     return (
         df.withColumn("row_number", f.row_number().over(w))
         .filter(f.col("row_number") == 1)

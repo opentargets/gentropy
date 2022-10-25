@@ -21,9 +21,9 @@ def main(cfg: DictConfig) -> None:
     etl.logger.info("Generating V2G evidence from VEP...")
     vep = extract_v2g_consequence(
         etl,
-        cfg.v2g.inputs.variant_index,
-        cfg.v2g.inputs.variant_annotation,
-        cfg.v2g.inputs.vep_consequences,
+        cfg.etl.v2g.inputs.variant_index,
+        cfg.etl.v2g.inputs.variant_annotation,
+        cfg.etl.v2g.inputs.vep_consequences,
     )
 
     etl.logger.info(f"Writing V2G evidence from VEP to: {cfg.etl.v2g.outputs.vep}")
