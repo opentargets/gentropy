@@ -26,6 +26,8 @@ jobs:
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --without docs --no-interaction --no-root
+      - name: Install library
+        run: poetry install --no-interaction --without docs
       - name: Run tests
         run: poetry run pytest --doctest-modules --cov=src/ --cov-report=xml
       - name: Upload coverage to Codecov

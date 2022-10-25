@@ -2,61 +2,50 @@
 from __future__ import annotations
 
 import sys
-from statistics import NormalDist
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
+from scipy.stats import norm
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
 
-def pval_to_zscore(df: DataFrame, pvalcol: str) -> DataFrame:
-    """Convert p-value to z-score.
+def pval_to_zscore(pvalcol: Column) -> Column:
+    """Convert p-value column to z-score column.
 
     Args:
-        df (DataFrame): input DataFrame
-        pvalcol (str): name of the p-value column
+        pvalcol (Column): pvalues to be casted to floats.
 
     Returns:
-        DataFrame: Input DataFrame with an extra `zscore` column
+        Column: p-values transformed to z-scores
 
     Examples:
-        >>> d = [{"id": "t1", "pval": "0.05"},{"id": "t2", "pval": "1e-300"}, {"id": "t3", "pval": "0.9"}]
+        >>> d = d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
         >>> df = spark.createDataFrame(d)
-        >>> pval_to_zscore(df, "pval").show()
-        +---+------+-----------+
-        | id|  pval|     zscore|
-        +---+------+-----------+
-        | t1|  0.05|0.062706776|
-        | t2|1e-300|        0.0|
-        | t3|   0.9|  1.6448535|
-        +---+------+-----------+
+        >>> df.withColumn("zscore", pval_to_zscore(f.col("pval"))).show()
+        +---+-------+----------+
+        | id|   pval|    zscore|
+        +---+-------+----------+
+        | t1|      1|       0.0|
+        | t2|    0.9|0.12566137|
+        | t3|   0.05|  1.959964|
+        | t4| 1e-300| 37.537838|
+        | t5|1e-1000| 37.537838|
+        | t6|     NA|      null|
+        +---+-------+----------+
         <BLANKLINE>
+
     """
-    return (
-        df
-        # Converting string p-values to float:
-        .withColumn(
-            f"parsed_${pvalcol}", f.col(pvalcol).cast(t.FloatType())
-        ).withColumn(
-            f"parsed_${pvalcol}",
-            f.when(f.col(f"parsed_${pvalcol}") == 0, sys.float_info.min).otherwise(
-                f.col(f"parsed_${pvalcol}")
-            ),
-        )
-        # Convert pvalues to z-score:
-        .withColumn(
-            "zscore",
-            f.udf(
-                lambda pv: NormalDist().inv_cdf((1 + pv) / 2.0) if pv else None,
-                t.FloatType(),
-            )(f.col(f"parsed_${pvalcol}")),
-        )
-        # Dropping helper column:
-        .drop(f"parsed_${pvalcol}")
+    pvalue_float = pvalcol.cast(t.FloatType())
+    pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
+        pvalue_float
     )
+    return f.udf(
+        lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
+        t.FloatType(),
+    )(pvalue_nozero)
 
 
 def get_reverse_complement(df: DataFrame, allele_col: str) -> DataFrame:
@@ -223,7 +212,7 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
             ).otherwise(False),
         )
         # Z-score is needed to calculate 95% confidence interval:
-        .transform(lambda df: pval_to_zscore(df, "p_value"))
+        .withColumn("zscore", pval_to_zscore(f.col("p_value")))
         # Annotation provides information if the effect is odds-ratio or beta:
         # Effect is lost for variants with palindromic alleles.
         .withColumn(
