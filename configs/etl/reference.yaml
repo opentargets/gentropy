@@ -55,11 +55,11 @@ variant_annotation:
 
 variant_index:
   inputs:
-    variant_annotation: ${etl.outputs}/variant_annotation_test
+    variant_annotation: ${etl.outputs}/variant_annotation
     credible_sets: ${etl.outputs}/credible_sets
   outputs:
-    variant_index: ${etl.outputs}/variant_index_broadcast_part
-    variant_invalid: ${etl.outputs}/invalid/credible_sets_broadcast_part
+    variant_index: ${etl.outputs}/variant_index
+    variant_invalid: ${etl.outputs}/invalid/credible_sets
   machine: ${machine.default}
 
 gwas_ingest:
