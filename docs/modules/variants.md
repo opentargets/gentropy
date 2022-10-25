@@ -21,3 +21,4 @@ Schemas for each dataset are defined in the `json.schemas` module.
 ::: etl.variants.variant_index
     :members:
     :show-inheritance:
+::: etl.variants.variant_annotation
