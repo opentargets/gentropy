@@ -95,14 +95,6 @@ run_coloc: ## Generate coloc results
     --project=${PROJECT_ID} \
     --region=${REGION}
 
-run_intervals: ## Generate intervals dataset
-	gcloud dataproc jobs submit pyspark ./dist/run_intervals.py \
-	--cluster=${CLUSTER_NAME} \
-    --files=./dist/config.yaml \
-    --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
-    --project=${PROJECT_ID} \
-    --region=${REGION}
-
 run_v2g: ## Generate V2G dataset
 	gcloud dataproc jobs submit pyspark ./dist/run_v2g.py \
 	--cluster=${CLUSTER_NAME} \

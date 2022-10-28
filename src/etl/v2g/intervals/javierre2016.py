@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from etl.common.ETLSession import ETLSession
-    from etl.intervals.Liftover import LiftOverSpark
+    from etl.v2g.intervals.Liftover import LiftOverSpark
 
 
 class ParseJavierre:
@@ -37,7 +37,7 @@ class ParseJavierre:
     DATA_TYPE = "interval"
     EXPERIMENT_TYPE = "pchic"
     PMID = "27863249"
-    TWOSIDED_THRESHOLD = 2.45e6  # <-  this needs to phased out. Filter by percentile instead of absolute value.
+    TWOSIDED_THRESHOLD = 2.45e6  # TODO  this needs to phased out. Filter by percentile instead of absolute value.
 
     def __init__(
         self: ParseJavierre,
@@ -152,23 +152,21 @@ class ParseJavierre:
             .groupBy(
                 "name_chr", "name_start", "name_end", "genes.geneId", "bio_feature"
             )
-            .agg(f.max(f.col("name_score")).alias("score"))
+            .agg(f.max(f.col("name_score")).alias("resourceScore"))
             # Create the output:
             .select(
                 f.col("name_chr").alias("chromosome"),
                 f.col("name_start").alias("start"),
                 f.col("name_end").alias("end"),
-                f.col("score"),
+                f.col("resourceScore"),
                 f.col("genes.geneId").alias("geneId"),
-                f.col("bio_feature").alias("bioFeature"),
-                f.lit(self.DATASET_NAME).alias("datasetName"),
-                f.lit(self.DATA_TYPE).alias("dataType"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
+                f.col("bio_feature").alias("biofeature"),
+                f.lit(self.DATASET_NAME).alias("datasourceId"),
+                f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),
             )
             .persist()
         )
-        etl.logger.info(f"Number of rows: {self.javierre_intervals.count()}")
 
     def get_intervals(self: ParseJavierre) -> DataFrame:
         """Get preformatted Javierre intervals."""

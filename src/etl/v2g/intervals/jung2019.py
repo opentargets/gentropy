@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from etl.common.ETLSession import ETLSession
-    from etl.intervals.Liftover import LiftOverSpark
+    from etl.v2g.intervals.Liftover import LiftOverSpark
 
 
 class ParseJung:
@@ -98,17 +98,14 @@ class ParseJung:
                 "start",
                 "end",
                 "geneId",
-                f.col("tissue").alias("bioFeature"),
-                f.lit(self.DATASET_NAME).alias("datasetName"),
-                f.lit(self.DATA_TYPE).alias("dataType"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
+                f.col("tissue").alias("biofeature"),
+                f.lit(self.DATASET_NAME).alias("datasourceId"),
+                f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),
             )
             .drop_duplicates()
             .persist()
         )
-
-        etl.logger.info(f"Number of rows: {self.jung_intervals.count()}")
 
     def get_intervals(self: ParseJung) -> DataFrame:
         """Get preformatted intervals from Jung.

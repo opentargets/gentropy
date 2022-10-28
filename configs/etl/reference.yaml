@@ -1,6 +1,6 @@
 name: genetics_etl_python
 inputs: ${environment.storage}/input
-outputs: ${environment.storage}/${datarelease.version}/output/python_etl/${datarelease.outputFormat}/
+outputs: ${environment.storage}/${datarelease.version}/output/python_etl/${datarelease.outputFormat}
 
 coloc:
   inputs:

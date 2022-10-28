@@ -30,6 +30,7 @@ def main(
         DataFrame: High and medium severity variant to gene assignments
     """
     # function that takes the index, gets the vep data and parses it
+    etl.logger.info("Loading variant index")
     va = (
         etl.spark.read.parquet(variant_annotation_path)
         .filter(f.size("vep.transcriptConsequences") != 0)
@@ -38,7 +39,9 @@ def main(
     vi = etl.spark.read.parquet(variant_index_path).select("id")
     annotated_variants = va.join(vi, on="id", how="inner")
 
-    return parse_vep(etl, annotated_variants, variant_consequence_lut_path)
+    vep_consequences = parse_vep(etl, annotated_variants, variant_consequence_lut_path)
+    etl.logger.info("Extracted functional consequence from VEP.")
+    return vep_consequences
 
 
 def parse_vep(
@@ -46,7 +49,7 @@ def parse_vep(
     variants_df: DataFrame,
     variant_consequence_lut_path: str,
 ) -> DataFrame:
-    """Creates a dataset with variant to gene assignments based on VEP.
+    """Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.
 
     Args:
         etl (ETLSession): ETL session
@@ -67,9 +70,11 @@ def parse_vep(
     return (
         variants_df.withColumn("tc", f.explode("transcriptConsequences"))
         .select(
-            "id",
+            f.col("id").alias("variantId"),
             f.col("tc.gene_id").alias("geneId"),
             f.explode("tc.consequence_terms").alias("variantFunctionalConsequence"),
+            f.lit("vep").alias("datatypeId"),
+            f.lit("variant_consequence").alias("datasourceId"),
         )
         # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
         .join(

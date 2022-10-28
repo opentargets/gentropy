@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from etl.common.ETLSession import ETLSession
-    from etl.intervals.Liftover import LiftOverSpark
+    from etl.v2g.intervals.Liftover import LiftOverSpark
 
     """
     Parser Thurman 2012 dataset
@@ -101,17 +101,15 @@ class ParseThurman:
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
                 "geneId",
-                "score",
-                f.lit(self.DATASET_NAME).alias("datasetName"),
-                f.lit(self.DATA_TYPE).alias("dataType"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
+                f.col("score").alias("resourceScore"),
+                f.lit(self.DATASET_NAME).alias("datasourceId"),
+                f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),
-                f.lit(self.BIO_FEATURE).alias("bioFeature"),
+                f.lit(self.BIO_FEATURE).alias("biofeature"),
             )
             .distinct()
             .persist()
         )
-        etl.logger.info(f"Number of rows: {self.Thurman_intervals.count()}")
 
     def get_intervals(self: ParseThurman) -> DataFrame:
         """Get Thurman intervals."""

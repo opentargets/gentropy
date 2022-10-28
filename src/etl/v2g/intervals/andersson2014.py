@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from etl.common.ETLSession import ETLSession
-    from etl.intervals.Liftover import LiftOverSpark
+    from etl.v2g.intervals.Liftover import LiftOverSpark
 
 
 class ParseAndersson:
@@ -73,7 +73,7 @@ class ParseAndersson:
         )
 
         # Read the anderson file:
-        parserd_anderson_df = (
+        parsed_anderson_df = (
             etl.spark.read.option("delimiter", "\t")
             .option("header", "true")
             .schema(schema)
@@ -102,14 +102,14 @@ class ParseAndersson:
             )
             # For each region/gene, keep only one row with the highest score:
             .groupBy("chrom", "start", "end", "gene_symbol")
-            .agg(f.max("score").alias("score"))
+            .agg(f.max("score").alias("resourceScore"))
             .orderBy("chrom", "start")
             .persist()
         )
 
         self.anderson_intervals = (
             # Lift over the intervals:
-            lift.convert_intervals(parserd_anderson_df, "chrom", "start", "end")
+            lift.convert_intervals(parsed_anderson_df, "chrom", "start", "end")
             .drop("start", "end")
             .withColumnRenamed("mapped_start", "start")
             .withColumnRenamed("mapped_end", "end")
@@ -136,17 +136,14 @@ class ParseAndersson:
                 "start",
                 "end",
                 "geneId",
-                "score",
-                f.lit(self.DATASET_NAME).alias("datasetName"),
-                f.lit(self.DATA_TYPE).alias("dataType"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
+                "resourceScore",
+                f.lit(self.DATASET_NAME).alias("datasourceId"),
+                f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),
-                f.lit(self.BIO_FEATURE).alias("bioFeature"),
+                f.lit(self.BIO_FEATURE).alias("biofeature"),
             )
             .persist()
         )
-
-        etl.logger.info(f"Number of rows: {self.anderson_intervals.count()}")
 
     def get_intervals(self: ParseAndersson) -> DataFrame:
         """Get formatted interval data."""
