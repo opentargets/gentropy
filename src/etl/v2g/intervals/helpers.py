@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-from src.etl.common.utils import get_gene_tss
+from etl.common.utils import get_gene_tss
 
 
 def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:

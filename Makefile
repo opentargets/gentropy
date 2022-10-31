@@ -66,7 +66,7 @@ prepare_v2g: ## Create cluster for variant to gene data generation
 		--image-version=2.0 \
 		--project=${PROJECT_ID} \
 		--region=${REGION} \
-		--master-machine-type=n1-highmem-32 \
+		--master-machine-type=n1-highmem-64 \
 		--enable-component-gateway \
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \

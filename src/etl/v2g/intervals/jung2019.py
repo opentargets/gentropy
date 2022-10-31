@@ -2,7 +2,7 @@
 
 Promoter capture Hi-C was used to map long-range chromatin interactions for 18,943 well-annotated promoters for protein-coding genes in 27 human tissue types. ([Link](https://www.nature.com/articles/s41588-019-0494-8) to the publication)
 
-This dataset provides tissue level annotation, but no cell type or biofeature is given. Also scores are not provided.
+This dataset provides tissue level annotation, but no cell type or biofeature is given. All interactions are significant so scores are set to 1.
 
 """
 from __future__ import annotations
@@ -99,6 +99,7 @@ class ParseJung:
                 "end",
                 "geneId",
                 f.col("tissue").alias("biofeature"),
+                f.lit(1).alias("score"),
                 f.lit(self.DATASET_NAME).alias("datasourceId"),
                 f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),
