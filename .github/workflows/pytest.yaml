@@ -1,5 +1,5 @@
 name: tests
-on: [push, pull_request]
+on: [pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -29,7 +29,7 @@ jobs:
       - name: Install library
         run: poetry install --no-interaction --without docs
       - name: Run tests
-        run: poetry run pytest --doctest-modules --cov=src/ --cov-report=xml
+        run: poetry run pytest --doctest-modules --cov=src/ --cov-report=xml --cov-fail-under=50
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
