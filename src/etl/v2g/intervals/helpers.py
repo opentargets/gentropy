@@ -8,6 +8,8 @@ import pyspark.sql.functions as f
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
+from src.etl.common.utils import get_gene_tss
+
 
 def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
     """Gene symbol lookup table.
@@ -23,12 +25,11 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
     """
     # Prepare gene set:
     genes = (
-        # Include TSS
         gene_index.withColumn(
             "tss",
-            f.when(
-                f.col("genomicLocation.strand") == 1, f.col("genomicLocation.start")
-            ).otherwise(
+            get_gene_tss(
+                f.col("genomicLocation.strand"),
+                f.col("genomicLocation.start"),
                 f.col("genomicLocation.end"),
             ),
         )
