@@ -1,0 +1,71 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "geneId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "resourceScore",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "datasourceId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "datatypeId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "pmid",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "biofeature",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "variantId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "label",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "variantFunctionalConsequenceId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "score",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "pLofAssesment",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}
