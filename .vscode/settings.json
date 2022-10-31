@@ -1,10 +1,7 @@
 {
   "[python]": {
     "editor.formatOnPaste": false,
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": true
-    }
+    "editor.formatOnSave": true
   },
   "python.terminal.launchArgs": [
     "-m",
@@ -15,13 +12,17 @@
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
   },
   "json.format.keepLines": true,
   "python.linting.flake8Enabled": true,
   "python.linting.flake8CategorySeverity.F": "Information",
   "python.linting.flake8CategorySeverity.E": "Information",
   "python.linting.flake8CategorySeverity.W": "Information",
+  "python.formatting.blackArgs": [],
   "python.linting.mypyEnabled": true,
   "python.linting.mypyCategorySeverity.error": "Information",
   "python.linting.pydocstyleEnabled": true,

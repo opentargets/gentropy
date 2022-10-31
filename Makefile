@@ -49,6 +49,18 @@ prepare_variant_annotation:  ## Create cluster for variant annotation
         --single-node \
         --max-idle=10m
 
+prepare_variant_index: ## Create cluster for variant index generation
+	gcloud dataproc clusters create ${CLUSTER_NAME} \
+		--image-version=2.0 \
+		--project=${PROJECT_ID} \
+		--region=${REGION} \
+		--master-machine-type=n1-highmem-32 \
+		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
+		--initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
+		--enable-component-gateway \
+		--single-node \
+		--max-idle=10m
+
 prepare_intervals: ## Create cluster for intervals data generation
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
 		--image-version=2.0 \
@@ -109,6 +121,14 @@ run_variant_annotation: ## Generate variant annotation dataset
     --files=./dist/config.yaml \
 	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
 	--project=${PROJECT_ID} \
+    --region=${REGION}
+
+run_variant_index: ## Generate variant index dataset
+	gcloud dataproc jobs submit pyspark ./dist/run_variant_index.py \
+	--cluster=${CLUSTER_NAME} \
+    --files=./dist/config.yaml \
+    --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
+    --project=${PROJECT_ID} \
     --region=${REGION}
 
 run_gwas: ## Ingest gwas dataset on a dataproc cluster
