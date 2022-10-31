@@ -17,8 +17,8 @@ def main(
     variant_index_path: str,
     variant_annotation_path: str,
     variant_consequence_lut_path: str,
-) -> DataFrame:
-    """Extracts variant to gene assignments from the variant index and the features predicted by VEP.
+) -> tuple[DataFrame, ...]:
+    """Extracts variant to gene assignments for the variants included in the index and the features predicted by VEP.
 
     Args:
         etl (ETLSession): ETL session,
@@ -27,24 +27,35 @@ def main(
         variant_consequence_lut_path (str): The path to the LUT between the functional consequences and their assigned V2G score
 
     Returns:
-        DataFrame: High and medium severity variant to gene assignments
+        DataFrame: variant to gene assignments from VEP
     """
     # function that takes the index, gets the vep data and parses it
     etl.logger.info("Loading variant index")
-    va = (
+    va_with_vep = (
         etl.spark.read.parquet(variant_annotation_path)
-        .filter(f.size("vep.transcriptConsequences") != 0)
-        .select("id", "vep.transcriptConsequences")
+        # exploding the array already removes record without VEP annotation
+        .select(
+            "id", f.explode("vep.transcriptConsequences").alias("transcriptConsequence")
+        )
     )
     vi = etl.spark.read.parquet(variant_index_path).select("id")
-    annotated_variants = va.join(vi, on="id", how="inner")
+    annotated_variants = va_with_vep.join(vi, on="id", how="inner").coalesce(20)
 
-    vep_consequences = parse_vep(etl, annotated_variants, variant_consequence_lut_path)
+    vep_consequences = get_variant_consequences(
+        etl, annotated_variants, variant_consequence_lut_path
+    )
     etl.logger.info("Extracted functional consequence from VEP.")
-    return vep_consequences
+    vep_polyphen = get_polypyhen_score(annotated_variants)
+    etl.logger.info("Extracted polyphen scores from VEP.")
+    vep_sift = get_sift_score(annotated_variants)
+    etl.logger.info("Extracted sift scores from VEP.")
+    vep_plof = get_plof_flag(annotated_variants)
+    etl.logger.info("Extracted pLOF assesments from LOFTEE.")
+
+    return vep_consequences, vep_polyphen, vep_sift, vep_plof
 
 
-def parse_vep(
+def get_variant_consequences(
     etl: ETLSession,
     variants_df: DataFrame,
     variant_consequence_lut_path: str,
@@ -53,38 +64,116 @@ def parse_vep(
 
     Args:
         etl (ETLSession): ETL session
-        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequences"
+        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequence"
         variant_consequence_lut_path (str): Path to the table with the variant consequences sorted by severity
 
     Returns:
         DataFrame: High and medium severity variant to gene assignments
     """
-    # TODO: test this function
     consequences_lut = etl.spark.read.csv(
         variant_consequence_lut_path, sep="\t", header=True
     ).select(
-        f.col("Term").alias("variantFunctionalConsequence"),
+        f.element_at(f.split("Accession", r"/"), -1).alias(
+            "variantFunctionalConsequenceId"
+        ),
+        f.col("Term").alias("label"),
         f.col("v2g_score").alias("score"),
     )
 
     return (
-        variants_df.withColumn("tc", f.explode("transcriptConsequences"))
-        .select(
+        variants_df.select(
             f.col("id").alias("variantId"),
-            f.col("tc.gene_id").alias("geneId"),
-            f.explode("tc.consequence_terms").alias("variantFunctionalConsequence"),
+            f.col("transcriptConsequence.gene_id").alias("geneId"),
+            f.explode("transcriptConsequence.consequence_terms").alias("label"),
             f.lit("vep").alias("datatypeId"),
-            f.lit("variant_consequence").alias("datasourceId"),
+            f.lit("variantConsequence").alias("datasourceId"),
         )
         # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
         .join(
             f.broadcast(consequences_lut),
-            on="variantFunctionalConsequence",
+            on="label",
             how="inner",
         )
         .filter(f.col("score") != 0)
         .transform(
-            lambda df: get_record_with_maximum_value(df, ["id", "geneId"], "score")
+            lambda df: get_record_with_maximum_value(
+                df, ["variantId", "geneId"], "score"
+            )
+        )
+    )
+
+
+def get_polypyhen_score(
+    variants_df: DataFrame,
+) -> DataFrame:
+    """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
+
+    Polyphen informs about the probability that a substitution is damaging.
+
+    Args:
+        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequence"
+
+    Returns:
+        DataFrame: variant to gene assignments with their polyphen scores
+    """
+    return variants_df.filter(
+        f.col("transcriptConsequence.polyphen_score").isNotNull()
+    ).select(
+        f.col("id").alias("variantId"),
+        f.col("transcriptConsequence.gene_id").alias("geneId"),
+        f.col("transcriptConsequence.polyphen_score").alias("score"),
+        f.col("transcriptConsequence.polyphen_prediction").alias("label"),
+        f.lit("vep").alias("datatypeId"),
+        f.lit("polyphen").alias("datasourceId"),
+    )
+
+
+def get_sift_score(
+    variants_df: DataFrame,
+) -> DataFrame:
+    """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
+
+    SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.
+
+    Args:
+        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequence"
+
+    Returns:
+        DataFrame: variant to gene assignments with their SIFT scores
+    """
+    return variants_df.filter(
+        f.col("transcriptConsequence.sift_score").isNotNull()
+    ).select(
+        f.col("id").alias("variantId"),
+        f.col("transcriptConsequence.gene_id").alias("geneId"),
+        f.col("transcriptConsequence.sift_score").alias("resourceScore"),
+        f.expr("1 - transcriptConsequence.sift_score").alias("score"),
+        f.col("transcriptConsequence.sift_prediction").alias("label"),
+        f.lit("vep").alias("datatypeId"),
+    )
+
+
+def get_plof_flag(variants_df: DataFrame) -> DataFrame:
+    """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
+
+    Args:
+        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequence"
+
+    Returns:
+        DataFrame: variant to gene assignments from the LOFTEE algorithm
+    """
+    return (
+        variants_df.filter(f.col("transcriptConsequence.lof").isNotNull())
+        .withColumn(
+            "score", f.when(f.col("transcriptConsequence.lof") == "HC", 1).otherwise(0)
+        )
+        .select(
+            f.col("id").alias("variantId"),
+            f.col("transcriptConsequence.gene_id").alias("geneId"),
+            f.col("transcriptConsequence.lof").alias("pLofAssesment"),
+            f.col("score"),
+            f.lit("vep").alias("datatypeId"),
+            f.lit("loftee").alias("datasourceId"),
         )
     )
 

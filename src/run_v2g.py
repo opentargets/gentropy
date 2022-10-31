@@ -5,12 +5,13 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import hydra
+import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
-from etl.v2g.functional_predictions.vep import main as extract_v2g_consequence
+from etl.v2g.functional_predictions.vep import main as extract_v2g_from_vep
 from etl.v2g.intervals.andersson2014 import ParseAndersson
 from etl.v2g.intervals.helpers import (
     get_variants_in_intervals,
@@ -39,8 +40,8 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.intervals.parameters.max_length_difference,
     )
 
-    etl.logger.info(f"Writing all V2G evidence to: {cfg.etl.v2g.outputs.vep}")
-    datasets = [
+    etl.logger.info(f"Writing all V2G evidence to: {cfg.etl.v2g.outputs.v2g}")
+    interval_datasets = [
         # Parsing Andersson data:
         ParseAndersson(etl, cfg.etl.intervals.inputs.anderson_file, gene_index, lift)
         .get_intervals()
@@ -57,19 +58,33 @@ def main(cfg: DictConfig) -> None:
         ParseThurman(etl, cfg.etl.intervals.inputs.thurman_file, gene_index, lift)
         .get_intervals()
         .transform(lambda df: get_variants_in_intervals(df, vi)),
-        # Parsing VEP functional consequences:
-        extract_v2g_consequence(
-            etl,
-            cfg.etl.v2g.inputs.variant_index,
-            cfg.etl.v2g.inputs.variant_annotation,
-            cfg.etl.v2g.inputs.vep_consequences,
-        ),
     ]
+    func_pred_datasets = extract_v2g_from_vep(
+        # Parsing VEP functional consequences
+        etl,
+        cfg.etl.v2g.inputs.variant_index,
+        cfg.etl.v2g.inputs.variant_annotation,
+        cfg.etl.v2g.inputs.vep_consequences,
+    )
+    datasets = interval_datasets + list(func_pred_datasets)
     v2g = reduce(lambda x, y: x.unionByName(y, allowMissingColumns=True), datasets)
 
     # TODO: validate output
-    # validate_df_schema(df, "intervals.json")
-    v2g.write.mode(cfg.environment.sparkWriteMode).parquet(cfg.etl.v2g.outputs.vep)
+    print(v2g.schema.jsonValue())
+    # validate_df_schema(df, "v2g.json")
+    (
+        v2g.coalesce(cfg.etl.v2g.parameters.partition_count)
+        .select(
+            "*",
+            f.split("variantId", "_")[0].alias("chromosome"),
+            f.split("variantId", "_")[1].alias("position"),
+        )
+        .orderBy("position")
+        .write.partitionBy("chromosome")
+        .mode(cfg.environment.sparkWriteMode)
+        .parquet(cfg.etl.v2g.outputs.v2g)
+    )
+    etl.logger.info("V2G set generation complete.")
 
 
 if __name__ == "__main__":

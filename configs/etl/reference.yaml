@@ -49,8 +49,9 @@ v2g:
     variant_index: ${etl.outputs}/variant_index
     vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
   outputs:
-    vep: ${etl.outputs}/v2g/vep
+    v2g: ${etl.outputs}/v2g
   parameters:
+    partition_count: 400
     # Define per data type a window for the distance between the variant and the gene
     tss_distance_threshold: 500000
   machine: ${machine.default}
