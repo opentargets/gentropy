@@ -19,8 +19,11 @@ coloc:
     priorc12: 1e-5
   machine: ${machine.coloc}
 
-intervals:
+v2g:
   inputs:
+    variant_annotation: ${etl.outputs}/variant_annotation
+    variant_index: ${etl.outputs}/variant_index
+    vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
     # Originally gs://genetics-portal-input/v2g_input/grch37_to_grch38.over.chain
     liftover_chain_file: ${etl.inputs}/v2g_input/grch37_to_grch38.over.chain
     # Originally gs://genetics-portal-input/v2g_input/geneset.protein_coding.parquet
@@ -38,20 +41,10 @@ intervals:
     # Originally: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
     thurman_file: ${etl.inputs}/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
   outputs:
-    intervals: ${etl.outputs}/intervals
-  parameters:
-    max_length_difference: 100
-  machine: ${machine.default}
-
-v2g:
-  inputs:
-    variant_annotation: ${etl.outputs}/variant_annotation
-    variant_index: ${etl.outputs}/variant_index
-    vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
-  outputs:
     v2g: ${etl.outputs}/v2g
   parameters:
     partition_count: 400
+    liftover_max_length_difference: 100
     # Define per data type a window for the distance between the variant and the gene
     tss_distance_threshold: 500000
   machine: ${machine.default}

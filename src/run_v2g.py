@@ -30,32 +30,32 @@ def main(cfg: DictConfig) -> None:
 
     etl.logger.info("Generating V2G evidence from interval data...")
     gene_index = prepare_gene_interval_lut(
-        etl.read_parquet(cfg.etl.intervals.inputs.gene_index, "targets.json")
+        etl.read_parquet(cfg.etl.v2g.inputs.gene_index, "targets.json")
     )
     vi = etl.read_parquet(
         cfg.etl.v2g.inputs.variant_index, "variant_index.json"
     ).selectExpr("id as variantId", "chromosome", "position")
     lift = LiftOverSpark(
-        cfg.etl.intervals.inputs.liftover_chain_file,
-        cfg.etl.intervals.parameters.max_length_difference,
+        cfg.etl.v2g.inputs.liftover_chain_file,
+        cfg.etl.v2g.parameters.liftover_max_length_difference,
     )
 
     etl.logger.info(f"Writing all V2G evidence to: {cfg.etl.v2g.outputs.v2g}")
     interval_datasets = [
         # Parsing Andersson data:
-        ParseAndersson(etl, cfg.etl.intervals.inputs.anderson_file, gene_index, lift)
+        ParseAndersson(etl, cfg.etl.v2g.inputs.anderson_file, gene_index, lift)
         .get_intervals()
         .transform(lambda df: get_variants_in_intervals(df, vi)),
         # Parsing Javierre data:
-        ParseJavierre(etl, cfg.etl.intervals.inputs.javierre_dataset, gene_index, lift)
+        ParseJavierre(etl, cfg.etl.v2g.inputs.javierre_dataset, gene_index, lift)
         .get_intervals()
         .transform(lambda df: get_variants_in_intervals(df, vi)),
         # Parsing Jung data:
-        ParseJung(etl, cfg.etl.intervals.inputs.jung_file, gene_index, lift)
+        ParseJung(etl, cfg.etl.v2g.inputs.jung_file, gene_index, lift)
         .get_intervals()
         .transform(lambda df: get_variants_in_intervals(df, vi)),
         # Parsing Thurman data:
-        ParseThurman(etl, cfg.etl.intervals.inputs.thurman_file, gene_index, lift)
+        ParseThurman(etl, cfg.etl.v2g.inputs.thurman_file, gene_index, lift)
         .get_intervals()
         .transform(lambda df: get_variants_in_intervals(df, vi)),
     ]
