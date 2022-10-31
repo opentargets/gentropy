@@ -27,16 +27,15 @@ class LiftOverSpark:
     - When lifting over intervals, only unique coordinates are lifted, they joined back to the original dataframe.
     """
 
-    def __init__(
-        self: LiftOverSpark, chain_file: str, max_difference: int = None
-    ) -> None:
-        """Intialise LiftOverSpark object.
+    def __init__(self: LiftOverSpark, chain_file: str, max_difference: int = 0) -> None:
+        """Initialise LiftOverSpark object.
 
         Args:
             chain_file (str): Path to the chain file
-            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to None.
+            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 0.
         """
         self.chain_file = chain_file
+        self.max_difference = max_difference
 
         # Initializing liftover object by opening the chain file:
         if chain_file.startswith("gs://"):
@@ -44,9 +43,6 @@ class LiftOverSpark:
                 self.lo = LiftOver(chain_file_object)
         else:
             self.lo = LiftOver(chain_file)
-
-        # If no maximum difference is provided, set it to 100:
-        self.max_difference = 100 if max_difference is None else max_difference
 
         # UDF to do map genomic coordinates to liftover coordinates:
         self.liftover_udf = f.udf(
