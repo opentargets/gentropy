@@ -41,13 +41,13 @@ v2g:
     # Originally: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
     thurman_file: ${etl.inputs}/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
   outputs:
-    v2g: ${etl.outputs}/v2g_v2
+    v2g: ${etl.outputs}/v2g
   parameters:
     partition_count: 400
     liftover_max_length_difference: 100
     # Define per data type a window for the distance between the variant and the gene
     tss_distance_threshold: 500000
-  machine: ${machine.default}
+  machine: ${machine.v2g}
 
 variant_annotation:
   inputs:

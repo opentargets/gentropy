@@ -1,13 +1,14 @@
-"""Helper functions that extracts information about pathogenicity prediction from VEP."""
+"""The variant annotation dataset contains information about the impact of a variant on a transcript or protein. These can be mapped to genes allowing us to establish significant relationships between variants and genes."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql import Window
+
+from etl.common.spark_helpers import get_record_with_maximum_value
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import DataFrame
 
     from etl.common.ETLSession import ETLSession
 
@@ -150,6 +151,7 @@ def get_sift_score(
         f.expr("1 - transcriptConsequence.sift_score").alias("score"),
         f.col("transcriptConsequence.sift_prediction").alias("label"),
         f.lit("vep").alias("datatypeId"),
+        f.lit("sift").alias("datasourceId"),
     )
 
 
@@ -175,16 +177,4 @@ def get_plof_flag(variants_df: DataFrame) -> DataFrame:
             f.lit("vep").alias("datatypeId"),
             f.lit("loftee").alias("datasourceId"),
         )
-    )
-
-
-def get_record_with_maximum_value(
-    df: DataFrame, grouping_cols: Column | str | list[Column | str], sorting_col: str
-) -> DataFrame:
-    """Returns the record with the maximum value of the sorting column within each group of the grouping column."""
-    w = Window.partitionBy(grouping_cols).orderBy(f.col(sorting_col).desc())
-    return (
-        df.withColumn("row_number", f.row_number().over(w))
-        .filter(f.col("row_number") == 1)
-        .drop("row_number")
     )
