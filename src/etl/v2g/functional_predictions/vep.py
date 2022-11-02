@@ -32,6 +32,7 @@ def main(
     """
     # function that takes the index, gets the vep data and parses it
     etl.logger.info("Loading variant index")
+    variant_consequence_lut = read_consequence_lut(etl, variant_consequence_lut_path)
     va_with_vep = (
         etl.spark.read.parquet(variant_annotation_path)
         # exploding the array already removes record without VEP annotation
@@ -40,13 +41,15 @@ def main(
         )
     )
     vi = etl.spark.read.parquet(variant_index_path).select("id")
-    annotated_variants = va_with_vep.join(vi, on="id", how="inner").coalesce(20)
+    annotated_variants = (
+        va_with_vep.join(vi, on="id", how="inner").coalesce(20).persist()
+    )
 
     vep_consequences = get_variant_consequences(
-        etl, annotated_variants, variant_consequence_lut_path
+        annotated_variants, variant_consequence_lut
     )
     etl.logger.info("Extracted functional consequence from VEP.")
-    vep_polyphen = get_polypyhen_score(annotated_variants)
+    vep_polyphen = get_polyphen_score(annotated_variants)
     etl.logger.info("Extracted polyphen scores from VEP.")
     vep_sift = get_sift_score(annotated_variants)
     etl.logger.info("Extracted sift scores from VEP.")
@@ -56,22 +59,19 @@ def main(
     return vep_consequences, vep_polyphen, vep_sift, vep_plof
 
 
-def get_variant_consequences(
-    etl: ETLSession,
-    variants_df: DataFrame,
-    variant_consequence_lut_path: str,
+def read_consequence_lut(
+    etl: ETLSession, variant_consequence_lut_path: str
 ) -> DataFrame:
-    """Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.
+    """Reads the variant consequence LUT from the given path.
 
     Args:
         etl (ETLSession): ETL session
-        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequence"
         variant_consequence_lut_path (str): Path to the table with the variant consequences sorted by severity
 
     Returns:
-        DataFrame: High and medium severity variant to gene assignments
+        DataFrame: variant consequence LUT
     """
-    consequences_lut = etl.spark.read.csv(
+    return etl.spark.read.csv(
         variant_consequence_lut_path, sep="\t", header=True
     ).select(
         f.element_at(f.split("Accession", r"/"), -1).alias(
@@ -81,6 +81,20 @@ def get_variant_consequences(
         f.col("v2g_score").alias("score"),
     )
 
+
+def get_variant_consequences(
+    variants_df: DataFrame,
+    variant_consequence_lut: DataFrame,
+) -> DataFrame:
+    """Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.
+
+    Args:
+        variants_df (DataFrame): Dataframe with two columns: "id" and "transcriptConsequence"
+        variant_consequence_lut (DataFrame): Dataframe with the variant consequences sorted by severity
+
+    Returns:
+        DataFrame: High and medium severity variant to gene assignments
+    """
     return (
         variants_df.select(
             f.col("id").alias("variantId"),
@@ -91,7 +105,7 @@ def get_variant_consequences(
         )
         # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
         .join(
-            f.broadcast(consequences_lut),
+            f.broadcast(variant_consequence_lut),
             on="label",
             how="inner",
         )
@@ -104,7 +118,7 @@ def get_variant_consequences(
     )
 
 
-def get_polypyhen_score(
+def get_polyphen_score(
     variants_df: DataFrame,
 ) -> DataFrame:
     """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
@@ -167,12 +181,19 @@ def get_plof_flag(variants_df: DataFrame) -> DataFrame:
     return (
         variants_df.filter(f.col("transcriptConsequence.lof").isNotNull())
         .withColumn(
-            "score", f.when(f.col("transcriptConsequence.lof") == "HC", 1).otherwise(0)
+            "isHighQualityPlof",
+            f.when(f.col("transcriptConsequence.lof") == "HC", True).when(
+                f.col("transcriptConsequence.lof") == "LC", False
+            ),
+        )
+        .withColumn(
+            "score",
+            f.when(f.col("isHighQualityPlof"), 1).when(~f.col("isHighQualityPlof"), 0),
         )
         .select(
             f.col("id").alias("variantId"),
             f.col("transcriptConsequence.gene_id").alias("geneId"),
-            f.col("transcriptConsequence.lof").alias("pLofAssesment"),
+            "isHighQualityPlof",
             f.col("score"),
             f.lit("vep").alias("datatypeId"),
             f.lit("loftee").alias("datasourceId"),

@@ -14,7 +14,7 @@ from etl.common.ETLSession import ETLSession
 from etl.v2g.functional_predictions.vep import main as extract_v2g_from_vep
 from etl.v2g.intervals.andersson2014 import ParseAndersson
 from etl.v2g.intervals.helpers import (
-    get_variants_in_intervals,
+    get_variants_in_interval,
     prepare_gene_interval_lut,
 )
 from etl.v2g.intervals.javierre2016 import ParseJavierre
@@ -42,7 +42,6 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.v2g.parameters.liftover_max_length_difference,
     )
 
-    etl.logger.info(f"Writing all V2G evidence to: {cfg.etl.v2g.outputs.v2g}")
     interval_datasets = [
         # Parsing Andersson data:
         ParseAndersson(
@@ -61,7 +60,7 @@ def main(cfg: DictConfig) -> None:
     ]
     interval_df = reduce(
         lambda x, y: x.unionByName(y, allowMissingColumns=True), interval_datasets
-    ).transform(lambda df: get_variants_in_intervals(df, vi))
+    ).transform(lambda df: get_variants_in_interval(df, vi))
     func_pred_datasets = extract_v2g_from_vep(
         # Parsing VEP functional consequences
         etl,
@@ -82,7 +81,7 @@ def main(cfg: DictConfig) -> None:
         .mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.v2g.outputs.v2g)
     )
-    etl.logger.info("V2G set generation complete.")
+    etl.logger.info(f"V2G set has been written to {cfg.etl.v2g.outputs.v2g}.")
 
 
 if __name__ == "__main__":
