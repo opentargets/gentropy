@@ -51,6 +51,7 @@ mkdocs-minify-plugin = "^0.5.0"
 
 
 [tool.poetry.group.tests.dependencies]
+pandas = "^1.5.1"
 pytest = "^7.1.3"
 pytest-cov = "^4.0.0"
 pytest-sugar = "^0.9.5"
