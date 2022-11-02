@@ -16,7 +16,7 @@
     {
       "name": "datasourceId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
@@ -33,6 +33,12 @@
     },
     {
       "name": "biofeature",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "score",
       "type": "string",
       "nullable": true,
       "metadata": {}
@@ -56,14 +62,8 @@
       "metadata": {}
     },
     {
-      "name": "score",
-      "type": "string",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "pLofAssesment",
-      "type": "string",
+      "name": "isHighQualityPlof",
+      "type": "boolean",
       "nullable": true,
       "metadata": {}
     }
