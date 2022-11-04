@@ -186,13 +186,21 @@ class TestGetVariantConsequences:
             "id",
             f.struct("gene_id", "consequence_terms").alias("transcriptConsequence"),
         )
-        test_df = mock_df.transform(
-            lambda df: get_variant_consequences(df, mock_variant_consequence_df)
+        test_df = (
+            mock_df.transform(
+                lambda df: get_variant_consequences(df, mock_variant_consequence_df)
+            )
+            .toPandas()
+            .dropna(axis=1, how="all")
         )
-        expected_df = spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
+        expected_df = (
+            spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
+            .toPandas()
+            .dropna(axis=1, how="all")
+        )
         assert_frame_equal(
-            test_df.toPandas().dropna(axis=1, how="all"),
-            expected_df.toPandas().dropna(axis=1, how="all"),
+            test_df,
+            expected_df,
             check_like=True,
         )
 
@@ -393,12 +401,16 @@ class TestGetPlofFlag:
             "id",
             f.struct("gene_id", "lof").alias("transcriptConsequence"),
         )
-        test_df = mock_df.transform(get_plof_flag)
-        expected_df = spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
+        test_df = mock_df.transform(get_plof_flag).toPandas().dropna(axis=1, how="all")
+        expected_df = (
+            spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
+            .toPandas()
+            .dropna(axis=1, how="all")
+        )
 
         assert_frame_equal(
-            test_df.toPandas().dropna(axis=1, how="all"),
-            expected_df.toPandas().dropna(axis=1, how="all"),
+            test_df,
+            expected_df,
             check_like=True,
             check_dtype=False,
         )

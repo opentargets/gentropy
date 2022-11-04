@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 import hydra
 import pyspark.sql.functions as f
 
+from etl.json import validate_df_schema
+
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
@@ -71,9 +73,7 @@ def main(cfg: DictConfig) -> None:
     v2g_datasets = [interval_df, *func_pred_datasets]
     v2g = reduce(lambda x, y: x.unionByName(y, allowMissingColumns=True), v2g_datasets)
 
-    # TODO: validate output
-    print(v2g.schema.jsonValue())
-    # validate_df_schema(df, "v2g.json")
+    validate_df_schema(v2g, "v2g.json")
     (
         v2g.select("*", f.split("variantId", "_")[0].alias("chromosome"))
         .coalesce(cfg.etl.v2g.parameters.partition_count)
