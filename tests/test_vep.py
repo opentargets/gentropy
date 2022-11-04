@@ -20,31 +20,7 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture(scope="module")
-def mock_variant_consequence_df(spark: SparkSession) -> DataFrame:
-    """Mock Dataframe of the LUT that contains all possible functional consequences of a variant."""
-    return spark.createDataFrame(
-        data=[
-            # High impact term
-            ["SO_0001587", "stop_gained", 1.0],
-            # Moderate impact term
-            ["SO_0001583", "missense_variant", 0.66],
-            # Low impact term
-            [
-                "SO_0001630",
-                "splice_region_variant",
-                0.33,
-            ],
-            # Modifier impact term
-            ["SO_0001623", "5_prime_UTR_variant", 0.1],
-            # Unsignificant impact term
-            ["SO_0001060", "sequence_variant", None],
-        ],
-        schema=["variantFunctionalConsequenceId", "label", "score"],
-    )
-
-
-@pytest.fixture(scope="module")
-def vep_df_schema() -> t.StructType:
+def variant_df_schema() -> t.StructType:
     """Schema of the mock VEP dataframe."""
     return t.StructType(
         [
@@ -60,183 +36,230 @@ def vep_df_schema() -> t.StructType:
     )
 
 
+@pytest.fixture(scope="module")
+def v2g_df_schema() -> t.StructType:
+    """Schema of the V2G dataframe."""
+    return t.StructType(
+        [
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("geneId", t.StringType(), False),
+            t.StructField("variantFunctionalConsequenceId", t.StringType(), True),
+            t.StructField("label", t.StringType(), True),
+            t.StructField("isHighQualityPlof", t.BooleanType(), True),
+            t.StructField("score", t.DoubleType(), True),
+            t.StructField("datatypeId", t.StringType(), True),
+            t.StructField("datasourceId", t.StringType(), True),
+        ]
+    )
+
+
 class TestGetVariantConsequences:
     """Test the get_variant_consequences util."""
 
-    def test_coverage_of_high_impact_variant(
-        self: TestGetVariantConsequences, spark: SparkSession
-    ) -> None:
-        """Tests that a high impact variant is covered by the util."""
-        mock_df = spark.createDataFrame(
-            data=[
-                (
-                    "1_248441764_C_T",
-                    "ENSG00000227152",
-                    ["stop_gained"],
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            ],
-            schema=vep_df_schema(),
-        ).select(
-            "id",
-            f.struct("gene_id", "consequence_terms").alias("transcriptConsequence"),
-        )
-        test_df = mock_df.transform(
-            lambda df: get_variant_consequences(df, mock_variant_consequence_df)
-        )
-        expected_df = spark.createDataFrame(
-            [
-                (
-                    "1_248441764_C_T",
-                    "ENSG00000227152",
-                    "SO_0001587",
-                    "stop_gained",
-                    1.0,
-                    "vep",
-                    "variantConsequence",
-                )
-            ],
-            [
-                "variantId",
-                "geneId",
-                "variantFunctionalConsequenceId",
-                "label",
-                "score",
-                "datatypeId",
-                "datasourceId",
-            ],
-        )
-        assert_frame_equal(test_df.toPandas(), expected_df.toPandas(), check_like=True)
+    test_input = [
+        [
+            # High impact
+            (
+                "1_248441764_C_T",
+                "ENSG00000227152",
+                ["stop_gained"],
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        ],
+        [
+            # Low impact
+            (
+                "1_248441764_C_T",
+                "ENSG00000227152",
+                ["splice_region_variant", "5_prime_UTR_variant"],
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        ],
+        [
+            # Unsignificant impact
+            (
+                "1_248441764_C_T",
+                "ENSG00000227152",
+                ["sequence_variant"],
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        ],
+        [
+            # Unknown impact
+            (
+                "1_248441764_C_T",
+                "ENSG00000227152",
+                ["potential_new_term"],
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        ],
+    ]
+    expected_output = [
+        [
+            (
+                "1_248441764_C_T",
+                "ENSG00000227152",
+                "SO_0001587",
+                "stop_gained",
+                1.0,
+                "vep",
+                "variantConsequence",
+            )
+        ],
+        [
+            (
+                "1_248441764_C_T",
+                "ENSG00000227152",
+                "SO_0001630",
+                "splice_region_variant",
+                0.33,
+                "vep",
+                "variantConsequence",
+            )
+        ],
+        [],
+        [],
+    ]
 
-    def test_coverage_of_low_impact_variant(
+    @pytest.fixture(scope="class")
+    def mock_variant_consequence_df(
         self: TestGetVariantConsequences, spark: SparkSession
-    ) -> None:
-        """Tests that a low impact variant is covered by the util. The functionality of getting the most severe one is also tested by comparing it with a term tagged as a modifier."""
-        mock_df = spark.createDataFrame(
+    ) -> DataFrame:
+        """Mock Dataframe of the LUT that contains all possible functional consequences of a variant."""
+        return spark.createDataFrame(
             data=[
+                # High impact term
+                ("SO_0001587", "stop_gained", 1.0),
+                # Moderate impact term
+                ("SO_0001583", "missense_variant", 0.66),
+                # Low impact term
                 (
-                    "1_248441764_C_T",
-                    "ENSG00000227152",
-                    ["splice_region_variant", "5_prime_UTR_variant"],
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            ],
-            schema=vep_df_schema(),
-        ).select(
-            "id",
-            f.struct("gene_id", "consequence_terms").alias("transcriptConsequence"),
-        )
-        test_df = mock_df.transform(
-            lambda df: get_variant_consequences(df, mock_variant_consequence_df)
-        )
-        expected_df = spark.createDataFrame(
-            [
-                (
-                    "1_248441764_C_T",
-                    "ENSG00000227152",
                     "SO_0001630",
                     "splice_region_variant",
                     0.33,
-                    "vep",
-                    "variantConsequence",
-                )
+                ),
+                # Modifier impact term
+                ("SO_0001623", "5_prime_UTR_variant", 0.1),
+                # Unsignificant impact term
+                ("SO_0001060", "sequence_variant", None),
             ],
-            [
-                "variantId",
-                "geneId",
-                "variantFunctionalConsequenceId",
-                "label",
-                "score",
-                "datatypeId",
-                "datasourceId",
-            ],
+            schema=["variantFunctionalConsequenceId", "label", "score"],
         )
+
+    @pytest.mark.parametrize(
+        "test_input, expected_output", zip(test_input, expected_output)
+    )
+    def test_coverage_of_consequence_evidence(
+        self: TestGetVariantConsequences,
+        spark: SparkSession,
+        test_input: list[tuple],
+        expected_output: list[tuple],
+        mock_variant_consequence_df: DataFrame,
+        variant_df_schema: t.StructType,
+        v2g_df_schema: t.StructType,
+    ) -> None:
+        """Test the get_variant_consequences util."""
+        mock_df = spark.createDataFrame(
+            data=test_input, schema=variant_df_schema
+        ).select(
+            "id",
+            f.struct("gene_id", "consequence_terms").alias("transcriptConsequence"),
+        )
+        test_df = mock_df.transform(
+            lambda df: get_variant_consequences(df, mock_variant_consequence_df)
+        )
+        expected_df = spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
         assert_frame_equal(test_df.toPandas(), expected_df.toPandas(), check_like=True)
-
-    def test_coverage_of_unsignificant_variant(
-        self: TestGetVariantConsequences, spark: SparkSession
-    ) -> None:
-        """Tests that a non scored variant is not covered by the util."""
-        mock_df = spark.createDataFrame(
-            data=[
-                (
-                    "1_248441764_C_T",
-                    "ENSG00000227152",
-                    ["sequence_variant"],
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            ],
-            schema=vep_df_schema(),
-        ).select(
-            "id",
-            f.struct("gene_id", "consequence_terms").alias("transcriptConsequence"),
-        )
-        test_df = mock_df.transform(
-            lambda df: get_variant_consequences(df, mock_variant_consequence_df)
-        )
-        assert test_df.count() == 0, "The dataframe should be empty."
-
-    def test_unscored_consequence_term(
-        self: TestGetVariantConsequences, spark: SparkSession
-    ) -> None:
-        """Tests that a consequence term absent from the LUT and without a score is not covered by the util."""
-        mock_df = spark.createDataFrame(
-            data=[
-                (
-                    "1_248441764_C_T",
-                    "ENSG00000227152",
-                    ["potential_new_term"],
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            ],
-            schema=vep_df_schema(),
-        ).select(
-            "id",
-            f.struct("gene_id", "consequence_terms").alias("transcriptConsequence"),
-        )
-        test_df = mock_df.transform(
-            lambda df: get_variant_consequences(df, mock_variant_consequence_df)
-        )
-        assert test_df.count() == 0, "The dataframe should be empty."
 
 
 class TestGetPolypyhenScoreAndGetSiftScore:
     """Test the get_polyphen_scores util."""
 
-    def __init__(
-        self: TestGetPolypyhenScoreAndGetSiftScore, spark: SparkSession
+    test_input = [
+        [
+            (
+                # Variant with score info
+                "19_900951_A_G",
+                "ENSG00000198858",
+                None,
+                0.355,
+                "benign",
+                0.91,
+                "tolerated",
+                None,
+            )
+        ],
+        [
+            (
+                # No score info
+                "19_900951_A_G",
+                "ENSG00000198858",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        ],
+    ]
+    expected_output = [
+        [
+            # One V2G evidence per score
+            (
+                "19_900951_A_G",
+                "ENSG00000198858",
+                None,
+                "benign",
+                None,
+                0.355,
+                "vep",
+                "polyphen",
+            ),
+            (
+                "19_900951_A_G",
+                "ENSG00000198858",
+                None,
+                "tolerated",
+                None,
+                0.91,
+                "vep",
+                "sift",
+            ),
+        ],
+        [],  # Empty dataframe
+    ]
+
+    @pytest.mark.parametrize(
+        "test_input, expected_output", zip(test_input, expected_output)
+    )
+    def test_coverage_of_score_evidence(
+        self: TestGetPolypyhenScoreAndGetSiftScore,
+        spark: SparkSession,
+        test_input: list[tuple],
+        expected_output: list[tuple],
+        variant_df_schema: t.StructType,
+        v2g_df_schema: t.StructType,
     ) -> None:
-        """Initialize the class."""
-        self.data_with_score_df = spark.createDataFrame(
-            data=[
-                (
-                    "19_900951_A_G",
-                    "ENSG00000198858",
-                    None,
-                    0.355,
-                    "benign",
-                    0.09,
-                    "tolerated",
-                    None,
-                )
-            ],
-            schema=vep_df_schema(),
+        """Tests that polyphen and sift scores are correctly retrieved."""
+        mock_df = spark.createDataFrame(
+            data=test_input, schema=variant_df_schema
         ).select(
             "id",
             f.struct(
@@ -247,200 +270,108 @@ class TestGetPolypyhenScoreAndGetSiftScore:
                 "sift_prediction",
             ).alias("transcriptConsequence"),
         )
-        self.data_without_score_df = spark.createDataFrame(
-            data=[
-                (
-                    "19_900951_A_G",
-                    "ENSG00000198858",
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            ],
-            schema=vep_df_schema(),
-        ).select(
-            "id",
-            f.struct(
-                "gene_id",
-                "polyphen_score",
-                "polyphen_prediction",
-                "sift_score",
-                "sift_prediction",
-            ).alias("transcriptConsequence"),
+        test_df = mock_df.transform(get_polyphen_score).unionAll(
+            mock_df.transform(get_sift_score)
         )
+        expected_df = spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
 
-    def test_coverage_of_variant_with_polyphen(
-        self: TestGetPolypyhenScoreAndGetSiftScore, spark: SparkSession
-    ) -> None:
-        """Tests that polyphen scores are correctly retrieved."""
-        mock_df = self.data_with_score_df
-        test_df = mock_df.transform(get_polyphen_score)
-        expected_df = spark.createDataFrame(
-            [
-                (
-                    "19_900951_A_G",
-                    "ENSG00000198858",
-                    "benign",
-                    0.355,
-                    "vep",
-                    "polyphen",
-                )
-            ],
-            [
-                "variantId",
-                "geneId",
-                "label",
-                "score",
-                "datatypeId",
-                "datasourceId",
-            ],
-        )
         assert_frame_equal(test_df.toPandas(), expected_df.toPandas(), check_like=True)
-
-    def test_coverage_of_variant_with_sift(
-        self: TestGetPolypyhenScoreAndGetSiftScore, spark: SparkSession
-    ) -> None:
-        """Tests that sift scores are correctly retrieved."""
-        mock_df = self.data_with_score_df
-        test_df = mock_df.transform(get_sift_score)
-        expected_df = spark.createDataFrame(
-            [
-                (
-                    "19_900951_A_G",
-                    "ENSG00000198858",
-                    "tolerated",
-                    0.91,
-                    "vep",
-                    "sift",
-                )
-            ],
-            [
-                "variantId",
-                "geneId",
-                "label",
-                "score",
-                "datatypeId",
-                "datasourceId",
-            ],
-        )
-        assert_frame_equal(test_df.toPandas(), expected_df.toPandas(), check_like=True)
-
-    def test_coverage_of_variant_without_polyphen(
-        self: TestGetPolypyhenScoreAndGetSiftScore,
-    ) -> None:
-        """Tests that a variant without polyphen score is not covered by the util."""
-        mock_df = self.data_without_score_df
-        test_df = mock_df.transform(get_polyphen_score)
-        assert test_df.count() == 0, "The dataframe should be empty."
-
-    def test_coverage_of_variant_without_sift(
-        self: TestGetPolypyhenScoreAndGetSiftScore,
-    ) -> None:
-        """Tests that a variant without sift score is not covered by the util."""
-        mock_df = self.data_without_score_df
-        test_df = mock_df.transform(get_sift_score)
-        assert test_df.count() == 0, "The dataframe should be empty."
 
 
 class TestGetPlofFlag:
     """Test the get_plof_flag util."""
 
-    def test_high_confidence_is_scored_with_1(
-        self: TestGetPlofFlag, spark: SparkSession
-    ) -> None:
-        """Tests that variants predicted as a high confidence loss-of-function are scored with 1."""
-        mock_df = spark.createDataFrame(
-            data=[
-                (
-                    "1_48242556_G_T",
-                    "ENSG00000117834",
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    "HC",
-                )
-            ],
-            schema=vep_df_schema(),
-        ).select(
-            "id",
-            f.struct("gene_id", "lof").alias("transcriptConsequence"),
-        )
-        test_df = mock_df.transform(get_plof_flag)
-        expected_df = spark.createDataFrame(
-            [
-                (
-                    "1_48242556_G_T",
-                    "ENSG00000117834",
-                    True,
-                    1,
-                    "vep",
-                    "loftee",
-                )
-            ],
-            [
-                "variantId",
-                "geneId",
-                "isHighQualityPlof",
-                "score",
-                "datatypeId",
-                "datasourceId",
-            ],
-        )
-        assert_frame_equal(
-            test_df.toPandas(),
-            expected_df.toPandas(),
-            check_like=True,
-            check_dtype=False,
-        )
+    test_input = [
+        [
+            (
+                # High confidence pLOF variant
+                "1_48242556_G_T",
+                "ENSG00000117834",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "HC",
+            )
+        ],
+        [
+            (
+                # Low confidence pLOF variant
+                "1_46615007_G_A",
+                "ENSG00000142961",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "LC",
+            )
+        ],
+        [
+            (
+                # No pLOF flag
+                "1_48242556_G_T",
+                "ENSG00000117834",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        ],
+    ]
 
-    def test_low_confidence_is_scored_with_0(
-        self: TestGetPlofFlag, spark: SparkSession
+    expected_output = [
+        [
+            (
+                "1_48242556_G_T",
+                "ENSG00000117834",
+                None,
+                None,
+                True,
+                1,
+                "vep",
+                "loftee",
+            )
+        ],
+        [
+            (
+                "1_46615007_G_A",
+                "ENSG00000142961",
+                None,
+                None,
+                False,
+                0,
+                "vep",
+                "loftee",
+            )
+        ],
+        [],
+    ]
+
+    @pytest.mark.parametrize(
+        "test_input, expected_output", zip(test_input, expected_output)
+    )
+    def test_coverage_of_plof_evidence(
+        self: TestGetPlofFlag,
+        spark: SparkSession,
+        test_input: list[tuple],
+        expected_output: list[tuple],
+        variant_df_schema: t.StructType,
+        v2g_df_schema: t.StructType,
     ) -> None:
-        """Tests that variants predicted as a low confidence loss-of-function are scored with 0."""
+        """Tests that plof flag is correctly retrieved."""
         mock_df = spark.createDataFrame(
-            data=[
-                (
-                    "1_46615007_G_A",
-                    "ENSG00000142961",
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    "LC",
-                )
-            ],
-            schema=vep_df_schema(),
+            data=test_input, schema=variant_df_schema
         ).select(
             "id",
             f.struct("gene_id", "lof").alias("transcriptConsequence"),
         )
         test_df = mock_df.transform(get_plof_flag)
-        expected_df = spark.createDataFrame(
-            [
-                (
-                    "1_46615007_G_A",
-                    "ENSG00000142961",
-                    False,
-                    0,
-                    "vep",
-                    "loftee",
-                )
-            ],
-            [
-                "variantId",
-                "geneId",
-                "isHighQualityPlof",
-                "score",
-                "datatypeId",
-                "datasourceId",
-            ],
-        )
+        expected_df = spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
+
         assert_frame_equal(
             test_df.toPandas(),
             expected_df.toPandas(),
