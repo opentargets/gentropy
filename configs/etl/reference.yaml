@@ -19,6 +19,17 @@ coloc:
     priorc12: 1e-5
   machine: ${machine.coloc}
 
+v2g:
+  inputs:
+    gene_index: ${etl.inputs}/v2g_input/targets
+    variant_index: ${etl.outputs}/variant_index
+  parameters:
+    partition_count: 400
+    tss_distance_threshold: 500000
+  outputs:
+    v2g_distance: ${etl.outputs}/v2g_distance_incorrect_tss
+
+
 intervals:
   inputs:
     # Originally gs://genetics-portal-input/v2g_input/grch37_to_grch38.over.chain

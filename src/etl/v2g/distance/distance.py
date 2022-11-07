@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
     from etl.common.ETLSession import ETLSession
 
-from src.etl.common.spark_helpers import get_record_with_minimum_value, normalise_column
-from src.etl.common.utils import get_gene_tss
+from etl.common.spark_helpers import normalise_column
+from etl.common.utils import get_gene_tss
 
 
 def main(
@@ -25,7 +25,7 @@ def main(
     etl.logger.info("Generating distance related V2G data...")
     variant_index = etl.read_parquet(
         variant_index_path, "variant_index.json"
-    ).selectExpr("id as variantId")
+    ).selectExpr("id as variantId", "chromosome", "position")
     gene_idx = etl.read_parquet(gene_index_path, "targets.json").select(
         f.col("id").alias("geneId"),
         get_gene_tss(
@@ -78,8 +78,5 @@ def calculate_dist_to_gene(
         .join(f.broadcast(gene_df), on="chromosome", how="inner")
         .withColumn("distance", f.abs(f.col("position") - f.col("tss")))
         .filter(f.col("distance") <= distance_window)
-        .transform(
-            lambda df: get_record_with_minimum_value(df, "variantId", "distance")
-        )
-        .select("variantId", "geneId", "distance")
+        .select("variantId", "geneId", "distance", "chromosome")
     )
