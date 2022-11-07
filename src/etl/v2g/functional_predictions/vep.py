@@ -34,13 +34,13 @@ def main(
     etl.logger.info("Loading variant index")
     variant_consequence_lut = read_consequence_lut(etl, variant_consequence_lut_path)
     va_with_vep = (
-        etl.spark.read.parquet(variant_annotation_path)
+        etl.read_parquet(variant_annotation_path, "variant_annotation.json")
         # exploding the array already removes record without VEP annotation
         .select(
             "id", f.explode("vep.transcriptConsequences").alias("transcriptConsequence")
         )
     )
-    vi = etl.spark.read.parquet(variant_index_path).select("id")
+    vi = etl.read_parquet(variant_index_path, "variant_index.json").select("id")
     annotated_variants = (
         va_with_vep.join(vi, on="id", how="inner").coalesce(20).persist()
     )
