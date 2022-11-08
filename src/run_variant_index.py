@@ -19,11 +19,19 @@ def main(cfg: DictConfig) -> None:
     """Run variant index generation."""
     etl = ETLSession(cfg)
 
-    variants_df = join_variants_w_credset(
-        etl,
-        cfg.etl.variant_index.inputs.variant_annotation,
-        cfg.etl.variant_index.inputs.credible_sets,
-    ).persist()
+    variants_df = (
+        join_variants_w_credset(
+            etl,
+            cfg.etl.variant_index.inputs.variant_annotation,
+            cfg.etl.variant_index.inputs.credible_sets,
+        )
+        .repartition(
+            cfg.etl.variant_index.parameters.partition_count,
+            *cfg.etl.variant_index.parameters.partition_columns,
+        )
+        .sortWithinPartitions("chromosome", "position")
+        .persist()
+    )
 
     etl.logger.info(
         f"Writing invalid variants from the credible set to: {cfg.etl.variant_index.outputs.variant_invalid}"
@@ -36,9 +44,13 @@ def main(cfg: DictConfig) -> None:
         f"Writing variant index to: {cfg.etl.variant_index.outputs.variant_index}"
     )
     validate_df_schema(variants_df.drop("variantInGnomad"), "variant_index.json")
-    variants_df.filter(f.col("variantInGnomad")).drop("variantInGnomad").write.mode(
+    variants_df.filter(f.col("variantInGnomad")).drop(
+        "variantInGnomad"
+    ).write.partitionBy(*cfg.etl.variant_index.parameters.partition_columns).mode(
         cfg.environment.sparkWriteMode
-    ).parquet(cfg.etl.variant_index.outputs.variant_index)
+    ).parquet(
+        cfg.etl.variant_index.outputs.variant_index
+    )
 
 
 if __name__ == "__main__":

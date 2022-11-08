@@ -35,7 +35,7 @@ def main(cfg: DictConfig) -> None:
             *cfg.etl.variant_annotation.parameters.partition_columns,
         )
         .sortWithinPartitions("chromosome", "position")
-        .write.partitionBy("chromosome")
+        .write.partitionBy(*cfg.etl.variant_annotation.parameters.partition_columns)
         .mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.variant_annotation.outputs.variant_annotation)
     )
