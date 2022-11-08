@@ -51,6 +51,9 @@ variant_annotation:
     variant_annotation: ${etl.outputs}/variant_annotation_broadcast_part
   parameters:
     partition_count: 400
+    partition_columns:
+      - chromosome
+      - position
   machine: ${machine.variant_annotation}
 
 variant_index:
