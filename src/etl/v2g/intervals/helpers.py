@@ -23,26 +23,19 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
     Returns:
         DataFrame: Gene LUT for symbol mapping
     """
-    # Prepare gene set:
-    genes = (
-        gene_index.withColumn(
-            "tss",
-            get_gene_tss(
-                f.col("genomicLocation.strand"),
-                f.col("genomicLocation.start"),
-                f.col("genomicLocation.end"),
-            ),
-        )
-        # Consider also obsoleted symbols (explode)
-        .withColumn(
-            "symbols",
-            f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label")),
-        )
-        .withColumn("symbols", f.explode("symbols"))
-        .withColumnRenamed("id", "geneId")
-        .withColumn("chromosome", f.col("genomicLocation.chromosome"))
-    )
-    return genes
+    return gene_index.select(
+        f.col("id").alias("geneId"),
+        f.explode(
+            f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
+        ).alias("geneSymbol"),
+        f.col("genomicLocation.chromosome").alias("chromosome"),
+        get_gene_tss(
+            f.col("genomicLocation.strand"),
+            f.col("genomicLocation.start"),
+            f.col("genomicLocation.end"),
+        ).alias("tss"),
+        "genomicLocation",
+    ).repartition("chromosome")
 
 
 def get_variants_in_interval(
@@ -58,8 +51,8 @@ def get_variants_in_interval(
         DataFrame: V2G evidence based on all the variants found in the intervals
     """
     return (
-        interval_df.join(variants_df, on="chromosome", how="inner")
+        interval_df.repartition("chromosome")
+        .join(variants_df, on="chromosome", how="inner")
         .filter(f.col("position").between(f.col("start"), f.col("end")))
-        .drop("chromosome", "position", "start", "end")
-        .withColumnRenamed("id", "variantId")
+        .drop("start", "end")
     )

@@ -63,7 +63,7 @@ class ParseJung:
             .withColumn("interval", f.split(f.col("Interacting_fragment"), r"\."))
             .select(
                 # Parsing intervals:
-                f.regexp_replace(f.col("interval")[0], "chr", "").alias("chrom"),
+                f.regexp_replace(f.col("interval")[0], "chr", "").alias("chromosome"),
                 f.col("interval")[1].cast(t.IntegerType()).alias("start"),
                 f.col("interval")[2].cast(t.IntegerType()).alias("end"),
                 # Extract other columns:
@@ -77,19 +77,20 @@ class ParseJung:
         self.jung_intervals = (
             jung_raw
             # Lifting over to GRCh38 interval 1:
-            .transform(lambda df: lift.convert_intervals(df, "chrom", "start", "end"))
+            .transform(
+                lambda df: lift.convert_intervals(df, "chromosome", "start", "end")
+            )
             .select(
-                "chrom",
+                "chromosome",
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
-                f.explode(f.split(f.col("gene_name"), ";")).alias("gene_name"),
+                f.explode(f.split(f.col("gene_name"), ";")).alias("geneSymbol"),
                 "tissue",
             )
-            .alias("intervals")
             # Joining with genes:
             .join(
-                gene_index.alias("genes"),
-                on=[f.col("intervals.gene_name") == f.col("genes.symbols")],
+                gene_index,
+                on=["geneSymbol", "chromosome"],
                 how="inner",
             )
             # Finalize dataset:
@@ -99,7 +100,7 @@ class ParseJung:
                 "end",
                 "geneId",
                 f.col("tissue").alias("biofeature"),
-                f.lit(1).alias("score"),
+                f.lit(1.0).alias("score"),
                 f.lit(self.DATASET_NAME).alias("datasourceId"),
                 f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),

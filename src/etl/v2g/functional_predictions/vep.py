@@ -1,6 +1,7 @@
 """The variant annotation dataset contains information about the impact of a variant on a transcript or protein. These can be mapped to genes allowing us to establish significant relationships between variants and genes."""
 from __future__ import annotations
 
+from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -18,7 +19,7 @@ def main(
     variant_index_path: str,
     variant_annotation_path: str,
     variant_consequence_lut_path: str,
-) -> tuple[DataFrame, ...]:
+) -> DataFrame:
     """Extracts variant to gene assignments for the variants included in the index and the features predicted by VEP.
 
     Args:
@@ -37,13 +38,15 @@ def main(
         etl.spark.read.parquet(variant_annotation_path)
         # exploding the array already removes record without VEP annotation
         .select(
-            "id", f.explode("vep.transcriptConsequences").alias("transcriptConsequence")
+            "id",
+            f.explode("vep.transcriptConsequences").alias("transcriptConsequence"),
+            "chromosome",
         )
     )
-    vi = etl.spark.read.parquet(variant_index_path).select("id")
-    annotated_variants = (
-        va_with_vep.join(vi, on="id", how="inner").coalesce(20).persist()
-    )
+    vi = etl.spark.read.parquet(variant_index_path).select("id", "chromosome")
+    annotated_variants = va_with_vep.join(
+        vi, on=["id", "chromosome"], how="inner"
+    ).persist()
 
     vep_consequences = get_variant_consequences(
         annotated_variants, variant_consequence_lut
@@ -56,7 +59,11 @@ def main(
     vep_plof = get_plof_flag(annotated_variants)
     etl.logger.info("Extracted pLOF assesments from LOFTEE.")
 
-    return vep_consequences, vep_polyphen, vep_sift, vep_plof
+    func_pred_datasets = [vep_consequences, vep_polyphen, vep_sift, vep_plof]
+
+    return reduce(
+        lambda x, y: x.unionByName(y, allowMissingColumns=True), func_pred_datasets
+    )
 
 
 def read_consequence_lut(
@@ -98,6 +105,7 @@ def get_variant_consequences(
     return (
         variants_df.select(
             f.col("id").alias("variantId"),
+            "chromosome",
             f.col("transcriptConsequence.gene_id").alias("geneId"),
             f.explode("transcriptConsequence.consequence_terms").alias("label"),
             f.lit("vep").alias("datatypeId"),
@@ -135,6 +143,7 @@ def get_polyphen_score(
         f.col("transcriptConsequence.polyphen_score").isNotNull()
     ).select(
         f.col("id").alias("variantId"),
+        "chromosome",
         f.col("transcriptConsequence.gene_id").alias("geneId"),
         f.col("transcriptConsequence.polyphen_score").alias("score"),
         f.col("transcriptConsequence.polyphen_prediction").alias("label"),
@@ -160,6 +169,7 @@ def get_sift_score(
         f.col("transcriptConsequence.sift_score").isNotNull()
     ).select(
         f.col("id").alias("variantId"),
+        "chromosome",
         f.col("transcriptConsequence.gene_id").alias("geneId"),
         f.col("transcriptConsequence.sift_score").alias("resourceScore"),
         f.expr("1 - transcriptConsequence.sift_score").alias("score"),
@@ -192,6 +202,7 @@ def get_plof_flag(variants_df: DataFrame) -> DataFrame:
         )
         .select(
             f.col("id").alias("variantId"),
+            "chromosome",
             f.col("transcriptConsequence.gene_id").alias("geneId"),
             "isHighQualityPlof",
             f.col("score"),

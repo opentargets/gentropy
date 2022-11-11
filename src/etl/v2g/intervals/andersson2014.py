@@ -82,10 +82,10 @@ class ParseAndersson:
             .withColumn("score", f.col("score").cast("float") / f.lit(1000))
             # Parsing the 'name' column:
             .withColumn("parsedName", f.split(f.col("name"), ";"))
-            .withColumn("gene_symbol", f.col("parsedName")[2])
+            .withColumn("geneSymbol", f.col("parsedName")[2])
             .withColumn("location", f.col("parsedName")[0])
             .withColumn(
-                "chrom",
+                "chromosome",
                 f.regexp_replace(f.split(f.col("location"), ":|-")[0], "chr", ""),
             )
             .withColumn(
@@ -95,40 +95,43 @@ class ParseAndersson:
                 "end", f.split(f.col("location"), ":|-")[2].cast(t.IntegerType())
             )
             # Select relevant columns:
-            .select("chrom", "start", "end", "gene_symbol", "score")
+            .select(
+                "chromosome",
+                "start",
+                "end",
+                "geneSymbol",
+                "score",
+            )
             # Drop rows with non-canonical chromosomes:
             .filter(
-                f.col("chrom").isin([str(x) for x in range(1, 23)] + ["X", "Y", "MT"])
+                f.col("chromosome").isin(
+                    [str(x) for x in range(1, 23)] + ["X", "Y", "MT"]
+                )
             )
             # For each region/gene, keep only one row with the highest score:
-            .groupBy("chrom", "start", "end", "gene_symbol")
+            .groupBy("chromosome", "start", "end", "geneSymbol")
             .agg(f.max("score").alias("resourceScore"))
-            .orderBy("chrom", "start")
+            .orderBy("chromosome", "start")
             .persist()
         )
 
         self.anderson_intervals = (
             # Lift over the intervals:
-            lift.convert_intervals(parsed_anderson_df, "chrom", "start", "end")
+            lift.convert_intervals(parsed_anderson_df, "chromosome", "start", "end")
             .drop("start", "end")
             .withColumnRenamed("mapped_start", "start")
             .withColumnRenamed("mapped_end", "end")
             .distinct()
             # Joining with the gene index
-            .alias("intervals")
             .join(
-                gene_index.alias("genes"),
-                on=[f.col("intervals.gene_symbol") == f.col("genes.symbols")],
+                gene_index,
+                on=["geneSymbol", "chromosome"],
                 how="left",
             )
             .filter(
-                # Drop rows where the gene is not on the same chromosome
-                (f.col("chrom") == f.col("chromosome"))
                 # Drop rows where the TSS is far from the start of the region
-                & (
-                    f.abs((f.col("start") + f.col("end")) / 2 - f.col("tss"))
-                    <= self.TWOSIDED_THRESHOLD
-                )
+                f.abs((f.col("start") + f.col("end")) / 2 - f.col("tss"))
+                <= self.TWOSIDED_THRESHOLD
             )
             # Select relevant columns:
             .select(

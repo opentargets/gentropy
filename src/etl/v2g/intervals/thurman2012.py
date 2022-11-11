@@ -66,7 +66,7 @@ class ParseThurman:
                 t.StructField("gene_chr", t.StringType(), False),
                 t.StructField("gene_start", t.IntegerType(), False),
                 t.StructField("gene_end", t.IntegerType(), False),
-                t.StructField("gene_name", t.StringType(), False),
+                t.StructField("geneSymbol", t.StringType(), False),
                 t.StructField("chrom", t.StringType(), False),
                 t.StructField("start", t.IntegerType(), False),
                 t.StructField("end", t.IntegerType(), False),
@@ -80,24 +80,25 @@ class ParseThurman:
             # Read table according to the schema, then do some modifications:
             .read.csv(thurman_datafile, sep="\t", header=False, schema=thurman_schema)
             .select(
-                f.regexp_replace(f.col("chrom"), "chr", "").alias("chrom"),
+                f.regexp_replace(f.col("chrom"), "chr", "").alias("chromosome"),
                 "start",
                 "end",
-                "gene_name",
+                "geneSymbol",
                 "score",
             )
             # Lift over to the GRCh38 build:
-            .transform(lambda df: lift.convert_intervals(df, "chrom", "start", "end"))
-            .alias("intervals")
+            .transform(
+                lambda df: lift.convert_intervals(df, "chromosome", "start", "end")
+            )
             # Map gene names to gene IDs:
             .join(
-                gene_index.alias("genes"),
-                on=[f.col("intervals.gene_name") == f.col("genes.symbols")],
+                gene_index,
+                on=["geneSymbol", "chromosome"],
                 how="inner",
             )
             # Select relevant columns and add constant columns:
             .select(
-                f.col("chrom").alias("chromosome"),
+                "chromosome",
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
                 "geneId",

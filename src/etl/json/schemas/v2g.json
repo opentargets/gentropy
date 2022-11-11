@@ -14,15 +14,27 @@
       "metadata": {}
     },
     {
+      "name": "chromosome",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "position",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "datasourceId",
       "type": "string",
-      "nullable": false,
+      "nullable": true,
       "metadata": {}
     },
     {
       "name": "datatypeId",
       "type": "string",
-      "nullable": false,
+      "nullable": true,
       "metadata": {}
     },
     {
@@ -39,7 +51,7 @@
     },
     {
       "name": "score",
-      "type": "string",
+      "type": "double",
       "nullable": true,
       "metadata": {}
     },

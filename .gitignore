@@ -3,3 +3,5 @@ src/config.yaml
 **/__pycache__/
 outputs/
 **/.DS_Store
+.coverage
+coverage.xml
