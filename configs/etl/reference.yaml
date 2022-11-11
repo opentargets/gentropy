@@ -21,13 +21,13 @@ coloc:
 
 v2g:
   inputs:
-    gene_index: ${etl.inputs}/v2g_input/targets
+    gene_index: ${etl.inputs}/v2g_input/targets_correct_tss
     variant_index: ${etl.outputs}/variant_index
   parameters:
     partition_count: 400
     tss_distance_threshold: 500000
   outputs:
-    v2g_distance: ${etl.outputs}/v2g_distance_incorrect_tss
+    v2g_distance: ${etl.outputs}/v2g_distance
 
 
 intervals:

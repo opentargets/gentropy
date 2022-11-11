@@ -25,8 +25,6 @@ def main(cfg: DictConfig) -> None:
     ).repartition(400)
 
     etl.logger.info(f"Writing V2G evidence to: {cfg.etl.v2g.outputs.v2g_distance}")
-    print(v2g_distance_df.schema.jsonValue())
-    print(v2g_distance_df.explain(mode="formatted"))
 
     v2g_distance_df.write.partitionBy("chromosome").mode(
         cfg.environment.sparkWriteMode
