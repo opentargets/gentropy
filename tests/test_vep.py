@@ -47,7 +47,6 @@ def v2g_df_schema() -> t.StructType:
             t.StructField("label", t.StringType(), True),
             t.StructField("isHighQualityPlof", t.BooleanType(), True),
             t.StructField("score", t.DoubleType(), True),
-            t.StructField("resourceScore", t.DoubleType(), True),
             t.StructField("datatypeId", t.StringType(), True),
             t.StructField("datasourceId", t.StringType(), True),
         ]
@@ -118,9 +117,7 @@ class TestGetVariantConsequences:
                 "ENSG00000227152",
                 "SO_0001587",
                 "stop_gained",
-                None,
                 1.0,
-                None,
                 "vep",
                 "variantConsequence",
             )
@@ -131,9 +128,7 @@ class TestGetVariantConsequences:
                 "ENSG00000227152",
                 "SO_0001630",
                 "splice_region_variant",
-                None,
                 0.33,
-                None,
                 "vep",
                 "variantConsequence",
             )
@@ -246,7 +241,6 @@ class TestGetPolypyhenScoreAndGetSiftScore:
                 "benign",
                 None,
                 0.355,
-                None,
                 "vep",
                 "polyphen",
             ),
@@ -256,7 +250,6 @@ class TestGetPolypyhenScoreAndGetSiftScore:
                 None,
                 "tolerated",
                 None,
-                0.09,
                 0.91,
                 "vep",
                 "sift",
@@ -289,23 +282,12 @@ class TestGetPolypyhenScoreAndGetSiftScore:
                 "sift_prediction",
             ).alias("transcriptConsequence"),
         )
-        test_df = (
-            mock_df.transform(get_polyphen_score)
-            .unionByName(mock_df.transform(get_sift_score), allowMissingColumns=True)
-            .toPandas()
-            .dropna(axis=1, how="all")
+        test_df = mock_df.transform(get_polyphen_score).unionAll(
+            mock_df.transform(get_sift_score)
         )
-        expected_df = (
-            spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
-            .toPandas()
-            .dropna(axis=1, how="all")
-        )
+        expected_df = spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
 
-        assert_frame_equal(
-            test_df,
-            expected_df,
-            check_like=True,
-        )
+        assert_frame_equal(test_df.toPandas(), expected_df.toPandas(), check_like=True)
 
 
 class TestGetPlofFlag:
@@ -361,8 +343,7 @@ class TestGetPlofFlag:
                 None,
                 None,
                 True,
-                1.0,
-                None,
+                1,
                 "vep",
                 "loftee",
             )
@@ -374,8 +355,7 @@ class TestGetPlofFlag:
                 None,
                 None,
                 False,
-                0.0,
-                None,
+                0,
                 "vep",
                 "loftee",
             )
