@@ -75,14 +75,14 @@ class ParseJavierre:
             .withColumn("name_score", f.col("name_split")[3].cast(t.FloatType()))
             # Cleaning up chromosome:
             .withColumn(
-                "chromosome",
+                "chrom",
                 f.regexp_replace(f.col("chrom"), "chr", "").cast(t.StringType()),
             )
             .drop("name_split", "name", "annotation")
             # Keep canonical chromosomes and consistent chromosomes with scores:
             .filter(
                 (f.col("name_score").isNotNull())
-                & (f.col("chromosome") == f.col("name_chr"))
+                & (f.col("chrom") == f.col("name_chr"))
                 & f.col("name_chr").isin(
                     [f"{x}" for x in range(1, 23)] + ["X", "Y", "MT"]
                 )
@@ -93,11 +93,9 @@ class ParseJavierre:
         javierre_remapped = (
             javierre_raw
             # Lifting over to GRCh38 interval 1:
-            .transform(
-                lambda df: lift.convert_intervals(df, "chromosome", "start", "end")
-            )
+            .transform(lambda df: lift.convert_intervals(df, "chrom", "start", "end"))
             .drop("start", "end")
-            .withColumnRenamed("mapped_chrom", "chromosome")
+            .withColumnRenamed("mapped_chrom", "chrom")
             .withColumnRenamed("mapped_start", "start")
             .withColumnRenamed("mapped_end", "end")
             # Lifting over interval 2 to GRCh38:
@@ -115,15 +113,16 @@ class ParseJavierre:
 
         # Once the intervals are lifted, extracting the unique intervals:
         unique_intervals_with_genes = (
-            javierre_remapped.select(
-                f.col("chromosome"),
+            javierre_remapped.alias("intervals")
+            .select(
+                f.col("chrom"),
                 f.col("start").cast(t.IntegerType()),
                 f.col("end").cast(t.IntegerType()),
             )
             .distinct()
             .join(
-                gene_index,
-                on="chromosome",
+                gene_index.alias("genes"),
+                on=[f.col("intervals.chrom") == f.col("genes.chromosome")],
                 how="left",
             )
             .filter(
@@ -136,15 +135,13 @@ class ParseJavierre:
                     & (f.col("end") <= f.col("genomicLocation.end"))
                 )
             )
-            .select("chromosome", "start", "end", "geneId", "tss")
+            .select("chrom", "start", "end", "geneId", "tss")
         )
 
         # Joining back the data:
         self.javierre_intervals = (
             javierre_remapped.join(
-                unique_intervals_with_genes,
-                on=["chromosome", "start", "end"],
-                how="left",
+                unique_intervals_with_genes, on=["chrom", "start", "end"], how="left"
             )
             .filter(
                 # Drop rows where the TSS is far from the start of the region
@@ -152,7 +149,9 @@ class ParseJavierre:
                 <= self.TWOSIDED_THRESHOLD
             )
             # For each gene, keep only the highest scoring interval:
-            .groupBy("name_chr", "name_start", "name_end", "geneId", "bio_feature")
+            .groupBy(
+                "name_chr", "name_start", "name_end", "genes.geneId", "bio_feature"
+            )
             .agg(f.max(f.col("name_score")).alias("resourceScore"))
             # Create the output:
             .select(
@@ -160,7 +159,7 @@ class ParseJavierre:
                 f.col("name_start").alias("start"),
                 f.col("name_end").alias("end"),
                 f.col("resourceScore"),
-                "geneId",
+                f.col("genes.geneId").alias("geneId"),
                 f.col("bio_feature").alias("biofeature"),
                 f.lit(self.DATASET_NAME).alias("datasourceId"),
                 f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),

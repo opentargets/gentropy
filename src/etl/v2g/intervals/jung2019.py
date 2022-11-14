@@ -63,7 +63,7 @@ class ParseJung:
             .withColumn("interval", f.split(f.col("Interacting_fragment"), r"\."))
             .select(
                 # Parsing intervals:
-                f.regexp_replace(f.col("interval")[0], "chr", "").alias("chromosome"),
+                f.regexp_replace(f.col("interval")[0], "chr", "").alias("chrom"),
                 f.col("interval")[1].cast(t.IntegerType()).alias("start"),
                 f.col("interval")[2].cast(t.IntegerType()).alias("end"),
                 # Extract other columns:
@@ -77,20 +77,19 @@ class ParseJung:
         self.jung_intervals = (
             jung_raw
             # Lifting over to GRCh38 interval 1:
-            .transform(
-                lambda df: lift.convert_intervals(df, "chromosome", "start", "end")
-            )
+            .transform(lambda df: lift.convert_intervals(df, "chrom", "start", "end"))
             .select(
-                "chromosome",
+                "chrom",
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
-                f.explode(f.split(f.col("gene_name"), ";")).alias("geneSymbol"),
+                f.explode(f.split(f.col("gene_name"), ";")).alias("gene_name"),
                 "tissue",
             )
+            .alias("intervals")
             # Joining with genes:
             .join(
-                gene_index,
-                on=["geneSymbol", "chromosome"],
+                gene_index.alias("genes"),
+                on=[f.col("intervals.gene_name") == f.col("genes.geneSymbol")],
                 how="inner",
             )
             # Finalize dataset:

@@ -28,13 +28,13 @@
     {
       "name": "datasourceId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
       "name": "datatypeId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
