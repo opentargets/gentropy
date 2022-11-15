@@ -35,7 +35,7 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
             f.col("genomicLocation.end"),
         ).alias("tss"),
         "genomicLocation",
-    ).repartition("chromosome")
+    )
 
 
 def get_variants_in_interval(
@@ -51,8 +51,7 @@ def get_variants_in_interval(
         DataFrame: V2G evidence based on all the variants found in the intervals
     """
     return (
-        interval_df.repartition("chromosome")
-        .join(variants_df, on="chromosome", how="inner")
+        interval_df.join(variants_df, on="chromosome", how="inner")
         .filter(f.col("position").between(f.col("start"), f.col("end")))
         .drop("start", "end")
     )

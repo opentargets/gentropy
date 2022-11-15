@@ -17,8 +17,9 @@ if TYPE_CHECKING:
     from etl.common.ETLSession import ETLSession
     from etl.v2g.intervals.Liftover import LiftOverSpark
 
-    """
-    Parser Thurman 2012 dataset
+
+class ParseThurman:
+    """Parser Thurman 2012 dataset.
 
     :param Thurman_parquet: path to the parquet file containing the Thurman 2012 data
     :param gene_index: Pyspark dataframe containing the gene index
@@ -29,10 +30,6 @@ if TYPE_CHECKING:
     - Lifting over coordinates to GRCh38
     - Mapping genes names to gene IDs -> we might need to measure the loss of genes if there are obsoleted names.
     """
-
-
-class ParseThurman:
-    """Parser Thurman dataset."""
 
     # Constants:
     DATASET_NAME = "thurman2012"

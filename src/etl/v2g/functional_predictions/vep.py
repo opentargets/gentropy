@@ -30,8 +30,7 @@ def main(
     Returns:
         DataFrame: variant to gene assignments from VEP
     """
-    # function that takes the index, gets the vep data and parses it
-    etl.logger.info("Loading variant index")
+    etl.logger.info("Parsing functional predictions...")
     variant_consequence_lut = read_consequence_lut(etl, variant_consequence_lut_path)
     va_with_vep = (
         etl.read_parquet(variant_annotation_path, "variant_annotation.json")
