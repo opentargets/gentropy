@@ -19,6 +19,7 @@ nav:
     - reference.md
     - Variants: modules/variants.md
     - GWAS Catalog ingestion: modules/gwas_ingest.md
+    - Assigning Variants to Genes: modules/variant_to_gene.md
     - Interval data: modules/intervals.md
     - Colocalisation: modules/colocalisation.md
     - Schemas: modules/schemas.md

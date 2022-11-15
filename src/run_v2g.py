@@ -1,4 +1,4 @@
-"""Variant index generation."""
+"""Step to aggregate variant-to-gene assesments."""
 from __future__ import annotations
 
 from functools import reduce
@@ -15,7 +15,7 @@ from etl.v2g.distance.distance import main as v2g_distance
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
-    """Run variant index generation."""
+    """Run V2G set generation."""
     etl = ETLSession(cfg)
 
     vi = etl.read_parquet(
@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
         vi,
         genes,
         cfg.etl.v2g.parameters.tss_distance_threshold,
-    ).repartition(400)
+    ).repartition(cfg.etl.v2g.parameters.partition_count)
     v2g_datasets = [v2g_distance_df]
     v2g = reduce(lambda x, y: x.unionByName(y, allowMissingColumns=True), v2g_datasets)
 

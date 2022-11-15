@@ -1,4 +1,4 @@
-"""Generation of relationship between a variant and a window of a gene."""
+"""The distance dataset contains gene distance to credible set variants provided that these are found within a certain region."""
 
 from __future__ import annotations
 
