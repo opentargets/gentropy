@@ -12,36 +12,26 @@ if TYPE_CHECKING:
     from etl.common.ETLSession import ETLSession
 
 from etl.common.spark_helpers import normalise_column
-from etl.common.utils import get_gene_tss
 
 
 def main(
     etl: ETLSession,
-    variant_index_path: str,
-    gene_index_path: str,
+    variant_index: DataFrame,
+    gene_index: DataFrame,
     tss_distance_threshold: int,
 ) -> DataFrame:
     """Extracts variant to gene assignments for variants falling within a window of a gene's TSS."""
     etl.logger.info("Generating distance related V2G data...")
-    variant_index = etl.read_parquet(
-        variant_index_path, "variant_index.json"
-    ).selectExpr("id as variantId", "chromosome", "position")
-    gene_idx = etl.read_parquet(gene_index_path, "targets.json").select(
-        f.col("id").alias("geneId"),
-        get_gene_tss(
-            f.col("genomicLocation.strand"),
-            f.col("genomicLocation.start"),
-            f.col("genomicLocation.end"),
-        ).alias("tss"),
-        f.col("genomicLocation.chromosome").alias("chromosome"),
-    )
-    distances = calculate_dist_to_gene(gene_idx, variant_index, tss_distance_threshold)
 
-    return distances.select(
-        "*",
-        f.lit("distance").alias("datatypeId"),
-        f.lit("canonical_tss").alias("datasourceId"),
-    ).transform(score_distance)
+    return (
+        get_variant_distance_to_gene(gene_index, variant_index, tss_distance_threshold)
+        .select(
+            "*",
+            f.lit("distance").alias("datatypeId"),
+            f.lit("canonical_tss").alias("datasourceId"),
+        )
+        .transform(score_distance)
+    )
 
 
 def score_distance(df: DataFrame) -> DataFrame:
@@ -67,7 +57,7 @@ def score_distance(df: DataFrame) -> DataFrame:
     )
 
 
-def calculate_dist_to_gene(
+def get_variant_distance_to_gene(
     gene_df: DataFrame,
     variant_df: DataFrame,
     distance_window: int,

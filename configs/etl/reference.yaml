@@ -29,31 +29,6 @@ v2g:
   outputs:
     v2g_distance: ${etl.outputs}/v2g_distance
 
-
-intervals:
-  inputs:
-    # Originally gs://genetics-portal-input/v2g_input/grch37_to_grch38.over.chain
-    liftover_chain_file: ${etl.inputs}/v2g_input/grch37_to_grch38.over.chain
-    # Originally gs://genetics-portal-input/v2g_input/geneset.protein_coding.parquet
-    gene_index: ${etl.inputs}/v2g_input/targets
-    # An atlas of active enhancers across human cell types and tissues
-    # Originally: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
-    anderson_file: ${etl.inputs}/v2g_input/andersson2014/enhancer_tss_associations.bed
-    # Lineage-Specific Genome Architecture Links Enhancers and Non-coding Disease Variants to Target Gene Promoters
-    # Originally gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
-    javierre_dataset: ${etl.inputs}/v2g_input/javierre_2016_preprocessed.parquet
-    # A compendium of promoter-centered long-range chromatin interactions in the human genome
-    # Originally gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
-    jung_file: ${etl.inputs}/v2g_input/pchic_jung2019/jung2019_pchic_tableS3.csv
-    # The accessible chromatin landscape of the human genome
-    # Originally: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-    thurman_file: ${etl.inputs}/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-  outputs:
-    intervals: ${etl.outputs}/intervals
-  parameters:
-    max_length_difference: 100
-  machine: ${machine.default}
-
 variant_annotation:
   inputs:
     gnomad_file: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
