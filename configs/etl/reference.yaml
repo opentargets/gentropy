@@ -64,4 +64,7 @@ gwas_ingest:
   parameters:
     ingest_unpublished_studies: False
     p_value_cutoff: 5e-8
+    ld_gnomad_version: "2.1.1"
+    ld_window: 500_000
+    min_r2: 0.5
   machine: ${machine.default}
