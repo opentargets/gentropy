@@ -15,35 +15,36 @@ if TYPE_CHECKING:
 
 def main(
     etl: ETLSession,
-    variant_index_path: str,
-    variant_annotation_path: str,
+    variant_index: DataFrame,
+    variant_annotation: DataFrame,
     variant_consequence_lut_path: str,
 ) -> tuple[DataFrame, ...]:
     """Extracts variant to gene assignments for the variants included in the index and the features predicted by VEP.
 
     Args:
         etl (ETLSession): ETL session,
-        variant_index_path (str): The path to the OTG variant index
-        variant_annotation_path (str): The path to the variant annotation file
+        variant_index (DataFrame): DataFrame with the OTG variant index
+        variant_annotation (DataFrame): Dataframe with the annotated variants
         variant_consequence_lut_path (str): The path to the LUT between the functional consequences and their assigned V2G score
 
     Returns:
         DataFrame: variant to gene assignments from VEP
     """
     etl.logger.info("Parsing functional predictions...")
-    variant_consequence_lut = read_consequence_lut(etl, variant_consequence_lut_path)
-    va_with_vep = (
-        etl.read_parquet(variant_annotation_path, "variant_annotation.json")
-        # exploding the array already removes record without VEP annotation
-        .select(
-            "id", f.explode("vep.transcriptConsequences").alias("transcriptConsequence")
-        )
-    )
-    vi = etl.read_parquet(variant_index_path, "variant_index.json").select("id")
+
     annotated_variants = (
-        va_with_vep.join(vi, on="id", how="inner").coalesce(20).persist()
+        variant_annotation.select(
+            "variantId",
+            # exploding the array already removes record without VEP annotation
+            f.explode("vep.transcriptConsequences").alias("transcriptConsequence"),
+        )
+        .join(
+            variant_index.select("variantId", "chromosome"), on="variantId", how="inner"
+        )
+        .persist()
     )
 
+    variant_consequence_lut = read_consequence_lut(etl, variant_consequence_lut_path)
     vep_consequences = get_variant_consequences(
         annotated_variants, variant_consequence_lut
     )
@@ -96,7 +97,8 @@ def get_variant_consequences(
     """
     return (
         variants_df.select(
-            f.col("id").alias("variantId"),
+            "variantId",
+            "chromosome",
             f.col("transcriptConsequence.gene_id").alias("geneId"),
             f.explode("transcriptConsequence.consequence_terms").alias("label"),
             f.lit("vep").alias("datatypeId"),
@@ -133,7 +135,8 @@ def get_polyphen_score(
     return variants_df.filter(
         f.col("transcriptConsequence.polyphen_score").isNotNull()
     ).select(
-        f.col("id").alias("variantId"),
+        "variantId",
+        "chromosome",
         f.col("transcriptConsequence.gene_id").alias("geneId"),
         f.col("transcriptConsequence.polyphen_score").alias("score"),
         f.col("transcriptConsequence.polyphen_prediction").alias("label"),
@@ -158,7 +161,8 @@ def get_sift_score(
     return variants_df.filter(
         f.col("transcriptConsequence.sift_score").isNotNull()
     ).select(
-        f.col("id").alias("variantId"),
+        "variantId",
+        "chromosome",
         f.col("transcriptConsequence.gene_id").alias("geneId"),
         f.col("transcriptConsequence.sift_score").alias("resourceScore"),
         f.expr("1 - transcriptConsequence.sift_score").alias("score"),
@@ -192,7 +196,8 @@ def get_plof_flag(variants_df: DataFrame) -> DataFrame:
             ),
         )
         .select(
-            f.col("id").alias("variantId"),
+            "variantId",
+            "chromosome",
             f.col("transcriptConsequence.gene_id").alias("geneId"),
             "isHighQualityPlof",
             f.col("score"),

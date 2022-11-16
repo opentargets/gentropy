@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 
 import hydra
 
-from etl.json import validate_df_schema
-
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
@@ -38,6 +36,13 @@ def main(cfg: DictConfig) -> None:
         .selectExpr("id as variantId", "chromosome", "position")
         .persist()
     )
+    va = (
+        etl.read_parquet(
+            cfg.etl.v2g.inputs.variant_annotation, "variant_annotation.json"
+        )
+        # exploding the array already removes record without VEP annotation
+        .selectExpr("id as variantId", "vep")
+    )
     lift = LiftOverSpark(
         cfg.etl.v2g.inputs.liftover_chain_file,
         cfg.etl.v2g.parameters.liftover_max_length_difference,
@@ -60,20 +65,26 @@ def main(cfg: DictConfig) -> None:
     ).transform(lambda df: get_variants_in_interval(df, vi))
     func_pred_datasets = extract_v2g_from_vep(
         etl,
-        cfg.etl.v2g.inputs.variant_index,
-        cfg.etl.v2g.inputs.variant_annotation,
+        vi,
+        va,
         cfg.etl.v2g.inputs.vep_consequences,
     )
-    v2g_datasets = [interval_df, *func_pred_datasets]
-    v2g = reduce(lambda x, y: x.unionByName(y, allowMissingColumns=True), v2g_datasets)
-
-    validate_df_schema(v2g, "v2g.json")
-    (
-        v2g.coalesce(cfg.etl.v2g.parameters.partition_count)
-        .write.partitionBy("chromosome")
-        .mode(cfg.environment.sparkWriteMode)
-        .parquet(cfg.etl.v2g.outputs.v2g)
+    func_pred_df = reduce(
+        lambda x, y: x.unionByName(y, allowMissingColumns=True), func_pred_datasets
     )
+    v2g_datasets = [("intervals", interval_df), ("vep", func_pred_df)]
+    # v2g = reduce(lambda x, y: x.unionByName(y, allowMissingColumns=True), v2g_datasets)
+
+    # validate_df_schema(v2g, "v2g.json")
+
+    for (name, df) in v2g_datasets:
+        (
+            df.repartition(cfg.etl.v2g.parameters.partition_count, "chromosome")
+            .sortWithinPartitions("chromosome", "position")
+            .write.partitionBy("chromosome")
+            .mode(cfg.environment.sparkWriteMode)
+            .parquet(f"{cfg.etl.v2g.outputs.v2g}/{name}")
+        )
     etl.logger.info(f"V2G set has been written to {cfg.etl.v2g.outputs.v2g}.")
 
 
