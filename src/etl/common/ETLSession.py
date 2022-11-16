@@ -6,6 +6,7 @@ import importlib.resources as pkg_resources
 import json
 from typing import TYPE_CHECKING
 
+from pyspark import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType
 
@@ -19,11 +20,21 @@ if TYPE_CHECKING:
 class ETLSession:
     """Spark session class."""
 
-    def __init__(self: ETLSession, cfg: DictConfig) -> None:
-        """Creates spark session and logger."""
+    spark_config = SparkConf()
+
+    def __init__(
+        self: ETLSession, cfg: DictConfig, spark_config: SparkConf = spark_config
+    ) -> None:
+        """Initialises spark session and logger.
+
+        Args:
+            cfg (DictConfig): configuration file
+            spark_config (SparkConf): Optional spark config. Defaults to spark_config.
+        """
         # create session and retrieve Spark logger object
         self.spark = (
-            SparkSession.builder.master(cfg.environment.sparkUri)
+            SparkSession.builder.config(conf=spark_config)
+            .master(cfg.environment.sparkUri)
             .appName(cfg.etl.name)
             .getOrCreate()
         )
