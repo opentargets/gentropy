@@ -5,6 +5,7 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import hydra
+import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -80,11 +81,13 @@ def main(cfg: DictConfig) -> None:
     for (name, df) in v2g_datasets:
         (
             df.repartition(cfg.etl.v2g.parameters.partition_count, "chromosome")
+            .withColumn("position", f.split(f.col("variantId"), "_")[1])
             .sortWithinPartitions("chromosome", "position")
             .write.partitionBy("chromosome")
             .mode(cfg.environment.sparkWriteMode)
             .parquet(f"{cfg.etl.v2g.outputs.v2g}/{name}")
         )
+
     etl.logger.info(f"V2G set has been written to {cfg.etl.v2g.outputs.v2g}.")
 
 
