@@ -8,7 +8,7 @@ import hydra
 from pyspark.sql import functions as f
 
 from etl.common.ETLSession import ETLSession
-from etl.v2d.ld import gnomad_toploci_ld_annotation
+from etl.gwas_ingest.ld import variants_in_ld_in_gnomad_pop
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -40,45 +40,47 @@ def main(cfg: DictConfig) -> None:
             "variantId": "1_154453788_C_T",
             "pop": "nfe",
         },
-        {
-            "variantId": "1_100236660_T_A",
-            "pop": "afr",
-        },
         {"variantId": "21_13847526_T_C", "pop": "nfe"},
     ]
-    lead_df = (
+    variants_df = (
         etl.spark.createDataFrame(d)
         .toDF("pop", "variantId")
         .select(
             "*",
             f.split(f.col("variantId"), "_").getItem(0).alias("chrom"),
-            f.split(f.col("variantId"), "_").getItem(1).alias("pos"),
+            f.split(f.col("variantId"), "_").getItem(1).cast("int").alias("pos"),
             f.split(f.col("variantId"), "_").getItem(2).alias("ref"),
-            f.split(f.col("variantId"), "_").getItem(2).alias("alt"),
+            f.split(f.col("variantId"), "_").getItem(3).alias("alt"),
         )
-        .repartitionByRange("pop", "chrom")
-        .sortWithinPartitions("pos")
-        .persist()
+        # .repartitionByRange("pop", "chrom")
+        # .sortWithinPartitions("pos")
+        # .persist()
     )
 
-    # All populations in lead variants
-    populations = lead_df.select("pop").distinct().rdd.flatMap(lambda x: x).collect()
+    # All populations represented in the association file
+    populations = (
+        variants_df.select("pop").distinct().rdd.flatMap(lambda x: x).collect()
+    )
 
+    # Retrieve LD information from gnomAD
     dataframes = []
-    # Looping through all populations:
     for pop in populations:
-        variants = lead_df.filter(f.col("pop") == pop).distinct()
-        dataframes.append(
-            gnomad_toploci_ld_annotation(
-                etl=etl,
-                lead_df=variants,
-                population=pop,
-                version=cfg.etl.gwas_ingest.parameters.ld_gnomad_version,
-                ld_radius=cfg.etl.gwas_ingest.parameters.ld_window,
-                min_r2=cfg.etl.gwas_ingest.parameters.min_r2,
-            )
-        )
-
+        pop_parsed_ldindex_path = ""
+        pop_matrix_path = ""
+        for popobj in cfg.etl.gwas_ingest.inputs.gnomad_populations:
+            if popobj.id == pop:
+                pop_parsed_ldindex_path = popobj.parsed_index
+                pop_matrix_path = popobj.matrix
+                variants_in_pop = variants_df.filter(f.col("pop") == pop).distinct()
+                dataframes.append(
+                    variants_in_ld_in_gnomad_pop(
+                        etl=etl,
+                        variants_df=variants_in_pop,
+                        ld_path=pop_matrix_path,
+                        parsed_ld_index_path=pop_parsed_ldindex_path,
+                        min_r2=cfg.etl.gwas_ingest.parameters.min_r2,
+                    )
+                )
     etl.logger.info("Writing output...")
     for pop in populations:
         dataframes[pop.pop].write.parquet(f"gs://ot-team/dochoa/ld_tests/{pop}.parquet")

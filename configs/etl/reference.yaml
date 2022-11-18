@@ -59,12 +59,48 @@ gwas_ingest:
     gwas_catalog_associations: gs://ot-team/dsuveges/v2d_files/gwas_associations_2022-06-27.tsv
     gwas_catalog_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_2022_08_16.tsv
     gwas_catalog_unpublished_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_unpublished_2022_08_16.tsv
+    gnomad_populations: 
+      - id: afr
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.afr.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.afr.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.afr.common.ld.variant_indices.parquet
+      - id: amr
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.amr.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.amr.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.amr.common.ld.variant_indices.parquet
+      - id: asj
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.asj.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.asj.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.asj.common.ld.variant_indices.parquet
+      - id: eas
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.eas.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.eas.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.eas.common.ld.variant_indices.parquet
+      - id: fin
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.fin.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.fin.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.fin.common.ld.variant_indices.parquet
+      - id: nfe
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nfe.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nfe.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.nfe.common.ld.variant_indices.parquet
+      - id: est
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.est.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.est.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.est.common.ld.variant_indices.parquet
+      - id: nwe
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nwe.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nwe.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.nwe.common.ld.variant_indices.parquet
+      - id: seu
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.seu.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.seu.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.seu.common.ld.variant_indices.parquet
   outputs:
     gwas_catalog_associations: ${etl.outputs}/gwas_catalog_associations
   parameters:
     ingest_unpublished_studies: False
     p_value_cutoff: 5e-8
-    ld_gnomad_version: "2.1.1"
     ld_window: 500_000
     min_r2: 0.5
   machine: ${machine.default}
