@@ -25,6 +25,7 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
     """
     return gene_index.select(
         f.col("id").alias("geneId"),
+        "biotype",
         f.explode(
             f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
         ).alias("geneSymbol"),

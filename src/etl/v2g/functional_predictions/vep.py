@@ -35,11 +35,14 @@ def main(
     annotated_variants = (
         variant_annotation.select(
             "variantId",
+            "chromosome",
             # exploding the array already removes record without VEP annotation
             f.explode("vep.transcriptConsequences").alias("transcriptConsequence"),
         )
         .join(
-            variant_index.select("variantId", "chromosome"), on="variantId", how="inner"
+            variant_index.select("variantId", "chromosome"),
+            on=["variantId", "chromosome"],
+            how="inner",
         )
         .persist()
     )

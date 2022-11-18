@@ -45,8 +45,21 @@ v2g:
   parameters:
     partition_count: 400
     liftover_max_length_difference: 100
-    # Define per data type a window for the distance between the variant and the gene
     tss_distance_threshold: 500000
+    approved_biotypes:
+      - protein_coding
+      - 3prime_overlapping_ncRNA
+      - antisense
+      - bidirectional_promoter_lncRNA
+      - IG_C_gene
+      - IG_D_gene
+      - IG_J_gene
+      - IG_V_gene
+      - lincRNA
+      - macro_lncRNA
+      - non_coding
+      - sense_intronic
+      - sense_overlapping
   machine: ${machine.v2g}
 
 variant_annotation:

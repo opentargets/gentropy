@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
+from etl.json import validate_df_schema
 from etl.v2g.functional_predictions.vep import main as extract_v2g_from_vep
 from etl.v2g.intervals.andersson2014 import ParseAndersson
 from etl.v2g.intervals.helpers import (
@@ -37,13 +38,9 @@ def main(cfg: DictConfig) -> None:
         .selectExpr("id as variantId", "chromosome", "position")
         .persist()
     )
-    va = (
-        etl.read_parquet(
-            cfg.etl.v2g.inputs.variant_annotation, "variant_annotation.json"
-        )
-        # exploding the array already removes record without VEP annotation
-        .selectExpr("id as variantId", "vep")
-    )
+    va = etl.read_parquet(
+        cfg.etl.v2g.inputs.variant_annotation, "variant_annotation.json"
+    ).selectExpr("id as variantId", "chromosome", "vep")
     lift = LiftOverSpark(
         cfg.etl.v2g.inputs.liftover_chain_file,
         cfg.etl.v2g.parameters.liftover_max_length_difference,
@@ -70,23 +67,31 @@ def main(cfg: DictConfig) -> None:
         va,
         cfg.etl.v2g.inputs.vep_consequences,
     )
-    func_pred_df = reduce(
-        lambda x, y: x.unionByName(y, allowMissingColumns=True), func_pred_datasets
-    )
-    v2g_datasets = [("intervals", interval_df), ("vep", func_pred_df)]
-    # v2g = reduce(lambda x, y: x.unionByName(y, allowMissingColumns=True), v2g_datasets)
-
-    # validate_df_schema(v2g, "v2g.json")
-
-    for (name, df) in v2g_datasets:
-        (
-            df.repartition(cfg.etl.v2g.parameters.partition_count, "chromosome")
-            .withColumn("position", f.split(f.col("variantId"), "_")[1])
-            .sortWithinPartitions("chromosome", "position")
-            .write.partitionBy("chromosome")
-            .mode(cfg.environment.sparkWriteMode)
-            .parquet(f"{cfg.etl.v2g.outputs.v2g}/{name}")
+    v2g = (
+        reduce(
+            lambda x, y: x.unionByName(y, allowMissingColumns=True),
+            [interval_df, *func_pred_datasets],
         )
+        # V2G assignments are restricted to a relevant set of genes (mostly protein coding)
+        .join(
+            gene_index.filter(
+                f.col("biotype").isin(list(cfg.etl.v2g.parameters.approved_biotypes))
+            ).select("geneId"),
+            on="geneId",
+            how="inner",
+        ).distinct()
+    )
+
+    validate_df_schema(v2g, "v2g.json")
+
+    (
+        v2g.repartition(cfg.etl.v2g.parameters.partition_count, "chromosome")
+        .withColumn("position", f.split(f.col("variantId"), "_")[1])
+        .sortWithinPartitions("chromosome", "position")
+        .write.partitionBy("chromosome")
+        .mode(cfg.environment.sparkWriteMode)
+        .parquet(cfg.etl.v2g.outputs.v2g)
+    )
 
     etl.logger.info(f"V2G set has been written to {cfg.etl.v2g.outputs.v2g}.")
 
