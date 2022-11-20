@@ -22,7 +22,7 @@ def pval_to_zscore(pvalcol: Column) -> Column:
         Column: p-values transformed to z-scores
 
     Examples:
-        >>> d = d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
+        >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
         >>> df = spark.createDataFrame(d)
         >>> df.withColumn("zscore", pval_to_zscore(f.col("pval"))).show()
         +---+-------+----------+
