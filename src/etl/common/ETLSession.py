@@ -54,9 +54,7 @@ class ETLSession:
             pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
         )
         schema = StructType.fromJson(core_schema)
-        df = self.spark.read.schema(schema).format("parquet").load(path)
-
-        return df
+        return self.spark.read.schema(schema).format("parquet").load(path)
 
 
 class Log4j:

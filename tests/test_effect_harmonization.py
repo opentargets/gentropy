@@ -18,14 +18,14 @@ def mock_allele_columns(spark: SparkSession) -> DataFrame:
     return spark.createDataFrame(
         [
             {"allele": "A", "reverseComp": "T", "isPalindrome": False},
-            {"allele": "C", "reverseComp": "G", "isPalindrom": False},
-            {"allele": "T", "reverseComp": "A", "isPalindrom": False},
-            {"allele": "G", "reverseComp": "C", "isPalindrom": False},
-            {"allele": "AT", "reverseComp": "AT", "isPalindrom": True},
-            {"allele": "TTGA", "reverseComp": "TCAA", "isPalindrom": False},
-            {"allele": "-", "reverseComp": None, "isPalindrom": False},
-            {"allele": None, "reverseComp": None, "isPalindrom": False},
-            {"allele": "CATATG", "reverseComp": "CATATG", "isPalindrom": True},
+            {"allele": "C", "reverseComp": "G", "isPalindrome": False},
+            {"allele": "T", "reverseComp": "A", "isPalindrome": False},
+            {"allele": "G", "reverseComp": "C", "isPalindrome": False},
+            {"allele": "AT", "reverseComp": "AT", "isPalindrome": True},
+            {"allele": "TTGA", "reverseComp": "TCAA", "isPalindrome": False},
+            {"allele": "-", "reverseComp": None, "isPalindrome": False},
+            {"allele": None, "reverseComp": None, "isPalindrome": False},
+            {"allele": "CATATG", "reverseComp": "CATATG", "isPalindrome": True},
         ]
     ).persist()
 

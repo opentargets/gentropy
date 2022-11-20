@@ -45,21 +45,18 @@ intervals:
 
 variant_annotation:
   inputs:
-    gnomad_file: gs://gcp-public-data--gnomad/release/3.1.1/ht/genomes/gnomad.genomes.v3.1.1.sites.ht
+    gnomad_file: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
     chain_file: gs://hail-common/references/grch38_to_grch37.over.chain.gz
   outputs:
-    variant_annotation: ${etl.outputs}/variant_annotation
+    variant_annotation: ${etl.outputs}/variant_annotation_broadcast_part
   parameters:
-    partition_count: 256
-  machine: ${machine.coloc}
+    partition_count: 400
+  machine: ${machine.variant_annotation}
 
 gwas_ingest:
   inputs:
     variant_annotation: gs://ot-team/dsuveges/variant_annotation/2022-08-11
-    gwas_catalog_associations: gs://ot-team/dsuveges/v2d_files/gwas_associations_2022-06-27.tsv
-    gwas_catalog_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_2022_08_16.tsv
-    gwas_catalog_unpublished_studies: gs://ot-team/dsuveges/v2d_files/gwas_studies_v1.03_unpublished_2022_08_16.tsv
-    gnomad_populations: 
+    gnomad_populations:
       - id: afr
         index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.afr.common.ld.variant_indices.ht
         matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.afr.common.adj.ld.bm
@@ -96,8 +93,13 @@ gwas_ingest:
         index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.seu.common.ld.variant_indices.ht
         matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.seu.common.adj.ld.bm
         parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.seu.common.ld.variant_indices.parquet
+    gwas_catalog_associations: ${etl.inputs}/v2d/gwas_catalog_v1.0.2-associations_e107_r2022-09-14.tsv
+    gwas_catalog_studies: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-09-14.tsv
+    gwas_catalog_ancestries: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-09-14.tsv
+    summary_stats_list: ${etl.inputs}/v2d/harmonised_list.txt
   outputs:
     gwas_catalog_associations: ${etl.outputs}/gwas_catalog_associations
+    gwas_catalog_studies: ${etl.outputs}/gwas_catalog_studies
   parameters:
     ingest_unpublished_studies: False
     p_value_cutoff: 5e-8

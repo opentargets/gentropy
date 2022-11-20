@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-def get_logsum(log_abf: VectorUDT) -> DoubleType:
+def get_logsum(log_abf: VectorUDT) -> float:
     """Calculates logsum of vector.
 
     This function calculates the log of the sum of the exponentiated
@@ -24,7 +24,12 @@ def get_logsum(log_abf: VectorUDT) -> DoubleType:
         log_abf (VectorUDT): log approximate bayes factor
 
     Returns:
-        DoubleType: logsum
+        float: logsum
+
+    Example:
+        >>> l = [0.2, 0.1, 0.05, 0]
+        >>> round(get_logsum(l), 6)
+        1.476557
     """
     themax = np.max(log_abf)
     result = themax + np.log(np.sum(np.exp(log_abf - themax)))
