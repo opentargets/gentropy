@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 def main(cfg: DictConfig) -> None:
     for population in cfg.etl.gwas_ingest.inputs.gnomad_populations:
         parsed_index = precompute_ld_index(
-            population.matrix,
             population.index,
             cfg.etl.gwas_ingest.parameters.ld_window,
         )
