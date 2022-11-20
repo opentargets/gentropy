@@ -44,6 +44,24 @@ def _interval_start(contig: Column, position: Column, ld_radius: int) -> Column:
 
     Returns:
         Column: Position of the locus starting the interval
+
+    Examples:
+        >>> d = [
+        ...     {"contig": "21", "pos": 100},
+        ...     {"contig": "21", "pos": 200},
+        ...     {"contig": "21", "pos": 300},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("start", _interval_start(f.col("contig"), f.col("pos"), 100)).show()
+        +------+---+-----+
+        |contig|pos|start|
+        +------+---+-----+
+        |    21|100|  100|
+        |    21|200|  100|
+        |    21|300|  200|
+        +------+---+-----+
+        <BLANKLINE>
+
     """
     w = Window.partitionBy(contig).orderBy(position).rangeBetween(-ld_radius, ld_radius)
     return f.min(position).over(w)
@@ -59,6 +77,24 @@ def _interval_stop(contig: Column, position: Column, ld_radius: int) -> Column:
 
     Returns:
         Column: Position of the locus at the end of the interval
+
+    Examples:
+        >>> d = [
+        ...     {"contig": "21", "pos": 100},
+        ...     {"contig": "21", "pos": 200},
+        ...     {"contig": "21", "pos": 300},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("start", _interval_stop(f.col("contig"), f.col("pos"), 100)).show()
+        +------+---+-----+
+        |contig|pos|start|
+        +------+---+-----+
+        |    21|100|  200|
+        |    21|200|  300|
+        |    21|300|  300|
+        +------+---+-----+
+        <BLANKLINE>
+
     """
     w = Window.partitionBy(contig).orderBy(position).rangeBetween(-ld_radius, ld_radius)
     return f.max(position).over(w)
@@ -207,6 +243,7 @@ def variants_in_ld_in_gnomad_pop(
         ld_path (str): path to LD matrix
         parsed_ld_index_path (str): path to LD index
         min_r2 (float): minimum r2 to keep
+
     Returns:
         DataFrame: lead variants with LD annotation
     """
