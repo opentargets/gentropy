@@ -31,7 +31,6 @@ def main(
         DataFrame: variant to gene assignments from VEP
     """
     etl.logger.info("Parsing functional predictions...")
-
     annotated_variants = (
         variant_annotation.select(
             "variantId",

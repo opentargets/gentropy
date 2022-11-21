@@ -81,9 +81,7 @@ def main(cfg: DictConfig) -> None:
             how="inner",
         ).distinct()
     )
-
     validate_df_schema(v2g, "v2g.json")
-
     (
         v2g.repartition(cfg.etl.v2g.parameters.partition_count, "chromosome")
         .withColumn("position", f.split(f.col("variantId"), "_")[1])
