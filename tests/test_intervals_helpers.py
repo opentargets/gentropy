@@ -13,45 +13,17 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture(scope="class")
-def mock_interval_df(spark: SparkSession) -> DataFrame:
-    """Creates a mock dataframe with a single interval."""
-    return spark.createDataFrame(
-        data=[
-            (
-                "20",
-                5647945,
-                5648249,
-                "ENSG00000125772",
-                0.783,
-                "andersson2014",
-                "fantom5",
-                "24670763",
-                "aggregate",
-            )
-        ],
-        schema=[
-            "chromosome",
-            "start",
-            "end",
-            "geneId",
-            "resourceScore",
-            "datasourceId",
-            "datatypeId",
-            "pmid",
-            "biofeature",
-        ],
-    )
-
-
-@pytest.fixture(scope="class")
 def mock_variants_df(spark: SparkSession) -> DataFrame:
     """Creates a mock dataframe with a single interval."""
     return spark.createDataFrame(
         data=[
+            # Variants inside the interval
             ("20_5648222_T_C", "20", 5648222),
             ("20_5648223_T_C", "20", 5648223),
+            # Variants outside the interval
+            ("20_5647944_T_C", "20", 5648300),
         ],
-        schema=["id", "chromosome", "position"],
+        schema=["variantId", "chromosome", "position"],
     )
 
 
@@ -78,6 +50,8 @@ class TestGetVariantsInInterval:
         [
             (
                 "20_5648222_T_C",
+                "20",
+                5648222,
                 "ENSG00000125772",
                 0.783,
                 "andersson2014",
@@ -87,6 +61,8 @@ class TestGetVariantsInInterval:
             ),
             (
                 "20_5648223_T_C",
+                "20",
+                5648223,
                 "ENSG00000125772",
                 0.783,
                 "andersson2014",
@@ -94,7 +70,7 @@ class TestGetVariantsInInterval:
                 "24670763",
                 "aggregate",
             ),
-        ],
+        ]
     ]
 
     @pytest.mark.parametrize(
@@ -125,11 +101,13 @@ class TestGetVariantsInInterval:
 
         test_df = mock_df.transform(
             lambda df: get_variants_in_interval(df, mock_variants_df)
-        )
+        ).toPandas()
         expected_df = spark.createDataFrame(
             data=expected_output,
             schema=[
                 "variantId",
+                "chromosome",
+                "position",
                 "geneId",
                 "resourceScore",
                 "datasourceId",
@@ -137,5 +115,5 @@ class TestGetVariantsInInterval:
                 "pmid",
                 "biofeature",
             ],
-        )
-        assert_frame_equal(test_df.toPandas(), expected_df.toPandas(), check_like=True)
+        ).toPandas()
+        assert_frame_equal(test_df, expected_df, check_like=True)

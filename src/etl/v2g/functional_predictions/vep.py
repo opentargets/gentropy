@@ -166,7 +166,6 @@ def get_sift_score(
         "variantId",
         "chromosome",
         f.col("transcriptConsequence.gene_id").alias("geneId"),
-        f.col("transcriptConsequence.sift_score").alias("resourceScore"),
         f.expr("1 - transcriptConsequence.sift_score").alias("score"),
         f.col("transcriptConsequence.sift_prediction").alias("label"),
         f.lit("vep").alias("datatypeId"),

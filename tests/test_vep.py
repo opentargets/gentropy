@@ -24,7 +24,8 @@ def variant_df_schema() -> t.StructType:
     """Schema of the mock VEP dataframe."""
     return t.StructType(
         [
-            t.StructField("id", t.StringType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("chromosome", t.StringType(), False),
             t.StructField("gene_id", t.StringType(), False),
             t.StructField("consequence_terms", t.ArrayType(t.StringType()), True),
             t.StructField("polyphen_score", t.DoubleType(), True),
@@ -42,6 +43,7 @@ def v2g_df_schema() -> t.StructType:
     return t.StructType(
         [
             t.StructField("variantId", t.StringType(), False),
+            t.StructField("chromosome", t.StringType(), False),
             t.StructField("geneId", t.StringType(), False),
             t.StructField("variantFunctionalConsequenceId", t.StringType(), True),
             t.StructField("label", t.StringType(), True),
@@ -61,6 +63,7 @@ class TestGetVariantConsequences:
             # High impact
             (
                 "1_248441764_C_T",
+                "1",
                 "ENSG00000227152",
                 ["stop_gained"],
                 None,
@@ -74,6 +77,7 @@ class TestGetVariantConsequences:
             # Low impact
             (
                 "1_248441764_C_T",
+                "1",
                 "ENSG00000227152",
                 ["splice_region_variant", "5_prime_UTR_variant"],
                 None,
@@ -87,6 +91,7 @@ class TestGetVariantConsequences:
             # Unsignificant impact
             (
                 "1_248441764_C_T",
+                "1",
                 "ENSG00000227152",
                 ["sequence_variant"],
                 None,
@@ -100,6 +105,7 @@ class TestGetVariantConsequences:
             # Unknown impact
             (
                 "1_248441764_C_T",
+                "1",
                 "ENSG00000227152",
                 ["potential_new_term"],
                 None,
@@ -114,9 +120,11 @@ class TestGetVariantConsequences:
         [
             (
                 "1_248441764_C_T",
+                "1",
                 "ENSG00000227152",
                 "SO_0001587",
                 "stop_gained",
+                None,
                 1.0,
                 "vep",
                 "variantConsequence",
@@ -125,9 +133,11 @@ class TestGetVariantConsequences:
         [
             (
                 "1_248441764_C_T",
+                "1",
                 "ENSG00000227152",
                 "SO_0001630",
                 "splice_region_variant",
+                None,
                 0.33,
                 "vep",
                 "variantConsequence",
@@ -178,7 +188,8 @@ class TestGetVariantConsequences:
         mock_df = spark.createDataFrame(
             data=test_input, schema=variant_df_schema
         ).select(
-            "id",
+            "variantId",
+            "chromosome",
             f.struct("gene_id", "consequence_terms").alias("transcriptConsequence"),
         )
         test_df = (
@@ -193,6 +204,8 @@ class TestGetVariantConsequences:
             .toPandas()
             .dropna(axis=1, how="all")
         )
+        print(test_df.head())
+        print(expected_df.head())
         assert_frame_equal(
             test_df,
             expected_df,
@@ -208,6 +221,7 @@ class TestGetPolypyhenScoreAndGetSiftScore:
             (
                 # Variant with score info
                 "19_900951_A_G",
+                "19",
                 "ENSG00000198858",
                 None,
                 0.355,
@@ -221,6 +235,7 @@ class TestGetPolypyhenScoreAndGetSiftScore:
             (
                 # No score info
                 "19_900951_A_G",
+                "19",
                 "ENSG00000198858",
                 None,
                 None,
@@ -236,6 +251,7 @@ class TestGetPolypyhenScoreAndGetSiftScore:
             # One V2G evidence per score
             (
                 "19_900951_A_G",
+                "19",
                 "ENSG00000198858",
                 None,
                 "benign",
@@ -246,11 +262,12 @@ class TestGetPolypyhenScoreAndGetSiftScore:
             ),
             (
                 "19_900951_A_G",
+                "19",
                 "ENSG00000198858",
                 None,
                 "tolerated",
                 None,
-                0.91,
+                0.09,
                 "vep",
                 "sift",
             ),
@@ -273,7 +290,8 @@ class TestGetPolypyhenScoreAndGetSiftScore:
         mock_df = spark.createDataFrame(
             data=test_input, schema=variant_df_schema
         ).select(
-            "id",
+            "variantId",
+            "chromosome",
             f.struct(
                 "gene_id",
                 "polyphen_score",
@@ -282,12 +300,19 @@ class TestGetPolypyhenScoreAndGetSiftScore:
                 "sift_prediction",
             ).alias("transcriptConsequence"),
         )
-        test_df = mock_df.transform(get_polyphen_score).unionAll(
-            mock_df.transform(get_sift_score)
+        test_df = (
+            mock_df.transform(get_polyphen_score)
+            .unionByName(mock_df.transform(get_sift_score))
+            .toPandas()
+            .dropna(axis=1, how="all")
         )
-        expected_df = spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
+        expected_df = (
+            spark.createDataFrame(data=expected_output, schema=v2g_df_schema)
+            .toPandas()
+            .dropna(axis=1, how="all")
+        )
 
-        assert_frame_equal(test_df.toPandas(), expected_df.toPandas(), check_like=True)
+        assert_frame_equal(test_df, expected_df, check_like=True)
 
 
 class TestGetPlofFlag:
@@ -298,6 +323,7 @@ class TestGetPlofFlag:
             (
                 # High confidence pLOF variant
                 "1_48242556_G_T",
+                "1",
                 "ENSG00000117834",
                 None,
                 None,
@@ -311,6 +337,7 @@ class TestGetPlofFlag:
             (
                 # Low confidence pLOF variant
                 "1_46615007_G_A",
+                "1",
                 "ENSG00000142961",
                 None,
                 None,
@@ -324,6 +351,7 @@ class TestGetPlofFlag:
             (
                 # No pLOF flag
                 "1_48242556_G_T",
+                "1",
                 "ENSG00000117834",
                 None,
                 None,
@@ -339,11 +367,12 @@ class TestGetPlofFlag:
         [
             (
                 "1_48242556_G_T",
+                "1",
                 "ENSG00000117834",
                 None,
                 None,
                 True,
-                1,
+                1.0,
                 "vep",
                 "loftee",
             )
@@ -351,11 +380,12 @@ class TestGetPlofFlag:
         [
             (
                 "1_46615007_G_A",
+                "1",
                 "ENSG00000142961",
                 None,
                 None,
                 False,
-                0,
+                0.0,
                 "vep",
                 "loftee",
             )
@@ -378,7 +408,8 @@ class TestGetPlofFlag:
         mock_df = spark.createDataFrame(
             data=test_input, schema=variant_df_schema
         ).select(
-            "id",
+            "variantId",
+            "chromosome",
             f.struct("gene_id", "lof").alias("transcriptConsequence"),
         )
         test_df = mock_df.transform(get_plof_flag).toPandas().dropna(axis=1, how="all")
