@@ -14,15 +14,16 @@ if TYPE_CHECKING:
 
     from etl.common.ETLSession import ETLSession
 
+
 STUDY_COLUMNS_MAP = {
     # 'DATE ADDED TO CATALOG': 'date_added_to_catalog',
     "PUBMED ID": "pubmedId",
     "FIRST AUTHOR": "firstAuthor",
     "DATE": "publicationDate",
     "JOURNAL": "journal",
-    "LINK": "link",
+    # "LINK": "link", # Link not read: links are generated on the front end
     "STUDY": "study",
-    "DISEASE/TRAIT": "diseaseTrait",
+    # "DISEASE/TRAIT": "diseaseTrait", # Not needed, ETL will resolve disease ids -> labels.
     "INITIAL SAMPLE SIZE": "initialSampleSize",
     # 'REPLICATION SAMPLE SIZE': 'replication_sample_size',
     # 'PLATFORM [SNPS PASSING QC]': 'platform',
@@ -139,46 +140,46 @@ def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
     )
 
 
-def parse_efos(c: str) -> Column:
+def parse_efos(col_name: str) -> Column:
     """Extracting EFO identifiers.
 
     This function parses EFO identifiers from a comma-separated list of EFO URIs.
 
     Args:
-        c (str): name of column with a list of EFO IDs
+        col_name (str): name of column with a list of EFO IDs
 
     Returns:
         Column: column with a list of parsed EFO IDs
     """
-    return f.expr(f"regexp_extract_all({c}, '([A-Z]+_[0-9]+)')")
+    return f.expr(f"regexp_extract_all({col_name}, '([A-Z]+_[0-9]+)')")
 
 
-def column2camel_case(s: str) -> str:
+def column2camel_case(col_name: str) -> str:
     """A helper function to convert column names to camel cases.
 
     Args:
-        s (str): a single column name
+        col_name (str): a single column name
 
     Returns:
         str: spark expression to select and rename the column
     """
 
-    def string2camelcase(s: str) -> str:
+    def string2camelcase(col_name: str) -> str:
         """Converting a string to camelcase.
 
         Args:
-            s (str): a random string
+            col_name (str): a random string
 
         Returns:
             str: Camel cased string
         """
         # Removing a bunch of unwanted characters from the column names:
-        s = re.sub(r"[\/\(\)\-]+", " ", s)
+        col_name = re.sub(r"[\/\(\)\-]+", " ", col_name)
 
-        first, *rest = s.split(" ")
+        first, *rest = col_name.split(" ")
         return "".join([first.lower(), *map(str.capitalize, rest)])
 
-    return f"`{s}` as {string2camelcase(s)}"
+    return f"`{col_name}` as {string2camelcase(col_name)}"
 
 
 def parse_ancestries(etl: ETLSession, ancestry_file: str) -> DataFrame:

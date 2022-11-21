@@ -64,7 +64,6 @@ variant_index:
 
 gwas_ingest:
   inputs:
-    variant_annotation: gs://ot-team/dsuveges/variant_annotation/2022-08-11
     gwas_catalog_associations: ${etl.inputs}/v2d/gwas_catalog_v1.0.2-associations_e107_r2022-09-14.tsv
     gwas_catalog_studies: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-09-14.tsv
     gwas_catalog_ancestries: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-09-14.tsv

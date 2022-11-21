@@ -17,26 +17,31 @@ def main(cfg: DictConfig) -> None:
     """Run GWASCatalog ingestion."""
     etl = ETLSession(cfg)
 
-    etl.logger.info("Ingesting GWAS Catalog data...")
+    etl.logger.info("Ingesting GWAS Catalog association data...")
 
-    # This section is commented out for testing study ingestion:
+    # # This section is commented out for testing study ingestion:
     # assoc = ingest_gwas_catalog_associations(
     #     etl,
     #     cfg.etl.gwas_ingest.inputs.gwas_catalog_associations,
-    #     cfg.etl.gwas_ingest.inputs.variant_annotation,
+    #     cfg.etl.variant_annotation.outputs.variant_annotation,
     #     cfg.etl.gwas_ingest.parameters.p_value_cutoff,
-    # ).transform(harmonize_effect)
-    #
-    # etl.logger.info(
-    #     f"Writing data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_associations}"
     # )
-    #
+
+    # etl.logger.info(
+    #     f"Writing associations data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_associations}"
+    # )
     # (
     #     assoc.write.mode(cfg.environment.sparkWriteMode).parquet(
     #         cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
     #     )
     # )
-    #
+    # etl.logger.info("Ingesting GWAS Catalog Studies...")
+
+    # Loading saved association file:
+    assoc = etl.spark.read.parquet(
+        cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
+    )
+
     # Ingest GWAS Catalog studies:
     gwas_studies = ingest_gwas_catalog_studies(
         etl,
@@ -44,11 +49,17 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.gwas_ingest.inputs.gwas_catalog_ancestries,
         cfg.etl.gwas_ingest.inputs.summary_stats_list,
     )
+    etl.logger.info(
+        f"Writing studies data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_studies}"
+    )
 
     # Saving temporary output:
     gwas_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
         cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
     )
+
+    # Joining study with associations:
+    (gwas_studies.join(assoc, on="studyAccession", how="outer").persist())
 
 
 if __name__ == "__main__":

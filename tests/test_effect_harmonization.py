@@ -9,13 +9,24 @@ import pytest
 from etl.gwas_ingest.effect_harmonization import get_reverse_complement
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import DataFrame
+    from pyspark.sql.session import SparkSession
 
 
 @pytest.fixture
 def mock_allele_columns(spark: SparkSession) -> DataFrame:
-    """Mock Dataframe to test harmonisation."""
-    return spark.createDataFrame(
+    """Mock Dataframe to test harmonisation.
+
+    It creates a DataFrame with three columns, `allele`, `reverseComp`, and `isPalindrome`, and
+    populates it with some test data
+
+    Args:
+        spark (SparkSession): SparkSession
+
+    Returns:
+        A dataframe with 9 rows and 3 columns.
+    """
+    mock_df = spark.createDataFrame(
         [
             {"allele": "A", "reverseComp": "T", "isPalindrome": False},
             {"allele": "C", "reverseComp": "G", "isPalindrome": False},
@@ -28,6 +39,8 @@ def mock_allele_columns(spark: SparkSession) -> DataFrame:
             {"allele": "CATATG", "reverseComp": "CATATG", "isPalindrome": True},
         ]
     ).persist()
+
+    return mock_df
 
 
 @pytest.fixture
