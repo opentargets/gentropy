@@ -1,4 +1,4 @@
-"""Precompute LD indexes"""
+"""Precompute LD indexes."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
+    """Precompute LD indexes for all populations in gnomAD."""
     for population in cfg.etl.gwas_ingest.inputs.gnomad_populations:
         parsed_index = precompute_ld_index(
             population.index,

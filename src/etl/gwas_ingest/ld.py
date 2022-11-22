@@ -113,13 +113,13 @@ def _annotate_index_intervals(index: DataFrame, ld_radius: int) -> DataFrame:
     index_with_positions = index.select(
         "*",
         _interval_start(
-            contig=f.col("chrom"),
-            position=f.col("pos"),
+            contig=f.col("chromosome"),
+            position=f.col("position"),
             ld_radius=ld_radius,
         ).alias("start_pos"),
         _interval_stop(
-            contig=f.col("chrom"),
-            position=f.col("pos"),
+            contig=f.col("chromosome"),
+            position=f.col("position"),
             ld_radius=ld_radius,
         ).alias("stop_pos"),
     )
@@ -127,19 +127,19 @@ def _annotate_index_intervals(index: DataFrame, ld_radius: int) -> DataFrame:
     return (
         index_with_positions.join(
             index_with_positions.select(
-                "chrom",
-                f.col("pos").alias("start_pos"),
+                "chromosome",
+                f.col("position").alias("start_pos"),
                 f.col("idx").alias("start_idx"),
             ),
-            on=["chrom", "start_pos"],
+            on=["chromosome", "start_pos"],
         )
         .join(
             index_with_positions.select(
-                "chrom",
-                f.col("pos").alias("stop_pos"),
+                "chromosome",
+                f.col("position").alias("stop_pos"),
                 f.col("idx").alias("stop_idx"),
             ),
-            on=["chrom", "stop_pos"],
+            on=["chromosome", "stop_pos"],
         )
         .drop("start_pos", "stop_pos")
     )
@@ -183,7 +183,7 @@ def lead_coordinates_in_ld(
         leads_df
         # start idx > stop idx in rare occasions due to liftover
         .filter(f.col("start_idx") < f.col("stop_idx"))
-        .groupBy("chrom", "idx")
+        .groupBy("chromosome", "idx")
         .agg(f.min("start_idx").alias("start_idx"), f.max("stop_idx").alias("stop_idx"))
         .sort(f.col("idx"))
         .persist()
@@ -213,14 +213,14 @@ def precompute_ld_index(pop_ldindex_path: str, ld_radius: int) -> DataFrame:
         ld_index_38.to_spark()
         .filter(f.col("`locus38.position`").isNotNull())
         .select(
-            f.regexp_replace("`locus38.contig`", "chr", "").alias("chrom"),
-            f.col("`locus38.position`").alias("pos"),
-            f.col("`alleles`").getItem(0).alias("ref"),
-            f.col("`alleles`").getItem(1).alias("alt"),
+            f.regexp_replace("`locus38.contig`", "chr", "").alias("chromosome"),
+            f.col("`locus38.position`").alias("position"),
+            f.col("`alleles`").getItem(0).alias("referenceAllele"),
+            f.col("`alleles`").getItem(1).alias("alternateAllele"),
             f.col("idx"),
         )
-        .repartition(400, "chrom")
-        .sortWithinPartitions("pos")
+        .repartition(400, "chromosome")
+        .sortWithinPartitions("position")
         .persist()
     )
 
@@ -254,7 +254,8 @@ def variants_in_ld_in_gnomad_pop(
     parsed_ld_index = etl.spark.read.parquet(parsed_ld_index_path).persist()
 
     leads_with_idxs = variants_df.join(
-        parsed_ld_index, on=["chrom", "pos", "ref", "alt"]
+        parsed_ld_index,
+        on=["chromosome", "position", "referenceAllele", "alternateAllele"],
     )
 
     # idxs for lead, first variant in the region and last variant in the region
@@ -275,23 +276,22 @@ def variants_in_ld_in_gnomad_pop(
         .alias("leads")
         .join(
             parsed_ld_index.select(
-                f.col("chrom"),
+                f.col("chromosome"),
                 f.concat_ws(
-                    "_", f.col("chrom"), f.col("pos"), f.col("ref"), f.col("alt")
+                    "_",
+                    f.col("chromosome"),
+                    f.col("position"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
                 ).alias("tagVariantId"),
                 f.col("idx").alias("tag_idx"),
             ).alias("tags"),
             on=[
-                f.col("leads.chrom") == f.col("tags.chrom"),
+                f.col("leads.chromosome") == f.col("tags.chromosome"),
                 f.col("leads.j") == f.col("tags.tag_idx"),
             ],
         )
-        .groupBy("variantId", "leads.chrom", "pop")
-        .agg(
-            f.collect_set(
-                f.struct(f.col("tagVariantId").alias("variantId"), f.col("r"))
-            ).alias("tags")
-        )
+        .select("variantId", "leads.chromosome", "gnomad_ancestry", "tagVariantId", "r")
     )
 
     return lead_tag
