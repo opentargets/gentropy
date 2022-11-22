@@ -1,14 +1,16 @@
 """Performing linkage disequilibrium (LD) operations."""
 from __future__ import annotations
 
+from functools import reduce
 from typing import TYPE_CHECKING
 
-from pyspark.sql import Window
+from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as f
 
 if TYPE_CHECKING:
+    from omegaconf.listconfig import ListConfig
     from hail.table import Table
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import Column
     from etl.common.ETLSession import ETLSession
 
 import hail as hl
@@ -295,3 +297,54 @@ def variants_in_ld_in_gnomad_pop(
     )
 
     return lead_tag
+
+
+def ld_annotation_by_locus_ancestry(
+    etl: ETLSession,
+    association_ancestry: DataFrame,
+    ld_populations: ListConfig,
+    min_r2: float,
+) -> DataFrame:
+    """LD information for all locus and ancestries.
+
+    Args:
+        etl (ETLSession): Session
+        association_ancestry (DataFrame): variant-ancestry information
+        ld_populations (ListConfig): list of populations to annotate
+        min_r2 (float): minimum r2 to keep
+
+    Returns:
+        DataFrame: lead variants with LD annotation by relevant ancestry
+    """
+    # All gnomad populations captured in associations:
+    assoc_populations = (
+        association_ancestry.select("gnomad_ancestry")
+        .distinct()
+        .rdd.flatMap(lambda x: x)
+        .collect()
+    )
+
+    # Retrieve LD information from gnomAD
+    ld_annotated_assocs = []
+    for pop in assoc_populations:
+        pop_parsed_ldindex_path = ""
+        pop_matrix_path = ""
+        for popobj in ld_populations:
+            if popobj.id == pop:
+                pop_parsed_ldindex_path = popobj.parsed_index
+                pop_matrix_path = popobj.matrix
+                variants_in_pop = association_ancestry.filter(
+                    f.col("gnomad_ancestry") == pop
+                ).distinct()
+                etl.logger.info(f"[{pop}] - Annotating LD information...")
+                ld_annotated_assocs.append(
+                    variants_in_ld_in_gnomad_pop(
+                        etl=etl,
+                        variants_df=variants_in_pop,
+                        ld_path=pop_matrix_path,
+                        parsed_ld_index_path=pop_parsed_ldindex_path,
+                        min_r2=min_r2,
+                    )
+                )
+
+    return reduce(DataFrame.unionByName, ld_annotated_assocs)

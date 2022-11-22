@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib.resources as pkg_resources
 import json
-from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -12,7 +11,7 @@ import pyspark.sql.types as t
 from pyspark.sql import DataFrame, Window
 from scipy.stats import norm
 
-from etl.gwas_ingest.ld import variants_in_ld_in_gnomad_pop
+from etl.gwas_ingest.ld import ld_annotation_by_locus_ancestry
 from etl.json import data
 
 if TYPE_CHECKING:
@@ -41,7 +40,7 @@ def pics_study_locus(
     associations_df: DataFrame,
     study_df: DataFrame,
     ld_populations: ListConfig,
-    min_r2: float = 0.5,
+    min_r2: float,
 ) -> DataFrame:
     """Calculates study-locus based on PICS.
 
@@ -50,7 +49,7 @@ def pics_study_locus(
         associations_df (DataFrame): associations
         study_df (DataFrame): studies
         ld_populations (ListConfig): configuration for LD populations
-        min_r2 (float): Minimum R^2. Defaults to 0.5.
+        min_r2 (float): Minimum R^2
 
     Returns:
         DataFrame: _description_
@@ -113,38 +112,10 @@ def pics_study_locus(
         .persist()
     )
 
-    # All gnomad populations captured in GWAS Catalog:
-    assoc_populations = (
-        association_ancestry.select("gnomad_ancestry")
-        .distinct()
-        .rdd.flatMap(lambda x: x)
-        .collect()
+    # LD information for all locus and ancestries
+    ld_r = ld_annotation_by_locus_ancestry(
+        etl, association_ancestry, ld_populations, min_r2
     )
-
-    # Retrieve LD information from gnomAD
-    ld_annotated_assocs = []
-    for pop in assoc_populations:
-        pop_parsed_ldindex_path = ""
-        pop_matrix_path = ""
-        for popobj in ld_populations:
-            if popobj.id == pop:
-                pop_parsed_ldindex_path = popobj.parsed_index
-                pop_matrix_path = popobj.matrix
-                variants_in_pop = association_ancestry.filter(
-                    f.col("gnomad_ancestry") == pop
-                ).distinct()
-                etl.logger.info(f"[{pop}] - Annotating LD information...")
-                ld_annotated_assocs.append(
-                    variants_in_ld_in_gnomad_pop(
-                        etl=etl,
-                        variants_df=variants_in_pop,
-                        ld_path=pop_matrix_path,
-                        parsed_ld_index_path=pop_parsed_ldindex_path,
-                        min_r2=min_r2,
-                    )
-                )
-
-    ld_r = reduce(DataFrame.unionByName, ld_annotated_assocs)
 
     # Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
     k = 6.4
