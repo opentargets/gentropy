@@ -12,7 +12,7 @@ from etl.gwas_ingest.effect_harmonization import harmonize_effect
 from etl.gwas_ingest.study_ingestion import parse_efos
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
 
@@ -28,7 +28,7 @@ ASSOCIATION_COLUMNS_MAP = {
     # Study related columns:
     "STUDY ACCESSION": "studyAccession",
     # Disease/Trait related columns:
-    "DISEASE/TRAIT": "diseaseTrait",  # Reported trait of the study
+    "DISEASE/TRAIT": "associationDiseaseTrait",  # Reported trait of the study
     "MAPPED_TRAIT_URI": "mappedTraitUri",  # Mapped trait URIs of the study
     # "MERGED": "merged",
     "P-VALUE (TEXT)": "pValueText",  # Extra information on the association.
@@ -39,6 +39,33 @@ ASSOCIATION_COLUMNS_MAP = {
     "95% CI (TEXT)": "confidenceInterval",  # Confidence interval of the association, string: split into lower and upper bound.
     # "CONTEXT": "context",
 }
+
+
+def process_pvalue_text(pvaltext_column: Column) -> Column:
+    """Cleaning p-value text column.
+
+    The function `process_pValueText` takes a column as input and returns a column with the
+    parentheses replaced to brackets.
+
+    Args:
+        pvaltext_column (Column): The column name of the p-value text column.
+
+    Returns:
+        A column object
+
+    Examples:
+    >>> df = spark.createDataFrame(['Example 1', '(Example 2)', '(Example 3'], ["text_col"])
+    >>> df.withColumn("new", process_pValueText(df.text_col)).show()
+    +-----------+-----------+
+    |   text_col|        new|
+    +-----------+-----------+
+    |  Example 1|  Example 1|
+    |(Example 2)|[Example 2]|
+    | (Example 3| [Example 3|
+    +-----------+-----------+
+    <BLANKLINE>
+    """
+    return f.translate(pvaltext_column, "()", "[]")
 
 
 def read_associations_data(
@@ -77,7 +104,7 @@ def read_associations_data(
         # 2. Flagging sub-significant associations
         # 3. Flagging associations without genomic location
         .withColumn(
-            "flag",
+            "qualityControl",
             f.array_except(
                 f.array(
                     f.when(
@@ -106,7 +133,7 @@ def read_associations_data(
         f'Number of variants: {association_df.select("snpIds").distinct().count()}'
     )
     etl.logger.info(
-        f'Number of failed associations: {association_df.filter(f.size(f.col("flag")) != 0).count()}'
+        f'Number of failed associations: {association_df.filter(f.size(f.col("qualityControl")) != 0).count()}'
     )
 
     return association_df
@@ -136,9 +163,9 @@ def deconvolute_variants(associations: DataFrame) -> DataFrame:
         .withColumn("snpIds", f.split(f.col("snpIds"), "; "))
         # Flagging associations where the genomic location is not consistent with rsids:
         .withColumn(
-            "flag",
+            "qualityControl",
             f.when(
-                (f.size(f.col("flag")) > 0)
+                (f.size(f.col("qualityControl")) > 0)
                 | (
                     (f.size(f.col("chromosome")) == f.size(f.col("position")))
                     & (
@@ -146,9 +173,11 @@ def deconvolute_variants(associations: DataFrame) -> DataFrame:
                         == f.size(f.col("strongestSnpRiskAllele"))
                     )
                 ),
-                f.col("flag"),
+                f.col("qualityControl"),
             ).otherwise(
-                f.array_union(f.col("flag"), f.array(f.lit("Variant inconsistency")))
+                f.array_union(
+                    f.col("qualityControl"), f.array(f.lit("Variant inconsistency"))
+                )
             ),
         )
     )
@@ -176,7 +205,7 @@ def splitting_association(association: DataFrame) -> DataFrame:
         .withColumn(
             "variants",
             f.when(
-                f.size(f.col("flag")) == 0,
+                f.size(f.col("qualityControl")) == 0,
                 f.arrays_zip(
                     f.col("chromosome"),
                     f.col("position"),
@@ -218,14 +247,14 @@ def process_associations(association: DataFrame) -> DataFrame:
     return association.select(
         "associationId",
         "studyAccession",
-        parse_efos("mappedTraitUri").alias("efos"),
-        "diseaseTrait",
+        parse_efos("mappedTraitUri").alias("AssociationEfos"),
+        "associationDiseaseTrait",
         "chromosome",
         "position",
         "riskAlleleFrequency",
         "effectSize",
         "confidenceInterval",
-        "pValueText",
+        process_pvalue_text("pValueText").alias("pValueText"),
         "pValueNegLog",
         # Extracting p-value exponent and mantissa:
         f.split(f.col("pvalue"), "E")
@@ -246,7 +275,7 @@ def process_associations(association: DataFrame) -> DataFrame:
                 f.col("snpIds"),
             )
         ).alias("rsIdsGwasCatalog"),
-        "flag",
+        "qualityControl",
     )
 
 
@@ -279,11 +308,13 @@ def map_variants(
         )
         # Flagging variants that could not be mapped to gnomad:
         .withColumn(
-            "flag",
+            "qualityControl",
             f.when(
                 f.col("variantId").isNull(),
-                f.array_union(f.col("flag"), f.array(f.lit("No mapping in GnomAd"))),
-            ).otherwise(f.col("flag")),
+                f.array_union(
+                    f.col("qualityControl"), f.array(f.lit("No mapping in GnomAd"))
+                ),
+            ).otherwise(f.col("qualityControl")),
         ).persist()
     )
     assoc_without_variant = mapped_associations.filter(
@@ -476,4 +507,50 @@ def ingest_gwas_catalog_associations(
         .transform(filter_assoc_by_maf)
         # Harmonizing association effect:
         .transform(harmonize_effect)
+    )
+
+
+def prepare_associations_for_pics(study_assoc: DataFrame) -> DataFrame:
+    """Preparing the study/association table for PICS.
+
+    It takes a dataframe of associations and returns a dataframe of associations with the gnomad sample
+    information added
+
+    Args:
+        study_assoc (DataFrame): DataFrame
+
+    Returns:
+        A dataframe with columns for GnomAD sample proportion in respective population
+    """
+    association_columns = [
+        "studyId",
+        "chromosome",
+        "position",
+        "referenceAllele",
+        "alternateAllele",
+        "variantId",
+        "pValueMantissa",
+        "pValueExponent",
+        "beta",
+        "beta_ci_lower",
+        "beta_ci_upper",
+        "odds_ratio",
+        "odds_ratio_ci_lower",
+        "odds_ratio_ci_upper",
+        "qualityControl",
+    ]
+
+    # Selecting and de-duplicating columns:
+    return (
+        study_assoc.select(
+            *association_columns,
+            f.explode_outer("gnomadSamples").alias("gnomadSample"),
+        )
+        .select(
+            *association_columns,
+            f.col("gnomadSample.relativeSampleSize"),
+            f.col("gnomadSample.gnomadPopulation"),
+        )
+        .distinct()
+        .persist()
     )

@@ -252,11 +252,10 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
             "variantId",
             # Study data:
             "studyAccession",
-            "efos",
-            "diseaseTrait",
+            "AssociationEfos",
+            "associationDiseaseTrait",
             "pValueText",
             # Association data:
-            "pValueNegLog",
             "pValueMantissa",
             "pValueExponent",
             # Effect data:
@@ -269,7 +268,7 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
             f.coalesce(f.col("beta_direction"), f.col("odds_ratio_direction")).alias(
                 "direction"
             ),
-            # Flag if any:
-            "flag",
+            # Flagging quality concerns if any:
+            "qualityControl",
         )
     )

@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import re
+from itertools import chain
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-
-from etl.json import validate_df_schema
+from pyspark.sql.window import Window
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -23,7 +23,7 @@ STUDY_COLUMNS_MAP = {
     "JOURNAL": "journal",
     # "LINK": "link", # Link not read: links are generated on the front end
     "STUDY": "study",
-    # "DISEASE/TRAIT": "diseaseTrait", # Not needed, ETL will resolve disease ids -> labels.
+    "DISEASE/TRAIT": "studyDiseaseTrait",
     "INITIAL SAMPLE SIZE": "initialSampleSize",
     # 'REPLICATION SAMPLE SIZE': 'replication_sample_size',
     # 'PLATFORM [SNPS PASSING QC]': 'platform',
@@ -140,6 +140,72 @@ def extract_discovery_sample_sizes(df: DataFrame) -> DataFrame:
     )
 
 
+def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
+    """Splitting studies and consolidating disease annotation.
+
+    Processing disease annotation of the joined study/association table. If assigned disease
+    of the study and the association don't agree, we assume the study needs to be split.
+    Then disease EFOs, trait names and study i are consolidated
+
+    Args:
+        study_association (DataFrame): DataFrame
+
+    Returns:
+        A dataframe with the studyAccession, studyId, DiseaseTrait, and efos columns.
+    """
+    # Windowing throught all study accessions, while ordering by association EFOs:
+    window_spec = Window.partitionBy("studyAccession").orderBy("associationEfos")
+
+    return (
+        study_association
+        # Assign ranks for each association EFO group within a studyAccession group:
+        .withColumn("row_number", f.dense_rank().over(window_spec) - 1)
+        # Study identifiers are split when there are more than one type of associationEfos:
+        .withColumn(
+            "studyId",
+            f.when(f.col("row_number") == 0, f.col("studyAccession")).otherwise(
+                f.concat_ws("_", "studyAccession", "row_number")
+            ),
+        )
+        # Disese traits are generated based on p-value text when splitting study:
+        .withColumn(
+            "DiseaseTrait",
+            # When study is split:
+            f.when(
+                f.col("row_number") != 0,
+                f.concat_ws(" ", "associationDiseaseTrait", "pValueText"),
+            )
+            # When there's association disease trait:
+            .when(
+                f.col("associationDiseaseTrait").isNotNull(),
+                f.col("associationDiseaseTrait"),
+            )
+            # When no association disease trait is present we get from study:
+            .otherwise(f.col("studyDiseaseTrait")),
+        )
+        # The EFO field is also consolidated:
+        .withColumn(
+            "efos",
+            # When available, EFOs are pulled from associations:
+            f.when(f.col("associationEfos").isNotNull(), f.col("associationEfos"))
+            # When no association is given, the study level EFOs are used:
+            .otherwise(f.col("studyEfos")),
+        )
+        # The fields are dropped that we would no longer need downstream:
+        .drop(
+            "row_number",
+            "studyAccession",
+            "studyEfos",
+            "studyDiseaseTrait",
+            "associationEfos",
+            "associationDiseaseTrait",
+            "pValueText",
+        )
+        .orderBy("studyAccession")
+        .persist()
+    )
+
+
 def parse_efos(col_name: str) -> Column:
     """Extracting EFO identifiers.
 
@@ -149,9 +215,9 @@ def parse_efos(col_name: str) -> Column:
         col_name (str): name of column with a list of EFO IDs
 
     Returns:
-        Column: column with a list of parsed EFO IDs
+        Column: column with a sorted list of parsed EFO IDs
     """
-    return f.expr(f"regexp_extract_all({col_name}, '([A-Z]+_[0-9]+)')")
+    return f.array_sort(f.expr(f"regexp_extract_all({col_name}, '([A-Z]+_[0-9]+)')"))
 
 
 def column2camel_case(col_name: str) -> str:
@@ -180,6 +246,102 @@ def column2camel_case(col_name: str) -> str:
         return "".join([first.lower(), *map(str.capitalize, rest)])
 
     return f"`{col_name}` as {string2camelcase(col_name)}"
+
+
+def parse_gnomad_ancestries(study_ancestry: DataFrame) -> DataFrame:
+    """Generate sample fractions of GnomAD pouplation for studies.
+
+    It takes a dataframe with study accessions and discovery ancestries and returns a dataframe with study ancestries mapped to
+    gnomAD ancestries + fractional sample sizes.
+
+    # Available GnomAD populations:
+    afr - African/African american
+    amr - Latino/Admixed American
+    asj - Ashkenazi Jewish
+    eas - East Asian
+    fin - Finnish
+    nfe - Non-Finnish European
+    est - Estonian
+    nwe - North-West European
+    seu - Southern European
+
+    Args:
+        study_ancestry (DataFrame): DataFrame
+
+    Returns:
+        A dataframe with study accession, gnomad population, sample size, and relative sample size.
+    """
+    pop_map = {
+        "European": "nfe",
+        "African American or Afro-Caribbean": "afr",
+        "Native American": "amr",
+        "Asian unspecified": "eas",
+        "Hispanic or Latin American": "amr",
+        "East Asian": "eas",
+        "Central Asian": "seu",  # Was EUR
+        "Oceanian": "eas",
+        "South East Asian": "eas",
+        "Other admixed ancestry": "nfe",
+        "African unspecified": "afr",
+        "Sub-Saharan African": "afr",
+        "Greater Middle Eastern (Middle Eastern North African or Persian)": "seu",  # Was EUR
+        "Aboriginal Australian": "eas",
+        "Other": "nfe",
+        "South Asian": "eas",  # Was SAS
+        "NR": "nfe",
+    }
+
+    # Expression to map GWAS Catalog ancestries to GnomAD reference panels:
+    pop_mapping_expr = f.create_map(*[f.lit(x) for x in chain(*pop_map.items())])
+
+    # Windowing throught all study accessions, while ordering by association EFOs:
+    window_spec = Window.partitionBy("studyAccession")
+
+    return (
+        study_ancestry.filter(f.col("discoverySamples").isNotNull())
+        # Exploding discoverSample object:
+        .select(
+            "studyAccession",
+            f.explode(f.col("discoverySamples")).alias("discoverySample"),
+        )
+        # Splitting ancestry further:
+        .withColumn(
+            "ancestry",
+            f.split(
+                f.regexp_replace(
+                    f.col("discoverySample.ancestry"), "ern, Nor", "ern Nor"
+                ),
+                ", ",
+            ),
+        )
+        # Splitting sample sizes evenly for composite ancestries:
+        .withColumn(
+            "sampleSize",
+            f.col("discoverySample.sampleSize") / f.size(f.col("ancestry")),
+        )
+        # Exploding ancestries:
+        .withColumn("ancestry", f.explode(f.col("ancestry")))
+        .withColumn("mapped_population", pop_mapping_expr.getItem(f.col("ancestry")))
+        .groupBy("studyAccession", "mapped_population")
+        .agg(f.sum(f.col("sampleSize")).alias("sampleSize"))
+        # Get relative sample sizes:
+        .withColumn(
+            "relativeSampleSize",
+            f.col("sampleSize") / f.sum(f.col("sampleSize")).over(window_spec),
+        )
+        # Group by studies and get a list of stucts with ancestries:
+        .groupBy("studyAccession")
+        .agg(
+            f.collect_set(
+                f.struct(
+                    f.col("relativeSampleSize").alias("relativeSampleSize"),
+                    f.col("mapped_population").alias("gnomadPopulation"),
+                )
+            ).alias("gnomadSamples")
+        )
+        .orderBy("studyAccession")
+        .persist()
+    )
 
 
 def parse_ancestries(etl: ETLSession, ancestry_file: str) -> DataFrame:
@@ -218,6 +380,7 @@ def parse_ancestries(etl: ETLSession, ancestry_file: str) -> DataFrame:
         )
         .withColumnRenamed("initial", "discoverySamples")
         .withColumnRenamed("replication", "replicationSamples")
+        .persist()
     )
 
     # Generate information on the ancestry composition of the discovery stage, and calculate
@@ -295,30 +458,84 @@ def ingest_gwas_catalog_studies(
     # Read GWAS Catalogue raw data
     gwas_studies = read_study_table(etl, study_file)
     gwas_ancestries = parse_ancestries(etl, ancestry_file)
-
-    study_size_df = extract_discovery_sample_sizes(gwas_studies)
     ss_studies = get_sumstats_location(etl, summary_stats_list)
 
-    studies = (
+    # Sample size extraction is a separate process:
+    study_size_df = extract_discovery_sample_sizes(gwas_studies)
+
+    # Mapping ancestries of the discover sampe description to GnomAD:
+    gnomad_ancestries = parse_gnomad_ancestries(
+        gwas_ancestries.select("studyAccession", "discoverySamples").distinct()
+    )
+
+    return (
         gwas_studies
         # Add study sizes:
         .join(study_size_df, on="studyAccession", how="left")
+        # Adding GnomAD ancestry mapping:
+        .join(gnomad_ancestries, on="studyAccession", how="left")
         # Adding summary stats location:
-        .join(
-            ss_studies,
-            on="studyAccession",
-            how="left",
-        )
+        .join(ss_studies, on="studyAccession", how="left")
         .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
         .join(gwas_ancestries, on="studyAccession", how="left")
+        # Select relevant columns:
         .select(
-            "*",
-            parse_efos("mappedTraitUri").alias("efos"),
+            "studyAccession",
+            # Publication related fields:
+            "pubmedId",
+            "firstAuthor",
+            "publicationDate",
+            "journal",
+            "study",
+            # Disease related fields:
+            "studyDiseaseTrait",
+            parse_efos("mappedTraitUri").alias("studyEfos"),
             parse_efos("mappedBackgroundTraitUri").alias("backgroundEfos"),
+            # Sample related fields:
+            "initialSampleSize",
+            "nCases",
+            "nControls",
+            "nSamples",
+            # Ancestry related labels:
+            "discoverySamples",
+            "replicationSamples",
+            "gnomadSamples",
+            # Summary stats fields:
+            "summarystatsLocation",
+            "hasSumstats",
         )
-        .drop("initialSampleSize", "mappedBackgroundTraitUri", "mappedTraitUri")
+        .persist()
     )
 
-    validate_df_schema(studies, "studies.json")
 
-    return studies
+def generate_study_table(association_study: DataFrame) -> DataFrame:
+    """Extracting studies from the joined study/association table.
+
+    Args:
+        association_study (DataFrame): DataFrame with both associations and studies.
+
+    Returns:
+        A dataframe with the columns specified in the study_columns list.
+    """
+    study_columns = [
+        "studyId",
+        "DiseaseTrait",
+        "efos",
+        "pubmedId",
+        "firstAuthor",
+        "publicationDate",
+        "journal",
+        "study",
+        "backgroundEfos",
+        "initialSampleSize",
+        "nCases",
+        "nControls",
+        "nSamples",
+        "discoverySamples",
+        "replicationSamples",
+        "gnomadSamples",
+        "summarystatsLocation",
+        "hasSumstats",
+    ]
+
+    return association_study.select(*study_columns).distinct().persist()
