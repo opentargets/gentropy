@@ -105,4 +105,5 @@ gwas_ingest:
     p_value_cutoff: 5e-8
     ld_window: 500_000
     min_r2: 0.5
+    k: 6.4 # Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
   machine: ${machine.default}

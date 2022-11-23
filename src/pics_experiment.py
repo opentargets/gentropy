@@ -7,7 +7,7 @@ import hail as hl
 import hydra
 
 from etl.common.ETLSession import ETLSession
-from etl.gwas_ingest.pics import pics_study_locus
+from etl.gwas_ingest.pics import pics_all_study_locus
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -29,12 +29,13 @@ def main(cfg: DictConfig) -> None:
 
     # A function that takes a study and a locus and returns the variants in LD with the index variant
     # in the study.
-    study_locus = pics_study_locus(
+    study_locus = pics_all_study_locus(
         etl,
         associations_df,
         study_df,
         cfg.etl.gwas_ingest.inputs.gnomad_populations,
         cfg.etl.gwas_ingest.parameters.min_r2,
+        cfg.etl.gwas_ingest.parameters.k,
     )
 
     study_locus.write.mode("overwrite").parquet(
