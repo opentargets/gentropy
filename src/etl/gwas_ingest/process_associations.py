@@ -54,8 +54,8 @@ def process_pvalue_text(pvaltext_column: Column) -> Column:
         A column object
 
     Examples:
-    >>> df = spark.createDataFrame(['Example 1', '(Example 2)', '(Example 3'], ["text_col"])
-    >>> df.withColumn("new", process_pValueText(df.text_col)).show()
+    >>> df = spark.createDataFrame([['Example 1'], ['(Example 2)'], ['(Example 3']],  'text_col: string')
+    >>> df.withColumn("new", process_pvalue_text(df.text_col)).show()
     +-----------+-----------+
     |   text_col|        new|
     +-----------+-----------+

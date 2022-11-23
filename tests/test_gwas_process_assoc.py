@@ -30,7 +30,7 @@ def mock_variant_deconvolution_data(spark: SparkSession) -> DataFrame:
             - position
             - strongestSnpRiskAllele
             - snpIds
-            - flag
+            - qualityControl
             - to_be_flagged
     """
     return spark.createDataFrame(
@@ -40,7 +40,7 @@ def mock_variant_deconvolution_data(spark: SparkSession) -> DataFrame:
                 "position": "1063",
                 "strongestSnpRiskAllele": "rs233_T",
                 "snpIds": "rs233",
-                "flag": ["Some other flag"],
+                "qualityControl": ["Some other flag"],
                 "to_be_flagged": False,
             },
             {
@@ -48,7 +48,7 @@ def mock_variant_deconvolution_data(spark: SparkSession) -> DataFrame:
                 "position": "235423",
                 "strongestSnpRiskAllele": "rs23423_A",
                 "snpIds": "rs23423",
-                "flag": [],
+                "qualityControl": [],
                 "to_be_flagged": False,
             },
             {
@@ -56,7 +56,7 @@ def mock_variant_deconvolution_data(spark: SparkSession) -> DataFrame:
                 "position": "944423",
                 "strongestSnpRiskAllele": "rs23423_A; rs233_A",
                 "snpIds": "rs23423; rs233_A",
-                "flag": [],
+                "qualityControl": [],
                 "to_be_flagged": True,
             },
             {
@@ -64,7 +64,7 @@ def mock_variant_deconvolution_data(spark: SparkSession) -> DataFrame:
                 "position": "944423;9444",
                 "strongestSnpRiskAllele": "rs23423_A; rs233_A",
                 "snpIds": "rs23423; rs233_A",
-                "flag": [],
+                "qualityControl": [],
                 "to_be_flagged": False,
             },
         ]
@@ -299,7 +299,8 @@ def test_variant_deconvolution(mock_variant_deconvolution_data: DataFrame) -> No
     assert (
         mock_variant_deconvolution_data.transform(deconvolute_variants)
         .withColumn(
-            "isFlagged", f.array_contains(f.col("flag"), "Variant inconsistency")
+            "isFlagged",
+            f.array_contains(f.col("qualityControl"), "Variant inconsistency"),
         )
         .filter(f.col("isFlagged") != f.col("to_be_flagged"))
         .count()
