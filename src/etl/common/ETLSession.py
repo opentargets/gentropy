@@ -6,7 +6,7 @@ import importlib.resources as pkg_resources
 import json
 from typing import TYPE_CHECKING
 
-from pyspark import SparkConf
+from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType
 

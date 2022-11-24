@@ -53,6 +53,15 @@ variant_annotation:
     partition_count: 400
   machine: ${machine.variant_annotation}
 
+variant_index:
+  inputs:
+    variant_annotation: ${etl.outputs}/variant_annotation
+    credible_sets: ${etl.outputs}/credible_sets
+  outputs:
+    variant_index: ${etl.outputs}/variant_index
+    variant_invalid: ${etl.outputs}/invalid/credible_sets
+  machine: ${machine.default}
+
 gwas_ingest:
   inputs:
     variant_annotation: gs://ot-team/dsuveges/variant_annotation/2022-08-11

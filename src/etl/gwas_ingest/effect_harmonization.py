@@ -95,12 +95,12 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
             "beta",
             f.when(
                 (
-                    f.col("confidence_interval").contains("increase")
-                    & f.col("needs_harmonization")
+                    f.col("confidenceInterval").contains("increase")
+                    & f.col("needsHarmonization")
                 )
                 | (
-                    f.col("confidence_interval").contains("decrease")
-                    & ~f.col("needs_harmonization")
+                    f.col("confidenceInterval").contains("decrease")
+                    & ~f.col("needsHarmonization")
                 ),
                 f.col("beta") * -1,
             ).otherwise(f.col("beta")),
@@ -146,7 +146,7 @@ def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
     return (
         df.withColumn(
             "odds_ratio",
-            f.when(f.col("needs_harmonization"), 1 / f.col("odds_ratio")).otherwise(
+            f.when(f.col("needsHarmonization"), 1 / f.col("odds_ratio")).otherwise(
                 f.col("odds_ratio")
             ),
         )
@@ -191,53 +191,84 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
     return (
         df
         # Get reverse complement of the alleles of the mapped variants:
-        .transform(lambda df: get_reverse_complement(df, "alt"))
-        .transform(lambda df: get_reverse_complement(df, "ref"))
+        .transform(lambda df: get_reverse_complement(df, "alternateAllele"))
+        .transform(lambda df: get_reverse_complement(df, "referenceAllele"))
         # A variant is palindromic if the reference and alt alleles are reverse complement of each other:
         # eg. T -> A: in such cases we cannot disambigate the effect, which means we cannot be sure if
         # the effect is given to the alt allele on the positive strand or the ref allele on
         # The negative strand.
         .withColumn(
-            "is_palindrome",
-            f.when(f.col("ref") == f.col("revcomp_alt"), True).otherwise(False),
+            "isPalindrome",
+            f.when(
+                f.col("referenceAllele") == f.col("revcomp_alternateAllele"), True
+            ).otherwise(False),
         )
         # We are harmonizing the effect on the alternative allele:
         # Adding a flag to trigger harmonization if: risk == ref or risk == revcomp(ref):
         .withColumn(
-            "needs_harmonization",
+            "needsHarmonization",
             f.when(
-                (f.col("risk_allele") == f.col("ref"))
-                | (f.col("risk_allele") == f.col("revcomp_ref")),
+                (f.col("riskAllele") == f.col("referenceAllele"))
+                | (f.col("riskAllele") == f.col("revcomp_referenceAllele")),
                 True,
             ).otherwise(False),
         )
         # Z-score is needed to calculate 95% confidence interval:
-        .withColumn("zscore", pval_to_zscore(f.col("p_value")))
+        .withColumn(
+            "zscore",
+            pval_to_zscore(
+                f.concat_ws("E", f.col("pValueMantissa"), f.col("pValueExponent"))
+            ),
+        )
         # Annotation provides information if the effect is odds-ratio or beta:
         # Effect is lost for variants with palindromic alleles.
         .withColumn(
             "beta",
             f.when(
-                f.col("confidence_interval").rlike(r"[increase|decrease]")
-                & (~f.col("is_palindrome")),
-                f.col("or_beta"),
+                f.col("confidenceInterval").rlike(r"[increase|decrease]")
+                & (~f.col("isPalindrome")),
+                f.col("effectSize"),
             ),
         )
         .withColumn(
             "odds_ratio",
             f.when(
-                (~f.col("confidence_interval").rlike(r"[increase|decrease]"))
-                & (~f.col("is_palindrome")),
-                f.col("or_beta"),
+                (~f.col("confidenceInterval").rlike(r"[increase|decrease]"))
+                & (~f.col("isPalindrome")),
+                f.col("effectSize"),
             ),
         )
         # Harmonize beta:
         .transform(harmonise_beta)
         # Harmonize odds-ratio:
         .transform(harmonise_odds_ratio)
-        # Coalesce effect direction:
-        .withColumn(
-            "direction",
-            f.coalesce(f.col("beta_direction"), f.col("odds_ratio_direction")),
+        # Returning relevant columns:
+        .select(
+            # Variant data:
+            "chromosome",
+            "position",
+            "referenceAllele",
+            "alternateAllele",
+            "variantId",
+            # Study data:
+            "studyAccession",
+            "AssociationEfos",
+            "associationDiseaseTrait",
+            "pValueText",
+            # Association data:
+            "pValueMantissa",
+            "pValueExponent",
+            # Effect data:
+            "beta",
+            "beta_ci_lower",
+            "beta_ci_upper",
+            "odds_ratio",
+            "odds_ratio_ci_lower",
+            "odds_ratio_ci_upper",
+            f.coalesce(f.col("beta_direction"), f.col("odds_ratio_direction")).alias(
+                "direction"
+            ),
+            # Flagging quality concerns if any:
+            "qualityControl",
         )
     )
