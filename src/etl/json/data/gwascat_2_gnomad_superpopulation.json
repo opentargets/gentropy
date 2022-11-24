@@ -1,70 +1,70 @@
 [
   {
     "gwas_catalog_ancestry": "European",
-    "gnomad_ancestry": "nfe"
+    "gnomadPopulation": "nfe"
   },
   {
     "gwas_catalog_ancestry": "African American or Afro-Caribbean",
-    "gnomad_ancestry": "afr"
+    "gnomadPopulation": "afr"
   },
   {
     "gwas_catalog_ancestry": "Native American",
-    "gnomad_ancestry": "amr"
+    "gnomadPopulation": "amr"
   },
   {
     "gwas_catalog_ancestry": "Asian unspecified",
-    "gnomad_ancestry": "eas"
+    "gnomadPopulation": "eas"
   },
   {
     "gwas_catalog_ancestry": "Hispanic or Latin American",
-    "gnomad_ancestry": "amr"
+    "gnomadPopulation": "amr"
   },
   {
     "gwas_catalog_ancestry": "East Asian",
-    "gnomad_ancestry": "eas"
+    "gnomadPopulation": "eas"
   },
   {
     "gwas_catalog_ancestry": "Central Asian",
-    "gnomad_ancestry": "seu"
+    "gnomadPopulation": "seu"
   },
   {
     "gwas_catalog_ancestry": "Oceanian",
-    "gnomad_ancestry": "eas"
+    "gnomadPopulation": "eas"
   },
   {
     "gwas_catalog_ancestry": "South East Asian",
-    "gnomad_ancestry": "eas"
+    "gnomadPopulation": "eas"
   },
   {
     "gwas_catalog_ancestry": "Other admixed ancestry",
-    "gnomad_ancestry": "nfe"
+    "gnomadPopulation": "nfe"
   },
   {
     "gwas_catalog_ancestry": "African unspecified",
-    "gnomad_ancestry": "afr"
+    "gnomadPopulation": "afr"
   },
   {
     "gwas_catalog_ancestry": "Sub-Saharan African",
-    "gnomad_ancestry": "afr"
+    "gnomadPopulation": "afr"
   },
   {
     "gwas_catalog_ancestry": "Greater Middle Eastern (Middle Eastern, North African or Persian)",
-    "gnomad_ancestry": "seu"
+    "gnomadPopulation": "seu"
   },
   {
     "gwas_catalog_ancestry": "Aboriginal Australian",
-    "gnomad_ancestry": "eas"
+    "gnomadPopulation": "eas"
   },
   {
     "gwas_catalog_ancestry": "Other",
-    "gnomad_ancestry": "nfe"
+    "gnomadPopulation": "nfe"
   },
   {
     "gwas_catalog_ancestry": "South Asian",
-    "gnomad_ancestry": "eas"
+    "gnomadPopulation": "eas"
   },
   {
     "gwas_catalog_ancestry": "NR",
-    "gnomad_ancestry": "nfe"
+    "gnomadPopulation": "nfe"
   }
 ]

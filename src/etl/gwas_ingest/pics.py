@@ -77,12 +77,12 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
         # map gwas population to gnomad superpopulation
         .join(gwascat_2_gnomad_pop, "gwas_catalog_ancestry", "left")
         # Group by sutdies and aggregate for major population:
-        .groupBy("studyId", "gnomad_ancestry").agg(
+        .groupBy("studyId", "gnomadPopulation").agg(
             f.sum(f.col("adjustedSampleSize")).alias("sampleSize")
         )
         # Calculate proportions for each study
         .withColumn(
-            "ancestry_proportion",
+            "relativeSampleSize",
             f.col("sampleSize") / f.sum("sampleSize").over(w_study),
         )
     )
@@ -102,11 +102,9 @@ def _aggregate_weighted_populations(associations_ancestry_ld: DataFrame) -> Data
     return (
         associations_ancestry_ld
         # To prevent error: This is reverted later by rounding to 6 dp
-        .withColumn("r", f.when(f.col("r") == 1, 0.9999995).otherwise(f.col("r")))
+        .withColumn("r", f.when(f.col("r") >= 1, 0.9999995).otherwise(f.col("r")))
         # Fisher transform correlations to z-scores
-        .withColumn(
-            "zscore_weighted", f.atan(f.col("r")) * f.col("ancestry_proportion")
-        )
+        .withColumn("zscore_weighted", f.atan(f.col("r")) * f.col("relativeSampleSize"))
         # Compute weighted average across populations
         .groupBy("chromosome", "studyId", "variantId", "tagVariantId")
         .agg(
@@ -274,8 +272,7 @@ def _pics(associations_ld_allancestries: DataFrame, k: float) -> DataFrame:
 
 def pics_all_study_locus(
     etl: ETLSession,
-    associations_df: DataFrame,
-    study_df: DataFrame,
+    association_study_ancestry: DataFrame,
     ld_populations: ListConfig,
     min_r2: float,
     k: float,
@@ -284,8 +281,7 @@ def pics_all_study_locus(
 
     Args:
         etl (ETLSession): ETL session
-        associations_df (DataFrame): associations
-        study_df (DataFrame): studies
+        association_study_ancestry (DataFrame): associations with study and ancesry data
         ld_populations (ListConfig): configuration for LD populations
         min_r2 (float): Minimum R^2
         k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
@@ -293,35 +289,14 @@ def pics_all_study_locus(
     Returns:
         DataFrame: _description_
     """
-    # Get all studies and their ancestries
-    study_ancestry = _get_study_gnomad_ancestries(etl, study_df)
-
-    # Joining the associations_df and study_ancestry dataframes on the column.
-    association_ancestry = (
-        associations_df.filter(f.size("flag") == 0)
-        .select(
-            "variantId",
-            "chromosome",
-            "position",
-            "referenceAllele",
-            "alternateAllele",
-            f.col("studyAccession").alias("studyId"),
-            "pValueMantissa",
-            "pValueExponent",
-        )
-        .join(study_ancestry, on="studyId", how="inner")
-        .distinct()
-        .persist()
-    )
-
     # LD information for all locus and ancestries
     ld_r = ld_annotation_by_locus_ancestry(
-        etl, association_ancestry, ld_populations, min_r2
+        etl, association_study_ancestry, ld_populations, min_r2
     )
 
     # Association + ancestry + ld information
-    association_ancestry_ld = association_ancestry.join(
-        ld_r, on=["chromosome", "variantId", "gnomad_ancestry"], how="inner"
+    association_ancestry_ld = association_study_ancestry.join(
+        ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="inner"
     )
 
     # Aggregation of weighted R information using ancestry proportions
@@ -339,6 +314,6 @@ def pics_all_study_locus(
         "R_overall",
         "pics_mu",
         "pics_postprob",
-        "pics_95perc_credset",
-        "pics_99perc_credset",
+        "pics_95_perc_credset",
+        "pics_99_perc_credset",
     )

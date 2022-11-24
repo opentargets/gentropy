@@ -293,7 +293,9 @@ def variants_in_ld_in_gnomad_pop(
                 f.col("leads.j") == f.col("tags.tag_idx"),
             ],
         )
-        .select("variantId", "leads.chromosome", "gnomad_ancestry", "tagVariantId", "r")
+        .select(
+            "variantId", "leads.chromosome", "gnomadPopulation", "tagVariantId", "r"
+        )
     )
 
     return lead_tag
@@ -318,7 +320,7 @@ def ld_annotation_by_locus_ancestry(
     """
     # All gnomad populations captured in associations:
     assoc_populations = (
-        association_ancestry.select("gnomad_ancestry")
+        association_ancestry.select("gnomadPopulation")
         .distinct()
         .rdd.flatMap(lambda x: x)
         .collect()
@@ -334,7 +336,7 @@ def ld_annotation_by_locus_ancestry(
                 pop_parsed_ldindex_path = popobj.parsed_index
                 pop_matrix_path = popobj.matrix
                 variants_in_pop = association_ancestry.filter(
-                    f.col("gnomad_ancestry") == pop
+                    f.col("gnomadPopulation") == pop
                 ).distinct()
                 etl.logger.info(f"[{pop}] - Annotating LD information...")
                 ld_annotated_assocs.append(

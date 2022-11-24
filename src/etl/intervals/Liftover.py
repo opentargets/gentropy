@@ -28,13 +28,13 @@ class LiftOverSpark:
     """
 
     def __init__(
-        self: LiftOverSpark, chain_file: str, max_difference: int = None
+        self: LiftOverSpark, chain_file: str, max_difference: int = 100
     ) -> None:
         """Intialise LiftOverSpark object.
 
         Args:
             chain_file (str): Path to the chain file
-            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to None.
+            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 100.
         """
         self.chain_file = chain_file
 
@@ -46,7 +46,7 @@ class LiftOverSpark:
             self.lo = LiftOver(chain_file)
 
         # If no maximum difference is provided, set it to 100:
-        self.max_difference = 100 if max_difference is None else max_difference
+        self.max_difference = max_difference
 
         # UDF to do map genomic coordinates to liftover coordinates:
         self.liftover_udf = f.udf(
