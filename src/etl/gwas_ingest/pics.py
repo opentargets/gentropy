@@ -89,33 +89,32 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
     return study_ancestry
 
 
-def _aggregate_weighted_populations(associations_ancestry_ld: DataFrame) -> DataFrame:
+def _weighted_r_overall(
+    chromosome: Column,
+    study_id: Column,
+    variant_id: Column,
+    tag_variant_id: Column,
+    relative_sample_size: Column,
+    r: Column,
+) -> Column:
     """Aggregation of weighted R information using ancestry proportions.
 
     Args:
-        associations_ancestry_ld (DataFrame): Associations with ancestry and LD information
+        chromosome (Column): Chromosome
+        study_id (Column): Study identifier
+        variant_id (Column): Variant identifier
+        tag_variant_id (Column): Tag variant identifier
+        relative_sample_size (Column): Relative sample size
+        r (Column): Correlation
 
     Returns:
-        DataFrame: Aggregated dataframe with weighted R information per association
+        Column: Estimates weighted R information
     """
-    #
-    return (
-        associations_ancestry_ld
-        # To prevent error: This is reverted later by rounding to 6 dp
-        .withColumn("r", f.when(f.col("r") >= 1, 0.9999995).otherwise(f.col("r")))
-        # Fisher transform correlations to z-scores
-        .withColumn("zscore_weighted", f.atan(f.col("r")) * f.col("relativeSampleSize"))
-        # Compute weighted average across populations
-        .groupBy("chromosome", "studyId", "variantId", "tagVariantId")
-        .agg(
-            f.sum(f.col("zscore_weighted")).alias("zscore_overall"),
-            f.first("pValueMantissa").alias("pValueMantissa"),
-            f.first("pValueExponent").alias("pValueExponent"),
-        )
-        # Inverse Fisher transform weigthed z-score back to correlation
-        .withColumn("R_overall", f.round(f.tan(f.col("zscore_overall")), 6))
-        .withColumn("R2_overall", f.pow(f.col("R_overall"), 2))
+    pseudo_r = f.when(r >= 1, 0.9999995).otherwise(r)
+    zscore_overall = f.sum(f.atan(pseudo_r) * relative_sample_size).over(
+        Window.partitionBy(chromosome, study_id, variant_id, tag_variant_id)
     )
+    return f.round(f.tan(zscore_overall), 6)
 
 
 def _is_in_credset(
@@ -180,72 +179,123 @@ def _pics_posterior_probability(
     return pics_relative_prob / pics_relative_prob_sum
 
 
-def _pics_standard_deviation(neglog_p: Column, r2: Column, k: float) -> Column:
+def _pics_standard_deviation(neglog_p: Column, r: Column, k: float) -> Column:
     """Compute the PICS standard deviation.
 
     Args:
         neglog_p (Column): Negative log p-value
-        r2 (Column): R-squared
+        r (Column): R-squared
         k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
     Returns:
         Column: PICS standard deviation
     """
-    return f.sqrt(1 - f.sqrt(r2) ** k) * f.sqrt(neglog_p) / 2
+    return f.sqrt(1 - f.abs(r) ** k) * f.sqrt(neglog_p) / 2
 
 
-def _pics_mu(neglog_p: Column, r2: Column) -> Column:
+def _pics_mu(neglog_p: Column, r: Column) -> Column:
     """Compute the PICS mu.
 
     Args:
         neglog_p (Column): Negative log p-value
-        r2 (Column): R-squared
+        r (Column): R
 
     Returns:
         Column: PICS mu
     """
-    return neglog_p * r2
+    return neglog_p * (r**2)
 
 
-def _pics(associations_ld_allancestries: DataFrame, k: float) -> DataFrame:
+def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
+    """Compute the negative log p-value.
+
+    Args:
+        p_value_mantissa (Column): P-value mantissa
+        p_value_exponent (Column): P-value exponent
+
+    Returns:
+        Column: Negative log p-value
+    """
+    return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
+
+
+def pics_all_study_locus(
+    etl: ETLSession,
+    association_study_ancestry: DataFrame,
+    ld_populations: ListConfig,
+    min_r2: float,
+    k: float,
+) -> DataFrame:
     """Probabilistic Identification of Causal SNPs (PICS) from Farh (2014).
 
     Adjusts the p-values for tag SNPs based on the p-value of the lead SNP and it's LD.
     https://www.nature.com/articles/nature13835
 
-
     Args:
-        associations_ld_allancestries (DataFrame): Association data with LD information. Information by ancestry needs to be aggregated first.
+        etl (ETLSession): ETL session
+        association_study_ancestry (DataFrame): associations with study and ancesry data
+        ld_populations (ListConfig): configuration for LD populations
+        min_r2 (float): Minimum R^2
         k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
     Returns:
         DataFrame: PICS statistics and credible sets
     """
-    pics = (
-        associations_ld_allancestries
-        # Calculate PICS statistics
-        .withColumn(
-            "neglog_p",
-            -1 * (f.log10(f.col("pValueMantissa")) + f.col("pValueExponent")),
+    # LD information for all locus and ancestries
+    ld_r = ld_annotation_by_locus_ancestry(
+        etl, association_study_ancestry, ld_populations, min_r2
+    )
+
+    # Association + ancestry + ld information
+    association_ancestry_ld = association_study_ancestry.join(
+        ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="inner"
+    )
+
+    # Aggregate by study, lead, tag
+    associations_ld_allancestries = (
+        association_ancestry_ld.withColumn(
+            "R_overall",
+            _weighted_r_overall(
+                f.col("chromosome"),
+                f.col("studyId"),
+                f.col("variantId"),
+                f.col("tagVariantId"),
+                f.col("relativeSampleSize"),
+                f.col("r"),
+            ),
         )
-        .withColumn("pics_mu", _pics_mu(f.col("neglog_p"), f.col("R2_overall")))
+        # Collapse the data by study, lead, tag
+        .drop("relativeSampleSize", "r").distinct()
+    )
+
+    # Calculate and return PICS statistics
+    return (
+        associations_ld_allancestries.withColumn(
+            "pics_mu",
+            _pics_mu(
+                _neglog_p(f.col("pValueMantissa"), f.col("pValueExponent")),
+                f.col("R_overall"),
+            ),
+        )
         .withColumn(
             "pics_std",
-            _pics_standard_deviation(f.col("neglog_p"), f.col("R2_overall"), k),
+            _pics_standard_deviation(
+                _neglog_p(f.col("pValueMantissa"), f.col("pValueExponent")),
+                f.col("R_overall"),
+                k,
+            ),
         )
-        # Calculate PICS posterior probability
         .withColumn(
             "pics_postprob",
             _pics_posterior_probability(
                 f.col("pics_mu"),
                 f.col("pics_std"),
-                f.col("neglog_p"),
+                _neglog_p(f.col("pValueMantissa"), f.col("pValueExponent")),
                 f.col("chromosome"),
                 f.col("studyId"),
                 f.col("variantId"),
             ),
         )
-        # Label whether they are in the 95 or 99% credible set
         .withColumn(
             "pics_95_perc_credset",
             _is_in_credset(
@@ -266,54 +316,4 @@ def _pics(associations_ld_allancestries: DataFrame, k: float) -> DataFrame:
                 0.99,
             ),
         )
-    )
-    return pics
-
-
-def pics_all_study_locus(
-    etl: ETLSession,
-    association_study_ancestry: DataFrame,
-    ld_populations: ListConfig,
-    min_r2: float,
-    k: float,
-) -> DataFrame:
-    """Calculates study-locus based on PICS.
-
-    Args:
-        etl (ETLSession): ETL session
-        association_study_ancestry (DataFrame): associations with study and ancesry data
-        ld_populations (ListConfig): configuration for LD populations
-        min_r2 (float): Minimum R^2
-        k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
-
-    Returns:
-        DataFrame: _description_
-    """
-    # LD information for all locus and ancestries
-    ld_r = ld_annotation_by_locus_ancestry(
-        etl, association_study_ancestry, ld_populations, min_r2
-    )
-
-    # Association + ancestry + ld information
-    association_ancestry_ld = association_study_ancestry.join(
-        ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="inner"
-    )
-
-    # Aggregation of weighted R information using ancestry proportions
-    associations_ld_allancestries = _aggregate_weighted_populations(
-        association_ancestry_ld
-    )
-
-    pics_results = _pics(associations_ld_allancestries, k)
-
-    return pics_results.select(
-        "chromosome",
-        "studyId",
-        "variantId",
-        "tagVariantId",
-        "R_overall",
-        "pics_mu",
-        "pics_postprob",
-        "pics_95_perc_credset",
-        "pics_99_perc_credset",
     )
