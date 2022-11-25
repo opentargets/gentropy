@@ -100,21 +100,36 @@ def generate_variant_annotation(
     )
 
     return (
-        ht.select_globals().to_spark(flatten=False)
+        ht.select_globals()
+        .to_spark(flatten=False)
         # Creating new column based on the transcript_consequences
-        .select(
+        .withColumn(
+            "gnomad3VariantId",
             f.concat_ws(
-                "_", "chromosome", "position", "referenceAllele", "alternateAllele"
-            ).alias("id"),
-            "chromosome",
-            f.col("position").alias("gnomadPosition"),
+                "-", "chromosome", "position", "referenceAllele", "alternateAllele"
+            ),
+        )
+        .withColumn(
+            "ensembl_position",
             convert_gnomad_position_to_ensembl(
                 f.col("position"), f.col("referenceAllele"), f.col("alternateAllele")
-            ).alias("position"),
+            ),
+        )
+        .select(
+            f.concat_ws(
+                "_",
+                "chromosome",
+                "ensembl_position",
+                "referenceAllele",
+                "alternateAllele",
+            ).alias("id"),
+            "chromosome",
+            f.col("ensembl_position").alias("position"),
             "referenceAllele",
             "alternateAllele",
             "chromosomeB37",
             "positionB37",
+            "gnomad3VariantId",
             "alleleType",
             "rsIds",
             f.array(
