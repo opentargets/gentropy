@@ -104,7 +104,7 @@ def generate_variant_annotation(
         .to_spark(flatten=False)
         # Creating new column based on the transcript_consequences
         .withColumn(
-            "gnomad3VariantId",
+            "gnomadVariantId",
             f.concat_ws(
                 "-", "chromosome", "position", "referenceAllele", "alternateAllele"
             ),
@@ -129,7 +129,7 @@ def generate_variant_annotation(
             "alternateAllele",
             "chromosomeB37",
             "positionB37",
-            "gnomad3VariantId",
+            "gnomadVariantId",
             "alleleType",
             "rsIds",
             f.array(
