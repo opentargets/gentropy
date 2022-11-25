@@ -30,12 +30,9 @@ def main(cfg: DictConfig) -> None:
     etl.logger.info("Variant annotation converted to Spark DF. Saving...")
     # Writing data partitioned by chromosome and position:
     (
-        variants.repartition(
-            cfg.etl.variant_annotation.parameters.partition_count,
-            *cfg.etl.variant_annotation.parameters.partition_columns,
-        )
+        variants.repartition(400, "chromosome")
         .sortWithinPartitions("chromosome", "position")
-        .write.partitionBy(*cfg.etl.variant_annotation.parameters.partition_columns)
+        .write.partitionBy("chromosome")
         .mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.variant_annotation.outputs.variant_annotation)
     )

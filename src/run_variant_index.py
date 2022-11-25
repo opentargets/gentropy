@@ -26,8 +26,8 @@ def main(cfg: DictConfig) -> None:
             cfg.etl.variant_index.inputs.credible_sets,
         )
         .repartition(
-            cfg.etl.variant_index.parameters.partition_count,
-            *cfg.etl.variant_index.parameters.partition_columns,
+            400,
+            "chromosome",
         )
         .sortWithinPartitions("chromosome", "position")
         .persist()
@@ -46,9 +46,7 @@ def main(cfg: DictConfig) -> None:
     validate_df_schema(variants_df.drop("variantInGnomad"), "variant_index.json")
     variants_df.filter(f.col("variantInGnomad")).drop(
         "variantInGnomad"
-    ).write.partitionBy(*cfg.etl.variant_index.parameters.partition_columns).mode(
-        cfg.environment.sparkWriteMode
-    ).parquet(
+    ).write.partitionBy("chromosome").mode(cfg.environment.sparkWriteMode).parquet(
         cfg.etl.variant_index.outputs.variant_index
     )
 

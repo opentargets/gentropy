@@ -49,10 +49,6 @@ variant_annotation:
     chain_file: gs://hail-common/references/grch38_to_grch37.over.chain.gz
   outputs:
     variant_annotation: ${etl.outputs}/variant_annotation_broadcast_part
-  parameters:
-    partition_count: 400
-    partition_columns:
-      - chromosome
   machine: ${machine.variant_annotation}
 
 variant_index:
@@ -62,10 +58,6 @@ variant_index:
   outputs:
     variant_index: ${etl.outputs}/variant_index
     variant_invalid: ${etl.outputs}/invalid/credible_sets
-  parameters:
-    partition_count: 400
-    partition_columns:
-      - chromosome
   machine: ${machine.default}
 
 gwas_ingest:
