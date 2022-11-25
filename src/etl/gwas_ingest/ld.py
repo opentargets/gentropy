@@ -167,7 +167,12 @@ def _query_block_matrix(
     )
     entries = bm_sparsified.entries(keyed=False)
 
-    return entries.rename({"entry": "r"}).to_spark().filter(f.col("r") ** 2 >= min_r2)
+    return (
+        entries.rename({"entry": "r"})
+        .to_spark()
+        .filter(f.col("r") ** 2 >= min_r2)
+        .withColumn("r", f.when(f.col("r") >= 1, f.lit(1)).otherwise(f.col("r")))
+    )
 
 
 def lead_coordinates_in_ld(

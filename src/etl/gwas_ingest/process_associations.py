@@ -295,7 +295,7 @@ def map_variants(
     variants = etl.spark.read.parquet(variant_annotation_path).select(
         f.col("id").alias("variantId"),
         f.col("chromosome"),
-        f.col("position"),
+        f.col("position").alias("position"),
         f.col("rsIds").alias("rsIdsGnomad"),
         f.col("referenceAllele"),
         f.col("alternateAllele"),

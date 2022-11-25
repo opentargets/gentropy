@@ -89,6 +89,9 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
     return study_ancestry
 
 
+# TODO: Rewrite as column function.
+# TODO: Drop r2 calculation
+# TODO: Return null if r2 below threshold
 def _aggregate_weighted_populations(associations_ancestry_ld: DataFrame) -> DataFrame:
     """Aggregation of weighted R information using ancestry proportions.
 
@@ -289,9 +292,18 @@ def pics_all_study_locus(
     Returns:
         DataFrame: _description_
     """
+    variant_population = association_study_ancestry.select(
+        "variantId",
+        "gnomadPopulation",
+        "chromosome",
+        "position",
+        "referenceAllele",
+        "alternateAllele",
+    ).distinct()
+
     # LD information for all locus and ancestries
     ld_r = ld_annotation_by_locus_ancestry(
-        etl, association_study_ancestry, ld_populations, min_r2
+        etl, variant_population, ld_populations, min_r2
     )
 
     # Association + ancestry + ld information

@@ -302,7 +302,7 @@ def parse_gnomad_ancestries(study_ancestry: DataFrame) -> DataFrame:
         # Exploding discoverSample object:
         .select(
             "studyAccession",
-            f.explode(f.col("discoverySamples")).alias("discoverySample"),
+            f.explode_outer(f.col("discoverySamples")).alias("discoverySample"),
         )
         # Splitting ancestry further:
         .withColumn(
@@ -320,7 +320,7 @@ def parse_gnomad_ancestries(study_ancestry: DataFrame) -> DataFrame:
             f.col("discoverySample.sampleSize") / f.size(f.col("ancestry")),
         )
         # Exploding ancestries:
-        .withColumn("ancestry", f.explode(f.col("ancestry")))
+        .withColumn("ancestry", f.explode_outer(f.col("ancestry")))
         .withColumn("mapped_population", pop_mapping_expr.getItem(f.col("ancestry")))
         .groupBy("studyAccession", "mapped_population")
         .agg(f.sum(f.col("sampleSize")).alias("sampleSize"))
