@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 import hail as hl
 import pyspark.sql.functions as f
 
+from etl.common.utils import convert_gnomad_position_to_ensembl
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
@@ -105,7 +107,10 @@ def generate_variant_annotation(
                 "_", "chromosome", "position", "referenceAllele", "alternateAllele"
             ).alias("id"),
             "chromosome",
-            "position",
+            f.col("position").alias("gnomadPosition"),
+            convert_gnomad_position_to_ensembl(
+                f.col("position"), f.col("referenceAllele"), f.col("alternateAllele")
+            ).alias("position"),
             "referenceAllele",
             "alternateAllele",
             "chromosomeB37",
