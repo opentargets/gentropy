@@ -20,6 +20,12 @@
       "metadata": {}
     },
     {
+      "name": "gnomad3VariantId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "referenceAllele",
       "type": "string",
       "nullable": true,

@@ -53,10 +53,15 @@ def get_variants_from_credset(etl: ETLSession, credible_sets_path: str) -> DataF
     Returns:
         DataFrame: A dataframe with all variants contained in the credible sets
     """
-    credset = etl.spark.read.parquet(credible_sets_path).select(
-        "leadVariantId",
-        "tagVariantId",
-        f.split(f.col("leadVariantId"), "_")[0].alias("chromosome"),
+    credset = (
+        etl.spark.read.parquet(credible_sets_path)
+        .select(
+            "leadVariantId",
+            "tagVariantId",
+            f.split(f.col("leadVariantId"), "_")[0].alias("chromosome"),
+        )
+        .repartition("chromosome")
+        .persist()
     )
     return (
         credset.selectExpr("leadVariantId as id", "chromosome")
