@@ -17,7 +17,12 @@
 <span class=normal>62</span>
 <span class=normal>63</span>
 <span class=normal>64</span>
-<span class=normal>65</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_variants_from_credset</span><span class=p>(</span><span class=n>etl</span><span class=p>:</span> <span class=n>ETLSession</span><span class=p>,</span> <span class=n>credible_sets_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>65</span>
+<span class=normal>66</span>
+<span class=normal>67</span>
+<span class=normal>68</span>
+<span class=normal>69</span>
+<span class=normal>70</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_variants_from_credset</span><span class=p>(</span><span class=n>etl</span><span class=p>:</span> <span class=n>ETLSession</span><span class=p>,</span> <span class=n>credible_sets_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;It reads the credible sets from the given path, extracts the lead and tag variants.</span>
 
 <span class=sd>    Args:</span>
@@ -27,10 +32,15 @@
 <span class=sd>    Returns:</span>
 <span class=sd>        DataFrame: A dataframe with all variants contained in the credible sets</span>
 <span class=sd>    &quot;&quot;&quot;</span>
-    <span class=n>credset</span> <span class=o>=</span> <span class=n>etl</span><span class=o>.</span><span class=n>spark</span><span class=o>.</span><span class=n>read</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=n>credible_sets_path</span><span class=p>)</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-        <span class=s2>&quot;leadVariantId&quot;</span><span class=p>,</span>
-        <span class=s2>&quot;tagVariantId&quot;</span><span class=p>,</span>
-        <span class=n>f</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;leadVariantId&quot;</span><span class=p>),</span> <span class=s2>&quot;_&quot;</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
+    <span class=n>credset</span> <span class=o>=</span> <span class=p>(</span>
+        <span class=n>etl</span><span class=o>.</span><span class=n>spark</span><span class=o>.</span><span class=n>read</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=n>credible_sets_path</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>select</span><span class=p>(</span>
+            <span class=s2>&quot;leadVariantId&quot;</span><span class=p>,</span>
+            <span class=s2>&quot;tagVariantId&quot;</span><span class=p>,</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;leadVariantId&quot;</span><span class=p>),</span> <span class=s2>&quot;_&quot;</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
+        <span class=p>)</span>
+        <span class=o>.</span><span class=n>repartition</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>persist</span><span class=p>()</span>
     <span class=p>)</span>
     <span class=k>return</span> <span class=p>(</span>
         <span class=n>credset</span><span class=o>.</span><span class=n>selectExpr</span><span class=p>(</span><span class=s2>&quot;leadVariantId as id&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
@@ -92,37 +102,37 @@
     <span class=k>return</span> <span class=n>credset</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
         <span class=n>credset_gnomad_overlap</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;id&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span>
     <span class=p>)</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;variantInGnomad&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variantInGnomad&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>False</span><span class=p>)))</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.variants.variant_index.read_variant_annotation class="doc doc-heading"> <code class="highlight language-python"><span class=n>read_variant_annotation</span><span class=p>(</span><span class=n>etl</span><span class=p>,</span> <span class=n>variant_annotation_path</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>It reads the variant annotation parquet file and formats it to follow the OTG variant model.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>etl</code></td> <td> <code><span title="etl.common.ETLSession.ETLSession">ETLSession</span></code> </td> <td><p>ETLSession</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>variant_annotation_path</code></td> <td> <code>str</code> </td> <td><p>path to the variant annotation parquet file</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe of variants and their annotation</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/variants/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>68</span>
-<span class=normal>69</span>
-<span class=normal>70</span>
-<span class=normal>71</span>
-<span class=normal>72</span>
-<span class=normal>73</span>
-<span class=normal>74</span>
-<span class=normal>75</span>
-<span class=normal>76</span>
-<span class=normal>77</span>
-<span class=normal>78</span>
-<span class=normal>79</span>
-<span class=normal>80</span>
-<span class=normal>81</span>
-<span class=normal>82</span>
-<span class=normal>83</span>
-<span class=normal>84</span>
-<span class=normal>85</span>
-<span class=normal>86</span>
-<span class=normal>87</span>
-<span class=normal>88</span>
-<span class=normal>89</span>
-<span class=normal>90</span>
-<span class=normal>91</span>
-<span class=normal>92</span>
-<span class=normal>93</span>
-<span class=normal>94</span>
-<span class=normal>95</span>
-<span class=normal>96</span>
-<span class=normal>97</span>
-<span class=normal>98</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>read_variant_annotation</span><span class=p>(</span><span class=n>etl</span><span class=p>:</span> <span class=n>ETLSession</span><span class=p>,</span> <span class=n>variant_annotation_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=etl.variants.variant_index.read_variant_annotation class="doc doc-heading"> <code class="highlight language-python"><span class=n>read_variant_annotation</span><span class=p>(</span><span class=n>etl</span><span class=p>,</span> <span class=n>variant_annotation_path</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>It reads the variant annotation parquet file and formats it to follow the OTG variant model.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>etl</code></td> <td> <code><span title="etl.common.ETLSession.ETLSession">ETLSession</span></code> </td> <td><p>ETLSession</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>variant_annotation_path</code></td> <td> <code>str</code> </td> <td><p>path to the variant annotation parquet file</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe of variants and their annotation</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/variants/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 73</span>
+<span class=normal> 74</span>
+<span class=normal> 75</span>
+<span class=normal> 76</span>
+<span class=normal> 77</span>
+<span class=normal> 78</span>
+<span class=normal> 79</span>
+<span class=normal> 80</span>
+<span class=normal> 81</span>
+<span class=normal> 82</span>
+<span class=normal> 83</span>
+<span class=normal> 84</span>
+<span class=normal> 85</span>
+<span class=normal> 86</span>
+<span class=normal> 87</span>
+<span class=normal> 88</span>
+<span class=normal> 89</span>
+<span class=normal> 90</span>
+<span class=normal> 91</span>
+<span class=normal> 92</span>
+<span class=normal> 93</span>
+<span class=normal> 94</span>
+<span class=normal> 95</span>
+<span class=normal> 96</span>
+<span class=normal> 97</span>
+<span class=normal> 98</span>
+<span class=normal> 99</span>
+<span class=normal>100</span>
+<span class=normal>101</span>
+<span class=normal>102</span>
+<span class=normal>103</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>read_variant_annotation</span><span class=p>(</span><span class=n>etl</span><span class=p>:</span> <span class=n>ETLSession</span><span class=p>,</span> <span class=n>variant_annotation_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;It reads the variant annotation parquet file and formats it to follow the OTG variant model.</span>
 
 <span class=sd>    Args:</span>
@@ -153,9 +163,7 @@
         <span class=n>nullify_empty_array</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;rsIds&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;rsIds&quot;</span><span class=p>),</span>
         <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;variantInGnomad&quot;</span><span class=p>),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.variants.variant_annotation></a> <div class="doc doc-contents first"> <p>Step to generate variant annotation dataset.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.variants.variant_annotation.generate_variant_annotation class="doc doc-heading"> <code class="highlight language-python"><span class=n>generate_variant_annotation</span><span class=p>(</span><span class=n>etl</span><span class=p>,</span> <span class=n>gnomad_variants_path</span><span class=p>,</span> <span class=n>chain_file_path</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with several annotations derived from GnomAD.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>etl</code></td> <td> <code><span title="etl.common.ETLSession.ETLSession">ETLSession</span></code> </td> <td><p>ETL session</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>gnomad_variants_path</code></td> <td> <code>str</code> </td> <td><p>Path to the GnomAD variants dataset</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>chain_file_path</code></td> <td> <code>str</code> </td> <td><p>Chain to liftover from grch38 to grch37</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Subset of variant annotations derived from GnomAD</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/variants/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 30</span>
-<span class=normal> 31</span>
-<span class=normal> 32</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-module"> <a id=etl.variants.variant_annotation></a> <div class="doc doc-contents first"> <p>Step to generate variant annotation dataset.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=etl.variants.variant_annotation.generate_variant_annotation class="doc doc-heading"> <code class="highlight language-python"><span class=n>generate_variant_annotation</span><span class=p>(</span><span class=n>etl</span><span class=p>,</span> <span class=n>gnomad_variants_path</span><span class=p>,</span> <span class=n>chain_file_path</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with several annotations derived from GnomAD.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>etl</code></td> <td> <code><span title="etl.common.ETLSession.ETLSession">ETLSession</span></code> </td> <td><p>ETL session</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>gnomad_variants_path</code></td> <td> <code>str</code> </td> <td><p>Path to the GnomAD variants dataset</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>chain_file_path</code></td> <td> <code>str</code> </td> <td><p>Chain to liftover from grch38 to grch37</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Subset of variant annotations derived from GnomAD</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/variants/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 32</span>
 <span class=normal> 33</span>
 <span class=normal> 34</span>
 <span class=normal> 35</span>
@@ -263,7 +271,27 @@
 <span class=normal>137</span>
 <span class=normal>138</span>
 <span class=normal>139</span>
-<span class=normal>140</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>generate_variant_annotation</span><span class=p>(</span>
+<span class=normal>140</span>
+<span class=normal>141</span>
+<span class=normal>142</span>
+<span class=normal>143</span>
+<span class=normal>144</span>
+<span class=normal>145</span>
+<span class=normal>146</span>
+<span class=normal>147</span>
+<span class=normal>148</span>
+<span class=normal>149</span>
+<span class=normal>150</span>
+<span class=normal>151</span>
+<span class=normal>152</span>
+<span class=normal>153</span>
+<span class=normal>154</span>
+<span class=normal>155</span>
+<span class=normal>156</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>generate_variant_annotation</span><span class=p>(</span>
     <span class=n>etl</span><span class=p>:</span> <span class=n>ETLSession</span><span class=p>,</span> <span class=n>gnomad_variants_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>chain_file_path</span><span class=p>:</span> <span class=nb>str</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Creates a dataset with several annotations derived from GnomAD.</span>
@@ -334,18 +362,36 @@
     <span class=p>)</span>
 
     <span class=k>return</span> <span class=p>(</span>
-        <span class=n>ht</span><span class=o>.</span><span class=n>select_globals</span><span class=p>()</span><span class=o>.</span><span class=n>to_spark</span><span class=p>(</span><span class=n>flatten</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+        <span class=n>ht</span><span class=o>.</span><span class=n>select_globals</span><span class=p>()</span>
+        <span class=o>.</span><span class=n>to_spark</span><span class=p>(</span><span class=n>flatten</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
         <span class=c1># Creating new column based on the transcript_consequences</span>
+        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+            <span class=s2>&quot;gnomadVariantId&quot;</span><span class=p>,</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>concat_ws</span><span class=p>(</span>
+                <span class=s2>&quot;-&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>,</span> <span class=s2>&quot;referenceAllele&quot;</span><span class=p>,</span> <span class=s2>&quot;alternateAllele&quot;</span>
+            <span class=p>),</span>
+        <span class=p>)</span>
+        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+            <span class=s2>&quot;ensembl_position&quot;</span><span class=p>,</span>
+            <span class=n>convert_gnomad_position_to_ensembl</span><span class=p>(</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;position&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>)</span>
+            <span class=p>),</span>
+        <span class=p>)</span>
         <span class=o>.</span><span class=n>select</span><span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>concat_ws</span><span class=p>(</span>
-                <span class=s2>&quot;_&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>,</span> <span class=s2>&quot;referenceAllele&quot;</span><span class=p>,</span> <span class=s2>&quot;alternateAllele&quot;</span>
+                <span class=s2>&quot;_&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;ensembl_position&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;referenceAllele&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;alternateAllele&quot;</span><span class=p>,</span>
             <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;id&quot;</span><span class=p>),</span>
             <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-            <span class=s2>&quot;position&quot;</span><span class=p>,</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ensembl_position&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;position&quot;</span><span class=p>),</span>
             <span class=s2>&quot;referenceAllele&quot;</span><span class=p>,</span>
             <span class=s2>&quot;alternateAllele&quot;</span><span class=p>,</span>
             <span class=s2>&quot;chromosomeB37&quot;</span><span class=p>,</span>
             <span class=s2>&quot;positionB37&quot;</span><span class=p>,</span>
+            <span class=s2>&quot;gnomadVariantId&quot;</span><span class=p>,</span>
             <span class=s2>&quot;alleleType&quot;</span><span class=p>,</span>
             <span class=s2>&quot;rsIds&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>(</span>
