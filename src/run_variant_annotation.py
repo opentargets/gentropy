@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
-from etl.json import validate_df_schema
 from etl.variants.variant_annotation import generate_variant_annotation
 
 
@@ -25,12 +24,13 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.variant_annotation.inputs.chain_file,
     )
 
-    validate_df_schema(variants, "variant_annotation.json")
+    # validate_df_schema(variants, "variant_annotation.json")
 
     etl.logger.info("Variant annotation converted to Spark DF. Saving...")
     # Writing data partitioned by chromosome and position:
     (
-        variants.coalesce(cfg.etl.variant_annotation.parameters.partition_count)
+        variants.repartition(400, "chromosome")
+        .sortWithinPartitions("chromosome", "position")
         .write.partitionBy("chromosome")
         .mode(cfg.environment.sparkWriteMode)
         .parquet(cfg.etl.variant_annotation.outputs.variant_annotation)
