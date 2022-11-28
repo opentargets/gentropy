@@ -2037,7 +2037,7 @@
 <span class=sd>    &quot;&quot;&quot;</span>
 
     <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
-        <span class=bp>self</span><span class=p>:</span> <span class=n>LiftOverSpark</span><span class=p>,</span> <span class=n>chain_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_difference</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=p>:</span> <span class=n>LiftOverSpark</span><span class=p>,</span> <span class=n>chain_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_difference</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
         <span class=sd>&quot;&quot;&quot;Intialise LiftOverSpark object.</span>
 
@@ -2055,7 +2055,7 @@
             <span class=bp>self</span><span class=o>.</span><span class=n>lo</span> <span class=o>=</span> <span class=n>LiftOver</span><span class=p>(</span><span class=n>chain_file</span><span class=p>)</span>
 
         <span class=c1># If no maximum difference is provided, set it to 100:</span>
-        <span class=bp>self</span><span class=o>.</span><span class=n>max_difference</span> <span class=o>=</span> <span class=mi>100</span> <span class=k>if</span> <span class=n>max_difference</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>max_difference</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_difference</span> <span class=o>=</span> <span class=n>max_difference</span>
 
         <span class=c1># UDF to do map genomic coordinates to liftover coordinates:</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>liftover_udf</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>udf</span><span class=p>(</span>
@@ -2165,7 +2165,7 @@
         <span class=p>)</span>
 
         <span class=k>return</span> <span class=n>mapped</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.Liftover.LiftOverSpark.__init__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__init__</span><span class=p>(</span><span class=n>chain_file</span><span class=p>,</span> <span class=n>max_difference</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> </h3> <div class="doc doc-contents "> <p>Intialise LiftOverSpark object.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>chain_file</code></td> <td> <code>str</code> </td> <td><p>Path to the chain file</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_difference</code></td> <td> <code>int</code> </td> <td><p>Maximum difference between the length of the mapped region and the original region. Defaults to None.</p></td> <td> <code>None</code> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/intervals/Liftover.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>30</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=etl.intervals.Liftover.LiftOverSpark.__init__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__init__</span><span class=p>(</span><span class=n>chain_file</span><span class=p>,</span> <span class=n>max_difference</span><span class=o>=</span><span class=mi>100</span><span class=p>)</span></code> </h3> <div class="doc doc-contents "> <p>Intialise LiftOverSpark object.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>chain_file</code></td> <td> <code>str</code> </td> <td><p>Path to the chain file</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_difference</code></td> <td> <code>int</code> </td> <td><p>Maximum difference between the length of the mapped region and the original region. Defaults to None.</p></td> <td> <code>100</code> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/intervals/Liftover.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>30</span>
 <span class=normal>31</span>
 <span class=normal>32</span>
 <span class=normal>33</span>
@@ -2191,7 +2191,7 @@
 <span class=normal>53</span>
 <span class=normal>54</span>
 <span class=normal>55</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
-    <span class=bp>self</span><span class=p>:</span> <span class=n>LiftOverSpark</span><span class=p>,</span> <span class=n>chain_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_difference</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=bp>self</span><span class=p>:</span> <span class=n>LiftOverSpark</span><span class=p>,</span> <span class=n>chain_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_difference</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
     <span class=sd>&quot;&quot;&quot;Intialise LiftOverSpark object.</span>
 
@@ -2209,7 +2209,7 @@
         <span class=bp>self</span><span class=o>.</span><span class=n>lo</span> <span class=o>=</span> <span class=n>LiftOver</span><span class=p>(</span><span class=n>chain_file</span><span class=p>)</span>
 
     <span class=c1># If no maximum difference is provided, set it to 100:</span>
-    <span class=bp>self</span><span class=o>.</span><span class=n>max_difference</span> <span class=o>=</span> <span class=mi>100</span> <span class=k>if</span> <span class=n>max_difference</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>max_difference</span>
+    <span class=bp>self</span><span class=o>.</span><span class=n>max_difference</span> <span class=o>=</span> <span class=n>max_difference</span>
 
     <span class=c1># UDF to do map genomic coordinates to liftover coordinates:</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>liftover_udf</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>udf</span><span class=p>(</span>
