@@ -146,7 +146,7 @@ def _is_in_credset(
         pics_postprob_cumsum
     )
     return f.when(
-        f.lag(pics_postprob, 1).over(w_credset) >= credset_probability, False
+        f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability, False
     ).otherwise(True)
 
 
