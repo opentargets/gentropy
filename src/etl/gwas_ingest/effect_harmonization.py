@@ -114,10 +114,6 @@ def harmonise_beta(df: DataFrame) -> DataFrame:
         )
         .withColumn("beta_ci_lower", f.array_min(f.col("beta_conf_intervals")))
         .withColumn("beta_ci_upper", f.array_max(f.col("beta_conf_intervals")))
-        .withColumn(
-            "beta_direction",
-            f.when(f.col("beta") >= 0, "+").when(f.col("beta") < 0, "-"),
-        )
         .drop("beta_conf_intervals")
     )
 
@@ -152,10 +148,6 @@ def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
         )
         .withColumn("odds_ratio_estimate", f.log(f.col("odds_ratio")))
         .withColumn("odds_ratio_se", f.col("odds_ratio_estimate") / f.col("zscore"))
-        .withColumn(
-            "odds_ratio_direction",
-            f.when(f.col("odds_ratio") >= 1, "+").when(f.col("odds_ratio") < 1, "-"),
-        )
         .withColumn(
             "odds_ratio_conf_intervals",
             f.array(
@@ -242,33 +234,6 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
         .transform(harmonise_beta)
         # Harmonize odds-ratio:
         .transform(harmonise_odds_ratio)
-        # Returning relevant columns:
-        .select(
-            # Variant data:
-            "chromosome",
-            "position",
-            "referenceAllele",
-            "alternateAllele",
-            "variantId",
-            # Study data:
-            "studyAccession",
-            "AssociationEfos",
-            "associationDiseaseTrait",
-            "pValueText",
-            # Association data:
-            "pValueMantissa",
-            "pValueExponent",
-            # Effect data:
-            "beta",
-            "beta_ci_lower",
-            "beta_ci_upper",
-            "odds_ratio",
-            "odds_ratio_ci_lower",
-            "odds_ratio_ci_upper",
-            f.coalesce(f.col("beta_direction"), f.col("odds_ratio_direction")).alias(
-                "direction"
-            ),
-            # Flagging quality concerns if any:
-            "qualityControl",
-        )
+        # Dropping intermedier columns:
+        .drop("isPalindrome", "needsHarmonization", "zscore")
     )

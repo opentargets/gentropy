@@ -1,6 +1,8 @@
 """Process GWAS catalog associations."""
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
+import json
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -10,6 +12,7 @@ from pyspark.sql.window import Window
 
 from etl.gwas_ingest.effect_harmonization import harmonize_effect
 from etl.gwas_ingest.study_ingestion import parse_efos
+from etl.json import data
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -34,38 +37,101 @@ ASSOCIATION_COLUMNS_MAP = {
     "P-VALUE (TEXT)": "pValueText",  # Extra information on the association.
     # Association details:
     "P-VALUE": "pValue",  # p-value of the association, string: split into exponent and mantissa.
-    "PVALUE_MLOG": "pValueNeglog",  # -log10(p-value) of the association, float
+    "PVALUE_MLOG": "pValueNeglog",  # -log10(p-value) of the association, float # No longer needed. Can be calculated.
     "OR or BETA": "effectSize",  # Effect size of the association, Odds ratio or beta
     "95% CI (TEXT)": "confidenceInterval",  # Confidence interval of the association, string: split into lower and upper bound.
     # "CONTEXT": "context",
 }
 
 
-def process_pvalue_text(pvaltext_column: Column) -> Column:
-    """Cleaning p-value text column.
-
-    The function `process_pValueText` takes a column as input and returns a column with the
-    parentheses replaced to brackets.
+@f.udf(t.ArrayType(t.StringType(), containsNull=True))
+def _clean_pvaluetext(s: str) -> list[str] | None:
+    """User defined function for PySpark to clean comma separated texts.
 
     Args:
-        pvaltext_column (Column): The column name of the p-value text column.
+        s (str): str
 
     Returns:
-        A column object
-
-    Examples:
-    >>> df = spark.createDataFrame([['Example 1'], ['(Example 2)'], ['(Example 3']],  'text_col: string')
-    >>> df.withColumn("new", process_pvalue_text(df.text_col)).show()
-    +-----------+-----------+
-    |   text_col|        new|
-    +-----------+-----------+
-    |  Example 1|  Example 1|
-    |(Example 2)|[Example 2]|
-    | (Example 3| [Example 3|
-    +-----------+-----------+
-    <BLANKLINE>
+        A list of strings.
     """
-    return f.translate(pvaltext_column, "()", "[]")
+    if s:
+        return [w.strip() for w in s.split(",")]
+    else:
+        return []
+
+
+def _parse_pvaluetext_ancestry(pvaluetext: Column) -> Column:
+    """Parsing ancestry information captured in p-value text.
+
+    If the pValueText column contains the word "uropean", then return "nfe". If it contains the word
+    "frican", then return "afr"
+
+    Args:
+        pvaluetext (Column): The column that contains the parsed p-value text
+
+    Returns:
+        A column with the values "nfe" or "afr"
+    """
+    return f.when(pvaluetext.contains("uropean"), "nfe").when(
+        pvaluetext.contains("frican"), "afr"
+    )
+
+
+def _pvalue_text_resolve(df: DataFrame, etl: ETLSession) -> DataFrame:
+    """Parsind p-value text.
+
+    Parsing `pValueText` column + mapping abbreviations reference list.
+    `pValueText` that has been cleaned and resolved to a standardised format.
+    `pValueAncestry` column with parsed ancestry information
+
+    Args:
+        df (DataFrame): DataFrame
+        etl (ETLSession): ETLSession
+
+    Returns:
+        A dataframe with the p-value text resolved.
+    """
+    columns = df.columns
+
+    # GWAS Catalog to p-value mapping
+    pval_mapping = etl.spark.createDataFrame(
+        json.loads(
+            pkg_resources.read_text(
+                data, "gwas_pValueText_resolve.json", encoding="utf-8"
+            )
+        )
+    ).withColumn("full_description", f.lower(f.col("full_description")))
+
+    # Explode pvalue-mappings:
+    return (
+        df
+        # Cleaning and fixing p-value text:
+        .withColumn(
+            "pValueText",
+            _clean_pvaluetext(f.regexp_replace(f.col("pValueText"), r"[\(\)]", "")),
+        )
+        .select(
+            # Exploding p-value text:
+            *[
+                f.explode_outer(col).alias(col) if col == "pValueText" else col
+                for col in columns
+            ]
+        )
+        # Join with mapping:
+        .join(pval_mapping, on="pValueText", how="left")
+        # Coalesce mappings:
+        .withColumn("pValueText", f.coalesce("full_description", "pValueText"))
+        # Resolve ancestries:
+        .withColumn("pValueAncestry", _parse_pvaluetext_ancestry(f.col("pValueText")))
+        # Aggregate data:
+        .groupBy(*[col for col in columns if col != "pValueText"])
+        .agg(
+            f.collect_set(f.col("pValueAncestry")).alias("pValueAncestry"),
+            f.collect_set(f.col("pValueText")).alias("pValueText"),
+        )
+        .withColumn("pValueText", f.concat_ws(", ", f.col("pValueText")))
+        .withColumn("pValueAncestry", f.concat_ws(", ", f.col("pValueAncestry")))
+    )
 
 
 def read_associations_data(
@@ -97,8 +163,6 @@ def read_associations_data(
             ],
             f.monotonically_increasing_id().alias("associationId"),
         )
-        # Cast minus log p-value as float:
-        .withColumn("pValueNegLog", f.col("pValueNegLog").cast(t.FloatType()))
         # Based on pre-defined filters set flag for failing associations:
         # 1. Flagging associations based on variant x variant interactions
         # 2. Flagging sub-significant associations
@@ -153,6 +217,8 @@ def deconvolute_variants(associations: DataFrame) -> DataFrame:
     """
     return (
         associations
+        # For further tracking, we save the variant of the association before splitting:
+        .withColumn("gwasVariant", f.col("snpIds"))
         # Variant notation (chr, pos, snp id) are split into array:
         .withColumn("chromosome", f.split(f.col("chromosome"), ";"))
         .withColumn("position", f.split(f.col("position"), ";"))
@@ -253,8 +319,9 @@ def process_associations(association: DataFrame) -> DataFrame:
         "position",
         "riskAlleleFrequency",
         "effectSize",
+        "pValueAncestry",
         "confidenceInterval",
-        process_pvalue_text("pValueText").alias("pValueText"),
+        "pValueText",
         "pValueNegLog",
         # Extracting p-value exponent and mantissa:
         f.split(f.col("pvalue"), "E")
@@ -264,6 +331,7 @@ def process_associations(association: DataFrame) -> DataFrame:
         # Extracting risk allele:
         f.split(f.col("pvalue"), "E").getItem(0).cast("float").alias("pValueMantissa"),
         f.split(f.col("strongestSnpRiskAllele"), "-").getItem(1).alias("riskAllele"),
+        "gwasVariant",
         # Collecting all available rsIDs provided by GWAS Catalog:
         f.array_distinct(
             f.array(
@@ -306,11 +374,13 @@ def map_variants(
         variants.join(
             f.broadcast(parsed_associations), on=["chromosome", "position"], how="right"
         )
+        # Even if there's no variant mapping in gnomad, to make sure we are not losing any assocations,
+        .withColumn("variantId", f.coalesce(f.col("variantId"), f.col("gwasVariant")))
         # Flagging variants that could not be mapped to gnomad:
         .withColumn(
             "qualityControl",
             f.when(
-                f.col("variantId").isNull(),
+                f.col("alternateAllele").isNull(),
                 f.array_union(
                     f.col("qualityControl"), f.array(f.lit("No mapping in GnomAd"))
                 ),
@@ -491,6 +561,8 @@ def ingest_gwas_catalog_associations(
     return (
         # Read associations:
         read_associations_data(etl, gwas_association_path, pvalue_cutoff)
+        # Cleaning p-value text:
+        .transform(lambda df: _pvalue_text_resolve(df, etl))
         # Parsing variants:
         .transform(deconvolute_variants)
         # Splitting associations by GWAS Catalog variants:

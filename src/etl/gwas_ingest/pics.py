@@ -275,41 +275,68 @@ def _pics(associations_ld_allancestries: DataFrame, k: float) -> DataFrame:
 
 def pics_all_study_locus(
     etl: ETLSession,
-    association_study_ancestry: DataFrame,
+    associations: DataFrame,
+    studies: DataFrame,
     ld_populations: ListConfig,
     min_r2: float,
     k: float,
 ) -> DataFrame:
     """Calculates study-locus based on PICS.
 
+    It takes in a dataframe of associations, a dataframe of studies, a list of LD populations, a minimum
+    R^2, and a constant k, and returns a dataframe of PICS results
+
     Args:
-        etl (ETLSession): ETL session
-        association_study_ancestry (DataFrame): associations with study and ancesry data
-        ld_populations (ListConfig): configuration for LD populations
+        etl (ETLSession): ETLSession
+        associations (DataFrame): DataFrame
+        studies (DataFrame): DataFrame
+        ld_populations (ListConfig): ListConfig = ListConfig(
         min_r2 (float): Minimum R^2
         k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
     Returns:
         DataFrame: _description_
     """
-    variant_population = association_study_ancestry.select(
-        "variantId",
-        "gnomadPopulation",
-        "chromosome",
-        "position",
-        "referenceAllele",
-        "alternateAllele",
-    ).distinct()
+    variant_population = (
+        associations.join(studies, on="studyId", how="left")
+        .withColumn("gnomadSamples", f.explode(f.col("gnomadSamples")))
+        .filter(
+            (f.size(f.col("qualityControl")) == 0) & f.col("gnomadSamples").isNotNull()
+        )
+        .select(
+            "variantId",
+            f.col("gnomadSamples.gnomadPopulation").alias("gnomadPopulation"),
+            "chromosome",
+            "position",
+            "referenceAllele",
+            "alternateAllele",
+        )
+        .distinct()
+    )
+
+    # Number of distinct variants to map:
+    etl.logger.info(f"Number of variant/ancestry pairs: {variant_population.count()}")
+    etl.logger.info(
+        f'Number of unique variants: {variant_population.select("variantId").distinct().count()}'
+    )
 
     # LD information for all locus and ancestries
     ld_r = ld_annotation_by_locus_ancestry(
         etl, variant_population, ld_populations, min_r2
     )
-
+    # Saving draft data:
+    etl.logger.info("LD expansion is done! Saving intermedier data.")
+    ld_r.write.mode("overwrite").parquet(
+        "gs://genetics_etl_python_playground/XX.XX/output/python_etl/parquet/ld2_table"
+    )
     # Association + ancestry + ld information
-    association_ancestry_ld = association_study_ancestry.join(
+    association_ancestry_ld = associations.join(
         ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="inner"
     )
+
+    print("association_ancestry_ld:")
+    print(association_ancestry_ld.columns)
+    association_ancestry_ld.show(1, False, True)
 
     # Aggregation of weighted R information using ancestry proportions
     associations_ld_allancestries = _aggregate_weighted_populations(

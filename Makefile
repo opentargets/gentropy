@@ -24,6 +24,7 @@ setup-dev: ## Setup dev environment
 
 build: clean ## Build Python Package with Dependencies
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
+	@rm -rf ./dist
 	@poetry build
 	@cp ./src/*.py ./dist
 	@poetry run python ./utils/configure.py --cfg job > ./dist/config.yaml
@@ -102,8 +103,9 @@ prepare_gwas: ## Create cluster for gwas data generation
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
 		--enable-component-gateway \
-		--single-node \
-		--max-idle=10m
+		--single-node
+
+		## --max-idle=10m
 
 run_coloc: ## Generate coloc results
 	gcloud dataproc jobs submit pyspark ./dist/run_coloc.py \
@@ -141,6 +143,7 @@ run_gwas: ## Ingest gwas dataset on a dataproc cluster
 	gcloud dataproc jobs submit pyspark ./dist/run_gwas_ingest.py \
 	--cluster=${CLUSTER_NAME} \
     --files=./dist/config.yaml \
+	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
     --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
     --project=${PROJECT_ID} \
     --region=${REGION}

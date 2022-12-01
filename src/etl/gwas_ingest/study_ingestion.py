@@ -153,13 +153,25 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
     Returns:
         A dataframe with the studyAccession, studyId, DiseaseTrait, and efos columns.
     """
-    # Windowing throught all study accessions, while ordering by association EFOs:
-    window_spec = Window.partitionBy("studyAccession").orderBy("associationEfos")
+    print(study_association.columns)
+    # A window to aid study splitting:
+    study_split_window = Window.partitionBy("studyAccession").orderBy("splitField")
 
+    # A window to detect ambiguous associations:
+    assoc_ambiguity_window = Window.partitionBy("studyId", "variantId")
     return (
         study_association
-        # Assign ranks for each association EFO group within a studyAccession group:
-        .withColumn("row_number", f.dense_rank().over(window_spec) - 1)
+        # As some studies needs to be split by not only the p-value text, but the EFO as well, we need to do this thing:
+        .withColumn(
+            "splitField",
+            f.concat_ws(
+                "_",
+                f.col("pValueText"),
+                f.array_join(f.col("associationEfos"), "_"),
+            ),
+        )
+        # Windowing over the groups:
+        .withColumn("row_number", f.dense_rank().over(study_split_window) - 1)
         # Study identifiers are split when there are more than one type of associationEfos:
         .withColumn(
             "studyId",
@@ -169,11 +181,16 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
         )
         # Disese traits are generated based on p-value text when splitting study:
         .withColumn(
-            "DiseaseTrait",
+            "diseaseTrait",
             # When study is split:
             f.when(
                 f.col("row_number") != 0,
-                f.concat_ws(" ", "associationDiseaseTrait", "pValueText"),
+                f.when(
+                    f.col("pValueText").isNotNull(),
+                    f.concat(
+                        "associationDiseaseTrait", f.lit(" ["), "pValueText", f.lit("]")
+                    ),
+                ).otherwise("associationDiseaseTrait"),
             )
             # When there's association disease trait:
             .when(
@@ -191,7 +208,20 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
             # When no association is given, the study level EFOs are used:
             .otherwise(f.col("studyEfos")),
         )
-        # The fields are dropped that we would no longer need downstream:
+        # Flagging ambiguous associations:
+        .withColumn(
+            "variantCountInStudy",
+            f.count(f.col("variantId")).over(assoc_ambiguity_window),
+        )
+        .withColumn(
+            "qualityControl",
+            f.when(
+                f.col("variantCountInStudy") > 1,
+                f.array_union(
+                    f.col("qualityControl"), f.array(f.lit("ambiguous association"))
+                ),
+            ).otherwise(f.col("qualityControl")),
+        )
         .drop(
             "row_number",
             "studyAccession",
@@ -200,9 +230,8 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
             "associationEfos",
             "associationDiseaseTrait",
             "pValueText",
+            # 'full_description'
         )
-        .orderBy("studyAccession")
-        .persist()
     )
 
 
@@ -519,7 +548,7 @@ def generate_study_table(association_study: DataFrame) -> DataFrame:
     """
     study_columns = [
         "studyId",
-        "DiseaseTrait",
+        "diseaseTrait",
         "efos",
         "pubmedId",
         "firstAuthor",
