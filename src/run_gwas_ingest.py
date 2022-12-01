@@ -51,6 +51,7 @@ def main(cfg: DictConfig) -> None:
     #     cfg.etl.gwas_ingest.inputs.gwas_catalog_ancestries,
     #     cfg.etl.gwas_ingest.inputs.summary_stats_list,
     # )
+    # validate_df_schema(gwas_studies, "studies.json")
     # etl.logger.info(
     #     f"Writing studies data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_studies}"
     # )

@@ -151,7 +151,7 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
         study_association (DataFrame): DataFrame
 
     Returns:
-        A dataframe with the studyAccession, studyId, DiseaseTrait, and efos columns.
+        A dataframe with the studyAccession, studyId, diseaseTrait, and efos columns.
     """
     # Windowing throught all study accessions, while ordering by association EFOs:
     window_spec = Window.partitionBy("studyAccession").orderBy("associationEfos")
@@ -169,7 +169,7 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
         )
         # Disese traits are generated based on p-value text when splitting study:
         .withColumn(
-            "DiseaseTrait",
+            "diseaseTrait",
             # When study is split:
             f.when(
                 f.col("row_number") != 0,
@@ -464,16 +464,16 @@ def ingest_gwas_catalog_studies(
     study_size_df = extract_discovery_sample_sizes(gwas_studies)
 
     # Mapping ancestries of the discover sampe description to GnomAD:
-    gnomad_ancestries = parse_gnomad_ancestries(
-        gwas_ancestries.select("studyAccession", "discoverySamples").distinct()
-    )
+    # gnomad_ancestries = parse_gnomad_ancestries(
+    #     gwas_ancestries.select("studyAccession", "discoverySamples").distinct()
+    # )
 
     return (
         gwas_studies
         # Add study sizes:
         .join(study_size_df, on="studyAccession", how="left")
         # Adding GnomAD ancestry mapping:
-        .join(gnomad_ancestries, on="studyAccession", how="left")
+        # .join(gnomad_ancestries, on="studyAccession", how="left")
         # Adding summary stats location:
         .join(ss_studies, on="studyAccession", how="left")
         .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
@@ -499,7 +499,7 @@ def ingest_gwas_catalog_studies(
             # Ancestry related labels:
             "discoverySamples",
             "replicationSamples",
-            "gnomadSamples",
+            # "gnomadSamples",
             # Summary stats fields:
             "summarystatsLocation",
             "hasSumstats",
@@ -519,7 +519,7 @@ def generate_study_table(association_study: DataFrame) -> DataFrame:
     """
     study_columns = [
         "studyId",
-        "DiseaseTrait",
+        "diseaseTrait",
         "efos",
         "pubmedId",
         "firstAuthor",
@@ -533,7 +533,7 @@ def generate_study_table(association_study: DataFrame) -> DataFrame:
         "nSamples",
         "discoverySamples",
         "replicationSamples",
-        "gnomadSamples",
+        # "gnomadSamples",
         "summarystatsLocation",
         "hasSumstats",
     ]
