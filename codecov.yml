@@ -1,4 +1,14 @@
 
 comment:
-  layout: "reach,diff,flags,tree,betaprofiling"
-  feedback: no
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false  # if true: only post the comment if coverage changes
+
+coverage:
+  status:
+    project:
+      default: # This can be anything, but it needs to exist as the name
+        # basic settings
+        target: auto
+        threshold: 10%
+        base: auto
