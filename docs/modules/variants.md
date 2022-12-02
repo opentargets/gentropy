@@ -13,12 +13,9 @@ Schemas for each dataset are defined in the `json.schemas` module.
 3. Genome coordinates are liftovered from GRCh38 to GRCh37.
 4. Field names are converted to camel case, to follow the same conventions as other pipelines.
 
+::: etl.variants.variant_annotation
 ### Variant index
 1. The variant annotation dataset is further processed to follow our variant model definition.
 2. The dataset is filtered to only include variants that are present in the credible set. The variants in the credible set that are filtered out are written in the invalid variants file.
 
-::: etl.variants
 ::: etl.variants.variant_index
-    :members:
-    :show-inheritance:
-::: etl.variants.variant_annotation

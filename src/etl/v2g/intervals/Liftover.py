@@ -34,9 +34,10 @@ class LiftOverSpark:
 
         Args:
             chain_file (str): Path to the chain file
-            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to None.
+            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 0.
         """
         self.chain_file = chain_file
+        self.max_difference = max_difference
 
         # Initializing liftover object by opening the chain file:
         if chain_file.startswith("gs://"):

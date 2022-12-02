@@ -1,6 +1,6 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-CLUSTER_NAME ?= variant-annotation-pipeline
+CLUSTER_NAME ?= il-v2g
 PROJECT_NUMBER ?= $$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)")
 APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
@@ -68,6 +68,18 @@ prepare_intervals: ## Create cluster for intervals data generation
 		--single-node \
 		--max-idle=10m
 
+prepare_v2g: ## Create cluster for variant to gene data generation
+	gcloud dataproc clusters create ${CLUSTER_NAME} \
+		--image-version=2.0 \
+		--project=${PROJECT_ID} \
+		--region=${REGION} \
+		--master-machine-type=n1-highmem-64 \
+		--enable-component-gateway \
+		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
+		--initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
+		--single-node \
+		--max-idle=10m
+
 prepare_coloc: ## Create cluster for coloc
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
 		--image-version=2.0 \
@@ -104,6 +116,14 @@ run_coloc: ## Generate coloc results
 
 run_intervals: ## Generate intervals dataset
 	gcloud dataproc jobs submit pyspark ./dist/run_intervals.py \
+	--cluster=${CLUSTER_NAME} \
+    --files=./dist/config.yaml \
+    --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
+    --project=${PROJECT_ID} \
+    --region=${REGION}
+
+run_v2g: ## Generate V2G dataset
+	gcloud dataproc jobs submit pyspark ./dist/run_v2g.py \
 	--cluster=${CLUSTER_NAME} \
     --files=./dist/config.yaml \
     --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \

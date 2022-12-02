@@ -15,10 +15,11 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from etl.common.ETLSession import ETLSession
-    from etl.intervals.Liftover import LiftOverSpark
+    from etl.v2g.intervals.Liftover import LiftOverSpark
 
-    """
-    Parser Thurman 2012 dataset
+
+class ParseThurman:
+    """Parser Thurman 2012 dataset.
 
     :param Thurman_parquet: path to the parquet file containing the Thurman 2012 data
     :param gene_index: Pyspark dataframe containing the gene index
@@ -29,10 +30,6 @@ if TYPE_CHECKING:
     - Lifting over coordinates to GRCh38
     - Mapping genes names to gene IDs -> we might need to measure the loss of genes if there are obsoleted names.
     """
-
-
-class ParseThurman:
-    """Parser Thurman dataset."""
 
     # Constants:
     DATASET_NAME = "thurman2012"
@@ -92,7 +89,7 @@ class ParseThurman:
             # Map gene names to gene IDs:
             .join(
                 gene_index.alias("genes"),
-                on=[f.col("intervals.gene_name") == f.col("genes.symbols")],
+                on=[f.col("intervals.gene_name") == f.col("genes.geneSymbol")],
                 how="inner",
             )
             # Select relevant columns and add constant columns:
@@ -101,17 +98,15 @@ class ParseThurman:
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
                 "geneId",
-                "score",
-                f.lit(self.DATASET_NAME).alias("datasetName"),
-                f.lit(self.DATA_TYPE).alias("dataType"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
+                f.col("score").alias("resourceScore"),
+                f.lit(self.DATASET_NAME).alias("datasourceId"),
+                f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),
-                f.lit(self.BIO_FEATURE).alias("bioFeature"),
+                f.lit(self.BIO_FEATURE).alias("biofeature"),
             )
             .distinct()
             .persist()
         )
-        etl.logger.info(f"Number of rows: {self.Thurman_intervals.count()}")
 
     def get_intervals(self: ParseThurman) -> DataFrame:
         """Get Thurman intervals."""

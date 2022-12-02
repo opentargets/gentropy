@@ -14,3 +14,8 @@ variant_annotation:
   master_machine_type: 'n1-highmem-96'
   single_node: true
   max_idle: 10m
+
+v2g:
+  master_machine_type: 'n1-highmem-64'
+  single_node: true
+  max_idle: 10m
