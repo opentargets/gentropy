@@ -2,6 +2,7 @@ site_name: Genetics Portal Pipeline
 
 plugins:
   - search
+  - awesome-pages
   - mkdocstrings
   - section-index
   - git-revision-date-localized
@@ -11,17 +12,6 @@ plugins:
 
 repo_name: opentargets/genetics_etl_python
 repo_url: https://github.com/opentargets/genetics_etl_python
-
-nav:
-  - index.md
-  - roadmap.md
-  - Reference:
-    - reference.md
-    - Variants: modules/variants.md
-    - GWAS Catalog ingestion: modules/gwas_ingest.md
-    - Assigning Variants to Genes: modules/variant_to_gene.md
-    - Colocalisation: modules/colocalisation.md
-    - Schemas: modules/schemas.md
 
 theme:
   name: "material"
