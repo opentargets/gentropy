@@ -3,7 +3,12 @@ site_name: Genetics Portal Pipeline
 plugins:
   - search
   - awesome-pages
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        crystal:
+          selection:
+            filters:
+              - "!^_[^_]"
   - section-index
   - git-revision-date-localized
   - autolinks
