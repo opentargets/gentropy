@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import DataFrame
 
 
 def find_all_vs_all_overlapping_signals(
-    spark: SparkSession, credset_path: str
+    credible_sets: DataFrame,
 ) -> DataFrame:
     """Find overlapping signals.
 
@@ -22,8 +22,7 @@ def find_all_vs_all_overlapping_signals(
     appearing on the right side.
 
     Args:
-        spark (SparkSession): current Spark session
-        credset_path (str): Path to credible sets
+        credible_sets (DataFrame): DataFrame containing the credible sets to be analysed
 
     Returns:
         DataFrame: overlapping peaks to be compared
@@ -46,9 +45,7 @@ def find_all_vs_all_overlapping_signals(
     ]
 
     credset = (
-        spark.read.parquet(credset_path)
-        # .filter(f.col('chrom') == '22') # for debugging
-        .withColumn(
+        credible_sets.filter(f.col("chrom") == "22").withColumn(  # for debugging
             "studyKey",
             f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
         )
@@ -75,40 +72,39 @@ def find_all_vs_all_overlapping_signals(
         .drop("left.tag_variant_id", "right.tag_variant_id")
         # Rename columns to make them unambiguous
         .selectExpr(
-            *["left." + col + " as " + "left_" + col for col in cols_to_rename]
-            + ["right." + col + " as " + "right_" + col for col in cols_to_rename]
+            *(
+                [f"left.{col} as left_{col}" for col in cols_to_rename]
+                + [f"right.{col} as right_{col}" for col in cols_to_rename]
+            )
         )
-        # Keep only one record per overlapping peak
         .dropDuplicates(
-            ["left_" + i for i in id_cols] + ["right_" + i for i in id_cols]
+            [f"left_{i}" for i in id_cols] + [f"right_{i}" for i in id_cols]
         )
         .cache()
     )
 
     overlapping_left = credset.selectExpr(
-        [col + " as " + "left_" + col for col in id_cols + metadata_cols + ["logABF"]]
+        [f"{col} as left_{col}" for col in id_cols + metadata_cols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(
-        overlapping_peaks.sortWithinPartitions(["left_" + i for i in id_cols]),
-        on=["left_" + i for i in id_cols],
+        overlapping_peaks.sortWithinPartitions([f"left_{i}" for i in id_cols]),
+        on=[f"left_{i}" for i in id_cols],
         how="inner",
     )
 
     overlapping_right = credset.selectExpr(
-        [col + " as " + "right_" + col for col in id_cols + metadata_cols + ["logABF"]]
+        [f"{col} as right_{col}" for col in id_cols + metadata_cols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(
-        overlapping_peaks.sortWithinPartitions(["right_" + i for i in id_cols]),
-        on=["right_" + i for i in id_cols],
+        overlapping_peaks.sortWithinPartitions([f"right_{i}" for i in id_cols]),
+        on=[f"right_{i}" for i in id_cols],
         how="inner",
     )
 
-    overlapping_signals = overlapping_left.join(
+    return overlapping_left.join(
         overlapping_right,
-        on=["right_" + i for i in id_cols]
-        + ["left_" + i for i in id_cols]
+        on=[f"right_{i}" for i in id_cols]
+        + [f"left_{i}" for i in id_cols]
         + ["tag_variant_id"],
         how="outer",
     )
-
-    return overlapping_signals
