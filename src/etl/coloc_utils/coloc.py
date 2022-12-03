@@ -7,11 +7,50 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pyspark.ml.functions as fml
 import pyspark.sql.functions as f
-from pyspark.ml.linalg import Vectors, VectorUDT
+from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
 if TYPE_CHECKING:
+    from etl.common.ETLSession import ETLSession
     from pyspark.sql import DataFrame
+
+from etl.coloc_utils.coloc_metadata import add_moleculartrait_phenotype_genes
+from etl.coloc_utils.overlaps import find_all_vs_all_overlapping_signals
+
+
+def run_colocalisation(
+    etl: ETLSession,
+    credible_sets: DataFrame,
+    priorc1: float,
+    priorc2: float,
+    prioc12: float,
+    phenotype_id_gene: DataFrame,
+    sumsstats: DataFrame,
+) -> None:
+    """Run colocalisation analysis."""
+    etl.logger.info("Colocalisation step started")
+    # 1. Looking for overlapping signals
+    overlapping_signals = find_all_vs_all_overlapping_signals(credible_sets)
+
+    # 2. Perform colocalisation analysis
+    coloc = colocalisation(
+        overlapping_signals,
+        priorc1,
+        priorc2,
+        prioc12,
+    )
+
+    # 3. Add molecular trait genes (metadata)
+    coloc_with_genes = add_moleculartrait_phenotype_genes(coloc, phenotype_id_gene)
+
+    # 4. Add betas from sumstats
+    # Adds backwards compatibility with production schema
+    # Note: First implementation in add_coloc_sumstats_info hasn't been fully tested
+    # colocWithAllMetadata = addColocSumstatsInfo(
+    #     coloc_with_genes, sumstats
+    # )
+
+    return coloc_with_genes
 
 
 def get_logsum(log_abf: VectorUDT) -> float:
@@ -36,14 +75,14 @@ def get_logsum(log_abf: VectorUDT) -> float:
     return float(result)
 
 
-def get_posteriors(all_abfs: VectorUDT) -> VectorUDT:
+def get_posteriors(all_abfs: VectorUDT) -> DenseVector:
     """Calculate posterior probabilities for each hypothesis.
 
     Args:
         all_abfs (VectorUDT): h0-h4 bayes factors
 
     Returns:
-        VectorUDT: Posterior
+        DenseVector: Posterior
     """
     diff = all_abfs - get_logsum(all_abfs)
     abfs_posteriors = np.exp(diff)

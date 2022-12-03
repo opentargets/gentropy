@@ -7,36 +7,24 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import DataFrame
 
 
 def add_moleculartrait_phenotype_genes(
-    spark: SparkSession, coloc_result: DataFrame, phenotype2gene_path: str
+    coloc_result: DataFrame, phenotype_id_gene: DataFrame
 ) -> DataFrame:
     """Add Ensembl gene id to molecular trait phenotype IDs.
 
     Args:
-        spark (SparkSession): Spark session
-        coloc_result: Results from colocalisation analysis
-        phenotype2gene_path: Path of lookup table
+        coloc_result (DataFrame): Results from colocalisation analysis
+        phenotype_id_gene (DataFrame): LUT with the ENSEMBL gene id for each molecular trait phenotype ID
 
     Returns:
         DataFrame: Coloc datasets with gene IDs for molecular trait phenotypes
     """
-    # Mapping between molecular trait phenotypes and genes
-    phenotype_id = (
-        spark.read.option("header", "true")
-        .option("sep", "\t")
-        .csv(phenotype2gene_path)
-        .select(
-            f.col("phenotype_id").alias("right_phenotype"),
-            f.col("gene_id").alias("right_gene_id"),
-        )
-    )
-
-    coloc_with_metadata = (
+    return (
         coloc_result.join(
-            f.broadcast(phenotype_id),
+            f.broadcast(phenotype_id_gene),
             on="right_phenotype",
             how="left",
         )
@@ -55,26 +43,21 @@ def add_moleculartrait_phenotype_genes(
             ).otherwise(f.col("right_gene_id")),
         )
     )
-    return coloc_with_metadata
 
 
-def add_coloc_sumstats_info(
-    spark: SparkSession, coloc: DataFrame, sumstats_path: str
-) -> DataFrame:
+def add_coloc_sumstats_info(coloc: DataFrame, sumstats: DataFrame) -> DataFrame:
     """Adds relevant metadata to colocalisation results from summary stats.
 
     Args:
-        spark (SparkSession): Spark session
         coloc (DataFrame): Colocalisation results
-        sumstats_path (str): Summary stats dataset
+        sumstats (DataFrame): Summary stats dataset
 
     Returns:
         DataFrame: Colocalisation results with summary stats metadata added
     """
     sumstats_leftvar_rightstudy = (
         # sumstats_path ~250Gb dataset
-        spark.read.parquet(sumstats_path)
-        .repartition("chrom")
+        sumstats.repartition("chrom")
         .withColumn(
             "right_studyKey",
             f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
@@ -100,8 +83,8 @@ def add_coloc_sumstats_info(
         )
     )
 
-    # join info from sumstats
-    coloc_with_metadata = (
+    return (
+        # join info from sumstats
         sumstats_leftvar_rightstudy.join(
             f.broadcast(coloc),
             on=["left_chrom", "left_lead_variant_id", "right_studyKey"],
@@ -112,5 +95,3 @@ def add_coloc_sumstats_info(
         .drop("left_bio_feature", "left_phenotype")
         .drop("left_studyKey", "right_studyKey")
     )
-
-    return coloc_with_metadata

@@ -44,18 +44,9 @@ def find_all_vs_all_overlapping_signals(
         "lead_alt",
     ]
 
-    credset = (
-        credible_sets.filter(f.col("chrom") == "22").withColumn(  # for debugging
-            "studyKey",
-            f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
-        )
-        # Exclude studies without logABFs available
-        .filter(f.col("logABF").isNotNull())
-    )
-
     # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
     cols_to_rename = id_cols
-    credset_to_self_join = credset.select(id_cols + ["tag_variant_id"])
+    credset_to_self_join = credible_sets.select(id_cols + ["tag_variant_id"])
     overlapping_peaks = (
         credset_to_self_join.alias("left")
         .filter(f.col("type") == "gwas")
@@ -83,7 +74,7 @@ def find_all_vs_all_overlapping_signals(
         .cache()
     )
 
-    overlapping_left = credset.selectExpr(
+    overlapping_left = credible_sets.selectExpr(
         [f"{col} as left_{col}" for col in id_cols + metadata_cols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(
@@ -92,7 +83,7 @@ def find_all_vs_all_overlapping_signals(
         how="inner",
     )
 
-    overlapping_right = credset.selectExpr(
+    overlapping_right = credible_sets.selectExpr(
         [f"{col} as right_{col}" for col in id_cols + metadata_cols + ["logABF"]]
         + ["tag_variant_id"]
     ).join(

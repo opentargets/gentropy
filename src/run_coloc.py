@@ -12,10 +12,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import hydra
+import pyspark.sql.functions as f
 
-from etl.coloc_utils.coloc import colocalisation
-from etl.coloc_utils.coloc_metadata import add_moleculartrait_phenotype_genes
-from etl.coloc_utils.overlaps import find_all_vs_all_overlapping_signals
+from etl.coloc_utils.coloc import run_colocalisation
 from etl.common.ETLSession import ETLSession
 
 if TYPE_CHECKING:
@@ -25,45 +24,47 @@ if TYPE_CHECKING:
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
     """Run colocalisation analysis."""
-    # establish spark connection
     etl = ETLSession(cfg)
 
-    etl.logger.info("Colocalisation step started")
+    etl.logger.info("Colocalisation step started.")
 
-    # 1. Looking for overlapping signals
-    overlapping_signals = find_all_vs_all_overlapping_signals(
-        etl.spark, cfg.etl.coloc.inputs.credible_set
+    # Load data
+    credible_sets = (
+        etl.spark.read.parquet(cfg.etl.coloc.inputs.credible_set)
+        .filter(f.col("chrom") == "22")  # for debugging
+        .withColumn(
+            "studyKey",
+            f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
+        )
+        # Exclude studies without logABFs available
+        .filter(f.col("logABF").isNotNull())
     )
+    phenotype_id_gene = (
+        etl.spark.read.option("header", "true")
+        .option("sep", "\t")
+        .csv(cfg.etl.coloc.inputs.phenotype_id_gene)
+        .select(
+            f.col("phenotype_id").alias("right_phenotype"),
+            f.col("gene_id").alias("right_gene_id"),
+        )
+    )
+    sumstats = etl.spark.read.parquet(cfg.etl.coloc.inputs.sumstats_filtered)
 
-    # 2. Perform colocalisation analysis
-    coloc = colocalisation(
-        overlapping_signals,
+    coloc = run_colocalisation(
+        etl,
+        credible_sets,
         cfg.etl.coloc.parameters.priorc1,
         cfg.etl.coloc.parameters.priorc2,
         cfg.etl.coloc.parameters.priorc12,
+        phenotype_id_gene,
+        sumstats,
     )
-
-    # 3. Add molecular trait genes (metadata)
-    coloc_with_genes = add_moleculartrait_phenotype_genes(
-        etl.spark, coloc, cfg.etl.coloc.inputs.phenotype_id_gene
-    )
-
-    # 4. Add betas from sumstats
-    # Adds backwards compatibility with production schema
-    # Note: First implementation in add_coloc_sumstats_info hasn't been fully tested
-    # colocWithAllMetadata = addColocSumstatsInfo(
-    #     spark, coloc_with_genes, cfg.coloc.sumstats_filtered
-    # )
-
-    # Writing colocalisation results
     (
-        coloc_with_genes.write.mode(cfg.environment.sparkWriteMode).parquet(
+        coloc.write.mode(cfg.environment.sparkWriteMode).parquet(
             cfg.etl.coloc.outputs.coloc
         )
     )
-
-    etl.logger.info(f"Number of colocalisations: {coloc_with_genes.count()}")
-    etl.logger.info("Colocalisation step finished")
+    etl.logger.info("Colocalisation step finished.")
 
 
 if __name__ == "__main__":
