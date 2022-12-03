@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 import hydra
 import pyspark.sql.functions as f
 
-from etl.coloc_utils.coloc import run_colocalisation
+from etl.coloc.coloc import run_colocalisation
 from etl.common.ETLSession import ETLSession
 
 if TYPE_CHECKING:

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-def add_moleculartrait_phenotype_genes(
+def _add_moleculartrait_phenotype_genes(
     coloc_result: DataFrame, phenotype_id_gene: DataFrame
 ) -> DataFrame:
     """Add Ensembl gene id to molecular trait phenotype IDs.
@@ -45,7 +45,7 @@ def add_moleculartrait_phenotype_genes(
     )
 
 
-def add_coloc_sumstats_info(coloc: DataFrame, sumstats: DataFrame) -> DataFrame:
+def _add_coloc_sumstats_info(coloc: DataFrame, sumstats: DataFrame) -> DataFrame:
     """Adds relevant metadata to colocalisation results from summary stats.
 
     Args:
