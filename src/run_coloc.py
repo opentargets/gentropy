@@ -31,7 +31,7 @@ def main(cfg: DictConfig) -> None:
     # Load data
     credible_sets = (
         etl.spark.read.parquet(cfg.etl.coloc.inputs.credible_set)
-        .filter(f.col("chrom") == "22")  # for debugging
+        # .filter(f.col("chrom") == "22")  # for debugging
         .withColumn(
             "studyKey",
             f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
