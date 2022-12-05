@@ -48,5 +48,5 @@ def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
     doctest_namespace["spark"] = spark
     # init hail session
-    hl.init(sc=spark.sparkContext)
+    hl.init(sc=spark.sparkContext, log="/dev/null")
     return spark
