@@ -143,7 +143,6 @@ run_gwas: ## Ingest gwas dataset on a dataproc cluster
 	gcloud dataproc jobs submit pyspark ./dist/run_gwas_ingest.py \
 	--cluster=${CLUSTER_NAME} \
     --files=./dist/config.yaml \
-	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
     --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
     --project=${PROJECT_ID} \
     --region=${REGION}

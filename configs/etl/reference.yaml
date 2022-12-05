@@ -107,6 +107,7 @@ gwas_ingest:
   outputs:
     gwas_catalog_associations: ${etl.outputs}/gwas_catalog_associations
     gwas_catalog_studies: ${etl.outputs}/gwas_catalog_studies
+    pics_credible_set: ${etl.outputs}/pics_credible_set
   parameters:
     ingest_unpublished_studies: False
     p_value_cutoff: 5e-8

@@ -271,7 +271,7 @@ def splitting_association(association: DataFrame) -> DataFrame:
         .withColumn(
             "variants",
             f.when(
-                f.size(f.col("qualityControl")) == 0,
+                ~f.array_contains(f.col("qualityControl"), "Variant inconsistency"),
                 f.arrays_zip(
                     f.col("chromosome"),
                     f.col("position"),
@@ -330,10 +330,12 @@ def process_associations(association: DataFrame) -> DataFrame:
         .alias("pValueExponent"),
         # Extracting risk allele:
         f.split(f.col("pvalue"), "E").getItem(0).cast("float").alias("pValueMantissa"),
-        f.split(f.col("strongestSnpRiskAllele"), "-").getItem(1).alias("riskAllele"),
+        f.split(f.upper(f.col("strongestSnpRiskAllele"), "-").getItem(1)).alias(
+            "riskAllele"
+        ),
         "gwasVariant",
         # Collecting all available rsIDs provided by GWAS Catalog:
-        f.array_distinct(
+        f.array_except(
             f.array(
                 f.split(f.col("strongestSnpRiskAllele"), "-").getItem(0),
                 f.when(
@@ -341,7 +343,8 @@ def process_associations(association: DataFrame) -> DataFrame:
                     f.format_string("rs%s", f.col("snpIdCurrent")),
                 ).otherwise(f.col("snpIdCurrent")),
                 f.col("snpIds"),
-            )
+            ),
+            f.array(f.lit(None)),
         ).alias("rsIdsGwasCatalog"),
         "qualityControl",
     )
@@ -446,9 +449,8 @@ def concordance_filter(df: DataFrame) -> DataFrame:
             .otherwise(False),
         )
         # Dropping discordant associations:
-        .filter(f.col("isConcordant"))
-        .drop("isConcordant", "riskAlleleReverseComplement")
-        .persist()
+        # .filter(f.col("isConcordant"))
+        .drop("isConcordant", "riskAlleleReverseComplement").persist()
     )
 
 
@@ -534,7 +536,7 @@ def filter_assoc_by_maf(associations: DataFrame) -> DataFrame:
         )
         .withColumn("row_number", f.row_number().over(w))
         # Selecting the variant with the highest minor-allele frequency:
-        .filter(f.col("row_number") == 1)
+        # .filter(f.col("row_number") == 1)
         # Dropping helper columns:
         .drop("row_number", "af", "maf")
         .persist()
@@ -558,71 +560,91 @@ def ingest_gwas_catalog_associations(
     Returns:
         DataFrame: Post-processed GWASCatalog associations
     """
-    return (
-        # Read associations:
-        read_associations_data(etl, gwas_association_path, pvalue_cutoff)
-        # Cleaning p-value text:
-        .transform(lambda df: _pvalue_text_resolve(df, etl))
-        # Parsing variants:
-        .transform(deconvolute_variants)
-        # Splitting associations by GWAS Catalog variants:
-        .transform(splitting_association)
-        # Minor formatting on the data:
-        .transform(process_associations)
-        # Mapping variants to GnomAD3:
-        .transform(lambda df: map_variants(df, variant_annotation_path, etl))
-        # Removing discordant mappings:
-        .transform(concordance_filter)
-        # Deduplicate associations by matching rsIDs:
-        .transform(filter_assoc_by_rsid)
-        # Deduplication by MAF:
-        .transform(filter_assoc_by_maf)
-        # Harmonizing association effect:
-        .transform(harmonize_effect)
-    )
+    # return (
+    #     # Read associations:
+    #     read_associations_data(etl, gwas_association_path, pvalue_cutoff)
+    #     # Cleaning p-value text:
+    #     .transform(lambda df: _pvalue_text_resolve(df, etl))
+    #     # Parsing variants:
+    #     .transform(deconvolute_variants)
+    #     # Splitting associations by GWAS Catalog variants:
+    #     .transform(splitting_association)
+    #     # Minor formatting on the data:
+    #     .transform(process_associations)
+    #     # Mapping variants to GnomAD3:
+    #     .transform(lambda df: map_variants(df, variant_annotation_path, etl))
+    #     # Removing discordant mappings:
+    #     .transform(concordance_filter)
+    #     # Deduplicate associations by matching rsIDs:
+    #     .transform(filter_assoc_by_rsid)
+    #     # Deduplication by MAF:
+    #     .transform(filter_assoc_by_maf)
+    #     # Harmonizing association effect:
+    #     .transform(harmonize_effect)
+    # )
 
-
-def prepare_associations_for_pics(study_assoc: DataFrame) -> DataFrame:
-    """Preparing the study/association table for PICS.
-
-    It takes a dataframe of associations and returns a dataframe of associations with the gnomad sample
-    information added
-
-    Args:
-        study_assoc (DataFrame): DataFrame
-
-    Returns:
-        A dataframe with columns for GnomAD sample proportion in respective population
-    """
-    association_columns = [
-        "studyId",
-        "chromosome",
-        "position",
-        "referenceAllele",
-        "alternateAllele",
-        "variantId",
-        "pValueMantissa",
-        "pValueExponent",
-        "beta",
-        "beta_ci_lower",
-        "beta_ci_upper",
-        "odds_ratio",
-        "odds_ratio_ci_lower",
-        "odds_ratio_ci_upper",
-        "qualityControl",
+    test_studies = [
+        "GCST009731",  # 77 associations
+        "GCST000583",  # 29 associations
+        "GCST005811",  # 29 associations
+        "GCST011383",  # 20
+        "GCST90027161",  # 30
     ]
-
-    # Selecting and de-duplicating columns:
-    return (
-        study_assoc.select(
-            *association_columns,
-            f.explode_outer("gnomadSamples").alias("gnomadSample"),
-        )
-        .select(
-            *association_columns,
-            f.col("gnomadSample.relativeSampleSize"),
-            f.col("gnomadSample.gnomadPopulation"),
-        )
-        .distinct()
-        .persist()
+    # Read associations:
+    assoc1 = read_associations_data(etl, gwas_association_path, pvalue_cutoff)
+    etl.logger.info(f"Number of associations: {assoc1.count()}")
+    assoc2 = assoc1.filter(f.col("studyAccession").isin(test_studies))
+    etl.logger.info(f"Number of associations after filtering: {assoc2.count()}")
+    assoc1.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
+    # Processing:
+    assoc2 = _pvalue_text_resolve(assoc2, etl)
+    etl.logger.info(
+        f"Number of associations after _pvalue_text_resolve: {assoc2.count()}"
     )
+    assoc2.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
+    #
+    assoc3 = deconvolute_variants(assoc2)
+    etl.logger.info(
+        f"Number of associations after deconvolute_variants: {assoc3.count()}"
+    )
+    assoc3.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
+
+    #
+    assoc4 = splitting_association(assoc3)
+    etl.logger.info(
+        f"Number of associations after splitting_association: {assoc4.count()}"
+    )
+    assoc4.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
+
+    #
+    assoc5 = process_associations(assoc4)
+    etl.logger.info(
+        f"Number of associations after process_associations: {assoc5.count()}"
+    )
+    assoc5.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
+
+    #
+    assoc6 = map_variants(assoc5, variant_annotation_path, etl)
+    etl.logger.info(
+        f"Number of associations after process_associations: {assoc6.count()}"
+    )
+    # Removing discordant mappings
+    assoc6 = concordance_filter(assoc6)
+    etl.logger.info(
+        f"Number of associations after concordance_filter: {assoc6.count()}"
+    )
+    # Deduplicate associations by matching rsIDs:
+    assoc6 = filter_assoc_by_rsid(assoc6)
+    etl.logger.info(
+        f"Number of associations after filter_assoc_by_rsid: {assoc6.count()}"
+    )
+    # Deduplication by MAF:
+    assoc6 = filter_assoc_by_maf(assoc6)
+    etl.logger.info(
+        f"Number of associations after filter_assoc_by_maf: {assoc6.count()}"
+    )
+    # Harmonizing association effect:
+    assoc6 = harmonize_effect(assoc6)
+    etl.logger.info(f"Number of associations after harmonize_effect: {assoc6.count()}")
+    (assoc6.groupBy("studyAccession").count().show(100))
+    return assoc6

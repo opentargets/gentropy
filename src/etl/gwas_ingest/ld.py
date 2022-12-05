@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as f
 
+from etl.common.utils import convert_gnomad_position_to_ensembl
+
 if TYPE_CHECKING:
     from omegaconf.listconfig import ListConfig
     from hail.table import Table
@@ -225,6 +227,13 @@ def precompute_ld_index(pop_ldindex_path: str, ld_radius: int) -> DataFrame:
             f.col("`alleles`").getItem(0).alias("referenceAllele"),
             f.col("`alleles`").getItem(1).alias("alternateAllele"),
             f.col("idx"),
+        )
+        # Convert gnomad position to Ensembl position (1-based for indels)
+        .withColumn(
+            "position",
+            convert_gnomad_position_to_ensembl(
+                f.col("position"), f.col("referenceAllele"), f.col("alternateAllele")
+            ),
         )
         .repartition(400, "chromosome")
         .sortWithinPartitions("position")

@@ -3,14 +3,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import hail as hl
 import hydra
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
-from etl.gwas_ingest.pics import pics_all_study_locus
+from etl.gwas_ingest.process_associations import ingest_gwas_catalog_associations
 from etl.gwas_ingest.study_ingestion import (
     ingest_gwas_catalog_studies,
     spliting_gwas_studies,
@@ -21,25 +20,26 @@ from etl.gwas_ingest.study_ingestion import (
 def main(cfg: DictConfig) -> None:
     """Run GWASCatalog ingestion."""
     etl = ETLSession(cfg)
-    hl.init(sc=etl.spark.sparkContext, default_reference="GRCh38")
+    # hl.init(sc=etl.spark.sparkContext, default_reference="GRCh38")
     etl.logger.info("Ingesting GWAS Catalog association data...")
 
-    # # Ingesting GWAS Catalog associations:
-    # assoc = ingest_gwas_catalog_associations(
-    #     etl,
-    #     cfg.etl.gwas_ingest.inputs.gwas_catalog_associations,
-    #     cfg.etl.variant_annotation.outputs.variant_annotation,
-    #     cfg.etl.gwas_ingest.parameters.p_value_cutoff,
-    # )
+    # Ingesting GWAS Catalog associations:
+    assoc = ingest_gwas_catalog_associations(
+        etl,
+        cfg.etl.gwas_ingest.inputs.gwas_catalog_associations,
+        cfg.etl.variant_annotation.outputs.variant_annotation,
+        cfg.etl.gwas_ingest.parameters.p_value_cutoff,
+    )
 
-    # etl.logger.info(
-    #     f"Writing associations data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_associations}"
-    # )
-    # (
-    #     assoc.write.mode(cfg.environment.sparkWriteMode).parquet(
-    #         cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
-    #     )
-    # )
+    etl.logger.info(
+        f"Writing associations data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_associations}"
+    )
+    (
+        assoc.write.mode(cfg.environment.sparkWriteMode).parquet(
+            cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
+        )
+    )
+    return None
     etl.logger.info("Ingesting GWAS Catalog Studies...")
 
     # Read saved association data:
@@ -60,9 +60,12 @@ def main(cfg: DictConfig) -> None:
     #         "gs://ot-team/dsuveges/pre-split-gwas-studies"
     #     )
     # )
-    print(gwas_studies.columns)
-    # pre_split_studies = etl.spark.read.parquet(
-    #     cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
+    # validate_df_schema(gwas_studies, "studies.json")
+    # etl.logger.info(
+    #     f"Writing studies data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_studies}"
+    # )
+    # gwas_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
+    #     cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
     # )
 
     # Joining study and association
@@ -96,29 +99,21 @@ def main(cfg: DictConfig) -> None:
     studies = etl.spark.read.parquet(cfg.etl.gwas_ingest.outputs.gwas_catalog_studies)
     associations = study_assoc.select(*assoc_columns)
 
-    # Running PICS:
-    (
-        pics_all_study_locus(
-            etl,
-            associations,
-            studies,
-            cfg.etl.gwas_ingest.inputs.gnomad_populations,
-            cfg.etl.gwas_ingest.parameters.min_r2,
-            cfg.etl.gwas_ingest.parameters.k,
-        )
-    )
-
-    # Joining study and association table:
-
-    # # Extracting associations for PICS and save:
-    # (
-    #     study_assoc.transform(prepare_associations_for_pics)
-    #     # For testing purposes, we drop all flagged associations:
-    #     .filter(f.size(f.col("qualityControl")) == 0)
-    #     .write.mode(cfg.environment.sparkWriteMode)
-    #     .parquet(
-    #         "gs://genetics_etl_python_playground/XX.XX/output/python_etl/parquet/gwas_catalog_PICS_ready"
-    #     )
+    s = studies  # .filter(f.col("studyId").startswith(study_id))
+    a = associations  # .filter(f.col("studyId").startswith(study_id))
+    print(f"Number of studies: {s.count()}")
+    print(f"Number of associations: {a.count()}")
+    # # Running PICS:
+    # pics_data = pics_all_study_locus(
+    #     etl,
+    #     a,
+    #     s,
+    #     cfg.etl.gwas_ingest.inputs.gnomad_populations,
+    #     cfg.etl.gwas_ingest.parameters.min_r2,
+    #     cfg.etl.gwas_ingest.parameters.k,
+    # )
+    # pics_data.write.mode("overwrite").parquet(
+    #     cfg.etl.gwas_ingest.outputs.pics_credible_set
     # )
 
 
