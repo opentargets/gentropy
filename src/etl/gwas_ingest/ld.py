@@ -155,7 +155,7 @@ def _query_block_matrix(
     """Query block matrix for idxs rows sparsified by start/stop columns.
 
     Args:
-        bm (BlockMatrix): LD matrix
+        bm (BlockMatrix): LD matrix containing r values
         idxs (List[int]): Row indexes to query (distinct and incremenetal)
         starts (List[int]): Interval start column indexes (same size as idxs)
         stops (List[int]): Interval start column indexes (same size as idxs)
@@ -163,6 +163,23 @@ def _query_block_matrix(
 
     Returns:
         DataFrame: i,j,r where i and j are the row and column indexes and r is the LD
+
+    Examples:
+        >>> import numpy as np
+        >>> r = np.array([[1, 0.8, 0.7, 0.2],
+        ...               [0.8, 1, 0.6, 0.1],
+        ...               [0.7, 0.6, 1, 0.3],
+        ...               [0.2, 0.1, 0.3, 1]])
+        >>> bm_r = BlockMatrix.from_numpy(r)
+        >>> _query_block_matrix(bm_r, [1, 2], [0, 1], [3, 4], 0.5).show()
+        +---+---+---+
+        |  i|  j|  r|
+        +---+---+---+
+        |  0|  0|0.8|
+        |  0|  1|1.0|
+        |  1|  2|1.0|
+        +---+---+---+
+        <BLANKLINE>
     """
     bm_sparsified = bm.filter_rows(idxs).sparsify_row_intervals(
         starts, stops, blocks_only=True
