@@ -15,6 +15,7 @@ import hydra
 import pyspark.sql.functions as f
 
 from etl.coloc.coloc import run_colocalisation
+from etl.coloc.utils import _extract_credible_sets
 from etl.common.ETLSession import ETLSession
 
 if TYPE_CHECKING:
@@ -30,14 +31,18 @@ def main(cfg: DictConfig) -> None:
 
     # Load data
     credible_sets = (
-        etl.spark.read.parquet(cfg.etl.coloc.inputs.credible_set)
-        # .filter(f.col("chrom") == "22")  # for debugging
-        .withColumn(
-            "studyKey",
-            f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
+        _extract_credible_sets(
+            etl.spark.read.parquet(cfg.etl.coloc.inputs.study_locus_idx)
         )
-        # Exclude studies without logABFs available
         .filter(f.col("logABF").isNotNull())
+        .filter(f.col("chromosome") == "22")  # for testing
+    )
+    # TODO: Solidify the schema of the study table
+    study_df = etl.spark.read.parquet(cfg.etl.coloc.inputs.study_idx).select(
+        "studyId",
+        f.explode("traitFromSourceMappedIds").alias("traitFromSourceMappedId"),
+        "biofeature",
+        "type",
     )
     phenotype_id_gene = (
         etl.spark.read.option("header", "true")
@@ -51,8 +56,8 @@ def main(cfg: DictConfig) -> None:
     sumstats = etl.spark.read.parquet(cfg.etl.coloc.inputs.sumstats_filtered)
 
     coloc = run_colocalisation(
-        etl,
         credible_sets,
+        study_df,
         cfg.etl.coloc.parameters.priorc1,
         cfg.etl.coloc.parameters.priorc2,
         cfg.etl.coloc.parameters.priorc12,

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 def find_all_vs_all_overlapping_signals(
     credible_sets: DataFrame,
+    study_df: DataFrame,
 ) -> DataFrame:
     """Find overlapping signals.
 
@@ -23,44 +24,47 @@ def find_all_vs_all_overlapping_signals(
 
     Args:
         credible_sets (DataFrame): DataFrame containing the credible sets to be analysed
+        study_df (DataFrame): DataFrame containing metadata about the study
 
     Returns:
         DataFrame: overlapping peaks to be compared
     """
+    credible_sets_enriched = credible_sets.join(
+        f.broadcast(study_df), on="studyId", how="left"
+    ).withColumn(
+        "studyKey",
+        f.xxhash64(*["type", "studyId", "traitFromSourceMappedId", "biofeature"]),
+    )
     # Columnns to be used as left and right
     id_cols = [
-        "chrom",
+        "chromosome",
         "studyKey",
-        "lead_variant_id",
+        "leadVariantId",
         "type",
     ]
     metadata_cols = [
-        "study_id",
-        "phenotype_id",
-        "bio_feature",
-        "lead_chrom",
-        "lead_pos",
-        "lead_ref",
-        "lead_alt",
+        "studyId",
+        "traitFromSourceMappedId",
+        "biofeature",
     ]
 
     # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
     cols_to_rename = id_cols
-    credset_to_self_join = credible_sets.select(id_cols + ["tag_variant_id"])
+    credset_to_self_join = credible_sets_enriched.select(id_cols + ["tagVariantId"])
     overlapping_peaks = (
         credset_to_self_join.alias("left")
         .filter(f.col("type") == "gwas")
         .join(
             credset_to_self_join.alias("right"),
             on=[
-                f.col("left.chrom") == f.col("right.chrom"),
-                f.col("left.tag_variant_id") == f.col("right.tag_variant_id"),
+                f.col("left.chromosome") == f.col("right.chromosome"),
+                f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                 (f.col("right.type") != "gwas")
                 | (f.col("left.studyKey") > f.col("right.studyKey")),
             ],
             how="inner",
         )
-        .drop("left.tag_variant_id", "right.tag_variant_id")
+        .drop("left.tagVariantId", "right.tagVariantId")
         # Rename columns to make them unambiguous
         .selectExpr(
             *(
@@ -74,18 +78,18 @@ def find_all_vs_all_overlapping_signals(
         .cache()
     )
 
-    overlapping_left = credible_sets.selectExpr(
+    overlapping_left = credible_sets_enriched.selectExpr(
         [f"{col} as left_{col}" for col in id_cols + metadata_cols + ["logABF"]]
-        + ["tag_variant_id"]
+        + ["tagVariantId"]
     ).join(
         overlapping_peaks.sortWithinPartitions([f"left_{i}" for i in id_cols]),
         on=[f"left_{i}" for i in id_cols],
         how="inner",
     )
 
-    overlapping_right = credible_sets.selectExpr(
+    overlapping_right = credible_sets_enriched.selectExpr(
         [f"{col} as right_{col}" for col in id_cols + metadata_cols + ["logABF"]]
-        + ["tag_variant_id"]
+        + ["tagVariantId"]
     ).join(
         overlapping_peaks.sortWithinPartitions([f"right_{i}" for i in id_cols]),
         on=[f"right_{i}" for i in id_cols],
@@ -96,6 +100,6 @@ def find_all_vs_all_overlapping_signals(
         overlapping_right,
         on=[f"right_{i}" for i in id_cols]
         + [f"left_{i}" for i in id_cols]
-        + ["tag_variant_id"],
+        + ["tagVariantId"],
         how="outer",
     )

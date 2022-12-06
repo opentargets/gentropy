@@ -129,5 +129,6 @@ def _extract_credible_sets(
             "studyId",
             "credibleVariant.tagVariantId",
             "credibleVariant.logABF",
+            f.split(f.col("variantId"), "_")[0].alias("chromosome"),
         )
     )

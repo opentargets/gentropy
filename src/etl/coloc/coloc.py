@@ -11,16 +11,15 @@ from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
 if TYPE_CHECKING:
-    from etl.common.ETLSession import ETLSession
     from pyspark.sql import DataFrame
 
-from etl.coloc.coloc_metadata import _add_moleculartrait_phenotype_genes
 from etl.coloc.overlaps import find_all_vs_all_overlapping_signals
+from etl.coloc.utils import _add_moleculartrait_phenotype_genes
 
 
 def run_colocalisation(
-    etl: ETLSession,
     credible_sets: DataFrame,
+    study_df: DataFrame,
     priorc1: float,
     priorc2: float,
     prioc12: float,
@@ -28,9 +27,8 @@ def run_colocalisation(
     sumstats: DataFrame,
 ) -> None:
     """Run colocalisation analysis."""
-    etl.logger.info("Colocalisation step started")
     # 1. Looking for overlapping signals
-    overlapping_signals = find_all_vs_all_overlapping_signals(credible_sets)
+    overlapping_signals = find_all_vs_all_overlapping_signals(credible_sets, study_df)
 
     # 2. Perform colocalisation analysis
     coloc = colocalisation(
@@ -102,16 +100,15 @@ def colocalisation(
         DataFrame: Colocalisation results
     """
     signal_pairs_cols = [
-        "chrom",
+        "chromosome",
         "studyKey",
-        "lead_variant_id",
+        "leadVariantId",
         "type",
     ]
 
     # register udfs
     logsum = f.udf(_get_logsum, DoubleType())
     posteriors = f.udf(_get_posteriors, VectorUDT())
-
     coloc = (
         overlapping_signals
         # Before summarizing log_abf columns nulls need to be filled with 0:
@@ -135,18 +132,12 @@ def colocalisation(
                 "sum_log_abf"
             ),
             # carrying over information and renaming columns (backwards compatible)
-            f.first("left_study_id").alias("left_study"),
-            f.first("left_phenotype_id").alias("left_phenotype"),
-            f.first("left_bio_feature").alias("left_bio_feature"),
-            f.first("left_lead_pos").alias("left_pos"),
-            f.first("left_lead_ref").alias("left_ref"),
-            f.first("left_lead_alt").alias("left_alt"),
-            f.first("right_study_id").alias("right_study"),
-            f.first("right_phenotype_id").alias("right_phenotype"),
-            f.first("right_bio_feature").alias("right_bio_feature"),
-            f.first("right_lead_pos").alias("right_pos"),
-            f.first("right_lead_ref").alias("right_ref"),
-            f.first("right_lead_alt").alias("right_alt"),
+            f.first("left_studyId").alias("left_study"),
+            f.first("left_traitFromSourceMappedId").alias("left_phenotype"),
+            f.first("left_biofeature").alias("left_biofeature"),
+            f.first("right_studyId").alias("right_study"),
+            f.first("right_traitFromSourceMappedId").alias("right_phenotype"),
+            f.first("right_biofeature").alias("right_biofeature"),
         )
         .withColumn("logsum1", logsum(f.col("left_logABF")))
         .withColumn("logsum2", logsum(f.col("right_logABF")))
