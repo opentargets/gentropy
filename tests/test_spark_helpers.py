@@ -47,8 +47,6 @@ def test_get_record_with_maximum_value_group_two_cols(
     """Test the util that return the row with the minimum value in a window by grouping per two columns."""
     grouping_col, sorting_col = ["chromosome", "alleleType"], "position"
     df = mock_variant_df.transform(
-        lambda df: get_record_with_maximum_value(
-            mock_variant_df, grouping_col, sorting_col
-        )
+        lambda df: get_record_with_maximum_value(df, grouping_col, sorting_col)
     )
     assert df.count(), 3
