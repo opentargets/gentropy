@@ -7,14 +7,51 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pyspark.ml.functions as fml
 import pyspark.sql.functions as f
-from pyspark.ml.linalg import Vectors, VectorUDT
+from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
 if TYPE_CHECKING:
+    from etl.common.ETLSession import ETLSession
     from pyspark.sql import DataFrame
 
+from etl.coloc.coloc_metadata import _add_moleculartrait_phenotype_genes
+from etl.coloc.overlaps import find_all_vs_all_overlapping_signals
 
-def get_logsum(log_abf: VectorUDT) -> float:
+
+def run_colocalisation(
+    etl: ETLSession,
+    credible_sets: DataFrame,
+    priorc1: float,
+    priorc2: float,
+    prioc12: float,
+    phenotype_id_gene: DataFrame,
+    sumstats: DataFrame,
+) -> None:
+    """Run colocalisation analysis."""
+    etl.logger.info("Colocalisation step started")
+    # 1. Looking for overlapping signals
+    overlapping_signals = find_all_vs_all_overlapping_signals(credible_sets)
+
+    # 2. Perform colocalisation analysis
+    coloc = colocalisation(
+        overlapping_signals,
+        priorc1,
+        priorc2,
+        prioc12,
+    )
+
+    # 3. Add molecular trait genes (metadata)
+    coloc_with_genes = _add_moleculartrait_phenotype_genes(coloc, phenotype_id_gene)
+
+    # 4. Add betas from sumstats
+    # Adds backwards compatibility with production schema
+    # Note: First implementation in _add_coloc_sumstats_info hasn't been fully tested
+    # colocWithAllMetadata = _add_coloc_sumstats_info(coloc_with_genes, sumstats)
+
+    return coloc_with_genes
+
+
+def _get_logsum(log_abf: VectorUDT) -> float:
     """Calculates logsum of vector.
 
     This function calculates the log of the sum of the exponentiated
@@ -28,7 +65,7 @@ def get_logsum(log_abf: VectorUDT) -> float:
 
     Example:
         >>> l = [0.2, 0.1, 0.05, 0]
-        >>> round(get_logsum(l), 6)
+        >>> round(_get_logsum(l), 6)
         1.476557
     """
     themax = np.max(log_abf)
@@ -36,16 +73,16 @@ def get_logsum(log_abf: VectorUDT) -> float:
     return float(result)
 
 
-def get_posteriors(all_abfs: VectorUDT) -> VectorUDT:
+def _get_posteriors(all_abfs: VectorUDT) -> DenseVector:
     """Calculate posterior probabilities for each hypothesis.
 
     Args:
         all_abfs (VectorUDT): h0-h4 bayes factors
 
     Returns:
-        VectorUDT: Posterior
+        DenseVector: Posterior
     """
-    diff = all_abfs - get_logsum(all_abfs)
+    diff = all_abfs - _get_logsum(all_abfs)
     abfs_posteriors = np.exp(diff)
     return Vectors.dense(abfs_posteriors)
 
@@ -72,8 +109,8 @@ def colocalisation(
     ]
 
     # register udfs
-    logsum = f.udf(get_logsum, DoubleType())
-    posteriors = f.udf(get_posteriors, VectorUDT())
+    logsum = f.udf(_get_logsum, DoubleType())
+    posteriors = f.udf(_get_posteriors, VectorUDT())
 
     coloc = (
         overlapping_signals
