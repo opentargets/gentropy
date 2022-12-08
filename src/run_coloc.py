@@ -33,9 +33,8 @@ def main(cfg: DictConfig) -> None:
     credible_sets = (
         _extract_credible_sets(
             etl.spark.read.parquet(cfg.etl.coloc.inputs.study_locus_idx)
-        )
-        .filter(f.col("logABF").isNotNull())
-        .filter(f.col("chromosome") == "22")  # for testing
+        ).filter(f.col("logABF").isNotNull())
+        # .filter(f.col("chromosome") == "22")  # for testing
     )
     study_df = etl.spark.read.parquet(cfg.etl.coloc.inputs.study_idx).select(
         f.col("id").alias("studyId"),
