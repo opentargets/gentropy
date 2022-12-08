@@ -25,28 +25,28 @@ def run_colocalisation(
     prioc12: float,
     phenotype_id_gene: DataFrame,
     sumstats: DataFrame,
-) -> None:
+) -> DataFrame:
     """Run colocalisation analysis."""
     # 1. Looking for overlapping signals
     overlapping_signals = find_all_vs_all_overlapping_signals(credible_sets, study_df)
 
-    # 2. Perform colocalisation analysis
-    coloc = colocalisation(
-        overlapping_signals,
-        priorc1,
-        priorc2,
-        prioc12,
+    return (
+        # 2. Perform colocalisation analysis
+        colocalisation(
+            overlapping_signals,
+            priorc1,
+            priorc2,
+            prioc12,
+        )
+        # 3. Add molecular trait genes (metadata)
+        .transform(
+            lambda df: _add_moleculartrait_phenotype_genes(df, phenotype_id_gene)
+        )
+        # 4. Add betas from sumstats
+        # Adds backwards compatibility with production schema
+        # Note: First implementation in _add_coloc_sumstats_info hasn't been fully tested
+        # .transform(lambda df: _add_coloc_sumstats_info(df, sumstats))
     )
-
-    # 3. Add molecular trait genes (metadata)
-    coloc_with_genes = _add_moleculartrait_phenotype_genes(coloc, phenotype_id_gene)
-
-    # 4. Add betas from sumstats
-    # Adds backwards compatibility with production schema
-    # Note: First implementation in _add_coloc_sumstats_info hasn't been fully tested
-    # colocWithAllMetadata = _add_coloc_sumstats_info(coloc_with_genes, sumstats)
-
-    return coloc_with_genes
 
 
 def _get_logsum(log_abf: VectorUDT) -> float:
@@ -101,7 +101,7 @@ def colocalisation(
     """
     signal_pairs_cols = [
         "chromosome",
-        "studyKey",
+        "studyId",
         "leadVariantId",
         "type",
     ]
@@ -132,10 +132,8 @@ def colocalisation(
                 "sum_log_abf"
             ),
             # carrying over information and renaming columns (backwards compatible)
-            f.first("left_studyId").alias("left_study"),
             f.first("left_traitFromSourceMappedId").alias("left_phenotype"),
             f.first("left_biofeature").alias("left_biofeature"),
-            f.first("right_studyId").alias("right_study"),
             f.first("right_traitFromSourceMappedId").alias("right_phenotype"),
             f.first("right_biofeature").alias("right_biofeature"),
         )

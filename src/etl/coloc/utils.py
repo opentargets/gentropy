@@ -22,26 +22,16 @@ def _add_moleculartrait_phenotype_genes(
     Returns:
         DataFrame: Coloc datasets with gene IDs for molecular trait phenotypes
     """
-    return (
-        coloc_result.join(
-            f.broadcast(phenotype_id_gene),
-            on="right_phenotype",
-            how="left",
-        )
-        .withColumn(
-            "right_gene_id",
-            f.when(
-                f.col("right_phenotype").startswith("ENSG"),
-                f.col("right_phenotype"),
-            ).otherwise(f.col("right_gene_id")),
-        )
-        .withColumn(
-            "right_gene_id",
-            f.when(
-                f.col("right_study") == "GTEx-sQTL",
-                f.regexp_extract(f.col("right_phenotype"), ":(ENSG.*)$", 1),
-            ).otherwise(f.col("right_gene_id")),
-        )
+    return coloc_result.join(
+        f.broadcast(phenotype_id_gene),
+        on="right_phenotype",
+        how="left",
+    ).withColumn(
+        "right_gene_id",
+        f.when(
+            f.col("right_phenotype").contains("ENSG"),
+            f.regexp_extract(f.col("right_phenotype"), r"(ENSG\d+)", 1),
+        ).otherwise(f.col("right_gene_id")),
     )
 
 
@@ -59,7 +49,7 @@ def _add_coloc_sumstats_info(coloc: DataFrame, sumstats: DataFrame) -> DataFrame
         # sumstats_path ~250Gb dataset
         sumstats.repartition("chrom")
         .withColumn(
-            "right_studyKey",
+            "right_studyId",
             f.xxhash64(*["type", "study_id", "phenotype_id", "bio_feature"]),
         )
         .withColumn(
@@ -75,7 +65,7 @@ def _add_coloc_sumstats_info(coloc: DataFrame, sumstats: DataFrame) -> DataFrame
         .select(
             "left_chrom",
             "left_lead_variant_id",
-            "right_studyKey",
+            "right_studyId",
             "left_var_right_study_beta",
             "left_var_right_study_se",
             "left_var_right_study_pval",
@@ -87,13 +77,13 @@ def _add_coloc_sumstats_info(coloc: DataFrame, sumstats: DataFrame) -> DataFrame
         # join info from sumstats
         sumstats_leftvar_rightstudy.join(
             f.broadcast(coloc),
-            on=["left_chrom", "left_lead_variant_id", "right_studyKey"],
+            on=["left_chrom", "left_lead_variant_id", "right_studyId"],
             how="right",
         )
         # clean unnecessary columns
         .drop("left_lead_variant_id", "right_lead_variant_id")
         .drop("left_bio_feature", "left_phenotype")
-        .drop("left_studyKey", "right_studyKey")
+        .drop("left_studyId", "right_studyId")
     )
 
 

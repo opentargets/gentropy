@@ -31,19 +31,15 @@ def find_all_vs_all_overlapping_signals(
     """
     credible_sets_enriched = credible_sets.join(
         f.broadcast(study_df), on="studyId", how="left"
-    ).withColumn(
-        "studyKey",
-        f.xxhash64(*["type", "studyId", "traitFromSourceMappedId", "biofeature"]),
     )
     # Columnns to be used as left and right
     id_cols = [
         "chromosome",
-        "studyKey",
+        "studyId",
         "leadVariantId",
         "type",
     ]
     metadata_cols = [
-        "studyId",
         "traitFromSourceMappedId",
         "biofeature",
     ]
@@ -60,7 +56,7 @@ def find_all_vs_all_overlapping_signals(
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                 (f.col("right.type") != "gwas")
-                | (f.col("left.studyKey") > f.col("right.studyKey")),
+                | (f.col("left.studyId") > f.col("right.studyId")),
             ],
             how="inner",
         )

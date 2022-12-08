@@ -37,9 +37,8 @@ def main(cfg: DictConfig) -> None:
         .filter(f.col("logABF").isNotNull())
         .filter(f.col("chromosome") == "22")  # for testing
     )
-    # TODO: Solidify the schema of the study table
     study_df = etl.spark.read.parquet(cfg.etl.coloc.inputs.study_idx).select(
-        "studyId",
+        f.col("id").alias("studyId"),
         f.explode("traitFromSourceMappedIds").alias("traitFromSourceMappedId"),
         "biofeature",
         "type",
