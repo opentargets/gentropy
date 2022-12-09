@@ -41,7 +41,7 @@ def main(cfg: DictConfig) -> None:
         f.explode("traitFromSourceMappedIds").alias("traitFromSourceMappedId"),
         "biofeature",
         "type",
-        f.col("geneMappedId").alias("right_gene_id"),
+        f.col("geneFromPhenotypeId").alias("right_gene_id"),
     )
     sumstats = etl.spark.read.parquet(cfg.etl.coloc.inputs.sumstats_filtered)
 
