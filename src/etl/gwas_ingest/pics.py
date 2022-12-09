@@ -258,8 +258,8 @@ def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
 
     Examples:
         >>> d = [(1, 1), (5, -2), (1, -1000)]
-        >>> spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
-        ...     .withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
+        >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
+        >>> df.withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
         +----------------+----------------+------------------+
         |p_value_mantissa|p_value_exponent|         neg_log_p|
         +----------------+----------------+------------------+
@@ -267,7 +267,7 @@ def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
         |               5|              -2|1.3010299956639813|
         |               1|           -1000|            1000.0|
         +----------------+----------------+------------------+
-        </BLANKLINE>
+        <BLANKLINE>
     """
     return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
 
