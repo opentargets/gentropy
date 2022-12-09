@@ -35,7 +35,6 @@ Make sure you are using the local Python version
 
 ``` bash
 python -V
-#Python 3.8.13
 poetry env use 3.8
 ```
 
