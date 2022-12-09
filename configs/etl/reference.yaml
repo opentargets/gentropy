@@ -6,7 +6,6 @@ coloc:
   inputs:
     study_locus_idx: gs://ot-team/irene/study_locus_v3 # where credsets are stored
     study_idx: gs://genetics_etl_python_playground/input/study_index
-    phenotype_id_gene: ${etl.inputs}/phenotype_id_gene_luts/
     #TOOD: to update
     sumstats_filtered: gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb_union
   outputs:

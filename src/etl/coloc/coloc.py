@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 from etl.coloc.overlaps import find_all_vs_all_overlapping_signals
-from etl.coloc.utils import _add_moleculartrait_phenotype_genes
 
 
 def run_colocalisation(
@@ -23,7 +22,6 @@ def run_colocalisation(
     priorc1: float,
     priorc2: float,
     prioc12: float,
-    phenotype_id_gene: DataFrame,
     sumstats: DataFrame,
 ) -> DataFrame:
     """Run colocalisation analysis."""
@@ -37,10 +35,6 @@ def run_colocalisation(
             priorc1,
             priorc2,
             prioc12,
-        )
-        # 3. Add molecular trait genes (metadata)
-        .transform(
-            lambda df: _add_moleculartrait_phenotype_genes(df, phenotype_id_gene)
         )
         # 4. Add betas from sumstats
         # Adds backwards compatibility with production schema

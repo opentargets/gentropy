@@ -41,15 +41,7 @@ def main(cfg: DictConfig) -> None:
         f.explode("traitFromSourceMappedIds").alias("traitFromSourceMappedId"),
         "biofeature",
         "type",
-    )
-    phenotype_id_gene = (
-        etl.spark.read.option("header", "true")
-        .option("sep", "\t")
-        .csv(cfg.etl.coloc.inputs.phenotype_id_gene)
-        .select(
-            f.col("phenotype_id").alias("right_phenotype"),
-            f.col("gene_id").alias("right_gene_id"),
-        )
+        f.col("geneMappedId").alias("right_gene_id"),
     )
     sumstats = etl.spark.read.parquet(cfg.etl.coloc.inputs.sumstats_filtered)
 
@@ -59,7 +51,6 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.coloc.parameters.priorc1,
         cfg.etl.coloc.parameters.priorc2,
         cfg.etl.coloc.parameters.priorc12,
-        phenotype_id_gene,
         sumstats,
     )
     (

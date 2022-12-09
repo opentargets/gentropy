@@ -10,31 +10,6 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-def _add_moleculartrait_phenotype_genes(
-    coloc_result: DataFrame, phenotype_id_gene: DataFrame
-) -> DataFrame:
-    """Add Ensembl gene id to molecular trait phenotype IDs.
-
-    Args:
-        coloc_result (DataFrame): Results from colocalisation analysis
-        phenotype_id_gene (DataFrame): LUT with the ENSEMBL gene id for each molecular trait phenotype ID
-
-    Returns:
-        DataFrame: Coloc datasets with gene IDs for molecular trait phenotypes
-    """
-    return coloc_result.join(
-        f.broadcast(phenotype_id_gene),
-        on="right_phenotype",
-        how="left",
-    ).withColumn(
-        "right_gene_id",
-        f.when(
-            f.col("right_phenotype").contains("ENSG"),
-            f.regexp_extract(f.col("right_phenotype"), r"(ENSG\d+)", 1),
-        ).otherwise(f.col("right_gene_id")),
-    )
-
-
 def _add_coloc_sumstats_info(coloc: DataFrame, sumstats: DataFrame) -> DataFrame:
     """Adds relevant metadata to colocalisation results from summary stats.
 
