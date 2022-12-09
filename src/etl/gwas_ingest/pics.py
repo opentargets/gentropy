@@ -68,7 +68,7 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
 
     # Study ancestries
     w_study = Window.partitionBy("studyId")
-    study_ancestry = (
+    return (
         study_df
         # Excluding studies where no sample discription is provided:
         .filter(f.col("discoverySamples").isNotNull())
@@ -97,7 +97,6 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
             f.col("sampleSize") / f.sum("sampleSize").over(w_study),
         )
     )
-    return study_ancestry
 
 
 def _weighted_r_overall(

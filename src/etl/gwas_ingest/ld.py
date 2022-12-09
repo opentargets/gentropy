@@ -257,8 +257,7 @@ def precompute_ld_index(pop_ldindex_path: str, ld_radius: int) -> DataFrame:
         .persist()
     )
 
-    parsed_ld_index = _annotate_index_intervals(ld_index_spark, ld_radius)
-    return parsed_ld_index
+    return _annotate_index_intervals(ld_index_spark, ld_radius)
 
 
 def variants_in_ld_in_gnomad_pop(
@@ -299,7 +298,7 @@ def variants_in_ld_in_gnomad_pop(
 
     i_position_lut = etl.spark.createDataFrame(list(enumerate(idxs))).toDF("i", "idx")
 
-    lead_tag = (
+    return (
         entries.join(
             f.broadcast(leads_with_idxs.join(f.broadcast(i_position_lut), on="idx")),
             on="i",
@@ -328,8 +327,6 @@ def variants_in_ld_in_gnomad_pop(
             "variantId", "leads.chromosome", "gnomadPopulation", "tagVariantId", "r"
         )
     )
-
-    return lead_tag
 
 
 def ld_annotation_by_locus_ancestry(
