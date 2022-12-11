@@ -18,6 +18,7 @@ def main(cfg: DictConfig) -> None:
         parsed_index = precompute_ld_index(
             population.index,
             cfg.etl.gwas_ingest.parameters.ld_window,
+            cfg.etl.gwas_ingest.inputs.grch37_to_grch38_chain,
         )
 
         parsed_index.write.mode(cfg.environment.sparkWriteMode).parquet(
