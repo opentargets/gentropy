@@ -4,3 +4,4 @@ src/config.yaml
 outputs/
 **/.DS_Store
 .coverage
+coverage.xml

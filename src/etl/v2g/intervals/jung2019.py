@@ -2,7 +2,7 @@
 
 Promoter capture Hi-C was used to map long-range chromatin interactions for 18,943 well-annotated promoters for protein-coding genes in 27 human tissue types. ([Link](https://www.nature.com/articles/s41588-019-0494-8) to the publication)
 
-This dataset provides tissue level annotation, but no cell type or biofeature is given. Also scores are not provided.
+This dataset provides tissue level annotation, but no cell type or biofeature is given. All interactions are significant so scores are set to 1.
 
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from etl.common.ETLSession import ETLSession
-    from etl.intervals.Liftover import LiftOverSpark
+    from etl.v2g.intervals.Liftover import LiftOverSpark
 
 
 class ParseJung:
@@ -89,7 +89,7 @@ class ParseJung:
             # Joining with genes:
             .join(
                 gene_index.alias("genes"),
-                on=[f.col("intervals.gene_name") == f.col("genes.symbols")],
+                on=[f.col("intervals.gene_name") == f.col("genes.geneSymbol")],
                 how="inner",
             )
             # Finalize dataset:
@@ -98,17 +98,15 @@ class ParseJung:
                 "start",
                 "end",
                 "geneId",
-                f.col("tissue").alias("bioFeature"),
-                f.lit(self.DATASET_NAME).alias("datasetName"),
-                f.lit(self.DATA_TYPE).alias("dataType"),
-                f.lit(self.EXPERIMENT_TYPE).alias("experimentType"),
+                f.col("tissue").alias("biofeature"),
+                f.lit(1.0).alias("score"),
+                f.lit(self.DATASET_NAME).alias("datasourceId"),
+                f.lit(self.EXPERIMENT_TYPE).alias("datatypeId"),
                 f.lit(self.PMID).alias("pmid"),
             )
             .drop_duplicates()
             .persist()
         )
-
-        etl.logger.info(f"Number of rows: {self.jung_intervals.count()}")
 
     def get_intervals(self: ParseJung) -> DataFrame:
         """Get preformatted intervals from Jung.

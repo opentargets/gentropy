@@ -7,14 +7,43 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pyspark.ml.functions as fml
 import pyspark.sql.functions as f
-from pyspark.ml.linalg import Vectors, VectorUDT
+from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
+from etl.coloc.overlaps import find_all_vs_all_overlapping_signals
 
-def get_logsum(log_abf: VectorUDT) -> float:
+
+def run_colocalisation(
+    credible_sets: DataFrame,
+    study_df: DataFrame,
+    priorc1: float,
+    priorc2: float,
+    prioc12: float,
+    sumstats: DataFrame,
+) -> DataFrame:
+    """Run colocalisation analysis."""
+    # 1. Looking for overlapping signals
+    overlapping_signals = find_all_vs_all_overlapping_signals(credible_sets, study_df)
+
+    return (
+        # 2. Perform colocalisation analysis
+        colocalisation(
+            overlapping_signals,
+            priorc1,
+            priorc2,
+            prioc12,
+        )
+        # 4. Add betas from sumstats
+        # Adds backwards compatibility with production schema
+        # Note: First implementation in _add_coloc_sumstats_info hasn't been fully tested
+        # .transform(lambda df: _add_coloc_sumstats_info(df, sumstats))
+    )
+
+
+def _get_logsum(log_abf: VectorUDT) -> float:
     """Calculates logsum of vector.
 
     This function calculates the log of the sum of the exponentiated
@@ -28,7 +57,7 @@ def get_logsum(log_abf: VectorUDT) -> float:
 
     Example:
         >>> l = [0.2, 0.1, 0.05, 0]
-        >>> round(get_logsum(l), 6)
+        >>> round(_get_logsum(l), 6)
         1.476557
     """
     themax = np.max(log_abf)
@@ -36,16 +65,16 @@ def get_logsum(log_abf: VectorUDT) -> float:
     return float(result)
 
 
-def get_posteriors(all_abfs: VectorUDT) -> VectorUDT:
+def _get_posteriors(all_abfs: VectorUDT) -> DenseVector:
     """Calculate posterior probabilities for each hypothesis.
 
     Args:
         all_abfs (VectorUDT): h0-h4 bayes factors
 
     Returns:
-        VectorUDT: Posterior
+        DenseVector: Posterior
     """
-    diff = all_abfs - get_logsum(all_abfs)
+    diff = all_abfs - _get_logsum(all_abfs)
     abfs_posteriors = np.exp(diff)
     return Vectors.dense(abfs_posteriors)
 
@@ -65,16 +94,15 @@ def colocalisation(
         DataFrame: Colocalisation results
     """
     signal_pairs_cols = [
-        "chrom",
-        "studyKey",
-        "lead_variant_id",
+        "chromosome",
+        "studyId",
+        "leadVariantId",
         "type",
     ]
 
     # register udfs
-    logsum = f.udf(get_logsum, DoubleType())
-    posteriors = f.udf(get_posteriors, VectorUDT())
-
+    logsum = f.udf(_get_logsum, DoubleType())
+    posteriors = f.udf(_get_posteriors, VectorUDT())
     coloc = (
         overlapping_signals
         # Before summarizing log_abf columns nulls need to be filled with 0:
@@ -98,18 +126,10 @@ def colocalisation(
                 "sum_log_abf"
             ),
             # carrying over information and renaming columns (backwards compatible)
-            f.first("left_study_id").alias("left_study"),
-            f.first("left_phenotype_id").alias("left_phenotype"),
-            f.first("left_bio_feature").alias("left_bio_feature"),
-            f.first("left_lead_pos").alias("left_pos"),
-            f.first("left_lead_ref").alias("left_ref"),
-            f.first("left_lead_alt").alias("left_alt"),
-            f.first("right_study_id").alias("right_study"),
-            f.first("right_phenotype_id").alias("right_phenotype"),
-            f.first("right_bio_feature").alias("right_bio_feature"),
-            f.first("right_lead_pos").alias("right_pos"),
-            f.first("right_lead_ref").alias("right_ref"),
-            f.first("right_lead_alt").alias("right_alt"),
+            f.first("left_traitFromSourceMappedId").alias("left_phenotype"),
+            f.first("left_biofeature").alias("left_biofeature"),
+            f.first("right_traitFromSourceMappedId").alias("right_phenotype"),
+            f.first("right_biofeature").alias("right_biofeature"),
         )
         .withColumn("logsum1", logsum(f.col("left_logABF")))
         .withColumn("logsum2", logsum(f.col("right_logABF")))
