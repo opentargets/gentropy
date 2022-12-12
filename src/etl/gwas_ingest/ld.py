@@ -19,11 +19,12 @@ import hail as hl
 from hail.linalg import BlockMatrix
 
 
-def _liftover_loci(variant_index: Table) -> Table:
+def _liftover_loci(variant_index: Table, grch37_to_grch38_chain_path: str) -> Table:
     """Liftover hail table with LD variant index.
 
     Args:
         variant_index (Table): LD variant indexes
+        grch37_to_grch38_chain_path (str): Path to chain file
 
     Returns:
         Table: LD variant index with locus 38 coordinates
@@ -31,9 +32,7 @@ def _liftover_loci(variant_index: Table) -> Table:
     if not hl.get_reference("GRCh37").has_liftover("GRCh38"):
         rg37 = hl.get_reference("GRCh37")
         rg38 = hl.get_reference("GRCh38")
-        rg37.add_liftover(
-            "gs://hail-common/references/grch37_to_grch38.over.chain.gz", rg38
-        )
+        rg37.add_liftover(grch37_to_grch38_chain_path, rg38)
 
     return variant_index.annotate(locus38=hl.liftover(variant_index.locus, "GRCh38"))
 
@@ -222,18 +221,23 @@ def lead_coordinates_in_ld(
     return idxs, starts, stops
 
 
-def precompute_ld_index(pop_ldindex_path: str, ld_radius: int) -> DataFrame:
+def precompute_ld_index(
+    pop_ldindex_path: str,
+    ld_radius: int,
+    grch37_to_grch38_chain_path: str,
+) -> DataFrame:
     """Parse LD index and annotate with interval start and stop.
 
     Args:
         pop_ldindex_path (str): path to gnomAD LD index
         ld_radius (int): radius
+        grch37_to_grch38_chain_path (str): path to chain file for liftover
 
     Returns:
         DataFrame: Parsed LD iindex
     """
     ld_index = hl.read_table(pop_ldindex_path).naive_coalesce(400)
-    ld_index_38 = _liftover_loci(ld_index)
+    ld_index_38 = _liftover_loci(ld_index, grch37_to_grch38_chain_path)
 
     ld_index_spark = (
         ld_index_38.to_spark()
@@ -257,8 +261,7 @@ def precompute_ld_index(pop_ldindex_path: str, ld_radius: int) -> DataFrame:
         .persist()
     )
 
-    parsed_ld_index = _annotate_index_intervals(ld_index_spark, ld_radius)
-    return parsed_ld_index
+    return _annotate_index_intervals(ld_index_spark, ld_radius)
 
 
 def variants_in_ld_in_gnomad_pop(
@@ -299,7 +302,7 @@ def variants_in_ld_in_gnomad_pop(
 
     i_position_lut = etl.spark.createDataFrame(list(enumerate(idxs))).toDF("i", "idx")
 
-    lead_tag = (
+    return (
         entries.join(
             f.broadcast(leads_with_idxs.join(f.broadcast(i_position_lut), on="idx")),
             on="i",
@@ -328,8 +331,6 @@ def variants_in_ld_in_gnomad_pop(
             "variantId", "leads.chromosome", "gnomadPopulation", "tagVariantId", "r"
         )
     )
-
-    return lead_tag
 
 
 def ld_annotation_by_locus_ancestry(

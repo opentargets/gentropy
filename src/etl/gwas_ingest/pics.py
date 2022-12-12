@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 @f.udf(t.DoubleType())
 def _norm_sf(mu: float, std: float, neglog_p: float) -> float | None:
-    """Returns the survival function of the normal distribution.
+    """Returns the survival function of the normal distribution for the p-value.
 
     Args:
         mu (float): mean
@@ -32,11 +32,21 @@ def _norm_sf(mu: float, std: float, neglog_p: float) -> float | None:
 
     Returns:
         float: survival function
+
+    Examples:
+        >>> d = [{"mu": 0, "neglog_p": 0, "std": 1}, {"mu": 1, "neglog_p": 10, "std": 10}]
+        >>> spark.createDataFrame(d).withColumn("norm_sf", _norm_sf(f.col("mu"), f.col("std"), f.col("neglog_p"))).show()
+        +---+--------+---+-------------------+
+        | mu|neglog_p|std|            norm_sf|
+        +---+--------+---+-------------------+
+        |  0|       0|  1|                1.0|
+        |  1|      10| 10|0.36812025069351895|
+        +---+--------+---+-------------------+
+        <BLANKLINE>
     """
     try:
         return float(norm(mu, std).sf(neglog_p) * 2)
-    except ValueError:
-        print(mu, neglog_p)
+    except TypeError:
         return None
 
 
@@ -61,7 +71,7 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
 
     # Study ancestries
     w_study = Window.partitionBy("studyId")
-    study_ancestry = (
+    return (
         study_df
         # Excluding studies where no sample discription is provided:
         .filter(f.col("discoverySamples").isNotNull())
@@ -90,7 +100,6 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
             f.col("sampleSize") / f.sum("sampleSize").over(w_study),
         )
     )
-    return study_ancestry
 
 
 def _weighted_r_overall(
@@ -193,6 +202,21 @@ def _pics_standard_deviation(neglog_p: Column, r: Column, k: float) -> Column:
 
     Returns:
         Column: PICS standard deviation
+
+    Examples:
+        >>> k = 6.4
+        >>> d = [(1.0, 1.0), (10.0, 1.0), (10.0, 0.5), (100.0, 0.5), (1.0, 0.0)]
+        >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("std", _pics_standard_deviation(f.col("neglog_p"), f.col("r"), k)).show()
+        +--------+---+-----------------+
+        |neglog_p|  r|              std|
+        +--------+---+-----------------+
+        |     1.0|1.0|              0.0|
+        |    10.0|1.0|              0.0|
+        |    10.0|0.5|1.571749395040553|
+        |   100.0|0.5|4.970307999319905|
+        |     1.0|0.0|              0.5|
+        +--------+---+-----------------+
+        <BLANKLINE>
     """
     return f.sqrt(1 - f.abs(r) ** k) * f.sqrt(neglog_p) / 2
 
@@ -206,6 +230,20 @@ def _pics_mu(neglog_p: Column, r: Column) -> Column:
 
     Returns:
         Column: PICS mu
+
+    Examples:
+        >>> d = [(1.0, 1.0), (10.0, 1.0), (10.0, 0.5), (100.0, 0.5), (1.0, 0.0)]
+        >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("mu", _pics_mu(f.col("neglog_p"), f.col("r"))).show()
+        +--------+---+----+
+        |neglog_p|  r|  mu|
+        +--------+---+----+
+        |     1.0|1.0| 1.0|
+        |    10.0|1.0|10.0|
+        |    10.0|0.5| 2.5|
+        |   100.0|0.5|25.0|
+        |     1.0|0.0| 0.0|
+        +--------+---+----+
+        <BLANKLINE>
     """
     return neglog_p * (r**2)
 
@@ -219,12 +257,41 @@ def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
 
     Returns:
         Column: Negative log p-value
+
+    Examples:
+        >>> d = [(1, 1), (5, -2), (1, -1000)]
+        >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
+        >>> df.withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
+        +----------------+----------------+------------------+
+        |p_value_mantissa|p_value_exponent|         neg_log_p|
+        +----------------+----------------+------------------+
+        |               1|               1|              -1.0|
+        |               5|              -2|1.3010299956639813|
+        |               1|           -1000|            1000.0|
+        +----------------+----------------+------------------+
+        <BLANKLINE>
     """
     return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
 
 
-def _pics(associations_ld_allancestries: DataFrame, k: float) -> DataFrame:
+def calculate_pics(
+    associations_ld_allancestries: DataFrame,
+    k: float,
+) -> DataFrame:
+    """It calculates the PICS statistics for each variant in the input DataFrame.
 
+    Args:
+        associations_ld_allancestries (DataFrame): DataFrame
+        k (float): float
+
+    Returns:
+        A dataframe with the columns:
+            - pics_mu
+            - pics_std
+            - pics_postprob
+            - pics_95_perc_credset
+            - pics_99_perc_credset
+    """
     # Calculate and return PICS statistics
     return (
         associations_ld_allancestries.withColumn(
@@ -359,7 +426,7 @@ def pics_all_study_locus(
         .drop("relativeSampleSize", "r").distinct()
     )
 
-    pics_results = _pics(associations_ld_allancestries, k)
+    pics_results = calculate_pics(associations_ld_allancestries, k)
 
     return pics_results.select(
         "chromosome",

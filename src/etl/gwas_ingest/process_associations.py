@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-from pyspark.sql.window import Window
 
+from etl.gwas_ingest.association_mapping import clean_mappings, map_variants
 from etl.gwas_ingest.effect_harmonization import harmonize_effect
 from etl.gwas_ingest.study_ingestion import parse_efos
 from etl.json import data
@@ -185,7 +185,9 @@ def read_associations_data(
                 ),
                 f.array(f.lit(None)),
             ),
-        ).persist()
+        )
+        # Parsing association EFO:
+        .withColumn("associationEfos", parse_efos(f.col("mappedTraitUri"))).persist()
     )
 
     # Providing stats on the filtered association dataset:
@@ -295,254 +297,6 @@ def splitting_association(association: DataFrame) -> DataFrame:
     )
 
 
-def process_associations(association: DataFrame) -> DataFrame:
-    """Further cleaning association dataset.
-
-    Steps:
-    - Extracting risk allele if avaliable
-    - Collecting all rsIds provided by GWAS Catalog to match with GnomAD
-    - Parsing EFOs
-    - Splitting p-values to mantissa and exponent.
-
-    Args:
-        association (DataFrame): Dataframe with associations
-
-    Returns:
-        Dataframe.
-    """
-    return association.select(
-        "associationId",
-        "studyAccession",
-        parse_efos("mappedTraitUri").alias("AssociationEfos"),
-        "associationDiseaseTrait",
-        "chromosome",
-        "position",
-        "riskAlleleFrequency",
-        "effectSize",
-        "pValueAncestry",
-        "confidenceInterval",
-        "pValueText",
-        "pValueNegLog",
-        # Extracting p-value exponent and mantissa:
-        f.split(f.col("pvalue"), "E")
-        .getItem(1)
-        .cast("integer")
-        .alias("pValueExponent"),
-        # Extracting risk allele:
-        f.split(f.col("pvalue"), "E").getItem(0).cast("float").alias("pValueMantissa"),
-        f.split(f.upper(f.col("strongestSnpRiskAllele"), "-").getItem(1)).alias(
-            "riskAllele"
-        ),
-        "gwasVariant",
-        # Collecting all available rsIDs provided by GWAS Catalog:
-        f.array_except(
-            f.array(
-                f.split(f.col("strongestSnpRiskAllele"), "-").getItem(0),
-                f.when(
-                    f.col("snpIdCurrent").rlike("^[0-9]*$"),
-                    f.format_string("rs%s", f.col("snpIdCurrent")),
-                ).otherwise(f.col("snpIdCurrent")),
-                f.col("snpIds"),
-            ),
-            f.array(f.lit(None)),
-        ).alias("rsIdsGwasCatalog"),
-        "qualityControl",
-    )
-
-
-def map_variants(
-    parsed_associations: DataFrame, variant_annotation_path: str, etl: ETLSession
-) -> DataFrame:
-    """Add variant metadata in associations.
-
-    Args:
-        parsed_associations (DataFrame): associations
-        etl (ETLSession): current ETL session
-        variant_annotation_path (str): variant annotation path
-
-    Returns:
-        DataFrame: associations with variant metadata
-    """
-    variants = etl.spark.read.parquet(variant_annotation_path).select(
-        f.col("id").alias("variantId"),
-        f.col("chromosome"),
-        f.col("position").alias("position"),
-        f.col("rsIds").alias("rsIdsGnomad"),
-        f.col("referenceAllele"),
-        f.col("alternateAllele"),
-        f.col("alleleFrequencies"),
-    )
-
-    mapped_associations = (
-        variants.join(
-            f.broadcast(parsed_associations), on=["chromosome", "position"], how="right"
-        )
-        # Even if there's no variant mapping in gnomad, to make sure we are not losing any assocations,
-        .withColumn("variantId", f.coalesce(f.col("variantId"), f.col("gwasVariant")))
-        # Flagging variants that could not be mapped to gnomad:
-        .withColumn(
-            "qualityControl",
-            f.when(
-                f.col("alternateAllele").isNull(),
-                f.array_union(
-                    f.col("qualityControl"), f.array(f.lit("No mapping in GnomAd"))
-                ),
-            ).otherwise(f.col("qualityControl")),
-        ).persist()
-    )
-    assoc_without_variant = mapped_associations.filter(
-        f.col("variantId").isNull()
-    ).count()
-    etl.logger.info(
-        f"Loading variant annotation and joining with associations... {assoc_without_variant} associations outside gnomAD"
-    )
-    return mapped_associations
-
-
-def concordance_filter(df: DataFrame) -> DataFrame:
-    """Concordance filter.
-
-    This function filters out discordant GnomAD variant mappings. If the variant for an association could not be mapped, we still keep it.
-    A risk allele is considered concordant if:
-    - equal to the alt allele
-    - equal to the ref allele
-    - equal to the revese complement of the alt allele.
-    - equal to the revese complement of the ref allele.
-    - Or the risk allele is ambigious, noted by '?'
-
-    Args:
-        df (DataFrame): associations
-
-    Returns:
-        DataFrame: associations filtered for variants with concordant alleles with the risk allele.
-    """
-    return (
-        df
-        # Adding column with the reverse-complement of the risk allele:
-        .withColumn(
-            "riskAlleleReverseComplement",
-            f.when(
-                f.col("riskAllele").rlike(r"^[ACTG]+$"),
-                f.reverse(f.translate(f.col("riskAllele"), "ACTG", "TGAC")),
-            ).otherwise(f.col("riskAllele")),
-        )
-        # Adding columns flagging concordance:
-        .withColumn(
-            "isConcordant",
-            # If risk allele is found on the positive strand:
-            f.when(
-                (f.col("riskAllele") == f.col("referenceAllele"))
-                | (f.col("riskAllele") == f.col("alternateAllele")),
-                True,
-            )
-            # If risk allele is found on the negative strand:
-            .when(
-                (f.col("riskAlleleReverseComplement") == f.col("referenceAllele"))
-                | (f.col("riskAlleleReverseComplement") == f.col("alternateAllele")),
-                True,
-            )
-            # If risk allele is ambiguous, still accepted: < This condition could be reconsidered
-            .when(f.col("riskAllele") == "?", True)
-            # If the association could not be mapped we keep it:
-            .when(f.col("variantId").isNull(), True)
-            # Allele is discordant:
-            .otherwise(False),
-        )
-        # Dropping discordant associations:
-        # .filter(f.col("isConcordant"))
-        .drop("isConcordant", "riskAlleleReverseComplement").persist()
-    )
-
-
-def filter_assoc_by_rsid(df: DataFrame) -> DataFrame:
-    """Deduplication of GnomAD mappings based on rsIDs.
-
-    A GnomAD mapping is kept if the rsID is consistent with the rsID coming from the GWAS Catalog OR
-    we keep all mappings if no matching rsID is found for an association. We also keep all associations
-    that are not mapped.
-
-    Args:
-        df (DataFrame): associations requiring:
-            - associationId
-            - rsIdsGwasCatalog
-            - rsIdsGnomad
-
-    Returns:
-        DataFrame: filtered associations
-    """
-    w = Window.partitionBy("associationId")
-
-    return (
-        df
-        # See if the GnomAD variant that was mapped to a given association has a matching rsId:
-        .withColumn(
-            "matchingRsId",
-            f.when(
-                f.size(
-                    f.array_intersect(f.col("rsIdsGwasCatalog"), f.col("rsIdsGnomad"))
-                )
-                > 0,
-                True,
-            ).otherwise(False),
-        )
-        .withColumn(
-            "successfulMappingExists",
-            f.when(
-                f.array_contains(f.collect_set(f.col("matchingRsId")).over(w), True),
-                True,
-            ).otherwise(False),
-        )
-        .filter(
-            # Consistnet gnomad mapping exists:
-            (f.col("matchingRsId") & f.col("successfulMappingExists"))
-            # No consistent gnomad mapping:
-            | (~f.col("matchingRsId") & ~f.col("successfulMappingExists"))
-            # No mapping at all:
-            | f.col("variantId").isNull()
-        )
-        .drop("successfulMappingExists", "matchingRsId")
-        .persist()
-    )
-
-
-def filter_assoc_by_maf(associations: DataFrame) -> DataFrame:
-    """Filter associations by Minor Allele Frequency.
-
-    If an association is mapped to multiple concordant (or at least not discordant) variants,
-    we only keep the one that has the highest minor allele frequency.
-
-    This filter is based on the assumption that GWAS Studies are focusing on common variants mostly.
-    This filter is especially designed to filter out rare alleles of multiallelics with matching rsIDs.
-
-    Args:
-        associations (DataFrame): associations
-
-    Returns:
-        DataFrame: associations filtered by allelic frequency
-    """
-    # Windowing over every association id, keeping only one mapping per association:
-    w = Window.partitionBy("associationId").orderBy(f.desc("maf"))
-
-    return (
-        associations
-        # Exploding all available population frequencies:
-        .select("*", f.explode_outer(f.col("alleleFrequencies")).alias("af"))
-        # Converting alt allele frequency to minor allele frequency:
-        .withColumn(
-            "maf",
-            f.when(
-                f.col("af.alleleFrequency") > 0.5, 1 - f.col("af.alleleFrequency")
-            ).otherwise(f.col("af.alleleFrequency")),
-        )
-        .withColumn("row_number", f.row_number().over(w))
-        # Selecting the variant with the highest minor-allele frequency:
-        # .filter(f.col("row_number") == 1)
-        # Dropping helper columns:
-        .drop("row_number", "af", "maf")
-        .persist()
-    )
-
-
 def ingest_gwas_catalog_associations(
     etl: ETLSession,
     gwas_association_path: str,
@@ -560,91 +314,19 @@ def ingest_gwas_catalog_associations(
     Returns:
         DataFrame: Post-processed GWASCatalog associations
     """
-    # return (
-    #     # Read associations:
-    #     read_associations_data(etl, gwas_association_path, pvalue_cutoff)
-    #     # Cleaning p-value text:
-    #     .transform(lambda df: _pvalue_text_resolve(df, etl))
-    #     # Parsing variants:
-    #     .transform(deconvolute_variants)
-    #     # Splitting associations by GWAS Catalog variants:
-    #     .transform(splitting_association)
-    #     # Minor formatting on the data:
-    #     .transform(process_associations)
-    #     # Mapping variants to GnomAD3:
-    #     .transform(lambda df: map_variants(df, variant_annotation_path, etl))
-    #     # Removing discordant mappings:
-    #     .transform(concordance_filter)
-    #     # Deduplicate associations by matching rsIDs:
-    #     .transform(filter_assoc_by_rsid)
-    #     # Deduplication by MAF:
-    #     .transform(filter_assoc_by_maf)
-    #     # Harmonizing association effect:
-    #     .transform(harmonize_effect)
-    # )
-
-    test_studies = [
-        "GCST009731",  # 77 associations
-        "GCST000583",  # 29 associations
-        "GCST005811",  # 29 associations
-        "GCST011383",  # 20
-        "GCST90027161",  # 30
-    ]
-    # Read associations:
-    assoc1 = read_associations_data(etl, gwas_association_path, pvalue_cutoff)
-    etl.logger.info(f"Number of associations: {assoc1.count()}")
-    assoc2 = assoc1.filter(f.col("studyAccession").isin(test_studies))
-    etl.logger.info(f"Number of associations after filtering: {assoc2.count()}")
-    assoc1.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
-    # Processing:
-    assoc2 = _pvalue_text_resolve(assoc2, etl)
-    etl.logger.info(
-        f"Number of associations after _pvalue_text_resolve: {assoc2.count()}"
+    return (
+        # Read associations:
+        read_associations_data(etl, gwas_association_path, pvalue_cutoff)
+        # Cleaning p-value text:
+        .transform(lambda df: _pvalue_text_resolve(df, etl))
+        # Parsing variants:
+        .transform(deconvolute_variants)
+        # Splitting associations by GWAS Catalog variants:
+        .transform(splitting_association)
+        # Mapping variants to GnomAD3:
+        .transform(lambda df: map_variants(df, variant_annotation_path, etl))
+        # Cleaning GnomAD variant mappings to ensure no duplication happens:
+        .transform(clean_mappings)
+        # Harmonizing association effect:
+        .transform(harmonize_effect)
     )
-    assoc2.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
-    #
-    assoc3 = deconvolute_variants(assoc2)
-    etl.logger.info(
-        f"Number of associations after deconvolute_variants: {assoc3.count()}"
-    )
-    assoc3.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
-
-    #
-    assoc4 = splitting_association(assoc3)
-    etl.logger.info(
-        f"Number of associations after splitting_association: {assoc4.count()}"
-    )
-    assoc4.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
-
-    #
-    assoc5 = process_associations(assoc4)
-    etl.logger.info(
-        f"Number of associations after process_associations: {assoc5.count()}"
-    )
-    assoc5.filter(f.col("studyAccession") == "GCST005811").show(1, False, True)
-
-    #
-    assoc6 = map_variants(assoc5, variant_annotation_path, etl)
-    etl.logger.info(
-        f"Number of associations after process_associations: {assoc6.count()}"
-    )
-    # Removing discordant mappings
-    assoc6 = concordance_filter(assoc6)
-    etl.logger.info(
-        f"Number of associations after concordance_filter: {assoc6.count()}"
-    )
-    # Deduplicate associations by matching rsIDs:
-    assoc6 = filter_assoc_by_rsid(assoc6)
-    etl.logger.info(
-        f"Number of associations after filter_assoc_by_rsid: {assoc6.count()}"
-    )
-    # Deduplication by MAF:
-    assoc6 = filter_assoc_by_maf(assoc6)
-    etl.logger.info(
-        f"Number of associations after filter_assoc_by_maf: {assoc6.count()}"
-    )
-    # Harmonizing association effect:
-    assoc6 = harmonize_effect(assoc6)
-    etl.logger.info(f"Number of associations after harmonize_effect: {assoc6.count()}")
-    (assoc6.groupBy("studyAccession").count().show(100))
-    return assoc6

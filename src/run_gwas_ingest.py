@@ -9,8 +9,10 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
+from etl.gwas_ingest.pics import pics_all_study_locus
 from etl.gwas_ingest.process_associations import ingest_gwas_catalog_associations
 from etl.gwas_ingest.study_ingestion import (
+    generate_study_table,
     ingest_gwas_catalog_studies,
     spliting_gwas_studies,
 )
@@ -39,8 +41,6 @@ def main(cfg: DictConfig) -> None:
             cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
         )
     )
-    return None
-    etl.logger.info("Ingesting GWAS Catalog Studies...")
 
     # Read saved association data:
     assoc = etl.spark.read.parquet(
@@ -55,30 +55,29 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.gwas_ingest.inputs.summary_stats_list,
     )
 
-    # (
-    #     gwas_studies.write.mode("overwrite").parquet(
-    #         "gs://ot-team/dsuveges/pre-split-gwas-studies"
-    #     )
-    # )
-    # validate_df_schema(gwas_studies, "studies.json")
-    # etl.logger.info(
-    #     f"Writing studies data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_studies}"
-    # )
-    # gwas_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
-    #     cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
-    # )
+    (
+        gwas_studies.write.mode("overwrite").parquet(
+            "gs://ot-team/dsuveges/pre-split-gwas-studies"
+        )
+    )
+    etl.logger.info(
+        f"Writing studies data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_studies}"
+    )
+    gwas_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
+        cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
+    )
 
     # Joining study and association
     study_assoc = gwas_studies.join(assoc, on="studyAccession", how="left").transform(
         spliting_gwas_studies
     )
 
-    # # Extracting study table and save:
-    # (
-    #     study_assoc.transform(generate_study_table)
-    #     .write.mode(cfg.environment.sparkWriteMode)
-    #     .parquet(cfg.etl.gwas_ingest.outputs.gwas_catalog_studies)
-    # )
+    # Extracting study table and save:
+    (
+        study_assoc.transform(generate_study_table)
+        .write.mode(cfg.environment.sparkWriteMode)
+        .parquet(cfg.etl.gwas_ingest.outputs.gwas_catalog_studies)
+    )
     assoc_columns = [
         "chromosome",
         "position",
@@ -103,18 +102,18 @@ def main(cfg: DictConfig) -> None:
     a = associations  # .filter(f.col("studyId").startswith(study_id))
     print(f"Number of studies: {s.count()}")
     print(f"Number of associations: {a.count()}")
-    # # Running PICS:
-    # pics_data = pics_all_study_locus(
-    #     etl,
-    #     a,
-    #     s,
-    #     cfg.etl.gwas_ingest.inputs.gnomad_populations,
-    #     cfg.etl.gwas_ingest.parameters.min_r2,
-    #     cfg.etl.gwas_ingest.parameters.k,
-    # )
-    # pics_data.write.mode("overwrite").parquet(
-    #     cfg.etl.gwas_ingest.outputs.pics_credible_set
-    # )
+    # Running PICS:
+    pics_data = pics_all_study_locus(
+        etl,
+        a,
+        s,
+        cfg.etl.gwas_ingest.inputs.gnomad_populations,
+        cfg.etl.gwas_ingest.parameters.min_r2,
+        cfg.etl.gwas_ingest.parameters.k,
+    )
+    pics_data.write.mode("overwrite").parquet(
+        cfg.etl.gwas_ingest.outputs.pics_credible_set
+    )
 
 
 if __name__ == "__main__":

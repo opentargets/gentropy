@@ -104,6 +104,7 @@ gwas_ingest:
     gwas_catalog_studies: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-11-29.tsv
     gwas_catalog_ancestries: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-11-29.tsv
     summary_stats_list: ${etl.inputs}/v2d/harmonised_list.txt
+    grch37_to_grch38_chain: gs://hail-common/references/grch37_to_grch38.over.chain.gz
   outputs:
     gwas_catalog_associations: ${etl.outputs}/gwas_catalog_associations
     gwas_catalog_studies: ${etl.outputs}/gwas_catalog_studies
