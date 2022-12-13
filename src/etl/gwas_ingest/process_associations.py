@@ -187,7 +187,7 @@ def read_associations_data(
             ),
         )
         # Parsing association EFO:
-        .withColumn("associationEfos", parse_efos(f.col("mappedTraitUri"))).persist()
+        .withColumn("associationEfos", parse_efos("mappedTraitUri")).persist()
     )
 
     # Providing stats on the filtered association dataset:
@@ -251,6 +251,31 @@ def deconvolute_variants(associations: DataFrame) -> DataFrame:
     )
 
 
+def _collect_rsids(
+    snp_id: Column, snp_id_current: Column, risk_allele: Column
+) -> Column:
+    """It takes three columns, and returns an array of distinct values from those columns.
+
+    Args:
+        snp_id (Column): The original snp id from the GWAS catalog.
+        snp_id_current (Column): The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good. The
+        risk_allele (Column): The risk allele for the SNP.
+
+    Returns:
+        An array of distinct values.
+    """
+    # The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good.
+    snp_id_current = f.when(
+        snp_id_current.rlike("^[0-9]*$"),
+        f.format_string("rs%s", snp_id_current),
+    )
+    # Cleaning risk allele:
+    risk_allele = f.split(risk_allele, "-").getItem(0)
+
+    # Collecting all values:
+    return f.array_distinct(f.array(snp_id, snp_id_current, risk_allele))
+
+
 def splitting_association(association: DataFrame) -> DataFrame:
     """Splitting associations based on the list of parseable varants from the GWAS Catalog.
 
@@ -267,6 +292,7 @@ def splitting_association(association: DataFrame) -> DataFrame:
         "strongestSnpRiskAllele",
         "snpIds",
     ]
+
     return (
         association
         # Pairing together matching chr:pos:rsid in a list of structs:
@@ -292,7 +318,40 @@ def splitting_association(association: DataFrame) -> DataFrame:
             *[
                 f.col(f"variant.{col}").alias(col) if col in variant_cols else col
                 for col in cols
-            ]
+            ],
+            # Extract p-value exponent:
+            f.split(f.col("pvalue"), "E")
+            .getItem(1)
+            .cast("integer")
+            .alias("pValueExponent"),
+            # Extract p-value mantissa:
+            f.split(f.col("pvalue"), "E")
+            .getItem(0)
+            .cast("float")
+            .alias("pValueMantissa"),
+        )
+        # Extracting risk allele:
+        .withColumn(
+            "riskAllele", f.split(f.col("strongestSnpRiskAllele"), "-").getItem(1)
+        )
+        # Creating list of rsIds from gwas catalog dataset:
+        .withColumn(
+            "rsIdsGwasCatalog",
+            _collect_rsids(
+                f.col("snpIds"), f.col("snpIdCurrent"), f.col("strongestSnpRiskAllele")
+            ),
+        )
+        # Dropping some un-used column:
+        .drop(
+            "pValue",
+            "riskAlleleFrequency",
+            "cnv",
+            "strongestSnpRiskAllele",
+            "snpIdCurrent",
+            "snpIds",
+            "pValue",
+            "mappedTraitUri",
+            "pValueNegLog",
         )
     )
 
