@@ -2077,12 +2077,12 @@
         <span class=p>)</span>
         <span class=n>start_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>convert_coordinates</span><span class=p>(</span>
             <span class=n>start_df</span><span class=p>,</span> <span class=n>chrom_col</span><span class=p>,</span> <span class=n>start_col</span>
-        <span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span><span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=s2>&quot;mapped_&quot;</span> <span class=o>+</span> <span class=n>start_col</span><span class=p>)</span>
+        <span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span><span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&quot;mapped_</span><span class=si>{</span><span class=n>start_col</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
 
         <span class=c1># Lift over end coordinates:</span>
         <span class=n>end_df</span> <span class=o>=</span> <span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>chrom_col</span><span class=p>,</span> <span class=n>end_col</span><span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
         <span class=n>end_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>convert_coordinates</span><span class=p>(</span><span class=n>end_df</span><span class=p>,</span> <span class=n>chrom_col</span><span class=p>,</span> <span class=n>end_col</span><span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span>
-            <span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=s2>&quot;mapped_&quot;</span> <span class=o>+</span> <span class=n>end_col</span>
+            <span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&quot;mapped_</span><span class=si>{</span><span class=n>end_col</span><span class=si>}</span><span class=s2>&quot;</span>
         <span class=p>)</span>
 
         <span class=c1># Join dataframe with mappings (we have to account for the +1 position shift of the start coordinates):</span>
@@ -2363,12 +2363,12 @@
     <span class=p>)</span>
     <span class=n>start_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>convert_coordinates</span><span class=p>(</span>
         <span class=n>start_df</span><span class=p>,</span> <span class=n>chrom_col</span><span class=p>,</span> <span class=n>start_col</span>
-    <span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span><span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=s2>&quot;mapped_&quot;</span> <span class=o>+</span> <span class=n>start_col</span><span class=p>)</span>
+    <span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span><span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&quot;mapped_</span><span class=si>{</span><span class=n>start_col</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
 
     <span class=c1># Lift over end coordinates:</span>
     <span class=n>end_df</span> <span class=o>=</span> <span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>chrom_col</span><span class=p>,</span> <span class=n>end_col</span><span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
     <span class=n>end_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>convert_coordinates</span><span class=p>(</span><span class=n>end_df</span><span class=p>,</span> <span class=n>chrom_col</span><span class=p>,</span> <span class=n>end_col</span><span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span>
-        <span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=s2>&quot;mapped_&quot;</span> <span class=o>+</span> <span class=n>end_col</span>
+        <span class=s2>&quot;mapped_pos&quot;</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&quot;mapped_</span><span class=si>{</span><span class=n>end_col</span><span class=si>}</span><span class=s2>&quot;</span>
     <span class=p>)</span>
 
     <span class=c1># Join dataframe with mappings (we have to account for the +1 position shift of the start coordinates):</span>
