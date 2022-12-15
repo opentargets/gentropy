@@ -93,3 +93,7 @@ gwas_ingest:
     ingest_unpublished_studies: False
     p_value_cutoff: 5e-8
   machine: ${machine.default}
+
+cheers:
+  inputs:
+    epigenetics:gs://blah
