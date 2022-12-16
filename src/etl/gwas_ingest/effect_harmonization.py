@@ -172,31 +172,36 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
     """
     return (
         df
+        # If the alleles are palindrome - the reference and alt alleles are reverse complement of each other:
+        # eg. T -> A: in such cases we cannot disambiguate the effect, which means we cannot be sure if
+        # the effect is given to the alt allele on the positive strand or the ref allele on
+        # The negative strand. We assume, we don't need to harminze.
         # Adding a flag indicating if effect harmonization is required:
         .withColumn(
-            "needsHarmonisation",
-            # If the alleles are palindrome - the reference and alt alleles are reverse complement of each other:
-            # eg. T -> A: in such cases we cannot disambiguate the effect, which means we cannot be sure if
-            # the effect is given to the alt allele on the positive strand or the ref allele on
-            # The negative strand. We assume, we don't need to harminze.
+            "isPalindrome",
             f.when(
-                (
-                    f.col("referenceAllele")
-                    == _get_reverse_complement(f.col("alternateAllele"))
-                ),
-                False,
-            )
-            .when(
-                # As we are calculating effect on the alternate allele, we have to harmonise effect
-                # if the risk allele is reference allele or the reverse complement of the reference allele
+                f.col("referenceAllele")
+                == _get_reverse_complement(f.col("alternateAllele")),
+                True,
+            ).otherwise(False),
+        )
+        # If a variant is palindrome, we drop the effect size, so no harmonization can happen:
+        .withColumn(
+            "effectSize",
+            f.when(f.col("isPalindrome"), None).otherwise(f.col("effectSize")),
+        )
+        # As we are calculating effect on the alternate allele, we have to harmonise effect
+        # if the risk allele is reference allele or the reverse complement of the reference allele
+        .withColumn(
+            "needsHarmonisation",
+            f.when(
                 (f.col("riskAllele") == f.col("referenceAllele"))
                 | (
                     f.col("riskAllele")
                     == _get_reverse_complement(f.col("referenceAllele"))
                 ),
                 True,
-            )
-            .otherwise(False),
+            ).otherwise(False),
         )
         # Z-score is needed to calculate 95% confidence interval:
         .withColumn(
@@ -239,7 +244,23 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
             "odds_ratio_ci_lower",
             _calculate_or_ci(f.col("odds_ratio"), f.col("zscore"), f.lit("lower")),
         )
+        # Adding QC flag to variants with palindrome alleles:
+        .withColumn(
+            "qualityControl",
+            f.when(
+                f.col("isPalindrome"),
+                f.array_union(
+                    f.col("qualityControl"), f.array(f.lit("Palindrome alleles"))
+                ),
+            ).otherwise(f.col("qualityControl")),
+        )
         # Dropping unused columns:
-        .drop("zscore", "effectSize", "confidenceInterval", "needsHarmonisation")
+        .drop(
+            "zscore",
+            "effectSize",
+            "confidenceInterval",
+            "needsHarmonisation",
+            "isPalindrome",
+        )
         .persist()
     )

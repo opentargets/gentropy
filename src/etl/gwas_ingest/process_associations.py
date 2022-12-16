@@ -389,3 +389,37 @@ def ingest_gwas_catalog_associations(
         # Harmonizing association effect:
         .transform(harmonize_effect)
     )
+
+
+def generate_association_table(df: DataFrame) -> DataFrame:
+    """Generating top-loci table.
+
+    Args:
+        df (DataFrame): DataFrame
+
+    Returns:
+        A DataFrame with the columns specified in the filter_columns list.
+    """
+    filter_columns = [
+        "chromosome",
+        "position",
+        "referenceAllele",
+        "alternateAllele",
+        "variantId",
+        "studyId",
+        "pValueMantissa",
+        "pValueExponent",
+        "beta",
+        "beta_ci_lower",
+        "beta_ci_upper",
+        "odds_ratio",
+        "odds_ratio_ci_lower",
+        "odds_ratio_ci_upper",
+        "qualityControl",
+    ]
+    return (
+        df.select(*filter_columns)
+        .filter(f.col("variantId").isNotNull())
+        .distinct()
+        .persist()
+    )

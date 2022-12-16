@@ -1,6 +1,6 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-CLUSTER_NAME ?= ${USER}_genetics_etl
+CLUSTER_NAME ?= ${USER}-genetics-etl
 PROJECT_NUMBER ?= $$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)")
 APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
@@ -39,10 +39,12 @@ prepare_pics:  ## Create cluster for variant annotation
         --region=${REGION} \
 		--master-machine-type=n1-highmem-96 \
         --enable-component-gateway \
+		--num-master-local-ssds=1 \
+		--master-local-ssd-interface=NVME \
         --metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
         --initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
         --single-node \
-        --max-idle=10m
+		--max-idle=10m
 
 prepare_variant_annotation:  ## Create cluster for variant annotation
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
@@ -115,9 +117,8 @@ prepare_gwas: ## Create cluster for gwas data generation
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
 		--enable-component-gateway \
-		--single-node
-
-		## --max-idle=10m
+		--single-node \
+		--max-idle=10m
 
 run_coloc: ## Generate coloc results
 	gcloud dataproc jobs submit pyspark ./dist/run_coloc.py \
@@ -163,6 +164,7 @@ run_gwas: ## Ingest gwas dataset on a dataproc cluster
 	gcloud dataproc jobs submit pyspark ./dist/run_gwas_ingest.py \
 	--cluster=${CLUSTER_NAME} \
     --files=./dist/config.yaml \
+	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
     --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
     --project=${PROJECT_ID} \
     --region=${REGION}

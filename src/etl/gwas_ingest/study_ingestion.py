@@ -153,7 +153,6 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
     Returns:
         A dataframe with the studyAccession, studyId, diseaseTrait, and efos columns.
     """
-    print(study_association.columns)
     # A window to aid study splitting:
     study_split_window = Window.partitionBy("studyAccession").orderBy("splitField")
 

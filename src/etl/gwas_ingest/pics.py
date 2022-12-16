@@ -89,7 +89,7 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
         # Exploding ancestries
         .withColumn("gwas_catalog_ancestry", f.explode(f.col("ancestries")))
         # map gwas population to gnomad superpopulation
-        .join(gwascat_2_gnomad_pop, "gwas_catalog_ancestry", "left")
+        .join(gwascat_2_gnomad_pop, on="gwas_catalog_ancestry", how="left")
         # Group by sutdies and aggregate for major population:
         .groupBy("studyId", "gnomadPopulation").agg(
             f.sum(f.col("adjustedSampleSize")).alias("sampleSize")
@@ -309,6 +309,8 @@ def calculate_pics(
                 k,
             ),
         )
+        # Some overall_R are suspiciously high. For such cases, pics_std fails. Drop them:
+        .filter(~f.isnan(f.col("pics_std")))
         .withColumn(
             "pics_postprob",
             _pics_posterior_probability(
@@ -367,26 +369,29 @@ def pics_all_study_locus(
     Returns:
         DataFrame: _description_
     """
-    # Associations joined with studies while exploding gnomad ancestries:
-    association_gnomad = (
-        associations.join(studies, on="studyId", how="left")
-        .withColumn("gnomadSamples", f.explode_outer(f.col("gnomadSamples")))
-        .withColumn("gnomadPopulation", f.col("gnomadSamples.gnomadPopulation"))
-        .withColumn("relativeSampleSize", f.col("gnomadSamples.relativeSampleSize"))
-        .persist()
+    # Extracting ancestry information from study table, then map to gnomad population:
+    gnomad_mapped_studies = _get_study_gnomad_ancestries(etl, studies)
+
+    # Joining to associations:
+    association_gnomad = associations.join(
+        gnomad_mapped_studies, on="studyId", how="left"
+    ).persist()
+
+    # Extracting mapped variants for LD expansion:
+    variant_population = (
+        association_gnomad.filter(f.col("position").isNotNull())
+        .select(
+            "variantId",
+            "gnomadPopulation",
+            "chromosome",
+            "position",
+            "referenceAllele",
+            "alternateAllele",
+        )
+        .distinct()
     )
 
-    # Extracting variants for LD expansion:
-    variant_population = association_gnomad.select(
-        "variantId",
-        "gnomadPopulation",
-        "chromosome",
-        "position",
-        "referenceAllele",
-        "alternateAllele",
-    ).distinct()
-
-    # Number of distinct variants to map:
+    # Number of distinct variants/population pairs to map:
     etl.logger.info(f"Number of variant/ancestry pairs: {variant_population.count()}")
     etl.logger.info(
         f'Number of unique variants: {variant_population.select("variantId").distinct().count()}'
@@ -396,18 +401,11 @@ def pics_all_study_locus(
     ld_r = ld_annotation_by_locus_ancestry(
         etl, variant_population, ld_populations, min_r2
     )
-    # Saving draft data:
-    etl.logger.info("LD expansion is done! Saving intermedier data.")
-    ld_r.write.mode("overwrite").parquet(
-        "gs://genetics_etl_python_playground/XX.XX/output/python_etl/parquet/ld2_table"
-    )
+
     # Association + ancestry + ld information
     association_ancestry_ld = association_gnomad.join(
         ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left"
-    )
-    ld_r.write.mode("overwrite").parquet(
-        "gs://genetics_etl_python_playground/XX.XX/output/python_etl/parquet/ld_expanded_assoc"
-    )
+    ).distinct()
 
     # Aggregation of weighted R information using ancestry proportions
     associations_ld_allancestries = (
@@ -423,19 +421,9 @@ def pics_all_study_locus(
             ),
         )
         # Collapse the data by study, lead, tag
-        .drop("relativeSampleSize", "r").distinct()
+        .drop("relativeSampleSize", "r", "gnomadPopulation").distinct()
     )
 
     pics_results = calculate_pics(associations_ld_allancestries, k)
 
-    return pics_results.select(
-        "chromosome",
-        "studyId",
-        "variantId",
-        "tagVariantId",
-        "R_overall",
-        "pics_mu",
-        "pics_postprob",
-        "pics_95_perc_credset",
-        "pics_99_perc_credset",
-    )
+    return pics_results
