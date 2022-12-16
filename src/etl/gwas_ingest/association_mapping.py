@@ -70,6 +70,26 @@ def _check_rsids(gnomad: Column, gwas: Column) -> Column:
 
     Returns:
         A boolean column that is true if the GnomAD rsIDs can be found in the GWAS rsIDs.
+
+    Examples:
+        >>> d = [
+        ...    (1, ["rs123", "rs523"], ["rs123"]),
+        ...    (2, [], ["rs123"]),
+        ...    (3, ["rs123", "rs523"], []),
+        ...    (4, [], []),
+        ... ]
+        >>> df = spark.createDataFrame(d, ['associationId', 'gnomad', 'gwas'])
+        >>> df.withColumn("or_confidence_interval", _check_rsids(f.col("gnomad"),f.col('gwas'))).show()
+        +-------------+--------------+-------+----------------------+
+        |associationId|        gnomad|   gwas|or_confidence_interval|
+        +-------------+--------------+-------+----------------------+
+        |            1|[rs123, rs523]|[rs123]|                  true|
+        |            2|            []|[rs123]|                 false|
+        |            3|[rs123, rs523]|     []|                 false|
+        |            4|            []|     []|                 false|
+        +-------------+--------------+-------+----------------------+
+        <BLANKLINE>
+
     """
     return f.when(f.size(f.array_intersect(gnomad, gwas)) > 0, True).otherwise(False)
 
@@ -87,6 +107,30 @@ def _find_mappings_to_drop(association_id: Column, filter_column: Column) -> Col
 
     Returns:
         A column with a boolean value.
+
+    Examples:
+    >>> d = [
+    ...    (1, False),
+    ...    (1, False),
+    ...    (2, False),
+    ...    (2, True),
+    ...    (3, True),
+    ...    (3, True),
+    ... ]
+    >>> df = spark.createDataFrame(d, ['associationId', 'filter'])
+    >>> df.withColumn("isConcordant", _find_mappings_to_drop(f.col("associationId"),f.col('filter'))).show()
+    +-------------+------+------------+
+    |associationId|filter|isConcordant|
+    +-------------+------+------------+
+    |            1| false|        true|
+    |            1| false|        true|
+    |            3|  true|        true|
+    |            3|  true|        true|
+    |            2| false|       false|
+    |            2|  true|        true|
+    +-------------+------+------------+
+    <BLANKLINE>
+
     """
     w = Window.partitionBy(association_id)
 
@@ -108,6 +152,28 @@ def _keep_mapping_with_top_maf(association_id: Column, maf_column: Column) -> Co
 
     Returns:
         A column with a boolean value.
+
+    Examples:
+    >>> d = [
+    ...    (1, 0.4),
+    ...    (1, 0.4),
+    ...    (2, 0.2),
+    ...    (2, 0.1),
+    ...    (3, None),
+    ... ]
+    >>> df = spark.createDataFrame(d, ['associationId', 'maxMaf'])
+    >>> df.withColumn("isTopMaf", _keep_mapping_with_top_maf(f.col("associationId"),f.col('maxMaf'))).show()
+    +-------------+------+--------+
+    |associationId|maxMaf|isTopMaf|
+    +-------------+------+--------+
+    |            1|   0.4|    true|
+    |            1|   0.4|   false|
+    |            3|  null|    true|
+    |            2|   0.2|    true|
+    |            2|   0.1|   false|
+    +-------------+------+--------+
+    <BLANKLINE>
+
     """
     w = Window.partitionBy(association_id).orderBy(f.desc(maf_column))
     row_numbers = f.row_number().over(w)
@@ -120,7 +186,8 @@ def _check_concordance(
     """A function to check if the risk allele is concordant with the alt or ref allele.
 
     If the risk allele is the same as the reference or alternate allele, or if the reverse complement of
-    the risk allele is the same as the reference or alternate allele, then the allele is concordant
+    the risk allele is the same as the reference or alternate allele, then the allele is concordant.
+    If no mapping is available (ref/alt is null), the function returns True.
 
     Args:
         risk_allele (Column): The allele that is associated with the risk of the disease.
@@ -130,6 +197,28 @@ def _check_concordance(
     Returns:
         A boolean column that is True if the risk allele is the same as the reference or alternate allele,
         or if the reverse complement of the risk allele is the same as the reference or alternate allele.
+
+    Examples:
+        >>> d = [
+        ...     ('A', 'A', 'G'),
+        ...     ('A', 'T', 'G'),
+        ...     ('A', 'C', 'G'),
+        ...     ('A', 'A', '?'),
+        ...     (None, None, 'A'),
+        ... ]
+        >>> df = spark.createDataFrame(d, ['riskAllele', 'referenceAllele', 'alternateAllele'])
+        >>> df.withColumn("isConcordant", _check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
+        +----------+---------------+---------------+------------+
+        |riskAllele|referenceAllele|alternateAllele|isConcordant|
+        +----------+---------------+---------------+------------+
+        |         A|              A|              G|        true|
+        |         A|              T|              G|        true|
+        |         A|              C|              G|       false|
+        |         A|              A|              ?|        true|
+        |      null|           null|              A|        true|
+        +----------+---------------+---------------+------------+
+        <BLANKLINE>
+
     """
     # Calculating the reverse complement of the risk allele:
     risk_allele_reverse_complement = f.when(
