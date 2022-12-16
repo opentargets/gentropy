@@ -24,7 +24,7 @@ def _pval_to_zscore(pval_col: Column) -> Column:
     Examples:
         >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
         >>> df = spark.createDataFrame(d)
-        >>> df.withColumn("zscore", pval_to_zscore(f.col("pval"))).show()
+        >>> df.withColumn("zscore", _pval_to_zscore(f.col("pval"))).show()
         +---+-------+----------+
         | id|   pval|    zscore|
         +---+-------+----------+
@@ -52,14 +52,34 @@ def _get_reverse_complement(allele_col: Column) -> Column:
     """A function to return the reverse complement of an allele column.
 
     It takes a string and returns the reverse complement of that string if it's a DNA sequence,
-    otherwise it returns the original string
+    otherwise it returns the original string. Assumes alleles in upper case.
 
     Args:
         allele_col (Column): The column containing the allele to reverse complement.
 
     Returns:
         A column that is the reverse complement of the allele column.
+
+    Examples:
+        >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("revcom_allele", _get_reverse_complement(f.col("allele"))).show()
+        +------+-------------+
+        |allele|revcom_allele|
+        +------+-------------+
+        |     A|            T|
+        |     T|            A|
+        |     G|            C|
+        |     C|            G|
+        |    AC|           GT|
+        |GTaatc|       GATTAC|
+        |     ?|            ?|
+        |  null|         null|
+        +------+-------------+
+        <BLANKLINE>
+
     """
+    allele_col = f.upper(allele_col)
     return f.when(
         allele_col.rlike("[ACTG]+"),
         f.reverse(f.translate(allele_col, "ACTG", "TGAC")),
@@ -71,7 +91,8 @@ def _harmonize_beta(
 ) -> Column:
     """A function to harmonize beta.
 
-    If the confidence interval contains the word "increase" and the effect size needs to be harmonized,
+    If the confidence interval contains the word "increase" or "decrease" it indicates, we are dealing with betas.
+    If it's "increase" and the effect size needs to be harmonized,
     then multiply the effect size by -1
 
     Args:
@@ -81,6 +102,28 @@ def _harmonize_beta(
 
     Returns:
         A column of the harmonized beta values.
+
+    Examples:
+        >>> d = [
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit decrease', 'needs_harmonization': True},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit decrease', 'needs_harmonization': False},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit increase', 'needs_harmonization': True},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit increase', 'needs_harmonization': False},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9]', 'needs_harmonization': False},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("beta", _harmonize_beta(f.col("effect_size"), f.col('confidence_interval'), f.col('needs_harmonization'))).show()
+        +--------------------+-----------+-------------------+----+
+        | confidence_interval|effect_size|needs_harmonization|beta|
+        +--------------------+-----------+-------------------+----+
+        |[0.1-0.9] unit de...|        0.6|               true| 0.6|
+        |[0.1-0.9] unit de...|        0.6|              false|-0.6|
+        |[0.1-0.9] unit in...|        0.6|               true|-0.6|
+        |[0.1-0.9] unit in...|        0.6|              false| 0.6|
+        |           [0.1-0.9]|        0.6|              false|null|
+        +--------------------+-----------+-------------------+----+
+        <BLANKLINE>
+
     """
     # The effect is given as beta, if the confidence interval contains 'increase' or 'decrease'
     beta = f.when(
@@ -106,6 +149,26 @@ def _calculate_beta_ci(beta: Column, zscore: Column, direction: Column) -> Colum
 
     Returns:
         The upper and lower bounds of the confidence interval for the beta coefficient.
+
+    Examples:
+        >>> d = [
+        ...    {"beta": 0.6, 'zscore': 3, 'direction': 'upper'},
+        ...    {"beta": 0.6, 'zscore': 3, 'direction': 'lower'},
+        ...    {"beta": 0.6, 'zscore': 3, 'direction': 'something'},
+        ...    {"beta": None, 'zscore': 3, 'direction': 'lower'},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("beta_confidence_interval",  _calculate_beta_ci(f.col("beta"), f.col('zscore'), f.col('direction'))).show()
+        +----+---------+------+------------------------+
+        |beta|direction|zscore|beta_confidence_interval|
+        +----+---------+------+------------------------+
+        | 0.6|    upper|     3|                   0.992|
+        | 0.6|    lower|     3|     0.20800000000000002|
+        | 0.6|something|     3|                    null|
+        |null|    lower|     3|                    null|
+        +----+---------+------+------------------------+
+        <BLANKLINE>
+
     """
     zscore_95 = f.lit(1.96)
     return (
@@ -127,6 +190,24 @@ def _harmonize_odds_ratio(
 
     Returns:
         A column with the odds ratio, or 1/odds_ratio if harmonization required.
+
+    Examples:
+        >>> d = [
+        ...   {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit decrease', 'needs_harmonization': True},
+        ...   {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9]', 'needs_harmonization': False},
+        ...   {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9]', 'needs_harmonization': True},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("odds_ratio", _harmonize_odds_ratio(f.col("effect_size"), f.col('confidence_interval'), f.col('needs_harmonization'))).show()
+        +--------------------+-----------+-------------------+------------------+
+        | confidence_interval|effect_size|needs_harmonization|        odds_ratio|
+        +--------------------+-----------+-------------------+------------------+
+        |[0.1-0.9] unit de...|        0.6|               true|              null|
+        |           [0.1-0.9]|        0.6|              false|               0.6|
+        |           [0.1-0.9]|        0.6|               true|1.6666666666666667|
+        +--------------------+-----------+-------------------+------------------+
+        <BLANKLINE>
+
     """
     # The confidence interval tells if we are not dealing with betas -> OR
     odds_ratio = f.when(
@@ -139,7 +220,7 @@ def _harmonize_odds_ratio(
 
 
 def _calculate_or_ci(odds_ratio: Column, zscore: Column, direction: Column) -> Column:
-    """Calculating confidence intervals for OR values.
+    """Calculating confidence intervals for odds-ratio values.
 
     Args:
         odds_ratio (Column): The odds ratio of the association between the exposure and outcome.
@@ -148,6 +229,26 @@ def _calculate_or_ci(odds_ratio: Column, zscore: Column, direction: Column) -> C
 
     Returns:
         The upper and lower bounds of the 95% confidence interval for the odds ratio.
+
+    Examples:
+        >>> d = [
+        ...     {"odds_ratio": 0.6, 'zscore': 3, 'direction': 'upper'},
+        ...     {"odds_ratio": 1.6, 'zscore': 3, 'direction': 'lower'},
+        ...     {"odds_ratio": 0.6, 'zscore': 3, 'direction': 'something'},
+        ...     {"odds_ratio": None, 'zscore': 3, 'direction': 'lower'},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("or_confidence_interval", _calculate_or_ci(f.col("odds_ratio"), f.col('zscore'), f.col('direction'))).show()
+        +---------+----------+------+----------------------+
+        |direction|odds_ratio|zscore|or_confidence_interval|
+        +---------+----------+------+----------------------+
+        |    upper|       0.6|     3|    0.8377075574145849|
+        |    lower|       1.6|     3|    1.1769597039688107|
+        |something|       0.6|     3|                  null|
+        |    lower|      null|     3|                  null|
+        +---------+----------+------+----------------------+
+        <BLANKLINE>
+
     """
     zscore_95 = f.lit(1.96)
     odds_ratio_estimate = f.log(odds_ratio)
@@ -261,6 +362,8 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
             "confidenceInterval",
             "needsHarmonisation",
             "isPalindrome",
+            "zscore",
+            "riskAllele",
         )
         .persist()
     )
