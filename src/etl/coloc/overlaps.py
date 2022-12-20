@@ -34,13 +34,12 @@ def find_all_vs_all_overlapping_signals(
         "leadVariantId",
         "type",
     ]
-    metadata_cols = [
-        "traitFromSourceMappedId",
-        "biofeature",
-    ]
+    metadata_cols = ["traitFromSourceMappedId", "biofeature", "gene_id"]
 
     # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-    overlapping_peaks = find_gwas_vs_all_overlapping_peaks(credible_sets_enriched)
+    overlapping_peaks = find_gwas_vs_all_overlapping_peaks(
+        credible_sets_enriched, "logABF"
+    )
 
     overlapping_left = credible_sets_enriched.selectExpr(
         [f"{col} as left_{col}" for col in id_cols + metadata_cols + ["logABF"]]
@@ -69,7 +68,9 @@ def find_all_vs_all_overlapping_signals(
     )
 
 
-def find_gwas_vs_all_overlapping_peaks(credible_sets_enriched: DataFrame) -> DataFrame:
+def find_gwas_vs_all_overlapping_peaks(
+    credible_sets_enriched: DataFrame, causality_statistic: str
+) -> DataFrame:
     """Find overlapping signals between GWAS (left) and GWAS or Molecular traits (right). Self join with complex condition."""
     id_cols = [
         "chromosome",
@@ -77,8 +78,10 @@ def find_gwas_vs_all_overlapping_peaks(credible_sets_enriched: DataFrame) -> Dat
         "leadVariantId",
         "type",
     ]
-    cols_to_rename = id_cols
-    credset_to_self_join = credible_sets_enriched.select(id_cols + ["tagVariantId"])
+    cols_to_rename = id_cols + [causality_statistic]
+    credset_to_self_join = credible_sets_enriched.select(
+        id_cols + ["tagVariantId", causality_statistic]
+    )
     return (
         credset_to_self_join.alias("left")
         .filter(f.col("type") == "gwas")
@@ -92,12 +95,12 @@ def find_gwas_vs_all_overlapping_peaks(credible_sets_enriched: DataFrame) -> Dat
             ],
             how="inner",
         )
-        .drop("left.tagVariantId", "right.tagVariantId")
         # Rename columns to make them unambiguous
         .selectExpr(
             *(
                 [f"left.{col} as left_{col}" for col in cols_to_rename]
                 + [f"right.{col} as right_{col}" for col in cols_to_rename]
+                + ["left.tagVariantId as tagVariantId"]
             )
         )
         .dropDuplicates(
