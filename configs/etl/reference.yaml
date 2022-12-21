@@ -9,7 +9,7 @@ coloc:
     #TOOD: to update
     sumstats_filtered: gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb_union
   outputs:
-    coloc: ${etl.outputs}/coloc
+    coloc: ${etl.outputs}/coloc_ecaviar_all
   parameters:
     # priorc1 Prior on variant being causal for trait 1
     priorc1: 1e-4
@@ -17,6 +17,8 @@ coloc:
     priorc2: 1e-4
     # priorc12 Prior on variant being causal for traits 1 and 2
     priorc12: 1e-5
+    # posterior probability threshold to consider PICS signal
+    pp_threshold: 0.001
   machine: ${machine.coloc}
 
 v2g:

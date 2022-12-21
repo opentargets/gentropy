@@ -19,18 +19,18 @@ class TestFindGwasVsAllOverlappingPeaks:
     test_input = [
         [
             # Overlapping peak between two GWAS
-            ("22", "GCST90002383", "22_28449893_G_C", "22_28026789_C_T", "gwas"),
-            ("22", "GCST90002310", "22_28690105_C_T", "22_28026789_C_T", "gwas"),
+            ("22", "GCST90002383", "22_28449893_G_C", "22_28026789_C_T", 0.2, "gwas"),
+            ("22", "GCST90002310", "22_28690105_C_T", "22_28026789_C_T", 0.1, "gwas"),
         ],
         [
             # Overlapping peak between a GWAS and a eQTL
-            ("22", "GCST90002383", "22_28449893_G_C", "22_28026789_C_T", "gwas"),
-            ("22", "eABC123", "22_28690105_C_T", "22_28026789_C_T", "eqtl"),
+            ("22", "GCST90002383", "22_28449893_G_C", "22_28026789_C_T", 0.2, "gwas"),
+            ("22", "eABC123", "22_28690105_C_T", "22_28026789_C_T", 0.3, "eqtl"),
         ],
         [
             # Overlapping peak between a pQTL and a eQTL
-            ("22", "pABC123", "22_28449893_G_C", "22_28026789_C_T", "pqtl"),
-            ("22", "eABC123", "22_28690105_C_T", "22_28026789_C_T", "eqtl"),
+            ("22", "pABC123", "22_28449893_G_C", "22_28026789_C_T", 0.4, "pqtl"),
+            ("22", "eABC123", "22_28690105_C_T", "22_28026789_C_T", 0.3, "eqtl"),
         ],
     ]
 
@@ -42,10 +42,13 @@ class TestFindGwasVsAllOverlappingPeaks:
                 "GCST90002383",
                 "22_28449893_G_C",
                 "gwas",
+                0.2,
                 "22",
                 "GCST90002310",
                 "22_28690105_C_T",
                 "gwas",
+                0.1,
+                "22_28026789_C_T",
             ),
         ],
         [
@@ -55,10 +58,13 @@ class TestFindGwasVsAllOverlappingPeaks:
                 "GCST90002383",
                 "22_28449893_G_C",
                 "gwas",
+                0.2,
                 "22",
                 "eABC123",
                 "22_28690105_C_T",
                 "eqtl",
+                0.3,
+                "22_28026789_C_T",
             ),
         ],
         [
@@ -75,10 +81,13 @@ class TestFindGwasVsAllOverlappingPeaks:
                 t.StructField("left_studyId", t.StringType(), False),
                 t.StructField("left_leadVariantId", t.StringType(), False),
                 t.StructField("left_type", t.StringType(), True),
+                t.StructField("left_posteriorProbability", t.DoubleType(), False),
                 t.StructField("right_chromosome", t.StringType(), True),
                 t.StructField("right_studyId", t.StringType(), True),
                 t.StructField("right_leadVariantId", t.StringType(), True),
                 t.StructField("right_type", t.StringType(), True),
+                t.StructField("right_posteriorProbability", t.DoubleType(), True),
+                t.StructField("tagVariantId", t.StringType(), True),
             ]
         )
 
@@ -100,10 +109,13 @@ class TestFindGwasVsAllOverlappingPeaks:
                 "studyId",
                 "leadVariantId",
                 "tagVariantId",
+                "posteriorProbability",
                 "type",
             ],
         )
-        test_df = find_gwas_vs_all_overlapping_peaks(mock_df).toPandas()
+        test_df = find_gwas_vs_all_overlapping_peaks(
+            mock_df, causality_statistic="posteriorProbability"
+        ).toPandas()
         expected_df = spark.createDataFrame(
             data=expected_output,
             schema=expected_output_schema,

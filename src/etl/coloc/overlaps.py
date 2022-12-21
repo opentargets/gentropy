@@ -34,13 +34,20 @@ def find_all_vs_all_overlapping_signals(
         "leadVariantId",
         "type",
     ]
-    metadata_cols = ["traitFromSourceMappedId", "biofeature", "gene_id"]
+    metadata_cols = ["phenotype", "biofeature", "gene_id"]
 
     # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-    overlapping_peaks = find_gwas_vs_all_overlapping_peaks(
-        credible_sets_enriched, "logABF"
+    # This function includes some metadata about the overlap that needs to be dropped to avoid duplicates
+    cols_to_drop = ["left_logABF", "right_logABF", "tagVariantId"]
+    overlapping_peaks = (
+        find_gwas_vs_all_overlapping_peaks(credible_sets_enriched, "logABF")
+        # Keep overlapping peaks where logABF is at either side
+        .filter(
+            f.col("left_logABF").isNotNull() & f.col("right_logABF").isNotNull()
+        ).drop(*cols_to_drop)
     )
 
+    # Bring metadata from left and right for all variants that tag the peak
     overlapping_left = credible_sets_enriched.selectExpr(
         [f"{col} as left_{col}" for col in id_cols + metadata_cols + ["logABF"]]
         + ["tagVariantId"]
@@ -71,7 +78,17 @@ def find_all_vs_all_overlapping_signals(
 def find_gwas_vs_all_overlapping_peaks(
     credible_sets_enriched: DataFrame, causality_statistic: str
 ) -> DataFrame:
-    """Find overlapping signals between GWAS (left) and GWAS or Molecular traits (right). Self join with complex condition."""
+    """Find overlapping signals between GWAS (left) and GWAS or Molecular traits (right).
+
+    The main principle is that here we extract which are the peaks that share a tagging variant for the same trait.
+
+    Args:
+        credible_sets_enriched (DataFrame): DataFrame containing the credible sets to be analysed
+        causality_statistic (str): Causality statistic to be used for the analysis. Can be either logABF or posteriorProbability
+
+    Returns:
+        DataFrame: overlapping peaks to be compared
+    """
     id_cols = [
         "chromosome",
         "studyId",
@@ -100,7 +117,7 @@ def find_gwas_vs_all_overlapping_peaks(
             *(
                 [f"left.{col} as left_{col}" for col in cols_to_rename]
                 + [f"right.{col} as right_{col}" for col in cols_to_rename]
-                + ["left.tagVariantId as tagVariantId"]
+                + ["left.tagVariantId as tagVariantId"],
             )
         )
         .dropDuplicates(
