@@ -91,14 +91,14 @@ def _get_study_gnomad_ancestries(etl: ETLSession, study_df: DataFrame) -> DataFr
         # map gwas population to gnomad superpopulation
         .join(gwascat_2_gnomad_pop, on="gwas_catalog_ancestry", how="left")
         # Group by sutdies and aggregate for major population:
-        .groupBy("studyId", "gnomadPopulation").agg(
-            f.sum(f.col("adjustedSampleSize")).alias("sampleSize")
-        )
+        .groupBy("studyId", "gnomadPopulation")
+        .agg(f.sum(f.col("adjustedSampleSize")).alias("sampleSize"))
         # Calculate proportions for each study
         .withColumn(
             "relativeSampleSize",
             f.col("sampleSize") / f.sum("sampleSize").over(w_study),
         )
+        .drop("sampleSize")
     )
 
 
@@ -158,9 +158,13 @@ def _is_in_credset(
     w_credset = Window.partitionBy(chromosome, study_id, variant_id).orderBy(
         pics_postprob_cumsum
     )
-    return f.when(
-        f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability, False
-    ).otherwise(True)
+    return (
+        f.when(f.isnan(pics_postprob), False)
+        .when(
+            f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability, False
+        )
+        .otherwise(True)
+    )
 
 
 def _pics_posterior_probability(
@@ -402,10 +406,41 @@ def pics_all_study_locus(
         etl, variant_population, ld_populations, min_r2
     )
 
-    # Association + ancestry + ld information
-    association_ancestry_ld = association_gnomad.join(
-        ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left"
-    ).distinct()
+    # Joining association with linked variants (while keeping unresolved associations).
+    association_ancestry_ld = (
+        association_gnomad.join(
+            ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left"
+        )
+        # It is possible that a lead variant is resolved in the LD panel of a population, but not in the other.
+        # Once the linked variants are joined this leads to unnecessary nulls. To avoid this, adding
+        # a flag indicating if a lead variant is resolved in the LD panel for at least one population:
+        .withColumn(
+            "hasResolvedLd",
+            f.when(
+                f.array_contains(
+                    f.collect_set(f.col("tagVariantId").isNotNull()).over(
+                        Window.partitionBy("studyId", "variantId")
+                    ),
+                    True,
+                ),
+                True,
+            ).otherwise(False),
+        )
+        # Dropping rows where no tag is available, however the lead is resolved:
+        .filter(f.col("tagVariantId").isNull() & f.col("hasResolvedLd"))
+        # Dropping unused column:
+        .drop("hasResolvedLd")
+        # Updating qualityControl for unresolved associations:
+        .withColumn(
+            "qualityControl",
+            f.when(
+                f.col("tagVariantId").isNull(),
+                f.array_union(
+                    f.col("qualityControl"), f.array(f.lit("Credible set not resolved"))
+                ),
+            ).otherwise(f.col("qualityControl")),
+        ).distinct()
+    )
 
     # Aggregation of weighted R information using ancestry proportions
     associations_ld_allancestries = (
