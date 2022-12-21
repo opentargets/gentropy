@@ -49,7 +49,23 @@ def run_colocalisation(
     )
 
     # IDEA: pass a parameter with the type of coloc: all vs all, gwas vs all
-    ecaviar_coloc = ecaviar_colocalisation(overlapping_signals, pp_threshold, study_df)
+    metadata_cols = ["studyId", "phenotype", "biofeature"]
+    ecaviar_coloc = (
+        ecaviar_colocalisation(overlapping_signals, pp_threshold)
+        # Add study metadata - to be deprecated
+        # the resulting table has more rows because of the studies that have multiple mapped traits
+        .join(
+            study_df.selectExpr(*(f"{i} as left_{i}" for i in metadata_cols)),
+            on="left_studyId",
+            how="left",
+        )
+        .join(
+            study_df.selectExpr(*(f"{i} as right_{i}" for i in metadata_cols)),
+            on="right_studyId",
+            how="left",
+        )
+        .distinct()
+    )
 
     return (
         # 3. Join colocalisation results
@@ -234,14 +250,13 @@ def colocalisation(
 
 
 def ecaviar_colocalisation(
-    overlapping_signals: DataFrame, clpp_threshold: float, study_df: DataFrame
+    overlapping_signals: DataFrame, clpp_threshold: float
 ) -> DataFrame:
     """Calculate bayesian colocalisation based on overlapping signals.
 
     Args:
         overlapping_signals (DataFrame): DataFrame with overlapping signals.
         clpp_threshold (float): Colocalization cutoff threshold as described in the paper.
-        study_df (DataFrame): DataFrame with study metadata.
 
     Returns:
         DataFrame: DataFrame with colocalisation results.
@@ -253,7 +268,7 @@ def ecaviar_colocalisation(
         "type",
     ]
 
-    coloc = (
+    return (
         overlapping_signals.withColumn(
             "clpp",
             _get_clpp(
@@ -269,22 +284,6 @@ def ecaviar_colocalisation(
         )
         .agg(
             f.count("*").alias("coloc_n_vars"),
-            f.log(f.sum(f.col("clpp"))).alias("logCLPP"),
+            f.sum(f.col("clpp")).alias("clpp"),
         )
-    )
-
-    # Add study metadata - the resulting table has more rows because of the studies that have multiple mapped traits
-    metadata_cols = ["studyId", "phenotype", "biofeature"]
-    return (
-        coloc.join(
-            study_df.selectExpr(*(f"{i} as left_{i}" for i in metadata_cols)),
-            on="left_studyId",
-            how="left",
-        )
-        .join(
-            study_df.selectExpr(*(f"{i} as right_{i}" for i in metadata_cols)),
-            on="right_studyId",
-            how="left",
-        )
-        .distinct()
     )
