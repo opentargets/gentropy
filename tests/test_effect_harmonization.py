@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pytest
 
-from etl.gwas_ingest.effect_harmonization import get_reverse_complement
+from otg.gwas_ingest.effect_harmonization import get_reverse_complement
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession

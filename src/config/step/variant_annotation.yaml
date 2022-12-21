@@ -1,0 +1,4 @@
+_target_: otg.variant_annotation.VariantAnnotationStep
+defaults:
+   - /etl: local
+   - /dataset@variant_annotation: variant_annotation_gnomad

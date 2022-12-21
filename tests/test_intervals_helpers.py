@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 from pandas.testing import assert_frame_equal
 
-from etl.v2g.intervals.helpers import get_variants_in_interval
+from otg.v2g.intervals.helpers import get_variants_in_interval
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession

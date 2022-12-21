@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pytest
 
-from etl.common.spark_helpers import (
+from otg.common.spark_helpers import (
     get_record_with_maximum_value,
     get_record_with_minimum_value,
 )

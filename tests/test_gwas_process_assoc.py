@@ -6,7 +6,7 @@ import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 
-from etl.gwas_ingest.process_associations import (
+from otg.gwas_ingest.process_associations import (
     concordance_filter,
     filter_assoc_by_maf,
     filter_assoc_by_rsid,

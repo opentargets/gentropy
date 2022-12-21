@@ -14,9 +14,9 @@ from typing import TYPE_CHECKING
 import hydra
 import pyspark.sql.functions as f
 
-from etl.coloc.coloc import run_colocalisation
-from etl.coloc.utils import _extract_credible_sets
-from etl.common.ETLSession import ETLSession
+from otg.coloc.coloc import run_colocalisation
+from otg.coloc.utils import _extract_credible_sets
+from otg.common.session import ETLSession
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig

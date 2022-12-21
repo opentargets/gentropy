@@ -1,0 +1,6 @@
+defaults:
+  - base_variant_index_credsets
+  - /dataset@variant_annotation:
+    - variant_annotation_file
+credible_sets: /path/to/credible_sets
+path: "path/to/dataset/variant_index"

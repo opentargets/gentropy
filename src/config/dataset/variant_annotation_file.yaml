@@ -1,0 +1,3 @@
+defaults:
+  - base_dataset_from_file
+path: /path/to/dataset/variant_annotation

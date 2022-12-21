@@ -10,18 +10,18 @@ import pyspark.sql.functions as f
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
-from etl.common.ETLSession import ETLSession
-from etl.json import validate_df_schema
-from etl.v2g.functional_predictions.vep import main as extract_v2g_from_vep
-from etl.v2g.intervals.andersson2014 import ParseAndersson
-from etl.v2g.intervals.helpers import (
+from otg.common.session import ETLSession
+from otg.json import validate_df_schema
+from otg.v2g.functional_predictions.vep import main as extract_v2g_from_vep
+from otg.v2g.intervals.andersson2014 import ParseAndersson
+from otg.v2g.intervals.helpers import (
     get_variants_in_interval,
     prepare_gene_interval_lut,
 )
-from etl.v2g.intervals.javierre2016 import ParseJavierre
-from etl.v2g.intervals.jung2019 import ParseJung
-from etl.v2g.intervals.Liftover import LiftOverSpark
-from etl.v2g.intervals.thurman2012 import ParseThurman
+from otg.v2g.intervals.javierre2016 import ParseJavierre
+from otg.v2g.intervals.jung2019 import ParseJung
+from otg.v2g.intervals.Liftover import LiftOverSpark
+from otg.v2g.intervals.thurman2012 import ParseThurman
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")

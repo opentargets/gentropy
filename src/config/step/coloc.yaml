@@ -1,0 +1,11 @@
+study_locus_idx: gs://ot-team/irene/study_locus_v3 # where credsets are stored
+study_idx: gs://genetics_etl_python_playground/input/study_index
+#TOOD: to update
+sumstats_filtered: gs://genetics-portal-dev-sumstats/filtered/significant_window_2mb_union
+coloc_outputs: ${etl.outputs}/coloc
+# priorc1 Prior on variant being causal for trait 1
+priorc1: 1e-4
+# priorc2 Prior on variant being causal for trait 2
+priorc2: 1e-4
+# priorc12 Prior on variant being causal for traits 1 and 2
+priorc12: 1e-5

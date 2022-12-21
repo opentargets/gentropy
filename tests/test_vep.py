@@ -8,7 +8,7 @@ import pyspark.sql.types as t
 import pytest
 from pandas.testing import assert_frame_equal
 
-from etl.v2g.functional_predictions.vep import (
+from otg.v2g.functional_predictions.vep import (
     get_plof_flag,
     get_polyphen_score,
     get_sift_score,

@@ -9,7 +9,8 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
 
 from etl.common.ETLSession import ETLSession
-from etl.gwas_ingest.study_ingestion import ingest_gwas_catalog_studies
+
+from otg.gwas_ingest.study_ingestion import ingest_gwas_catalog_studies
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
