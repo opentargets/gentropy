@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import pyspark.sql.functions as f
 from omegaconf import MISSING
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class VariantIndexCredsetConfig:
     """Variant index from credible set configuration."""
 
-    path: str | None
+    path: Optional[str] = None
     variant_annotation: Any = MISSING
     credible_sets: str = MISSING
 
@@ -42,7 +42,7 @@ class VariantIndex(Dataset):
         etl: ETLSession,
         variant_annotation_path: str,
         credset_path: str,
-        path: str | None = None,
+        path: Optional[str] = None,
     ) -> VariantIndex:
         """Initialise VariantIndex.
 

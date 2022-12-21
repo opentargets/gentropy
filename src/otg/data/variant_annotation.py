@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import hail as hl
 import pyspark.sql.functions as f
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 class VariantAnnotationGnomadConfig:
     """Variant annotation from gnomad configuration."""
 
-    path: str | None
+    path: Optional[str] = None
     gnomad_file: str = MISSING
     chain_file: str = MISSING
     populations: list = MISSING
@@ -47,7 +47,7 @@ class VariantAnnotation(Dataset):
         gnomad_file: str,
         chain_file: str,
         populations: list,
-        path: str | None = None,
+        path: Optional[str] = None,
     ) -> VariantAnnotation:
         """Generate variant annotation dataset."""
         hl.init(sc=etl.spark.sparkContext, log="/tmp/hail.log")

@@ -46,13 +46,6 @@ repos:
           - pep8-naming==0.13.1
           - darglint
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.0
-    hooks:
-      - id: pyupgrade
-        args:
-          - --py37-plus
-
   - repo: https://github.com/hadialqattan/pycln
     rev: v2.1.2
     hooks:
