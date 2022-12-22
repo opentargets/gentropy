@@ -5,8 +5,12 @@ description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache License v2"
 packages = [
-    { include = "etl", from = "src"},
+    { include = "otg", from = "src"},
 ]
+
+[tool.poetry.scripts]
+otg = "cli:run_step"
+
 [tool.poetry.dependencies]
 python = "3.8.15"
 pyspark = "3.1.3"

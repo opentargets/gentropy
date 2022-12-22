@@ -16,10 +16,8 @@ from otg.data.variant_index import VariantIndexCredsetConfig
 class Config:
     """Configuration for OTG ETL."""
 
-    # defaults: List[Any] = field(default_factory=lambda: [{"db": "mysql"}])
-    step: str = MISSING
     etl: str = MISSING
-    output_dir: str = MISSING
+    step: str = MISSING
 
 
 def register_configs() -> None:

@@ -1,4 +1,3 @@
-output_dir: "./"
 defaults:
   - step: ???
   - _self_

@@ -11,7 +11,7 @@ register_configs()
 
 
 @hydra.main(config_path="config", version_base=None, config_name="config")
-def my_app(cfg: Config) -> None:
+def run_step(cfg: Config) -> None:
     """OTG ETL CLI.
 
     Args:
@@ -19,12 +19,10 @@ def my_app(cfg: Config) -> None:
     """
     # Print config
     print(OmegaConf.to_yaml(cfg))
-    # Initialise ETL session
-    # etl = instantiate(cfg.etl)
     # Initialise and run step
     step = instantiate(cfg.step)
     step.run()
 
 
 if __name__ == "__main__":
-    my_app()
+    run_step()
