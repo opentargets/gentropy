@@ -204,8 +204,6 @@ class TestGetVariantConsequences:
             .toPandas()
             .dropna(axis=1, how="all")
         )
-        print(test_df.head())
-        print(expected_df.head())
         assert_frame_equal(
             test_df,
             expected_df,

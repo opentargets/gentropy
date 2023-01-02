@@ -9,6 +9,7 @@ from pandas.testing import assert_frame_equal
 
 from etl.coloc.coloc import ecaviar_colocalisation
 from etl.coloc.overlaps import find_gwas_vs_all_overlapping_peaks
+from etl.coloc.utils import _extract_credible_sets
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -229,5 +230,162 @@ class TestEcaviarColocalisation:
             .toPandas()
             .dropna(axis=1, how="all")
         )
+
+        assert_frame_equal(test_df, expected_df)
+
+
+class TestExtractCredibleSets:
+    """Tests the function that extracts the credible sets in a study/locus."""
+
+    @pytest.fixture(scope="class")
+    def study_locus_schema(self: TestExtractCredibleSets) -> t.StructType:
+        """Schema of the study_locus dataframe."""
+        return t.StructType(
+            [
+                t.StructField("variantId", t.StringType(), True),
+                t.StructField("studyId", t.StringType(), True),
+                t.StructField(
+                    "credibleSets",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("method", t.StringType(), True),
+                                t.StructField(
+                                    "credibleSet",
+                                    t.ArrayType(
+                                        t.StructType(
+                                            [
+                                                t.StructField(
+                                                    "is95CredibleSet",
+                                                    t.BooleanType(),
+                                                    True,
+                                                ),
+                                                t.StructField(
+                                                    "logABF", t.DoubleType(), True
+                                                ),
+                                                t.StructField(
+                                                    "posteriorProbability",
+                                                    t.DoubleType(),
+                                                    True,
+                                                ),
+                                                t.StructField(
+                                                    "tagVariantId", t.StringType(), True
+                                                ),
+                                            ]
+                                        )
+                                    ),
+                                    True,
+                                ),
+                            ]
+                        )
+                    ),
+                ),
+            ]
+        )
+
+    test_input = [
+        [
+            (
+                "10_100346008_G_A",
+                "7232622490995985132",
+                [
+                    {
+                        "method": "conditional",
+                        "credibleSet": [
+                            {
+                                "is95CredibleSet": True,
+                                "tagVariantId": "10_101278237_A_G",
+                                "logABF": 1.59,
+                                "posteriorProbability": None,
+                            }
+                        ],
+                    },
+                    {
+                        "method": "SuSIE",
+                        "credibleSet": [
+                            {
+                                "is95CredibleSet": True,
+                                "tagVariantId": "10_101278237_A_G",
+                                "logABF": None,
+                                "posteriorProbability": 0.001,
+                            }
+                        ],
+                    },
+                    {
+                        "method": "pics",
+                        "credibleSet": [
+                            {
+                                "is95CredibleSet": True,
+                                "tagVariantId": "10_101278237_A_G",
+                                "logABF": None,
+                                "posteriorProbability": 0.001,
+                            }
+                        ],
+                    },
+                ],
+            )
+        ]
+    ]
+
+    expected_output = [
+        [
+            (
+                "10_100346008_G_A",
+                "7232622490995985132",
+                "10_101278237_A_G",
+                1.59,
+                None,
+                "10",
+                "conditional",
+            ),
+            (
+                "10_100346008_G_A",
+                "7232622490995985132",
+                "10_101278237_A_G",
+                None,
+                0.001,
+                "10",
+                "SuSIE",
+            ),
+            (
+                "10_100346008_G_A",
+                "7232622490995985132",
+                "10_101278237_A_G",
+                None,
+                0.001,
+                "10",
+                "pics",
+            ),
+        ]
+    ]
+
+    @pytest.mark.parametrize(
+        "test_input, expected_output", zip(test_input, expected_output)
+    )
+    def test_extract_credible_sets(
+        self: TestExtractCredibleSets,
+        spark: SparkSession,
+        study_locus_schema: t.StructType,
+        test_input: list[tuple],
+        expected_output: list[tuple],
+    ) -> None:
+        """Test that extract_credible_sets returns the expected DataFrame."""
+        mock_df = spark.createDataFrame(
+            data=test_input,
+            schema=study_locus_schema,
+        )
+        test_df = _extract_credible_sets(mock_df).toPandas()
+        expected_df = spark.createDataFrame(
+            data=expected_output,
+            schema=[
+                "leadVariantId",
+                "studyId",
+                "tagVariantId",
+                "logABF",
+                "posteriorProbability",
+                "chromosome",
+                "method",
+            ],
+        ).toPandas()
 
         assert_frame_equal(test_df, expected_df)
