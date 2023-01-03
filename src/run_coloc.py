@@ -17,6 +17,7 @@ import pyspark.sql.functions as f
 from etl.coloc.coloc import run_colocalisation
 from etl.coloc.utils import _extract_credible_sets
 from etl.common.ETLSession import ETLSession
+from etl.json import validate_df_schema
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -51,6 +52,7 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.coloc.parameters.pp_threshold,
         sumstats,
     )
+    validate_df_schema(coloc, "coloc.json")
     (
         coloc.write.mode(cfg.environment.sparkWriteMode).parquet(
             cfg.etl.coloc.outputs.coloc
