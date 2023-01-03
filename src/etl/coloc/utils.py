@@ -76,6 +76,7 @@ def _extract_credible_sets(
     return (
         study_locus.withColumn("credibleSet", f.explode("credibleSets"))
         .withColumn("credibleVariant", f.explode("credibleSet.credibleSet"))
+        .filter(f.col("credibleVariant.is95CredibleSet"))
         .select(
             f.col("variantId").alias("leadVariantId"),
             "studyId",

@@ -283,8 +283,24 @@ class TestExtractCredibleSets:
             ]
         )
 
+    @pytest.fixture(scope="class")
+    def credible_sets_schema(self: TestExtractCredibleSets) -> t.StructType:
+        """Schema of the credible sets df after extracting it from the study locus df."""
+        return t.StructType(
+            [
+                t.StructField("leadVariantId", t.StringType(), False),
+                t.StructField("studyId", t.StringType(), False),
+                t.StructField("tagVariantId", t.StringType(), False),
+                t.StructField("logABF", t.DoubleType(), True),
+                t.StructField("posteriorProbability", t.DoubleType(), True),
+                t.StructField("chromosome", t.StringType(), False),
+                t.StructField("method", t.StringType(), False),
+            ]
+        )
+
     test_input = [
         [
+            # Example with credible sets from all methods
             (
                 "10_100346008_G_A",
                 "7232622490995985132",
@@ -324,7 +340,27 @@ class TestExtractCredibleSets:
                     },
                 ],
             )
-        ]
+        ],
+        [
+            # Example with a not confident enouth credible set
+            (
+                "10_100346008_G_A",
+                "7232622490995985132",
+                [
+                    {
+                        "method": "conditional",
+                        "credibleSet": [
+                            {
+                                "is95CredibleSet": False,
+                                "tagVariantId": "10_101278237_A_G",
+                                "logABF": 1.59,
+                                "posteriorProbability": None,
+                            }
+                        ],
+                    }
+                ],
+            )
+        ],
     ]
 
     expected_output = [
@@ -356,7 +392,10 @@ class TestExtractCredibleSets:
                 "10",
                 "pics",
             ),
-        ]
+        ],
+        [
+            # Example with a not confident enouth credible set won't be picked up
+        ],
     ]
 
     @pytest.mark.parametrize(
@@ -365,27 +404,21 @@ class TestExtractCredibleSets:
     def test_extract_credible_sets(
         self: TestExtractCredibleSets,
         spark: SparkSession,
-        study_locus_schema: t.StructType,
         test_input: list[tuple],
         expected_output: list[tuple],
+        study_locus_schema: t.StructType,
+        credible_sets_schema: t.StructType,
     ) -> None:
         """Test that extract_credible_sets returns the expected DataFrame."""
         mock_df = spark.createDataFrame(
             data=test_input,
             schema=study_locus_schema,
         )
-        test_df = _extract_credible_sets(mock_df).toPandas()
-        expected_df = spark.createDataFrame(
-            data=expected_output,
-            schema=[
-                "leadVariantId",
-                "studyId",
-                "tagVariantId",
-                "logABF",
-                "posteriorProbability",
-                "chromosome",
-                "method",
-            ],
-        ).toPandas()
+        test_df = _extract_credible_sets(mock_df).toPandas().dropna(axis=1, how="all")
+        expected_df = (
+            spark.createDataFrame(data=expected_output, schema=credible_sets_schema)
+            .toPandas()
+            .dropna(axis=1, how="all")
+        )
 
         assert_frame_equal(test_df, expected_df)
