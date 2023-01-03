@@ -17,6 +17,7 @@ import pyspark.sql.functions as f
 from etl.coloc.coloc import run_colocalisation
 from etl.coloc.utils import _extract_credible_sets
 from etl.common.ETLSession import ETLSession
+from etl.json import validate_df_schema
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -30,18 +31,15 @@ def main(cfg: DictConfig) -> None:
     etl.logger.info("Colocalisation step started.")
 
     # Load data
-    credible_sets = (
-        _extract_credible_sets(
-            etl.spark.read.parquet(cfg.etl.coloc.inputs.study_locus_idx)
-        ).filter(f.col("logABF").isNotNull())
-        # .filter(f.col("chromosome") == "22")  # for testing
-    )
+    credible_sets = _extract_credible_sets(
+        etl.spark.read.parquet(cfg.etl.coloc.inputs.study_locus_idx)
+    )  # .filter(f.col("chromosome") == "22")  # for testing
     study_df = etl.spark.read.parquet(cfg.etl.coloc.inputs.study_idx).select(
         f.col("id").alias("studyId"),
-        f.explode("traitFromSourceMappedIds").alias("traitFromSourceMappedId"),
+        f.explode("traitFromSourceMappedIds").alias("phenotype"),
         "biofeature",
         "type",
-        f.col("geneFromPhenotypeId").alias("right_gene_id"),
+        f.col("geneFromPhenotypeId").alias("gene_id"),
     )
     sumstats = etl.spark.read.parquet(cfg.etl.coloc.inputs.sumstats_filtered)
 
@@ -51,8 +49,10 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.coloc.parameters.priorc1,
         cfg.etl.coloc.parameters.priorc2,
         cfg.etl.coloc.parameters.priorc12,
+        cfg.etl.coloc.parameters.pp_threshold,
         sumstats,
     )
+    validate_df_schema(coloc, "coloc.json")
     (
         coloc.write.mode(cfg.environment.sparkWriteMode).parquet(
             cfg.etl.coloc.outputs.coloc
