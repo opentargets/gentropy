@@ -140,7 +140,7 @@ def read_associations_data(
     """Read GWASCatalog associations.
 
     It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
-    flagges associatinos that does not reach GWAS significance level.
+    flags associations that do not reach GWAS significance level.
 
     Args:
         etl (ETLSession): current ETL session
@@ -277,7 +277,7 @@ def _collect_rsids(
 
 
 def splitting_association(association: DataFrame) -> DataFrame:
-    """Splitting associations based on the list of parseable varants from the GWAS Catalog.
+    """Splitting associations based on the list of parseable variants from the GWAS Catalog.
 
     Args:
         association (DataFrame): DataFrame

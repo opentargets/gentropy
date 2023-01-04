@@ -145,7 +145,7 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
 
     Processing disease annotation of the joined study/association table. If assigned disease
     of the study and the association don't agree, we assume the study needs to be split.
-    Then disease EFOs, trait names and study i are consolidated
+    Then disease EFOs, trait names and study ID are consolidated
 
     Args:
         study_association (DataFrame): DataFrame
