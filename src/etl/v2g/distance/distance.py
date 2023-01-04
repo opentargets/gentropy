@@ -30,29 +30,26 @@ def main(
             f.lit("distance").alias("datatypeId"),
             f.lit("canonical_tss").alias("datasourceId"),
         )
-        .transform(score_distance)
+        .transform(lambda df: score_distance(df, tss_distance_threshold))
     )
 
 
-def score_distance(df: DataFrame) -> DataFrame:
+def score_distance(df: DataFrame, max_distance: int) -> DataFrame:
     """Scores the distance between a variant and a gene's TSS.
 
     The inverse of each distance is first calculated so that the closer the variant is to the TSS, the higher the score.
 
     Args:
         df (DataFrame): The V2G df based on distance.
+        max_distance (int): The maximum distance between a variant and a gene's TSS.
 
     Returns:
         DataFrame: The V2G df with the normalised score column.
     """
-    inverse_expr = (
-        f.when(f.col("distance") == 0, 1)
-        .otherwise(1 / f.col("distance"))
-        .alias("tmp_score")
-    )
+    inverse_expr = (max_distance - f.col("distance")).alias("tmp_score")
     return (
         df.select("*", inverse_expr)
-        .transform(lambda df: normalise_column(df, "tmp_score", "score"))
+        .transform(lambda df: normalise_column(df, "tmp_score", "new_score"))
         .drop("tmp_score")
     )
 
