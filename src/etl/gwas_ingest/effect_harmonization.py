@@ -211,8 +211,7 @@ def _harmonize_odds_ratio(
     """
     # The confidence interval tells if we are not dealing with betas -> OR
     odds_ratio = f.when(
-        ~confidence_interval.contains("increase")
-        & ~confidence_interval.contains("decrease"),
+        ~confidence_interval.rlike('/'.join(["decrease", "increase"])),
         effect_size,
     )
 

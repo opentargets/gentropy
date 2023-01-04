@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 
+from etl.common.spark_helpers import get_record_with_maximum_value
+
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
@@ -27,12 +29,12 @@ def map_variants(
     """
     variants = etl.spark.read.parquet(variant_annotation_path).select(
         f.col("id").alias("variantId"),
-        f.col("chromosome"),
-        f.col("position").alias("position"),
+        "chromosome",
+        "position",
         f.col("rsIds").alias("rsIdsGnomad"),
-        f.col("referenceAllele"),
-        f.col("alternateAllele"),
-        f.col("alleleFrequencies"),
+        "referenceAllele",
+        "alternateAllele",
+        "alleleFrequencies",
     )
 
     mapped_associations = (
@@ -79,22 +81,22 @@ def _check_rsids(gnomad: Column, gwas: Column) -> Column:
         ...    (4, [], []),
         ... ]
         >>> df = spark.createDataFrame(d, ['associationId', 'gnomad', 'gwas'])
-        >>> df.withColumn("or_confidence_interval", _check_rsids(f.col("gnomad"),f.col('gwas'))).show()
-        +-------------+--------------+-------+----------------------+
-        |associationId|        gnomad|   gwas|or_confidence_interval|
-        +-------------+--------------+-------+----------------------+
-        |            1|[rs123, rs523]|[rs123]|                  true|
-        |            2|            []|[rs123]|                 false|
-        |            3|[rs123, rs523]|     []|                 false|
-        |            4|            []|     []|                 false|
-        +-------------+--------------+-------+----------------------+
+        >>> df.withColumn("rsid_matches", _check_rsids(f.col("gnomad"),f.col('gwas'))).show()
+        +-------------+--------------+-------+------------+
+        |associationId|        gnomad|   gwas|rsid_matches|
+        +-------------+--------------+-------+------------+
+        |            1|[rs123, rs523]|[rs123]|        true|
+        |            2|            []|[rs123]|       false|
+        |            3|[rs123, rs523]|     []|       false|
+        |            4|            []|     []|       false|
+        +-------------+--------------+-------+------------+
         <BLANKLINE>
 
     """
     return f.when(f.size(f.array_intersect(gnomad, gwas)) > 0, True).otherwise(False)
 
 
-def _find_mappings_to_drop(association_id: Column, filter_column: Column) -> Column:
+def _flag_mappings_to_retain(association_id: Column, filter_column: Column) -> Column:
     """Flagging mappings to drop for each association.
 
     Some associations have multiple mappings. Some has matching rsId others don't. We only
@@ -118,7 +120,7 @@ def _find_mappings_to_drop(association_id: Column, filter_column: Column) -> Col
     ...    (3, True),
     ... ]
     >>> df = spark.createDataFrame(d, ['associationId', 'filter'])
-    >>> df.withColumn("isConcordant", _find_mappings_to_drop(f.col("associationId"),f.col('filter'))).show()
+    >>> df.withColumn("isConcordant", _flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
     +-------------+------+------------+
     |associationId|filter|isConcordant|
     +-------------+------+------------+
@@ -141,43 +143,6 @@ def _find_mappings_to_drop(association_id: Column, filter_column: Column) -> Col
 
     # Generate a filter column:
     return f.when(aggregated_filter & (~filter_column), False).otherwise(True)
-
-
-def _keep_mapping_with_top_maf(association_id: Column, maf_column: Column) -> Column:
-    """For each association ID, keep the row with the highest MAF.
-
-    Args:
-        association_id (Column): Column
-        maf_column (Column): the column that contains the MAF values
-
-    Returns:
-        A column with a boolean value.
-
-    Examples:
-    >>> d = [
-    ...    (1, 0.4),
-    ...    (1, 0.4),
-    ...    (2, 0.2),
-    ...    (2, 0.1),
-    ...    (3, None),
-    ... ]
-    >>> df = spark.createDataFrame(d, ['associationId', 'maxMaf'])
-    >>> df.withColumn("isTopMaf", _keep_mapping_with_top_maf(f.col("associationId"),f.col('maxMaf'))).show()
-    +-------------+------+--------+
-    |associationId|maxMaf|isTopMaf|
-    +-------------+------+--------+
-    |            1|   0.4|    true|
-    |            1|   0.4|   false|
-    |            3|  null|    true|
-    |            2|   0.2|    true|
-    |            2|   0.1|   false|
-    +-------------+------+--------+
-    <BLANKLINE>
-
-    """
-    w = Window.partitionBy(association_id).orderBy(f.desc(maf_column))
-    row_numbers = f.row_number().over(w)
-    return f.when(row_numbers == 1, True).otherwise(False)
 
 
 def _check_concordance(
@@ -294,28 +259,27 @@ def clean_mappings(df: DataFrame) -> DataFrame:
 
     return (
         all_mappings.join(mafs, on="variantId", how="left")
-        # Dropping rows, where rsId doesn't match, but matching rsId available:
+        # Keep rows, where GnomAD rsId matches with GWAS rsId if present:
         .withColumn(
             "rsidFilter",
-            _find_mappings_to_drop(f.col("associationId"), f.col("isRsIdMatched")),
+            _flag_mappings_to_retain(f.col("associationId"), f.col("isRsIdMatched")),
         )
-        .filter(f.col("rsidFilter"))
+        .filter("rsidFilter")
         # Dropping rows, where alleles aren't concordant, but concordant alleles available:
         .withColumn(
             "concordanceFilter",
-            _find_mappings_to_drop(f.col("associationId"), f.col("isConcordant")),
+            _flag_mappings_to_retain(f.col("associationId"), f.col("isConcordant")),
         )
         .filter(f.col("concordanceFilter"))
         # Out of the remaining mappings, keeping the one with the highest MAF:
-        .withColumn(
-            "mafFilter",
-            _keep_mapping_with_top_maf(f.col("associationId"), f.col("maxMaf")),
+        .transform(
+            lambda df: get_record_with_maximum_value(
+                df, grouping_col="associationId", sorting_col="maxMaf"
+            )
         )
-        .filter("mafFilter")
         .drop(
             "rsidFilter",
             "concordanceFilter",
-            "mafFilter",
             "isRsIdMatched",
             "maxMaf",
             "isRsIdMatched",
