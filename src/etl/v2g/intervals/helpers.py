@@ -9,7 +9,9 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
+def prepare_gene_interval_lut(
+    gene_index: DataFrame, filter_types: list[str] | None
+) -> DataFrame:
     """Gene symbol lookup table.
 
     Pre-processess gene/target dataset to create lookup table of gene symbols, including
@@ -17,11 +19,12 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
 
     Args:
         gene_index (DataFrame): gene/target DataFrame
+        filter_types (Optional[list[str]]): List of biotypes of interest to filter on
 
     Returns:
         DataFrame: Gene LUT for symbol mapping
     """
-    return gene_index.select(
+    genes = gene_index.select(
         f.col("id").alias("geneId"),
         "genomicLocation.chromosome",
         "biotype",
@@ -31,6 +34,10 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
         f.col("canonicalTranscript.tss").alias("tss"),
         "genomicLocation",
     )
+    filter_types = None if filter_types is None else filter_types
+    if filter_types:
+        return genes.filter(f.col("biotype").isin(filter_types))
+    return genes
 
 
 def get_variants_in_interval(

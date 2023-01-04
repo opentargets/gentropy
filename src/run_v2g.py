@@ -37,7 +37,9 @@ def main(cfg: DictConfig) -> None:
     )
 
     gene_index = prepare_gene_interval_lut(
-        etl.read_parquet(cfg.etl.v2g.inputs.gene_index, "targets.json")
+        etl.read_parquet(cfg.etl.v2g.inputs.gene_index, "targets.json"),
+        # V2G assignments are restricted to a relevant set of genes (mostly protein coding)
+        filter_types=cfg.etl.v2g.parameters.approved_biotypes,
     ).persist()
     va = etl.read_parquet(
         cfg.etl.v2g.inputs.variant_annotation, "variant_annotation.json"
@@ -49,7 +51,7 @@ def main(cfg: DictConfig) -> None:
         vi,
         gene_index,
         cfg.etl.v2g.parameters.tss_distance_threshold,
-    ).repartition(cfg.etl.v2g.parameters.partition_count)
+    )
 
     etl.logger.info("Generating V2G evidence from interval data...")
     lift = LiftOverSpark(
@@ -82,22 +84,19 @@ def main(cfg: DictConfig) -> None:
             lambda x, y: x.unionByName(y, allowMissingColumns=True),
             [v2g_distance_df, interval_df, *func_pred_datasets],
         )
-        # V2G assignments are restricted to a relevant set of genes (mostly protein coding)
-        # TODO review if this is the place
         .join(
-            gene_index.filter(
-                f.col("biotype").isin(list(cfg.etl.v2g.parameters.approved_biotypes))
-            ).select("geneId"),
+            gene_index.select("geneId"),
             on="geneId",
             how="inner",
-        ).distinct()
+        )
+        .distinct()
     )
     validate_df_schema(v2g, "v2g.json")
 
     etl.logger.info(f"Writing V2G evidence to: {cfg.etl.v2g.outputs.v2g_distance}")
 
     (
-        v2g.repartition(cfg.etl.v2g.parameters.partition_count, "chromosome")
+        v2g.repartition(400, "chromosome")
         .withColumn("position", f.split(f.col("variantId"), "_")[1])
         .sortWithinPartitions("chromosome", "position")
         .write.partitionBy("chromosome")
