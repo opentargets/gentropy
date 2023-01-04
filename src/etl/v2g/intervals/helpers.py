@@ -26,7 +26,7 @@ def prepare_gene_interval_lut(
     """
     genes = gene_index.select(
         f.col("id").alias("geneId"),
-        "genomicLocation.chromosome",
+        f.col("genomicLocation.chromosome").alias("chromosome"),
         "biotype",
         f.explode(
             f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
@@ -34,7 +34,6 @@ def prepare_gene_interval_lut(
         f.col("canonicalTranscript.tss").alias("tss"),
         "genomicLocation",
     )
-    filter_types = None if filter_types is None else filter_types
     if filter_types:
         return genes.filter(f.col("biotype").isin(filter_types))
     return genes
