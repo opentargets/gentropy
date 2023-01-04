@@ -18,14 +18,9 @@ clean: ## CleanUp Prior to Build
 	@rm -Rf ./${SRC_WITH_DEPS}
 	@rm -f requirements.txt
 
+setup-dev: SHELL:=/bin/bash
 setup-dev: ## Setup dev environment
-	@echo "Installing dependencies..."
-	@poetry install --remove-untracked
-	@echo "Setting up pre-commit..."
-	@poetry run pre-commit install
-	@poetry run pre-commit autoupdate
-	@poetry run pre-commit install --hook-type commit-msg
-	@echo "You are ready to code!"
+	@. utils/install_dependencies.sh
 
 build: clean ## Build Python Package with Dependencies
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
@@ -58,6 +53,18 @@ prepare_variant_index: ## Create cluster for variant index generation
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
 		--enable-component-gateway \
+		--single-node \
+		--max-idle=10m
+
+prepare_v2g: ## Create cluster for variant to gene data generation
+	gcloud dataproc clusters create ${CLUSTER_NAME} \
+		--image-version=2.0 \
+		--project=${PROJECT_ID} \
+		--region=${REGION} \
+		--master-machine-type=n1-highmem-64 \
+		--enable-component-gateway \
+		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
+		--initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
 		--single-node \
 		--max-idle=10m
 
@@ -109,6 +116,14 @@ run_coloc: ## Generate coloc results
 
 run_v2g: ## Generate V2G dataset
 	gcloud dataproc jobs submit pyspark ./dist/run_distance.py \
+	--cluster=${CLUSTER_NAME} \
+    --files=./dist/config.yaml \
+    --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
+    --project=${PROJECT_ID} \
+    --region=${REGION}
+
+run_v2g: ## Generate V2G dataset
+	gcloud dataproc jobs submit pyspark ./dist/run_v2g.py \
 	--cluster=${CLUSTER_NAME} \
     --files=./dist/config.yaml \
     --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \

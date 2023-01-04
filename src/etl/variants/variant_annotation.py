@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 import hail as hl
 import pyspark.sql.functions as f
 
+from etl.common.utils import convert_gnomad_position_to_ensembl
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
@@ -98,18 +100,36 @@ def generate_variant_annotation(
     )
 
     return (
-        ht.select_globals().to_spark(flatten=False)
+        ht.select_globals()
+        .to_spark(flatten=False)
         # Creating new column based on the transcript_consequences
+        .withColumn(
+            "gnomadVariantId",
+            f.concat_ws(
+                "-", "chromosome", "position", "referenceAllele", "alternateAllele"
+            ),
+        )
+        .withColumn(
+            "ensembl_position",
+            convert_gnomad_position_to_ensembl(
+                f.col("position"), f.col("referenceAllele"), f.col("alternateAllele")
+            ),
+        )
         .select(
             f.concat_ws(
-                "_", "chromosome", "position", "referenceAllele", "alternateAllele"
+                "_",
+                "chromosome",
+                "ensembl_position",
+                "referenceAllele",
+                "alternateAllele",
             ).alias("id"),
             "chromosome",
-            "position",
+            f.col("ensembl_position").alias("position"),
             "referenceAllele",
             "alternateAllele",
             "chromosomeB37",
             "positionB37",
+            "gnomadVariantId",
             "alleleType",
             "rsIds",
             f.array(

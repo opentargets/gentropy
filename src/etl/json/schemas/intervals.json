@@ -26,26 +26,26 @@
     },
     {
       "metadata": {},
+      "name": "resourceScore",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
       "name": "score",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "datasetName",
-      "nullable": true,
+      "name": "datasourceId",
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "dataType",
-      "nullable": true,
-      "type": "string"
-    },
-    {
-      "metadata": {},
-      "name": "experimentType",
-      "nullable": true,
+      "name": "datatypeId",
+      "nullable": false,
       "type": "string"
     },
     {
@@ -56,26 +56,8 @@
     },
     {
       "metadata": {},
-      "name": "bioFeature",
+      "name": "biofeature",
       "nullable": true,
-      "type": "string"
-    },
-    {
-      "metadata": {},
-      "name": "datasetName",
-      "nullable": false,
-      "type": "string"
-    },
-    {
-      "metadata": {},
-      "name": "dataType",
-      "nullable": false,
-      "type": "string"
-    },
-    {
-      "metadata": {},
-      "name": "experimentType",
-      "nullable": false,
       "type": "string"
     }
   ],

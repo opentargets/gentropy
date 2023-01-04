@@ -28,15 +28,16 @@ class LiftOverSpark:
     """
 
     def __init__(
-        self: LiftOverSpark, chain_file: str, max_difference: int = None
+        self: LiftOverSpark, chain_file: str, max_difference: int = 100
     ) -> None:
         """Intialise LiftOverSpark object.
 
         Args:
             chain_file (str): Path to the chain file
-            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to None.
+            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 0.
         """
         self.chain_file = chain_file
+        self.max_difference = max_difference
 
         # Initializing liftover object by opening the chain file:
         if chain_file.startswith("gs://"):
@@ -46,7 +47,7 @@ class LiftOverSpark:
             self.lo = LiftOver(chain_file)
 
         # If no maximum difference is provided, set it to 100:
-        self.max_difference = 100 if max_difference is None else max_difference
+        self.max_difference = max_difference
 
         # UDF to do map genomic coordinates to liftover coordinates:
         self.liftover_udf = f.udf(
@@ -82,12 +83,12 @@ class LiftOverSpark:
         )
         start_df = self.convert_coordinates(
             start_df, chrom_col, start_col
-        ).withColumnRenamed("mapped_pos", "mapped_" + start_col)
+        ).withColumnRenamed("mapped_pos", f"mapped_{start_col}")
 
         # Lift over end coordinates:
         end_df = df.select(chrom_col, end_col).distinct()
         end_df = self.convert_coordinates(end_df, chrom_col, end_col).withColumnRenamed(
-            "mapped_pos", "mapped_" + end_col
+            "mapped_pos", f"mapped_{end_col}"
         )
 
         # Join dataframe with mappings (we have to account for the +1 position shift of the start coordinates):
