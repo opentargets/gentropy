@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-from itertools import chain
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
@@ -276,102 +275,6 @@ def column2camel_case(col_name: str) -> str:
     return f"`{col_name}` as {string2camelcase(col_name)}"
 
 
-def parse_gnomad_ancestries(study_ancestry: DataFrame) -> DataFrame:
-    """Generate sample fractions of GnomAD pouplation for studies.
-
-    It takes a dataframe with study accessions and discovery ancestries and returns a dataframe with study ancestries mapped to
-    gnomAD ancestries + fractional sample sizes.
-
-    # Available GnomAD populations:
-    afr - African/African american
-    amr - Latino/Admixed American
-    asj - Ashkenazi Jewish
-    eas - East Asian
-    fin - Finnish
-    nfe - Non-Finnish European
-    est - Estonian
-    nwe - North-West European
-    seu - Southern European
-
-    Args:
-        study_ancestry (DataFrame): DataFrame
-
-    Returns:
-        A dataframe with study accession, gnomad population, sample size, and relative sample size.
-    """
-    pop_map = {
-        "European": "nfe",
-        "African American or Afro-Caribbean": "afr",
-        "Native American": "amr",
-        "Asian unspecified": "eas",
-        "Hispanic or Latin American": "amr",
-        "East Asian": "eas",
-        "Central Asian": "seu",  # Was EUR
-        "Oceanian": "eas",
-        "South East Asian": "eas",
-        "Other admixed ancestry": "nfe",
-        "African unspecified": "afr",
-        "Sub-Saharan African": "afr",
-        "Greater Middle Eastern (Middle Eastern North African or Persian)": "seu",  # Was EUR
-        "Aboriginal Australian": "eas",
-        "Other": "nfe",
-        "South Asian": "eas",  # Was SAS
-        "NR": "nfe",
-    }
-
-    # Expression to map GWAS Catalog ancestries to GnomAD reference panels:
-    pop_mapping_expr = f.create_map(*[f.lit(x) for x in chain(*pop_map.items())])
-
-    # Windowing throught all study accessions, while ordering by association EFOs:
-    window_spec = Window.partitionBy("studyAccession")
-
-    return (
-        study_ancestry.filter(f.col("discoverySamples").isNotNull())
-        # Exploding discoverSample object:
-        .select(
-            "studyAccession",
-            f.explode_outer(f.col("discoverySamples")).alias("discoverySample"),
-        )
-        # Splitting ancestry further:
-        .withColumn(
-            "ancestry",
-            f.split(
-                f.regexp_replace(
-                    f.col("discoverySample.ancestry"), "ern, Nor", "ern Nor"
-                ),
-                ", ",
-            ),
-        )
-        # Splitting sample sizes evenly for composite ancestries:
-        .withColumn(
-            "sampleSize",
-            f.col("discoverySample.sampleSize") / f.size(f.col("ancestry")),
-        )
-        # Exploding ancestries:
-        .withColumn("ancestry", f.explode_outer(f.col("ancestry")))
-        .withColumn("mapped_population", pop_mapping_expr.getItem(f.col("ancestry")))
-        .groupBy("studyAccession", "mapped_population")
-        .agg(f.sum(f.col("sampleSize")).alias("sampleSize"))
-        # Get relative sample sizes:
-        .withColumn(
-            "relativeSampleSize",
-            f.col("sampleSize") / f.sum(f.col("sampleSize")).over(window_spec),
-        )
-        # Group by studies and get a list of stucts with ancestries:
-        .groupBy("studyAccession")
-        .agg(
-            f.collect_set(
-                f.struct(
-                    f.col("relativeSampleSize").alias("relativeSampleSize"),
-                    f.col("mapped_population").alias("gnomadPopulation"),
-                )
-            ).alias("gnomadSamples")
-        )
-        .orderBy("studyAccession")
-        .persist()
-    )
-
-
 def parse_ancestries(etl: ETLSession, ancestry_file: str) -> DataFrame:
     """Extracting sample sizes and ancestry information.
 
@@ -491,17 +394,10 @@ def ingest_gwas_catalog_studies(
     # Sample size extraction is a separate process:
     study_size_df = extract_discovery_sample_sizes(gwas_studies)
 
-    # Mapping ancestries of the discover sampe description to GnomAD:
-    # gnomad_ancestries = parse_gnomad_ancestries(
-    #     gwas_ancestries.select("studyAccession", "discoverySamples").distinct()
-    # )
-
     return (
         gwas_studies
         # Add study sizes:
         .join(study_size_df, on="studyAccession", how="left")
-        # Adding GnomAD ancestry mapping:
-        # .join(gnomad_ancestries, on="studyAccession", how="left")
         # Adding summary stats location:
         .join(ss_studies, on="studyAccession", how="left")
         .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
@@ -546,24 +442,32 @@ def generate_study_table(association_study: DataFrame) -> DataFrame:
         A dataframe with the columns specified in the study_columns list.
     """
     study_columns = [
-        "studyId",
-        "diseaseTrait",
-        "efos",
+        # Study id and type:
+        f.col("studyId").alias("id"),
+        f.lit("gwas").alias("type"),
+        # Publication level information:
         "pubmedId",
-        "firstAuthor",
+        f.col("firstAuthor").alias("publicationFirstAuthor"),
+        f.col("journal").alias("publicationJournal"),
         "publicationDate",
-        "journal",
-        "study",
-        "backgroundEfos",
+        f.col("study").alias("publicationTitle"),
+        # Trait level information:
+        f.col("diseaseTrait").alias("traitFromSource"),
+        f.col("efos").alias("traitFromSourceMappedIds"),
+        f.col("backgroundEfos").alias("backgroundTraitFromSourceMappedIds"),
+        # Sample descriptions:
+        # ancestryInitial
+        # ancestryReplication
         "initialSampleSize",
+        "discoverySamples",
+        "replicationSamples",
+        # Sample counts:
         "nCases",
         "nControls",
         "nSamples",
-        "discoverySamples",
-        "replicationSamples",
-        # "gnomadSamples",
-        "summarystatsLocation",
+        # Summary stats related info:
         "hasSumstats",
+        "summarystatsLocation",
     ]
 
     return association_study.select(*study_columns).distinct().persist()

@@ -75,28 +75,6 @@ def get_record_with_maximum_value(
 
     Returns:
         DataFrame: The DataFrame with the record with the maximum value of the sorting column within each group of the grouping column.
-
-    Examples:
-    >>> d = [
-    ...    (1, 0.4),
-    ...    (1, 0.4),
-    ...    (2, 0.2),
-    ...    (2, 0.1),
-    ...    (3, None),
-    ... ]
-    >>> df = spark.createDataFrame(d, ['associationId', 'maxMaf'])
-    >>> df.transform(lambda df: get_record_with_maximum_value(df, grouping_col='associationId', sorting_col='maxMaf')).show()
-    +-------------+------+--------+
-    |associationId|maxMaf|isTopMaf|
-    +-------------+------+--------+
-    |            1|   0.4|    true|
-    |            1|   0.4|   false|
-    |            3|  null|    true|
-    |            2|   0.2|    true|
-    |            2|   0.1|   false|
-    +-------------+------+--------+
-    <BLANKLINE>
-
     """
     w = Window.partitionBy(grouping_col).orderBy(f.col(sorting_col).desc())
     return get_top_ranked_in_window(df, w)

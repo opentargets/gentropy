@@ -127,8 +127,7 @@ def _harmonize_beta(
     """
     # The effect is given as beta, if the confidence interval contains 'increase' or 'decrease'
     beta = f.when(
-        confidence_interval.contains("increase")
-        | confidence_interval.contains("decrease"),
+        confidence_interval.rlike("/".join(["decrease", "increase"])),
         effect_size,
     )
     # Flipping beta if harmonization is required or effect negated by saying 'decrease'
