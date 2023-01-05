@@ -59,7 +59,7 @@ def main(cfg: DictConfig) -> None:
         f"Writing studies data to: {cfg.etl.gwas_ingest.outputs.gwas_catalog_studies}"
     )
     (
-        study_assoc.write.mode(cfg.environment.sparkWriteMode).parquet(
+        studies.write.mode(cfg.environment.sparkWriteMode).parquet(
             cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
         )
     )

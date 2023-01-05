@@ -37,9 +37,17 @@ def map_variants(
         "alleleFrequencies",
     )
 
+    # Inner joining associations with GnomnAD:
+    overlapping_variants = variants.join(
+        f.broadcast(parsed_associations.select("chromosome", "position").distinct()),
+        on=["chromosome", "position"],
+        how="inner",
+    )
+
     mapped_associations = (
-        variants.join(
-            f.broadcast(parsed_associations), on=["chromosome", "position"], how="right"
+        # Left-join to rescue unmapped associations:
+        parsed_associations.join(
+            f.broadcast(overlapping_variants), on=["chromosome", "position"], how="left"
         )
         # Even if there's no variant mapping in gnomad, to make sure we are not losing any assocations,
         .withColumn("variantId", f.coalesce(f.col("variantId"), f.col("gwasVariant")))
