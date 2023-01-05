@@ -43,5 +43,5 @@ class VariantIndexStep:
         (
             vi.df.write.partitionBy("chromosome")
             .mode(self.etl.write_mode)
-            .parquet(**self.variant_index)
+            .parquet(self.variant_index.path)
         )

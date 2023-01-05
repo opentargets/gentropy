@@ -33,5 +33,5 @@ class VariantAnnotationStep:
             .sortWithinPartitions("chromosome", "position")
             .write.partitionBy("chromosome")
             .mode(self.etl.overwrite_mode)
-            .parquet(self.variant_annotation)
+            .parquet(self.variant_annotation.path)
         )
