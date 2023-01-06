@@ -52,6 +52,9 @@ def main(cfg: DictConfig) -> None:
         # Splitting studies:
         .transform(spliting_gwas_studies)
     )
+    study_assoc.write.mode(cfg.environment.sparkWriteMode).parquet(
+        "gs://ot-team/dsuveges/study_assoc"
+    )
 
     # Extracting study table and save:
     studies = generate_study_table(study_assoc)

@@ -127,7 +127,7 @@ def _harmonize_beta(
     """
     # The effect is given as beta, if the confidence interval contains 'increase' or 'decrease'
     beta = f.when(
-        confidence_interval.rlike("/".join(["decrease", "increase"])),
+        confidence_interval.rlike("|".join(["decrease", "increase"])),
         effect_size,
     )
     # Flipping beta if harmonization is required or effect negated by saying 'decrease'
@@ -210,7 +210,7 @@ def _harmonize_odds_ratio(
     """
     # The confidence interval tells if we are not dealing with betas -> OR
     odds_ratio = f.when(
-        ~confidence_interval.rlike("/".join(["decrease", "increase"])),
+        ~confidence_interval.rlike("|".join(["decrease", "increase"])),
         effect_size,
     )
 

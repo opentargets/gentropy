@@ -278,6 +278,58 @@ def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
     return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
 
 
+def _flag_partial_mapped(
+    study_id: Column, variant_id: Column, tag_variant_id: Column
+) -> Column:
+    """Generate flag for lead/tag pairs.
+
+    Some lead variants can be resolved in one population but not in other. Those rows interfere with PICS calculation, so they needs to be dropped.
+
+    Args:
+        study_id (Column): Study identifier column
+        variant_id (Column): Identifier of the lead variant
+        tag_variant_id (Column): Identifier of the tag variant
+
+    Returns:
+        Column: Boolean
+
+    Examples:
+        >>> data = [
+        ...     ('study_1', 'lead_1', 'tag_1'),  # <- keep row as tag available.
+        ...     ('study_1', 'lead_1', 'tag_2'),  # <- keep row as tag available.
+        ...     ('study_1', 'lead_2', 'tag_3'),  # <- keep row as tag available
+        ...     ('study_1', 'lead_2', None),  # <- drop row as lead 2 is resolved.
+        ...     ('study_1', 'lead_3', None)   # <- keep row as lead 3 is not resolved.
+        ... ]
+        >>> (
+        ...     spark.createDataFrame(data, ['studyId', 'variantId', 'tagVariantId'])
+        ...     .withColumn("flag_to_keep_tag", _flag_partial_mapped(f.col('studyId'), f.col('variantId'), f.col('tagVariantId')))
+        ...     .show()
+        ... )
+        +-------+---------+------------+----------------+
+        |studyId|variantId|tagVariantId|flag_to_keep_tag|
+        +-------+---------+------------+----------------+
+        |study_1|   lead_3|        null|            true|
+        |study_1|   lead_1|       tag_1|            true|
+        |study_1|   lead_1|       tag_2|            true|
+        |study_1|   lead_2|       tag_3|            true|
+        |study_1|   lead_2|        null|           false|
+        +-------+---------+------------+----------------+
+        <BLANKLINE>
+    """
+    has_resolved_tag = f.when(
+        f.array_contains(
+            f.collect_set(tag_variant_id.isNotNull()).over(
+                Window.partitionBy(study_id, variant_id)
+            ),
+            True,
+        ),
+        True,
+    ).otherwise(False)
+
+    return f.when(tag_variant_id.isNotNull() | ~has_resolved_tag, True).otherwise(False)
+
+
 def calculate_pics(
     associations_ld_allancestries: DataFrame,
     k: float,
@@ -374,12 +426,19 @@ def pics_all_study_locus(
         DataFrame: _description_
     """
     # Extracting ancestry information from study table, then map to gnomad population:
-    gnomad_mapped_studies = _get_study_gnomad_ancestries(etl, studies)
+    gnomad_mapped_studies = _get_study_gnomad_ancestries(
+        etl, studies.withColumnRenamed("id", "studyId")
+    )
 
     # Joining to associations:
     association_gnomad = associations.join(
-        gnomad_mapped_studies, on="studyId", how="left"
+        gnomad_mapped_studies,
+        on="studyId",
+        how="left",
     ).persist()
+    # association_gnomad.write.parquet(
+    #     "gs://ot-team/dsuveges/troubleshoot/association_gnomad"
+    # )
 
     # Extracting mapped variants for LD expansion:
     variant_population = (
@@ -394,6 +453,9 @@ def pics_all_study_locus(
         )
         .distinct()
     )
+    # variant_population.write.parquet(
+    #     "gs://ot-team/dsuveges/troubleshoot/variant_population"
+    # )
 
     # Number of distinct variants/population pairs to map:
     etl.logger.info(f"Number of variant/ancestry pairs: {variant_population.count()}")
@@ -404,7 +466,8 @@ def pics_all_study_locus(
     # LD information for all locus and ancestries
     ld_r = ld_annotation_by_locus_ancestry(
         etl, variant_population, ld_populations, min_r2
-    )
+    ).persist()
+    # ld_r.write.parquet("gs://ot-team/dsuveges/troubleshoot/ld_r")
 
     # Joining association with linked variants (while keeping unresolved associations).
     association_ancestry_ld = (
@@ -415,21 +478,15 @@ def pics_all_study_locus(
         # Once the linked variants are joined this leads to unnecessary nulls. To avoid this, adding
         # a flag indicating if a lead variant is resolved in the LD panel for at least one population:
         .withColumn(
-            "hasResolvedLd",
-            f.when(
-                f.array_contains(
-                    f.collect_set(f.col("tagVariantId").isNotNull()).over(
-                        Window.partitionBy("studyId", "variantId")
-                    ),
-                    True,
-                ),
-                True,
-            ).otherwise(False),
+            "flag_to_keep_tag",
+            _flag_partial_mapped(
+                f.col("studyId"), f.col("variantId"), f.col("tagVariantId")
+            ),
         )
         # Dropping rows where no tag is available, however the lead is resolved:
-        .filter(f.col("tagVariantId").isNull() & f.col("hasResolvedLd"))
+        .filter(f.col("flag_to_keep_tag"))
         # Dropping unused column:
-        .drop("hasResolvedLd")
+        .drop("flag_to_keep_tag")
         # Updating qualityControl for unresolved associations:
         .withColumn(
             "qualityControl",
