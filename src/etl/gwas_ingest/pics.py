@@ -11,6 +11,7 @@ import pyspark.sql.types as t
 from pyspark.sql import DataFrame, Window
 from scipy.stats import norm
 
+from etl.common.spark_helpers import adding_quality_flag
 from etl.gwas_ingest.ld import ld_annotation_by_locus_ancestry
 from etl.json import data
 
@@ -19,6 +20,10 @@ if TYPE_CHECKING:
     from pyspark.sql import Column
 
     from etl.common.ETLSession import ETLSession
+
+
+# Quality control flags:
+UNRESOLVED_LEAD_FLAG = "Credible set not resolved"
 
 
 @f.udf(t.DoubleType())
@@ -159,10 +164,13 @@ def _is_in_credset(
         pics_postprob_cumsum
     )
     return (
-        f.when(f.isnan(pics_postprob), False)
+        # If posterior probability is null, credible set flag is False:
+        f.when(pics_postprob.isNull(), False)
+        # If the posterior probability meets the criteria the flag is True:
         .when(
             f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability, False
         )
+        # IF criteria is not met, flag is False:
         .otherwise(True)
     )
 
@@ -436,9 +444,6 @@ def pics_all_study_locus(
         on="studyId",
         how="left",
     ).persist()
-    # association_gnomad.write.parquet(
-    #     "gs://ot-team/dsuveges/troubleshoot/association_gnomad"
-    # )
 
     # Extracting mapped variants for LD expansion:
     variant_population = (
@@ -453,9 +458,6 @@ def pics_all_study_locus(
         )
         .distinct()
     )
-    # variant_population.write.parquet(
-    #     "gs://ot-team/dsuveges/troubleshoot/variant_population"
-    # )
 
     # Number of distinct variants/population pairs to map:
     etl.logger.info(f"Number of variant/ancestry pairs: {variant_population.count()}")
@@ -467,7 +469,6 @@ def pics_all_study_locus(
     ld_r = ld_annotation_by_locus_ancestry(
         etl, variant_population, ld_populations, min_r2
     ).persist()
-    # ld_r.write.parquet("gs://ot-team/dsuveges/troubleshoot/ld_r")
 
     # Joining association with linked variants (while keeping unresolved associations).
     association_ancestry_ld = (
@@ -490,12 +491,11 @@ def pics_all_study_locus(
         # Updating qualityControl for unresolved associations:
         .withColumn(
             "qualityControl",
-            f.when(
+            adding_quality_flag(
+                f.col("qualityControl"),
                 f.col("tagVariantId").isNull(),
-                f.array_union(
-                    f.col("qualityControl"), f.array(f.lit("Credible set not resolved"))
-                ),
-            ).otherwise(f.col("qualityControl")),
+                UNRESOLVED_LEAD_FLAG,
+            ),
         ).distinct()
     )
 

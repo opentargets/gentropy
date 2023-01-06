@@ -8,8 +8,13 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 from scipy.stats import norm
 
+from etl.common.spark_helpers import adding_quality_flag
+
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
+
+# Quality control flags:
+PALINDROME_FLAG = "Palindrome alleles - cannot harmonize"
 
 
 def _pval_to_zscore(pval_col: Column) -> Column:
@@ -346,12 +351,9 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
         # Adding QC flag to variants with palindrome alleles:
         .withColumn(
             "qualityControl",
-            f.when(
-                f.col("isPalindrome"),
-                f.array_union(
-                    f.col("qualityControl"), f.array(f.lit("Palindrome alleles"))
-                ),
-            ).otherwise(f.col("qualityControl")),
+            adding_quality_flag(
+                f.col("qualityControl"), f.col("isPalindrome"), PALINDROME_FLAG
+            ),
         )
         # Dropping unused columns:
         .drop(

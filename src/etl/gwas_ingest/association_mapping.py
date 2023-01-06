@@ -6,12 +6,15 @@ from typing import TYPE_CHECKING
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 
-from etl.common.spark_helpers import get_record_with_maximum_value
+from etl.common.spark_helpers import adding_quality_flag, get_record_with_maximum_value
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
+
+# Quality control flags:
+NON_MAPPED_VARIANT = "No mapping in GnomAd"
 
 
 def map_variants(
@@ -54,12 +57,11 @@ def map_variants(
         # Flagging variants that could not be mapped to gnomad:
         .withColumn(
             "qualityControl",
-            f.when(
+            adding_quality_flag(
+                f.col("qualityControl"),
                 f.col("alternateAllele").isNull(),
-                f.array_union(
-                    f.col("qualityControl"), f.array(f.lit("No mapping in GnomAd"))
-                ),
-            ).otherwise(f.col("qualityControl")),
+                NON_MAPPED_VARIANT,
+            ),
         ).persist()
     )
     assoc_without_variant = mapped_associations.filter(

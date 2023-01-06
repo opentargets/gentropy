@@ -8,11 +8,16 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
+from etl.common.spark_helpers import adding_quality_flag
+
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
 
+
+# Quality control flags:
+AMBIGUOUS_ASSOCIATION = "Ambiguous association"
 
 STUDY_COLUMNS_MAP = {
     # 'DATE ADDED TO CATALOG': 'date_added_to_catalog',
@@ -208,19 +213,14 @@ def spliting_gwas_studies(study_association: DataFrame) -> DataFrame:
         )
         # Flagging ambiguous associations:
         .withColumn(
-            "variantCountInStudy",
-            f.count(f.col("variantId")).over(assoc_ambiguity_window),
-        )
-        .withColumn(
             "qualityControl",
-            f.when(
-                f.col("variantCountInStudy") > 1,
-                f.array_union(
-                    f.col("qualityControl"), f.array(f.lit("ambiguous association"))
-                ),
-            ).otherwise(f.col("qualityControl")),
-        )
-        .drop(
+            adding_quality_flag(
+                f.col("qualityControl"),
+                # There are more than one variant ID in one study:
+                f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
+                AMBIGUOUS_ASSOCIATION,
+            ),
+        ).drop(
             "row_number",
             "studyAccession",
             "studyEfos",

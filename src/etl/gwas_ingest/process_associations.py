@@ -9,6 +9,7 @@ import numpy as np
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from etl.common.spark_helpers import adding_quality_flag
 from etl.gwas_ingest.association_mapping import clean_mappings, map_variants
 from etl.gwas_ingest.effect_harmonization import harmonize_effect
 from etl.gwas_ingest.study_ingestion import parse_efos
@@ -18,6 +19,13 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
     from etl.common.ETLSession import ETLSession
+
+
+# Quality control flags:
+SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
+INCOMPLETE_MAPPING_FLAG = "Incomplete genomic mapping"
+COMPOSITE_FLAG = "Composite association"
+INCONSISTENCY_FLAG = "Variant inconsistency"
 
 ASSOCIATION_COLUMNS_MAP = {
     # Variant related columns:
@@ -165,25 +173,30 @@ def read_associations_data(
         )
         # Based on pre-defined filters set flag for failing associations:
         # 1. Flagging associations based on variant x variant interactions
+        .withColumn(
+            "qualityControl",
+            adding_quality_flag(
+                f.array(f.lit(None)),
+                f.col("pValueNegLog") < -np.log10(pvalue_cutoff),
+                SUBSIGNIFICANT_FLAG,
+            ),
+        )
         # 2. Flagging sub-significant associations
+        .withColumn(
+            "qualityControl",
+            adding_quality_flag(
+                f.col("qualityControl"),
+                f.col("position").isNull() & f.col("chromosome").isNull(),
+                INCOMPLETE_MAPPING_FLAG,
+            ),
+        )
         # 3. Flagging associations without genomic location
         .withColumn(
             "qualityControl",
-            f.array_except(
-                f.array(
-                    f.when(
-                        f.col("pValueNegLog") < -np.log10(pvalue_cutoff),
-                        "Subsignificant p-value",
-                    ),
-                    f.when(
-                        f.col("position").isNull() & f.col("chromosome").isNull(),
-                        "Incomplete genomic mapping",
-                    ),
-                    f.when(
-                        f.col("chromosome").contains(" x "), "Composite association"
-                    ),
-                ),
-                f.array(f.lit(None)),
+            adding_quality_flag(
+                f.col("qualityControl"),
+                f.col("chromosome").contains(" x "),
+                COMPOSITE_FLAG,
             ),
         )
         # Parsing association EFO:
@@ -221,7 +234,7 @@ def deconvolute_variants(associations: DataFrame) -> DataFrame:
         associations
         # For further tracking, we save the variant of the association before splitting:
         .withColumn("gwasVariant", f.col("snpIds"))
-        # Variant notation (chr, pos, snp id) are split into array:
+        # Variant notations (chr, pos, snp id) are split into arrays:
         .withColumn("chromosome", f.split(f.col("chromosome"), ";"))
         .withColumn("position", f.split(f.col("position"), ";"))
         .withColumn(
@@ -232,20 +245,16 @@ def deconvolute_variants(associations: DataFrame) -> DataFrame:
         # Flagging associations where the genomic location is not consistent with rsids:
         .withColumn(
             "qualityControl",
-            f.when(
-                (f.size(f.col("qualityControl")) > 0)
-                | (
-                    (f.size(f.col("chromosome")) == f.size(f.col("position")))
-                    & (
-                        f.size(f.col("chromosome"))
-                        == f.size(f.col("strongestSnpRiskAllele"))
-                    )
-                ),
+            adding_quality_flag(
                 f.col("qualityControl"),
-            ).otherwise(
-                f.array_union(
-                    f.col("qualityControl"), f.array(f.lit("Variant inconsistency"))
-                )
+                # Number of chromosome values different from position values:
+                (f.size(f.col("chromosome")) != f.size(f.col("position"))) |
+                # NUmber of chromosome values different from riskAllele values:
+                (
+                    f.size(f.col("chromosome"))
+                    != f.size(f.col("strongestSnpRiskAllele"))
+                ),
+                INCONSISTENCY_FLAG,
             ),
         )
     )
