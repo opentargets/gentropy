@@ -40,7 +40,7 @@ def map_variants(
         "alleleFrequencies",
     )
 
-    # Inner joining associations with GnomnAD:
+    # Filtering the GnomnAD dataset:
     overlapping_variants = variants.join(
         f.broadcast(parsed_associations.select("chromosome", "position").distinct()),
         on=["chromosome", "position"],
@@ -67,7 +67,8 @@ def map_variants(
     assoc_without_variant = mapped_associations.filter(
         f.col("referenceAllele").isNull()
     ).count()
-    etl.logger.info(
+    # etl.logger.info(
+    print(
         f"Loading variant annotation and joining with associations... {assoc_without_variant} associations outside gnomAD"
     )
     return mapped_associations

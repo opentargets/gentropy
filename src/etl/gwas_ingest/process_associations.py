@@ -176,7 +176,7 @@ def read_associations_data(
         .withColumn(
             "qualityControl",
             adding_quality_flag(
-                f.array(f.lit(None)),
+                f.array(),
                 f.col("pValueNegLog") < -np.log10(pvalue_cutoff),
                 SUBSIGNIFICANT_FLAG,
             ),
