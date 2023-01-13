@@ -7,6 +7,10 @@ from typing import TYPE_CHECKING
 from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as f
 
+from etl.common.spark_helpers import (
+    get_record_with_maximum_value,
+    get_record_with_minimum_value,
+)
 from etl.common.utils import convert_gnomad_position_to_ensembl
 
 if TYPE_CHECKING:
@@ -129,18 +133,34 @@ def _annotate_index_intervals(index: DataFrame, ld_radius: int) -> DataFrame:
 
     return (
         index_with_positions.join(
-            index_with_positions.select(
-                "chromosome",
-                f.col("position").alias("start_pos"),
-                f.col("idx").alias("start_idx"),
+            (
+                index_with_positions
+                # Given the multiple variants with the same chromosome/position can have different indexes, filter for the lowest index:
+                .transform(
+                    lambda df: get_record_with_minimum_value(
+                        df, ["chromosome", "position"], "idx"
+                    )
+                ).select(
+                    "chromosome",
+                    f.col("position").alias("start_pos"),
+                    f.col("idx").alias("start_idx"),
+                )
             ),
             on=["chromosome", "start_pos"],
         )
         .join(
-            index_with_positions.select(
-                "chromosome",
-                f.col("position").alias("stop_pos"),
-                f.col("idx").alias("stop_idx"),
+            (
+                index_with_positions
+                # Given the multiple variants with the same chromosome/position can have different indexes, filter for the highest index:
+                .transform(
+                    lambda df: get_record_with_maximum_value(
+                        df, ["chromosome", "position"], "idx"
+                    )
+                ).select(
+                    "chromosome",
+                    f.col("position").alias("stop_pos"),
+                    f.col("idx").alias("stop_idx"),
+                )
             ),
             on=["chromosome", "stop_pos"],
         )

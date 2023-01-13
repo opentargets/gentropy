@@ -24,6 +24,7 @@ def main(cfg: DictConfig) -> None:
         parsed_index.write.mode(cfg.environment.sparkWriteMode).parquet(
             population.parsed_index
         )
+
     return None
 
 

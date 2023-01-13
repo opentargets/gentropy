@@ -80,6 +80,32 @@ def get_record_with_maximum_value(
     return get_top_ranked_in_window(df, w)
 
 
+def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
+    """Compute the negative log p-value.
+
+    Args:
+        p_value_mantissa (Column): P-value mantissa
+        p_value_exponent (Column): P-value exponent
+
+    Returns:
+        Column: Negative log p-value
+
+    Examples:
+        >>> d = [(1, 1), (5, -2), (1, -1000)]
+        >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
+        >>> df.withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
+        +----------------+----------------+------------------+
+        |p_value_mantissa|p_value_exponent|         neg_log_p|
+        +----------------+----------------+------------------+
+        |               1|               1|              -1.0|
+        |               5|              -2|1.3010299956639813|
+        |               1|           -1000|            1000.0|
+        +----------------+----------------+------------------+
+        <BLANKLINE>
+    """
+    return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
+
+
 def adding_quality_flag(
     qc_column: Column, flag_condition: Column, flag_text: str
 ) -> Column:

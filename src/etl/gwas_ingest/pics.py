@@ -11,7 +11,8 @@ import pyspark.sql.types as t
 from pyspark.sql import DataFrame, Window
 from scipy.stats import norm
 
-from etl.common.spark_helpers import adding_quality_flag
+from etl.common.spark_helpers import _neglog_p, adding_quality_flag
+from etl.gwas_ingest.clumping import clumping
 from etl.gwas_ingest.ld import ld_annotation_by_locus_ancestry
 from etl.json import data
 
@@ -260,126 +261,6 @@ def _pics_mu(neglog_p: Column, r: Column) -> Column:
     return neglog_p * (r**2)
 
 
-def _clumping(df: DataFrame) -> DataFrame:
-    """Clump non-independent credible sets.
-
-    Args:
-        df (DataFrame): The LD expanded dataset, before PICS calculation
-
-    Returns:
-        DataFrame: Clumped signals are resolved by:
-        - removing tagging varinants of non independent leads.
-        - removing overall R from non independent leads.
-        - Adding QC flag to non-independent leads pointing to the relevant lead.
-    """
-    w = Window.partitionBy("studyId", "variantPair").orderBy(f.col("negLogPVal").desc())
-
-    return (
-        df
-        # lead/tag pairs irrespective of the order:
-        .withColumn(
-            "variantPair",
-            f.concat(f.array_sort(f.array(f.col("variantId"), f.col("tagVariantId")))),
-        )
-        # Generating the negLogPval:
-        .withColumn(
-            "negLogPVal", _neglog_p(f.col("pValueMantissa"), f.col("pValueExponent"))
-        )
-        # Counting the number of occurrence for each pair - for one study, each pair should occure only once:
-        .withColumn("rank", f.count(f.col("tagVariantId")).over(w))
-        # Only the most significant lead is kept if credible sets are overlapping + keeping lead if credible set is not resolved:
-        .withColumn(
-            "keep_lead",
-            f.when(
-                f.max(f.col("rank")).over(Window.partitionBy("studyId", "variantId"))
-                <= 1,
-                True,
-            ).otherwise(False),
-        )
-        # Adding reference lead that explains:
-        .withColumn("reference_lead", f.when(f.col("rank") > 1, f.col("tagVariantId")))
-        # One credible set might contain multiple tags that are themselves leads. We need to collect them into an array:
-        # At this point we move from lead/tag to study/lead level:
-        .withColumn(
-            "all_explained",
-            f.collect_set(f.col("reference_lead")).over(
-                Window.partitionBy("studyId", "variantId")
-            ),
-        )
-        # For a study we collect all the lead variants that are not explained by other lead:
-        .withColumn(
-            "good_signals",
-            f.collect_set(f.when(f.col("keep_lead"), f.col("variantId"))).over(
-                Window.partitionBy("studyId")
-            ),
-        )
-        # As a lead can be explained by multiple other leads, we select the one, which is not explained by other:
-        .withColumn(
-            "explained_by",
-            f.array_intersect("good_signals", "all_explained").getItem(0),
-        )
-        # Dropping credible sets that are explained:
-        .filter(f.col("keep_lead") | f.col("reference_lead").isNotNull())
-        # Adding QC flag with the respective lead:
-        .withColumn(
-            "qualityControl",
-            adding_quality_flag(
-                f.col("qualityControl"),
-                f.col("reference_lead").isNotNull(),
-                f.concat_ws(
-                    " ", f.lit("Association explained by:"), f.col("explained_by")
-                ),
-            ),
-        )
-        # Remove tag information if lead is explained by other variant:
-        .withColumn(
-            "tagVariantId",
-            f.when(f.col("reference_lead").isNull(), f.col("tagVariantId")),
-        )
-        .withColumn(
-            "R_overall", f.when(f.col("reference_lead").isNull(), f.col("R_overall"))
-        )
-        # Drop unused column:
-        .drop(
-            "reference_lead",
-            "variantPair",
-            "negLogPVal",
-            "rank",
-            "keep_lead",
-            "all_explained",
-            "good_signals",
-            "explained_by",
-        )
-        .distinct()
-    )
-
-
-def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
-    """Compute the negative log p-value.
-
-    Args:
-        p_value_mantissa (Column): P-value mantissa
-        p_value_exponent (Column): P-value exponent
-
-    Returns:
-        Column: Negative log p-value
-
-    Examples:
-        >>> d = [(1, 1), (5, -2), (1, -1000)]
-        >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
-        >>> df.withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
-        +----------------+----------------+------------------+
-        |p_value_mantissa|p_value_exponent|         neg_log_p|
-        +----------------+----------------+------------------+
-        |               1|               1|              -1.0|
-        |               5|              -2|1.3010299956639813|
-        |               1|           -1000|            1000.0|
-        +----------------+----------------+------------------+
-        <BLANKLINE>
-    """
-    return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
-
-
 def _flag_partial_mapped(
     study_id: Column, variant_id: Column, tag_variant_id: Column
 ) -> Column:
@@ -611,7 +492,7 @@ def pics_all_study_locus(
         # Collapse the data by study, lead, tag
         .drop("relativeSampleSize", "r", "gnomadPopulation").distinct()
         # Clumping non-independent associations together:
-        # .transform(_clumping)
+        .transform(clumping)
     )
 
     pics_results = calculate_pics(associations_ld_allancestries, k)

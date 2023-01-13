@@ -178,7 +178,7 @@ run_pics: ## Run pics method
     --region=${REGION}
 
 run_precompute_ld_index: ## Precompute ld-index information
-	gcloud dataproc jobs submit pyspark ./dist/run_precompute_ld_index.py \
+	gcloud dataproc jobs submit pyspark ./dist/run_precompute_ld_indexes.py \
     --cluster=${CLUSTER_NAME} \
     --files=./dist/config.yaml \
 	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
