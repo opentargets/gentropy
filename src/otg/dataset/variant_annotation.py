@@ -2,22 +2,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional, Type
 
 import hail as hl
 import pyspark.sql.functions as f
 from omegaconf import MISSING
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import nullify_empty_array
+from otg.common.spark_helpers import get_record_with_maximum_value
 from otg.common.utils import convert_gnomad_position_to_ensembl
-from otg.data.dataset import Dataset
+from otg.dataset.dataset import Dataset
+from otg.dataset.v2g import V2G
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
+    from otg.dataset.gene_index import GeneIndex
 
 
 @dataclass
@@ -32,7 +34,7 @@ class VariantAnnotationGnomadConfig:
 
 @dataclass
 class VariantAnnotation(Dataset):
-    """Creates a dataset with several annotations derived from GnomAD.
+    """Dataset with variant-level annotations derived from GnomAD.
 
     Returns:
         DataFrame: Subset of variant annotations derived from GnomAD
@@ -41,15 +43,47 @@ class VariantAnnotation(Dataset):
     schema: StructType = parse_spark_schema("variant_annotation.json")
 
     @classmethod
+    def from_parquet(
+        cls: Type[VariantAnnotation], etl: ETLSession, path: str
+    ) -> VariantAnnotation:
+        """Initialise VariantAnnotation from parquet file.
+
+        Args:
+            etl (ETLSession): ETL session
+            path (str): Path to parquet file
+
+        Returns:
+            VariantAnnotation: VariantAnnotation dataset
+        """
+        return super(Dataset, cls).from_parquet(etl, path, cls.schema)
+
+    @classmethod
     def from_gnomad(
         cls: type[VariantAnnotation],
         etl: ETLSession,
         gnomad_file: str,
-        chain_file: str,
+        grch38_to_grch37_chain: str,
         populations: list,
         path: Optional[str] = None,
     ) -> VariantAnnotation:
-        """Generate variant annotation dataset."""
+        """Generate variant annotation dataset from gnomAD.
+
+        Some relevant modifications to the original dataset are:
+
+        1. The transcript consequences features provided by VEP are filtered to only refer to the Ensembl canonical transcript.
+        2. Genome coordinates are liftovered from GRCh38 to GRCh37 to keep as annotation.
+        3. Field names are converted to camel case to follow the convention.
+
+        Args:
+            etl (ETLSession): ETL session
+            gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset
+            grch38_to_grch37_chain (str): Path to chain file for liftover
+            populations (list): List of populations to include in the dataset
+            path (Optional[str], optional): Path to save the dataset to. Defaults to None.
+
+        Returns:
+            VariantAnnotation: Variant annotation dataset
+        """
         hl.init(sc=etl.spark.sparkContext, log="/tmp/hail.log")
 
         # Load variants dataset
@@ -74,7 +108,7 @@ class VariantAnnotation(Dataset):
         # Liftover
         grch37 = hl.get_reference("GRCh37")
         grch38 = hl.get_reference("GRCh38")
-        grch38.add_liftover(chain_file, grch37)
+        grch38.add_liftover(grch38_to_grch37_chain, grch37)
         ht = ht.annotate(locus_GRCh37=hl.liftover(ht.locus, "GRCh37"))
 
         # Adding build-specific coordinates to the table:
@@ -178,34 +212,183 @@ class VariantAnnotation(Dataset):
                 "filters",
             )
         )
-        va = cls(df=df, path=path)
-        va.validate_schema()
-        return va
+        return cls(df=df, path=path)
 
-    def variant_index_parsing(self: VariantAnnotation) -> DataFrame:
-        """It reads the variant annotation parquet file and formats it to follow the OTG variant model.
+    def filter_by_variant_df(
+        self: VariantAnnotation, df: DataFrame, cols: List[str]
+    ) -> None:
+        """Filter variant annotation dataset by a variant dataframe.
+
+        Args:
+            df (DataFrame): A dataframe of variants
+            cols (List[str]): A list of columns to join on
+        """
+        self.df = self._df.join(f.broadcast(df.select(cols)), on=cols, how="inner")
+
+    def get_transcript_consequence_df(
+        self: VariantAnnotation, filter_by: GeneIndex = None
+    ) -> DataFrame:
+        """Dataframe of exploded transcript consequences.
+
+        Optionally the trancript consequences can be reduced to the universe of a gene index.
+
+        Args:
+            filter_by (GeneIndex): A gene index. Defaults to None.
 
         Returns:
-            DataFrame: A dataframe of variants and their annotation
+            DataFrame: A dataframe exploded by transcript consequences
         """
-        unchanged_cols = [
+        transript_consequences = self.df.select(
             "id",
             "chromosome",
-            "position",
-            "referenceAllele",
-            "alternateAllele",
-            "chromosomeB37",
-            "positionB37",
-            "alleleType",
-            "alleleFrequencies",
-            "cadd",
-        ]
+            # exploding the array removes records without VEP annotation
+            f.explode("vep.transcriptConsequences").alias("transcriptConsequence"),
+        )
+        if filter_by:
+            transript_consequences = transript_consequences.join(
+                f.broadcast(
+                    filter_by.df.select(
+                        f.col("id").alias("transcriptConsequence.gene_id")
+                    )
+                ),
+                on="transcriptConsequence.gene_id",
+            )
+        return transript_consequences.persist()
 
-        return self.df.select(
-            *unchanged_cols,
-            f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
-            # filters/rsid are arrays that can be empty, in this case we convert them to null
-            nullify_empty_array(f.col("filters")).alias("filters"),
-            nullify_empty_array(f.col("rsIds")).alias("rsIds"),
-            f.lit(True).alias("variantInGnomad"),
+    def get_most_severe_vep_v2g(
+        self: VariantAnnotation,
+        variant_consequence_lut_path: str,
+        filter_by: GeneIndex = None,
+    ) -> V2G:
+        """Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.
+
+        Optionally the trancript consequences can be reduced to the universe of a gene index.
+
+        Args:
+            variant_consequence_lut_path (str): Path to csv containing variant consequences sorted by severity
+            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+
+        Returns:
+            V2G: High and medium severity variant to gene assignments
+        """
+        variant_consequence_lut = self.etl.spark.read.csv(
+            variant_consequence_lut_path, sep="\t", header=True
+        ).select(
+            f.element_at(f.split("Accession", r"/"), -1).alias(
+                "variantFunctionalConsequenceId"
+            ),
+            f.col("Term").alias("label"),
+            f.col("v2g_score").cast("double").alias("score"),
+        )
+
+        return V2G(
+            df=self.get_transcript_consequence_df(filter_by)
+            .select(
+                f.col("id").alias("variantId"),
+                "chromosome",
+                f.col("transcriptConsequence.gene_id").alias("geneId"),
+                f.explode("transcriptConsequence.consequence_terms").alias("label"),
+                f.lit("vep").alias("datatypeId"),
+                f.lit("variantConsequence").alias("datasourceId"),
+            )
+            # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
+            .join(
+                f.broadcast(variant_consequence_lut),
+                on="label",
+                how="inner",
+            )
+            .filter(f.col("score") != 0)
+            .transform(
+                lambda df: get_record_with_maximum_value(
+                    df, ["variantId", "geneId"], "score"
+                )
+            )
+        )
+
+    def get_polyphen_v2g(self: VariantAnnotation, filter_by: GeneIndex = None) -> V2G:
+        """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
+
+        Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.
+
+        Args:
+            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+
+        Returns:
+            V2G: variant to gene assignments with their polyphen scores
+        """
+        return V2G(
+            df=self.get_transcript_consequence_df(filter_by)
+            .filter(f.col("transcriptConsequence.polyphen_score").isNotNull())
+            .select(
+                f.col("id").alias("variantId"),
+                "chromosome",
+                f.col("transcriptConsequence.gene_id").alias("geneId"),
+                f.col("transcriptConsequence.polyphen_score").alias("score"),
+                f.col("transcriptConsequence.polyphen_prediction").alias("label"),
+                f.lit("vep").alias("datatypeId"),
+                f.lit("polyphen").alias("datasourceId"),
+            )
+        )
+
+    def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex = None) -> V2G:
+        """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
+
+        SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.
+        Optionally the trancript consequences can be reduced to the universe of a gene index.
+
+        Args:
+            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+
+        Returns:
+            V2G: variant to gene assignments with their SIFT scores
+        """
+        return V2G(
+            df=self.get_transcript_consequence_df(filter_by)
+            .filter(f.col("transcriptConsequence.sift_score").isNotNull())
+            .select(
+                f.col("id").alias("variantId"),
+                "chromosome",
+                f.col("transcriptConsequence.gene_id").alias("geneId"),
+                f.expr("1 - transcriptConsequence.sift_score").alias("score"),
+                f.col("transcriptConsequence.sift_prediction").alias("label"),
+                f.lit("vep").alias("datatypeId"),
+                f.lit("sift").alias("datasourceId"),
+            )
+        )
+
+    def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex = None) -> V2G:
+        """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
+
+        Optionally the trancript consequences can be reduced to the universe of a gene index.
+
+        Args:
+            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+
+        Returns:
+            V2G: variant to gene assignments from the LOFTEE algorithm
+        """
+        return V2G(
+            df=self.get_transcript_consequence_df(filter_by)
+            .filter(f.col("transcriptConsequence.lof").isNotNull())
+            .withColumn(
+                "isHighQualityPlof",
+                f.when(f.col("transcriptConsequence.lof") == "HC", True).when(
+                    f.col("transcriptConsequence.lof") == "LC", False
+                ),
+            )
+            .withColumn(
+                "score",
+                f.when(f.col("isHighQualityPlof"), 1.0).when(
+                    ~f.col("isHighQualityPlof"), 0
+                ),
+            )
+            .select(
+                f.col("id").alias("variantId"),
+                "chromosome",
+                f.col("transcriptConsequence.gene_id").alias("geneId"),
+                "isHighQualityPlof",
+                f.col("score"),
+                f.lit("vep").alias("datatypeId"),
+                f.lit("loftee").alias("datasourceId"),
+            )
         )

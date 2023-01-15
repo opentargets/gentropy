@@ -22,34 +22,59 @@ class DatasetFromFileConfig:
 
 @dataclass
 class Dataset:
-    """Dataset class for OTG."""
+    """Open Targets Genetics Dataset.
 
-    df: DataFrame
+    `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `json.schemas` module.
+    """
+
+    _df: DataFrame
     path: str | None
-    schema: StructType
+    _schema: StructType
+
+    def __post_init__(self: Dataset) -> None:
+        """Post init."""
+        self.validate_schema()
+
+    @property
+    def df(self: Dataset) -> DataFrame:
+        """Dataframe included in the Dataset."""
+        return self._df
+
+    @df.setter
+    def df(self: Dataset, new_df: DataFrame) -> None:  # noqa: CCE001
+        self._df = new_df
+        self.validate_schema()
+
+    @property
+    def schema(self: Dataset) -> StructType:
+        """Dataframe expected schema."""
+        return self._schema
 
     @classmethod
-    def from_parquet(cls: type[Dataset], etl: ETLSession, path: str) -> Dataset:
+    def from_parquet(
+        cls: type[Dataset], etl: ETLSession, path: str, schema: StructType
+    ) -> Dataset:
         """Reads a parquet file into a Dataset with a given schema.
 
         Args:
             etl (ETLSession): ETL session
             path (str): Path to parquet file
+            schema (StructType): Schema to use
 
         Returns:
             Dataset: Dataset with given schema
         """
-        df = etl.read_parquet(path=path, schema=cls.schema)
-        return cls(df=df, schema=cls.schema, path=path)
+        df = etl.read_parquet(path=path, schema=schema)
+        return cls(_df=df, _schema=schema, path=path)
 
     def validate_schema(self: Dataset) -> None:
-        """Validate DataFrame schema based on JSON.
+        """Validate DataFrame schema against expected class schema.
 
         Raises:
             ValueError: DataFrame schema is not valid
         """
-        expected_schema = self.__class__.schema  # type: ignore[attr-defined]
-        observed_schema = self.__class__.df.schema  # type: ignore[attr-defined]
+        expected_schema = self.schema  # type: ignore[attr-defined]
+        observed_schema = self.df.schema  # type: ignore[attr-defined]
         # Observed fields no    t in schema
         missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
         error_message = f"The {missing_struct_fields} StructFields are not included in DataFrame schema: {expected_schema}"
@@ -64,3 +89,7 @@ class Dataset:
         error_message = f"The {missing_required_fields} StructFields are required but missing from the DataFrame schema: {expected_schema}"
         if missing_required_fields:
             raise ValueError(error_message)
+
+    def persist(self: Dataset) -> None:
+        """Persist DataFrame included in the Dataset."""
+        self.df.persist()

@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from otg.data.variant_index import VariantIndex
+from otg.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -21,7 +21,10 @@ class VariantIndexStep:
     id: str = "variant_index"
 
     def run(self: VariantIndex) -> None:
-        """ETL step for variant index."""
+        """Step to generate variant index.
+
+        Using a `VariantAnnotation` dataset as a reference, this step creates and writes a dataset of the type `VariantIndex` that includes only variants that have disease-association data with a reduced set of annotations.
+        """
         self.etl.logger.info(f"Executing {self.id} step")
 
         vi = VariantIndex.from_credset(

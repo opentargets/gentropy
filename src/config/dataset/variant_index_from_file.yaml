@@ -1,5 +1,5 @@
-# baseconfig
+#baseconfig
 defaults:
   - base_dataset_from_file
 # hardcoded config
-path: /path/to/dataset/variant_index
+path: /path/to/dataset/variant_annotation

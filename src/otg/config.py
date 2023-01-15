@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
-from otg.data.dataset import DatasetFromFileConfig
-from otg.data.variant_annotation import VariantAnnotationGnomadConfig
-from otg.data.variant_index import VariantIndexCredsetConfig
+from otg.dataset.dataset import DatasetFromFileConfig
+from otg.dataset.variant_annotation import VariantAnnotationGnomadConfig
+from otg.dataset.variant_index import VariantIndexCredsetConfig
 
 
 @dataclass

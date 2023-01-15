@@ -83,12 +83,12 @@ class LiftOverSpark:
         )
         start_df = self.convert_coordinates(
             start_df, chrom_col, start_col
-        ).withColumnRenamed("mapped_pos", "mapped_" + start_col)
+        ).withColumnRenamed("mapped_pos", f"mapped_{start_col}")
 
         # Lift over end coordinates:
         end_df = df.select(chrom_col, end_col).distinct()
         end_df = self.convert_coordinates(end_df, chrom_col, end_col).withColumnRenamed(
-            "mapped_pos", "mapped_" + end_col
+            "mapped_pos", f"mapped_{end_col}"
         )
 
         # Join dataframe with mappings (we have to account for the +1 position shift of the start coordinates):
