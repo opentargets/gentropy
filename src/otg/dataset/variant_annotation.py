@@ -55,7 +55,7 @@ class VariantAnnotation(Dataset):
         Returns:
             VariantAnnotation: VariantAnnotation dataset
         """
-        return super(Dataset, cls).from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls.schema)
 
     @classmethod
     def from_gnomad(

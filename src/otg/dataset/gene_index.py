@@ -50,7 +50,7 @@ class GeneIndex(Dataset):
         Returns:
             GeneIndex: Gene index dataset
         """
-        return super(Dataset, cls).from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls.schema)
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> None:
         """Filter by approved biotypes.

@@ -36,7 +36,7 @@ class V2G(Dataset):
         Returns:
             V2G: V2G dataset
         """
-        return super(Dataset, cls).from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls.schema)
 
     def filter_by_genes(self: V2G, genes: GeneIndex) -> None:
         """Filter by V2G dataset by genes.

@@ -40,7 +40,7 @@ class Intervals(Dataset):
         Returns:
             Intervals: Intervals dataset
         """
-        return super(Dataset, cls).from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls.schema)
 
     @classmethod
     def parse_andersson(
