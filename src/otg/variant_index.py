@@ -18,6 +18,7 @@ class VariantIndexStep:
 
     etl: ETLSession
     variant_index: DictConfig
+    variant_annotation: DictConfig
     id: str = "variant_index"
 
     def run(self: VariantIndex) -> None:
@@ -29,7 +30,7 @@ class VariantIndexStep:
 
         vi = VariantIndex.from_credset(
             self.etl,
-            self.variant_index.variant_annotation.path,
+            self.variant_annotation.path,
             self.variant_index.credible_sets,
             self.variant_index.path,
         )

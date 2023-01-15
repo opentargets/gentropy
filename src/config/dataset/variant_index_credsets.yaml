@@ -1,8 +1,6 @@
 # baseconfig
 defaults:
   - base_variant_index_credsets
-  - /dataset@variant_annotation:
-    - variant_annotation_from_file
 # hardcoded config
 credible_sets: /path/to/credible_sets
 path: "path/to/dataset/variant_index"
