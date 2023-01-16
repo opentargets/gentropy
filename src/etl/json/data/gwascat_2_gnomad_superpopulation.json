@@ -1,0 +1,70 @@
+[
+  {
+    "gwas_catalog_ancestry": "European",
+    "gnomadPopulation": "nfe"
+  },
+  {
+    "gwas_catalog_ancestry": "African American or Afro-Caribbean",
+    "gnomadPopulation": "afr"
+  },
+  {
+    "gwas_catalog_ancestry": "Native American",
+    "gnomadPopulation": "amr"
+  },
+  {
+    "gwas_catalog_ancestry": "Asian unspecified",
+    "gnomadPopulation": "eas"
+  },
+  {
+    "gwas_catalog_ancestry": "Hispanic or Latin American",
+    "gnomadPopulation": "amr"
+  },
+  {
+    "gwas_catalog_ancestry": "East Asian",
+    "gnomadPopulation": "eas"
+  },
+  {
+    "gwas_catalog_ancestry": "Central Asian",
+    "gnomadPopulation": "seu"
+  },
+  {
+    "gwas_catalog_ancestry": "Oceanian",
+    "gnomadPopulation": "eas"
+  },
+  {
+    "gwas_catalog_ancestry": "South East Asian",
+    "gnomadPopulation": "eas"
+  },
+  {
+    "gwas_catalog_ancestry": "Other admixed ancestry",
+    "gnomadPopulation": "nfe"
+  },
+  {
+    "gwas_catalog_ancestry": "African unspecified",
+    "gnomadPopulation": "afr"
+  },
+  {
+    "gwas_catalog_ancestry": "Sub-Saharan African",
+    "gnomadPopulation": "afr"
+  },
+  {
+    "gwas_catalog_ancestry": "Greater Middle Eastern (Middle Eastern, North African or Persian)",
+    "gnomadPopulation": "seu"
+  },
+  {
+    "gwas_catalog_ancestry": "Aboriginal Australian",
+    "gnomadPopulation": "eas"
+  },
+  {
+    "gwas_catalog_ancestry": "Other",
+    "gnomadPopulation": "nfe"
+  },
+  {
+    "gwas_catalog_ancestry": "South Asian",
+    "gnomadPopulation": "eas"
+  },
+  {
+    "gwas_catalog_ancestry": "NR",
+    "gnomadPopulation": "nfe"
+  }
+]

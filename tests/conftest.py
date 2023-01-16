@@ -12,4 +12,9 @@ def spark() -> SparkSession:
     Returns:
         SparkSession: local spark session
     """
-    return SparkSession.builder.master("local").appName("test").getOrCreate()
+    return (
+        SparkSession.builder.config("spark.driver.bindAddress", "127.0.0.1")
+        .master("local")
+        .appName("test")
+        .getOrCreate()
+    )

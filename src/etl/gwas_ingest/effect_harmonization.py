@@ -8,23 +8,28 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 from scipy.stats import norm
 
+from etl.common.spark_helpers import adding_quality_flag
+
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
+# Quality control flags:
+PALINDROME_FLAG = "Palindrome alleles - cannot harmonize"
 
-def pval_to_zscore(pvalcol: Column) -> Column:
+
+def _pval_to_zscore(pval_col: Column) -> Column:
     """Convert p-value column to z-score column.
 
     Args:
-        pvalcol (Column): pvalues to be casted to floats.
+        pval_col (Column): pvalues to be casted to floats.
 
     Returns:
         Column: p-values transformed to z-scores
 
     Examples:
-        >>> d = d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
+        >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
         >>> df = spark.createDataFrame(d)
-        >>> df.withColumn("zscore", pval_to_zscore(f.col("pval"))).show()
+        >>> df.withColumn("zscore", _pval_to_zscore(f.col("pval"))).show()
         +---+-------+----------+
         | id|   pval|    zscore|
         +---+-------+----------+
@@ -38,7 +43,7 @@ def pval_to_zscore(pvalcol: Column) -> Column:
         <BLANKLINE>
 
     """
-    pvalue_float = pvalcol.cast(t.FloatType())
+    pvalue_float = pval_col.cast(t.FloatType())
     pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
         pvalue_float
     )
@@ -48,134 +53,215 @@ def pval_to_zscore(pvalcol: Column) -> Column:
     )(pvalue_nozero)
 
 
-def get_reverse_complement(df: DataFrame, allele_col: str) -> DataFrame:
-    """Get reverse complement allele of a specified allele column.
+def _get_reverse_complement(allele_col: Column) -> Column:
+    """A function to return the reverse complement of an allele column.
+
+    It takes a string and returns the reverse complement of that string if it's a DNA sequence,
+    otherwise it returns the original string. Assumes alleles in upper case.
 
     Args:
-        df (DataFrame): input DataFrame
-        allele_col (str): the name of the column containing the allele
+        allele_col (Column): The column containing the allele to reverse complement.
 
     Returns:
-        DataFrame: A dataframe with a new column called revcomp_{allele_col}
+        A column that is the reverse complement of the allele column.
+
+    Examples:
+        >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("revcom_allele", _get_reverse_complement(f.col("allele"))).show()
+        +------+-------------+
+        |allele|revcom_allele|
+        +------+-------------+
+        |     A|            T|
+        |     T|            A|
+        |     G|            C|
+        |     C|            G|
+        |    AC|           GT|
+        |GTaatc|       GATTAC|
+        |     ?|            ?|
+        |  null|         null|
+        +------+-------------+
+        <BLANKLINE>
+
     """
-    return df.withColumn(
-        f"revcomp_{allele_col}",
-        f.when(
-            f.col(allele_col).rlike("[ACTG]+"),
-            f.reverse(f.translate(f.col(allele_col), "ACTG", "TGAC")),
-        ),
+    allele_col = f.upper(allele_col)
+    return f.when(
+        allele_col.rlike("[ACTG]+"),
+        f.reverse(f.translate(allele_col, "ACTG", "TGAC")),
+    ).otherwise(allele_col)
+
+
+def _harmonize_beta(
+    effect_size: Column, confidence_interval: Column, needs_harmonization: Column
+) -> Column:
+    """A function to harmonize beta.
+
+    If the confidence interval contains the word "increase" or "decrease" it indicates, we are dealing with betas.
+    If it's "increase" and the effect size needs to be harmonized,
+    then multiply the effect size by -1
+
+    Args:
+        effect_size (Column): The effect size column from the dataframe
+        confidence_interval (Column): The confidence interval of the effect size.
+        needs_harmonization (Column): a boolean column that indicates whether the effect size needs to be flipped
+
+    Returns:
+        A column of the harmonized beta values.
+
+    Examples:
+        >>> d = [
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit decrease', 'needs_harmonization': True},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit decrease', 'needs_harmonization': False},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit increase', 'needs_harmonization': True},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit increase', 'needs_harmonization': False},
+        ...     {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9]', 'needs_harmonization': False},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("beta", _harmonize_beta(f.col("effect_size"), f.col('confidence_interval'), f.col('needs_harmonization'))).show()
+        +--------------------+-----------+-------------------+----+
+        | confidence_interval|effect_size|needs_harmonization|beta|
+        +--------------------+-----------+-------------------+----+
+        |[0.1-0.9] unit de...|        0.6|               true| 0.6|
+        |[0.1-0.9] unit de...|        0.6|              false|-0.6|
+        |[0.1-0.9] unit in...|        0.6|               true|-0.6|
+        |[0.1-0.9] unit in...|        0.6|              false| 0.6|
+        |           [0.1-0.9]|        0.6|              false|null|
+        +--------------------+-----------+-------------------+----+
+        <BLANKLINE>
+
+    """
+    # The effect is given as beta, if the confidence interval contains 'increase' or 'decrease'
+    beta = f.when(
+        confidence_interval.rlike("|".join(["decrease", "increase"])),
+        effect_size,
+    )
+    # Flipping beta if harmonization is required or effect negated by saying 'decrease'
+    return f.when(
+        (confidence_interval.contains("increase") & needs_harmonization)
+        | (confidence_interval.contains("decrease") & ~needs_harmonization),
+        beta * -1,
+    ).otherwise(beta)
+
+
+def _calculate_beta_ci(beta: Column, zscore: Column, direction: Column) -> Column:
+    """Calculating confidence intervals for beta values.
+
+    Args:
+        beta (Column): The beta value for the given row
+        zscore (Column): The z-score of the beta coefficient.
+        direction (Column): This is the direction of the confidence interval. It can be either "upper" or "lower".
+
+    Returns:
+        The upper and lower bounds of the confidence interval for the beta coefficient.
+
+    Examples:
+        >>> d = [
+        ...    {"beta": 0.6, 'zscore': 3, 'direction': 'upper'},
+        ...    {"beta": 0.6, 'zscore': 3, 'direction': 'lower'},
+        ...    {"beta": 0.6, 'zscore': 3, 'direction': 'something'},
+        ...    {"beta": None, 'zscore': 3, 'direction': 'lower'},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("beta_confidence_interval",  _calculate_beta_ci(f.col("beta"), f.col('zscore'), f.col('direction'))).show()
+        +----+---------+------+------------------------+
+        |beta|direction|zscore|beta_confidence_interval|
+        +----+---------+------+------------------------+
+        | 0.6|    upper|     3|                   0.992|
+        | 0.6|    lower|     3|     0.20800000000000002|
+        | 0.6|something|     3|                    null|
+        |null|    lower|     3|                    null|
+        +----+---------+------+------------------------+
+        <BLANKLINE>
+
+    """
+    zscore_95 = f.lit(1.96)
+    return (
+        f.when(direction == "upper", beta + f.abs(zscore_95 * beta) / zscore)
+        .when(direction == "lower", beta - f.abs(zscore_95 * beta) / zscore)
+        .otherwise(None)
     )
 
 
-def harmonise_beta(df: DataFrame) -> DataFrame:
-    """Harmonise betas.
-
-    The harmonization of the beta follows the logic:
-    - The beta is flipped (multiplied by -1) if:
-        1) the effect needs harmonization and
-        2) the annotation of the effect is annotated as decrease
-    - The 95% confidence interval of the effect is calculated using the z-score
-    - Irrelevant columns are dropped.
+def _harmonize_odds_ratio(
+    effect_size: Column, confidence_interval: Column, needs_harmonization: Column
+) -> Column:
+    """Harmonizing odds ratio.
 
     Args:
-        df (DataFrame): summary stat DataFrame
+        effect_size (Column): The effect size column from the dataframe
+        confidence_interval (Column): The confidence interval of the effect size.
+        needs_harmonization (Column): a boolean column that indicates whether the odds ratio needs to be flipped
 
     Returns:
-        DataFrame: input DataFrame with harmonised beta columns:
-            - beta
-            - beta_ci_lower
-            - beta_ci_upper
-            - beta_direction
-    """
-    # The z-score corresponding to p-value: 0.05
-    zscore_95 = 1.96
+        A column with the odds ratio, or 1/odds_ratio if harmonization required.
 
-    return (
-        df.withColumn(
-            "beta",
-            f.when(
-                (
-                    f.col("confidence_interval").contains("increase")
-                    & f.col("needs_harmonization")
-                )
-                | (
-                    f.col("confidence_interval").contains("decrease")
-                    & ~f.col("needs_harmonization")
-                ),
-                f.col("beta") * -1,
-            ).otherwise(f.col("beta")),
-        )
-        .withColumn(
-            "beta_conf_intervals",
-            f.array(
-                f.col("beta") - f.lit(zscore_95) * f.col("beta") / f.col("zscore"),
-                f.col("beta") + f.lit(zscore_95) * f.col("beta") / f.col("zscore"),
-            ),
-        )
-        .withColumn("beta_ci_lower", f.array_min(f.col("beta_conf_intervals")))
-        .withColumn("beta_ci_upper", f.array_max(f.col("beta_conf_intervals")))
-        .withColumn(
-            "beta_direction",
-            f.when(f.col("beta") >= 0, "+").when(f.col("beta") < 0, "-"),
-        )
-        .drop("beta_conf_intervals")
+    Examples:
+        >>> d = [
+        ...   {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9] unit decrease', 'needs_harmonization': True},
+        ...   {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9]', 'needs_harmonization': False},
+        ...   {"effect_size": 0.6, 'confidence_interval': '[0.1-0.9]', 'needs_harmonization': True},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("odds_ratio", _harmonize_odds_ratio(f.col("effect_size"), f.col('confidence_interval'), f.col('needs_harmonization'))).show()
+        +--------------------+-----------+-------------------+------------------+
+        | confidence_interval|effect_size|needs_harmonization|        odds_ratio|
+        +--------------------+-----------+-------------------+------------------+
+        |[0.1-0.9] unit de...|        0.6|               true|              null|
+        |           [0.1-0.9]|        0.6|              false|               0.6|
+        |           [0.1-0.9]|        0.6|               true|1.6666666666666667|
+        +--------------------+-----------+-------------------+------------------+
+        <BLANKLINE>
+
+    """
+    # The confidence interval tells if we are not dealing with betas -> OR
+    odds_ratio = f.when(
+        ~confidence_interval.rlike("|".join(["decrease", "increase"])),
+        effect_size,
     )
 
+    return f.when(needs_harmonization, 1 / odds_ratio).otherwise(odds_ratio)
 
-def harmonise_odds_ratio(df: DataFrame) -> DataFrame:
-    """Harmonise odds ratio.
 
-    The harmonization of the odds ratios follows the logic:
-    - The effect is flipped (reciprocal value is calculated) if the effect needs harmonization
-    - The 95% confidence interval is calculated using the z-score
-    - Irrelevant columns are dropped.
+def _calculate_or_ci(odds_ratio: Column, zscore: Column, direction: Column) -> Column:
+    """Calculating confidence intervals for odds-ratio values.
 
     Args:
-        df (DataFrame): summary stat DataFrame
+        odds_ratio (Column): The odds ratio of the association between the exposure and outcome.
+        zscore (Column): The z-score of the confidence interval.
+        direction (Column): This is either "upper" or "lower" and determines whether the upper or lower confidence interval is calculated.
 
     Returns:
-        DataFrame: odds ratio with harmonised OR in columns:
-            - odds_ratio
-            - odds_ratio_ci_lower
-            - odds_ratio_ci_upper
-            - odds_ratio_direction
-    """
-    # The z-score corresponding to p-value: 0.05
-    zscore_95 = 1.96
+        The upper and lower bounds of the 95% confidence interval for the odds ratio.
 
-    return (
-        df.withColumn(
-            "odds_ratio",
-            f.when(f.col("needs_harmonization"), 1 / f.col("odds_ratio")).otherwise(
-                f.col("odds_ratio")
-            ),
-        )
-        .withColumn("odds_ratio_estimate", f.log(f.col("odds_ratio")))
-        .withColumn("odds_ratio_se", f.col("odds_ratio_estimate") / f.col("zscore"))
-        .withColumn(
-            "odds_ratio_direction",
-            f.when(f.col("odds_ratio") >= 1, "+").when(f.col("odds_ratio") < 1, "-"),
-        )
-        .withColumn(
-            "odds_ratio_conf_intervals",
-            f.array(
-                f.exp(
-                    f.col("odds_ratio_estimate")
-                    - f.lit(zscore_95) * f.col("odds_ratio_se")
-                ),
-                f.exp(
-                    f.col("odds_ratio_estimate")
-                    + f.lit(zscore_95) * f.col("odds_ratio_se")
-                ),
-            ),
-        )
-        .withColumn(
-            "odds_ratio_ci_lower", f.array_min(f.col("odds_ratio_conf_intervals"))
-        )
-        .withColumn(
-            "odds_ratio_ci_upper", f.array_max(f.col("odds_ratio_conf_intervals"))
-        )
-        .drop("odds_ratio_conf_intervals", "odds_ratio_se", "odds_ratio_estimate")
+    Examples:
+        >>> d = [
+        ...     {"odds_ratio": 0.6, 'zscore': 3, 'direction': 'upper'},
+        ...     {"odds_ratio": 1.6, 'zscore': 3, 'direction': 'lower'},
+        ...     {"odds_ratio": 0.6, 'zscore': 3, 'direction': 'something'},
+        ...     {"odds_ratio": None, 'zscore': 3, 'direction': 'lower'},
+        ... ]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("or_confidence_interval", _calculate_or_ci(f.col("odds_ratio"), f.col('zscore'), f.col('direction'))).show()
+        +---------+----------+------+----------------------+
+        |direction|odds_ratio|zscore|or_confidence_interval|
+        +---------+----------+------+----------------------+
+        |    upper|       0.6|     3|    0.8377075574145849|
+        |    lower|       1.6|     3|    1.1769597039688107|
+        |something|       0.6|     3|                  null|
+        |    lower|      null|     3|                  null|
+        +---------+----------+------+----------------------+
+        <BLANKLINE>
+
+    """
+    zscore_95 = f.lit(1.96)
+    odds_ratio_estimate = f.log(odds_ratio)
+    odds_ratio_se = odds_ratio_estimate / zscore
+    return f.when(
+        direction == "upper",
+        f.exp(odds_ratio_estimate + f.abs(zscore_95 * odds_ratio_se)),
+    ).when(
+        direction == "lower",
+        f.exp(odds_ratio_estimate - f.abs(zscore_95 * odds_ratio_se)),
     )
 
 
@@ -190,54 +276,94 @@ def harmonize_effect(df: DataFrame) -> DataFrame:
     """
     return (
         df
-        # Get reverse complement of the alleles of the mapped variants:
-        .transform(lambda df: get_reverse_complement(df, "alt"))
-        .transform(lambda df: get_reverse_complement(df, "ref"))
-        # A variant is palindromic if the reference and alt alleles are reverse complement of each other:
-        # eg. T -> A: in such cases we cannot disambigate the effect, which means we cannot be sure if
+        # If the alleles are palindrome - the reference and alt alleles are reverse complement of each other:
+        # eg. T -> A: in such cases we cannot disambiguate the effect, which means we cannot be sure if
         # the effect is given to the alt allele on the positive strand or the ref allele on
-        # The negative strand.
+        # The negative strand. We assume, we don't need to harminze.
+        # Adding a flag indicating if effect harmonization is required:
         .withColumn(
-            "is_palindrome",
-            f.when(f.col("ref") == f.col("revcomp_alt"), True).otherwise(False),
-        )
-        # We are harmonizing the effect on the alternative allele:
-        # Adding a flag to trigger harmonization if: risk == ref or risk == revcomp(ref):
-        .withColumn(
-            "needs_harmonization",
+            "isPalindrome",
             f.when(
-                (f.col("risk_allele") == f.col("ref"))
-                | (f.col("risk_allele") == f.col("revcomp_ref")),
+                f.col("referenceAllele")
+                == _get_reverse_complement(f.col("alternateAllele")),
+                True,
+            ).otherwise(False),
+        )
+        # If a variant is palindrome, we drop the effect size, so no harmonization can happen:
+        .withColumn(
+            "effectSize",
+            f.when(f.col("isPalindrome"), None).otherwise(f.col("effectSize")),
+        )
+        # As we are calculating effect on the alternate allele, we have to harmonise effect
+        # if the risk allele is reference allele or the reverse complement of the reference allele
+        .withColumn(
+            "needsHarmonisation",
+            f.when(
+                (f.col("riskAllele") == f.col("referenceAllele"))
+                | (
+                    f.col("riskAllele")
+                    == _get_reverse_complement(f.col("referenceAllele"))
+                ),
                 True,
             ).otherwise(False),
         )
         # Z-score is needed to calculate 95% confidence interval:
-        .withColumn("zscore", pval_to_zscore(f.col("p_value")))
-        # Annotation provides information if the effect is odds-ratio or beta:
-        # Effect is lost for variants with palindromic alleles.
+        .withColumn(
+            "zscore",
+            _pval_to_zscore(
+                f.concat_ws("E", f.col("pValueMantissa"), f.col("pValueExponent"))
+            ),
+        )
+        # Harmonizing betas + calculate the corresponding confidence interval:
         .withColumn(
             "beta",
-            f.when(
-                f.col("confidence_interval").rlike(r"[increase|decrease]")
-                & (~f.col("is_palindrome")),
-                f.col("or_beta"),
+            _harmonize_beta(
+                f.col("effectSize"),
+                f.col("confidenceInterval"),
+                f.col("needsHarmonisation"),
             ),
         )
+        .withColumn(
+            "beta_ci_upper",
+            _calculate_beta_ci(f.col("beta"), f.col("zscore"), f.lit("upper")),
+        )
+        .withColumn(
+            "beta_ci_lower",
+            _calculate_beta_ci(f.col("beta"), f.col("zscore"), f.lit("lower")),
+        )
+        # Harmonizing odds-ratios + calculate the corresponding confidence interval:
         .withColumn(
             "odds_ratio",
-            f.when(
-                (~f.col("confidence_interval").rlike(r"[increase|decrease]"))
-                & (~f.col("is_palindrome")),
-                f.col("or_beta"),
+            _harmonize_odds_ratio(
+                f.col("effectSize"),
+                f.col("confidenceInterval"),
+                f.col("needsHarmonisation"),
             ),
         )
-        # Harmonize beta:
-        .transform(harmonise_beta)
-        # Harmonize odds-ratio:
-        .transform(harmonise_odds_ratio)
-        # Coalesce effect direction:
         .withColumn(
-            "direction",
-            f.coalesce(f.col("beta_direction"), f.col("odds_ratio_direction")),
+            "odds_ratio_ci_upper",
+            _calculate_or_ci(f.col("odds_ratio"), f.col("zscore"), f.lit("upper")),
         )
+        .withColumn(
+            "odds_ratio_ci_lower",
+            _calculate_or_ci(f.col("odds_ratio"), f.col("zscore"), f.lit("lower")),
+        )
+        # Adding QC flag to variants with palindrome alleles:
+        .withColumn(
+            "qualityControl",
+            adding_quality_flag(
+                f.col("qualityControl"), f.col("isPalindrome"), PALINDROME_FLAG
+            ),
+        )
+        # Dropping unused columns:
+        .drop(
+            "zscore",
+            "effectSize",
+            "confidenceInterval",
+            "needsHarmonisation",
+            "isPalindrome",
+            "zscore",
+            "riskAllele",
+        )
+        .persist()
     )

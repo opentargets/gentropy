@@ -83,15 +83,57 @@ variant_index:
 
 gwas_ingest:
   inputs:
-    variant_annotation: gs://ot-team/dsuveges/variant_annotation/2022-08-11
-    gwas_catalog_associations: ${etl.inputs}/v2d/gwas_catalog_v1.0.2-associations_e107_r2022-09-14.tsv
-    gwas_catalog_studies: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-09-14.tsv
-    gwas_catalog_ancestries: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-09-14.tsv
+    variant_annotation: ${etl.outputs}/variant_annotation
+    gnomad_populations:
+      - id: afr
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.afr.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.afr.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.afr.common.ld.variant_indices_2mb.parquet
+      - id: amr
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.amr.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.amr.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.amr.common.ld.variant_indices_2mb.parquet
+      - id: asj
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.asj.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.asj.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.asj.common.ld.variant_indices_2mb.parquet
+      - id: eas
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.eas.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.eas.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.eas.common.ld.variant_indices_2mb.parquet
+      - id: fin
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.fin.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.fin.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.fin.common.ld.variant_indices_2mb.parquet
+      - id: nfe
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nfe.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nfe.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.nfe.common.ld.variant_indices_2mb.parquet
+      - id: est
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.est.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.est.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.est.common.ld.variant_indices_2mb.parquet
+      - id: nwe
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nwe.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.nwe.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.nwe.common.ld.variant_indices_2mb.parquet
+      - id: seu
+        index: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.seu.common.ld.variant_indices.ht
+        matrix: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.seu.common.adj.ld.bm
+        parsed_index: ${etl.inputs}/ld/gnomad_r2.1.1.seu.common.ld.variant_indices_2mb.parquet
+    gwas_catalog_associations: ${etl.inputs}/v2d/gwas_catalog_v1.0.2-associations_e107_r2022-11-29.tsv
+    gwas_catalog_studies: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-11-29.tsv
+    gwas_catalog_ancestries: ${etl.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-11-29.tsv
     summary_stats_list: ${etl.inputs}/v2d/harmonised_list.txt
+    grch37_to_grch38_chain: gs://hail-common/references/grch37_to_grch38.over.chain.gz
   outputs:
     gwas_catalog_associations: ${etl.outputs}/gwas_catalog_associations
     gwas_catalog_studies: ${etl.outputs}/gwas_catalog_studies
+    pics_credible_set: ${etl.outputs}/pics_credible_set
   parameters:
     ingest_unpublished_studies: False
     p_value_cutoff: 5e-8
+    ld_window: 2_000_000
+    min_r2: 0.5
+    k: 6.4 # Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
   machine: ${machine.default}
