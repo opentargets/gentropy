@@ -2028,7 +2028,7 @@
 
 <span class=sd>        Args:</span>
 <span class=sd>            chain_file (str): Path to the chain file</span>
-<span class=sd>            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 0.</span>
+<span class=sd>            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 100.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>chain_file</span> <span class=o>=</span> <span class=n>chain_file</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>max_difference</span> <span class=o>=</span> <span class=n>max_difference</span>
@@ -2151,7 +2151,7 @@
         <span class=p>)</span>
 
         <span class=k>return</span> <span class=n>mapped</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=etl.v2g.intervals.Liftover.LiftOverSpark.__init__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__init__</span><span class=p>(</span><span class=n>chain_file</span><span class=p>,</span> <span class=n>max_difference</span><span class=o>=</span><span class=mi>100</span><span class=p>)</span></code> </h3> <div class="doc doc-contents "> <p>Intialise LiftOverSpark object.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>chain_file</code></td> <td> <code>str</code> </td> <td><p>Path to the chain file</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_difference</code></td> <td> <code>int</code> </td> <td><p>Maximum difference between the length of the mapped region and the original region. Defaults to 0.</p></td> <td> <code>100</code> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/v2g/intervals/Liftover.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>30</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=etl.v2g.intervals.Liftover.LiftOverSpark.__init__ class="doc doc-heading"> <code class="highlight language-python"><span class=fm>__init__</span><span class=p>(</span><span class=n>chain_file</span><span class=p>,</span> <span class=n>max_difference</span><span class=o>=</span><span class=mi>100</span><span class=p>)</span></code> </h3> <div class="doc doc-contents "> <p>Intialise LiftOverSpark object.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>chain_file</code></td> <td> <code>str</code> </td> <td><p>Path to the chain file</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_difference</code></td> <td> <code>int</code> </td> <td><p>Maximum difference between the length of the mapped region and the original region. Defaults to 100.</p></td> <td> <code>100</code> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>etl/v2g/intervals/Liftover.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>30</span>
 <span class=normal>31</span>
 <span class=normal>32</span>
 <span class=normal>33</span>
@@ -2184,7 +2184,7 @@
 
 <span class=sd>    Args:</span>
 <span class=sd>        chain_file (str): Path to the chain file</span>
-<span class=sd>        max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 0.</span>
+<span class=sd>        max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 100.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>chain_file</span> <span class=o>=</span> <span class=n>chain_file</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>max_difference</span> <span class=o>=</span> <span class=n>max_difference</span>
