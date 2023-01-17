@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 
 if TYPE_CHECKING:
@@ -14,15 +15,30 @@ if TYPE_CHECKING:
 class ETLSession:
     """Spark session class."""
 
+    spark_config = SparkConf()
+
     def __init__(
-        self: ETLSession, spark_uri: str, app_name: str, write_mode: str
+        self: ETLSession,
+        spark_uri: str,
+        app_name: str,
+        write_mode: str,
+        spark_config: SparkConf = spark_config,
     ) -> None:
-        """Creates spark session and logger."""
+        """Initialises spark session and logger.
+
+        Args:
+            spark_uri (str): spark uri
+            app_name (str): spark application name
+            write_mode (str): spark write mode
+            spark_config (SparkConf): spark configuration. Defaults to spark_config.
+        """
         # create session and retrieve Spark logger object
         self.spark = (
-            SparkSession.builder.master(spark_uri).appName(app_name).getOrCreate()
+            SparkSession.builder.config(conf=spark_config)
+            .master(spark_uri)
+            .appName(app_name)
+            .getOrCreate()
         )
-
         self.logger = Log4j(self.spark)
         self.write_mode = write_mode
 

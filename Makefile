@@ -1,6 +1,6 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-CLUSTER_NAME ?= il-coloc
+CLUSTER_NAME ?= ${USER}-genetics-etl
 PROJECT_NUMBER ?= $$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)")
 APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
@@ -24,6 +24,7 @@ setup-dev: ## Setup dev environment
 
 build: clean ## Build Python Package with Dependencies
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
+	@rm -rf ./dist
 	@poetry build
 	@cp ./src/*.py ./dist
 	@poetry run python ./utils/configure.py --cfg job > ./dist/config.yaml
@@ -31,6 +32,19 @@ build: clean ## Build Python Package with Dependencies
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl gs://genetics_etl_python_playground/initialisation/
 	@gsutil cp ./utils/initialise_cluster.sh gs://genetics_etl_python_playground/initialisation/
 
+prepare_pics:  ## Create cluster for variant annotation
+	gcloud dataproc clusters create ${CLUSTER_NAME} \
+        --image-version=2.0 \
+        --project=${PROJECT_ID} \
+        --region=${REGION} \
+		--master-machine-type=n1-highmem-96 \
+        --enable-component-gateway \
+		--num-master-local-ssds=1 \
+		--master-local-ssd-interface=NVME \
+        --metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
+        --initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
+        --single-node \
+		--max-idle=10m
 
 prepare_variant_annotation:  ## Create cluster for variant annotation
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
@@ -150,6 +164,23 @@ run_gwas: ## Ingest gwas dataset on a dataproc cluster
 	gcloud dataproc jobs submit pyspark ./dist/run_gwas_ingest.py \
 	--cluster=${CLUSTER_NAME} \
     --files=./dist/config.yaml \
+	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
     --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
     --project=${PROJECT_ID} \
+    --region=${REGION}
+
+run_pics: ## Run pics method
+	gcloud dataproc jobs submit pyspark ./dist/pics_experiment.py \
+    --cluster=${CLUSTER_NAME} \
+    --files=./dist/config.yaml \
+	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
+	--project=${PROJECT_ID} \
+    --region=${REGION}
+
+run_precompute_ld_index: ## Precompute ld-index information
+	gcloud dataproc jobs submit pyspark ./dist/run_precompute_ld_indexes.py \
+    --cluster=${CLUSTER_NAME} \
+    --files=./dist/config.yaml \
+	--properties='spark.jars=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.driver.extraClassPath=/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar,spark.serializer=org.apache.spark.serializer.KryoSerializer,spark.kryo.registrator=is.hail.kryo.HailKryoRegistrator' \
+	--project=${PROJECT_ID} \
     --region=${REGION}

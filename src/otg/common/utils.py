@@ -29,6 +29,7 @@ def convert_gnomad_position_to_ensembl(
     """Converting GnomAD variant position to Ensembl variant position.
 
     For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.
+    More info about the problem: https://www.biostars.org/p/84686/
 
     Args:
         position (Column): Column

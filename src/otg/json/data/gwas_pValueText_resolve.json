@@ -1,0 +1,1870 @@
+[
+  {
+    "pValueText": "A risk allele not reported",
+    "full_description": "?"
+  },
+  {
+    "pValueText": "5-hydroxyindoleacetic acid",
+    "full_description": "5-HIAA"
+  },
+  {
+    "pValueText": "Biantennary nogalactosylated glycans",
+    "full_description": "A2"
+  },
+  {
+    "pValueText": "African ancestry",
+    "full_description": "AA"
+  },
+  {
+    "pValueText": "Age at menarche and buckling ratio",
+    "full_description": "AAM-BR"
+  },
+  {
+    "pValueText": "Age at menarche and cortical thickness",
+    "full_description": "AAM-CT"
+  },
+  {
+    "pValueText": "Age at menarche and periosteal diameter",
+    "full_description": "AAM-W"
+  },
+  {
+    "pValueText": "alanine aminotransferase",
+    "full_description": "AAT"
+  },
+  {
+    "pValueText": "abdominal aortic calcium",
+    "full_description": "AAC"
+  },
+  {
+    "pValueText": "Aggregatibacter actinomycetemcomitans",
+    "full_description": "A action"
+  },
+  {
+    "pValueText": "Amyloid-beta",
+    "full_description": "Ab"
+  },
+  {
+    "pValueText": "ankle brachial index",
+    "full_description": "ABI"
+  },
+  {
+    "pValueText": "anti-centromere antibodies",
+    "full_description": "ACA"
+  },
+  {
+    "pValueText": "Angiotensin-converting enzyme",
+    "full_description": "ACE"
+  },
+  {
+    "pValueText": "antibodies to citrullinated peptide antigens",
+    "full_description": "ACPA"
+  },
+  {
+    "pValueText": "normalised agkistrodon contortrix venom ratio",
+    "full_description": "ACVn"
+  },
+  {
+    "pValueText": "Alzheimer’s Disease",
+    "full_description": "AD"
+  },
+  {
+    "pValueText": "Attention deficit hyperactivity disorder",
+    "full_description": "ADHD"
+  },
+  {
+    "pValueText": "Adrenomedullin",
+    "full_description": "ADM"
+  },
+  {
+    "pValueText": "atrial fibrillation",
+    "full_description": "AF"
+  },
+  {
+    "pValueText": "Frontal Brain volume",
+    "full_description": "AFBV"
+  },
+  {
+    "pValueText": "? fetoprotein",
+    "full_description": "AFP"
+  },
+  {
+    "pValueText": "multivariable-adjusted frontal brain volume",
+    "full_description": "AFVB"
+  },
+  {
+    "pValueText": "Abnormal Involuntary Movements Scale",
+    "full_description": "AIMS"
+  },
+  {
+    "pValueText": "Acute insulin response",
+    "full_description": "AIRg"
+  },
+  {
+    "pValueText": "Alaine",
+    "full_description": "Ala"
+  },
+  {
+    "pValueText": "albumin",
+    "full_description": "ALB"
+  },
+  {
+    "pValueText": "serum albumin:globulin ratio",
+    "full_description": "ALB/GLB"
+  },
+  {
+    "pValueText": "all ancestries",
+    "full_description": "ALL"
+  },
+  {
+    "pValueText": "combined tests of verbal delayed recall",
+    "full_description": "ALL-dr"
+  },
+  {
+    "pValueText": "adjusted log lateral ventricular volume",
+    "full_description": "ALLV"
+  },
+  {
+    "pValueText": "alkaline phosphatase",
+    "full_description": "ALP"
+  },
+  {
+    "pValueText": "alpha-tocopherol",
+    "full_description": "Alpha-TOH"
+  },
+  {
+    "pValueText": "amyotrophic lateral sclerosis",
+    "full_description": "ALS"
+  },
+  {
+    "pValueText": "alanine aminotransferase",
+    "full_description": "ALT"
+  },
+  {
+    "pValueText": "multivariable-adjusted temporal horn volume",
+    "full_description": "ALTHBV"
+  },
+  {
+    "pValueText": "Alkaline phosphatase",
+    "full_description": "AlkPhos"
+  },
+  {
+    "pValueText": "Age-related macular degeneration",
+    "full_description": "AMD"
+  },
+  {
+    "pValueText": "Absolute neutrophil count",
+    "full_description": "ANC"
+  },
+  {
+    "pValueText": "N-terminal pro-atrial natriuretic peptide",
+    "full_description": "ANP6"
+  },
+  {
+    "pValueText": "angiographic coronary disease",
+    "full_description": "AngCAD"
+  },
+  {
+    "pValueText": "age of smoking initiation",
+    "full_description": "AOI"
+  },
+  {
+    "pValueText": "apolipoprotein A-1",
+    "full_description": "apoA-1"
+  },
+  {
+    "pValueText": "activated partial thromboplastin time",
+    "full_description": "aPTT"
+  },
+  {
+    "pValueText": "pathogenic water channel aquaporin 4",
+    "full_description": "AQP4"
+  },
+  {
+    "pValueText": "AR-C124910XX",
+    "full_description": "ARC"
+  },
+  {
+    "pValueText": "ostium secundum atrial septal defect",
+    "full_description": "ASD"
+  },
+  {
+    "pValueText": "aspartate aminotransferase",
+    "full_description": "AST"
+  },
+  {
+    "pValueText": "antithrombin",
+    "full_description": "At"
+  },
+  {
+    "pValueText": "anti-topoisomerase antibodies",
+    "full_description": "ATA"
+  },
+  {
+    "pValueText": "temporal brain volume",
+    "full_description": "ATBV"
+  },
+  {
+    "pValueText": "total cerebral brain volume",
+    "full_description": "ATCBV"
+  },
+  {
+    "pValueText": "multivariable-adjusted temporal brain volume",
+    "full_description": "ATVB"
+  },
+  {
+    "pValueText": "area under the curve",
+    "full_description": "AUC"
+  },
+  {
+    "pValueText": "baseline brachial artery flow velocity",
+    "full_description": "BABF"
+  },
+  {
+    "pValueText": "Barnes Akathisia Scale",
+    "full_description": "BARS"
+  },
+  {
+    "pValueText": "beta blockers",
+    "full_description": "BB"
+  },
+  {
+    "pValueText": "bipolar disorder",
+    "full_description": "BD"
+  },
+  {
+    "pValueText": "bone density estimated by T score at distal radius",
+    "full_description": "BD-RT"
+  },
+  {
+    "pValueText": "bone density estimated by T score at midshaft tibia",
+    "full_description": "BD-TT"
+  },
+  {
+    "pValueText": "bone mineral density",
+    "full_description": "BMD"
+  },
+  {
+    "pValueText": "body mass index",
+    "full_description": "BMI"
+  },
+  {
+    "pValueText": "basal metabolic rate",
+    "full_description": "BMR"
+  },
+  {
+    "pValueText": "respiratory quotient during basal metabolic rate measurement",
+    "full_description": "BMR RQ"
+  },
+  {
+    "pValueText": "brain parenchymal volume",
+    "full_description": "BPV"
+  },
+  {
+    "pValueText": "breast cancer 1 gene and breast cancer 2 gene",
+    "full_description": "BRCA1/2"
+  },
+  {
+    "pValueText": "Broadband ultrasound attenuation",
+    "full_description": "BUA"
+  },
+  {
+    "pValueText": "blood urea nitrogen",
+    "full_description": "BUN"
+  },
+  {
+    "pValueText": "cholesterol",
+    "full_description": "C"
+  },
+  {
+    "pValueText": "Propionylcarnitine",
+    "full_description": "C3"
+  },
+  {
+    "pValueText": "Butyrylcarnitine",
+    "full_description": "C4"
+  },
+  {
+    "pValueText": "Nonaylcarnitine",
+    "full_description": "C9"
+  },
+  {
+    "pValueText": "Decanoylcarnitine",
+    "full_description": "C10"
+  },
+  {
+    "pValueText": "Decadienylcarnitine",
+    "full_description": "C10:2"
+  },
+  {
+    "pValueText": "Dodecanoylcarnitine",
+    "full_description": "C12"
+  },
+  {
+    "pValueText": "Hydroxytetradecenoylcarnitine",
+    "full_description": "C14:1-OH"
+  },
+  {
+    "pValueText": "cancer antigen 19-9",
+    "full_description": "CA19-9"
+  },
+  {
+    "pValueText": "coronary artery calcification",
+    "full_description": "CAC"
+  },
+  {
+    "pValueText": "coronary artery lesions",
+    "full_description": "CAL"
+  },
+  {
+    "pValueText": "carotid brachial pulse wave velocity",
+    "full_description": "CB-PWV"
+  },
+  {
+    "pValueText": "Cortical thickness of the tibia",
+    "full_description": "CBT"
+  },
+  {
+    "pValueText": "Clara cell secretory protein",
+    "full_description": "CC16"
+  },
+  {
+    "pValueText": "common carotid artery",
+    "full_description": "CCA"
+  },
+  {
+    "pValueText": "common carotid artery intimal medial thickness",
+    "full_description": "CCA IMT"
+  },
+  {
+    "pValueText": "calcium channel blockers",
+    "full_description": "CCB"
+  },
+  {
+    "pValueText": "central corneal thickness",
+    "full_description": "CCT"
+  },
+  {
+    "pValueText": "Ligand, serum & plasma",
+    "full_description": "CD40L"
+  },
+  {
+    "pValueText": "Disease Activity Score",
+    "full_description": "cDAS28"
+  },
+  {
+    "pValueText": "Complicated disease course",
+    "full_description": "CDC"
+  },
+  {
+    "pValueText": "cholesterol ester",
+    "full_description": "CE"
+  },
+  {
+    "pValueText": "carcinoembryonic antigen",
+    "full_description": "CEA"
+  },
+  {
+    "pValueText": "ceramide",
+    "full_description": "Cer"
+  },
+  {
+    "pValueText": "Consortium to Establish a Registry for Alzheimer’s Disease delayed recall",
+    "full_description": "CERAD-dr"
+  },
+  {
+    "pValueText": "CEPH (Centre d’Etude du Polymorphisme Humain) from Utah",
+    "full_description": "CEU"
+  },
+  {
+    "pValueText": "carotid-femoral pulse wave velocity, long-term average",
+    "full_description": "CF-PWVLTA"
+  },
+  {
+    "pValueText": "Clinical Global Impressions-Severity",
+    "full_description": "CGI"
+  },
+  {
+    "pValueText": "Coronary heart disease",
+    "full_description": "CHD"
+  },
+  {
+    "pValueText": "1st principal component on transformed hue and saturation values",
+    "full_description": "CHS1"
+  },
+  {
+    "pValueText": "95% confidence interval",
+    "full_description": "CI"
+  },
+  {
+    "pValueText": "creatinine kinase",
+    "full_description": "CK"
+  },
+  {
+    "pValueText": "chronic kidney disease",
+    "full_description": "CKD"
+  },
+  {
+    "pValueText": "health assessment questionnaire score",
+    "full_description": "cHAQ"
+  },
+  {
+    "pValueText": "Classical Hodgkin lymphoma",
+    "full_description": "cHL"
+  },
+  {
+    "pValueText": "former/current smokers",
+    "full_description": "CIGSTAT"
+  },
+  {
+    "pValueText": "carotid intima media thickness",
+    "full_description": "cIMT"
+  },
+  {
+    "pValueText": "cleft lip without cleft palate",
+    "full_description": "CL"
+  },
+  {
+    "pValueText": "cleft lip with or without cleft palate",
+    "full_description": "CL/P"
+  },
+  {
+    "pValueText": "total number of correct words across three letters",
+    "full_description": "COWA"
+  },
+  {
+    "pValueText": "cleft palate",
+    "full_description": "CP"
+  },
+  {
+    "pValueText": "Chronic periodontitis",
+    "full_description": "CPd"
+  },
+  {
+    "pValueText": "cigarettes per day",
+    "full_description": "CPD"
+  },
+  {
+    "pValueText": "10 or more cigarettes per day",
+    "full_description": "CPDBI"
+  },
+  {
+    "pValueText": "C-reactive protein",
+    "full_description": "CRP"
+  },
+  {
+    "pValueText": "C-reactive protein (CRP) averaged from 3 examinations (over about 20 years)",
+    "full_description": "CRP average 2,6,7"
+  },
+  {
+    "pValueText": "C-reactive protein, offspring exam 2",
+    "full_description": "CRP2"
+  },
+  {
+    "pValueText": "C-reactive protein exam 6",
+    "full_description": "CRP6"
+  },
+  {
+    "pValueText": "cardioembolic stroke",
+    "full_description": "CS"
+  },
+  {
+    "pValueText": "Swollen joint count",
+    "full_description": "cSJC"
+  },
+  {
+    "pValueText": "Tender joint count",
+    "full_description": "cTJC"
+  },
+  {
+    "pValueText": "cardiovascular disease",
+    "full_description": "CVD"
+  },
+  {
+    "pValueText": "California Verbal Learning Test delayed recall (belongs to WL-dr category)",
+    "full_description": "CVLT-dr"
+  },
+  {
+    "pValueText": "particle diameter",
+    "full_description": "D"
+  },
+  {
+    "pValueText": "diastolic blood pressure",
+    "full_description": "DBP"
+  },
+  {
+    "pValueText": "diastolic blood pressure, long-term average",
+    "full_description": "DBPLTA"
+  },
+  {
+    "pValueText": "Dermatophagoides farina",
+    "full_description": "D.f."
+  },
+  {
+    "pValueText": "Desialylated 2AB-labelled human plasma N-glycans groups",
+    "full_description": "DG"
+  },
+  {
+    "pValueText": "combined results from the DGI, FUSION, WTCCC analyses",
+    "full_description": "DGI+FUSION+WTCCC"
+  },
+  {
+    "pValueText": "dehydroisoandrosterone sulfate",
+    "full_description": "DHEA-S"
+  },
+  {
+    "pValueText": "Disposition index",
+    "full_description": "DI"
+  },
+  {
+    "pValueText": "diabetes mellitus",
+    "full_description": "DM"
+  },
+  {
+    "pValueText": "Dermatophagoides pteronyssinus",
+    "full_description": "D.p."
+  },
+  {
+    "pValueText": "Delayed Word Recall Test (belongs to WL-dr category)",
+    "full_description": "DWRT-dr"
+  },
+  {
+    "pValueText": "dual energy X-ray absorptiometry",
+    "full_description": "DXA"
+  },
+  {
+    "pValueText": "European Ancestry",
+    "full_description": "EA"
+  },
+  {
+    "pValueText": "Epstein-Barr virus",
+    "full_description": "EBV"
+  },
+  {
+    "pValueText": "excessive daytime sleepiness",
+    "full_description": "EDS"
+  },
+  {
+    "pValueText": "electroencephalography",
+    "full_description": "EEG"
+  },
+  {
+    "pValueText": "estimated energy requirement",
+    "full_description": "EER"
+  },
+  {
+    "pValueText": "glomerular filtration rate",
+    "full_description": "eGFR"
+  },
+  {
+    "pValueText": "estimated glomerular filtration rate based on serum creatinine",
+    "full_description": "eGFRcrea"
+  },
+  {
+    "pValueText": "serum cystatin C",
+    "full_description": "eGFRcys"
+  },
+  {
+    "pValueText": "Extraintestinal manifestations",
+    "full_description": "EIM"
+  },
+  {
+    "pValueText": "Elated mania",
+    "full_description": "EM"
+  },
+  {
+    "pValueText": "Estrogen receptor positive",
+    "full_description": "ER +ve"
+  },
+  {
+    "pValueText": "Estrogen receptor negative",
+    "full_description": "ER -ve"
+  },
+  {
+    "pValueText": "Endothelin-1",
+    "full_description": "ET-1"
+  },
+  {
+    "pValueText": "endocrine treatment",
+    "full_description": "ET"
+  },
+  {
+    "pValueText": "esophageal squamous cell carcinoma",
+    "full_description": "ESCC"
+  },
+  {
+    "pValueText": "end-stage renal disease",
+    "full_description": "ESRD"
+  },
+  {
+    "pValueText": "Epworth Sleepiness Scale",
+    "full_description": "ESS"
+  },
+  {
+    "pValueText": "esterified cholesterol",
+    "full_description": "Est-C"
+  },
+  {
+    "pValueText": "ever smokers, never smokers",
+    "full_description": "EVNV"
+  },
+  {
+    "pValueText": "Factor 2 (visual memory and organization)",
+    "full_description": "F2"
+  },
+  {
+    "pValueText": "Factor 3 (measure of attention and executive function - Trails A and B)",
+    "full_description": "F3"
+  },
+  {
+    "pValueText": "female athletes",
+    "full_description": "FA"
+  },
+  {
+    "pValueText": "free cholesterol",
+    "full_description": "FC"
+  },
+  {
+    "pValueText": "forced expiratory flow",
+    "full_description": "FEF"
+  },
+  {
+    "pValueText": "forced expiratory volume in 1 second",
+    "full_description": "FEV1"
+  },
+  {
+    "pValueText": "longitudinal slope of forced expiratory volume in one second",
+    "full_description": "fev1slope"
+  },
+  {
+    "pValueText": "fibrinogen",
+    "full_description": "FG"
+  },
+  {
+    "pValueText": "fasting insulin",
+    "full_description": "FI"
+  },
+  {
+    "pValueText": "female long endurance athletes",
+    "full_description": "FLE"
+  },
+  {
+    "pValueText": "femoral neck",
+    "full_description": "FN"
+  },
+  {
+    "pValueText": "femoral bone mineral density in males",
+    "full_description": "FNBMDm"
+  },
+  {
+    "pValueText": "fasting plasma glucose",
+    "full_description": "FPG"
+  },
+  {
+    "pValueText": "free Protein S",
+    "full_description": "fPS"
+  },
+  {
+    "pValueText": "fasting serum free triiodothyronine",
+    "full_description": "Free T3"
+  },
+  {
+    "pValueText": "female-only stroke",
+    "full_description": "FS"
+  },
+  {
+    "pValueText": "female sexual dysfunction",
+    "full_description": "FSD"
+  },
+  {
+    "pValueText": "fasting serum glucose",
+    "full_description": "FSG"
+  },
+  {
+    "pValueText": "follicle-stimulating hormone",
+    "full_description": "FSH"
+  },
+  {
+    "pValueText": "frequently sampled intravenous glucose tolerance test",
+    "full_description": "FSIGT"
+  },
+  {
+    "pValueText": "free thyroxine 3",
+    "full_description": "Ft3"
+  },
+  {
+    "pValueText": "free thyroxine",
+    "full_description": "Ft4"
+  },
+  {
+    "pValueText": "frontotemporal dementia",
+    "full_description": "FTD"
+  },
+  {
+    "pValueText": "Antennary fucosylated glycans",
+    "full_description": "FUC-A"
+  },
+  {
+    "pValueText": "Core fucosylated glycans",
+    "full_description": "FUC-C"
+  },
+  {
+    "pValueText": "functional Protein S",
+    "full_description": "funcPS"
+  },
+  {
+    "pValueText": "forced vital capacity",
+    "full_description": "FVC"
+  },
+  {
+    "pValueText": "Coagulation factors VII",
+    "full_description": "FVII"
+  },
+  {
+    "pValueText": "forward wave amplitude, long-term average",
+    "full_description": "FWLTA"
+  },
+  {
+    "pValueText": "grade 3 diarrhea",
+    "full_description": "G3D"
+  },
+  {
+    "pValueText": "glucocerebrosiadase",
+    "full_description": "GBA"
+  },
+  {
+    "pValueText": "glomerular filtration rate",
+    "full_description": "GFR"
+  },
+  {
+    "pValueText": "glutamyltranspeptidase",
+    "full_description": "GGT"
+  },
+  {
+    "pValueText": "Glucose",
+    "full_description": "Glc"
+  },
+  {
+    "pValueText": "Glutamine",
+    "full_description": "Gln"
+  },
+  {
+    "pValueText": "glucose",
+    "full_description": "GLU"
+  },
+  {
+    "pValueText": "glucosylceramide",
+    "full_description": "GluCer"
+  },
+  {
+    "pValueText": "Glutamyl oxaloacetic transaminase, Aspartate aminotransferase",
+    "full_description": "GOT (AST)"
+  },
+  {
+    "pValueText": "Glycan peak",
+    "full_description": "GP"
+  },
+  {
+    "pValueText": "glutamate pyruvate transaminase, alanine aminotransferase",
+    "full_description": "GPT (ALT)"
+  },
+  {
+    "pValueText": "glycoprotein 130",
+    "full_description": "GP130"
+  },
+  {
+    "pValueText": "general side effect burden",
+    "full_description": "GSE"
+  },
+  {
+    "pValueText": "Hamilton Anxiety Scale",
+    "full_description": "HAM-A"
+  },
+  {
+    "pValueText": "hemoglobin A1c",
+    "full_description": "HbA1C"
+  },
+  {
+    "pValueText": "fetal hemoglobin",
+    "full_description": "HbF"
+  },
+  {
+    "pValueText": "homocysteine",
+    "full_description": "Hcy"
+  },
+  {
+    "pValueText": "Total cholesterol in HDL",
+    "full_description": "HDL-C"
+  },
+  {
+    "pValueText": "human epidermal growth factor receptor 2",
+    "full_description": "HER2"
+  },
+  {
+    "pValueText": "Hemoglobin",
+    "full_description": "Hgb"
+  },
+  {
+    "pValueText": "Histidine",
+    "full_description": "His"
+  },
+  {
+    "pValueText": "homeostasis model assessment of insulin resistance",
+    "full_description": "HOMA-IR"
+  },
+  {
+    "pValueText": "human immunodeficiency virus",
+    "full_description": "HIV"
+  },
+  {
+    "pValueText": "high density lipoprotein",
+    "full_description": "HDL"
+  },
+  {
+    "pValueText": "homeostasis model assessment of beta-cell function",
+    "full_description": "HOMA-B"
+  },
+  {
+    "pValueText": "hormone receptor",
+    "full_description": "HR"
+  },
+  {
+    "pValueText": "maximum heart rate during treadmill fitness test",
+    "full_description": "HRmax"
+  },
+  {
+    "pValueText": "Herpes simplex virus type 2",
+    "full_description": "HSV-2"
+  },
+  {
+    "pValueText": "hematocrit",
+    "full_description": "Ht"
+  },
+  {
+    "pValueText": "Hounsfield units",
+    "full_description": "HU"
+  },
+  {
+    "pValueText": "homovanillic acid",
+    "full_description": "HVA"
+  },
+  {
+    "pValueText": "Hopkins Verbal Learning Test delayed recall (belongs to WL-dr category)",
+    "full_description": "HVLT-dr"
+  },
+  {
+    "pValueText": "islet autoantibody",
+    "full_description": "IA"
+  },
+  {
+    "pValueText": "internal cartotid artery internal and common carotid intimal medial thickness",
+    "full_description": "ICAIMT"
+  },
+  {
+    "pValueText": "Intercellular adhesion molecule",
+    "full_description": "ICAM"
+  },
+  {
+    "pValueText": "intra-extradimensional set shifting",
+    "full_description": "IED"
+  },
+  {
+    "pValueText": "insulin-like growth factor I precursor",
+    "full_description": "IGF1"
+  },
+  {
+    "pValueText": "fasting serum insulin-like growth factor binding protein-1",
+    "full_description": "IGFBP-1"
+  },
+  {
+    "pValueText": "fasting serum insulin-like growth factor binding protein-3",
+    "full_description": "IGFBP-3"
+  },
+  {
+    "pValueText": "Interleukin-6 precursor",
+    "full_description": "IL6"
+  },
+  {
+    "pValueText": "Interleukin-8 precursor",
+    "full_description": "IL8"
+  },
+  {
+    "pValueText": "Interleukin-10 precursor",
+    "full_description": "IL10"
+  },
+  {
+    "pValueText": "interleukin-12 precursor",
+    "full_description": "IL12"
+  },
+  {
+    "pValueText": "Interleukin-18 precursor",
+    "full_description": "IL18"
+  },
+  {
+    "pValueText": "Interleukin-1, beta",
+    "full_description": "IL1B"
+  },
+  {
+    "pValueText": "interleukin-1 receptor antagonist protein precursor",
+    "full_description": "IL1RA"
+  },
+  {
+    "pValueText": "irritable mania",
+    "full_description": "IM"
+  },
+  {
+    "pValueText": "Carotid intimal medial thickness",
+    "full_description": "IMT"
+  },
+  {
+    "pValueText": "insulin",
+    "full_description": "INS"
+  },
+  {
+    "pValueText": "interaction",
+    "full_description": "int"
+  },
+  {
+    "pValueText": "insulin resistance",
+    "full_description": "IR"
+  },
+  {
+    "pValueText": "all ischemic stroke",
+    "full_description": "IS"
+  },
+  {
+    "pValueText": "0-120 min insulin sensitivity index",
+    "full_description": "ISI_0-120"
+  },
+  {
+    "pValueText": "Kawasaki disease",
+    "full_description": "KD"
+  },
+  {
+    "pValueText": "linoleic acid",
+    "full_description": "LA"
+  },
+  {
+    "pValueText": "large artery atherosclerosis",
+    "full_description": "LAA"
+  },
+  {
+    "pValueText": "left atrial diameter",
+    "full_description": "LAD"
+  },
+  {
+    "pValueText": "lung cancer",
+    "full_description": "LC"
+  },
+  {
+    "pValueText": "low density lipoprotein",
+    "full_description": "LDL"
+  },
+  {
+    "pValueText": "Total cholesterol in LDL",
+    "full_description": "LDL-C"
+  },
+  {
+    "pValueText": "ratio of low frequency to high frequency power",
+    "full_description": "LF/HF"
+  },
+  {
+    "pValueText": "The free cholesterol content of large LDL",
+    "full_description": "L-LDL-FC"
+  },
+  {
+    "pValueText": "Total lipids in large HDL",
+    "full_description": "L-HDL-L"
+  },
+  {
+    "pValueText": "lipoprotein (a)",
+    "full_description": "Lp(a)"
+  },
+  {
+    "pValueText": "lumbar spine",
+    "full_description": "LS"
+  },
+  {
+    "pValueText": "lamotrigine-induced hypersensitivity",
+    "full_description": "LTG"
+  },
+  {
+    "pValueText": "leukocyte telomere length",
+    "full_description": "LTL"
+  },
+  {
+    "pValueText": "Left ventricular ejection fraction",
+    "full_description": "LVEF"
+  },
+  {
+    "pValueText": "large-vessel disease",
+    "full_description": "LVD"
+  },
+  {
+    "pValueText": "left ventricular diastolic diameter",
+    "full_description": "LVDD"
+  },
+  {
+    "pValueText": "left ventricular fractional shortening",
+    "full_description": "LVFS"
+  },
+  {
+    "pValueText": "left ventricular mass",
+    "full_description": "LVM"
+  },
+  {
+    "pValueText": "left ventricular mass index",
+    "full_description": "LVMI"
+  },
+  {
+    "pValueText": "left ventricular systolic dimension",
+    "full_description": "LVSD"
+  },
+  {
+    "pValueText": "Lymphoma subtypes",
+    "full_description": "LYM"
+  },
+  {
+    "pValueText": "from clamp",
+    "full_description": "M"
+  },
+  {
+    "pValueText": "male athletes",
+    "full_description": "MA"
+  },
+  {
+    "pValueText": "mean arterial pressure",
+    "full_description": "MAP"
+  },
+  {
+    "pValueText": "mean arterial pressure, long-term average",
+    "full_description": "MAPLTA"
+  },
+  {
+    "pValueText": "maximum L* (reflectance)",
+    "full_description": "maxL*"
+  },
+  {
+    "pValueText": "mother’s criticism",
+    "full_description": "MC"
+  },
+  {
+    "pValueText": "mean corpuscular hemoglobin",
+    "full_description": "MCH"
+  },
+  {
+    "pValueText": "mean corpuscular hemoglobin concentration",
+    "full_description": "MCHC"
+  },
+  {
+    "pValueText": "mild cognitive impairment",
+    "full_description": "MCI"
+  },
+  {
+    "pValueText": "Mental Component Summary",
+    "full_description": "MCS"
+  },
+  {
+    "pValueText": "mean corpuscular volume",
+    "full_description": "MCV"
+  },
+  {
+    "pValueText": "monocyte chemoattractant protein-1",
+    "full_description": "MCP1"
+  },
+  {
+    "pValueText": "Mild disease course",
+    "full_description": "MDC"
+  },
+  {
+    "pValueText": "mean forced vital capacity from 2 exams",
+    "full_description": "meanFVC"
+  },
+  {
+    "pValueText": "mean FEV1/FVC from 2 exams",
+    "full_description": "meanratio"
+  },
+  {
+    "pValueText": "Methamphetamine",
+    "full_description": "METH"
+  },
+  {
+    "pValueText": "2-(N-acetyl-L-cystein-S-yl)-1-hydroxybut-3-ene and 1-(N-acetyl-L-cystein-S-yl)-1-hydroxybut-3-ene",
+    "full_description": "MHBMA"
+  },
+  {
+    "pValueText": "Total lipids in medium HDL",
+    "full_description": "M-HDL-L"
+  },
+  {
+    "pValueText": "3-methoxy-4-hydroxyphenlglycol",
+    "full_description": "MHPG"
+  },
+  {
+    "pValueText": "myocardial infarction",
+    "full_description": "MI"
+  },
+  {
+    "pValueText": "macrophage inflammatory protein beta",
+    "full_description": "MIP-1b"
+  },
+  {
+    "pValueText": "Total cholesterol in medium LDL",
+    "full_description": "M-LDL-C"
+  },
+  {
+    "pValueText": "Phospholipids in medium LDL",
+    "full_description": "M-LDL-PL"
+  },
+  {
+    "pValueText": "male long endurance athletes",
+    "full_description": "MLE"
+  },
+  {
+    "pValueText": "double-bond protons of mobile lipids",
+    "full_description": "MobCH"
+  },
+  {
+    "pValueText": "mismatch negativity (300-710 ms)",
+    "full_description": "MMnb"
+  },
+  {
+    "pValueText": "measles, mumps and rubella vaccination",
+    "full_description": "MMR"
+  },
+  {
+    "pValueText": "Mini-mental state examination",
+    "full_description": "MMSE"
+  },
+  {
+    "pValueText": "middle and short endurance athletes",
+    "full_description": "MSE"
+  },
+  {
+    "pValueText": "Multiple Sclerosis Severity Scale",
+    "full_description": "MSSS"
+  },
+  {
+    "pValueText": "Multi-Trait Analysis of GWAS",
+    "full_description": "MTAG"
+  },
+  {
+    "pValueText": "Phospholipids in medium VLDL",
+    "full_description": "M-VLDL-PL"
+  },
+  {
+    "pValueText": "mother’s warmth",
+    "full_description": "MW"
+  },
+  {
+    "pValueText": "not applicable",
+    "full_description": "NA"
+  },
+  {
+    "pValueText": "non-albumin protein",
+    "full_description": "NAP"
+  },
+  {
+    "pValueText": "Boston Naming Test",
+    "full_description": "Nam"
+  },
+  {
+    "pValueText": "neurocognitive impairment",
+    "full_description": "NCI"
+  },
+  {
+    "pValueText": "Neck section modulus",
+    "full_description": "NeckZ1"
+  },
+  {
+    "pValueText": "neck section modulus in females",
+    "full_description": "NeckZ1rf"
+  },
+  {
+    "pValueText": "neck width in females",
+    "full_description": "NeckW1rf"
+  },
+  {
+    "pValueText": "neck section modulus in males",
+    "full_description": "NeckZ1rm"
+  },
+  {
+    "pValueText": "fasting serum nonesterified fatty acids",
+    "full_description": "NEFA"
+  },
+  {
+    "pValueText": "neurofibrillary tangles",
+    "full_description": "NFT"
+  },
+  {
+    "pValueText": "Non-Hodgkin’s Lymphoma",
+    "full_description": "NHL"
+  },
+  {
+    "pValueText": "neck length",
+    "full_description": "NL"
+  },
+  {
+    "pValueText": "nasopharyngeal carcinoma",
+    "full_description": "NPC"
+  },
+  {
+    "pValueText": "normal-pressure glaucoma",
+    "full_description": "NPG"
+  },
+  {
+    "pValueText": "not reported",
+    "full_description": "NR"
+  },
+  {
+    "pValueText": "none significant",
+    "full_description": "NS"
+  },
+  {
+    "pValueText": "neck shaft angle",
+    "full_description": "NSA"
+  },
+  {
+    "pValueText": "neck-shaft angle in males",
+    "full_description": "NSAm"
+  },
+  {
+    "pValueText": "nonsyndromic cleft lip with or without cleft palate",
+    "full_description": "NSCL/P"
+  },
+  {
+    "pValueText": "neck width",
+    "full_description": "NW"
+  },
+  {
+    "pValueText": "Non Verbal",
+    "full_description": "Nvrb"
+  },
+  {
+    "pValueText": "Childhood Obsessive-Compulsive Personality Disorder",
+    "full_description": "OCPD"
+  },
+  {
+    "pValueText": "odds ratio",
+    "full_description": "OR"
+  },
+  {
+    "pValueText": "particle concentration",
+    "full_description": "P"
+  },
+  {
+    "pValueText": "post exercise 3 minute recovery systolic blood pressure",
+    "full_description": "P3MRSBP"
+  },
+  {
+    "pValueText": "peripheral artery disease",
+    "full_description": "PAD"
+  },
+  {
+    "pValueText": "plasminogen activator inhibitor",
+    "full_description": "PAI-1"
+  },
+  {
+    "pValueText": "paired associates learning",
+    "full_description": "PAL"
+  },
+  {
+    "pValueText": "paragraph delayed recall",
+    "full_description": "PAR-dr"
+  },
+  {
+    "pValueText": "Protein C",
+    "full_description": "PC"
+  },
+  {
+    "pValueText": "principal component axis 1, CANTAB measures",
+    "full_description": "PC1"
+  },
+  {
+    "pValueText": "principal component analysis 2",
+    "full_description": "PC2"
+  },
+  {
+    "pValueText": "principal component analysis 3",
+    "full_description": "PC3"
+  },
+  {
+    "pValueText": "Phosphatidylcholine diacyl C36:3",
+    "full_description": "PC aa C36:3"
+  },
+  {
+    "pValueText": "Phosphatidylcholine diacyl C34:4",
+    "full_description": "PC aa C36:4"
+  },
+  {
+    "pValueText": "Physical Component Summary",
+    "full_description": "PCS"
+  },
+  {
+    "pValueText": "periodontal complex trait",
+    "full_description": "PCT"
+  },
+  {
+    "pValueText": "packed cell volume",
+    "full_description": "PCV"
+  },
+  {
+    "pValueText": "Parkinson’s disease",
+    "full_description": "PD"
+  },
+  {
+    "pValueText": "Porphyromonas gingivalis",
+    "full_description": "P gingi"
+  },
+  {
+    "pValueText": "Phenylalanine",
+    "full_description": "Phe"
+  },
+  {
+    "pValueText": "phenytoin-induced hypersensitivity",
+    "full_description": "PHT"
+  },
+  {
+    "pValueText": "pack-years",
+    "full_description": "PKYRS"
+  },
+  {
+    "pValueText": "phospholipid",
+    "full_description": "PL"
+  },
+  {
+    "pValueText": "platelets",
+    "full_description": "PLT"
+  },
+  {
+    "pValueText": "platelet aggregation (ADP-induced)",
+    "full_description": "pltadp"
+  },
+  {
+    "pValueText": "platelet aggregation (collagen-induced)",
+    "full_description": "pltcoll"
+  },
+  {
+    "pValueText": "pulse pressure",
+    "full_description": "PP"
+  },
+  {
+    "pValueText": "percent predicted FEF25-75 for latest exam",
+    "full_description": "ppfef"
+  },
+  {
+    "pValueText": "percent predicted FEF25-75/FVC for latest exam",
+    "full_description": "ppfefrat"
+  },
+  {
+    "pValueText": "percent predicted FVC for latest exam",
+    "full_description": "ppfvc"
+  },
+  {
+    "pValueText": "percent predicted FEV1 for latest exam",
+    "full_description": "ppfev1"
+  },
+  {
+    "pValueText": "percent predicted FEV1/FVC/FEF",
+    "full_description": "ppFEV1/FEC/FEE"
+  },
+  {
+    "pValueText": "percent predicted FEV1/FVC for latest exam",
+    "full_description": "ppratio"
+  },
+  {
+    "pValueText": "pattern recognition memory",
+    "full_description": "PRM"
+  },
+  {
+    "pValueText": "propylthiouracil solution",
+    "full_description": "PROP"
+  },
+  {
+    "pValueText": "protein S",
+    "full_description": "PS"
+  },
+  {
+    "pValueText": "primary sclerosing cholangitis",
+    "full_description": "PSC"
+  },
+  {
+    "pValueText": "prothrombin time",
+    "full_description": "PT"
+  },
+  {
+    "pValueText": "polyunsaturated fatty acids",
+    "full_description": "PUFA"
+  },
+  {
+    "pValueText": "peak-valley respiratory sinus arrhythmia or high frequency power",
+    "full_description": "pvRSA/HF"
+  },
+  {
+    "pValueText": "quality control",
+    "full_description": "QC"
+  },
+  {
+    "pValueText": "fasting serum quantitative insulin sensitivity check index",
+    "full_description": "QUICKI"
+  },
+  {
+    "pValueText": "Rheumatoid arthritis",
+    "full_description": "RA"
+  },
+  {
+    "pValueText": "risk allele frequency",
+    "full_description": "RAF"
+  },
+  {
+    "pValueText": "fasting serum regulated upon activation, normal T-cell expressed and secreted",
+    "full_description": "RANTES"
+  },
+  {
+    "pValueText": "Rey’s Auditory Verbal Learning Test delayed recall (belongs to WL-dr category)",
+    "full_description": "RAVLT-dr"
+  },
+  {
+    "pValueText": "red blood cell",
+    "full_description": "RBC"
+  },
+  {
+    "pValueText": "red blood cell count",
+    "full_description": "RBCC"
+  },
+  {
+    "pValueText": "red cell distribution width",
+    "full_description": "RDW"
+  },
+  {
+    "pValueText": "root mean square of the successive differences of inter beat intervals",
+    "full_description": "RMSSD"
+  },
+  {
+    "pValueText": "maximum respiratory quotient during treadmill fitness test",
+    "full_description": "RQmax"
+  },
+  {
+    "pValueText": "rapid visual processing",
+    "full_description": "RVP"
+  },
+  {
+    "pValueText": "reflected wave amplitude",
+    "full_description": "RW"
+  },
+  {
+    "pValueText": "reflected wave amplitude, long-term average",
+    "full_description": "RWLTA"
+  },
+  {
+    "pValueText": "Stage 2 exercise heart rate",
+    "full_description": "S2EHR"
+  },
+  {
+    "pValueText": "stage 2 exercise systolic blood pressure",
+    "full_description": "S2ESBP"
+  },
+  {
+    "pValueText": "subset-based meta-analysis approach",
+    "full_description": "SBM"
+  },
+  {
+    "pValueText": "standard deviation of the normal-to-normal inter beat intervals",
+    "full_description": "SDNN"
+  },
+  {
+    "pValueText": "serum total triglyceride content",
+    "full_description": "serum TG"
+  },
+  {
+    "pValueText": "Simpson-Angus Scale",
+    "full_description": "SAS"
+  },
+  {
+    "pValueText": "systolic blood pressure",
+    "full_description": "SBP"
+  },
+  {
+    "pValueText": "systolic blood pressure, long-term average",
+    "full_description": "SBPLTA"
+  },
+  {
+    "pValueText": "serum creatinine",
+    "full_description": "sCR"
+  },
+  {
+    "pValueText": "Schizophrenia and Bipolar disorder",
+    "full_description": "SCZ and BD"
+  },
+  {
+    "pValueText": "standard deviation",
+    "full_description": "s.d."
+  },
+  {
+    "pValueText": "sleep efficiency",
+    "full_description": "SE"
+  },
+  {
+    "pValueText": "Glucose effectiveness",
+    "full_description": "SG"
+  },
+  {
+    "pValueText": "Shaft width combined",
+    "full_description": "ShaftW1"
+  },
+  {
+    "pValueText": "shaft width in females",
+    "full_description": "ShaftW1f"
+  },
+  {
+    "pValueText": "shaft section modulus in females",
+    "full_description": "ShaftZ1rf"
+  },
+  {
+    "pValueText": "shaft section modulus",
+    "full_description": "ShaftZ1R"
+  },
+  {
+    "pValueText": "sex hormone binding globulin",
+    "full_description": "SHBG"
+  },
+  {
+    "pValueText": "SI from FSIGT",
+    "full_description": "SI"
+  },
+  {
+    "pValueText": "fasting serum soluble intercellular adhesion molecule-1",
+    "full_description": "sICAM-1"
+  },
+  {
+    "pValueText": "soluble interleukin",
+    "full_description": "sIL-6R"
+  },
+  {
+    "pValueText": "Similarities",
+    "full_description": "Sim"
+  },
+  {
+    "pValueText": "respiratory quotient during sleep",
+    "full_description": "Sleep RQ"
+  },
+  {
+    "pValueText": "systemic lupus erythematosus",
+    "full_description": "SLE"
+  },
+  {
+    "pValueText": "butyrylcarnitine / propionylcarnitine",
+    "full_description": "SM-1"
+  },
+  {
+    "pValueText": "N-acetylornithine",
+    "full_description": "SM-2"
+  },
+  {
+    "pValueText": "1-arachidonoylglycero phosphoethanolamine / 1-linoleoylglycerophospho-ethanolamine",
+    "full_description": "SM-3"
+  },
+  {
+    "pValueText": "bilirubin (E,E) / oleoylcarnitine",
+    "full_description": "SM-4"
+  },
+  {
+    "pValueText": "hexanoylcarnitine / oleate (18:1n9)",
+    "full_description": "SM-5"
+  },
+  {
+    "pValueText": "myristate (14:0) / myristoleate (14:1n5)",
+    "full_description": "SM-6"
+  },
+  {
+    "pValueText": "1-methylxanthine / 4-acetamidobutanoate",
+    "full_description": "SM-7"
+  },
+  {
+    "pValueText": "ADpSGEGDFXAEGGGVR / ADSGEGDFXAEGGGVR",
+    "full_description": "SM-8"
+  },
+  {
+    "pValueText": "10-nonadecenoate (19:1n9) / 10-undecenoate (11:1n1)",
+    "full_description": "SM-9"
+  },
+  {
+    "pValueText": "eicosenoate (20:1n9 or 11) / tetradecanedioate",
+    "full_description": "SM-10"
+  },
+  {
+    "pValueText": "ADpSGEGDFXAEGGGVR / ADSGEGDFXAEGGGVR",
+    "full_description": "SM-11"
+  },
+  {
+    "pValueText": "ADSGEGDFXAEGGGVR / DSGEGDFXAEGGGVR",
+    "full_description": "SM-12"
+  },
+  {
+    "pValueText": "androsterone sulfate / epiandrosterone sulfate",
+    "full_description": "SM-13"
+  },
+  {
+    "pValueText": "ADpSGEGDFXAEGGGVR / DSGEGDFXAEGGGVR",
+    "full_description": "SM-14"
+  },
+  {
+    "pValueText": "1-eicosatrienoylglycero-phosphocholine / 1-linoleoylglycero phosphocholine",
+    "full_description": "SM-15"
+  },
+  {
+    "pValueText": "docosahexaenoate (DHA; 22:6n3) / eicosapentaenoate (EPA; 20:5n3)",
+    "full_description": "SM-16"
+  },
+  {
+    "pValueText": "3-(4-hydroxyphenyl)lactate / isovalerylcarnitine",
+    "full_description": "SM-17"
+  },
+  {
+    "pValueText": "age of initiation (years)",
+    "full_description": "SMKAGE"
+  },
+  {
+    "pValueText": "duration (years)",
+    "full_description": "SMKDU"
+  },
+  {
+    "pValueText": "sphingomyelin",
+    "full_description": "SM"
+  },
+  {
+    "pValueText": "spectrum",
+    "full_description": "Spc"
+  },
+  {
+    "pValueText": "surfactant protein D",
+    "full_description": "SP-D"
+  },
+  {
+    "pValueText": "processing speed",
+    "full_description": "SPEED"
+  },
+  {
+    "pValueText": "spatial recognition memory",
+    "full_description": "SRM"
+  },
+  {
+    "pValueText": "spatial span",
+    "full_description": "SSP"
+  },
+  {
+    "pValueText": "selective serotonin reuptake inhibitor",
+    "full_description": "SSRI"
+  },
+  {
+    "pValueText": "Soluble Transferrin Receptor",
+    "full_description": "sTfR"
+  },
+  {
+    "pValueText": "soluble receptor Tie-2",
+    "full_description": "sTie-2"
+  },
+  {
+    "pValueText": "strict",
+    "full_description": "Str"
+  },
+  {
+    "pValueText": "small-vessel disease",
+    "full_description": "SVD"
+  },
+  {
+    "pValueText": "spatial working memory",
+    "full_description": "SWM"
+  },
+  {
+    "pValueText": "Tetra-antennary glycans",
+    "full_description": "TA"
+  },
+  {
+    "pValueText": "Total adipose tissue area",
+    "full_description": "TAT"
+  },
+  {
+    "pValueText": "total-body less head bone mineral density",
+    "full_description": "TBLH-BMD"
+  },
+  {
+    "pValueText": "total-body lean mass",
+    "full_description": "TB-LM"
+  },
+  {
+    "pValueText": "total cholesterol",
+    "full_description": "TC"
+  },
+  {
+    "pValueText": "24-h total energy expenditure",
+    "full_description": "TEE"
+  },
+  {
+    "pValueText": "28 year time averaged fasting plasma glucose (FPG)",
+    "full_description": "tFPG"
+  },
+  {
+    "pValueText": "triglycerides",
+    "full_description": "TG"
+  },
+  {
+    "pValueText": "transforming growth factor",
+    "full_description": "TGF-b1"
+  },
+  {
+    "pValueText": "fasting serum triglycerides/high density lipoprotein cholesterol",
+    "full_description": "TG/HDLC"
+  },
+  {
+    "pValueText": "Type 1 diabetes diabetic nephropathy",
+    "full_description": "TIDN"
+  },
+  {
+    "pValueText": "Total Protein S",
+    "full_description": "Total PS"
+  },
+  {
+    "pValueText": "fasting serum triiodothyronine",
+    "full_description": "Total T3"
+  },
+  {
+    "pValueText": "fasting serum thyroxine",
+    "full_description": "Total T4"
+  },
+  {
+    "pValueText": "total protein",
+    "full_description": "TP"
+  },
+  {
+    "pValueText": "tissue plasminogen activator",
+    "full_description": "tPA"
+  },
+  {
+    "pValueText": "tumor necrosis factor alpha",
+    "full_description": "TNFA"
+  },
+  {
+    "pValueText": "Trochanter bone mineral density",
+    "full_description": "TRBMD"
+  },
+  {
+    "pValueText": "Trochanter bone mineral density males",
+    "full_description": "TRBMDm"
+  },
+  {
+    "pValueText": "thyroid stimulating hormone",
+    "full_description": "TSH"
+  },
+  {
+    "pValueText": "Tyrosine",
+    "full_description": "Tyr"
+  },
+  {
+    "pValueText": "urinary albumin excretion",
+    "full_description": "UAE"
+  },
+  {
+    "pValueText": "Valine",
+    "full_description": "Val"
+  },
+  {
+    "pValueText": "volumetric bone mineral density",
+    "full_description": "vBMD"
+  },
+  {
+    "pValueText": "Vitamin D plasma 25(OH)-D",
+    "full_description": "VitD250H"
+  },
+  {
+    "pValueText": "Vitamin K plasma phylloquinone",
+    "full_description": "VitkPhylloq"
+  },
+  {
+    "pValueText": "very-low-density lipoprotein",
+    "full_description": "VLDL"
+  },
+  {
+    "pValueText": "Mean diameter for VLDL particles",
+    "full_description": "VLDL-D"
+  },
+  {
+    "pValueText": "maximum oxygen consumption during treadmill fitness test",
+    "full_description": "VO2max"
+  },
+  {
+    "pValueText": "velocity of sound",
+    "full_description": "VOS"
+  },
+  {
+    "pValueText": "delayed recall for visually presented word list",
+    "full_description": "VPWL-dr"
+  },
+  {
+    "pValueText": "verbal",
+    "full_description": "Vrb"
+  },
+  {
+    "pValueText": "verbal recall",
+    "full_description": "VRM"
+  },
+  {
+    "pValueText": "Willebrand factor",
+    "full_description": "vWF"
+  },
+  {
+    "pValueText": "white blood cell",
+    "full_description": "WBC"
+  },
+  {
+    "pValueText": "waist circumference",
+    "full_description": "WC"
+  },
+  {
+    "pValueText": "WC adjustment for BMI",
+    "full_description": "WCadjBMI"
+  },
+  {
+    "pValueText": "weight fluctuation",
+    "full_description": "WF"
+  },
+  {
+    "pValueText": "Women’s Genome Health Study",
+    "full_description": "WGHS"
+  },
+  {
+    "pValueText": "waist hip ratio",
+    "full_description": "WHR"
+  },
+  {
+    "pValueText": "WHR adjustment for BMI",
+    "full_description": "WHRadjBMI"
+  },
+  {
+    "pValueText": "word interference test",
+    "full_description": "WIT"
+  },
+  {
+    "pValueText": "word list delayed recall",
+    "full_description": "WL-dr"
+  },
+  {
+    "pValueText": "Wide-Range Achievement Test",
+    "full_description": "WRAT"
+  },
+  {
+    "pValueText": "The cholesterol ester content of extra large HD",
+    "full_description": "XL-HDL-CE"
+  },
+  {
+    "pValueText": "Triglycerides in very large HDL",
+    "full_description": "XL-HDL-TG"
+  },
+  {
+    "pValueText": "extremely large VLDL particles",
+    "full_description": "XXL-VLDL-P"
+  },
+  {
+    "pValueText": "(Chitinase 3-like 1) protein levels",
+    "full_description": "YKL-40"
+  }
+]

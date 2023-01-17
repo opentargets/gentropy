@@ -78,3 +78,65 @@ def get_record_with_maximum_value(
     """
     w = Window.partitionBy(grouping_col).orderBy(f.col(sorting_col).desc())
     return get_top_ranked_in_window(df, w)
+
+
+def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
+    """Compute the negative log p-value.
+
+    Args:
+        p_value_mantissa (Column): P-value mantissa
+        p_value_exponent (Column): P-value exponent
+
+    Returns:
+        Column: Negative log p-value
+
+    Examples:
+        >>> d = [(1, 1), (5, -2), (1, -1000)]
+        >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
+        >>> df.withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
+        +----------------+----------------+------------------+
+        |p_value_mantissa|p_value_exponent|         neg_log_p|
+        +----------------+----------------+------------------+
+        |               1|               1|              -1.0|
+        |               5|              -2|1.3010299956639813|
+        |               1|           -1000|            1000.0|
+        +----------------+----------------+------------------+
+        <BLANKLINE>
+    """
+    return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
+
+
+def adding_quality_flag(
+    qc_column: Column, flag_condition: Column, flag_text: str
+) -> Column:
+    """Update the provided quality control list with a new flag if condition is met.
+
+    Args:
+        qc_column (Column): Array column with existing QC flags.
+        flag_condition (Column): This is a column of booleans, signing which row should be flagged
+        flag_text (str): Text for the new quality control flag
+
+    Returns:
+        Column: Array column with the updated list of qc flags.
+
+    Examples:
+    >>> data = [(True, ['Existing flag']),(True, []),(False, [])]
+    >>> new_flag = 'This is a new flag'
+    >>> (
+    ...     spark.createDataFrame(data, ['flag', 'qualityControl'])
+    ...     .withColumn('qualityControl', adding_quality_flag(f.col('qualityControl'), f.col('flag'), new_flag))
+    ...     .show(truncate=False)
+    ... )
+    +-----+-----------------------------------+
+    |flag |qualityControl                     |
+    +-----+-----------------------------------+
+    |true |[Existing flag, This is a new flag]|
+    |true |[This is a new flag]               |
+    |false|[]                                 |
+    +-----+-----------------------------------+
+    <BLANKLINE>
+    """
+    return f.when(
+        flag_condition,
+        f.array_union(qc_column, f.array(f.lit(flag_text))),
+    ).otherwise(qc_column)
