@@ -94,6 +94,14 @@ gwas_ingest:
     p_value_cutoff: 5e-8
   machine: ${machine.default}
 
-cheers:
+tissue_enrichment:
   inputs:
-    epigenetics:gs://blah
+    tissue_annotation: gs://genetics-portal-dev-analysis/xg1/EPIMAP/CHEERS_annotations/Full_epimap_adjusted.txt
+    summary_stats_credible_set: ${etl.inputs}/220224_merged_credset/
+    pics_credible_set: ${etl.inputs}/220224_merged_credset/
+  outputs:
+    summary_stats_enrichment: ${etl.outputs}/summary_stats_enrichment
+    pics_enrichment: ${etl.outputs}/summary_stats_enrichment
+  parameters:
+    min_assoc_loci: 5
+  machine: ${machine.default}
