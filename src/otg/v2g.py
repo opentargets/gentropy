@@ -43,6 +43,7 @@ class V2GStep:
     thurnman_path: str
     output_path: str
     liftover_max_length_difference: int = 100
+
     id: str = "variant2gene"
 
     def run(self: V2GStep) -> None:

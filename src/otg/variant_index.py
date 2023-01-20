@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from otg.dataset.study_locus import StudyLocus
+from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
@@ -28,12 +30,19 @@ class VariantIndexStep:
         """
         self.etl.logger.info(f"Executing {self.id} step")
 
-        vi = VariantIndex.from_credset(
-            self.etl,
-            self.variant_annotation.path,
-            self.variant_index.credible_sets,
-            self.variant_index.path,
+        # Variant annotation dataset
+        va = VariantAnnotation.from_parquet(self.etl, self.variant_annotation.path)
+
+        # Study-locus dataset
+        study_locus = StudyLocus.from_parquet(self.etl, self.study_locus.path)
+
+        # Reduce scope of variant annotation dataset to only variants in study-locus sets:
+        va_slimmed = va.filter_by_variant_df(
+            study_locus.unique_variants(), ["id", "chromosome"]
         )
+
+        # Generate variant index ussing a subset of the variant annotation dataset
+        vi = VariantIndex.from_variant_annotation(va_slimmed)
 
         # Write data:
         # self.etl.logger.info(

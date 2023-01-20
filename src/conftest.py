@@ -33,11 +33,11 @@ def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
         SparkConf()
         .set(
             "spark.jars",
-            hail_home + "/backend/hail-all-spark.jar",
+            f"{hail_home}/backend/hail-all-spark.jar",
         )
         .set(
             "spark.driver.extraClassPath",
-            hail_home + "/backend/hail-all-spark.jar",
+            "f{hail_home}/backend/hail-all-spark.jar",
         )
         .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")

@@ -4,13 +4,19 @@
     {
       "name": "studyId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyType",
+      "type": "string",
+      "nullable": false,
       "metadata": {}
     },
     {
       "name": "diseaseTrait",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
