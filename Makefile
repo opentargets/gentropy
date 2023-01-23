@@ -1,6 +1,6 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-CLUSTER_NAME ?= xyg_tissue_enrichment
+CLUSTER_NAME ?= xyg-tissue-enrichment
 PROJECT_NUMBER ?= $$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)")
 APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
