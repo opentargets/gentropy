@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy
-import pandas as pd
 import pyspark.sql.functions as f
 from pyspark.sql.types import FloatType
 from pyspark.sql.window import Window
@@ -63,21 +62,6 @@ def _ndtr(x: float, mean: float, std: float) -> float:
         float: Area under the pdf.
     """
     return 0.5 + 0.5 * sps.erf((x - mean) / (std * 2**0.5))
-
-
-@f.pandas_udf("long")
-def vectorized_cdf(x: float, y: float, z: float) -> pd.Series:
-    """Calculates the p-value.
-
-    Args:
-        x (float): observed peak rank.
-        y (float): expected peak rank.
-        z (float): standard deviation under the null.
-
-    Returns:
-        pd.Series: pd.series of p-values.
-    """
-    return pd.Series(1 - _ndtr(x, z, y))
 
 
 def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
@@ -166,7 +150,8 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
 
     sample_mean_rank_unique_peaks = sample_mean_rank_unique_peaks.withColumn(
         "pvalue",
-        vectorized_cdf(
+        1
+        - _ndtr(
             sample_mean_rank_unique_peaks.mean_rank,
             sample_mean_rank_unique_peaks.mean_sd,
             sample_mean_rank_unique_peaks.mean_mean,

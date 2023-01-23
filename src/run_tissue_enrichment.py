@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 def main(cfg: DictConfig) -> None:
     """Run tissue enrichment analysis using the CHEERS method."""
     etl = ETLSession(cfg)
-    etl.logger.info("Starting tissue enrichment calculations...")
+    etl.logger.info("Loading data for tissue enrichment calculations...")
 
     # Loading data
 
@@ -39,7 +39,7 @@ def main(cfg: DictConfig) -> None:
         etl.spark, cfg.etl.tissue_enrichment.inputs.tissue_annotations
     )
 
-    # Compute tissue enrichments
+    etl.logger.info("Computing tissue enrichment calculations...")
 
     summary_stats_enrichment = cheers(tissue_annotations, summary_stats_credible_set)
 
@@ -48,7 +48,7 @@ def main(cfg: DictConfig) -> None:
         pics_credible_set,
     )
 
-    # Writing tissue enrichment results
+    etl.logger.info("Writing tissue enrichment results...")
     (
         summary_stats_enrichment.write.mode(cfg.environment.sparkWriteMode).parquet(
             cfg.etl.tissue_enrichment.outputs.summary_stats_enrichment
