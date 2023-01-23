@@ -5,12 +5,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy
+import pandas as pd
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 from pyspark.sql.types import FloatType
 from pyspark.sql.window import Window
 from scipy import special as sps
 
 if TYPE_CHECKING:
+    from pyspark.ml.linalg import VectorUDT
     from pyspark.sql import DataFrame
 
 
@@ -62,6 +65,33 @@ def _ndtr(x: float, mean: float, std: float) -> float:
         float: Area under the pdf.
     """
     return 0.5 + 0.5 * sps.erf((x - mean) / (std * 2**0.5))
+
+
+def m_sd(x: VectorUDT) -> float:
+    """Calculates the variance of the mean of the n peak ranks overlapping GWAS SNPs.
+
+    Args:
+        x (VectorUDT): Peak ranks.
+
+    Returns:
+        float: Standard deviation of the mean of the n peak ranks overlapping GWAS SNPs.
+    """
+    total_peaks = x.count()
+    return numpy.sqrt(((float(total_peaks) ** 2) - 1) / (12 * x))
+
+
+def v_cdf(x: VectorUDT, y: VectorUDT, z: VectorUDT) -> pd.Series:
+    """Calculates the p-value.
+
+    Args:
+        x (VectorUDT): observed peak rank.
+        y (VectorUDT): expected peak rank.
+        z (VectorUDT): standard deviation under the null.
+
+    Returns:
+        pd.Series: pd.series of p-values.
+    """
+    return pd.Series(1 - _ndtr(x, z, y))
 
 
 def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
@@ -126,12 +156,8 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
         .cache()
     )
 
-    n_unique_peaks = n_unique_peaks.withColumn(
-        "mean_sd",
-        numpy.sqrt(
-            ((float(n_total_peaks) ** 2) - 1) / (12 * n_unique_peaks.count_peaks)
-        ),
-    )
+    mean_sd = f.udf(m_sd, t.DoubleType())
+    n_unique_peaks = n_unique_peaks.withColumn("mean_sd", mean_sd("count_peaks"))
 
     mean_mean = (1 + n_total_peaks) / 2
     sample_mean_rank_unique_peaks = sample_mean_rank.join(
@@ -148,10 +174,10 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
         )
     )
 
+    vectorized_cdf = f.udf(v_cdf, t.DoubleType())
     sample_mean_rank_unique_peaks = sample_mean_rank_unique_peaks.withColumn(
         "pvalue",
-        1
-        - _ndtr(
+        vectorized_cdf(
             sample_mean_rank_unique_peaks.mean_rank,
             sample_mean_rank_unique_peaks.mean_sd,
             sample_mean_rank_unique_peaks.mean_mean,
