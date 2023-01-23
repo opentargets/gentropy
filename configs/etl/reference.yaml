@@ -96,12 +96,12 @@ gwas_ingest:
 
 tissue_enrichment:
   inputs:
-    tissue_annotation: gs://genetics-portal-dev-analysis/xg1/EPIMAP/CHEERS_annotations/Full_epimap_adjusted.txt
-    summary_stats_credible_set: ${etl.inputs}/220224_merged_credset/
-    pics_credible_set: ${etl.inputs}/220224_merged_credset/
+    tissue_annotations: gs://genetics-portal-dev-analysis/xg1/EPIMAP/CHEERS_annotations/Full_epimap_adjusted.txt
+    summary_stats_credible_set: gs://genetics-portal-dev-analysis/xg1/CHEERS_credible_set/FM_220401_hg19.parquet
+    pics_credible_set: gs://genetics-portal-dev-analysis/xg1/CHEERS_credible_set/Non_sumstat_hg19.parquet
   outputs:
-    summary_stats_enrichment: ${etl.outputs}/summary_stats_enrichment
-    pics_enrichment: ${etl.outputs}/summary_stats_enrichment
+    summary_stats_enrichment: gs://genetics-portal-dev-analysis/xg1/CHEERS_enrichments/sumstats_enrichments/
+    pics_enrichment: gs://genetics-portal-dev-analysis/xg1/pics_enrichments/
   parameters:
     min_assoc_loci: 5
   machine: ${machine.default}
