@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import numpy
 import pandas as pd
 import pyspark.sql.functions as f
-import pyspark.sql.types as t
 from pyspark.sql.types import FloatType
 from pyspark.sql.window import Window
 from scipy import special as sps
@@ -66,7 +65,8 @@ def _ndtr(x: float, mean: float, std: float) -> float:
     return 0.5 + 0.5 * sps.erf((x - mean) / (std * 2**0.5))
 
 
-def m_sd(x: float, n_total_peaks: float) -> float:
+@f.pandas_udf("long")
+def mean_sd(x: float, n_total_peaks: float) -> float:
     """Calculates the variance of the mean of the n peak ranks overlapping GWAS SNPs.
 
     Args:
@@ -79,7 +79,8 @@ def m_sd(x: float, n_total_peaks: float) -> float:
     return numpy.sqrt(((float(n_total_peaks) ** 2) - 1) / (12 * x))
 
 
-def v_cdf(x: float, y: float, z: float) -> pd.Series:
+@f.pandas_udf("long")
+def vectorized_cdf(x: float, y: float, z: float) -> pd.Series:
     """Calculates the p-value.
 
     Args:
@@ -155,7 +156,6 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
         .cache()
     )
 
-    mean_sd = f.pandas_udf(m_sd, t.DoubleType())
     n_unique_peaks = n_unique_peaks.withColumn("mean_sd", mean_sd("count_peaks"))
 
     mean_mean = (1 + n_total_peaks) / 2
@@ -172,7 +172,7 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
             "mean_rank", sample_mean_rank_unique_peaks.mean_rank.cast(FloatType())
         )
     )
-    vectorized_cdf = f.pandas_udf(v_cdf, t.DoubleType())
+
     sample_mean_rank_unique_peaks = sample_mean_rank_unique_peaks.withColumn(
         "pvalue",
         vectorized_cdf(
