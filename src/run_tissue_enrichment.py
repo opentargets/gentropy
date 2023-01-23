@@ -41,9 +41,12 @@ def main(cfg: DictConfig) -> None:
 
     # Compute tissue enrichments
 
-    summary_stats_enrichment = cheers(summary_stats_credible_set, tissue_annotations)
+    summary_stats_enrichment = cheers(tissue_annotations, summary_stats_credible_set)
 
-    pics_enrichment = cheers(pics_credible_set, tissue_annotations)
+    pics_enrichment = cheers(
+        tissue_annotations,
+        pics_credible_set,
+    )
 
     # Writing tissue enrichment results
     (
