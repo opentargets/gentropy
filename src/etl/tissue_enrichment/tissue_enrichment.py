@@ -66,8 +66,7 @@ def _ndtr(x: float, mean: float, std: float) -> float:
     return 0.5 + 0.5 * sps.erf((x - mean) / (std * 2**0.5))
 
 
-@f.pandas_udf(t.DoubleType())
-def mean_sd(x: float, n_total_peaks: float) -> float:
+def m_sd(x: float, n_total_peaks: float) -> float:
     """Calculates the variance of the mean of the n peak ranks overlapping GWAS SNPs.
 
     Args:
@@ -80,8 +79,7 @@ def mean_sd(x: float, n_total_peaks: float) -> float:
     return numpy.sqrt(((float(n_total_peaks) ** 2) - 1) / (12 * x))
 
 
-@f.pandas_udf(t.DoubleType())
-def vectorized_cdf(x: float, y: float, z: float) -> pd.Series:
+def v_cdf(x: float, y: float, z: float) -> pd.Series:
     """Calculates the p-value.
 
     Args:
@@ -157,6 +155,7 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
         .cache()
     )
 
+    mean_sd = f.pandas_udf(m_sd, t.DoubleType())
     n_unique_peaks = n_unique_peaks.withColumn("mean_sd", mean_sd("count_peaks"))
 
     mean_mean = (1 + n_total_peaks) / 2
@@ -173,7 +172,7 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
             "mean_rank", sample_mean_rank_unique_peaks.mean_rank.cast(FloatType())
         )
     )
-
+    vectorized_cdf = f.pandas_udf(v_cdf, t.DoubleType())
     sample_mean_rank_unique_peaks = sample_mean_rank_unique_peaks.withColumn(
         "pvalue",
         vectorized_cdf(
