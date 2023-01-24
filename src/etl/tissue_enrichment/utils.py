@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pyspark.sql.types import IntegerType, StringType, StructField, StructType
-
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession
 
@@ -20,15 +18,7 @@ def load_snps(spark: SparkSession, in_path: str) -> DataFrame:
     Returns:
         DataFrame: Contains input credible SNPs.
     """
-    import_schema = StructType(
-        [
-            StructField("study_id", StringType(), False),
-            StructField("snp_id", StringType(), False),
-            StructField("chrom", StringType(), False),
-            StructField("pos", IntegerType(), False),
-        ]
-    )
-    snps = spark.read.format("parquet").load(in_path, schema=import_schema)
+    snps = spark.read.format("parquet").load(in_path)
     return snps
 
 
