@@ -68,16 +68,15 @@ def _ndtr(x: float, mean: float, std: float) -> float:
 
 
 def m_sd(x: VectorUDT) -> float:
-    """Calculates the variance of the mean of the n peak ranks overlapping GWAS SNPs.
+    """Feed to udf for vectorized square rooting.
 
     Args:
-        x (VectorUDT): Peak ranks.
+        x (VectorUDT): expected variance of peak rankings.
 
     Returns:
         float: Standard deviation of the mean of the n peak ranks overlapping GWAS SNPs.
     """
-    total_peaks = x.count()
-    return numpy.sqrt(((float(total_peaks) ** 2) - 1) / (12 * x))
+    return numpy.sqrt(x)
 
 
 def v_cdf(x: VectorUDT, y: VectorUDT, z: VectorUDT) -> pd.Series:
@@ -157,7 +156,12 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
     )
 
     mean_sd = f.udf(m_sd, t.DoubleType())
-    n_unique_peaks = n_unique_peaks.withColumn("mean_sd", mean_sd("count_peaks"))
+    n_unique_peaks = n_unique_peaks.withColumn(
+        "mean_variance", ((float(n_total_peaks) ** 2) - 1) / (12 * f.col("count_peaks"))
+    )
+    n_unique_peaks = n_unique_peaks.withColumn(
+        "mean_sd", mean_sd("mean_variance")
+    ).drop("mean_variance")
 
     mean_mean = (1 + n_total_peaks) / 2
     sample_mean_rank_unique_peaks = sample_mean_rank.join(
