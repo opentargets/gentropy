@@ -76,13 +76,13 @@ class Coloc:
 
     Based on the [R COLOC package](https://github.com/chr1swallace/coloc/blob/main/R/claudia.R), which uses the Bayes factors from the credible set to estimate the posterior probability of colocalisation. This method makes the simplifying assumption that **only one single causal variant** exists for any given trait in any genomic region.
 
-    | Hypothesis | Description                                                           |
-    | ---------- | --------------------------------------------------------------------- |
-    | H_0        | no association with either trait in the region                        |
-    | H_1        | association with trait 1 only                                         |
-    | H_2        | association with trait 2 only                                         |
-    | H_3        | both traits are associated, but have different single causal variants |
-    | H_4        | both traits are associated and share the same single causal variant   |
+    | Hypothesis    | Description                                                           |
+    | ------------- | --------------------------------------------------------------------- |
+    | H<sub>0</sub> | no association with either trait in the region                        |
+    | H<sub>1</sub> | association with trait 1 only                                         |
+    | H<sub>2</sub> | association with trait 2 only                                         |
+    | H<sub>3</sub> | both traits are associated, but have different single causal variants |
+    | H<sub>4</sub> | both traits are associated and share the same single causal variant   |
 
     !!! warning "Approximate Bayes factors required"
         Coloc requires the availability of approximate Bayes factors (ABF) for each variant in the credible set (`logABF` column).

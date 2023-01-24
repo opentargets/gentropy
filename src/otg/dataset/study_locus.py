@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Type
 
+import numpy as np
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
@@ -204,3 +206,76 @@ class StudyLocus(Dataset):
             )
             .distinct()
         )
+
+
+class StudyLocusGWASCatalog(StudyLocus):
+    """Study-locus dataset derived from GWAS Catalog."""
+
+    @staticmethod
+    def read_gwascatalog_associations(
+        gwas_associations: DataFrame, pvalue_cutoff: float
+    ) -> DataFrame:
+        """Read GWASCatalog associations.
+
+        It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
+        applies some pre-defined filters on the data:
+
+        - Dropping associations based on variant x variant interactions
+        - Dropping sub-significant associations
+        - Dropping associations without genomic location
+
+        Args:
+            gwas_associations (DataFrame): GWAS Catalog raw associations dataset
+            pvalue_cutoff (float): association p-value cut-off
+
+        Returns:
+            DataFrame: `DataFrame` with the GWAS Catalog associations
+        """
+        # Reading and filtering associations:
+        association_df = (
+            gwas_associations.select(
+                # Variant related columns:
+                # variant id and the allele is extracted (; separated list)
+                f.col("STRONGEST SNP-RISK ALLELE").alias("strongestSnpRiskAllele"),
+                # Mapped genomic location of the variant (; separated list)
+                f.col("CHR_ID").alias("chromosome"),
+                f.col("CHR_POS").alias("position"),
+                f.col("RISK ALLELE FREQUENCY").alias("riskAlleleFrequency"),
+                # Flag if a variant is a copy number variant
+                f.col("CNV").alias("cnv"),
+                f.col("SNP_ID_CURRENT").alias("snpIdCurrent"),
+                # List of all SNPs associated with the variant
+                f.col("SNPS").alias("snpIds"),
+                f.col("STUDY ACCESSION").alias("studyAccession"),
+                # Reported trait of the study
+                f.col("DISEASE/TRAIT").alias(
+                    "diseaseTrait"
+                ),  # Reported trait of the study
+                f.col("MAPPED_TRAIT_URI").alias(
+                    "mappedTraitUri"
+                ),  # Mapped trait URIs of the study
+                f.col("MERGED").alias("merged"),
+                # Association details:
+                f.col("P-VALUE (TEXT)").alias("pvalueText"),
+                # p-value of the association, string: split into exponent and mantissa.
+                f.col("P-VALUE").alias("pvalue"),
+                # -log10(p-value) of the association, float
+                f.col("PVALUE_MLOG").alias("pvalueMlog").cast(t.FloatType()),
+                # Effect size of the association, Odds ratio or beta
+                f.col("OR or BETA").alias("effectSize"),
+                # Confidence interval of the association, string: split into lower and upper bound.
+                f.col("95% CI (TEXT)").alias("confidenceInterval"),
+                f.col("CONTEXT").alias("context"),
+            )
+            # Apply some pre-defined filters on the data:
+            # 1. Dropping associations based on variant x variant interactions
+            # 2. Dropping sub-significant associations
+            # 3. Dropping associations without genomic location
+            .filter(
+                ~f.col("chrId").contains(" x ")
+                & (f.col("pvalueMlog") >= -np.log10(pvalue_cutoff))
+                & (f.col("chrPos").isNotNull() & f.col("chrId").isNotNull())
+            ).persist()
+        )
+
+        return association_df

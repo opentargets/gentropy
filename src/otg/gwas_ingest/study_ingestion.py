@@ -443,8 +443,8 @@ def generate_study_table(association_study: DataFrame) -> DataFrame:
     """
     study_columns = [
         # Study id and type:
-        f.col("studyId").alias("id"),
-        f.lit("gwas").alias("type"),
+        f.col("studyId"),
+        f.lit("gwas").alias("studyType"),
         # Publication level information:
         "pubmedId",
         f.col("firstAuthor").alias("publicationFirstAuthor"),

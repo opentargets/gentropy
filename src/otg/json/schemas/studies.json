@@ -8,19 +8,25 @@
       "metadata": {}
     },
     {
+      "name": "projectId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
       "name": "studyType",
       "type": "string",
       "nullable": false,
       "metadata": {}
     },
     {
-      "name": "diseaseTrait",
+      "name": "traitFromSource",
       "type": "string",
       "nullable": false,
       "metadata": {}
     },
     {
-      "name": "efos",
+      "name": "traitFromSourceMappedIds",
       "type": {
         "type": "array",
         "elementType": "string",
@@ -36,7 +42,13 @@
       "metadata": {}
     },
     {
-      "name": "firstAuthor",
+      "name": "publicationTitle",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "publicationFirstAuthor",
       "type": "string",
       "nullable": true,
       "metadata": {}
@@ -48,19 +60,13 @@
       "metadata": {}
     },
     {
-      "name": "journal",
+      "name": "publicationJournal",
       "type": "string",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "study",
-      "type": "string",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "backgroundEfos",
+      "name": "backgroundTraitFromSourceMappedIds",
       "type": {
         "type": "array",
         "elementType": "string",

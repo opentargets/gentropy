@@ -27,9 +27,15 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
             name="v2g",
         )
         .withSchema(schema)
-        .withColumnSpec("efos", expr="array(cast(rand() AS string))", percentNulls=0.1)
         .withColumnSpec(
-            "backgroundEfos", expr="array(cast(rand() AS string))", percentNulls=0.1
+            "traitFromSourceMappedIds",
+            expr="array(cast(rand() AS string))",
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "backgroundTraitFromSourceMappedIds",
+            expr="array(cast(rand() AS string))",
+            percentNulls=0.1,
         )
         .withColumnSpec(
             "discoverySamples",
@@ -42,10 +48,10 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
             percentNulls=0.1,
         )
         .withColumnSpec("pubmedId", percentNulls=0.1)
-        .withColumnSpec("firstAuthor", percentNulls=0.1)
+        .withColumnSpec("publicationFirstAuthor", percentNulls=0.1)
         .withColumnSpec("publicationDate", percentNulls=0.1)
-        .withColumnSpec("journal", percentNulls=0.1)
-        .withColumnSpec("study", percentNulls=0.1)
+        .withColumnSpec("publicationJournal", percentNulls=0.1)
+        .withColumnSpec("publicationTitle", percentNulls=0.1)
         .withColumnSpec("initialSampleSize", percentNulls=0.1)
         .withColumnSpec("nCases", percentNulls=0.1)
         .withColumnSpec("nControls", percentNulls=0.1)

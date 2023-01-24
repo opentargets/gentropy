@@ -1,6 +1,7 @@
 """Common utilities in Spark that can be used across the project."""
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -140,3 +141,31 @@ def adding_quality_flag(
         flag_condition,
         f.array_union(qc_column, f.array(f.lit(flag_text))),
     ).otherwise(qc_column)
+
+
+def column2camel_case(col_name: str) -> str:
+    """A helper function to convert column names to camel cases.
+
+    Args:
+        col_name (str): a single column name
+
+    Returns:
+        str: spark expression to select and rename the column
+    """
+
+    def string2camelcase(col_name: str) -> str:
+        """Converting a string to camelcase.
+
+        Args:
+            col_name (str): a random string
+
+        Returns:
+            str: Camel cased string
+        """
+        # Removing a bunch of unwanted characters from the column names:
+        col_name = re.sub(r"[\/\(\)\-]+", " ", col_name)
+
+        first, *rest = col_name.split(" ")
+        return "".join([first.lower(), *map(str.capitalize, rest)])
+
+    return f"`{col_name}` as {string2camelcase(col_name)}"
