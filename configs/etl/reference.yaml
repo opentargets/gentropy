@@ -100,8 +100,8 @@ tissue_enrichment:
     summary_stats_credible_set: gs://genetics-portal-dev-analysis/xg1/CHEERS_credible_set/FM_220401_hg19.parquet
     pics_credible_set: gs://genetics-portal-dev-analysis/xg1/CHEERS_credible_set/Non_sumstat_hg19.parquet
   outputs:
-    summary_stats_enrichment: gs://genetics-portal-dev-analysis/xg1/CHEERS_enrichments/sumstats_enrichments/
-    pics_enrichment: gs://genetics-portal-dev-analysis/xg1/pics_enrichments/
+    summary_stats_enrichment: gs://genetics-portal-dev-analysis/xg1/CHEERS_enrichments/sumstats_enrichments/results.parquet
+    pics_enrichment: gs://genetics-portal-dev-analysis/xg1/pics_enrichments/results.parquet
   parameters:
     min_assoc_loci: 5
   machine: ${machine.default}
