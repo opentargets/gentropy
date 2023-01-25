@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 
 import numpy
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 
-# import pyspark.sql.types as t
 # from pyspark.sql.types import FloatType
-from pyspark.sql.window import Window
+# from pyspark.sql.window import Window
 from scipy import special as sps
 
 if TYPE_CHECKING:
@@ -122,54 +122,53 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
         .persist()
     )
 
-    sample_names = peaks_wide.columns[3:]
-    peaks_long = _melt(
-        df=peaks_wide,
-        id_vars=["chr", "start", "end"],
-        value_vars=sample_names,
-        var_name="sample",
-        value_name="score",
-    )
-    # return peaks_long
-    window_spec = Window.partitionBy("sample").orderBy("score")
-
-    # Get ranks. The original code starts ranks from 0, so subtract 1.
-    peak_ranks = peaks_long.withColumn("rank", f.rank().over(window_spec) - 1)
-
-    # Get peaks that overlap
-    unique_peaks = peaks_overlapping.join(
-        peak_ranks, on=["chr", "start", "end"], how="inner"
-    )
-
-    # Get mean rank per sample
-    sample_mean_rank = (
-        unique_peaks.groupby("study_id", "sample")
-        .agg(f.mean(f.col("rank")).alias("mean_rank"))
-        .cache()
-    )
-
-    return sample_mean_rank
-
-    # mean_sd = f.udf(m_sd, t.DoubleType())
+    mean_sd = f.udf(m_sd, t.DoubleType())
 
     # Store total number of peaks and total overlapping peaks
-    # n_total_peaks = float(peaks_wide.count())
-    # n_unique_peaks = (
-    #    peaks_overlapping.groupBy("study_id")
-    #    .count()
-    #    .withColumnRenamed("count", "count_peaks")
-    # )
-    # return n_unique_peaks
-    # n_unique_peaks = n_unique_peaks.withColumn(
-    #    "mean_variance", ((float(n_total_peaks) ** 2) - 1) / (12 * f.col("count_peaks"))
-    # )
-    # n_unique_peaks = n_unique_peaks.withColumn(
-    #    "mean_sd", mean_sd("mean_variance")
-    # ).drop("mean_variance")
 
-    # return n_unique_peaks
+    n_unique_peaks = (
+        peaks_overlapping.groupBy("study_id")
+        .count()
+        .withColumnRenamed("count", "count_peaks")
+    )
+    n_total_peaks = float(peaks_wide.count())
+    n_unique_peaks = n_unique_peaks.withColumn(
+        "mean_variance", ((float(n_total_peaks) ** 2) - 1) / (12 * f.col("count_peaks"))
+    )
+    n_unique_peaks = n_unique_peaks.withColumn(
+        "mean_sd", mean_sd("mean_variance")
+    ).drop("mean_variance")
+
+    return n_unique_peaks
+
+    # sample_names = peaks_wide.columns[3:]
+    # peaks_long = _melt(
+    #    df=peaks_wide,
+    #    id_vars=["chr", "start", "end"],
+    #    value_vars=sample_names,
+    #    var_name="sample",
+    #    value_name="score",
+    # )
+    # return peaks_long
+    # window_spec = Window.partitionBy("sample").orderBy("score")
+
+    # Get ranks. The original code starts ranks from 0, so subtract 1.
+    # peak_ranks = peaks_long.withColumn("rank", f.rank().over(window_spec) - 1)
+
+    # Get peaks that overlap
+    # unique_peaks = peaks_overlapping.join(
+    #    peak_ranks, on=["chr", "start", "end"], how="inner"
+    # )
 
     # mean_mean = (1 + n_total_peaks) / 2
+    # Get mean rank per sample
+    # sample_mean_rank = (
+    #    unique_peaks.groupby("study_id", "sample")
+    #    .agg(f.mean(f.col("rank")).alias("mean_rank"))
+    #    .cache()
+    # )
+
+    # return sample_mean_rank
     # sample_mean_rank_unique_peaks = sample_mean_rank.join(
     #    n_unique_peaks, on="study_id", how="inner"
     # ).withColumn("mean_mean", f.lit(mean_mean))
