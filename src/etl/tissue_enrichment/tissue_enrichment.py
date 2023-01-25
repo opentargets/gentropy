@@ -64,7 +64,7 @@ def _ndtr(x: float, mean: float, std: float) -> float:
     Returns:
         float: Area under the pdf.
     """
-    return 0.5 + 0.5 * sps.erf((x - mean) / (std * 2**0.5))
+    return float(0.5 + 0.5 * sps.erf((x - mean) / (std * 2**0.5)))
 
 
 def m_sd(x: VectorUDT) -> float:
@@ -90,7 +90,7 @@ def v_cdf(x: VectorUDT, y: VectorUDT, z: VectorUDT) -> float:
     Returns:
         float:  Enrichment p-values.
     """
-    return 1 - _ndtr(x, z, y)
+    return float(1 - _ndtr(x, z, y))
 
 
 def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
