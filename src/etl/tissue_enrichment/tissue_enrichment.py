@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+# import numpy
+import math
 from typing import TYPE_CHECKING
 
-import numpy
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
@@ -76,7 +77,7 @@ def m_sd(x: VectorUDT) -> float:
     Returns:
         float: Standard deviation of the mean of the n peak ranks overlapping GWAS SNPs.
     """
-    return numpy.sqrt(x)
+    return math.sqrt(x)
 
 
 def v_cdf(x: VectorUDT, y: VectorUDT, z: VectorUDT) -> float:
