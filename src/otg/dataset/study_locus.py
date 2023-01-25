@@ -10,11 +10,12 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from otg.common.schemas import parse_spark_schema
+from otg.common.spark_helpers import calculate_neglog_pvalue
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
@@ -207,13 +208,50 @@ class StudyLocus(Dataset):
             .distinct()
         )
 
+    def neglog_pvalue(self: StudyLocus) -> Column:
+        """Returns the negative log p-value.
+
+        Returns:
+            Column: Negative log p-value
+        """
+        return calculate_neglog_pvalue(
+            self.df.pvalueMantissa,
+            self.df.pvalueExponent,
+        )
+
 
 class StudyLocusGWASCatalog(StudyLocus):
     """Study-locus dataset derived from GWAS Catalog."""
 
     @staticmethod
+    def _parse_pvalue_exponent(pvalue_column: Column) -> Column:
+        """Parse p-value exponent.
+
+        Args:
+            pvalue_column (Column): Column from GWASCatalog containing the p-value
+
+        Returns:
+            Column: Column containing the p-value exponent
+        """
+        return f.split(pvalue_column, "e").getItem(1).cast("int")
+
+    @staticmethod
+    def _parse_pvalue_mantissa(pvalue_column: Column) -> Column:
+        """Parse p-value mantis.
+
+        Args:
+            pvalue_column (Column): Column from GWASCatalog containing the p-value
+
+        Returns:
+            Column: Column containing the p-value mantis
+        """
+        return f.split(pvalue_column, "e").getItem(0).cast("float")
+
+    @classmethod
     def read_gwascatalog_associations(
-        gwas_associations: DataFrame, pvalue_cutoff: float
+        cls: Type[StudyLocusGWASCatalog],
+        gwas_associations: DataFrame,
+        pvalue_cutoff: float,
     ) -> DataFrame:
         """Read GWASCatalog associations.
 
@@ -232,7 +270,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             DataFrame: `DataFrame` with the GWAS Catalog associations
         """
         # Reading and filtering associations:
-        association_df = (
+        return (
             gwas_associations.select(
                 # Variant related columns:
                 # variant id and the allele is extracted (; separated list)
@@ -241,8 +279,6 @@ class StudyLocusGWASCatalog(StudyLocus):
                 f.col("CHR_ID").alias("chromosome"),
                 f.col("CHR_POS").alias("position"),
                 f.col("RISK ALLELE FREQUENCY").alias("riskAlleleFrequency"),
-                # Flag if a variant is a copy number variant
-                f.col("CNV").alias("cnv"),
                 f.col("SNP_ID_CURRENT").alias("snpIdCurrent"),
                 # List of all SNPs associated with the variant
                 f.col("SNPS").alias("snpIds"),
@@ -251,13 +287,12 @@ class StudyLocusGWASCatalog(StudyLocus):
                 f.col("DISEASE/TRAIT").alias(
                     "diseaseTrait"
                 ),  # Reported trait of the study
-                f.col("MAPPED_TRAIT_URI").alias(
-                    "mappedTraitUri"
-                ),  # Mapped trait URIs of the study
-                f.col("MERGED").alias("merged"),
+                f.col("MAPPED_TRAIT_URI").alias("mappedTraitUri"),
                 # Association details:
                 f.col("P-VALUE (TEXT)").alias("pvalueText"),
                 # p-value of the association, string: split into exponent and mantissa.
+                cls._parse_pvalue_mantissa(f.col("P-VALUE")).alias("pvalueMantissa"),
+                cls._parse_pvalue_exponent(f.col("P-VALUE")).alias("pValueExponent"),
                 f.col("P-VALUE").alias("pvalue"),
                 # -log10(p-value) of the association, float
                 f.col("PVALUE_MLOG").alias("pvalueMlog").cast(t.FloatType()),
@@ -277,5 +312,3 @@ class StudyLocusGWASCatalog(StudyLocus):
                 & (f.col("chrPos").isNotNull() & f.col("chrId").isNotNull())
             ).persist()
         )
-
-        return association_df

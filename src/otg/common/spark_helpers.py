@@ -81,7 +81,9 @@ def get_record_with_maximum_value(
     return get_top_ranked_in_window(df, w)
 
 
-def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
+def calculate_neglog_pvalue(
+    p_value_mantissa: Column, p_value_exponent: Column
+) -> Column:
     """Compute the negative log p-value.
 
     Args:
@@ -94,7 +96,7 @@ def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
     Examples:
         >>> d = [(1, 1), (5, -2), (1, -1000)]
         >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
-        >>> df.withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
+        >>> df.withColumn("neg_log_p", calculate_neglog_pvalue(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
         +----------------+----------------+------------------+
         |p_value_mantissa|p_value_exponent|         neg_log_p|
         +----------------+----------------+------------------+
