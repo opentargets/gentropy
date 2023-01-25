@@ -97,7 +97,7 @@ gwas_ingest:
 tissue_enrichment:
   inputs:
     tissue_annotations: gs://genetics-portal-dev-analysis/xg1/EPIMAP/CHEERS_annotations/Full_epimap_adjusted.txt
-    summary_stats_credible_set: gs://genetics-portal-dev-analysis/xg1/CHEERS_credible_set/FM_220401_hg19.parquet
+    summary_stats_credible_set: gs://genetics-portal-dev-analysis/xg1/CHEERS_credible_set/GCST004131.parquet
     pics_credible_set: gs://genetics-portal-dev-analysis/xg1/CHEERS_credible_set/Non_sumstat_hg19.parquet
   outputs:
     summary_stats_enrichment: gs://genetics-portal-dev-analysis/xg1/CHEERS_enrichments/sumstats_enrichments/results.parquet
