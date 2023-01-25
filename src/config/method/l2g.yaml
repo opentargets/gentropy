@@ -1,0 +1,11 @@
+_target_: otg.method.locus_to_gene.LocusToGeneModel
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.0
+
+hyperparameters:
+  max_depth: 5
+  loss_function: logloss
