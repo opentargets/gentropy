@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy
-import pandas as pd
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql.types import FloatType
@@ -79,7 +78,7 @@ def m_sd(x: VectorUDT) -> float:
     return numpy.sqrt(x)
 
 
-def v_cdf(x: VectorUDT, y: VectorUDT, z: VectorUDT) -> pd.Series:
+def v_cdf(x: VectorUDT, y: VectorUDT, z: VectorUDT) -> float:
     """Calculates the p-value.
 
     Args:
@@ -88,9 +87,9 @@ def v_cdf(x: VectorUDT, y: VectorUDT, z: VectorUDT) -> pd.Series:
         z (VectorUDT): standard deviation under the null.
 
     Returns:
-        pd.Series: pd.series of p-values.
+        float:  Enrichment p-values.
     """
-    return pd.Series(1 - _ndtr(x, z, y))
+    return 1 - _ndtr(x, z, y)
 
 
 def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
