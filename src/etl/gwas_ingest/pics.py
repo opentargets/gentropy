@@ -13,7 +13,6 @@ from scipy.stats import norm
 
 from etl.common.spark_helpers import _neglog_p, adding_quality_flag
 from etl.gwas_ingest.clumping import clumping
-from etl.gwas_ingest.ld import ld_annotation_by_locus_ancestry
 from etl.json import data
 
 if TYPE_CHECKING:
@@ -412,16 +411,14 @@ def pics_all_study_locus(
     gnomad_mapped_studies = _get_study_gnomad_ancestries(
         etl, studies.withColumnRenamed("id", "studyId")
     )
-    print("gnomad_mapped_studies")
-    print(gnomad_mapped_studies.show())
+
     # Joining to associations:
     association_gnomad = associations.join(
         gnomad_mapped_studies,
         on="studyId",
         how="left",
     ).persist()
-    print("association_gnomad")
-    print(association_gnomad.show())
+
     # Extracting mapped variants for LD expansion:
     variant_population = (
         association_gnomad.filter(f.col("position").isNotNull())
@@ -435,7 +432,7 @@ def pics_all_study_locus(
         )
         .distinct()
     )
-    print(variant_population.show())
+
     # Number of distinct variants/population pairs to map:
     etl.logger.info(f"Number of variant/ancestry pairs: {variant_population.count()}")
     etl.logger.info(
@@ -443,9 +440,10 @@ def pics_all_study_locus(
     )
 
     # LD information for all locus and ancestries
-    ld_r = ld_annotation_by_locus_ancestry(
-        etl, variant_population, ld_populations, min_r2
-    ).persist()
+    ld_r = etl.spark.read.parquet("gs://ot-team/dsuveges/ld_expanded_dataset")
+    # ld_r = ld_annotation_by_locus_ancestry(
+    #     etl, variant_population, ld_populations, min_r2
+    # ).persist()
 
     # Joining association with linked variants (while keeping unresolved associations).
     association_ancestry_ld = (

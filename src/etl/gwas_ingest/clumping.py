@@ -25,6 +25,7 @@ def _get_resolver(df: DataFrame) -> DataFrame:
     """
     return df.select(
         "studyId",
+        "chromosome",
         f.col("variantId").alias("explained"),
         f.col("explained").alias("new_explained"),
     ).distinct()
@@ -76,7 +77,7 @@ def clumping(df: DataFrame) -> DataFrame:
             "negLogPVal", _neglog_p(f.col("pValueMantissa"), f.col("pValueExponent"))
         )
         # Counting the number of occurrence for each pair - for one study, each pair should occure only once:
-        .withColumn("rank", f.count(f.col("tagVariantId")).over(w))
+        .withColumn("rank", f.row_number().over(w))
         # Only the most significant lead is kept if credible sets are overlapping + keeping lead if credible set is not resolved:
         .withColumn(
             "keep_lead",
@@ -106,13 +107,21 @@ def clumping(df: DataFrame) -> DataFrame:
         .persist()
     )
 
+    # Get the initial explainer dataframe:
+    explainer = (
+        resolved_independent.select("studyId", "variantId", "explained", "chromosome")
+        .distinct()
+        .repartition("studyId", "chromosome")
+        .persist()
+    )
+
     # We need to keep iterating until all linked leads are resolved:
     while True:
-        resolved_independent = (
-            resolved_independent.transform(_clean_dataframe)
+        explainer = (
+            explainer.transform(_clean_dataframe)
             .join(
-                _get_resolver(resolved_independent),
-                on=["studyId", "explained"],
+                _get_resolver(explainer),
+                on=["studyId", "explained", "chromosome"],
                 how="left",
             )
             .withColumn(
@@ -121,15 +130,23 @@ def clumping(df: DataFrame) -> DataFrame:
                     False
                 ),
             )
+            .distinct()
             .persist()
         )
 
-        if resolved_independent.select("is_resolved").distinct().count() == 1:
+        if explainer.select("is_resolved").distinct().count() == 1:
             break
 
     # At this point all linked leads are resolved. Now the dataframe needs to be consolidated:
     return (
-        resolved_independent.drop("is_resolved", "new_explained", "neglog_pval")
+        resolved_independent.drop("explained")
+        # Joining back the resolver:
+        .join(
+            _clean_dataframe(explainer),
+            on=["studyId", "variantId", "chromosome"],
+            how="inner",
+        )
+        # Adding quality flag to those leads that are explained by other, more significant lead:
         .withColumn(
             "qualityControl",
             adding_quality_flag(
