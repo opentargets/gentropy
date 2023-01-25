@@ -177,14 +177,14 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
         )
     )
 
-    vectorized_cdf = f.udf(v_cdf, t.DoubleType())
-    sample_mean_rank_unique_peaks = sample_mean_rank_unique_peaks.withColumn(
-        "pvalue",
-        vectorized_cdf(
-            sample_mean_rank_unique_peaks.mean_rank,
-            sample_mean_rank_unique_peaks.mean_sd,
-            sample_mean_rank_unique_peaks.mean_mean,
-        ),
-    )
+    #   vectorized_cdf = f.udf(v_cdf, t.DoubleType())
+    #   sample_mean_rank_unique_peaks = sample_mean_rank_unique_peaks.withColumn(
+    #       "pvalue",
+    #       vectorized_cdf(
+    #           sample_mean_rank_unique_peaks.mean_rank,
+    #           sample_mean_rank_unique_peaks.mean_sd,
+    #           sample_mean_rank_unique_peaks.mean_mean,
+    #       ),
+    #   ).select("study_id", "sample", "mean_rank", "pvalue")
 
     return sample_mean_rank_unique_peaks

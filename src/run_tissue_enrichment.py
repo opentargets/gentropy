@@ -31,10 +31,9 @@ def main(cfg: DictConfig) -> None:
         etl.spark, cfg.etl.tissue_enrichment.inputs.summary_stats_credible_set
     )
 
-    pics_credible_set = load_snps(
-        etl.spark, cfg.etl.tissue_enrichment.inputs.pics_credible_set
-    )
-
+    #    pics_credible_set = load_snps(
+    #        etl.spark, cfg.etl.tissue_enrichment.inputs.pics_credible_set
+    #    )
     tissue_annotations = load_peaks(
         etl.spark, cfg.etl.tissue_enrichment.inputs.tissue_annotations
     )
@@ -43,10 +42,10 @@ def main(cfg: DictConfig) -> None:
 
     summary_stats_enrichment = cheers(tissue_annotations, summary_stats_credible_set)
 
-    pics_enrichment = cheers(
-        tissue_annotations,
-        pics_credible_set,
-    )
+    #    pics_enrichment = cheers(
+    #        tissue_annotations,
+    #        pics_credible_set,
+    #    )
 
     etl.logger.info("Writing tissue enrichment results...")
     (
@@ -55,11 +54,11 @@ def main(cfg: DictConfig) -> None:
         )
     )
 
-    (
-        pics_enrichment.write.mode(cfg.environment.sparkWriteMode).parquet(
-            cfg.etl.tissue_enrichment.outputs.pics_enrichment
-        )
-    )
+    #    (
+    #        pics_enrichment.write.mode(cfg.environment.sparkWriteMode).parquet(
+    #            cfg.etl.tissue_enrichment.outputs.pics_enrichment
+    #        )
+    #    )
 
     etl.logger.info("Tissue enrichment finished")
 
