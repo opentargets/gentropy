@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.ml.functions as fml
@@ -13,7 +13,7 @@ from pyspark.sql.types import DoubleType
 from otg.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import Column
 
     from otg.dataset.study_locus_overlap import StudyLocusOverlap
 
@@ -42,7 +42,7 @@ class ECaviar:
 
     @classmethod
     def colocalise(
-        cls: Type[Colocalisation], overlapping_signals: StudyLocusOverlap
+        cls: type[ECaviar], overlapping_signals: StudyLocusOverlap
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
@@ -127,12 +127,12 @@ class Coloc:
 
     @classmethod
     def colocalise(
-        cls: Type[Coloc],
+        cls: type[Coloc],
         overlapping_signals: StudyLocusOverlap,
         priorc1: float = 1e-4,
         priorc2: float = 1e-4,
         priorc12: float = 1e-5,
-    ) -> DataFrame:
+    ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
@@ -142,7 +142,7 @@ class Coloc:
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
 
         Returns:
-            DataFrame: Colocalisation results
+            Colocalisation: Colocalisation results
         """
         # register udfs
         logsum = f.udf(Coloc._get_logsum, DoubleType())

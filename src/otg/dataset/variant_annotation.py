@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING
 
 import hail as hl
 import pyspark.sql.functions as f
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class VariantAnnotationGnomadConfig:
     """Variant annotation from gnomad configuration."""
 
-    path: Optional[str] = None
+    path: str | None = None
     gnomad_file: str = MISSING
     chain_file: str = MISSING
     populations: list = MISSING
@@ -34,17 +34,13 @@ class VariantAnnotationGnomadConfig:
 
 @dataclass
 class VariantAnnotation(Dataset):
-    """Dataset with variant-level annotations derived from GnomAD.
-
-    Returns:
-        DataFrame: Subset of variant annotations derived from GnomAD
-    """
+    """Dataset with variant-level annotations derived from GnomAD."""
 
     schema: StructType = parse_spark_schema("variant_annotation.json")
 
     @classmethod
     def from_parquet(
-        cls: Type[VariantAnnotation], etl: ETLSession, path: str
+        cls: type[VariantAnnotation], etl: ETLSession, path: str
     ) -> VariantAnnotation:
         """Initialise VariantAnnotation from parquet file.
 
@@ -64,7 +60,7 @@ class VariantAnnotation(Dataset):
         gnomad_file: str,
         grch38_to_grch37_chain: str,
         populations: list,
-        path: Optional[str] = None,
+        path: str | None = None,
     ) -> VariantAnnotation:
         """Generate variant annotation dataset from gnomAD.
 
@@ -215,7 +211,7 @@ class VariantAnnotation(Dataset):
         return cls(df=df, path=path)
 
     def filter_by_variant_df(
-        self: VariantAnnotation, df: DataFrame, cols: List[str]
+        self: VariantAnnotation, df: DataFrame, cols: list[str]
     ) -> None:
         """Filter variant annotation dataset by a variant dataframe.
 
