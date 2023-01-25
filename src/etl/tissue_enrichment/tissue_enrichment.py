@@ -103,47 +103,47 @@ def cheers(peaks_wide: DataFrame, snps: DataFrame) -> DataFrame:
     Returns:
         DataFrame: The enrichment p-value.
     """
-    sample_names = peaks_wide.columns[3:]
-    peaks_long = _melt(
-        df=peaks_wide,
-        id_vars=["chr", "start", "end"],
-        value_vars=sample_names,
-        var_name="sample",
-        value_name="score",
+    peaks_overlapping = (
+        # Only need the peak coords
+        peaks_wide.select("chr", "start", "end")
+        # Do a inner join
+        .join(
+            snps,
+            (
+                (f.col("chrom") == f.col("chr"))
+                & (f.col("pos") >= f.col("start"))
+                & (f.col("pos") <= f.col("end"))
+            ),
+            how="inner",
+        )
+        .drop("chrom")
+        .select("study_id", "chr", "start", "end")
+        .distinct()
+        .persist()
     )
-    return peaks_long
+
+    # Store total number of peaks and total overlapping peaks
+    # n_total_peaks = float(peaks_wide.count())
+    n_unique_peaks = (
+        peaks_overlapping.groupBy("study_id")
+        .count()
+        .withColumnRenamed("count", "count_peaks")
+    )
+    return n_unique_peaks
+
+    # sample_names = peaks_wide.columns[3:]
+    # peaks_long = _melt(
+    #    df=peaks_wide,
+    #    id_vars=["chr", "start", "end"],
+    #    value_vars=sample_names,
+    #    var_name="sample",
+    #    value_name="score",
+    # )
+    # return peaks_long
     # window_spec = Window.partitionBy("sample").orderBy("score")
 
     # Get ranks. The original code starts ranks from 0, so subtract 1.
     # peak_ranks = peaks_long.withColumn("rank", f.rank().over(window_spec) - 1)
-
-    # peaks_overlapping = (
-    # Only need the peak coords
-    #    peaks_wide.select("chr", "start", "end")
-    # Do a inner join
-    #    .join(
-    #        snps,
-    #       (
-    #           (f.col("chrom") == f.col("chr"))
-    #           & (f.col("pos") >= f.col("start"))
-    #           & (f.col("pos") <= f.col("end"))
-    #       ),
-    #       how="inner",
-    #   )
-    #   .drop("chrom")
-    #   .select("study_id", "chr", "start", "end")
-    #   .distinct()
-    #   .persist()
-    # )
-
-    # Store total number of peaks and total overlapping peaks
-    # n_total_peaks = float(peaks_wide.count())
-    # n_unique_peaks = (
-    #    peaks_overlapping.groupBy("study_id")
-    #    .count()
-    #    .withColumnRenamed("count", "count_peaks")
-    # )
-    # return n_unique_peaks
 
     # Get peaks that overlap
     # unique_peaks = peaks_overlapping.join(
