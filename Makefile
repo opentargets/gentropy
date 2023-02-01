@@ -125,6 +125,14 @@ run_tissue_enrichment: ## Generate tissue enrichment results
     --project=${PROJECT_ID} \
     --region=${REGION}
 
+run_epimap: ## Generate tissue enrichment results
+	gcloud dataproc jobs submit pyspark ./dist/run_EPIMAP.py \
+    --cluster=${CLUSTER_NAME} \
+    --files=./dist/config.yaml \
+    --py-files=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl \
+    --project=${PROJECT_ID} \
+    --region=${REGION}
+
 run_coloc: ## Generate coloc results
 	gcloud dataproc jobs submit pyspark ./dist/run_coloc.py \
     --cluster=${CLUSTER_NAME} \
