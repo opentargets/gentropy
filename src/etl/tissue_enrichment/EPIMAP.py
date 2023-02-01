@@ -57,13 +57,11 @@ class ParseEPIMAP:
         # Process EPIMAP data in a single step:
         self.EPIMAP_intervals = (
             etl.spark
-            # Read table according to the schema, then do some modifications:
+            # Read table then do some modifications:
             .read.parquet(epimap_datafile)
             .withColumn("chr", f.regexp_replace(f.col("chr"), "chr", ""))
             # Lift over to the GRCh38 build:
-            .transform(
-                lambda df: lift.convert_intervals(df, "chr", "start", "end", True)
-            )
+            .transform(lambda df: lift.convert_intervals(df, "chr", "start", "end"))
             .distinct()
             .persist()
         )
