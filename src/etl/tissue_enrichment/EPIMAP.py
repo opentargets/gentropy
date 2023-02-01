@@ -65,7 +65,7 @@ class ParseEPIMAP:
             )
             .alias("intervals")
             .select(
-                f.col("chrom").alias("chromosome"),
+                f.col("chr").alias("chromosome"),
                 f.col("mapped_start").alias("start"),
                 f.col("mapped_end").alias("end"),
             )
