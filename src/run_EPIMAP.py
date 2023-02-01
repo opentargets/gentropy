@@ -28,7 +28,9 @@ def main(cfg: DictConfig) -> None:
     epimap_hg38 = ParseEPIMAP(
         etl, cfg.etl.tissue_enrichment.inputs.tissue_annotations, lift
     ).get_intervals()
-    epimap_hg38.write.parquet(cfg.etl.tissue_enrichment.outputs.annotations_hg38)
+    epimap_hg38.write.mode(cfg.environment.sparkWriteMode).parquet(
+        cfg.etl.tissue_enrichment.outputs.annotations_hg38
+    )
 
 
 if __name__ == "__main__":
