@@ -22,7 +22,7 @@ def main(cfg: DictConfig) -> None:
 
     lift = LiftOverSpark(
         cfg.etl.v2g.inputs.liftover_chain_file,
-        cfg.etl.v2g.parameters.liftover_max_length_difference,
+        10000000,
     )
 
     epimap_hg38 = ParseEPIMAP(

@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pyspark.sql.functions as f
-
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
@@ -61,12 +59,7 @@ class ParseEPIMAP:
             .read.parquet(epimap_datafile)
             # Lift over to the GRCh38 build:
             .transform(
-                lambda df: lift.convert_intervals(df, "chr", "start", "end", False)
-            )
-            .select(
-                f.col("chr").alias("chromosome"),
-                f.col("mapped_start").alias("start"),
-                f.col("mapped_end").alias("end"),
+                lambda df: lift.convert_intervals(df, "chr", "start", "end", True)
             )
             .distinct()
             .persist()
