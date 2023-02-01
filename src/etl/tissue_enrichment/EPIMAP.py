@@ -63,7 +63,6 @@ class ParseEPIMAP:
             .transform(
                 lambda df: lift.convert_intervals(df, "chr", "start", "end", False)
             )
-            .alias("intervals")
             .select(
                 f.col("chr").alias("chromosome"),
                 f.col("mapped_start").alias("start"),
