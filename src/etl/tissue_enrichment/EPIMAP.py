@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pyspark.sql.functions as f
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
@@ -57,6 +59,7 @@ class ParseEPIMAP:
             etl.spark
             # Read table according to the schema, then do some modifications:
             .read.parquet(epimap_datafile)
+            .withColumn("chr", f.regexp_replace(f.col("chr"), "chr", ""))
             # Lift over to the GRCh38 build:
             .transform(
                 lambda df: lift.convert_intervals(df, "chr", "start", "end", True)
