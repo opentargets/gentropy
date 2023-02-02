@@ -28,7 +28,7 @@ def main(cfg: DictConfig) -> None:
     epimap_hg38 = ParseEPIMAP(
         etl, cfg.etl.tissue_enrichment.inputs.tissue_annotations, lift
     ).get_intervals()
-    epimap_hg38.write.mode(cfg.environment.sparkWriteMode).csv(
+    epimap_hg38.write.mode(cfg.environment.sparkWriteMode).option("header", True).csv(
         cfg.etl.tissue_enrichment.outputs.annotations_hg38
     )
 
