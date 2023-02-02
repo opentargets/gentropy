@@ -102,7 +102,6 @@ tissue_enrichment:
   outputs:
     summary_stats_enrichment: gs://genetics-portal-dev-analysis/xg1/CHEERS_enrichments/sumstats_enrichments/results.parquet
     pics_enrichment: gs://genetics-portal-dev-analysis/xg1/pics_enrichments/results.parquet
-    annotations_hg38: gs://genetics-portal-dev-analysis/xg1/EPIMAP/CHEERS_annotations/Full_epimap_hg38.csv
-  parameters:
-    min_assoc_loci: 5
+#  parameters:
+#    min_assoc_loci: 5
   machine: ${machine.default}
