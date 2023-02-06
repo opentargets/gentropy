@@ -7,45 +7,10 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 from pyspark.sql import Window
 
-from etl.common.spark_helpers import adding_quality_flag
 from etl.gwas_ingest.pics import _neglog_p
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
-
-
-def _get_resolver(df: DataFrame) -> DataFrame:
-    """Getting a lead to more significant lead mapping for joining.
-
-    Args:
-        df (DataFrame): LD sets with some level of resolution
-
-    Returns:
-        DataFrame
-    """
-    return df.select(
-        "studyId",
-        "chromosome",
-        f.col("variantId").alias("explained"),
-        f.col("explained").alias("new_explained"),
-    ).distinct()
-
-
-def _clean_dataframe(df: DataFrame) -> DataFrame:
-    """As part of the iterative lead variant resolve, come columns needs to be deleted.
-
-    Args:
-        df (DataFrame): Association dataset with resolved LD and R_overall calculated.
-
-    Returns:
-        DataFrame: Non-independent associations are assigned to the most significant linked lead
-    """
-    if "is_resolved" in df.columns:
-        return df.drop("explained", "is_resolved").withColumnRenamed(
-            "new_explained", "explained"
-        )
-    else:
-        return df
 
 
 def clumping(df: DataFrame) -> DataFrame:
@@ -56,9 +21,9 @@ def clumping(df: DataFrame) -> DataFrame:
 
     Returns:
         DataFrame: Clumped signals are resolved by:
-        - removing tagging varinants of non independent leads.
-        - removing overall R from non independent leads.
-        - Adding QC flag to non-independent leads pointing to the relevant lead.
+            - removing tagging varinants of non independent leads.
+            - removing overall R from non independent leads.
+            - Adding QC flag to non-independent leads pointing to the relevant lead.
     """
     w = Window.partitionBy("studyId", "variantPair").orderBy(f.col("negLogPVal").desc())
 
@@ -107,79 +72,5 @@ def clumping(df: DataFrame) -> DataFrame:
         .persist()
     )
 
-    # Get the initial explainer dataframe:
-    explainer = (
-        resolved_independent.select("studyId", "variantId", "explained", "chromosome")
-        .distinct()
-        .repartition("studyId", "chromosome")
-        .persist()
-    )
-
-    # We need to keep iterating until all linked leads are resolved:
-    while True:
-        explainer = (
-            explainer.transform(_clean_dataframe)
-            .join(
-                _get_resolver(explainer),
-                on=["studyId", "explained", "chromosome"],
-                how="left",
-            )
-            .withColumn(
-                "is_resolved",
-                f.when(f.col("new_explained") == f.col("explained"), True).otherwise(
-                    False
-                ),
-            )
-            .distinct()
-            .persist()
-        )
-
-        if explainer.select("is_resolved").distinct().count() == 1:
-            break
-
-    # At this point all linked leads are resolved. Now the dataframe needs to be consolidated:
-    return (
-        resolved_independent.drop("explained")
-        # Joining back the resolver:
-        .join(
-            _clean_dataframe(explainer),
-            on=["studyId", "variantId", "chromosome"],
-            how="inner",
-        )
-        # Adding quality flag to those leads that are explained by other, more significant lead:
-        .withColumn(
-            "qualityControl",
-            adding_quality_flag(
-                f.col("qualityControl"),
-                ~f.col("keep_lead"),
-                f.concat_ws(
-                    " ",
-                    f.lit("Association explained by:"),
-                    f.concat_ws(
-                        ", ",
-                        f.collect_set(f.col("explained")).over(
-                            Window.partitionBy("studyId", "variantId")
-                        ),
-                    ),
-                ),
-            ),
-        )
-        # Remove tag information if lead is explained by other variant:
-        .withColumn(
-            "tagVariantId",
-            f.when(f.col("explained") == f.col("variantId"), f.col("tagVariantId")),
-        )
-        .withColumn(
-            "R_overall", f.when(f.col("tagVariantId").isNotNull(), f.col("R_overall"))
-        )
-        # Drop unused column:
-        .drop(
-            "variantPair",
-            "explained",
-            "negLogPVal",
-            "rank",
-            "keep_lead",
-        )
-        .distinct()
-        .orderBy("studyId", "variantId")
-    )
+    # Test
+    return resolved_independent
