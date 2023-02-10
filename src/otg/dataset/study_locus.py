@@ -1202,7 +1202,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset
             variant_annotation (VariantAnnotation): Variant annotation dataset
-            pvalue_threshold (float): P-value threshold for filtering associations
+            pvalue_threshold (float): P-value threshold for flagging associations
 
         Returns:
             StudyLocusGWASCatalog: GWAS Catalog associations
