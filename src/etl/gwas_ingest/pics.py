@@ -13,7 +13,7 @@ from scipy.stats import norm
 
 from etl.common.spark_helpers import _neglog_p, adding_quality_flag
 from etl.gwas_ingest.clumping import clumping
-from etl.gwas_ingest.pics import ld_annotation_by_locus_ancestry
+from etl.gwas_ingest.ld import ld_annotation_by_locus_ancestry
 from etl.json import data
 
 if TYPE_CHECKING:
