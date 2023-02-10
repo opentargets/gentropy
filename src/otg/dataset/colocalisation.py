@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
@@ -21,7 +21,7 @@ class Colocalisation(Dataset):
 
     @classmethod
     def from_parquet(
-        cls: Type[Colocalisation], etl: ETLSession, path: str
+        cls: type[Colocalisation], etl: ETLSession, path: str
     ) -> Colocalisation:
         """Initialise Colocalisation dataset from parquet file.
 

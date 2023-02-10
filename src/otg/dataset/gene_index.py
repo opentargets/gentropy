@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
@@ -40,7 +40,7 @@ class GeneIndex(Dataset):
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 
     @classmethod
-    def from_parquet(cls: Type[GeneIndex], etl: ETLSession, path: str) -> GeneIndex:
+    def from_parquet(cls: type[GeneIndex], etl: ETLSession, path: str) -> GeneIndex:
         """Initialise GeneIndex from parquet file.
 
         Args:

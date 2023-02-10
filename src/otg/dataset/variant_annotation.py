@@ -15,7 +15,7 @@ from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
@@ -168,7 +168,7 @@ class VariantAnnotation(Dataset):
                     "ensembl_position",
                     "referenceAllele",
                     "alternateAllele",
-                ).alias("id"),
+                ).alias("variantId"),
                 "chromosome",
                 f.col("ensembl_position").alias("position"),
                 "referenceAllele",
@@ -210,6 +210,21 @@ class VariantAnnotation(Dataset):
         )
         return cls(df=df, path=path)
 
+    def max_maf(self: VariantAnnotation) -> Column:
+        """Maximum minor allele frequency accross all populations.
+
+        Returns:
+            Column: Maximum minor allele frequency accross all populations.
+        """
+        return f.array_max(
+            f.transform(
+                self.df.alleleFrequencies,
+                lambda af: f.when(
+                    af.alleleFrequency > 0.5, 1 - af.alleleFrequency
+                ).otherwise(af.alleleFrequency),
+            )
+        )
+
     def filter_by_variant_df(
         self: VariantAnnotation, df: DataFrame, cols: list[str]
     ) -> None:
@@ -235,7 +250,7 @@ class VariantAnnotation(Dataset):
             DataFrame: A dataframe exploded by transcript consequences
         """
         transript_consequences = self.df.select(
-            "id",
+            "variantId",
             "chromosome",
             # exploding the array removes records without VEP annotation
             f.explode("vep.transcriptConsequences").alias("transcriptConsequence"),
@@ -280,7 +295,7 @@ class VariantAnnotation(Dataset):
         return V2G(
             df=self.get_transcript_consequence_df(filter_by)
             .select(
-                f.col("id").alias("variantId"),
+                "variantId",
                 "chromosome",
                 f.col("transcriptConsequence.gene_id").alias("geneId"),
                 f.explode("transcriptConsequence.consequence_terms").alias("label"),
@@ -316,7 +331,7 @@ class VariantAnnotation(Dataset):
             df=self.get_transcript_consequence_df(filter_by)
             .filter(f.col("transcriptConsequence.polyphen_score").isNotNull())
             .select(
-                f.col("id").alias("variantId"),
+                "variantId",
                 "chromosome",
                 f.col("transcriptConsequence.gene_id").alias("geneId"),
                 f.col("transcriptConsequence.polyphen_score").alias("score"),
@@ -342,7 +357,7 @@ class VariantAnnotation(Dataset):
             df=self.get_transcript_consequence_df(filter_by)
             .filter(f.col("transcriptConsequence.sift_score").isNotNull())
             .select(
-                f.col("id").alias("variantId"),
+                "variantId",
                 "chromosome",
                 f.col("transcriptConsequence.gene_id").alias("geneId"),
                 f.expr("1 - transcriptConsequence.sift_score").alias("score"),

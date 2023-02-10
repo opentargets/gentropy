@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
@@ -24,7 +24,7 @@ class StudyLocusOverlap(Dataset):
 
     @classmethod
     def from_parquet(
-        cls: Type[StudyLocusOverlap], etl: ETLSession, path: str
+        cls: type[StudyLocusOverlap], etl: ETLSession, path: str
     ) -> StudyLocusOverlap:
         """Initialise StudyLocusOverlap from parquet file.
 

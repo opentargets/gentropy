@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Type
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
@@ -28,7 +28,7 @@ class VariantIndex(Dataset):
 
     @classmethod
     def from_parquet(
-        cls: Type[VariantIndex], etl: ETLSession, path: str
+        cls: type[VariantIndex], etl: ETLSession, path: str
     ) -> VariantIndex:
         """Initialise VariantIndex from parquet file.
 
@@ -45,11 +45,11 @@ class VariantIndex(Dataset):
     def from_variant_annotation(
         cls: type[VariantIndex],
         variant_annotation: VariantAnnotation,
-        path: Optional[str] = None,
+        path: str | None = None,
     ) -> VariantIndex:
         """Initialise VariantIndex from pre-existing variant annotation dataset."""
         unchanged_cols = [
-            "id",
+            "variantId",
             "chromosome",
             "position",
             "referenceAllele",

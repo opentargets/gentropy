@@ -2,7 +2,7 @@
   "type": "struct",
   "fields": [
     {
-      "name": "id",
+      "name": "variantId",
       "type": "string",
       "nullable": false,
       "metadata": {}

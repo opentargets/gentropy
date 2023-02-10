@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -12,7 +12,7 @@ from otg.common.utils import column2camel_case
 from otg.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
@@ -28,7 +28,7 @@ class StudyIndex(Dataset):
     schema: StructType = parse_spark_schema("studies.json")
 
     @classmethod
-    def from_parquet(cls: Type[StudyIndex], etl: ETLSession, path: str) -> StudyIndex:
+    def from_parquet(cls: type[StudyIndex], etl: ETLSession, path: str) -> StudyIndex:
         """Initialise StudyIndex from parquet file.
 
         Args:
@@ -65,25 +65,9 @@ class StudyIndexGWASCatalog(StudyIndex):
 
     """
 
-    @staticmethod
-    def _parse_efos(col_name: str) -> Column:
-        """Extracting EFO identifiers.
-
-        This function parses EFO identifiers from a comma-separated list of EFO URIs.
-
-        Args:
-            col_name (str): name of column with a list of EFO IDs
-
-        Returns:
-            Column: column with a sorted list of parsed EFO IDs
-        """
-        return f.array_sort(
-            f.expr(f"regexp_extract_all({col_name}, '([A-Z]+_[0-9]+)')")
-        )
-
     @classmethod
     def _parse_study_table(
-        cls: Type[StudyIndexGWASCatalog], catalog_studies: DataFrame
+        cls: type[StudyIndexGWASCatalog], catalog_studies: DataFrame
     ) -> StudyIndexGWASCatalog:
         """Harmonise GWASCatalog study table with `StudyIndex` schema.
 
@@ -115,11 +99,11 @@ class StudyIndexGWASCatalog(StudyIndex):
 
     @classmethod
     def from_source(
-        cls: Type[StudyIndexGWASCatalog],
+        cls: type[StudyIndexGWASCatalog],
         catalog_studies: DataFrame,
         ancestry_file: DataFrame,
         sumstats_lut: DataFrame,
-    ) -> DataFrame:
+    ) -> StudyIndexGWASCatalog:
         """This function ingests study level metadata from the GWAS Catalog.
 
         Args:
@@ -128,7 +112,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             sumstats_lut (DataFrame): GWAS Catalog summary statistics list.
 
         Returns:
-            DataFrame: Parsed and annotated GWAS Catalog study table.
+            StudyIndexGWASCatalog: Parsed and annotated GWAS Catalog study table.
         """
         # Read GWAS Catalogue raw data
         return (
