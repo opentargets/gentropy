@@ -408,9 +408,6 @@ def pics_all_study_locus(
     Returns:
         DataFrame: _description_
     """
-    # GraphFrames needs this... terrible.
-    etl.spark.sparkContext.setCheckpointDir("<pwd_output>")
-
     # Extracting ancestry information from study table, then map to gnomad population:
     gnomad_mapped_studies = _get_study_gnomad_ancestries(
         etl, studies.withColumnRenamed("id", "studyId")
@@ -485,18 +482,13 @@ def pics_all_study_locus(
             ),
         )
         # Collapse the data by study, lead, tag
-        .drop("relativeSampleSize", "r", "gnomadPopulation").distinct()
+        .drop("relativeSampleSize", "r", "gnomadPopulation")
+        .distinct()
         # Clumping non-independent associations together:
-        # .transform(clumping)
+        .transform(clumping)
         .persist()
     )
 
-    # Dataset before clumping:
-    associations_ld_allancestries = (
-        associations_ld_allancestries
-        # Clumping non-independent associations together:
-        .transform(clumping)
-    )
     pics_results = calculate_pics(associations_ld_allancestries, k)
 
     return pics_results

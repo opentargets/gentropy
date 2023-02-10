@@ -77,16 +77,6 @@ def main(cfg: DictConfig) -> None:
         )
     )
 
-    associations = etl.spark.read.parquet(
-        cfg.etl.gwas_ingest.outputs.gwas_catalog_associations
-    ).persist()
-    studies = etl.spark.read.parquet(
-        cfg.etl.gwas_ingest.outputs.gwas_catalog_studies
-    ).persist()
-
-    print(f"number of studies: {studies.count()}")
-    print(f"number of association: {associations.count()}")
-
     # Running PICS:
     pics_data = pics_all_study_locus(
         etl,

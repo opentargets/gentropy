@@ -46,19 +46,6 @@ prepare_pics:  ## Create cluster for variant annotation:
         --single-node \
 		--max-idle=10m
 
-
-prepare_test:
-	gcloud dataproc clusters create ${CLUSTER_NAME} \
-        --image-version=2.0 \
-        --project=${PROJECT_ID} \
-        --region=${REGION} \
-		--master-machine-type=n1-standard-4 \
-        --enable-component-gateway \
-		--master-local-ssd-interface=NVME \
-        --metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${APP_NAME}-${VERSION_NO}-py3-none-any.whl" \
-        --initialization-actions=gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh \
-        --single-node
-
 prepare_variant_annotation:  ## Create cluster for variant annotation
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
         --image-version=2.0 \
