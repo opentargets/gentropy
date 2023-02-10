@@ -1,4 +1,4 @@
-"""Variant index dataset."""
+"""Study locus overlap index dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass

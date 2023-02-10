@@ -1,4 +1,5 @@
 _target_: otg.method.locus_to_gene.LocusToGeneModel
+run_mode: train
 
 optimizer:
   _target_: torch.optim.Adam
@@ -9,3 +10,11 @@ optimizer:
 hyperparameters:
   max_depth: 5
   loss_function: logloss
+
+gold_standard:
+  _target_: otg.gold_standard.GoldStandard
+  _partial_: true
+  curation: gs://genetics_etl_python_playground/input/l2g/gold_standard/curation.json
+  interactions: gs://open-targets-pre-data-releases/23.02/output/etl/parquet/interactions
+feature_inputs:
+  v2g: gs://genetics_etl_python_playground/XX.XX/output/python_etl/parquet/v2g
