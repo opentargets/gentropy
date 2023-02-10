@@ -13,6 +13,7 @@ from scipy.stats import norm
 
 from etl.common.spark_helpers import _neglog_p, adding_quality_flag
 from etl.gwas_ingest.clumping import clumping
+from etl.gwas_ingest.pics import ld_annotation_by_locus_ancestry
 from etl.json import data
 
 if TYPE_CHECKING:
@@ -407,6 +408,9 @@ def pics_all_study_locus(
     Returns:
         DataFrame: _description_
     """
+    # GraphFrames needs this... terrible.
+    etl.spark.sparkContext.setCheckpointDir("<pwd_output>")
+
     # Extracting ancestry information from study table, then map to gnomad population:
     gnomad_mapped_studies = _get_study_gnomad_ancestries(
         etl, studies.withColumnRenamed("id", "studyId")
@@ -433,17 +437,10 @@ def pics_all_study_locus(
         .distinct()
     )
 
-    # Number of distinct variants/population pairs to map:
-    etl.logger.info(f"Number of variant/ancestry pairs: {variant_population.count()}")
-    etl.logger.info(
-        f'Number of unique variants: {variant_population.select("variantId").distinct().count()}'
-    )
-
     # LD information for all locus and ancestries
-    ld_r = etl.spark.read.parquet("gs://ot-team/dsuveges/ld_expanded_dataset")
-    # ld_r = ld_annotation_by_locus_ancestry(
-    #     etl, variant_population, ld_populations, min_r2
-    # ).persist()
+    ld_r = ld_annotation_by_locus_ancestry(
+        etl, variant_population, ld_populations, min_r2
+    ).persist()
 
     # Joining association with linked variants (while keeping unresolved associations).
     association_ancestry_ld = (
@@ -490,9 +487,16 @@ def pics_all_study_locus(
         # Collapse the data by study, lead, tag
         .drop("relativeSampleSize", "r", "gnomadPopulation").distinct()
         # Clumping non-independent associations together:
-        .transform(clumping)
+        # .transform(clumping)
+        .persist()
     )
 
+    # Dataset before clumping:
+    associations_ld_allancestries = (
+        associations_ld_allancestries
+        # Clumping non-independent associations together:
+        .transform(clumping)
+    )
     pics_results = calculate_pics(associations_ld_allancestries, k)
 
     return pics_results

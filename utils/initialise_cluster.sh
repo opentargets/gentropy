@@ -48,6 +48,18 @@ function install_custom_jars(){
     return 0
 }
 
+function adding_graphframes(){
+    GF_SOURCE='gs://ot-team/dsuveges/graphframes_compiled/v0.8.3'
+    JARS_DIR=${SPARK_HOME}/jars
+    PYTHON_DIR='/opt/conda/default/lib/python3.8/site-packages/'
+
+    echo "Copy jar:"
+    gsutil cp -r ${GF_SOURCE}/graphframes-assembly-0.8.3-SNAPSHOT-spark3.3.jar  ${JARS_DIR}/
+
+    echo "Copy Python libs:"
+    gsutil cp -r ${GF_SOURCE}/graphframes ${PYTHON_DIR}/
+}
+
 function install_pip() {
     if command -v pip >/dev/null; then
         echo "pip is already installed."
@@ -71,7 +83,9 @@ function main() {
         exit 1
     fi
     install_pip
-    install_custom_jars
+    # This is not needed now, be I would like to keep the logic
+    # install_custom_jars
+    adding_graphframes
     echo "Downloading package..."
     gsutil cp ${PACKAGE} .
     PACKAGENAME=$(basename ${PACKAGE})
