@@ -1195,14 +1195,14 @@ class StudyLocusGWASCatalog(StudyLocus):
         cls: type[StudyLocusGWASCatalog],
         gwas_associations: DataFrame,
         variant_annotation: VariantAnnotation,
-        pvalue_threshold: float,
+        pvalue_threshold: float = 5e-8,
     ) -> StudyLocusGWASCatalog:
         """Load GWAS Catalog associations from source.
 
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset
             variant_annotation (VariantAnnotation): Variant annotation dataset
-            pvalue_threshold (float): P-value threshold for flagging associations
+            pvalue_threshold (float): Association p-value threshold. Defaults to 5e-8.
 
         Returns:
             StudyLocusGWASCatalog: GWAS Catalog associations
