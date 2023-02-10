@@ -14,6 +14,17 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class L2GFeature:
+    """Property of a study locus pair."""
+
+    study_id: str  # TODO: think about moving this to a trait id - so that we can extract the best study for that trait to train on
+    locus_id: str
+    gene_id: str
+    feature_name: str
+    feature_value: float
+
+
+@dataclass
 class L2GFeatureMatrix(Dataset):
     """Dataset with features for Locus to Gene prediction."""
 
@@ -53,3 +64,14 @@ class L2GFeatureMatrix(Dataset):
             L2GFeatureMatrix(_df=train),
             L2GFeatureMatrix(_df=test),
         )
+
+    def fill_na(self: L2GFeatureMatrix) -> Type[NotImplementedError]:
+        """Fill NA values."""
+        return NotImplementedError
+
+
+@classmethod
+class L2G(Dataset):
+    """Output L2G."""
+
+    pass

@@ -47,3 +47,10 @@ class V2G(Dataset):
         self.df = self._df.join(
             genes.df.select(f.col("id").alias("geneId")), on="geneId", how="inner"
         )
+
+    def extract_distance_tss_minimum(self: V2G) -> None:
+        """Extract minimum distance to TSS."""
+        self.df = self._df.filter(f.col("distance")).withColumn(
+            "distanceTssMinimum",
+            f.expr("min(distTss) OVER (PARTITION BY studyLocusId)"),
+        )
