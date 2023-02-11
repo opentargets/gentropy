@@ -36,4 +36,4 @@ def main(config: dict) -> None:
     generate_schema_assets(
         assets_dir="docs/assets/schemas", schema_dir="src/otg/json/schemas"
     )
-    print(config)
+    print(f"Schema assests generated in {config['assets_dir']}")
