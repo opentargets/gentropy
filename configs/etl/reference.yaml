@@ -29,7 +29,7 @@ v2g:
     # Originally gs://genetics-portal-input/v2g_input/grch37_to_grch38.over.chain
     liftover_chain_file: ${etl.inputs}/v2g_input/grch37_to_grch38.over.chain
     # Originally gs://genetics-portal-input/v2g_input/geneset.protein_coding.parquet
-    gene_index: ${etl.inputs}/v2g_input/targets
+    gene_index: ${etl.inputs}/v2g_input/targets_correct_tss
     # An atlas of active enhancers across human cell types and tissues
     # Originally: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
     anderson_file: ${etl.inputs}/v2g_input/andersson2014/enhancer_tss_associations.bed
@@ -45,11 +45,12 @@ v2g:
   outputs:
     v2g: ${etl.outputs}/v2g
   parameters:
-    partition_count: 400
     liftover_max_length_difference: 100
     tss_distance_threshold: 500000
     approved_biotypes:
+      # protein coding genes:
       - protein_coding
+      # types that refer to long non coding RNA:
       - 3prime_overlapping_ncRNA
       - antisense
       - bidirectional_promoter_lncRNA
@@ -57,7 +58,7 @@ v2g:
       - IG_D_gene
       - IG_J_gene
       - IG_V_gene
-      - lincRNA
+      - lncRNA
       - macro_lncRNA
       - non_coding
       - sense_intronic

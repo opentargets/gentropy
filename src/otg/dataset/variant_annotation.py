@@ -9,7 +9,7 @@ import pyspark.sql.functions as f
 from omegaconf import MISSING
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import get_record_with_maximum_value
+from otg.common.spark_helpers import get_record_with_maximum_value, normalise_column
 from otg.common.utils import convert_gnomad_position_to_ensembl
 from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
@@ -401,5 +401,41 @@ class VariantAnnotation(Dataset):
                 f.col("score"),
                 f.lit("vep").alias("datatypeId"),
                 f.lit("loftee").alias("datasourceId"),
+            )
+        )
+
+    def get_distance_to_tss(
+        self: VariantAnnotation,
+        filter_by: GeneIndex,
+        max_distance: int = 500_000,
+    ) -> V2G:
+        """Extracts variant to gene assignments for variants falling within a window of a gene's TSS.
+
+        Args:
+            filter_by (GeneIndex): A gene index to filter by.
+            max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.
+
+        Returns:
+            V2G: variant to gene assignments with their distance to the TSS
+        """
+        return V2G(
+            df=self.df.alias("variant")
+            .join(
+                f.broadcast(filter_by.locations_lut()).alias("gene"),
+                on=[
+                    f.col("variant.chromosome") == f.col("gene.chromosome"),
+                    f.abs(f.col("variant.position") - f.col("gene.tss"))
+                    <= max_distance,
+                ],
+                how="inner",
+            )
+            .select(
+                "variantId",
+                "chromosome",
+                "position",
+                "geneId",
+                normalise_column(max_distance - f.col("distance")).alias("score"),
+                f.lit("distance").alias("datatypeId"),
+                f.lit("canonical_tss").alias("datasourceId"),
             )
         )
