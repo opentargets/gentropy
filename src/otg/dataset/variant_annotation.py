@@ -429,12 +429,14 @@ class VariantAnnotation(Dataset):
                 ],
                 how="inner",
             )
+            .withColumn("inverse_distance", max_distance - f.col("distance"))
+            .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
             .select(
                 "variantId",
                 "chromosome",
                 "position",
                 "geneId",
-                normalise_column(max_distance - f.col("distance")).alias("score"),
+                "score",
                 f.lit("distance").alias("datatypeId"),
                 f.lit("canonical_tss").alias("datasourceId"),
             )
