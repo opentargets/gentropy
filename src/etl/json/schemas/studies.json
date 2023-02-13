@@ -2,8 +2,24 @@
   "type": "struct",
   "fields": [
     {
-      "name": "studyAccession",
+      "name": "studyId",
       "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "diseaseTrait",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "efos",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
       "nullable": true,
       "metadata": {}
     },
@@ -32,20 +48,18 @@
       "metadata": {}
     },
     {
-      "name": "link",
-      "type": "string",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
       "name": "study",
       "type": "string",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "diseaseTrait",
-      "type": "string",
+      "name": "backgroundEfos",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
       "nullable": true,
       "metadata": {}
     },
@@ -74,38 +88,6 @@
       "metadata": {}
     },
     {
-      "name": "summarystatsLocation",
-      "type": "string",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "hasSumstats",
-      "type": "boolean",
-      "nullable": false,
-      "metadata": {}
-    },
-    {
-      "name": "efos",
-      "type": {
-        "type": "array",
-        "elementType": "string",
-        "containsNull": true
-      },
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "backgroundEfos",
-      "type": {
-        "type": "array",
-        "elementType": "string",
-        "containsNull": true
-      },
-      "nullable": true,
-      "metadata": {}
-    },
-    {
       "name": "discoverySamples",
       "type": {
         "type": "array",
@@ -126,7 +108,7 @@
             }
           ]
         },
-        "containsNull": false
+        "containsNull": true
       },
       "nullable": true,
       "metadata": {}
@@ -152,20 +134,20 @@
             }
           ]
         },
-        "containsNull": false
+        "containsNull": true
       },
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "initialSampleCountEuropean",
-      "type": "double",
+      "name": "summarystatsLocation",
+      "type": "string",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "initialSampleCount",
-      "type": "double",
+      "name": "hasSumstats",
+      "type": "boolean",
       "nullable": true,
       "metadata": {}
     }

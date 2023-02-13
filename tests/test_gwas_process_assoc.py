@@ -5,282 +5,75 @@ from __future__ import annotations
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
-from etl.gwas_ingest.process_associations import (
-    concordance_filter,
-    filter_assoc_by_maf,
-    filter_assoc_by_rsid,
-)
+from etl.gwas_ingest.association_mapping import clean_mappings
 
 
 @pytest.fixture
-def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
-    """Mock minor allele frequency DataFrame for filtering.
-
-    Args:
-        spark (SparkSession): Spark session
-
-    Returns:
-        DataFrame: Mock minor allele frequency DataFrame
-    """
-    return (
-        spark.createDataFrame(
-            [
-                # Simple case:
-                {"aid": 1, "pop1": 0.1, "pop2": 0.4, "keep": True},
-                {"aid": 1, "pop1": 0.1, "pop2": 0.2, "keep": False},
-                # Flip AF -> MAF required:
-                {"aid": 2, "pop1": 0.9, "pop2": 0.6, "keep": True},
-                {"aid": 2, "pop1": 0.1, "pop2": 0.8, "keep": False},
-                # Missing values handled properly:
-                {"aid": 3, "pop1": None, "pop2": 0.1, "keep": False},
-                {"aid": 3, "pop1": 0.1, "pop2": 0.2, "keep": True},
-                {"aid": 4, "pop1": None, "pop2": 0.6, "keep": True},
-                {"aid": 4, "pop1": 0.1, "pop2": 0.3, "keep": False},
-            ]
-        )
-        .select(
-            f.col("aid").alias("associationId"),
-            f.struct(f.col("pop1").alias("pop1"), f.col("pop2").alias("pop2")).alias(
-                "alleleFrequencies"
+def mock_mapping_dataset(spark: SparkSession) -> DataFrame:
+    """Mock association dataset with arbitrary mappings."""
+    data = [
+        # Association No1: Although both mappings are concordant, only v2 has matching rsid:
+        (1, "A", ["rs123"], "v1", [], "A", "G", [[0.9], [0.5]], False),
+        (1, "A", ["rs123"], "v2", ["rs123"], "T", "C", [[0.3], [0.4]], True),
+        # Association No2: no mapping, we keep the row:
+        (2, "A", ["rs123"], None, None, None, None, None, True),
+        # Association No3: No matching rsid, keep concordant variant V3:
+        (3, "A", ["rs123"], "v3", [], "A", "G", [[0.9], [0.5]], True),
+        (3, "A", ["rs123"], "v4", [], "G", "C", [[0.3], [0.4]], False),
+        # Association No4: No matching rsid, all concordant, keep variant with highest MAF- V6:
+        (4, "A", ["rs123"], "v5", [], "A", "G", [[0.9], [0.3]], False),
+        (4, "A", ["rs123"], "v6", [], "G", "T", [[0.6], [0.2]], True),
+    ]
+    schema = t.StructType(
+        [
+            t.StructField("associationId", t.IntegerType(), True),
+            t.StructField("riskAllele", t.StringType(), True),
+            t.StructField("rsIdsGwasCatalog", t.ArrayType(t.StringType()), True),
+            t.StructField("variantId", t.StringType(), True),
+            t.StructField("rsIdsGnomad", t.ArrayType(t.StringType()), True),
+            t.StructField("referenceAllele", t.StringType(), True),
+            t.StructField("alternateAllele", t.StringType(), True),
+            t.StructField(
+                "alleleFrequencies",
+                t.ArrayType(
+                    t.StructType(
+                        [t.StructField("alleleFrequency", t.FloatType(), True)]
+                    )
+                ),
             ),
-            "keep",
-            f.monotonically_increasing_id().alias("id"),
-        )
-        .persist()
+            t.StructField("keptMapping", t.BooleanType(), True),
+        ]
+    )
+    return spark.createDataFrame(data, schema=schema).persist()
+
+
+@pytest.fixture
+def cleaned_mock(mock_mapping_dataset: DataFrame) -> DataFrame:
+    """Function to return the cleaned mappings."""
+    return clean_mappings(mock_mapping_dataset).persist()
+
+
+def test_clean_mappings__schema(
+    cleaned_mock: DataFrame, mock_mapping_dataset: DataFrame
+) -> None:
+    """Test to make sure the right columns are returned from the function."""
+    assert any(
+        column in cleaned_mock.columns for column in mock_mapping_dataset.columns
     )
 
 
-@pytest.fixture
-def call_maf_filter(mock_maf_filter_data: DataFrame) -> DataFrame:
-    """Test filter association by MAF based on mock DataFrame."""
-    return mock_maf_filter_data.transform(filter_assoc_by_maf)
-
-
-@pytest.fixture
-def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
-    """Mock DataFrame to assess allele concordance.
-
-    Args:
-        spark (SparkSession): Spark session
-
-    Returns:
-        DataFrame: Mock allele concordances
-    """
-    data = [
-        (
-            0,
-            "A",
-            "A",
-            "T",
-            True,
-        ),  # Concordant positive, ref.
-        (
-            1,
-            "A",
-            "G",
-            "A",
-            True,
-        ),  # Concordant positive, alt.
-        (
-            2,
-            "A",
-            "T",
-            "G",
-            True,
-        ),  # Concordant negative, ref.
-        (
-            3,
-            "A",
-            "G",
-            "T",
-            True,
-        ),  # Concordant negative, alt.
-        (
-            4,
-            "?",
-            "G",
-            "T",
-            True,
-        ),  # Concordant ambigious.
-        (
-            5,
-            "ATCG",
-            "C",
-            "T",
-            False,
-        ),  # discordant.
-    ]
-    return spark.createDataFrame(
-        data, ["id", "riskAllele", "referenceAllele", "alternateAllele", "concordant"]
+def test_clean_mappings__rows(
+    cleaned_mock: DataFrame, mock_mapping_dataset: DataFrame
+) -> None:
+    """Test to make sure the right GnomAD mappings are kept."""
+    columns = cleaned_mock.columns
+    expected = (
+        mock_mapping_dataset.select(*columns)
+        .filter(f.col("keptMapping"))
+        .orderBy("variantId")
+        .collect()
     )
-
-
-@pytest.fixture
-def call_concordance_filter(mock_concordance_filter_data: DataFrame) -> DataFrame:
-    """Test allele concordance filter based on mock DataFrame."""
-    return mock_concordance_filter_data.transform(concordance_filter)
-
-
-@pytest.fixture
-def call_rsid_filter(mock_rsid_filter: DataFrame) -> DataFrame:
-    """Test filter association by rsid based on mock DataFrame."""
-    return mock_rsid_filter.transform(filter_assoc_by_rsid)
-
-
-@pytest.fixture
-def mock_rsid_filter(spark: SparkSession) -> DataFrame:
-    """Mock DataFrame to evaluate rsids.
-
-    Args:
-        spark (SparkSession): Spark session
-
-    Returns:
-        DataFrame: Configurations of rsids in resources and expected outcomes
-    """
-    data = [
-        # Assoc id 1: matching rsId exist:
-        (
-            1,
-            ["rs123", "rs523"],
-            ["rs123"],
-            True,
-            False,
-        ),
-        (
-            1,
-            ["rs123", "rs523"],
-            ["rs12"],
-            False,
-            True,
-        ),
-        # Assoc id 2: matching rsId exist:
-        (
-            2,
-            ["rs523"],
-            [],
-            False,
-            True,
-        ),
-        (
-            2,
-            ["rs523"],
-            ["rs12", "rs523"],
-            True,
-            False,
-        ),
-        # Assoc id 3: matching rsId doesn't exists, so keep all:
-        (
-            3,
-            ["rs123"],
-            [],
-            True,
-            False,
-        ),
-        (
-            3,
-            ["rs123"],
-            ["rs643", "rs523"],
-            True,
-            False,
-        ),
-        # Assoc id 4: two matching rsids exist, keep both:
-        (
-            4,
-            ["rs123", "rs523"],
-            ["rs123"],
-            True,
-            False,
-        ),
-        (
-            4,
-            ["rs123", "rs523"],
-            ["rs523"],
-            True,
-            False,
-        ),
-        (
-            4,
-            ["rs123", "rs523"],
-            ["rs666"],
-            False,
-            True,
-        ),
-    ]
-    return spark.createDataFrame(
-        data, ["associationId", "rsIdsGwasCatalog", "rsIdsGnomad", "retain", "drop"]
-    )
-
-
-def test_filter_assoc_by_rsid__all_columns_are_there(
-    mock_rsid_filter: DataFrame, call_rsid_filter: DataFrame
-) -> None:
-    """Testing if the returned dataframe contains all columns from the source."""
-    source_columns = mock_rsid_filter.columns
-    processed_columns = call_rsid_filter.columns
-    assert any(column in processed_columns for column in source_columns)
-
-
-def test_filter_assoc_by_rsid__right_rows_are_dropped(
-    call_rsid_filter: DataFrame,
-) -> None:
-    """Testing if all the retained columns should not be dropped."""
-    dropped = call_rsid_filter.transform(filter_assoc_by_rsid).select("drop").collect()
-    assert not any(d["drop"] for d in dropped)
-
-
-def test_filter_assoc_by_rsid__right_rows_are_kept(
-    call_rsid_filter: DataFrame,
-) -> None:
-    """Testing if all the retained columns should be kept."""
-    kept = call_rsid_filter.transform(filter_assoc_by_rsid).select("retain").collect()
-    assert all(d["retain"] for d in kept)
-
-
-def test_concordance_filter__type(call_concordance_filter: DataFrame) -> None:
-    """Testing if the function returns the right type."""
-    assert isinstance(call_concordance_filter, DataFrame)
-
-
-def test_concordance_filter__all_columns_returned(
-    call_concordance_filter: DataFrame, mock_concordance_filter_data: DataFrame
-) -> None:
-    """Testing if the function returns the right type."""
-    source_columns = mock_concordance_filter_data.columns
-    processed_columns = call_concordance_filter.columns
-
-    assert any(column in processed_columns for column in source_columns)
-
-
-def test_concordance_filter__right_rows_retained(
-    call_concordance_filter: DataFrame, mock_concordance_filter_data: DataFrame
-) -> None:
-    """Testing if the filter generated the expected output."""
-    target_ids = [
-        row["id"]
-        for row in (
-            mock_concordance_filter_data.filter(f.col("concordant"))
-            .select("id")
-            .orderBy("id")
-            .collect()
-        )
-    ]
-    filtered_ids = [
-        row["id"]
-        for row in (call_concordance_filter.select("id").orderBy("id").collect())
-    ]
-
-    assert filtered_ids == target_ids
-
-
-def test_maf_filter__right_rows_retained(
-    call_maf_filter: DataFrame, mock_maf_filter_data: DataFrame
-) -> None:
-    """Testing if the filter generated the expected output."""
-    target_ids = [
-        row["id"]
-        for row in (mock_maf_filter_data.filter(f.col("keep")).orderBy("id").collect())
-    ]
-    filtered_ids = [row["id"] for row in (call_maf_filter.orderBy("id").collect())]
-
-    assert filtered_ids == target_ids
+    observed = cleaned_mock.select(*columns).orderBy("variantId").collect()
+    assert expected == observed

@@ -34,7 +34,7 @@ class LiftOverSpark:
 
         Args:
             chain_file (str): Path to the chain file
-            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 0.
+            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 100.
         """
         self.chain_file = chain_file
         self.max_difference = max_difference
