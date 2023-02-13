@@ -4,6 +4,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark.ml import Pipeline
+from pyspark.ml.feature import MinMaxScaler, VectorAssembler
+from pyspark.ml.functions import vector_to_array
 from pyspark.sql import Window
 
 if TYPE_CHECKING:
@@ -78,6 +81,47 @@ def get_record_with_maximum_value(
     """
     w = Window.partitionBy(grouping_col).orderBy(f.col(sorting_col).desc())
     return get_top_ranked_in_window(df, w)
+
+
+def normalise_column(
+    df: DataFrame, input_col_name: str, output_col_name: str
+) -> DataFrame:
+    """Normalises a numerical column to a value between 0 and 1.
+
+    Args:
+        df (DataFrame): The DataFrame to be processed.
+        input_col_name (str): The name of the column to be normalised.
+        output_col_name (str): The name of the column to store the normalised values.
+
+    Returns:
+        DataFrame: The DataFrame with the normalised column.
+
+    Examples:
+    >>> df = spark.createDataFrame([5, 50, 1000], "int")
+    >>> df.transform(lambda df: normalise_column(df, "value", "norm_value")).show()
+    +-----+----------+
+    |value|norm_value|
+    +-----+----------+
+    |    5|       0.0|
+    |   50|      0.05|
+    | 1000|       1.0|
+    +-----+----------+
+    <BLANKLINE>
+    """
+    vec_assembler = VectorAssembler(
+        inputCols=[input_col_name], outputCol="feature_vector"
+    )
+    scaler = MinMaxScaler(inputCol="feature_vector", outputCol="norm_vector")
+    unvector_score = f.round(vector_to_array(f.col("norm_vector"))[0], 2).alias(
+        output_col_name
+    )
+    pipeline = Pipeline(stages=[vec_assembler, scaler])
+    return (
+        pipeline.fit(df)
+        .transform(df)
+        .select("*", unvector_score)
+        .drop("feature_vector", "norm_vector")
+    )
 
 
 def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:

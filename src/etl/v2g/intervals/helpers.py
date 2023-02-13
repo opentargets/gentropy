@@ -8,10 +8,10 @@ import pyspark.sql.functions as f
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-from etl.common.utils import get_gene_tss
 
-
-def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
+def prepare_gene_interval_lut(
+    gene_index: DataFrame, filter_types: list[str] | None
+) -> DataFrame:
     """Gene symbol lookup table.
 
     Pre-processess gene/target dataset to create lookup table of gene symbols, including
@@ -19,24 +19,24 @@ def prepare_gene_interval_lut(gene_index: DataFrame) -> DataFrame:
 
     Args:
         gene_index (DataFrame): gene/target DataFrame
+        filter_types (Optional[list[str]]): List of biotypes of interest to filter on
 
     Returns:
         DataFrame: Gene LUT for symbol mapping
     """
-    return gene_index.select(
+    genes = gene_index.select(
         f.col("id").alias("geneId"),
+        f.col("genomicLocation.chromosome").alias("chromosome"),
         "biotype",
         f.explode(
             f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
         ).alias("geneSymbol"),
-        f.col("genomicLocation.chromosome").alias("chromosome"),
-        get_gene_tss(
-            f.col("genomicLocation.strand"),
-            f.col("genomicLocation.start"),
-            f.col("genomicLocation.end"),
-        ).alias("tss"),
+        f.col("canonicalTranscript.tss").alias("tss"),
         "genomicLocation",
     )
+    if filter_types:
+        return genes.filter(f.col("biotype").isin(filter_types))
+    return genes
 
 
 def get_variants_in_interval(

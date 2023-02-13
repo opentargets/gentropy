@@ -8,8 +8,14 @@
       "metadata": {}
     },
     {
-      "name": "resourceScore",
-      "type": "double",
+      "name": "variantId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "distance",
+      "type": "long",
       "nullable": true,
       "metadata": {}
     },
@@ -20,9 +26,9 @@
       "metadata": {}
     },
     {
-      "name": "position",
-      "type": "integer",
-      "nullable": true,
+      "name": "datatypeId",
+      "type": "string",
+      "nullable": false,
       "metadata": {}
     },
     {
@@ -32,9 +38,15 @@
       "metadata": {}
     },
     {
-      "name": "datatypeId",
-      "type": "string",
-      "nullable": false,
+      "name": "score",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "resourceScore",
+      "type": "double",
+      "nullable": true,
       "metadata": {}
     },
     {
@@ -50,14 +62,8 @@
       "metadata": {}
     },
     {
-      "name": "score",
-      "type": "double",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "variantId",
-      "type": "string",
+      "name": "position",
+      "type": "integer",
       "nullable": true,
       "metadata": {}
     },
