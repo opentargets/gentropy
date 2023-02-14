@@ -43,6 +43,7 @@ class V2GStep:
     thurnman_path: str
     output_path: str
     liftover_max_length_difference: int = 100
+    max_distance: int = 500_000
 
     id: str = "variant2gene"
 
@@ -67,6 +68,7 @@ class V2GStep:
         )
 
         v2g_datasets = [
+            va.slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
             # variant effects
             va_slimmed.get_most_severe_variant_consequence(
                 self.vep_consequences_path, gene_index_filtered

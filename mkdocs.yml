@@ -14,11 +14,19 @@ plugins:
   - autolinks
   - minify:
       minify_html: true
+  - exclude:
+      glob:
+        - assets/schemas/*
+  - mkdocs-simple-hooks:
+      hooks:
+        on_pre_build: "scripts.schemadocs:main"
 
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: "docs"
 
 repo_name: opentargets/genetics_etl_python
 repo_url: https://github.com/opentargets/genetics_etl_python

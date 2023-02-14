@@ -2,7 +2,7 @@
   "type": "struct",
   "fields": [
     {
-      "name": "#chrom",
+      "name": "chrom",
       "type": "string",
       "nullable": true,
       "metadata": {}

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
@@ -26,7 +26,7 @@ class V2G(Dataset):
     schema: StructType = parse_spark_schema("v2g.json")
 
     @classmethod
-    def from_parquet(cls: Type[V2G], etl: ETLSession, path: str) -> V2G:
+    def from_parquet(cls: type[V2G], etl: ETLSession, path: str) -> V2G:
         """Initialise V2G from parquet file.
 
         Args:

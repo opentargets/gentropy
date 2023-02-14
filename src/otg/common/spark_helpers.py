@@ -5,6 +5,9 @@ import re
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark.ml import Pipeline
+from pyspark.ml.feature import MinMaxScaler, VectorAssembler
+from pyspark.ml.functions import vector_to_array
 from pyspark.sql import Window
 
 if TYPE_CHECKING:
@@ -81,7 +84,50 @@ def get_record_with_maximum_value(
     return get_top_ranked_in_window(df, w)
 
 
-def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
+def normalise_column(
+    df: DataFrame, input_col_name: str, output_col_name: str
+) -> DataFrame:
+    """Normalises a numerical column to a value between 0 and 1.
+
+    Args:
+        df (DataFrame): The DataFrame to be processed.
+        input_col_name (str): The name of the column to be normalised.
+        output_col_name (str): The name of the column to store the normalised values.
+
+    Returns:
+        DataFrame: The DataFrame with the normalised column.
+
+    Examples:
+    >>> df = spark.createDataFrame([5, 50, 1000], "int")
+    >>> df.transform(lambda df: normalise_column(df, "value", "norm_value")).show()
+    +-----+----------+
+    |value|norm_value|
+    +-----+----------+
+    |    5|       0.0|
+    |   50|      0.05|
+    | 1000|       1.0|
+    +-----+----------+
+    <BLANKLINE>
+    """
+    vec_assembler = VectorAssembler(
+        inputCols=[input_col_name], outputCol="feature_vector"
+    )
+    scaler = MinMaxScaler(inputCol="feature_vector", outputCol="norm_vector")
+    unvector_score = f.round(vector_to_array(f.col("norm_vector"))[0], 2).alias(
+        output_col_name
+    )
+    pipeline = Pipeline(stages=[vec_assembler, scaler])
+    return (
+        pipeline.fit(df)
+        .transform(df)
+        .select("*", unvector_score)
+        .drop("feature_vector", "norm_vector")
+    )
+
+
+def calculate_neglog_pvalue(
+    p_value_mantissa: Column, p_value_exponent: Column
+) -> Column:
     """Compute the negative log p-value.
 
     Args:
@@ -94,7 +140,7 @@ def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
     Examples:
         >>> d = [(1, 1), (5, -2), (1, -1000)]
         >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
-        >>> df.withColumn("neg_log_p", _neglog_p(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
+        >>> df.withColumn("neg_log_p", calculate_neglog_pvalue(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
         +----------------+----------------+------------------+
         |p_value_mantissa|p_value_exponent|         neg_log_p|
         +----------------+----------------+------------------+
@@ -105,42 +151,6 @@ def _neglog_p(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
         <BLANKLINE>
     """
     return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
-
-
-def adding_quality_flag(
-    qc_column: Column, flag_condition: Column, flag_text: str
-) -> Column:
-    """Update the provided quality control list with a new flag if condition is met.
-
-    Args:
-        qc_column (Column): Array column with existing QC flags.
-        flag_condition (Column): This is a column of booleans, signing which row should be flagged
-        flag_text (str): Text for the new quality control flag
-
-    Returns:
-        Column: Array column with the updated list of qc flags.
-
-    Examples:
-    >>> data = [(True, ['Existing flag']),(True, []),(False, [])]
-    >>> new_flag = 'This is a new flag'
-    >>> (
-    ...     spark.createDataFrame(data, ['flag', 'qualityControl'])
-    ...     .withColumn('qualityControl', adding_quality_flag(f.col('qualityControl'), f.col('flag'), new_flag))
-    ...     .show(truncate=False)
-    ... )
-    +-----+-----------------------------------+
-    |flag |qualityControl                     |
-    +-----+-----------------------------------+
-    |true |[Existing flag, This is a new flag]|
-    |true |[This is a new flag]               |
-    |false|[]                                 |
-    +-----+-----------------------------------+
-    <BLANKLINE>
-    """
-    return f.when(
-        flag_condition,
-        f.array_union(qc_column, f.array(f.lit(flag_text))),
-    ).otherwise(qc_column)
 
 
 def column2camel_case(col_name: str) -> str:

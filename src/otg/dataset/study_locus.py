@@ -1,23 +1,55 @@
 """Variant index dataset."""
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
+import json
+import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Type
+from itertools import chain
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql.window import Window
+from scipy.stats import norm
 
 from otg.common.schemas import parse_spark_schema
+from otg.common.spark_helpers import (
+    calculate_neglog_pvalue,
+    get_record_with_maximum_value,
+)
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
+from otg.json import data
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
+    from otg.dataset.variant_annotation import VariantAnnotation
+
+
+class StudyLocusQualityCheck(Enum):
+    """Study-Locus quality control options listing concerns on the quality of the association.
+
+    Attributes:
+        SUBSIGNIFICANT_FLAG (str): p-value below significance threshold
+        NO_GENOMIC_LOCATION_FLAG (str): Incomplete genomic mapping
+        COMPOSITE_FLAG (str): Composite association due to variant x variant interactions
+        VARIANT_INCONSISTENCY_FLAG (str): Inconsistencies in the reported variants
+        NON_MAPPED_VARIANT_FLAG (str): Variant not mapped to GnomAd
+        PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
+    """
+
+    SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
+    NO_GENOMIC_LOCATION_FLAG = "Incomplete genomic mapping"
+    COMPOSITE_FLAG = "Composite association"
+    INCONSISTENCY_FLAG = "Variant inconsistency"
+    NON_MAPPED_VARIANT_FLAG = "No mapping in GnomAd"
+    PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
 
 
 class CredibleInterval(Enum):
@@ -126,8 +158,27 @@ class StudyLocus(Dataset):
             )
         )
 
+    @staticmethod
+    def _update_quality_flag(
+        qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
+    ) -> Column:
+        """Update the provided quality control list with a new flag if condition is met.
+
+        Args:
+            qc (Column): Array column with the current list of qc flags.
+            flag_condition (Column): This is a column of booleans, signing which row should be flagged
+            flag_text (StudyLocusQualityCheck): Text for the new quality control flag
+
+        Returns:
+            Column: Array column with the updated list of qc flags.
+        """
+        return f.when(
+            flag_condition,
+            f.array_union(qc, f.array(f.lit(flag_text))),
+        ).otherwise(qc)
+
     @classmethod
-    def from_parquet(cls: Type[StudyLocus], etl: ETLSession, path: str) -> StudyLocus:
+    def from_parquet(cls: type[StudyLocus], etl: ETLSession, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
 
         Args:
@@ -207,75 +258,957 @@ class StudyLocus(Dataset):
             .distinct()
         )
 
+    def neglog_pvalue(self: StudyLocus) -> Column:
+        """Returns the negative log p-value.
+
+        Returns:
+            Column: Negative log p-value
+        """
+        return calculate_neglog_pvalue(
+            self.df.pvalueMantissa,
+            self.df.pvalueExponent,
+        )
+
 
 class StudyLocusGWASCatalog(StudyLocus):
     """Study-locus dataset derived from GWAS Catalog."""
 
     @staticmethod
-    def read_gwascatalog_associations(
-        gwas_associations: DataFrame, pvalue_cutoff: float
+    def _parse_pvalue_exponent(pvalue_column: Column) -> Column:
+        """Parse p-value exponent.
+
+        Args:
+            pvalue_column (Column): Column from GWASCatalog containing the p-value
+
+        Returns:
+            Column: Column containing the p-value exponent
+        """
+        return f.split(pvalue_column, "E").getItem(1).cast("integer")
+
+    @staticmethod
+    def _parse_pvalue_mantissa(pvalue_column: Column) -> Column:
+        """Parse p-value mantis.
+
+        Args:
+            pvalue_column (Column): Column from GWASCatalog containing the p-value
+
+        Returns:
+            Column: Column containing the p-value mantis
+        """
+        return f.split(pvalue_column, "E").getItem(0).cast("float")
+
+    @staticmethod
+    def _normalise_pvaluetext(p_value_text: Column) -> Column:
+        """Normalised p-value text column to a standardised format.
+
+        Args:
+            p_value_text (Column): `pValueText` column from GWASCatalog
+
+        Returns:
+            Column: mapped using GWAS Catalog mapping
+        """
+        # GWAS Catalog to p-value mapping
+        json_dict = json.loads(
+            pkg_resources.read_text(data, "gwas_pValueText_map.json", encoding="utf-8")
+        )
+        map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
+
+        splitted_col = f.split(f.regexp_replace(p_value_text, r"[\(\)]", ""), ",")
+        return f.concat_ws(", ", f.transform(splitted_col, lambda x: map_expr[x]))
+
+    @staticmethod
+    def _normalise_risk_allele(risk_allele: Column) -> Column:
+        """Normalised risk allele column to a standardised format.
+
+        Args:
+            risk_allele (Column): `riskAllele` column from GWASCatalog
+
+        Returns:
+            Column: mapped using GWAS Catalog mapping
+        """
+        # GWAS Catalog to risk allele mapping
+        return f.split(f.split(risk_allele, "; ").getItem(0), "-").getItem(1)
+
+    @staticmethod
+    def _collect_rsids(
+        snp_id: Column, snp_id_current: Column, risk_allele: Column
+    ) -> Column:
+        """It takes three columns, and returns an array of distinct values from those columns.
+
+        Args:
+            snp_id (Column): The original snp id from the GWAS catalog.
+            snp_id_current (Column): The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good.
+            risk_allele (Column): The risk allele for the SNP.
+
+        Returns:
+            An array of distinct values.
+        """
+        # The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good.
+        snp_id_current = f.when(
+            snp_id_current.rlike("^[0-9]*$"),
+            f.format_string("rs%s", snp_id_current),
+        )
+        # Cleaning risk allele:
+        risk_allele = f.split(risk_allele, "-").getItem(0)
+
+        # Collecting all values:
+        return f.array_distinct(f.array(snp_id, snp_id_current, risk_allele))
+
+    @staticmethod
+    def _map_to_variant_annotation_variants(
+        gwas_associations: DataFrame, variant_annotation: VariantAnnotation
+    ) -> DataFrame:
+        """Add variant metadata in associations.
+
+        Args:
+            gwas_associations (DataFrame): raw GWAS Catalog associations
+            variant_annotation (VariantAnnotation): variant annotation dataset
+
+        Returns:
+            DataFrame: GWAS Catalog associations data including `variantId`, `referenceAllele`,
+            `alternateAllele`, `chromosome`, `position` with variant metadata
+        """
+        # Subset of GWAS Catalog associations required for resolving variant IDs:
+        gwas_associations_subset = gwas_associations.select(
+            "studyLocusId",
+            f.col("CHR_ID").alias("chromosome"),
+            f.col("CHR_POS").alias("position"),
+            # List of all SNPs associated with the variant
+            StudyLocusGWASCatalog._collect_rsids(
+                f.split(f.col("SNPS"), "; ").getItem(0),
+                f.col("SNP_ID_CURRENT"),
+                f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
+            ).alias("rsIdsGwasCatalog"),
+            StudyLocusGWASCatalog._normalise_risk_allele(
+                f.col("STRONGEST SNP-RISK ALLELE")
+            ).alias("riskAllele"),
+        )
+
+        # Subset of variant annotation required for GWAS Catalog annotations:
+        va_subset = variant_annotation.df.select(
+            "variantId",
+            "chromosome",
+            "position",
+            f.col("rsIds").alias("rsIdsGnomad"),
+            "referenceAllele",
+            "alternateAllele",
+            "alleleFrequencies",
+            variant_annotation.max_maf().alias("maxMaf"),
+        ).join(
+            f.broadcast(
+                gwas_associations_subset.select("chromosome", "position").distinct()
+            ),
+            on=["chromosome", "position"],
+            how="inner",
+        )
+
+        # Semi-resolved ids (still contains duplicates when conclusion was not possible to make
+        # based on rsIds or allele concordance)
+        filtered_associations = gwas_associations_subset.join(
+            f.broadcast(va_subset),
+            on=["chromosome", "position"],
+            how="left",
+        ).filter(
+            # Filter out rows where GWAS Catalog rsId does not match with GnomAD rsId,
+            # but there is corresponding variant for the same association
+            StudyLocusGWASCatalog._flag_mappings_to_retain(
+                f.col("studyLocusId"),
+                StudyLocusGWASCatalog._compare_rsids(
+                    f.col("rsIdsGnomad"), f.col("rsIdsGwasCatalog")
+                ),
+            )
+            # or filter out rows where GWAS Catalog alleles are not concordant with GnomAD alleles,
+            # but there is corresponding variant for the same association
+            | StudyLocusGWASCatalog._flag_mappings_to_retain(
+                f.col("studyLocusId"),
+                StudyLocusGWASCatalog._check_concordance(
+                    f.col("riskAllele"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                ),
+            )
+        )
+
+        # Keep only highest maxMaf variant per studyLocusId
+        fully_mapped_associations = get_record_with_maximum_value(
+            filtered_associations, grouping_col="studyLocusId", sorting_col="maxMaf"
+        ).select(
+            "studyLocusId",
+            "variantId",
+            "referenceAllele",
+            "alternateAllele",
+            "chromosome",
+            "position",
+        )
+
+        return gwas_associations.join(
+            fully_mapped_associations, on="studyLocusId", how="left"
+        )
+
+    @staticmethod
+    def _compare_rsids(gnomad: Column, gwas: Column) -> Column:
+        """If the intersection of the two arrays is greater than 0, return True, otherwise return False.
+
+        Args:
+            gnomad (Column): rsids from gnomad
+            gwas (Column): rsids from the GWAS Catalog
+
+        Returns:
+            A boolean column that is true if the GnomAD rsIDs can be found in the GWAS rsIDs.
+
+        Examples:
+            >>> d = [
+            ...    (1, ["rs123", "rs523"], ["rs123"]),
+            ...    (2, [], ["rs123"]),
+            ...    (3, ["rs123", "rs523"], []),
+            ...    (4, [], []),
+            ... ]
+            >>> df = spark.createDataFrame(d, ['associationId', 'gnomad', 'gwas'])
+            >>> df.withColumn("rsid_matches", _compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
+            +-------------+--------------+-------+------------+
+            |associationId|        gnomad|   gwas|rsid_matches|
+            +-------------+--------------+-------+------------+
+            |            1|[rs123, rs523]|[rs123]|        true|
+            |            2|            []|[rs123]|       false|
+            |            3|[rs123, rs523]|     []|       false|
+            |            4|            []|     []|       false|
+            +-------------+--------------+-------+------------+
+            <BLANKLINE>
+
+        """
+        return f.when(f.size(f.array_intersect(gnomad, gwas)) > 0, True).otherwise(
+            False
+        )
+
+    @staticmethod
+    def _flag_mappings_to_retain(
+        association_id: Column, filter_column: Column
+    ) -> Column:
+        """Flagging mappings to drop for each association.
+
+        Some associations have multiple mappings. Some has matching rsId others don't. We only
+        want to drop the non-matching mappings, when a matching is available for the given association.
+        This logic can be generalised for other measures eg. allele concordance.
+
+        Args:
+            association_id (Column): association identifier column
+            filter_column (Column): boolean col indicating to keep a mapping
+
+        Returns:
+            A column with a boolean value.
+
+        Examples:
+        >>> d = [
+        ...    (1, False),
+        ...    (1, False),
+        ...    (2, False),
+        ...    (2, True),
+        ...    (3, True),
+        ...    (3, True),
+        ... ]
+        >>> df = spark.createDataFrame(d, ['associationId', 'filter'])
+        >>> df.withColumn("isConcordant", _flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
+        +-------------+------+------------+
+        |associationId|filter|isConcordant|
+        +-------------+------+------------+
+        |            1| false|        true|
+        |            1| false|        true|
+        |            3|  true|        true|
+        |            3|  true|        true|
+        |            2| false|       false|
+        |            2|  true|        true|
+        +-------------+------+------------+
+        <BLANKLINE>
+
+        """
+        w = Window.partitionBy(association_id)
+
+        # Generating a boolean column informing if the filter column contains true anywhere for the association:
+        aggregated_filter = f.when(
+            f.array_contains(f.collect_set(filter_column).over(w), True), True
+        ).otherwise(False)
+
+        # Generate a filter column:
+        return f.when(aggregated_filter & (~filter_column), False).otherwise(True)
+
+    @staticmethod
+    def _check_concordance(
+        risk_allele: Column, reference_allele: Column, alternate_allele: Column
+    ) -> Column:
+        """A function to check if the risk allele is concordant with the alt or ref allele.
+
+        If the risk allele is the same as the reference or alternate allele, or if the reverse complement of
+        the risk allele is the same as the reference or alternate allele, then the allele is concordant.
+        If no mapping is available (ref/alt is null), the function returns True.
+
+        Args:
+            risk_allele (Column): The allele that is associated with the risk of the disease.
+            reference_allele (Column): The reference allele from the GWAS catalog
+            alternate_allele (Column): The alternate allele of the variant.
+
+        Returns:
+            A boolean column that is True if the risk allele is the same as the reference or alternate allele,
+            or if the reverse complement of the risk allele is the same as the reference or alternate allele.
+
+        Examples:
+            >>> d = [
+            ...     ('A', 'A', 'G'),
+            ...     ('A', 'T', 'G'),
+            ...     ('A', 'C', 'G'),
+            ...     ('A', 'A', '?'),
+            ...     (None, None, 'A'),
+            ... ]
+            >>> df = spark.createDataFrame(d, ['riskAllele', 'referenceAllele', 'alternateAllele'])
+            >>> df.withColumn("isConcordant", _check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
+            +----------+---------------+---------------+------------+
+            |riskAllele|referenceAllele|alternateAllele|isConcordant|
+            +----------+---------------+---------------+------------+
+            |         A|              A|              G|        true|
+            |         A|              T|              G|        true|
+            |         A|              C|              G|       false|
+            |         A|              A|              ?|        true|
+            |      null|           null|              A|        true|
+            +----------+---------------+---------------+------------+
+            <BLANKLINE>
+
+        """
+        # Calculating the reverse complement of the risk allele:
+        risk_allele_reverse_complement = f.when(
+            risk_allele.rlike(r"^[ACTG]+$"),
+            f.reverse(f.translate(risk_allele, "ACTG", "TGAC")),
+        ).otherwise(risk_allele)
+
+        # OK, is the risk allele or the reverse complent is the same as the mapped alleles:
+        return (
+            f.when(
+                (risk_allele == reference_allele) | (risk_allele == alternate_allele),
+                True,
+            )
+            # If risk allele is found on the negative strand:
+            .when(
+                (risk_allele_reverse_complement == reference_allele)
+                | (risk_allele_reverse_complement == alternate_allele),
+                True,
+            )
+            # If risk allele is ambiguous, still accepted: < This condition could be reconsidered
+            .when(risk_allele == "?", True)
+            # If the association could not be mapped we keep it:
+            .when(reference_allele.isNull(), True)
+            # Allele is discordant:
+            .otherwise(False)
+        )
+
+    @staticmethod
+    def _get_reverse_complement(allele_col: Column) -> Column:
+        """A function to return the reverse complement of an allele column.
+
+        It takes a string and returns the reverse complement of that string if it's a DNA sequence,
+        otherwise it returns the original string. Assumes alleles in upper case.
+
+        Args:
+            allele_col (Column): The column containing the allele to reverse complement.
+
+        Returns:
+            A column that is the reverse complement of the allele column.
+
+        Examples:
+            >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("revcom_allele", _get_reverse_complement(f.col("allele"))).show()
+            +------+-------------+
+            |allele|revcom_allele|
+            +------+-------------+
+            |     A|            T|
+            |     T|            A|
+            |     G|            C|
+            |     C|            G|
+            |    AC|           GT|
+            |GTaatc|       GATTAC|
+            |     ?|            ?|
+            |  null|         null|
+            +------+-------------+
+            <BLANKLINE>
+
+        """
+        allele_col = f.upper(allele_col)
+        return f.when(
+            allele_col.rlike("[ACTG]+"),
+            f.reverse(f.translate(allele_col, "ACTG", "TGAC")),
+        ).otherwise(allele_col)
+
+    @staticmethod
+    def _effect_needs_harmonisation(
+        risk_allele: Column, reference_allele: Column
+    ) -> Column:
+        """A function to check if the effect allele needs to be harmonised.
+
+        Args:
+            risk_allele (Column): Risk allele column
+            reference_allele (Column): Effect allele column
+
+        Returns:
+            A boolean column indicating if the effect allele needs to be harmonised.
+        """
+        return (risk_allele == reference_allele) | (
+            risk_allele
+            == StudyLocusGWASCatalog._get_reverse_complement(reference_allele)
+        )
+
+    @staticmethod
+    def _are_alleles_palindromic(
+        reference_allele: Column, alternate_allele: Column
+    ) -> Column:
+        """A function to check if the alleles are palindromic.
+
+        Args:
+            reference_allele (Column): Reference allele column
+            alternate_allele (Column): Alternate allele column
+
+        Returns:
+            A boolean column indicating if the alleles are palindromic.
+        """
+        return reference_allele == StudyLocusGWASCatalog._get_reverse_complement(
+            alternate_allele
+        )
+
+    @staticmethod
+    def _pval_to_zscore(pval_col: Column) -> Column:
+        """Convert p-value column to z-score column.
+
+        Args:
+            pval_col (Column): pvalues to be casted to floats.
+
+        Returns:
+            Column: p-values transformed to z-scores
+
+        Examples:
+            >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("zscore", _pval_to_zscore(f.col("pval"))).show()
+            +---+-------+----------+
+            | id|   pval|    zscore|
+            +---+-------+----------+
+            | t1|      1|       0.0|
+            | t2|    0.9|0.12566137|
+            | t3|   0.05|  1.959964|
+            | t4| 1e-300| 37.537838|
+            | t5|1e-1000| 37.537838|
+            | t6|     NA|      null|
+            +---+-------+----------+
+            <BLANKLINE>
+
+        """
+        pvalue_float = pval_col.cast(t.FloatType())
+        pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
+            pvalue_float
+        )
+        return f.udf(
+            lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
+            t.FloatType(),
+        )(pvalue_nozero)
+
+    @staticmethod
+    def _harmonise_beta(
+        risk_allele: Column,
+        reference_allele: Column,
+        alternate_allele: Column,
+        effect_size: Column,
+        confidence_interval: Column,
+    ) -> Column:
+        """A function to extract the beta value from the effect size and confidence interval.
+
+        If the confidence interval contains the word "increase" or "decrease" it indicates, we are dealing with betas.
+        If it's "increase" and the effect size needs to be harmonized, then multiply the effect size by -1
+
+        Args:
+            risk_allele (Column): Risk allele column
+            reference_allele (Column): Reference allele column
+            alternate_allele (Column): Alternate allele column
+            effect_size (Column): GWAS Catalog effect size column
+            confidence_interval (Column): GWAS Catalog confidence interval column
+
+        Returns:
+            A column containing the beta value.
+        """
+        return f.when(
+            StudyLocusGWASCatalog._are_alleles_palindromic(
+                reference_allele, alternate_allele
+            ),
+            None,
+        ).otherwise(
+            f.when(
+                (
+                    StudyLocusGWASCatalog._effect_needs_harmonisation(
+                        risk_allele, reference_allele
+                    )
+                    & confidence_interval.contains("increase")
+                )
+                | (
+                    ~StudyLocusGWASCatalog._effect_needs_harmonisation(
+                        risk_allele, reference_allele
+                    )
+                    & confidence_interval.contains("decrease")
+                ),
+                -effect_size,
+            ).otherwise(effect_size)
+        )
+
+    @staticmethod
+    def _harmonise_beta_ci(
+        risk_allele: Column,
+        reference_allele: Column,
+        alternate_allele: Column,
+        effect_size: Column,
+        confidence_interval: Column,
+        p_value: Column,
+        direction: str,
+    ) -> Column:
+        """Calculating confidence intervals for beta values.
+
+        Args:
+            risk_allele (Column): Risk allele column
+            reference_allele (Column): Reference allele column
+            alternate_allele (Column): Alternate allele column
+            effect_size (Column): GWAS Catalog effect size column
+            confidence_interval (Column): GWAS Catalog confidence interval column
+            p_value (Column): GWAS Catalog p-value column
+            direction (str): This is the direction of the confidence interval. It can be either "upper" or "lower".
+
+        Returns:
+            The upper and lower bounds of the confidence interval for the beta coefficient.
+        """
+        zscore_95 = f.lit(1.96)
+        beta = StudyLocusGWASCatalog._harmonise_beta(
+            risk_allele,
+            reference_allele,
+            alternate_allele,
+            effect_size,
+            confidence_interval,
+        )
+        zscore = StudyLocusGWASCatalog._pval_to_zscore(p_value)
+        return (
+            f.when(f.lit(direction) == "upper", beta + f.abs(zscore_95 * beta) / zscore)
+            .when(f.lit(direction) == "lower", beta - f.abs(zscore_95 * beta) / zscore)
+            .otherwise(None)
+        )
+
+    @staticmethod
+    def _harmonise_odds_ratio(
+        risk_allele: Column,
+        reference_allele: Column,
+        alternate_allele: Column,
+        effect_size: Column,
+        confidence_interval: Column,
+    ) -> Column:
+        """Harmonizing odds ratio.
+
+        Args:
+            risk_allele (Column): Risk allele column
+            reference_allele (Column): Reference allele column
+            alternate_allele (Column): Alternate allele column
+            effect_size (Column): GWAS Catalog effect size column
+            confidence_interval (Column): GWAS Catalog confidence interval column
+
+        Returns:
+            A column with the odds ratio, or 1/odds_ratio if harmonization required.
+        """
+        return f.when(
+            StudyLocusGWASCatalog._are_alleles_palindromic(
+                reference_allele, alternate_allele
+            ),
+            None,
+        ).otherwise(
+            f.when(
+                (
+                    StudyLocusGWASCatalog._effect_needs_harmonisation(
+                        risk_allele, reference_allele
+                    )
+                    & ~confidence_interval.rlike("|".join(["decrease", "increase"]))
+                ),
+                1 / effect_size,
+            ).otherwise(effect_size)
+        )
+
+    @staticmethod
+    def _harmonise_odds_ratio_ci(
+        risk_allele: Column,
+        reference_allele: Column,
+        alternate_allele: Column,
+        effect_size: Column,
+        confidence_interval: Column,
+        p_value: Column,
+        direction: str,
+    ) -> Column:
+        """Calculating confidence intervals for beta values.
+
+        Args:
+            risk_allele (Column): Risk allele column
+            reference_allele (Column): Reference allele column
+            alternate_allele (Column): Alternate allele column
+            effect_size (Column): GWAS Catalog effect size column
+            confidence_interval (Column): GWAS Catalog confidence interval column
+            p_value (Column): GWAS Catalog p-value column
+            direction (str): This is the direction of the confidence interval. It can be either "upper" or "lower".
+
+        Returns:
+            The upper and lower bounds of the 95% confidence interval for the odds ratio.
+        """
+        zscore_95 = f.lit(1.96)
+        odds_ratio = StudyLocusGWASCatalog._harmonise_odds_ratio(
+            risk_allele,
+            reference_allele,
+            alternate_allele,
+            effect_size,
+            confidence_interval,
+        )
+        odds_ratio_estimate = f.log(odds_ratio)
+        zscore = StudyLocusGWASCatalog._pval_to_zscore(p_value)
+        odds_ratio_se = odds_ratio_estimate / zscore
+        return f.when(
+            f.lit(direction) == "upper",
+            f.exp(odds_ratio_estimate + f.abs(zscore_95 * odds_ratio_se)),
+        ).when(
+            f.lit(direction) == "lower",
+            f.exp(odds_ratio_estimate - f.abs(zscore_95 * odds_ratio_se)),
+        )
+
+    @staticmethod
+    def _harmonise_gwascatalog_associations(
+        gwas_associations: DataFrame,
+        variant_annotation: VariantAnnotation,
+        pval_threshold: float,
     ) -> DataFrame:
         """Read GWASCatalog associations.
 
         It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
         applies some pre-defined filters on the data:
 
-        - Dropping associations based on variant x variant interactions
-        - Dropping sub-significant associations
-        - Dropping associations without genomic location
-
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset
-            pvalue_cutoff (float): association p-value cut-off
+            variant_annotation (VariantAnnotation): Variant annotation dataset
+            pval_threshold (float): P-value threshold for flagging associations
 
         Returns:
             DataFrame: `DataFrame` with the GWAS Catalog associations
         """
         # Reading and filtering associations:
-        association_df = (
-            gwas_associations.select(
-                # Variant related columns:
-                # variant id and the allele is extracted (; separated list)
-                f.col("STRONGEST SNP-RISK ALLELE").alias("strongestSnpRiskAllele"),
-                # Mapped genomic location of the variant (; separated list)
-                f.col("CHR_ID").alias("chromosome"),
-                f.col("CHR_POS").alias("position"),
-                f.col("RISK ALLELE FREQUENCY").alias("riskAlleleFrequency"),
-                # Flag if a variant is a copy number variant
-                f.col("CNV").alias("cnv"),
-                f.col("SNP_ID_CURRENT").alias("snpIdCurrent"),
-                # List of all SNPs associated with the variant
-                f.col("SNPS").alias("snpIds"),
-                f.col("STUDY ACCESSION").alias("studyAccession"),
-                # Reported trait of the study
-                f.col("DISEASE/TRAIT").alias(
-                    "diseaseTrait"
-                ),  # Reported trait of the study
-                f.col("MAPPED_TRAIT_URI").alias(
-                    "mappedTraitUri"
-                ),  # Mapped trait URIs of the study
-                f.col("MERGED").alias("merged"),
-                # Association details:
-                f.col("P-VALUE (TEXT)").alias("pvalueText"),
-                # p-value of the association, string: split into exponent and mantissa.
-                f.col("P-VALUE").alias("pvalue"),
-                # -log10(p-value) of the association, float
-                f.col("PVALUE_MLOG").alias("pvalueMlog").cast(t.FloatType()),
-                # Effect size of the association, Odds ratio or beta
-                f.col("OR or BETA").alias("effectSize"),
-                # Confidence interval of the association, string: split into lower and upper bound.
-                f.col("95% CI (TEXT)").alias("confidenceInterval"),
-                f.col("CONTEXT").alias("context"),
+        return (
+            gwas_associations.withColumn(
+                "studyLocusId", f.monotonically_increasing_id()
             )
-            # Apply some pre-defined filters on the data:
-            # 1. Dropping associations based on variant x variant interactions
-            # 2. Dropping sub-significant associations
-            # 3. Dropping associations without genomic location
-            .filter(
-                ~f.col("chrId").contains(" x ")
-                & (f.col("pvalueMlog") >= -np.log10(pvalue_cutoff))
-                & (f.col("chrPos").isNotNull() & f.col("chrId").isNotNull())
-            ).persist()
+            .transform(
+                # Map/harmonise variants to variant annotation dataset:
+                # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
+                lambda df: StudyLocusGWASCatalog._map_to_variant_annotation_variants(
+                    df, variant_annotation
+                )
+            )
+            .withColumn(
+                # Perform all quality control checks:
+                "qualityControls",
+                StudyLocusGWASCatalog._qc_all(
+                    f.array(),
+                    f.col("CHR_ID"),
+                    f.col("CHR_POS"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("STRONGEST SNP-RISK ALLELE"),
+                    StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")),
+                    StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")),
+                    pval_threshold,
+                ),
+            )
+            .select(
+                # INSIDE STUDY-LOCUS SCHEMA:
+                "studyLocusId",
+                "variantId",
+                # Mapped genomic location of the variant (; separated list)
+                "chromosome",
+                "position",
+                f.col("STUDY ACCESSION").alias("studyId"),
+                # beta value of the association
+                StudyLocusGWASCatalog._harmonise_beta(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                ).alias("beta"),
+                # odds ratio of the association
+                StudyLocusGWASCatalog._harmonise_odds_ratio(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                ).alias("oddsRatio"),
+                # CI lower of the beta value
+                StudyLocusGWASCatalog._harmonise_beta_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "lower",
+                ).alias("betaConfidenceIntervalLower"),
+                # CI upper for the beta value
+                StudyLocusGWASCatalog._harmonise_beta_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "upper",
+                ).alias("betaConfidenceIntervalUpper"),
+                # CI lower of the odds ratio value
+                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "lower",
+                ).alias("oddsRatioConfidenceIntervalLower"),
+                # CI upper of the odds ratio value
+                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "upper",
+                ).alias("oddsRatioConfidenceIntervalUpper"),
+                # p-value of the association, string: split into exponent and mantissa.
+                StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")).alias(
+                    "pvalueMantissa"
+                ),
+                StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")).alias(
+                    "pValueExponent"
+                ),
+                # OUTSIDE STUDY-LOCUS SCHEMA:
+                # TODO: to clean up
+                StudyLocusGWASCatalog._parse_efos(f.col("MAPPED_TRAIT_URI")).alias(
+                    "associationEfos"
+                ),
+                # Association details:
+                StudyLocusGWASCatalog._normalise_pvaluetext(
+                    f.col("P-VALUE (TEXT)")
+                ).alias("pvalueText"),
+            )
         )
 
-        return association_df
+    @staticmethod
+    def _qc_all(
+        qc: Column,
+        chromosome: Column,
+        position: Column,
+        reference_allele: Column,
+        alternate_allele: Column,
+        strongest_snp_risk_allele: Column,
+        p_value_mantissa: Column,
+        p_value_exponent: Column,
+        p_value_cutoff: float,
+    ) -> Column:
+        """Flag associations that fail any QC.
+
+        Args:
+            qc (Column): QC column
+            chromosome (Column): Chromosome column
+            position (Column): Position column
+            reference_allele (Column): Reference allele column
+            alternate_allele (Column): Alternate allele column
+            strongest_snp_risk_allele (Column): Strongest SNP risk allele column
+            p_value_mantissa (Column): P-value mantissa column
+            p_value_exponent (Column): P-value exponent column
+            p_value_cutoff (float): P-value cutoff
+
+        Returns:
+            Column: Updated QC column with flag.
+        """
+        qc = StudyLocusGWASCatalog._qc_variant_interactions(
+            qc, strongest_snp_risk_allele
+        )
+        qc = StudyLocusGWASCatalog._qc_subsignificant_associations(
+            qc, p_value_mantissa, p_value_exponent, p_value_cutoff
+        )
+        qc = StudyLocusGWASCatalog._qc_genomic_location(qc, chromosome, position)
+        qc = StudyLocusGWASCatalog._qc_variant_inconsistencies(
+            qc, chromosome, position, strongest_snp_risk_allele
+        )
+        qc = StudyLocusGWASCatalog._qc_unmapped_variants(qc, alternate_allele)
+        qc = StudyLocusGWASCatalog._qc_palindromic_alleles(
+            qc, reference_allele, alternate_allele
+        )
+        return qc
+
+    @staticmethod
+    def _qc_variant_interactions(
+        qc: Column, strongest_snp_risk_allele: Column
+    ) -> Column:
+        """Flag associations based on variant x variant interactions.
+
+        Args:
+            qc (Column): QC column
+            strongest_snp_risk_allele (Column): Column with the strongest SNP risk allele
+
+        Returns:
+            Column: Updated QC column with flag.
+        """
+        return StudyLocusGWASCatalog._update_quality_flag(
+            qc,
+            strongest_snp_risk_allele.contains(";"),
+            StudyLocusQualityCheck.COMPOSITE_FLAG,
+        )
+
+    @staticmethod
+    def _qc_subsignificant_associations(
+        qc: Column,
+        p_value_mantissa: Column,
+        p_value_exponent: Column,
+        pvalue_cutoff: float,
+    ) -> Column:
+        """Flag associations below significant threshold.
+
+        Args:
+            qc (Column): QC column
+            p_value_mantissa (Column): P-value mantissa column
+            p_value_exponent (Column): P-value exponent column
+            pvalue_cutoff (float): association p-value cut-off
+
+        Returns:
+            Column: Updated QC column with flag.
+        """
+        return StudyLocus._update_quality_flag(
+            qc,
+            calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
+            < -np.log10(pvalue_cutoff),
+            StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
+        )
+
+    @staticmethod
+    def _qc_genomic_location(
+        qc: Column, chromosome: Column, position: Column
+    ) -> Column:
+        """Flag associations without genomic location in GWAS Catalog.
+
+        Args:
+            qc (Column): QC column
+            chromosome (Column): Chromosome column in GWAS Catalog
+            position (Column): Position column in GWAS Catalog
+
+        Returns:
+            Column: Updated QC column with flag.
+        """
+        return StudyLocus._update_quality_flag(
+            qc,
+            position.isNull() & chromosome.isNull(),
+            StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG,
+        )
+
+    @staticmethod
+    def _qc_variant_inconsistencies(
+        qc: Column,
+        chromosome: Column,
+        position: Column,
+        strongest_snp_risk_allele: Column,
+    ) -> Column:
+        """Flag associations with inconsistencies in the variant annotation.
+
+        Args:
+            qc (Column): QC column
+            chromosome (Column): Chromosome column in GWAS Catalog
+            position (Column): Position column in GWAS Catalog
+            strongest_snp_risk_allele (Column): Strongest SNP risk allele column in GWAS Catalog
+
+        Returns:
+            Column: Updated QC column with flag.
+        """
+        return StudyLocusGWASCatalog._update_quality_flag(
+            qc,
+            # Number of chromosomes does not correspond to the number of positions:
+            (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";"))) |
+            # NUmber of chromosome values different from riskAllele values:
+            (
+                f.size(f.split(chromosome, ";"))
+                != f.size(f.split(strongest_snp_risk_allele, ";"))
+            ),
+            StudyLocusQualityCheck.INCONSISTENCY_FLAG,
+        )
+
+    @staticmethod
+    def _qc_unmapped_variants(qc: Column, alternate_allele: Column) -> Column:
+        """Flag associations with variants not mapped to variantAnnotation.
+
+        Args:
+            qc (Column): QC column
+            alternate_allele (Column): alternate allele
+
+        Returns:
+            Column: Updated QC column with flag.
+        """
+        return StudyLocus._update_quality_flag(
+            qc,
+            alternate_allele.isNull(),
+            StudyLocusQualityCheck.NON_MAPPED_VARIANT_FLAG,
+        )
+
+    @staticmethod
+    def _qc_palindromic_alleles(
+        qc: Column, reference_allele: Column, alternate_allele: Column
+    ) -> Column:
+        """Flag associations with palindromic variants which effects can not be harmonised.
+
+        Args:
+            qc (Column): QC column
+            reference_allele (Column): reference allele
+            alternate_allele (Column): alternate allele
+
+        Returns:
+            Column: Updated QC column with flag.
+        """
+        return StudyLocus._update_quality_flag(
+            qc,
+            StudyLocusGWASCatalog._are_alleles_palindromic(
+                reference_allele, alternate_allele
+            ),
+            StudyLocusQualityCheck.PALINDROMIC_ALLELE_FLAG,
+        )
+
+    @classmethod
+    def from_source(
+        cls: type[StudyLocusGWASCatalog],
+        gwas_associations: DataFrame,
+        variant_annotation: VariantAnnotation,
+        pvalue_threshold: float = 5e-8,
+    ) -> StudyLocusGWASCatalog:
+        """Load GWAS Catalog associations from source.
+
+        Args:
+            gwas_associations (DataFrame): GWAS Catalog raw associations dataset
+            variant_annotation (VariantAnnotation): Variant annotation dataset
+            pvalue_threshold (float): Association p-value threshold. Defaults to 5e-8.
+
+        Returns:
+            StudyLocusGWASCatalog: GWAS Catalog associations
+        """
+        return cls(
+            _df=cls._harmonise_gwascatalog_associations(
+                gwas_associations, variant_annotation, pvalue_threshold
+            )
+        )

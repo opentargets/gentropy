@@ -4,7 +4,7 @@ from __future__ import annotations
 import importlib.resources as pkg_resources
 import json
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -30,7 +30,7 @@ class Intervals(Dataset):
     schema: StructType = parse_spark_schema("intervals.json")
 
     @classmethod
-    def from_parquet(cls: Type[Intervals], etl: ETLSession, path: str) -> Intervals:
+    def from_parquet(cls: type[Intervals], etl: ETLSession, path: str) -> Intervals:
         """Initialise Intervals from parquet file.
 
         Args:
@@ -44,7 +44,7 @@ class Intervals(Dataset):
 
     @classmethod
     def parse_andersson(
-        cls: Type[Intervals],
+        cls: type[Intervals],
         etl: ETLSession,
         path: str,
         gene_index: GeneIndex,
@@ -153,7 +153,7 @@ class Intervals(Dataset):
 
     @classmethod
     def parse_javierre(
-        cls: Type[Intervals],
+        cls: type[Intervals],
         etl: ETLSession,
         path: str,
         gene_index: GeneIndex,
@@ -293,7 +293,7 @@ class Intervals(Dataset):
 
     @classmethod
     def parse_jung(
-        cls: Type[Intervals],
+        cls: type[Intervals],
         etl: ETLSession,
         path: str,
         gene_index: GeneIndex,
@@ -372,7 +372,7 @@ class Intervals(Dataset):
 
     @classmethod
     def parse_thurman(
-        cls: Type[Intervals],
+        cls: type[Intervals],
         etl: ETLSession,
         path: str,
         gene_index: GeneIndex,

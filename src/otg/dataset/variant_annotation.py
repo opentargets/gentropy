@@ -2,20 +2,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING
 
 import hail as hl
 import pyspark.sql.functions as f
 from omegaconf import MISSING
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import get_record_with_maximum_value
+from otg.common.spark_helpers import get_record_with_maximum_value, normalise_column
 from otg.common.utils import convert_gnomad_position_to_ensembl
 from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class VariantAnnotationGnomadConfig:
     """Variant annotation from gnomad configuration."""
 
-    path: Optional[str] = None
+    path: str | None = None
     gnomad_file: str = MISSING
     chain_file: str = MISSING
     populations: list = MISSING
@@ -34,17 +34,13 @@ class VariantAnnotationGnomadConfig:
 
 @dataclass
 class VariantAnnotation(Dataset):
-    """Dataset with variant-level annotations derived from GnomAD.
-
-    Returns:
-        DataFrame: Subset of variant annotations derived from GnomAD
-    """
+    """Dataset with variant-level annotations derived from GnomAD."""
 
     schema: StructType = parse_spark_schema("variant_annotation.json")
 
     @classmethod
     def from_parquet(
-        cls: Type[VariantAnnotation], etl: ETLSession, path: str
+        cls: type[VariantAnnotation], etl: ETLSession, path: str
     ) -> VariantAnnotation:
         """Initialise VariantAnnotation from parquet file.
 
@@ -64,7 +60,7 @@ class VariantAnnotation(Dataset):
         gnomad_file: str,
         grch38_to_grch37_chain: str,
         populations: list,
-        path: Optional[str] = None,
+        path: str | None = None,
     ) -> VariantAnnotation:
         """Generate variant annotation dataset from gnomAD.
 
@@ -172,7 +168,7 @@ class VariantAnnotation(Dataset):
                     "ensembl_position",
                     "referenceAllele",
                     "alternateAllele",
-                ).alias("id"),
+                ).alias("variantId"),
                 "chromosome",
                 f.col("ensembl_position").alias("position"),
                 "referenceAllele",
@@ -214,8 +210,23 @@ class VariantAnnotation(Dataset):
         )
         return cls(df=df, path=path)
 
+    def max_maf(self: VariantAnnotation) -> Column:
+        """Maximum minor allele frequency accross all populations.
+
+        Returns:
+            Column: Maximum minor allele frequency accross all populations.
+        """
+        return f.array_max(
+            f.transform(
+                self.df.alleleFrequencies,
+                lambda af: f.when(
+                    af.alleleFrequency > 0.5, 1 - af.alleleFrequency
+                ).otherwise(af.alleleFrequency),
+            )
+        )
+
     def filter_by_variant_df(
-        self: VariantAnnotation, df: DataFrame, cols: List[str]
+        self: VariantAnnotation, df: DataFrame, cols: list[str]
     ) -> None:
         """Filter variant annotation dataset by a variant dataframe.
 
@@ -239,7 +250,7 @@ class VariantAnnotation(Dataset):
             DataFrame: A dataframe exploded by transcript consequences
         """
         transript_consequences = self.df.select(
-            "id",
+            "variantId",
             "chromosome",
             # exploding the array removes records without VEP annotation
             f.explode("vep.transcriptConsequences").alias("transcriptConsequence"),
@@ -284,7 +295,7 @@ class VariantAnnotation(Dataset):
         return V2G(
             df=self.get_transcript_consequence_df(filter_by)
             .select(
-                f.col("id").alias("variantId"),
+                "variantId",
                 "chromosome",
                 f.col("transcriptConsequence.gene_id").alias("geneId"),
                 f.explode("transcriptConsequence.consequence_terms").alias("label"),
@@ -320,7 +331,7 @@ class VariantAnnotation(Dataset):
             df=self.get_transcript_consequence_df(filter_by)
             .filter(f.col("transcriptConsequence.polyphen_score").isNotNull())
             .select(
-                f.col("id").alias("variantId"),
+                "variantId",
                 "chromosome",
                 f.col("transcriptConsequence.gene_id").alias("geneId"),
                 f.col("transcriptConsequence.polyphen_score").alias("score"),
@@ -346,7 +357,7 @@ class VariantAnnotation(Dataset):
             df=self.get_transcript_consequence_df(filter_by)
             .filter(f.col("transcriptConsequence.sift_score").isNotNull())
             .select(
-                f.col("id").alias("variantId"),
+                "variantId",
                 "chromosome",
                 f.col("transcriptConsequence.gene_id").alias("geneId"),
                 f.expr("1 - transcriptConsequence.sift_score").alias("score"),
@@ -390,5 +401,43 @@ class VariantAnnotation(Dataset):
                 f.col("score"),
                 f.lit("vep").alias("datatypeId"),
                 f.lit("loftee").alias("datasourceId"),
+            )
+        )
+
+    def get_distance_to_tss(
+        self: VariantAnnotation,
+        filter_by: GeneIndex,
+        max_distance: int = 500_000,
+    ) -> V2G:
+        """Extracts variant to gene assignments for variants falling within a window of a gene's TSS.
+
+        Args:
+            filter_by (GeneIndex): A gene index to filter by.
+            max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.
+
+        Returns:
+            V2G: variant to gene assignments with their distance to the TSS
+        """
+        return V2G(
+            df=self.df.alias("variant")
+            .join(
+                f.broadcast(filter_by.locations_lut()).alias("gene"),
+                on=[
+                    f.col("variant.chromosome") == f.col("gene.chromosome"),
+                    f.abs(f.col("variant.position") - f.col("gene.tss"))
+                    <= max_distance,
+                ],
+                how="inner",
+            )
+            .withColumn("inverse_distance", max_distance - f.col("distance"))
+            .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
+            .select(
+                "variantId",
+                "chromosome",
+                "position",
+                "geneId",
+                "score",
+                f.lit("distance").alias("datatypeId"),
+                f.lit("canonical_tss").alias("datasourceId"),
             )
         )
