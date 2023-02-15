@@ -179,3 +179,37 @@ def column2camel_case(col_name: str) -> str:
         return "".join([first.lower(), *map(str.capitalize, rest)])
 
     return f"`{col_name}` as {string2camelcase(col_name)}"
+
+
+def pivot_df(
+    df: DataFrame,
+    pivot_col: str,
+    value_col: str,
+    grouping_cols: list,
+) -> DataFrame:
+    """Pivot a dataframe.
+
+    Args:
+        df (DataFrame): Dataframe to pivot
+        pivot_col (str): Column to pivot on
+        value_col (str): Column to pivot
+        grouping_cols (list): Columns to group by
+
+    Returns:
+        DataFrame: Pivoted dataframe
+    """
+    pivot_values = df.select(pivot_col).distinct().rdd.flatMap(lambda x: x).collect()
+    return (
+        df.groupBy(grouping_cols)
+        .pivot(pivot_col)
+        .agg({value_col: "first"})
+        .select(
+            grouping_cols
+            + [
+                f.when(f.col(x).isNull(), None)
+                .otherwise(f.col(x))
+                .alias(f"{x}_{value_col}")
+                for x in pivot_values
+            ],
+        )
+    )

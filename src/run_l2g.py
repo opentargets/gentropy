@@ -16,7 +16,7 @@ from otg.dataset.l2g_feature_matrix import L2G, L2GFeatureMatrix
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.v2g import V2G
-from otg.methods.locus_to_gene import L2GTrainer
+from otg.method.locus_to_gene import L2GTrainer
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
@@ -35,6 +35,7 @@ def main(cfg: DictConfig) -> None:
     data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(
         frac=0.1, seed=42
     )
+    # TODO: data normalization and standardisation of features
 
     if cfg.run_mode == "train":
         L2GTrainer.train(
@@ -59,7 +60,7 @@ def get_gold_standards(
         "left_studyLocusId", "right_studyLocusId"
     )
     interactions = process_gene_interactions(etl, interactions_path)
-    curation = (
+    return (
         etl.spark.read.parquet(gold_standard_curation)
         .select(
             f.col("association_info.otg_id").alias("studyId"),
@@ -73,6 +74,7 @@ def get_gold_standards(
             ).alias("variantId"),
         )
         .filter(f.col("gold_standard_info.highest_confidence").isin(["High", "Medium"]))
+        # Bring studyLocusId - TODO: what if I don't have one?
         .join(
             StudyLocus.from_parquet(study_locus_path).select(
                 "studyId", "variantId", "studyLocusId"
@@ -112,11 +114,13 @@ def get_gold_standards(
             ~(
                 (f.col("gsStatus") == "Negative")
                 & (f.col("interacting"))
-                & (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                & (
+                    (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                    | (f.col("left.geneId") == f.col("interactions.geneIdB"))
+                )
             )
         )
     )
-    return curation
 
 
 def process_gene_interactions(etl: ETLSession, interactions_path: str) -> DataFrame:

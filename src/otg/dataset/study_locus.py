@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
+    from otg.dataset.distance import Distance
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -267,6 +268,58 @@ class StudyLocus(Dataset):
         return calculate_neglog_pvalue(
             self.df.pvalueMantissa,
             self.df.pvalueExponent,
+        )
+
+    def get_sentinels(self: StudyLocus) -> DataFrame:
+        """Returns a dataframe containing the sentinel variant per study and its P value.
+
+        A sentinel variant will be the tagging variant with the highest probability after conditioning.
+        This tagging variant will practically always match the lead variant, therefore we extract all lead/tagging pairs
+        and keep the signal where lead and tag coincide.
+
+        Returns:
+            DataFrame: Dataframe with all sentinels and their P values
+        """
+        return (
+            self.df.select(
+                "studyLocusId",
+                "studyId",
+                f.col("variantId").alias("leadVariantId"),
+                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
+                f.explode("credibleSet.tagPValueConditioned").alias(
+                    "tagPValueConditioned"
+                ),
+            )
+            .filter(f.col("leadVariantId") == f.col("tagVariantId"))
+            .distinct()
+        )
+
+    def get_tss_distance_features(self: StudyLocus, distances: Distance) -> DataFrame:
+        """Returns a dataframe containing the minimum TSS distance per studyLocusId by looking at all tagging variants in a region.
+
+        Args:
+            distances (Distance): Dataframe containing the distances to the TSS
+
+        Returns:
+            DataFrame: Dataframe with the minimum distance to the gene TSS within a region
+        """
+        return (
+            self.credible_set(CredibleInterval.IS95)
+            .df.select(
+                "studyLocusId",
+                "variantId",
+                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
+            )
+            .join(
+                distances.selectExpr("variantId as tagVariantId", "geneId", "distance"),
+                "tagVariantId",
+                "inner",
+            )
+            .groupBy("studyLocusId", "variantId", "geneId")
+            .agg(
+                f.min("distance").alias("dist_tss_min"),
+                f.mean("distance").alias("dist_tss_ave"),
+            )
         )
 
 
