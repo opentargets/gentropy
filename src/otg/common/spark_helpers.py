@@ -44,9 +44,7 @@ def pvalue_to_zscore(pval_col: Column) -> Column:
 
     """
     pvalue_float = pval_col.cast(t.FloatType())
-    pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
-        pvalue_float
-    )
+    pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(pvalue_float)
     return f.udf(
         lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
         t.FloatType(),
@@ -78,11 +76,7 @@ def nullify_empty_array(column: Column) -> Column:
 
 def get_top_ranked_in_window(df: DataFrame, w: WindowSpec) -> DataFrame:
     """Returns the record with the top rank within each group of the window."""
-    return (
-        df.withColumn("row_number", f.row_number().over(w))
-        .filter(f.col("row_number") == 1)
-        .drop("row_number")
-    )
+    return df.withColumn("row_number", f.row_number().over(w)).filter(f.col("row_number") == 1).drop("row_number")
 
 
 def get_record_with_minimum_value(
@@ -123,9 +117,7 @@ def get_record_with_maximum_value(
     return get_top_ranked_in_window(df, w)
 
 
-def normalise_column(
-    df: DataFrame, input_col_name: str, output_col_name: str
-) -> DataFrame:
+def normalise_column(df: DataFrame, input_col_name: str, output_col_name: str) -> DataFrame:
     """Normalises a numerical column to a value between 0 and 1.
 
     Args:
@@ -148,25 +140,14 @@ def normalise_column(
     +-----+----------+
     <BLANKLINE>
     """
-    vec_assembler = VectorAssembler(
-        inputCols=[input_col_name], outputCol="feature_vector"
-    )
+    vec_assembler = VectorAssembler(inputCols=[input_col_name], outputCol="feature_vector")
     scaler = MinMaxScaler(inputCol="feature_vector", outputCol="norm_vector")
-    unvector_score = f.round(vector_to_array(f.col("norm_vector"))[0], 2).alias(
-        output_col_name
-    )
+    unvector_score = f.round(vector_to_array(f.col("norm_vector"))[0], 2).alias(output_col_name)
     pipeline = Pipeline(stages=[vec_assembler, scaler])
-    return (
-        pipeline.fit(df)
-        .transform(df)
-        .select("*", unvector_score)
-        .drop("feature_vector", "norm_vector")
-    )
+    return pipeline.fit(df).transform(df).select("*", unvector_score).drop("feature_vector", "norm_vector")
 
 
-def calculate_neglog_pvalue(
-    p_value_mantissa: Column, p_value_exponent: Column
-) -> Column:
+def calculate_neglog_pvalue(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
     """Compute the negative log p-value.
 
     Args:
@@ -244,4 +225,33 @@ def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column
                         else 0
                 end)
         """
+    )
+
+
+def pivot_df(
+    df: DataFrame,
+    pivot_col: str,
+    value_col: str,
+    grouping_cols: list,
+) -> DataFrame:
+    """Pivot a dataframe.
+
+    Args:
+        df (DataFrame): Dataframe to pivot
+        pivot_col (str): Column to pivot on
+        value_col (str): Column to pivot
+        grouping_cols (list): Columns to group by
+
+    Returns:
+        DataFrame: Pivoted dataframe
+    """
+    pivot_values = df.select(pivot_col).distinct().rdd.flatMap(lambda x: x).collect()
+    return (
+        df.groupBy(grouping_cols)
+        .pivot(pivot_col)
+        .agg({value_col: "first"})
+        .select(
+            grouping_cols
+            + [f.when(f.col(x).isNull(), None).otherwise(f.col(x)).alias(f"{x}_{value_col}") for x in pivot_values],
+        )
     )

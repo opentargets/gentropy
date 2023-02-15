@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.dataset.distance import Distance
     from otg.dataset.study_index import StudyIndex
 
 
@@ -82,9 +83,7 @@ class StudyLocus(Dataset):
             DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
         """
         # Reduce columns to the minimum to reduce the size of the dataframe
-        credset_to_overlap = credset_to_overlap.select(
-            "studyLocusId", "studyType", "chromosome", "tagVariantId"
-        )
+        credset_to_overlap = credset_to_overlap.select("studyLocusId", "studyType", "chromosome", "tagVariantId")
         return (
             credset_to_overlap.alias("left")
             .filter(f.col("studyType") == "gwas")
@@ -94,8 +93,7 @@ class StudyLocus(Dataset):
                 on=[
                     f.col("left.chromosome") == f.col("right.chromosome"),
                     f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                    (f.col("right.studyType") != "gwas")
-                    | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+                    (f.col("right.studyType") != "gwas") | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
                 ],
                 how="inner",
             )
@@ -110,9 +108,7 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def _align_overlapping_tags(
-        loci_to_overlap: DataFrame, peak_overlaps: DataFrame
-    ) -> StudyLocusOverlap:
+    def _align_overlapping_tags(loci_to_overlap: DataFrame, peak_overlaps: DataFrame) -> StudyLocusOverlap:
         """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
 
         Args:
@@ -160,9 +156,7 @@ class StudyLocus(Dataset):
             "rightStudyLocusId",
             "chromosome",
             "tagVariantId",
-            f.struct(
-                *[f"left_{e}" for e in stats_cols] + [f"right_{e}" for e in stats_cols]
-            ).alias("statistics"),
+            f.struct(*[f"left_{e}" for e in stats_cols] + [f"right_{e}" for e in stats_cols]).alias("statistics"),
         )
         return StudyLocusOverlap(
             _df=overlaps,
@@ -170,9 +164,7 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def _update_quality_flag(
-        qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
-    ) -> Column:
+    def _update_quality_flag(qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck) -> Column:
         """Update the provided quality control list with a new flag if condition is met.
 
         Args:
@@ -288,9 +280,7 @@ class StudyLocus(Dataset):
         )
         return (
             lead_tags.select("variantId", "chromosome")
-            .union(
-                lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome")
-            )
+            .union(lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome"))
             .distinct()
         )
 
@@ -349,9 +339,7 @@ class StudyLocus(Dataset):
                     ),
                     lambda struct_e, acc: struct_e.withField(
                         CredibleInterval.IS95.value, (acc < 0.95) & acc.isNotNull()
-                    ).withField(
-                        CredibleInterval.IS99.value, (acc < 0.99) & acc.isNotNull()
-                    ),
+                    ).withField(CredibleInterval.IS99.value, (acc < 0.99) & acc.isNotNull()),
                 ),
             ),
         )
@@ -391,6 +379,56 @@ class StudyLocus(Dataset):
             .drop("is_lead_linked")
         )
         return self
+
+    def get_sentinels(self: StudyLocus) -> DataFrame:
+        """Returns a dataframe containing the sentinel variant per study and its P value.
+
+        A sentinel variant will be the tagging variant with the highest probability after conditioning.
+        This tagging variant will practically always match the lead variant, therefore we extract all lead/tagging pairs
+        and keep the signal where lead and tag coincide.
+
+        Returns:
+            DataFrame: Dataframe with all sentinels and their P values
+        """
+        return (
+            self.df.select(
+                "studyLocusId",
+                "studyId",
+                f.col("variantId").alias("leadVariantId"),
+                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
+                f.explode("credibleSet.tagPValueConditioned").alias("tagPValueConditioned"),
+            )
+            .filter(f.col("leadVariantId") == f.col("tagVariantId"))
+            .distinct()
+        )
+
+    def get_tss_distance_features(self: StudyLocus, distances: Distance) -> DataFrame:
+        """Returns a dataframe containing the minimum TSS distance per studyLocusId by looking at all tagging variants in a region.
+
+        Args:
+            distances (Distance): Dataframe containing the distances to the TSS
+
+        Returns:
+            DataFrame: Dataframe with the minimum distance to the gene TSS within a region
+        """
+        return (
+            self.credible_set(CredibleInterval.IS95)
+            .df.select(
+                "studyLocusId",
+                "variantId",
+                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
+            )
+            .join(
+                distances.selectExpr("variantId as tagVariantId", "geneId", "distance"),
+                "tagVariantId",
+                "inner",
+            )
+            .groupBy("studyLocusId", "variantId", "geneId")
+            .agg(
+                f.min("distance").alias("dist_tss_min"),
+                f.mean("distance").alias("dist_tss_ave"),
+            )
+        )
 
     def _qc_unresolved_ld(
         self: StudyLocus,

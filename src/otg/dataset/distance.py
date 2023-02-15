@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Type
 from otg.dataset.v2g import V2G
 
 if TYPE_CHECKING:
-
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
@@ -16,11 +15,11 @@ class Distance(V2G):
     """Distance dataset links genes to variants based on genome interaction studies."""
 
     @classmethod
-    def from_parquet(cls: Type[Distance], etl: ETLSession, path: str) -> Distance:
+    def from_parquet(cls: Type[Distance], etl: Session, path: str) -> Distance:
         """Initialise Intervals from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            etl (Session): ETL session
             path (str): Path to parquet file
 
         Returns:

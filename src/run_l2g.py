@@ -10,19 +10,19 @@ if TYPE_CHECKING:
     from omegaconf import DictConfig
     from pyspark.sql import DataFrame
 
-from otg.common.session import ETLSession
+from otg.common.session import Session
 from otg.common.spark_helpers import get_record_with_maximum_value
 from otg.dataset.l2g_feature_matrix import L2G, L2GFeatureMatrix
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.v2g import V2G
-from otg.methods.locus_to_gene import L2GTrainer
+from otg.method.locus_to_gene import L2GTrainer
 
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def main(cfg: DictConfig) -> None:
     """Run Locus to Gene."""
-    etl = ETLSession(cfg)
+    etl = Session(cfg)
     gold_standards = get_gold_standards(
         etl,
         cfg.gold_standard.curation,
@@ -32,9 +32,8 @@ def main(cfg: DictConfig) -> None:
         cfg.gold_standard.interactions,
     )
     fm = L2GFeatureMatrix  # TODO: inverse matrix
-    data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(
-        frac=0.1, seed=42
-    )
+    data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(frac=0.1, seed=42)
+    # TODO: data normalization and standardisation of features
 
     if cfg.run_mode == "train":
         L2GTrainer.train(
@@ -46,7 +45,7 @@ def main(cfg: DictConfig) -> None:
 
 
 def get_gold_standards(
-    etl: ETLSession,
+    etl: Session,
     gold_standard_curation: str,
     v2g_path: str,
     study_locus_path: str,
@@ -59,7 +58,7 @@ def get_gold_standards(
         "left_studyLocusId", "right_studyLocusId"
     )
     interactions = process_gene_interactions(etl, interactions_path)
-    curation = (
+    return (
         etl.spark.read.parquet(gold_standard_curation)
         .select(
             f.col("association_info.otg_id").alias("studyId"),
@@ -73,10 +72,9 @@ def get_gold_standards(
             ).alias("variantId"),
         )
         .filter(f.col("gold_standard_info.highest_confidence").isin(["High", "Medium"]))
+        # Bring studyLocusId - TODO: what if I don't have one?
         .join(
-            StudyLocus.from_parquet(study_locus_path).select(
-                "studyId", "variantId", "studyLocusId"
-            ),
+            StudyLocus.from_parquet(study_locus_path).select("studyId", "variantId", "studyLocusId"),
             on=["studyId", "variantId"],
             how="inner",
         )
@@ -112,14 +110,16 @@ def get_gold_standards(
             ~(
                 (f.col("gsStatus") == "Negative")
                 & (f.col("interacting"))
-                & (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                & (
+                    (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                    | (f.col("left.geneId") == f.col("interactions.geneIdB"))
+                )
             )
         )
     )
-    return curation
 
 
-def process_gene_interactions(etl: ETLSession, interactions_path: str) -> DataFrame:
+def process_gene_interactions(etl: Session, interactions_path: str) -> DataFrame:
     """Extract top scoring gene-gene interaction from the Platform."""
     # FIXME: assign function to class
     return get_record_with_maximum_value(
