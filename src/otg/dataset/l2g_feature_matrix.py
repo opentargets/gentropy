@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
@@ -31,7 +31,7 @@ class L2GFeatureMatrix(Dataset):
     schema: StructType = parse_spark_schema("l2g_feature_matrix_schema.json")
 
     @classmethod
-    def from_parquet(cls: Type[L2GFeatureMatrix], etl: Session, path: str) -> Dataset:
+    def from_parquet(cls: type[L2GFeatureMatrix], etl: Session, path: str) -> Dataset:
         """Initialise L2GFeatureMatrix from parquet file.
 
         Args:
@@ -61,8 +61,12 @@ class L2GFeatureMatrix(Dataset):
             L2GFeatureMatrix(_df=test),
         )
 
-    def fill_na(self: L2GFeatureMatrix) -> Type[NotImplementedError]:
+    def fill_na(self: L2GFeatureMatrix) -> type[NotImplementedError]:
         """Fill NA values."""
+        return NotImplementedError
+
+    def generate_features(self: L2GFeatureMatrix) -> type[NotImplementedError]:
+        """Generate features."""
         return NotImplementedError
 
 

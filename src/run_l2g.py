@@ -23,19 +23,20 @@ from otg.method.locus_to_gene import L2GTrainer
 def main(cfg: DictConfig) -> None:
     """Run Locus to Gene."""
     etl = Session(cfg)
-    gold_standards = get_gold_standards(
-        etl,
-        cfg.gold_standard.curation,
-        cfg.feature_inputs.v2g,
-        cfg.feature_inputs.study_locus,
-        cfg.feature_inputs.study_locus_overlap,
-        cfg.gold_standard.interactions,
-    )
-    fm = L2GFeatureMatrix  # TODO: inverse matrix
-    data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(frac=0.1, seed=42)
-    # TODO: data normalization and standardisation of features
 
     if cfg.run_mode == "train":
+        gold_standards = get_gold_standards(
+            etl,
+            cfg.gold_standard.curation,
+            cfg.feature_inputs.v2g,
+            cfg.feature_inputs.study_locus,
+            cfg.feature_inputs.study_locus_overlap,
+            cfg.gold_standard.interactions,
+        )
+        fm = L2GFeatureMatrix  # TODO: inverse matrix
+        data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(frac=0.1, seed=42)
+        # TODO: data normalization and standardisation of features
+
         L2GTrainer.train(
             train_set=data["train"],
             test_set=data["test"],
