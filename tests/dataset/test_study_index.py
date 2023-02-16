@@ -37,6 +37,7 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
             expr="array(cast(rand() AS string))",
             percentNulls=0.1,
         )
+        .withColumnSpec("geneId", percentNulls=0.1)
         .withColumnSpec(
             "discoverySamples",
             expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
