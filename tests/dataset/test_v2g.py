@@ -1,4 +1,4 @@
-"""Tests on effect harmonisation."""
+"""Tests V2G dataset."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -28,9 +28,11 @@ def mock_v2g(spark: SparkSession) -> V2G:
         )
         .withSchema(v2g_schema)
         .withColumnSpec("resourceScore", percentNulls=0.1)
+        .withColumnSpec("score", percentNulls=0.1)
+        .withColumnSpec("distance", percentNulls=0.1)
+        .withColumnSpec("position", percentNulls=0.1)
         .withColumnSpec("pmid", percentNulls=0.1)
         .withColumnSpec("biofeature", percentNulls=0.1)
-        .withColumnSpec("score", percentNulls=0.1)
         .withColumnSpec("label", percentNulls=0.1)
         .withColumnSpec("variantFunctionalConsequenceId", percentNulls=0.1)
         .withColumnSpec("isHighQualityPlof", percentNulls=0.1)
@@ -45,7 +47,7 @@ def test_v2g_creation(mock_v2g: V2G) -> None:
 
 
 # @pytest.fixture
-# dzzzef call_get_reverse_complement(gene_index: GeneIndex) -> DataFrame:
+# def call_get_reverse_complement(gene_index: GeneIndex) -> DataFrame:
 #     """Test reverse complement on mock data."""
 #     return mock_allele_columns.transform(
 #         lambda df: get_reverse_complement(df, "allele")

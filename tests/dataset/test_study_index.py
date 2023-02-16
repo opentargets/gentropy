@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def mock_study_index(spark: SparkSession) -> StudyIndex:
-    """Mock v2g dataset."""
+    """Mock study index dataset."""
     schema = parse_spark_schema("studies.json")
 
     data_spec = (

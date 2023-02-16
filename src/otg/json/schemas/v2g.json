@@ -10,7 +10,7 @@
     {
       "name": "variantId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {

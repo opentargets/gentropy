@@ -1,4 +1,4 @@
-"""Tests on effect harmonisation."""
+"""Tests variant index dataset."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

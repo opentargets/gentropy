@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
-    from otg.dataset.distance import Distance
+    from otg.dataset.v2g import V2G
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -294,11 +294,11 @@ class StudyLocus(Dataset):
             .distinct()
         )
 
-    def get_tss_distance_features(self: StudyLocus, distances: Distance) -> DataFrame:
+    def get_tss_distance_features(self: StudyLocus, distances: V2G) -> DataFrame:
         """Returns a dataframe containing the minimum TSS distance per studyLocusId by looking at all tagging variants in a region.
 
         Args:
-            distances (Distance): Dataframe containing the distances to the TSS
+            distances (V2G): Dataframe containing the distances to the TSS
 
         Returns:
             DataFrame: Dataframe with the minimum distance to the gene TSS within a region
