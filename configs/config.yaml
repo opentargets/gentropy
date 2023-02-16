@@ -1,0 +1,5 @@
+defaults:
+  - datarelease: dummy
+  - machine: dataproc
+  - environment: dataproc
+  - etl: reference
