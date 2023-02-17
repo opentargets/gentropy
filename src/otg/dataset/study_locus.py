@@ -269,6 +269,18 @@ class StudyLocus(Dataset):
             self.df.pvalueExponent,
         )
 
+    def update_study_id(self: StudyLocus, study_annotation: DataFrame) -> StudyLocus:
+        """Update studyId with a dataframe containing study.
+
+        Args:
+            study_annotation (DataFrame): Dataframe containing
+
+        Returns:
+            StudyLocus: Updated study-locus dataset with new `studyId` column.
+        """
+        print(study_annotation)
+        return self
+
 
 class StudyLocusGWASCatalog(StudyLocus):
     """Study-locus dataset derived from GWAS Catalog."""
@@ -314,7 +326,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         splitted_col = f.split(f.regexp_replace(p_value_text, r"[\(\)]", ""), ",")
-        return f.concat_ws(", ", f.transform(splitted_col, lambda x: map_expr[x]))
+        return f.transform(splitted_col, lambda x: map_expr[x])
 
     @staticmethod
     def _normalise_risk_allele(risk_allele: Column) -> Column:
@@ -873,144 +885,30 @@ class StudyLocusGWASCatalog(StudyLocus):
         )
 
     @staticmethod
-    def _harmonise_gwascatalog_associations(
-        gwas_associations: DataFrame,
-        variant_annotation: VariantAnnotation,
-        pval_threshold: float,
-    ) -> DataFrame:
-        """Read GWASCatalog associations.
-
-        It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
-        applies some pre-defined filters on the data:
+    def _concatenate_substudy_description(
+        association_trait: Column, pvalue_text: Column, mapped_trait_uri: Column
+    ) -> Column:
+        """Substudy description parsing. Complex string containing metadata about the substudy (e.g. QTL, specific EFO, etc.).
 
         Args:
-            gwas_associations (DataFrame): GWAS Catalog raw associations dataset
-            variant_annotation (VariantAnnotation): Variant annotation dataset
-            pval_threshold (float): P-value threshold for flagging associations
+            association_trait (Column): GWAS Catalog association trait column
+            pvalue_text (Column): GWAS Catalog p-value text column
+            mapped_trait_uri (Column): GWAS Catalog mapped trait URI column
 
         Returns:
-            DataFrame: `DataFrame` with the GWAS Catalog associations
+            A column with the substudy description in the shape EFO1_EFO2|pvaluetext1_pvaluetext2.
         """
-        # Reading and filtering associations:
-        return (
-            gwas_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id()
-            )
-            .transform(
-                # Map/harmonise variants to variant annotation dataset:
-                # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
-                lambda df: StudyLocusGWASCatalog._map_to_variant_annotation_variants(
-                    df, variant_annotation
-                )
-            )
-            .withColumn(
-                # Perform all quality control checks:
-                "qualityControls",
-                StudyLocusGWASCatalog._qc_all(
-                    f.array(),
-                    f.col("CHR_ID"),
-                    f.col("CHR_POS"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("STRONGEST SNP-RISK ALLELE"),
-                    StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")),
-                    StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")),
-                    pval_threshold,
-                ),
-            )
-            .select(
-                # INSIDE STUDY-LOCUS SCHEMA:
-                "studyLocusId",
-                "variantId",
-                # Mapped genomic location of the variant (; separated list)
-                "chromosome",
-                "position",
-                f.col("STUDY ACCESSION").alias("studyId"),
-                # beta value of the association
-                StudyLocusGWASCatalog._harmonise_beta(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                ).alias("beta"),
-                # odds ratio of the association
-                StudyLocusGWASCatalog._harmonise_odds_ratio(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                ).alias("oddsRatio"),
-                # CI lower of the beta value
-                StudyLocusGWASCatalog._harmonise_beta_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "lower",
-                ).alias("betaConfidenceIntervalLower"),
-                # CI upper for the beta value
-                StudyLocusGWASCatalog._harmonise_beta_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "upper",
-                ).alias("betaConfidenceIntervalUpper"),
-                # CI lower of the odds ratio value
-                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "lower",
-                ).alias("oddsRatioConfidenceIntervalLower"),
-                # CI upper of the odds ratio value
-                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "upper",
-                ).alias("oddsRatioConfidenceIntervalUpper"),
-                # p-value of the association, string: split into exponent and mantissa.
-                StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")).alias(
-                    "pvalueMantissa"
-                ),
-                StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")).alias(
-                    "pValueExponent"
-                ),
-                # OUTSIDE STUDY-LOCUS SCHEMA:
-                # TODO: to clean up
-                StudyLocusGWASCatalog._parse_efos(f.col("MAPPED_TRAIT_URI")).alias(
-                    "associationEfos"
-                ),
-                # Association details:
-                StudyLocusGWASCatalog._normalise_pvaluetext(
-                    f.col("P-VALUE (TEXT)")
-                ).alias("pvalueText"),
-            )
+        return f.concat_ws(
+            "|",
+            association_trait,
+            f.concat_ws(
+                "_",
+                StudyLocusGWASCatalog._normalise_pvaluetext(pvalue_text),
+            ),
+            f.concat_ws(
+                "_",
+                StudyLocusGWASCatalog._parse_efos(mapped_trait_uri),
+            ),
         )
 
     @staticmethod
@@ -1197,18 +1095,135 @@ class StudyLocusGWASCatalog(StudyLocus):
         variant_annotation: VariantAnnotation,
         pvalue_threshold: float = 5e-8,
     ) -> StudyLocusGWASCatalog:
-        """Load GWAS Catalog associations from source.
+        """Read GWASCatalog associations.
+
+        It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
+        applies some pre-defined filters on the data:
 
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset
             variant_annotation (VariantAnnotation): Variant annotation dataset
-            pvalue_threshold (float): Association p-value threshold. Defaults to 5e-8.
+            pvalue_threshold (float): P-value threshold for flagging associations
 
         Returns:
-            StudyLocusGWASCatalog: GWAS Catalog associations
+            StudyLocusGWASCatalog: StudyLocusGWASCatalog dataset
         """
         return cls(
-            _df=cls._harmonise_gwascatalog_associations(
-                gwas_associations, variant_annotation, pvalue_threshold
+            _df=gwas_associations.withColumn(
+                "studyLocusId", f.monotonically_increasing_id()
+            )
+            .transform(
+                # Map/harmonise variants to variant annotation dataset:
+                # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
+                lambda df: StudyLocusGWASCatalog._map_to_variant_annotation_variants(
+                    df, variant_annotation
+                )
+            )
+            .withColumn(
+                # Perform all quality control checks:
+                "qualityControls",
+                StudyLocusGWASCatalog._qc_all(
+                    f.array(),
+                    f.col("CHR_ID"),
+                    f.col("CHR_POS"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("STRONGEST SNP-RISK ALLELE"),
+                    StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")),
+                    StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")),
+                    pvalue_threshold,
+                ),
+            )
+            .select(
+                # INSIDE STUDY-LOCUS SCHEMA:
+                "studyLocusId",
+                "variantId",
+                # Mapped genomic location of the variant (; separated list)
+                "chromosome",
+                "position",
+                f.col("STUDY ACCESSION").alias("studyId"),
+                # beta value of the association
+                StudyLocusGWASCatalog._harmonise_beta(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                ).alias("beta"),
+                # odds ratio of the association
+                StudyLocusGWASCatalog._harmonise_odds_ratio(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                ).alias("oddsRatio"),
+                # CI lower of the beta value
+                StudyLocusGWASCatalog._harmonise_beta_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "lower",
+                ).alias("betaConfidenceIntervalLower"),
+                # CI upper for the beta value
+                StudyLocusGWASCatalog._harmonise_beta_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "upper",
+                ).alias("betaConfidenceIntervalUpper"),
+                # CI lower of the odds ratio value
+                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "lower",
+                ).alias("oddsRatioConfidenceIntervalLower"),
+                # CI upper of the odds ratio value
+                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "upper",
+                ).alias("oddsRatioConfidenceIntervalUpper"),
+                # p-value of the association, string: split into exponent and mantissa.
+                StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")).alias(
+                    "pvalueMantissa"
+                ),
+                StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")).alias(
+                    "pValueExponent"
+                ),
+                # Capturing phenotype granularity at the association level
+                StudyLocusGWASCatalog._concatenate_substudy_description(
+                    f.col("DISEASE/TRAIT"),
+                    f.col("P-VALUE (TEXT)"),
+                    f.col("MAPPED_TRAIT_URI"),
+                ).alias("subStudyDescription"),
+                # Quality controls (array of strings)
+                "qualityControls",
             )
         )
