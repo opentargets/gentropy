@@ -32,7 +32,7 @@ build: clean ## Build Python Package with Dependencies
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl gs://genetics_etl_python_playground/initialisation/
 	@gsutil cp ./utils/initialise_cluster.sh gs://genetics_etl_python_playground/initialisation/
 
-prepare_pics:  ## Create cluster for variant annotation
+prepare_pics:  ## Create cluster for variant annotation:
 	gcloud dataproc clusters create ${CLUSTER_NAME} \
         --image-version=2.0 \
         --project=${PROJECT_ID} \

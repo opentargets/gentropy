@@ -86,6 +86,7 @@ def main(cfg: DictConfig) -> None:
         cfg.etl.gwas_ingest.parameters.min_r2,
         cfg.etl.gwas_ingest.parameters.k,
     )
+
     pics_data.write.mode("overwrite").parquet(
         cfg.etl.gwas_ingest.outputs.pics_credible_set
     )
