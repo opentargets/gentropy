@@ -24,7 +24,7 @@ def clumping(df: DataFrame) -> DataFrame:
 
     Returns:
         DataFrame: Clumped signals are resolved by:
-            - removing tagging varinants of non independent leads.
+            - removing tagging variants of non independent leads.
             - removing overall R from non independent leads.
             - Adding QC flag to non-independent leads pointing to the relevant lead.
     """
