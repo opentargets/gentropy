@@ -6,3 +6,4 @@ outputs/
 .coverage
 coverage.xml
 docs/assets/schemas/
+.cache/
