@@ -11,10 +11,10 @@ import pyspark.sql.types as t
 from pyspark.sql import DataFrame, Window
 from scipy.stats import norm
 
+from otg import data
 from otg.common.spark_helpers import _neglog_p, adding_quality_flag
 from otg.gwas_ingest.clumping import clumping
 from otg.gwas_ingest.ld import ld_annotation_by_locus_ancestry
-from otg.json import data
 
 if TYPE_CHECKING:
     from omegaconf.listconfig import ListConfig

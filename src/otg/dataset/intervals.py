@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
+from otg import schemas
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
-from otg.json import schemas
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
