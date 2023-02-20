@@ -482,8 +482,7 @@ def pics_all_study_locus(
             ),
         )
         # Collapse the data by study, lead, tag
-        .drop("relativeSampleSize", "r", "gnomadPopulation")
-        .distinct()
+        .drop("relativeSampleSize", "r", "gnomadPopulation").distinct()
         # Clumping non-independent associations together:
         .transform(clumping)
     )
