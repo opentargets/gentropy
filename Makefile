@@ -27,7 +27,7 @@ build: clean ## Build Python Package with Dependencies
 	@rm -rf ./dist
 	@poetry build
 	@cp ./src/*.py ./dist
-	@poetry run python ./utils/configure.py --cfg job > ./dist/config.yaml
+	# @poetry run python ./utils/configure.py --cfg job > ./dist/config.yaml TODO: define main config file to parametrise the ETL dependencies
 	@echo "Uploading to Dataproc"
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl gs://genetics_etl_python_playground/initialisation/
 	@gsutil cp ./utils/initialise_cluster.sh gs://genetics_etl_python_playground/initialisation/
