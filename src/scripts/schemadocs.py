@@ -22,9 +22,7 @@ def spark_connect() -> SparkSession:
     return spark
 
 
-def generate_schema_assets(
-    spark: SparkSession, assets_dir: Path, schema_dir: str
-) -> None:
+def generate_schema_assets(spark: SparkSession, assets_dir: Path, schema_dir: str) -> None:
     """Generate schema assets for mkdocs documentation.
 
     Args:

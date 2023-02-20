@@ -19,9 +19,7 @@ def parse_spark_schema(schema_json: str) -> StructType:
     Returns:
         StructType: Spark schema
     """
-    core_schema = json.loads(
-        pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
-    )
+    core_schema = json.loads(pkg_resources.read_text(schemas, schema_json, encoding="utf-8"))
     return StructType.fromJson(core_schema)
 
 

@@ -1,0 +1,71 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "studyId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "variantId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "chromosome",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "position",
+      "nullable": false,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "beta",
+      "nullable": false,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "betaConfidenceIntervalLower",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "betaConfidenceIntervalUpper",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "pValueMantissa",
+      "nullable": false,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "pValueExponent",
+      "nullable": false,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "effectAlleleFrequencyFromSource",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "standardError",
+      "nullable": true,
+      "type": "double"
+    }
+  ],
+  "type": "struct"
+}
