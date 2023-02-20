@@ -486,7 +486,6 @@ def pics_all_study_locus(
         .distinct()
         # Clumping non-independent associations together:
         .transform(clumping)
-        .persist()
     )
 
     pics_results = calculate_pics(associations_ld_allancestries, k)
