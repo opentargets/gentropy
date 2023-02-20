@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import xgboost as xgb
 from omegaconf import MISSING
+from xgboost import plot_importance as xgb_plot_importance
+from xgboost.spark import SparkXGBRegressor
 
 if TYPE_CHECKING:
     from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -23,7 +24,7 @@ class LocusToGeneConfig:
     colocalisation: str = MISSING
 
 
-class LocusToGeneModel(xgb.SparkXGBRegressor):
+class LocusToGeneModel(SparkXGBRegressor):
     """Wrapper for the Locus to Gene classifier."""
 
     label_col: str
@@ -44,7 +45,7 @@ class LocusToGeneModel(xgb.SparkXGBRegressor):
 
     def plot_importance(self: LocusToGeneModel) -> None:
         """TBC."""
-        xgb.plot_importance(self)  # FIXME: What is the attribute that stores the model?
+        xgb_plot_importance(self)  # FIXME: What is the attribute that stores the model?
 
 
 @dataclass
@@ -62,7 +63,7 @@ class LocusToGenePredictor:
         cls: type[LocusToGenePredictor], model_path: str
     ) -> LocusToGenePredictor:
         """Load a model from a given path."""
-        return cls(model=xgb.SparkXGBRegressor.load(model_path))
+        return cls(model=SparkXGBRegressor.load(model_path))
 
     def predict(
         self: LocusToGenePredictor, test_df: L2GFeatureMatrix

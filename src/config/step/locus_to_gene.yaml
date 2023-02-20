@@ -1,5 +1,17 @@
-_target_: otg.method.locus_to_gene.LocusToGeneModel
+_target_: otg.l2g.LocusToGeneStep
 run_mode: train
+defaults:
+  - _self_
+  - /etl: local
+  - /dataset@variant_annotation: variant_annotation_from_file
+  - /dataset@study_locus: study_locus_from_file
+  - /dataset@l2g_model: locus_to_gene_model_from_file
+  - /dataset@v2g: variant_to_gene_from_file
+  - /dataset@colocalisation: colocalisation
+  - /dataset@study_index: study_index_from_file
+  - /dataset@study_locus_overlap: study_locus_overlap_from_file
+  - /dataset@l2g_curation: locus_to_gene_curation
+  - /dataset@gene_interactions: gene_interactions_from_file
 
 optimizer:
   _target_: torch.optim.Adam
