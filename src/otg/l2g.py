@@ -1,50 +1,75 @@
 """Step to run Locus to Gene either for inference or for training."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING
 
-import hydra
 import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
     from pyspark.sql import DataFrame
 
-from otg.common.session import ETLSession
+    from otg.common.session import ETLSession
+
 from otg.common.spark_helpers import get_record_with_maximum_value
 from otg.dataset.l2g_feature_matrix import L2G, L2GFeatureMatrix
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.v2g import V2G
-from otg.method.locus_to_gene import L2GTrainer
+from otg.method.locus_to_gene import LocusToGeneTrainer
 
 
-@hydra.main(version_base=None, config_path=".", config_name="config")
-def main(cfg: DictConfig) -> None:
-    """Run Locus to Gene."""
-    etl = ETLSession(cfg)
+class LocusToGeneStepMode(Enum):
+    """Locus to Gene step mode."""
 
-    if cfg.run_mode == "train":
-        gold_standards = get_gold_standards(
-            etl,
-            cfg.gold_standard.curation,
-            cfg.feature_inputs.v2g,
-            cfg.feature_inputs.study_locus,
-            cfg.feature_inputs.study_locus_overlap,
-            cfg.gold_standard.interactions,
-        )
-        fm = L2GFeatureMatrix  # TODO: inverse matrix
-        data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(
-            frac=0.1, seed=42
-        )
-        # TODO: data normalization and standardisation of features
+    TRAIN = "train"
+    PREDICT = "predict"
 
-        L2GTrainer.train(
-            train_set=data["train"],
-            test_set=data["test"],
-            **cfg.hyperparameters,
-            # TODO: Add push to hub, and push to W&B
-        )
+
+@dataclass
+class LocusToGeneStep:
+    """Locus to gene step."""
+
+    etl: ETLSession
+    run_mode: LocusToGeneStepMode
+    study_locus: DictConfig
+    v2g: DictConfig
+    colocalisation: DictConfig
+    study_index: DictConfig
+    study_locus_overlap: DictConfig
+    l2g_curation: DictConfig
+    gene_interactions: DictConfig
+    hyperparameters: DictConfig
+    l2g_model: DictConfig | None = None
+    id: str = "locus_to_gene"
+
+    def run(self: LocusToGeneStep) -> None:
+        """Run Locus to Gene step."""
+        self.etl.logger.info(f"Executing {self.id} step")
+
+        if self.run_mode == "train":
+            gold_standards = get_gold_standards(
+                etl=self.etl,
+                gold_standard_curation=self.l2g_curation.path,
+                v2g_path=self.v2g.path,
+                study_locus_path=self.study_locus.path,
+                study_locus_overlap_path=self.study_locus_overlap.path,
+                interactions_path=self.gene_interactions.path,
+            )
+            fm = L2GFeatureMatrix  # TODO: inverse matrix
+            data = gold_standards.join(
+                fm, on="studyLocusId", how="inner"
+            ).train_test_split(frac=0.1, seed=42)
+            # TODO: data normalization and standardisation of features
+
+            LocusToGeneTrainer.train(
+                train_set=data["train"],
+                test_set=data["test"],
+                **self.hyperparameters,
+                # TODO: Add push to hub, and push to W&B
+            )
 
 
 def get_gold_standards(
