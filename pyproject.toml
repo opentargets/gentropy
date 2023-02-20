@@ -20,6 +20,7 @@ pyliftover = "^0.4"
 numpy = "^1.23.2"
 hail = "^0.2.98"
 xgboost = "^1.7.3"
+sklearn = "^0.0.post1"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^2.15.0"

@@ -28,7 +28,7 @@ class L2GFeature:
 class L2GFeatureMatrix(Dataset):
     """Dataset with features for Locus to Gene prediction."""
 
-    schema: StructType = parse_spark_schema("l2g_feature_matrix_schema.json")
+    schema: StructType = parse_spark_schema("l2g_feature_matrix.json")
 
     @classmethod
     def from_parquet(cls: type[L2GFeatureMatrix], etl: Session, path: str) -> Dataset:

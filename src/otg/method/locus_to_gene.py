@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Type
+from typing import TYPE_CHECKING
 
 import xgboost as xgb
 from omegaconf import MISSING
-from xgboost.spark import SparkXGBClassifier
 
 if TYPE_CHECKING:
     from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -17,14 +16,14 @@ if TYPE_CHECKING:
 class LocusToGeneConfig:
     """Config for Locus to Gene classifier."""
 
-    path: Optional[str] = None
+    path: str | None = None
     study_locus: str = MISSING
     gold_standard: str = MISSING
     variant_gene: str = MISSING
     colocalisation: str = MISSING
 
 
-class LocusToGeneModel(SparkXGBClassifier):
+class LocusToGeneModel(xgb.SparkXGBRegressor):
     """Wrapper for the Locus to Gene classifier."""
 
     label_col: str
@@ -60,10 +59,10 @@ class LocusToGenePredictor:
 
     @classmethod
     def load_model(
-        cls: Type[LocusToGenePredictor], model_path: str
+        cls: type[LocusToGenePredictor], model_path: str
     ) -> LocusToGenePredictor:
         """Load a model from a given path."""
-        return cls(model=SparkXGBClassifier.load(model_path))
+        return cls(model=xgb.SparkXGBRegressor.load(model_path))
 
     def predict(
         self: LocusToGenePredictor, test_df: L2GFeatureMatrix
@@ -83,7 +82,7 @@ class LocusToGeneTrainer:
 
     @classmethod
     def train(
-        cls: Type[LocusToGeneTrainer],
+        cls: type[LocusToGeneTrainer],
         model: LocusToGeneModel,
         train_df: L2GFeatureMatrix,
     ) -> LocusToGeneModel:

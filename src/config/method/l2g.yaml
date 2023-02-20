@@ -11,10 +11,16 @@ hyperparameters:
   max_depth: 5
   loss_function: logloss
 
-gold_standard:
+inputs:
   _target_: otg.gold_standard.GoldStandard
   _partial_: true
-  curation: gs://genetics_etl_python_playground/input/l2g/gold_standard/curation.json
-  interactions: gs://open-targets-pre-data-releases/23.02/output/etl/parquet/interactions
+  gold_standard_curation: gs://genetics_etl_python_playground/input/l2g/gold_standard/curation.json
+  gene_interactions: gs://open-targets-pre-data-releases/23.02/output/etl/parquet/interactions
+  study_locus: gs://genetics_etl_python_playground/input/l2g_input/mock_study_locus
 feature_inputs:
-  v2g: gs://genetics_etl_python_playground/XX.XX/output/python_etl/parquet/v2g
+  v2g: gs://genetics_etl_python_playground/input/l2g_input/mock_v2g
+  colocalisation: gs://genetics_etl_python_playground/input/l2g_input/mock_colocalisation
+  study_index: gs://genetics_etl_python_playground/input/l2g_input/mock_study_index
+outputs:
+  model: gs://genetics_etl_python_playground/output/XX.XX/l2g/model
+  predictions: gs://genetics_etl_python_playground/output/l2g/predictions
