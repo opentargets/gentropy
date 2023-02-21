@@ -18,7 +18,7 @@ class GWASCatalogSplitter:
     """Splitting multi-trait GWAS Catalog studies."""
 
     @staticmethod
-    def resolve_trait(
+    def _resolve_trait(
         study_trait: Column, association_trait: Column, p_value_text: Column
     ) -> Column:
         """Resolve trait names by consolidating association-level and study-level trait names.
@@ -49,7 +49,7 @@ class GWASCatalogSplitter:
         )
 
     @staticmethod
-    def resolve_efo(association_efo: Column, study_efo: Column) -> Column:
+    def _resolve_efo(association_efo: Column, study_efo: Column) -> Column:
         """Resolve EFOs by consolidating association-level and study-level EFOs.
 
         Args:
@@ -62,7 +62,7 @@ class GWASCatalogSplitter:
         return f.coalesce(f.split(association_efo, "_"), study_efo)
 
     @staticmethod
-    def resolve_study_id(study_id: Column, sub_study_description: Column) -> Column:
+    def _resolve_study_id(study_id: Column, sub_study_description: Column) -> Column:
         """Resolve study IDs by exploding association-level information (e.g. pvalue_text, EFO).
 
         Args:
@@ -82,8 +82,8 @@ class GWASCatalogSplitter:
     @classmethod
     def split(
         cls: type[GWASCatalogSplitter],
-        associations: StudyLocusGWASCatalog,
         studies: StudyIndexGWASCatalog,
+        associations: StudyLocusGWASCatalog,
     ) -> tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]:
         """Splitting multi-trait GWAS Catalog studies.
 
@@ -91,8 +91,8 @@ class GWASCatalogSplitter:
         Then disease EFOs, trait names and study ID are consolidated
 
         Args:
-            associations (StudyLocusGWASCatalog): GWAS Catalog associations.
             studies (StudyIndexGWASCatalog): GWAS Catalog studies.
+            associations (StudyLocusGWASCatalog): GWAS Catalog associations.
 
         Returns:
             A tuple of the split associations and studies.
@@ -103,16 +103,15 @@ class GWASCatalogSplitter:
             .select(
                 "studyId",
                 "subStudyDescription",
-                "projectId",
-                cls.resolve_study_id(
+                cls._resolve_study_id(
                     f.col("currentStudyId"), f.col("subStudyDescription")
                 ).alias("updatedStudyId"),
-                cls.resolve_trait(
+                cls._resolve_trait(
                     f.col("traitFromSource"),
                     f.split("subStudyDescription", "|").getItem(0),
                     f.split("subStudyDescription", "|").getItem(1),
                 ).alias("traitFromSource"),
-                cls.resolve_efo(
+                cls._resolve_efo(
                     f.split("subStudyDescription", "|").getItem(2),
                     f.col("traitFromSourceMappedIds"),
                 ).alias("traitFromSourceMappedIds"),
@@ -120,21 +119,18 @@ class GWASCatalogSplitter:
             .persist()
         )
 
-        associations.update_study_id(
-            st_ass.select("updatedStudyId", "studyId", "subStudyDescription").distinct()
+        return (
+            studies.update_study_id(
+                st_ass.select(
+                    "studyId",
+                    "updatedStudyId",
+                    "traitFromSource",
+                    "traitFromSourceMappedIds",
+                ).distinct()
+            ),
+            associations.update_study_id(
+                st_ass.select(
+                    "updatedStudyId", "studyId", "subStudyDescription"
+                ).distinct()
+            )._qc_ambiguous_study(),
         )
-
-        # TODO: join back information
-        # TODO: qc
-        # Flagging ambiguous associations:
-        # .withColumn(
-        #     "qualityControl",
-        #     adding_quality_flag(
-        #         f.col("qualityControl"),
-        #         # There are more than one variant ID in one study:
-        #         f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
-        #         AMBIGUOUS_ASSOCIATION,
-        #     ),
-        # ).drop(
-
-        return studies, associations

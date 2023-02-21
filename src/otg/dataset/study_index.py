@@ -122,6 +122,38 @@ class StudyIndexGWASCatalog(StudyIndex):
             ._annotate_discovery_sample_sizes()
         )
 
+    def update_study_id(
+        self: StudyIndexGWASCatalog, study_annotation: DataFrame
+    ) -> None:
+        """Update studyId with a dataframe containing study.
+
+        Args:
+            study_annotation (DataFrame): Dataframe containing `updatedStudyId`, `traitFromSource`, `traitFromSourceMappedIds` and key column `studyId`.
+        """
+        self.df = (
+            self._df.alias("studyIndex")
+            .join(study_annotation.alias("studyAnnotation"), on="studyId", how="left")
+            .withColumn(
+                "studyIndex.studyId",
+                f.coalesce("studyAnnotation.updatedStudyId", "studyIndex.studyId"),
+            )
+            .withColumn(
+                "studyIndex.traitFromSource",
+                f.coalesce(
+                    "studyAnnotation.traitFromSource", "studyIndex.traitFromSource"
+                ),
+            )
+            .withColumn(
+                "studyIndex.traitFromSourceMappedIds",
+                f.coalesce(
+                    "studyAnnotation.traitFromSourceMappedIds",
+                    "studyIndex.traitFromSourceMappedIds",
+                ),
+            )
+            .select("studyIndex.*")
+        )
+        self.validate_schema()
+
     def _annotate_ancestries(
         self: StudyIndexGWASCatalog, ancestry_lut: DataFrame
     ) -> StudyIndexGWASCatalog:

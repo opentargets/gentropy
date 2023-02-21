@@ -4,7 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from otg.common.gwas_catalog_splitter import GWASCatalogSplitter
 from otg.dataset.study_index import StudyIndexGWASCatalog
+from otg.dataset.study_locus import StudyLocusGWASCatalog
+from otg.dataset.variant_annotation import VariantAnnotation
 
 if TYPE_CHECKING:
     from otg.common.session import ETLSession
@@ -28,20 +31,31 @@ class GWASCatalogStep:
         ancestry_file = ""
         summarystats_list = ""
         gwas_association_file = ""
+        variant_annotation_path = ""
 
+        # All inputs:
+        # Variant annotation dataset
+        va = VariantAnnotation.from_parquet(self.etl, variant_annotation_path)
         # GWAS Catalog raw study information
         catalog_studies = self.etl.spark.read.csv(
             gwas_study_file, sep="\t", header=True
         )
         # GWAS Catalog ancestry information
         ancestry_lut = self.etl.spark.read.csv(ancestry_file, sep="\t", header=True)
-
         # GWAS Catalog summary statistics information
         sumstats_lut = self.etl.spark.read.csv(
             summarystats_list, sep="\t", header=False
         )
+        # GWAS Catalog raw association information
+        catalog_associations = self.etl.spark.read.csv(
+            gwas_association_file, sep="\t", header=True
+        )
 
-        # GWAS Catalog study index
-        StudyIndexGWASCatalog.from_source(catalog_studies, ancestry_lut, sumstats_lut)
-
-        self.etl.spark.read.csv(gwas_association_file, sep="\t", header=True)
+        # Transform:
+        # GWAS Catalog study index and study-locus splitted
+        study_index, study_locus = GWASCatalogSplitter.split(
+            StudyIndexGWASCatalog.from_source(
+                catalog_studies, ancestry_lut, sumstats_lut
+            ),
+            StudyLocusGWASCatalog.from_source(catalog_associations, va),
+        )
