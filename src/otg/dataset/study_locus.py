@@ -23,12 +23,15 @@ from otg.common.spark_helpers import (
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.json import data
+from otg.method.ld import LDAnnotatorGnomad
 
 if TYPE_CHECKING:
+    from omegaconf.listconfig import ListConfig
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
+    from otg.dataset.study_index import StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -43,6 +46,7 @@ class StudyLocusQualityCheck(Enum):
         NON_MAPPED_VARIANT_FLAG (str): Variant not mapped to GnomAd
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
         AMBIGUOUS_STUDY(str): Association with ambiguous study
+        UNRESOLVED_LD(str): Variant not found in LD reference
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -52,6 +56,7 @@ class StudyLocusQualityCheck(Enum):
     NON_MAPPED_VARIANT_FLAG = "No mapping in GnomAd"
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
     AMBIGUOUS_STUDY = "Association with ambiguous study"
+    UNRESOLVED_LD = "Variant not found in LD reference"
 
 
 class CredibleInterval(Enum):
@@ -237,7 +242,7 @@ class StudyLocus(Dataset):
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(credset_to_overlap, peak_overlaps)
 
-    def unique_variants(self: StudyLocus) -> DataFrame:
+    def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.
 
         Returns:
@@ -256,6 +261,35 @@ class StudyLocus(Dataset):
             lead_tags.select("variantId", "chromosome")
             .union(
                 lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome")
+            )
+            .distinct()
+        )
+
+    def unique_study_locus_ancestries(
+        self: StudyLocus, studies: StudyIndexGWASCatalog
+    ) -> DataFrame:
+        """All unique lead variant and ancestries contained in the `StudyLocus`.
+
+        Args:
+            studies (StudyIndexGWASCatalog): Metadata about studies in the `StudyLocus`.
+
+        Returns:
+            DataFrame: unique ["variantId", "studyId", "gnomadPopulation", "chromosome", "relativeSampleSize"]
+
+        Note:
+            This method is only available for GWAS Catalog studies.
+        """
+        return (
+            self.df.join(
+                studies.get_gnomad_ancestry_sample_sizes(), on="studyId", how="left"
+            )
+            .filter(f.col("position").isNotNull())
+            .select(
+                "variantId",
+                "studyId",
+                "gnomadPopulation",
+                "chromosome",
+                "relativeSampleSize",
             )
             .distinct()
         )
@@ -1239,6 +1273,58 @@ class StudyLocusGWASCatalog(StudyLocus):
         self.validate_schema()
         return self
 
+    def annotate_ld(
+        self: StudyLocusGWASCatalog,
+        etl: ETLSession,
+        studies: StudyIndexGWASCatalog,
+        ld_populations: ListConfig,
+        min_r2: float,
+    ) -> StudyLocus:
+        """Annotate LD set for every studyLocus using gnomAD.
+
+        Args:
+            etl (ETLSession): Session
+            studies (StudyIndexGWASCatalog): Study index containing ancestry information
+            ld_populations (ListConfig): list of populations to annotate
+            min_r2 (float): Minimum r2 to include in the LD set
+
+        Returns:
+            StudyLocus: Study-locus with an annotated credible set.
+        """
+        # LD annotation for all unique lead variants in all populations (study independent).
+        ld_r = LDAnnotatorGnomad.ld_annotation_by_locus_ancestry(
+            etl, self, studies, ld_populations, min_r2
+        )
+
+        # Study-locus ld_set
+        ld_set = (
+            self.unique_study_locus_ancestries(studies)
+            .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
+            .withColumn(
+                "r2Overall",
+                LDAnnotatorGnomad.weighted_r_overall(
+                    f.col("chromosome"),
+                    f.col("studyId"),
+                    f.col("variantId"),
+                    f.col("tagVariantId"),
+                    f.col("relativeSampleSize"),
+                    f.col("r"),
+                ),
+            )
+            .groupBy("chromosome", "studyId", "variantId")
+            .agg(
+                f.collect_set(f.struct("tagVariantId", "r2Overall")).alias(
+                    "credibleSet"
+                )
+            )
+        )
+
+        self.df = self.df.join(
+            ld_set, on=["chromosome", "studyId", "variantId"], how="left"
+        )
+
+        return self._qc_unresolved_ld()
+
     def _qc_ambiguous_study(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
         """Flag associations with variants that can not be unambiguously associated with one study.
 
@@ -1255,6 +1341,22 @@ class StudyLocusGWASCatalog(StudyLocus):
                 f.col("qualityControls"),
                 f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
                 StudyLocusQualityCheck.AMBIGUOUS_STUDY,
+            ),
+        )
+        return self
+
+    def _qc_unresolved_ld(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+        """Flag associations with variants that are not found in the LD reference.
+
+        Returns:
+            StudyLocusGWASCatalog: Updated study locus.
+        """
+        self._df.withColumn(
+            "qualityControls",
+            StudyLocus._update_quality_flag(
+                f.col("qualityControls"),
+                f.col("credibleSet").isNull(),
+                StudyLocusQualityCheck.UNRESOLVED_LD,
             ),
         )
         return self

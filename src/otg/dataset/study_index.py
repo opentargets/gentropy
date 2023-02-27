@@ -1,15 +1,20 @@
 """Variant index dataset."""
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
+import json
 from dataclasses import dataclass
+from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql import Column, Window
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.utils import column2camel_case
 from otg.dataset.dataset import Dataset
+from otg.json import data
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -64,6 +69,26 @@ class StudyIndexGWASCatalog(StudyIndex):
     - The number of samples with European ancestry extracted.
 
     """
+
+    @staticmethod
+    def _gwas_ancestry_to_gnomad(gwas_catalog_ancestry: Column) -> Column:
+        """Normalised ancestry column from GWAS Catalog into Gnomad ancestry.
+
+        Args:
+            gwas_catalog_ancestry (Column): GWAS Catalog ancestry
+
+        Returns:
+            Column: mapped Gnomad ancestry using LUT
+        """
+        # GWAS Catalog to p-value mapping
+        json_dict = json.loads(
+            pkg_resources.read_text(
+                data, "gwascat_2_gnomad_superpopulation_map.json", encoding="utf-8"
+            )
+        )
+        map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
+
+        return f.transform(gwas_catalog_ancestry, lambda x: map_expr[x])
 
     @classmethod
     def _parse_study_table(
@@ -120,6 +145,48 @@ class StudyIndexGWASCatalog(StudyIndex):
             ._annotate_ancestries(ancestry_file)
             ._annotate_sumstats_info(sumstats_lut)
             ._annotate_discovery_sample_sizes()
+        )
+
+    def get_gnomad_ancestry_sample_sizes(self: StudyIndexGWASCatalog) -> DataFrame:
+        """Get all studies and their ancestries.
+
+        Returns:
+            DataFrame: containing `studyId`, `gnomadPopulation` and `relativeSampleSize` columns
+        """
+        # Study ancestries
+        w_study = Window.partitionBy("studyId")
+        return (
+            self.df
+            # Excluding studies where no sample discription is provided:
+            .filter(f.col("discoverySamples").isNotNull())
+            # Exploding sample description and study identifier:
+            .withColumn("discoverySample", f.explode(f.col("discoverySamples")))
+            # Splitting sample descriptions further:
+            .withColumn(
+                "ancestries",
+                f.split(f.col("discoverySample.ancestry"), r",\s(?![^()]*\))"),
+            )
+            # Dividing sample sizes assuming even distribution
+            .withColumn(
+                "adjustedSampleSize",
+                f.col("discoverySample.sampleSize") / f.size(f.col("ancestries")),
+            )
+            # mapped to gnomAD superpopulation and exploded
+            .withColumn(
+                "gnomadPopulation",
+                f.explode(
+                    StudyIndexGWASCatalog._gwas_ancestry_to_gnomad(f.col("ancestries"))
+                ),
+            )
+            # Group by studies and aggregate for major population:
+            .groupBy("studyId", "gnomadPopulation")
+            .agg(f.sum(f.col("adjustedSampleSize")).alias("sampleSize"))
+            # Calculate proportions for each study
+            .withColumn(
+                "relativeSampleSize",
+                f.col("sampleSize") / f.sum("sampleSize").over(w_study),
+            )
+            .drop("sampleSize")
         )
 
     def update_study_id(

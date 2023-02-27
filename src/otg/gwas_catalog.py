@@ -32,6 +32,8 @@ class GWASCatalogStep:
         summarystats_list = ""
         gwas_association_file = ""
         variant_annotation_path = ""
+        ld_populations = ""
+        min_r2 = 0.5
 
         # All inputs:
         # Variant annotation dataset
@@ -58,4 +60,9 @@ class GWASCatalogStep:
                 catalog_studies, ancestry_lut, sumstats_lut
             ),
             StudyLocusGWASCatalog.from_source(catalog_associations, va),
+        )
+
+        # Annotate LD information
+        study_locus = study_locus.annotate_ld(
+            self.etl, catalog_studies, ld_populations, min_r2
         )

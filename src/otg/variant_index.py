@@ -21,6 +21,7 @@ class VariantIndexStep:
     etl: ETLSession
     variant_index: DictConfig
     variant_annotation: DictConfig
+    study_locus: DictConfig
     id: str = "variant_index"
 
     def run(self: VariantIndex) -> None:
@@ -38,7 +39,7 @@ class VariantIndexStep:
 
         # Reduce scope of variant annotation dataset to only variants in study-locus sets:
         va_slimmed = va.filter_by_variant_df(
-            study_locus.unique_variants(), ["id", "chromosome"]
+            study_locus.unique_lead_tag_variants(), ["id", "chromosome"]
         )
 
         # Generate variant index ussing a subset of the variant annotation dataset
