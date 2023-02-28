@@ -412,16 +412,14 @@ def pics_all_study_locus(
     gnomad_mapped_studies = _get_study_gnomad_ancestries(
         etl, studies.withColumnRenamed("id", "studyId")
     )
-    print("gnomad_mapped_studies")
-    print(gnomad_mapped_studies.show())
+
     # Joining to associations:
     association_gnomad = associations.join(
         gnomad_mapped_studies,
         on="studyId",
         how="left",
     ).persist()
-    print("association_gnomad")
-    print(association_gnomad.show())
+
     # Extracting mapped variants for LD expansion:
     variant_population = (
         association_gnomad.filter(f.col("position").isNotNull())
@@ -434,12 +432,6 @@ def pics_all_study_locus(
             "alternateAllele",
         )
         .distinct()
-    )
-    print(variant_population.show())
-    # Number of distinct variants/population pairs to map:
-    etl.logger.info(f"Number of variant/ancestry pairs: {variant_population.count()}")
-    etl.logger.info(
-        f'Number of unique variants: {variant_population.select("variantId").distinct().count()}'
     )
 
     # LD information for all locus and ancestries
