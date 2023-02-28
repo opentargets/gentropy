@@ -184,6 +184,37 @@ class StudyLocus(Dataset):
             f.array_union(qc, f.array(f.lit(flag_text))),
         ).otherwise(qc)
 
+    @staticmethod
+    def _is_in_credset(
+        posterior_probability: Column,
+        credset_probability: float,
+    ) -> Column:
+        """Check whether a variant is in the XX% credible set.
+
+        Args:
+            posterior_probability (Column): Posterior probability of the tag variant
+            credset_probability (float): Credible set probability
+
+        Returns:
+            Column: Whether the variant is in the specified credible set
+        """
+        w_cumlead = Window.orderBy(f.desc(posterior_probability)).rowsBetween(
+            Window.unboundedPreceding, Window.currentRow
+        )
+        pics_postprob_cumsum = f.sum(posterior_probability).over(w_cumlead)
+        w_credset = Window.orderBy(pics_postprob_cumsum)
+        return (
+            # If posterior probability is null, credible set flag is False:
+            f.when(posterior_probability.isNull(), False)
+            # If the posterior probability meets the criteria the flag is True:
+            .when(
+                f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
+                False,
+            )
+            # IF criteria is not met, flag is False:
+            .otherwise(True)
+        )
+
     @classmethod
     def from_parquet(cls: type[StudyLocus], etl: ETLSession, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
@@ -304,6 +335,33 @@ class StudyLocus(Dataset):
             self.df.pvalueMantissa,
             self.df.pvalueExponent,
         )
+
+    def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
+        """Annotate study-locus dataset with credible set flags.
+
+        Returns:
+            StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
+        """
+        self.df = self._df.withColumn(
+            "credibleSet",
+            f.transform(
+                f.col("credibleSet"),
+                lambda x: x.withField(
+                    "is95CredibleSet",
+                    StudyLocus._is_in_credset(x.posteriorProbability, 0.95),
+                ),
+            ),
+        ).withColumn(
+            "credibleSet",
+            f.transform(
+                f.col("credibleSet"),
+                lambda x: x.withField(
+                    "is99CredibleSet",
+                    StudyLocus._is_in_credset(x.posteriorProbability, 0.99),
+                ),
+            ),
+        )
+        return self
 
 
 class StudyLocusGWASCatalog(StudyLocus):

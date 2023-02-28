@@ -8,6 +8,7 @@ from otg.common.gwas_catalog_splitter import GWASCatalogSplitter
 from otg.dataset.study_index import StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocusGWASCatalog
 from otg.dataset.variant_annotation import VariantAnnotation
+from otg.method.pics import PICS
 
 if TYPE_CHECKING:
     from otg.common.session import ETLSession
@@ -66,3 +67,8 @@ class GWASCatalogStep:
         study_locus = study_locus.annotate_ld(
             self.etl, catalog_studies, ld_populations, min_r2
         )
+
+        # Fine-mapping using PICS
+        finemapped_study_locus = PICS.finemap(study_locus).annotate_credible_sets()
+
+        finemapped_study_locus.show()
