@@ -45,8 +45,8 @@ class StudyLocusQualityCheck(Enum):
         VARIANT_INCONSISTENCY_FLAG (str): Inconsistencies in the reported variants
         NON_MAPPED_VARIANT_FLAG (str): Variant not mapped to GnomAd
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
-        AMBIGUOUS_STUDY(str): Association with ambiguous study
-        UNRESOLVED_LD(str): Variant not found in LD reference
+        AMBIGUOUS_STUDY (str): Association with ambiguous study
+        UNRESOLVED_LD (str): Variant not found in LD reference
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
