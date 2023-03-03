@@ -47,6 +47,7 @@ class StudyLocusQualityCheck(Enum):
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
         AMBIGUOUS_STUDY (str): Association with ambiguous study
         UNRESOLVED_LD (str): Variant not found in LD reference
+        LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
