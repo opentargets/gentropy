@@ -23,7 +23,7 @@ from otg.common.spark_helpers import (
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.json import data
-from otg.method.ld import LDAnnotatorGnomad
+from otg.method.ld import LDAnnotatorGnomad, LDclumping
 
 if TYPE_CHECKING:
     from omegaconf.listconfig import ListConfig
@@ -57,6 +57,7 @@ class StudyLocusQualityCheck(Enum):
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
     AMBIGUOUS_STUDY = "Association with ambiguous study"
     UNRESOLVED_LD = "Variant not found in LD reference"
+    LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
 
 
 class CredibleInterval(Enum):
@@ -359,6 +360,36 @@ class StudyLocus(Dataset):
                     "is99CredibleSet",
                     StudyLocus._is_in_credset(x.posteriorProbability, 0.99),
                 ),
+            ),
+        )
+        return self
+
+    def clump(self: StudyLocus) -> StudyLocus:
+        """Perform LD clumping of the studyLocus.
+
+        Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.
+
+        Returns:
+            StudyLocus: with empty credible sets for linked variants and QC flag.
+        """
+        is_lead_linked = LDclumping._is_lead_linked(
+            self.df.studyId,
+            self.df.variantId,
+            self.neglog_pvalue,
+            self.df.credibleSet,
+        )
+
+        self.df = self.df.withColumn(
+            "credibleSet",
+            f.when(is_lead_linked, f.lit(None)).otherwise(self.df.credibleSet),
+        )
+
+        self._df.withColumn(
+            "qualityControls",
+            StudyLocus._update_quality_flag(
+                f.col("qualityControls"),
+                is_lead_linked,
+                StudyLocusQualityCheck.LD_CLUMPED,
             ),
         )
         return self

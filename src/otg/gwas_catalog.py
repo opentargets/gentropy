@@ -68,7 +68,9 @@ class GWASCatalogStep:
             self.etl, catalog_studies, ld_populations, min_r2
         )
 
-        # Fine-mapping using PICS
-        finemapped_study_locus = PICS.finemap(study_locus).annotate_credible_sets()
+        # Fine-mapping LD-clumped study-locus using PICS
+        finemapped_study_locus = (
+            PICS.finemap(study_locus).annotate_credible_sets().clump()
+        )
 
         finemapped_study_locus.show()
