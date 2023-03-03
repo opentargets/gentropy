@@ -102,7 +102,7 @@ class LDAnnotatorGnomad:
         )
 
     @staticmethod
-    def weighted_r_overall(
+    def _weighted_r_overall(
         chromosome: Column,
         study_id: Column,
         variant_id: Column,
@@ -111,6 +111,8 @@ class LDAnnotatorGnomad:
         r: Column,
     ) -> Column:
         """Aggregation of weighted R information using ancestry proportions.
+
+        The method implements a simple average weighted by the relative population sizes.
 
         Args:
             chromosome (Column): Chromosome
@@ -122,12 +124,44 @@ class LDAnnotatorGnomad:
 
         Returns:
             Column: Estimates weighted R information
+
+        Exmples:
+            >>> data = [('t3', 0.25, 0.2), ('t3', 0.25, 0.2), ('t3', 0.5, 0.99)]
+            >>> columns = ['tag_variant_id', 'relative_sample_size', 'r']
+            >>> (
+            ...    spark.createDataFrame(data, columns)
+            ...     .withColumn('chr', f.lit('chr1'))
+            ...     .withColumn('study_id', f.lit('s1'))
+            ...     .withColumn('variant_id', f.lit('v1'))
+            ...     .withColumn(
+            ...         'r_overall',
+            ...         _weighted_r_overall(
+            ...             f.col('chr'),
+            ...             f.col('study_id'),
+            ...             f.col('variant_id'),
+            ...             f.col('tag_variant_id'),
+            ...             f.col('relative_sample_size'),
+            ...             f.col('r')
+            ...         )
+            ...     )
+            ...     .show()
+            ... )
+            +--------------+--------------------+----+----+--------+----------+---------+
+            |tag_variant_id|relative_sample_size|   r| chr|study_id|variant_id|r_overall|
+            +--------------+--------------------+----+----+--------+----------+---------+
+            |            t3|                0.25| 0.2|chr1|      s1|        v1|    0.595|
+            |            t3|                0.25| 0.2|chr1|      s1|        v1|    0.595|
+            |            t3|                 0.5|0.99|chr1|      s1|        v1|    0.595|
+            +--------------+--------------------+----+----+--------+----------+---------+
+            <BLANKLINE>
         """
         pseudo_r = f.when(r >= 1, 0.9999995).otherwise(r)
-        zscore_overall = f.sum(f.atan(pseudo_r) * relative_sample_size).over(
-            Window.partitionBy(chromosome, study_id, variant_id, tag_variant_id)
+        return f.round(
+            f.sum(pseudo_r * relative_sample_size).over(
+                Window.partitionBy(chromosome, study_id, variant_id, tag_variant_id)
+            ),
+            6,
         )
-        return f.round(f.tan(zscore_overall), 6)
 
     @staticmethod
     def _flag_partial_mapped(
