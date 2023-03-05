@@ -100,7 +100,7 @@ class V2GStep:
         )
 
         (
-            v2g.write.partitionBy("chromosome")
+            v2g.df.write.partitionBy("chromosome")
             .mode(self.etl.write_mode)
             .parquet(self.output_path)
         )
