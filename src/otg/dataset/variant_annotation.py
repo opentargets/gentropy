@@ -36,15 +36,11 @@ class VariantAnnotation(Dataset):
         return f.array_max(
             f.transform(
                 self.df.alleleFrequencies,
-                lambda af: f.when(
-                    af.alleleFrequency > 0.5, 1 - af.alleleFrequency
-                ).otherwise(af.alleleFrequency),
+                lambda af: f.when(af.alleleFrequency > 0.5, 1 - af.alleleFrequency).otherwise(af.alleleFrequency),
             )
         )
 
-    def filter_by_variant_df(
-        self: VariantAnnotation, df: DataFrame, cols: list[str]
-    ) -> VariantAnnotation:
+    def filter_by_variant_df(self: VariantAnnotation, df: DataFrame, cols: list[str]) -> VariantAnnotation:
         """Filter variant annotation dataset by a variant dataframe.
 
         Args:
@@ -57,9 +53,7 @@ class VariantAnnotation(Dataset):
         self.df = self._df.join(f.broadcast(df.select(cols)), on=cols, how="inner")
         return self
 
-    def get_transcript_consequence_df(
-        self: VariantAnnotation, filter_by: Optional[GeneIndex] = None
-    ) -> DataFrame:
+    def get_transcript_consequence_df(self: VariantAnnotation, filter_by: Optional[GeneIndex] = None) -> DataFrame:
         """Dataframe of exploded transcript consequences.
 
         Optionally the trancript consequences can be reduced to the universe of a gene index.
@@ -104,9 +98,7 @@ class VariantAnnotation(Dataset):
             V2G: High and medium severity variant to gene assignments
         """
         vep_lut = vep_consequences.select(
-            f.element_at(f.split("Accession", r"/"), -1).alias(
-                "variantFunctionalConsequenceId"
-            ),
+            f.element_at(f.split("Accession", r"/"), -1).alias("variantFunctionalConsequenceId"),
             f.col("Term").alias("label"),
             f.col("v2g_score").cast("double").alias("score"),
         )
@@ -128,17 +120,11 @@ class VariantAnnotation(Dataset):
                 how="inner",
             )
             .filter(f.col("score") != 0)
-            .transform(
-                lambda df: get_record_with_maximum_value(
-                    df, ["variantId", "geneId"], "score"
-                )
-            ),
+            .transform(lambda df: get_record_with_maximum_value(df, ["variantId", "geneId"], "score")),
             _schema=V2G.get_schema(),
         )
 
-    def get_polyphen_v2g(
-        self: VariantAnnotation, filter_by: Optional[GeneIndex] = None
-    ) -> V2G:
+    def get_polyphen_v2g(self: VariantAnnotation, filter_by: Optional[GeneIndex] = None) -> V2G:
         """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
 
         Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.
@@ -220,9 +206,7 @@ class VariantAnnotation(Dataset):
                 )
                 .withColumn(
                     "score",
-                    f.when(f.col("isHighQualityPlof"), 1.0).when(
-                        ~f.col("isHighQualityPlof"), 0
-                    ),
+                    f.when(f.col("isHighQualityPlof"), 1.0).when(~f.col("isHighQualityPlof"), 0),
                 )
                 .select(
                     "variantId",
@@ -259,8 +243,7 @@ class VariantAnnotation(Dataset):
                     f.broadcast(filter_by.locations_lut()).alias("gene"),
                     on=[
                         f.col("variant.chromosome") == f.col("gene.chromosome"),
-                        f.abs(f.col("variant.position") - f.col("gene.tss"))
-                        <= max_distance,
+                        f.abs(f.col("variant.position") - f.col("gene.tss")) <= max_distance,
                     ],
                     how="inner",
                 )

@@ -40,14 +40,10 @@ class Intervals(Dataset):
                 # TODO: We can include the start and end position as part of the `on` clause in the join
                 self.df.alias("interval")
                 .join(
-                    variant_index.df.selectExpr(
-                        "chromosome as vi_chromosome", "variantId", "position"
-                    ).alias("vi"),
+                    variant_index.df.selectExpr("chromosome as vi_chromosome", "variantId", "position").alias("vi"),
                     on=[
                         f.col("vi.vi_chromosome") == f.col("interval.chromosome"),
-                        f.col("vi.position").between(
-                            f.col("interval.start"), f.col("interval.end")
-                        ),
+                        f.col("vi.position").between(f.col("interval.start"), f.col("interval.end")),
                     ],
                     how="inner",
                 )

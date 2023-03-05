@@ -9,3 +9,4 @@ docs/assets/schemas/
 .cache/
 src/airflow/logs/
 site/
+mock_data/

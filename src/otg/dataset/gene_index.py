@@ -63,8 +63,6 @@ class GeneIndex(Dataset):
             DataFrame: Gene LUT for symbol mapping containing `geneId` and `geneSymbol` columns.
         """
         return self.df.select(
-            f.explode(
-                f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
-            ).alias("geneSymbol"),
+            f.explode(f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))).alias("geneSymbol"),
             "*",
         )

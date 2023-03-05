@@ -5,23 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from omegaconf import MISSING
 from xgboost import plot_importance as xgb_plot_importance
 from xgboost.spark import SparkXGBRegressor
 
 if TYPE_CHECKING:
     from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
-
-
-@dataclass
-class LocusToGeneConfig:
-    """Config for Locus to Gene classifier."""
-
-    path: str | None = None
-    study_locus: str = MISSING
-    gold_standard: str = MISSING
-    variant_gene: str = MISSING
-    colocalisation: str = MISSING
 
 
 class LocusToGeneModel(SparkXGBRegressor):

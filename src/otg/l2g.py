@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 from otg.common.session import Session
 from otg.common.spark_helpers import get_record_with_maximum_value
+from otg.config.l2g import LocusToGeneConfig
 from otg.dataset.l2g_feature_matrix import L2G, L2GFeatureMatrix
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
@@ -40,7 +41,7 @@ def main(cfg: DictConfig) -> None:
 
 
 @dataclass
-class LocusToGeneStep:
+class LocusToGeneStep(LocusToGeneConfig):
     """Locus to gene step."""
 
     etl: Session
@@ -58,7 +59,7 @@ class LocusToGeneStep:
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
-        self.etl.logger.info(f"Executing {self.id} step")
+        # self.etl.logger.info(f"Executing {self.id} step")
 
         if self.run_mode == "train":
             gold_standards = get_gold_standards(
@@ -73,12 +74,30 @@ class LocusToGeneStep:
             data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(frac=0.1, seed=42)
             # TODO: data normalization and standardisation of features
 
-            LocusToGeneTrainer.train(
-                train_set=data["train"],
-                test_set=data["test"],
-                **self.hyperparameters,
-                # TODO: Add push to hub, and push to W&B
-            )
+        # if self.cfg.run_mode == "train":
+        #     gold_standards = get_gold_standards(
+        #         etl=self.etl,
+        #         study_locus_path=self.cfg.study_locus_path,
+        #         v2g_path=self.cfg.variant_gene_path,
+        #         study_locus_overlap_path=self.cfg.study_locus_overlap_path,
+        #         gold_standard_curation=self.cfg.gold_standard_curation_path,
+        #         interactions_path=self.cfg.gene_interactions_path,
+        #     )
+        #     gold_standards = self.etl.spark.read.parquet(
+        #         "/Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/processed_gs"
+        #     )
+        #     fm = L2GFeatureMatrix  # FIXME: debug credset TODO: inverse matrix
+        #     data = gold_standards.join(
+        #         fm, on="studyLocusId", how="inner"
+        #     ).train_test_split(frac=0.1, seed=42)
+        #     # TODO: data normalization and standardisation of features
+
+        #     LocusToGeneTrainer.train(
+        #         train_set=data["train"],
+        #         test_set=data["test"],
+        #         **self.hyperparameters,
+        #         # TODO: Add push to hub, and push to W&B
+        #     )
 
 
 def get_gold_standards(

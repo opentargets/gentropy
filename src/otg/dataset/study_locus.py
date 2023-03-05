@@ -212,12 +212,12 @@ class StudyLocus(Dataset):
 
     def filter_credible_set(
         self: StudyLocus,
-        credible_interval: CredibleInterval,
+        credible_interval: str,
     ) -> StudyLocus:
         """Filter study-locus tag variants based on given credible interval.
 
         Args:
-            credible_interval (CredibleInterval): Credible interval to filter for.
+            credible_interval (str): Credible interval to filter for.
 
         Returns:
             StudyLocus: Filtered study-locus dataset.
@@ -384,14 +384,14 @@ class StudyLocus(Dataset):
         """Returns a dataframe containing the sentinel variant per study and its P value.
 
         A sentinel variant will be the tagging variant with the highest probability after conditioning.
-        This tagging variant will practically always match the lead variant, therefore we extract all lead/tagging pairs
-        and keep the signal where lead and tag coincide.
+        This tagging variant will practically always match the lead variant, therefore sentinels can be
+        effectively extracted by getting the signal where lead and tag coincide among all lead/tagging pairs
 
         Returns:
             DataFrame: Dataframe with all sentinels and their P values
         """
         return (
-            self.df.select(
+            self.df.selectExpr(
                 "studyLocusId",
                 "studyId",
                 f.col("variantId").alias("leadVariantId"),
@@ -399,10 +399,11 @@ class StudyLocus(Dataset):
                 f.explode("credibleSet.tagPValueConditioned").alias("tagPValueConditioned"),
             )
             .filter(f.col("leadVariantId") == f.col("tagVariantId"))
+            .drop("credibleSetExploded")
             .distinct()
         )
 
-    def get_tss_distance_features(self: StudyLocus, distances: V2G) -> DataFrame:
+    def _get_tss_distance_features(self: StudyLocus, distances: V2G) -> DataFrame:
         """Returns a dataframe containing the minimum TSS distance per studyLocusId by looking at all tagging variants in a region.
 
         Args:
@@ -412,14 +413,14 @@ class StudyLocus(Dataset):
             DataFrame: Dataframe with the minimum distance to the gene TSS within a region
         """
         return (
-            self.credible_set(CredibleInterval.IS95)
-            .df.select(
+            self.credible_set(CredibleInterval.IS95.value)
+            .select(
                 "studyLocusId",
                 "variantId",
                 f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
             )
             .join(
-                distances.selectExpr("variantId as tagVariantId", "geneId", "distance"),
+                distances.df.selectExpr("variantId as tagVariantId", "geneId", "distance"),
                 "tagVariantId",
                 "inner",
             )

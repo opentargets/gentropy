@@ -25,7 +25,7 @@ class Colocalisation(Dataset):
         """Provides the schema for the Colocalisation dataset."""
         return parse_spark_schema("colocalisation.json")
 
-    def get_max_llr(self: Colocalisation, study_locus: StudyLocus, studies: StudyIndex) -> DataFrame:
+    def get_max_llr_per_study_locus(self: Colocalisation, study_locus: StudyLocus, studies: StudyIndex) -> DataFrame:
         """Get the maximum log likelihood ratio for each pair of overlapping study-locus by aggregating over all QTL datasets to be used in L2G.
 
         Args:
@@ -79,6 +79,7 @@ class Colocalisation(Dataset):
                 )
             )
         )
+
         return local_max.join(
             neighbourhood_max,
             on="studyLocusId",
