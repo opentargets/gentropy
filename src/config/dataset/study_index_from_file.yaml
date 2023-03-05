@@ -2,4 +2,4 @@
 defaults:
   - base_dataset_from_file
 # hardcoded config
-path: /path/to/dataset/study_index
+path: "/Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_index"

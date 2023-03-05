@@ -25,7 +25,7 @@ class StudyIndex(Dataset):
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
 
-    schema: StructType = parse_spark_schema("studies.json")
+    _schema: StructType = parse_spark_schema("studies.json")
 
     @classmethod
     def from_parquet(cls: type[StudyIndex], etl: ETLSession, path: str) -> StudyIndex:
@@ -38,7 +38,7 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: Study index dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls._schema)
 
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.

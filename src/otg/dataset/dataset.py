@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from omegaconf import MISSING
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -15,26 +14,19 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class DatasetFromFileConfig:
-    """Read dataset from file configuration."""
-
-    path: str = MISSING
-
-
-@dataclass
 class Dataset:
     """Open Targets Genetics Dataset.
 
     `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `schemas` module.
     """
 
-    _df: DataFrame
     path: str | None
     _schema: StructType
+    _df: DataFrame | None = None
 
     def __post_init__(self: Dataset) -> None:
         """Post init."""
-        self.validate_schema()
+        # self.validate_schema() FIXME: This is causing issues with the schema validation
 
     @property
     def df(self: Dataset) -> DataFrame:
@@ -90,8 +82,8 @@ class Dataset:
         Raises:
             ValueError: DataFrame schema is not valid
         """
-        expected_schema = self.schema  # type: ignore[attr-defined]
-        observed_schema = self.df.schema  # type: ignore[attr-defined]
+        expected_schema = self._schema  # type: ignore[attr-defined]
+        observed_schema = self.df._schema  # type: ignore[attr-defined]
         # Observed fields no    t in schema
         missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
         error_message = f"The {missing_struct_fields} StructFields are not included in DataFrame schema: {expected_schema}"

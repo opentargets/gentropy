@@ -23,7 +23,7 @@ class GeneIndex(Dataset):
     Gene-based annotation.
     """
 
-    schema: StructType = parse_spark_schema("targets.json")
+    _schema: StructType = parse_spark_schema("targets.json")
 
     @staticmethod
     def _get_gene_tss(strand_col: Column, start_col: Column, end_col: Column) -> Column:
@@ -50,7 +50,7 @@ class GeneIndex(Dataset):
         Returns:
             GeneIndex: Gene index dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls._schema)
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> None:
         """Filter by approved biotypes.

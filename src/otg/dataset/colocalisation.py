@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class Colocalisation(Dataset):
     """Colocalisation results for pairs of overlapping study-locus."""
 
-    schema: StructType = parse_spark_schema("colocalisation.json")
+    _schema: StructType = parse_spark_schema("colocalisation.json")
 
     @classmethod
     def from_parquet(
@@ -36,9 +36,9 @@ class Colocalisation(Dataset):
         Returns:
             Colocalisation: Colocalisation results
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls._schema)
 
-    def get_max_llr(
+    def get_max_llr_per_study_locus(
         self: Colocalisation, study_locus: StudyLocus, studies: StudyIndex
     ) -> DataFrame:
         """Get the maximum log likelihood ratio for each pair of overlapping study-locus by aggregating over all QTL datasets to be used in L2G.

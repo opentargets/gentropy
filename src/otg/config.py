@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
-from otg.dataset.dataset import DatasetFromFileConfig
-from otg.dataset.variant_annotation import VariantAnnotationGnomadConfig
-from otg.dataset.variant_index import VariantIndexCredsetConfig
+if TYPE_CHECKING:
+    from otg.common.session import ETLSession
 
 
 @dataclass
@@ -21,21 +22,91 @@ class Config:
 
 
 def register_configs() -> None:
-    """Register configs."""
+    """Register step configs - each config class has all the parameters needed to run a step."""
     cs = ConfigStore.instance()
     cs.store(name="base_config", node=Config)
+    # cs.store(
+    #     group="dataset",
+    #     name="base_dataset_from_file",
+    #     node=DatasetFromFileConfig,
+    # )
+    # cs.store(
+    #     group="dataset",
+    #     name="base_variant_annotation_gnomad",
+    #     node=VariantAnnotationGnomadConfig,
+    # )
+    # cs.store(
+    #     group="dataset",
+    #     name="base_variant_index_credsets",
+    #     node=VariantIndexCredsetConfig,
+    # )
     cs.store(
-        group="dataset",
-        name="base_dataset_from_file",
-        node=DatasetFromFileConfig,
+        group="step",
+        name="base_locus_to_gene",
+        node=LocusToGeneConfig,
     )
-    cs.store(
-        group="dataset",
-        name="base_variant_annotation_gnomad",
-        node=VariantAnnotationGnomadConfig,
-    )
-    cs.store(
-        group="dataset",
-        name="base_variant_index_credsets",
-        node=VariantIndexCredsetConfig,
-    )
+
+
+# Each of these classes is a config class for a specific step
+@dataclass
+class DatasetFromFileConfig:
+    """Read dataset from file configuration."""
+
+    path: str = MISSING
+
+
+#     Mira este ejemplo, así es como tendría que llamarlo
+#     trainer:
+#   _target_: my_app.Trainer
+#   optimizer:
+#     _target_: my_app.Optimizer
+#     algo: SGD
+#     lr: 0.01
+#   dataset:
+#     _target_: my_app.Dataset
+#     name: Imagenet
+#     path: /datasets/imagenet
+
+
+@dataclass
+class VariantAnnotationGnomadConfig:
+    """Variant annotation from gnomad configuration."""
+
+    path: str | None = None
+    gnomad_file: str = MISSING
+    chain_file: str = MISSING
+    populations: list = MISSING
+
+
+@dataclass
+class VariantIndexCredsetConfig:
+    """Variant index from credible sets configuration."""
+
+    path: str | None = None
+    variant_annotation_path: str = MISSING
+    credible_sets_path: str = MISSING
+
+
+class LocusToGeneMode(Enum):
+    """Locus to Gene step mode."""
+
+    TRAIN = "train"
+    PREDICT = "predict"
+
+
+@dataclass
+class LocusToGeneConfig:
+    """Config for Locus to Gene classifier."""
+
+    run_mode: str  # FIXME: define it as LocusToGeneMode
+    study_locus_path: str = MISSING
+    variant_gene_path: str = MISSING
+    colocalisation_path: str = MISSING
+    study_index_path: str = MISSING
+    study_locus_overlap_path: str = MISSING
+    gold_standard_curation_path: str = MISSING
+    gene_interactions_path: str = MISSING
+    hyperparameters: dict = MISSING
+    l2g_model_path: str | None = None
+    etl: ETLSession = MISSING
+    id: str = "locus_to_gene"

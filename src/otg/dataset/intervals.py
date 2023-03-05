@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class Intervals(Dataset):
     """Intervals dataset links genes to genomic regions based on genome interaction studies."""
 
-    schema: StructType = parse_spark_schema("intervals.json")
+    _schema: StructType = parse_spark_schema("intervals.json")
 
     @classmethod
     def from_parquet(cls: type[Intervals], etl: ETLSession, path: str) -> Intervals:
@@ -40,7 +40,7 @@ class Intervals(Dataset):
         Returns:
             Intervals: Intervals dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls._schema)
 
     @classmethod
     def parse_andersson(

@@ -23,7 +23,7 @@ class V2G(Dataset):
     A variant-to-gene (V2G) evidence is understood as any piece of evidence that supports the association of a variant with a likely causal gene. The evidence can sometimes be context-specific and refer to specific `biofeatures` (e.g. cell types)
     """
 
-    schema: StructType = parse_spark_schema("v2g.json")
+    _schema: StructType = parse_spark_schema("v2g.json")
 
     @classmethod
     def from_parquet(cls: type[V2G], etl: ETLSession, path: str) -> V2G:
@@ -36,7 +36,7 @@ class V2G(Dataset):
         Returns:
             V2G: V2G dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls._schema)
 
     def filter_by_genes(self: V2G, genes: GeneIndex) -> None:
         """Filter by V2G dataset by genes.

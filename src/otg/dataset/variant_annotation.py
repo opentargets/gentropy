@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import hail as hl
 import pyspark.sql.functions as f
-from omegaconf import MISSING
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import get_record_with_maximum_value, normalise_column
@@ -23,20 +22,10 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class VariantAnnotationGnomadConfig:
-    """Variant annotation from gnomad configuration."""
-
-    path: str | None = None
-    gnomad_file: str = MISSING
-    chain_file: str = MISSING
-    populations: list = MISSING
-
-
-@dataclass
 class VariantAnnotation(Dataset):
     """Dataset with variant-level annotations derived from GnomAD."""
 
-    schema: StructType = parse_spark_schema("variant_annotation.json")
+    _schema: StructType = parse_spark_schema("variant_annotation.json")
 
     @classmethod
     def from_parquet(
@@ -51,7 +40,7 @@ class VariantAnnotation(Dataset):
         Returns:
             VariantAnnotation: VariantAnnotation dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls._schema)
 
     @classmethod
     def from_gnomad(

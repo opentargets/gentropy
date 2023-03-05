@@ -74,7 +74,7 @@ class StudyLocus(Dataset):
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
 
-    schema: StructType = parse_spark_schema("study_locus.json")
+    _schema: StructType = parse_spark_schema("study_locus.json")
 
     @staticmethod
     def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
@@ -189,22 +189,23 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Study-locus dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(etl, path, cls._schema)
 
     def credible_set(
         self: StudyLocus,
-        credible_interval: CredibleInterval,
+        credible_interval: str,
     ) -> StudyLocus:
         """Filter study-locus dataset based on credible interval.
 
         Args:
-            credible_interval (CredibleInterval): Credible interval to filter for.
+            credible_interval (str): Credible interval to filter for.
 
         Returns:
             StudyLocus: Filtered study-locus dataset.
         """
-        self.df.filter(f"credibleSet, tag -> (tag.{credible_interval})")
-        return self
+        return self.df.filter(
+            f.array_contains(f.col(f"credibleSet.{credible_interval}"), True)
+        )
 
     def overlaps(self: StudyLocus) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
@@ -274,27 +275,27 @@ class StudyLocus(Dataset):
         """Returns a dataframe containing the sentinel variant per study and its P value.
 
         A sentinel variant will be the tagging variant with the highest probability after conditioning.
-        This tagging variant will practically always match the lead variant, therefore we extract all lead/tagging pairs
-        and keep the signal where lead and tag coincide.
+        This tagging variant will practically always match the lead variant, therefore sentinels can be
+        effectively extracted by getting the signal where lead and tag coincide among all lead/tagging pairs
 
         Returns:
             DataFrame: Dataframe with all sentinels and their P values
         """
         return (
-            self.df.select(
+            self.df.selectExpr(
                 "studyLocusId",
                 "studyId",
-                f.col("variantId").alias("leadVariantId"),
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
-                f.explode("credibleSet.tagPValueConditioned").alias(
-                    "tagPValueConditioned"
-                ),
+                "variantId as leadVariantId",
+                "explode(credibleSet) as credibleSetExploded",
+                "credibleSetExploded.tagVariantId as tagVariantId",
+                "credibleSetExploded.tagPValueConditioned as tagPValueConditioned",
             )
             .filter(f.col("leadVariantId") == f.col("tagVariantId"))
+            .drop("credibleSetExploded")
             .distinct()
         )
 
-    def get_tss_distance_features(self: StudyLocus, distances: V2G) -> DataFrame:
+    def _get_tss_distance_features(self: StudyLocus, distances: V2G) -> DataFrame:
         """Returns a dataframe containing the minimum TSS distance per studyLocusId by looking at all tagging variants in a region.
 
         Args:
@@ -304,14 +305,16 @@ class StudyLocus(Dataset):
             DataFrame: Dataframe with the minimum distance to the gene TSS within a region
         """
         return (
-            self.credible_set(CredibleInterval.IS95)
-            .df.select(
+            self.credible_set(CredibleInterval.IS95.value)
+            .select(
                 "studyLocusId",
                 "variantId",
                 f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
             )
             .join(
-                distances.selectExpr("variantId as tagVariantId", "geneId", "distance"),
+                distances.df.selectExpr(
+                    "variantId as tagVariantId", "geneId", "distance"
+                ),
                 "tagVariantId",
                 "inner",
             )
