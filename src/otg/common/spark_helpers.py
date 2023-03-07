@@ -11,7 +11,69 @@ from pyspark.ml.functions import vector_to_array
 from pyspark.sql import Window
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame, WindowSpec
+    from pyspark.sql import Column, DataFrame, SparkSession, WindowSpec
+
+
+def _convert_from_wide_to_long(
+    df: DataFrame,
+    id_vars: list[str],
+    var_name: str,
+    value_name: str,
+    spark: SparkSession,
+) -> DataFrame:
+    """Converts a dataframe from wide to long format using Pandas melt built-in function.
+
+    Args:
+        df (DataFrame): Dataframe to melt
+        id_vars (list[str]): List of fixed columns to keep
+        var_name (str): Name of the column containing the variable names
+        value_name (str): Name of the column containing the values
+        spark (SparkSession): Spark session
+
+    Returns:
+        DataFrame: Melted dataframe
+
+    Examples:
+    >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
+    >>> _convert_from_wide_to_long(df, ["id"], "feature", "value", spark).show()
+    +---+---------+-----+
+    | id|  feature|value|
+    +---+---------+-----+
+    |  a|feature_1|    1|
+    |  a|feature_2|    2|
+    +---+---------+-----+
+    <BLANKLINE>
+    """
+    return spark.createDataFrame(
+        df.toPandas().melt(id_vars=id_vars, var_name=var_name, value_name=value_name)
+    )
+
+
+def _convert_from_long_to_wide(
+    df: DataFrame, id_vars: list[str], var_name: str, value_name: str
+) -> DataFrame:
+    """Converts a dataframe from long to wide format using Spark pivot built-in function.
+
+    Args:
+        df (DataFrame): Dataframe to pivot
+        id_vars (list[str]): List of fixed columns to keep
+        var_name (str): Name of the column to pivot on
+        value_name (str): Name of the column containing the values
+
+    Returns:
+        DataFrame: Pivoted dataframe
+
+    Examples:
+    >>> df = spark.createDataFrame([("a", "feature_1", 1), ("a", "feature_2", 2)], ["id", "feature", "value"])
+    >>> _convert_from_long_to_wide(df, ["id"], "feature", "value").show()
+    +---+---------+---------+
+    | id|feature_1|feature_2|
+    +---+---------+---------+
+    |  a|        1|        2|
+    +---+---------+---------+
+    <BLANKLINE>
+    """
+    return df.groupBy(id_vars).pivot(var_name).agg(f.first(value_name))
 
 
 def nullify_empty_array(column: Column) -> Column:
