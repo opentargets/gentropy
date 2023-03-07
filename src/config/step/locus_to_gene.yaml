@@ -1,56 +1,16 @@
-l2g:
-  run_mode: train
-  study_locus_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus
-  study_locus_overlap_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus_overlap
-  variant_gene_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_v2g
-  study_index_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_index
-  colocalisation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_colocalisation
-  gold_standard_curation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/curation.json
-  gene_interactions_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/interaction
-  hyperparameters:
-    max_depth: 5
-  defaults:
-    - _self_
-    - ../etl: local
-# study_locus:
-#   path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus
-# v2g:
-#   path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_v2g
-# colocalisation:
-#   path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_colocalisation
-# study_index:
-#   path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_index
-# study_locus_overlap:
-#   path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus_overlap
-# l2g_curation:
-#   path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/curation.json
-# gene_interactions:
-#   path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/interaction
-# defaults:
-#   - _self_
-#   - etl: local
-# #  - /dataset@base_locus_to_gene: study_locus_from_file
-# run_mode: train
-# optimizer:
-#   _partial_: true
-#   lr: 0.001
-#   weight_decay: 0.0
-
-# hyperparameters:
-#   max_depth: 5
-#   loss_function: logloss
-
-# # TODO: remove
-# inputs:
-#   _target_: otg.gold_standard.GoldStandard
-#   _partial_: true
-#   gold_standard_curation: gs://genetics_etl_python_playground/input/l2g/gold_standard/curation.json
-#   gene_interactions: gs://open-targets-pre-data-releases/23.02/output/etl/parquet/interactions
-#   study_locus: gs://genetics_etl_python_playground/input/l2g_input/mock_study_locus
-# feature_inputs:
-#   v2g: gs://genetics_etl_python_playground/input/l2g_input/mock_v2g
-#   colocalisation: gs://genetics_etl_python_playground/input/l2g_input/mock_colocalisation
-#   study_index: gs://genetics_etl_python_playground/input/l2g_input/mock_study_index
-# outputs:
-#   model: gs://genetics_etl_python_playground/output/XX.XX/l2g/model
-#   predictions: gs://genetics_etl_python_playground/output/l2g/predictions
+_target_: otg.l2g.LocusToGeneStep
+etl:
+  _target_: otg.common.session.ETLSession
+  spark_uri: "local[*]"
+  app_name: "ot_genetics_local"
+  write_mode: "overwrite"
+run_mode: train
+study_locus_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus
+study_locus_overlap_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus_overlap
+variant_gene_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_v2g
+study_index_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_index
+colocalisation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_colocalisation
+gold_standard_curation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/curation.json
+gene_interactions_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/interaction
+hyperparameters:
+  max_depth: 5

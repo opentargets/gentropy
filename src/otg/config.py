@@ -4,18 +4,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import Optional
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
-if TYPE_CHECKING:
-    from otg.common.session import ETLSession
-
 
 @dataclass
 class Config:
-    """Configuration for OTG ETL."""
+    """Configuration for OTG ETL.
+
+    Two parameters are required:
+    - etl: ETL session name
+    - step: Step to be run. This is one of the step config classes defined in the config store file.
+    """
 
     etl: str = MISSING
     step: str = MISSING
@@ -40,11 +42,7 @@ def register_configs() -> None:
     #     name="base_variant_index_credsets",
     #     node=VariantIndexCredsetConfig,
     # )
-    cs.store(
-        group="step",
-        name="base_locus_to_gene",
-        node=LocusToGeneConfig,
-    )
+    cs.store(group="step", name="base_locus_to_gene", node=LocusToGeneConfig)
 
 
 # Each of these classes is a config class for a specific step
@@ -87,8 +85,19 @@ class VariantIndexCredsetConfig:
     credible_sets_path: str = MISSING
 
 
+@dataclass
+class EtlConfig:
+    """Local ETL session."""
+
+    spark_uri: str
+    app_name: str
+    write_mode: str
+
+
 class LocusToGeneMode(Enum):
     """Locus to Gene step mode."""
+
+    # TODO: configure them as groups
 
     TRAIN = "train"
     PREDICT = "predict"
@@ -98,7 +107,7 @@ class LocusToGeneMode(Enum):
 class LocusToGeneConfig:
     """Config for Locus to Gene classifier."""
 
-    run_mode: str  # FIXME: define it as LocusToGeneMode
+    run_mode: str = MISSING  # FIXME: define it as LocusToGeneMode
     study_locus_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
@@ -107,6 +116,6 @@ class LocusToGeneConfig:
     gold_standard_curation_path: str = MISSING
     gene_interactions_path: str = MISSING
     hyperparameters: dict = MISSING
-    l2g_model_path: str | None = None
-    etl: ETLSession = MISSING
+    l2g_model_path: Optional[str] = None
+    etl: EtlConfig = MISSING
     id: str = "locus_to_gene"
