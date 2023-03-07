@@ -13,6 +13,8 @@ from pyspark.sql import Window
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame, SparkSession, WindowSpec
 
+from otg.common.schemas import _get_spark_schema_from_pandas_df
+
 
 def _convert_from_wide_to_long(
     df: DataFrame,
@@ -22,6 +24,8 @@ def _convert_from_wide_to_long(
     spark: SparkSession,
 ) -> DataFrame:
     """Converts a dataframe from wide to long format using Pandas melt built-in function.
+
+    The Pandas df schema needs to be parsed to account for the cases where the df is empty and Spark cannot infer the schema.
 
     Args:
         df (DataFrame): Dataframe to melt
@@ -44,9 +48,11 @@ def _convert_from_wide_to_long(
     +---+---------+-----+
     <BLANKLINE>
     """
-    return spark.createDataFrame(
-        df.toPandas().melt(id_vars=id_vars, var_name=var_name, value_name=value_name)
+    pandas_df = df.toPandas().melt(
+        id_vars=id_vars, var_name=var_name, value_name=value_name
     )
+    schema = _get_spark_schema_from_pandas_df(pandas_df)
+    return spark.createDataFrame(pandas_df, schema)
 
 
 def _convert_from_long_to_wide(
