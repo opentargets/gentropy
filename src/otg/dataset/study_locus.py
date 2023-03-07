@@ -404,13 +404,13 @@ class StudyLocus(Dataset):
         )
 
     def _get_tss_distance_features(self: StudyLocus, distances: V2G) -> DataFrame:
-        """Returns a dataframe containing the minimum TSS distance per studyLocusId by looking at all tagging variants in a region.
+        """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
 
         Args:
-            distances (V2G): Dataframe containing the distances to the TSS
+            distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
 
         Returns:
-            DataFrame: Dataframe with the minimum distance to the gene TSS within a region
+            DataFrame: Dataframe with the minimum distance among all variants in the credible set and a gene TSS.
         """
         return (
             self.credible_set(CredibleInterval.IS95.value)
