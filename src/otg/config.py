@@ -336,11 +336,7 @@ def register_configs() -> None:
     #     name="base_variant_index_credsets",
     #     node=VariantIndexCredsetConfig,
     # )
-    cs.store(
-        group="step",
-        name="base_locus_to_gene",
-        node=LocusToGeneConfig,
-    )
+    cs.store(group="step", name="base_locus_to_gene", node=LocusToGeneConfig)
 
 
 # Each of these classes is a config class for a specific step
@@ -383,8 +379,19 @@ class VariantIndexCredsetConfig:
     credible_sets_path: str = MISSING
 
 
+@dataclass
+class EtlConfig:
+    """Local ETL session."""
+
+    spark_uri: str
+    app_name: str
+    write_mode: str
+
+
 class LocusToGeneMode(Enum):
     """Locus to Gene step mode."""
+
+    # TODO: configure them as groups
 
     TRAIN = "train"
     PREDICT = "predict"
@@ -394,7 +401,7 @@ class LocusToGeneMode(Enum):
 class LocusToGeneConfig:
     """Config for Locus to Gene classifier."""
 
-    run_mode: str  # FIXME: define it as LocusToGeneMode
+    run_mode: str = MISSING  # FIXME: define it as LocusToGeneMode
     study_locus_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
