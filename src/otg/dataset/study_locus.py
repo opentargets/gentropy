@@ -9,6 +9,7 @@ import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
+    _convert_from_wide_to_long,
     calculate_neglog_pvalue,
     order_array_of_structs_by_field,
 )
@@ -403,16 +404,19 @@ class StudyLocus(Dataset):
             .distinct()
         )
 
-    def _get_tss_distance_features(self: StudyLocus, distances: V2G) -> DataFrame:
+    def _get_tss_distance_features(
+        self: StudyLocus, distances: V2G, etl: ETLSession
+    ) -> DataFrame:
         """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
 
         Args:
             distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
+            etl (ETLSession): ETL session
 
         Returns:
             DataFrame: Dataframe with the minimum distance among all variants in the credible set and a gene TSS.
         """
-        return (
+        wide_df = (
             self.credible_set(CredibleInterval.IS95.value)
             .select(
                 "studyLocusId",
@@ -429,6 +433,13 @@ class StudyLocus(Dataset):
                 f.min("distance").alias("dist_tss_min"),
                 f.mean("distance").alias("dist_tss_ave"),
             )
+        )
+        return _convert_from_wide_to_long(
+            wide_df,
+            id_vars=("studyLocusId", "geneId"),
+            var_name="feature",
+            value_name="value",
+            spark=etl.spark,  # not great, but necessary to go from pandas to spark
         )
 
     def _qc_unresolved_ld(
