@@ -22,7 +22,7 @@ class LocusToGeneStep(LocusToGeneConfig):
         """Run Locus to Gene step."""
         # self.etl.logger.info(f"Executing {self.id} step")
 
-        print("Running Locus to Gene step")
+        print("Config for the L2G step: ", self)
 
         # if self.cfg.run_mode == "train":
         #     gold_standards = get_gold_standards(

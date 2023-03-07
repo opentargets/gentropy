@@ -42,28 +42,11 @@ def register_configs() -> None:
     #     name="base_variant_index_credsets",
     #     node=VariantIndexCredsetConfig,
     # )
-    cs.store(group="step", name="base_locus_to_gene", node=LocusToGeneConfig)
+    # cs.store(name="config", node=Config)
+    cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
 
 
 # Each of these classes is a config class for a specific step
-@dataclass
-class DatasetFromFileConfig:
-    """Read dataset from file configuration."""
-
-    path: str = MISSING
-
-
-#     Mira este ejemplo, así es como tendría que llamarlo
-#     trainer:
-#   _target_: my_app.Trainer
-#   optimizer:
-#     _target_: my_app.Optimizer
-#     algo: SGD
-#     lr: 0.01
-#   dataset:
-#     _target_: my_app.Dataset
-#     name: Imagenet
-#     path: /datasets/imagenet
 
 
 @dataclass
@@ -92,6 +75,7 @@ class EtlConfig:
     spark_uri: str
     app_name: str
     write_mode: str
+    _target_: str
 
 
 class LocusToGeneMode(Enum):
@@ -119,3 +103,4 @@ class LocusToGeneConfig:
     l2g_model_path: Optional[str] = None
     etl: EtlConfig = MISSING
     id: str = "locus_to_gene"
+    _target_: str = "otg.steps.locus_to_gene.LocusToGene"
