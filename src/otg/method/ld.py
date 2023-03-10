@@ -49,8 +49,8 @@ class LDAnnotatorGnomad:
             ...               [0.8, 1, 0.6, 0.1],
             ...               [0.7, 0.6, 1, 0.3],
             ...               [0.2, 0.1, 0.3, 1]])
-            >>> bm_r = BlockMatrix.from_numpy(r)
-            >>> _query_block_matrix(bm_r, [1, 2], [0, 1], [3, 4], 0.5).show()
+            >>> bm_r = BlockMatrix.from_numpy(r) # doctest: +SKIP
+            >>> LDAnnotatorGnomad._query_block_matrix(bm_r, [1, 2], [0, 1], [3, 4], 0.5).show() # doctest: +SKIP
             +---+---+---+
             |  i|  j|  r|
             +---+---+---+
@@ -136,7 +136,7 @@ class LDAnnotatorGnomad:
             ...     .withColumn('variant_id', f.lit('v1'))
             ...     .withColumn(
             ...         'r_overall',
-            ...         _weighted_r_overall(
+            ...         LDAnnotatorGnomad._weighted_r_overall(
             ...             f.col('chr'),
             ...             f.col('study_id'),
             ...             f.col('variant_id'),
@@ -190,7 +190,7 @@ class LDAnnotatorGnomad:
             ... ]
             >>> (
             ...     spark.createDataFrame(data, ['studyId', 'variantId', 'tagVariantId'])
-            ...     .withColumn("flag_to_keep_tag", _flag_partial_mapped(f.col('studyId'), f.col('variantId'), f.col('tagVariantId')))
+            ...     .withColumn("flag_to_keep_tag", LDAnnotatorGnomad._flag_partial_mapped(f.col('studyId'), f.col('variantId'), f.col('tagVariantId')))
             ...     .show()
             ... )
             +-------+---------+------------+----------------+

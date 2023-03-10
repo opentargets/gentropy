@@ -589,7 +589,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ...    (4, [], []),
             ... ]
             >>> df = spark.createDataFrame(d, ['associationId', 'gnomad', 'gwas'])
-            >>> df.withColumn("rsid_matches", _compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
+            >>> df.withColumn("rsid_matches", StudyLocusGWASCatalog._compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
             +-------------+--------------+-------+------------+
             |associationId|        gnomad|   gwas|rsid_matches|
             +-------------+--------------+-------+------------+
@@ -632,7 +632,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         ...    (3, True),
         ... ]
         >>> df = spark.createDataFrame(d, ['associationId', 'filter'])
-        >>> df.withColumn("isConcordant", _flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
+        >>> df.withColumn("isConcordant", StudyLocusGWASCatalog._flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
         +-------------+------+------------+
         |associationId|filter|isConcordant|
         +-------------+------+------------+
@@ -684,7 +684,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ...     (None, None, 'A'),
             ... ]
             >>> df = spark.createDataFrame(d, ['riskAllele', 'referenceAllele', 'alternateAllele'])
-            >>> df.withColumn("isConcordant", _check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
+            >>> df.withColumn("isConcordant", StudyLocusGWASCatalog._check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
             +----------+---------------+---------------+------------+
             |riskAllele|referenceAllele|alternateAllele|isConcordant|
             +----------+---------------+---------------+------------+
@@ -739,7 +739,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         Examples:
             >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("revcom_allele", _get_reverse_complement(f.col("allele"))).show()
+            >>> df.withColumn("revcom_allele", StudyLocusGWASCatalog._get_reverse_complement(f.col("allele"))).show()
             +------+-------------+
             |allele|revcom_allele|
             +------+-------------+
@@ -809,7 +809,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         Examples:
             >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("zscore", _pval_to_zscore(f.col("pval"))).show()
+            >>> df.withColumn("zscore", StudyLocusGWASCatalog._pval_to_zscore(f.col("pval"))).show()
             +---+-------+----------+
             | id|   pval|    zscore|
             +---+-------+----------+

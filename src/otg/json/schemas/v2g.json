@@ -10,7 +10,7 @@
     {
       "name": "variantId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
@@ -64,7 +64,7 @@
     {
       "name": "position",
       "type": "integer",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {

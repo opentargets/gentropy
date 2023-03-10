@@ -108,6 +108,7 @@ class Dataset:
         if missing_required_fields:
             raise ValueError(error_message)
 
-    def persist(self: Dataset) -> None:
+    def persist(self: Dataset) -> Dataset:
         """Persist DataFrame included in the Dataset."""
-        self.df.persist()
+        self._df = self.df.persist()
+        return self

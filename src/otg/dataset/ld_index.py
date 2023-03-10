@@ -69,7 +69,7 @@ class LDIndex(Dataset):
             ...     {"contig": "21", "pos": 300},
             ... ]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("start", _interval_start(f.col("contig"), f.col("pos"), 100)).show()
+            >>> df.withColumn("start", LDIndex._interval_start(f.col("contig"), f.col("pos"), 100)).show()
             +------+---+-----+
             |contig|pos|start|
             +------+---+-----+
@@ -106,7 +106,7 @@ class LDIndex(Dataset):
             ...     {"contig": "21", "pos": 300},
             ... ]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("start", _interval_stop(f.col("contig"), f.col("pos"), 100)).show()
+            >>> df.withColumn("start", LDIndex._interval_stop(f.col("contig"), f.col("pos"), 100)).show()
             +------+---+-----+
             |contig|pos|start|
             +------+---+-----+

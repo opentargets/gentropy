@@ -33,7 +33,7 @@ class PICS:
 
         Examples:
             >>> d = [{"mu": 0, "neglog_p": 0, "std": 1}, {"mu": 1, "neglog_p": 10, "std": 10}]
-            >>> spark.createDataFrame(d).withColumn("norm_sf", _norm_sf(f.col("mu"), f.col("std"), f.col("neglog_p"))).show()
+            >>> spark.createDataFrame(d).withColumn("norm_sf", PICS._norm_sf(f.col("mu"), f.col("std"), f.col("neglog_p"))).show()
             +---+--------+---+-------------------+
             | mu|neglog_p|std|            norm_sf|
             +---+--------+---+-------------------+
@@ -127,7 +127,7 @@ class PICS:
         Examples:
             >>> k = 6.4
             >>> d = [(1.0, 1.0), (10.0, 1.0), (10.0, 0.5), (100.0, 0.5), (1.0, 0.0)]
-            >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("std", _pics_standard_deviation(f.col("neglog_p"), f.col("r"), k)).show()
+            >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("std", PICS._pics_standard_deviation(f.col("neglog_p"), f.col("r"), k)).show()
             +--------+---+-----------------+
             |neglog_p|  r|              std|
             +--------+---+-----------------+
@@ -154,7 +154,7 @@ class PICS:
 
         Examples:
             >>> d = [(1.0, 1.0), (10.0, 1.0), (10.0, 0.5), (100.0, 0.5), (1.0, 0.0)]
-            >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("mu", _pics_mu(f.col("neglog_p"), f.col("r"))).show()
+            >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("mu", PICS._pics_mu(f.col("neglog_p"), f.col("r"))).show()
             +--------+---+----+
             |neglog_p|  r|  mu|
             +--------+---+----+
