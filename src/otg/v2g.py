@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from functools import reduce
 from typing import TYPE_CHECKING
 
+from pyspark.sql import SparkSession
+
 from otg.common.Liftover import LiftOverSpark
+from otg.config import V2GStepConfig
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.v2g import V2G
@@ -13,13 +16,11 @@ from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
-    from omegaconf import DictConfig
-
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
-class V2GStep:
+class V2GStep(V2GStepConfig):
     """Variant-to-gene (V2G) step.
 
     This step aims to generate a dataset that contains multiple pieces of evidence supporting the functional association of specific variants with genes. Some of the evidence types include:
@@ -30,34 +31,17 @@ class V2GStep:
 
     """
 
-    etl: ETLSession
-    variant_index: DictConfig
-    variant_annotation: DictConfig
-    gene_index: DictConfig
-    vep_consequences_path: str
-    liftover_chain_file_path: str
-    approved_biotypes: list[str]
-    anderson_path: str
-    javierre_path: str
-    jung_path: str
-    thurnman_path: str
-    output_path: str
-    liftover_max_length_difference: int = 100
-    max_distance: int = 500_000
-
-    id: str = "variant2gene"
+    session: Session = SparkSession.builder.getOrCreate()
 
     def run(self: V2GStep) -> None:
         """Run V2G dataset generation."""
-        self.etl.logger.info(f"Executing {self.id} step")
-
         # Filter gene index by approved biotypes to define V2G gene universe
         gene_index_filtered = GeneIndex.from_parquet(
-            self.etl, self.gene_index.path
+            self.etl, self.gene_index_path
         ).filter_by_biotypes(self.approved_biotypes)
 
-        vi = VariantIndex.from_parquet(self.etl, self.variant_index.path).persist()
-        va = VariantAnnotation.from_parquet(self.etl, self.variant_annotation.path)
+        vi = VariantIndex.from_parquet(self.etl, self.variant_index_path).persist()
+        va = VariantAnnotation.from_parquet(self.etl, self.variant_annotation_path)
 
         # Variant annotation reduced to the variant index to define V2G variant universe
         va_slimmed = va.filter_by_variant_df(vi, ["id", "chromosome"]).persist()
@@ -68,7 +52,7 @@ class V2GStep:
         )
 
         v2g_datasets = [
-            va.slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
+            va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
             # variant effects
             va_slimmed.get_most_severe_variant_consequence(
                 self.vep_consequences_path, gene_index_filtered
@@ -98,9 +82,9 @@ class V2GStep:
                 [dataset.df for dataset in v2g_datasets],
             ).repartition("chromosome")
         )
-
+        # write V2G dataset
         (
             v2g.df.write.partitionBy("chromosome")
             .mode(self.etl.write_mode)
-            .parquet(self.output_path)
+            .parquet(self.v2g_path)
         )

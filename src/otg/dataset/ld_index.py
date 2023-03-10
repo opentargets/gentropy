@@ -16,7 +16,7 @@ from otg.common.utils import convert_gnomad_position_to_ensembl
 from otg.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
     from pyspark.sql.types import StructType
     from hail.table import Table
     from pyspark.sql import Column
@@ -125,17 +125,17 @@ class LDIndex(Dataset):
         return f.max(position).over(w)
 
     @classmethod
-    def from_parquet(cls: type[LDIndex], etl: ETLSession, path: str) -> LDIndex:
+    def from_parquet(cls: type[LDIndex], session: Session, path: str) -> LDIndex:
         """Initialise LD index from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             LDIndex: LD index dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(session, path, cls.schema)
 
     @classmethod
     def create(

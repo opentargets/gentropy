@@ -13,7 +13,7 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -28,18 +28,18 @@ class VariantIndex(Dataset):
 
     @classmethod
     def from_parquet(
-        cls: type[VariantIndex], etl: ETLSession, path: str
+        cls: type[VariantIndex], session: Session, path: str
     ) -> VariantIndex:
         """Initialise VariantIndex from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             VariantIndex: VariantIndex dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(session, path, cls.schema)
 
     @classmethod
     def from_variant_annotation(

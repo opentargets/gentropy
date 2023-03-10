@@ -10,7 +10,7 @@ from otg.config import Config, register_configs
 register_configs()
 
 
-@hydra.main(config_path="config", version_base=None, config_name="config")
+@hydra.main(version_base=None, config_name="config")
 def run_step(cfg: Config) -> None:
     """OTG ETL CLI.
 
@@ -19,8 +19,10 @@ def run_step(cfg: Config) -> None:
     """
     # Print config
     print(OmegaConf.to_yaml(cfg))
+    # Instantiate ETL session
+    session = instantiate(cfg.session)
     # Initialise and run step
-    step = instantiate(cfg.step)
+    step = instantiate(cfg.step, session=session)
     step.run()
 
 

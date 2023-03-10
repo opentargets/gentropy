@@ -26,11 +26,10 @@ from otg.json import data
 from otg.method.ld import LDAnnotatorGnomad, LDclumping
 
 if TYPE_CHECKING:
-    from omegaconf.listconfig import ListConfig
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
     from otg.dataset.study_index import StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
 
@@ -218,17 +217,17 @@ class StudyLocus(Dataset):
         )
 
     @classmethod
-    def from_parquet(cls: type[StudyLocus], etl: ETLSession, path: str) -> StudyLocus:
+    def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): spark session
             path (str): Path to parquet file
 
         Returns:
             StudyLocus: Study-locus dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(session, path, cls.schema)
 
     def credible_set(
         self: StudyLocus,
@@ -1365,17 +1364,21 @@ class StudyLocusGWASCatalog(StudyLocus):
 
     def annotate_ld(
         self: StudyLocusGWASCatalog,
-        etl: ETLSession,
+        session: Session,
         studies: StudyIndexGWASCatalog,
-        ld_populations: ListConfig,
+        ld_populations: list[str],
+        ld_index_template: str,
+        ld_matrix_template: str,
         min_r2: float,
     ) -> StudyLocus:
         """Annotate LD set for every studyLocus using gnomAD.
 
         Args:
-            etl (ETLSession): Session
+            session (Session): Session
             studies (StudyIndexGWASCatalog): Study index containing ancestry information
-            ld_populations (ListConfig): list of populations to annotate
+            ld_populations (list[str]): List of populations to annotate
+            ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected
+            ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected
             min_r2 (float): Minimum r2 to include in the LD set
 
         Returns:
@@ -1383,7 +1386,13 @@ class StudyLocusGWASCatalog(StudyLocus):
         """
         # LD annotation for all unique lead variants in all populations (study independent).
         ld_r = LDAnnotatorGnomad.ld_annotation_by_locus_ancestry(
-            etl, self, studies, ld_populations, min_r2
+            session,
+            self,
+            studies,
+            ld_populations,
+            ld_index_template,
+            ld_matrix_template,
+            min_r2,
         )
 
         # Study-locus ld_set

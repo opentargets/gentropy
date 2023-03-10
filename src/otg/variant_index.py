@@ -4,38 +4,33 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from pyspark.sql import SparkSession
+
+from otg.config import VariantIndexStepConfig
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
-    from omegaconf import DictConfig
-
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
-class VariantIndexStep:
-    """Variant index step."""
+class VariantIndexStep(VariantIndexStepConfig):
+    """Variant index step.
 
-    etl: ETLSession
-    variant_index: DictConfig
-    variant_annotation: DictConfig
-    study_locus: DictConfig
-    id: str = "variant_index"
+    Using a `VariantAnnotation` dataset as a reference, this step creates and writes a dataset of the type `VariantIndex` that includes only variants that have disease-association data with a reduced set of annotations.
+    """
 
-    def run(self: VariantIndex) -> None:
-        """Step to generate variant index.
+    session: Session = SparkSession.builder.getOrCreate()
 
-        Using a `VariantAnnotation` dataset as a reference, this step creates and writes a dataset of the type `VariantIndex` that includes only variants that have disease-association data with a reduced set of annotations.
-        """
-        self.etl.logger.info(f"Executing {self.id} step")
-
+    def run(self: VariantIndexStep) -> None:
+        """Run variant index step."""
         # Variant annotation dataset
-        va = VariantAnnotation.from_parquet(self.etl, self.variant_annotation.path)
+        va = VariantAnnotation.from_parquet(self.etl, self.variant_annotation_path)
 
         # Study-locus dataset
-        study_locus = StudyLocus.from_parquet(self.etl, self.study_locus.path)
+        study_locus = StudyLocus.from_parquet(self.etl, self.study_locus_path)
 
         # Reduce scope of variant annotation dataset to only variants in study-locus sets:
         va_slimmed = va.filter_by_variant_df(
@@ -53,9 +48,9 @@ class VariantIndexStep:
         #     self.variant_invalid
         # )
 
-        self.etl.logger.info(f"Writing variant index to: {self.variant_index}")
+        self.etl.logger.info(f"Writing variant index to: {self.variant_index_path}")
         (
             vi.df.write.partitionBy("chromosome")
             .mode(self.etl.write_mode)
-            .parquet(self.variant_index.path)
+            .parquet(self.variant_index_path)
         )

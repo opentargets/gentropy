@@ -10,8 +10,7 @@ from pyspark.sql import functions as f
 from otg.dataset.ld_index import LDIndex
 
 if TYPE_CHECKING:
-    from omegaconf.listconfig import ListConfig
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
     from pyspark.sql import Column
     from otg.dataset.study_index import StudyIndexGWASCatalog
     from otg.dataset.study_locus import (
@@ -272,19 +271,23 @@ class LDAnnotatorGnomad:
     @classmethod
     def ld_annotation_by_locus_ancestry(
         cls: type[LDAnnotatorGnomad],
-        etl: ETLSession,
+        session: Session,
         associations: StudyLocusGWASCatalog,
         studies: StudyIndexGWASCatalog,
-        ld_populations: ListConfig,
+        ld_populations: list[str],
+        ld_index_template: str,
+        ld_matrix_template: str,
         min_r2: float,
     ) -> DataFrame:
         """LD information for all locus and ancestries.
 
         Args:
-            etl (ETLSession): Session
+            session (Session): Session
             associations (StudyLocusGWASCatalog): GWAS associations
             studies (StudyIndexGWASCatalog): study metadata of the associations
-            ld_populations (ListConfig): list of populations to annotate
+            ld_populations (list[str]): List of populations to annotate
+            ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected
+            ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected
             min_r2 (float): minimum r2 to keep
 
         Returns:
@@ -306,18 +309,18 @@ class LDAnnotatorGnomad:
 
         # Retrieve LD information from gnomAD
         ld_annotated_assocs = []
-        for popobj in ld_populations:
-            if popobj.id in assoc_populations:
-                pop_parsed_ldindex_path = popobj.parsed_index
-                pop_matrix_path = popobj.matrix
+        for population in ld_populations:
+            if population in assoc_populations:
+                pop_parsed_ldindex_path = ld_index_template.format(POP=population)
+                pop_matrix_path = ld_matrix_template.format(POP=population)
                 variants_in_pop = locus_ancestry.filter(
-                    f.col("gnomadPopulation") == popobj.id
+                    f.col("gnomadPopulation") == population
                 )
                 ld_annotated_assocs.append(
                     LDAnnotatorGnomad.variants_in_ld_in_gnomad_pop(
                         variants_df=variants_in_pop,
                         ld_matrix=BlockMatrix.read(pop_matrix_path),
-                        ld_index=LDIndex.from_parquet(etl, pop_parsed_ldindex_path),
+                        ld_index=LDIndex.from_parquet(session, pop_parsed_ldindex_path),
                         min_r2=min_r2,
                     )
                 )

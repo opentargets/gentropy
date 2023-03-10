@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
@@ -33,17 +33,17 @@ class StudyIndex(Dataset):
     schema: StructType = parse_spark_schema("studies.json")
 
     @classmethod
-    def from_parquet(cls: type[StudyIndex], etl: ETLSession, path: str) -> StudyIndex:
+    def from_parquet(cls: type[StudyIndex], session: Session, path: str) -> StudyIndex:
         """Initialise StudyIndex from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             StudyIndex: Study index dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(session, path, cls.schema)
 
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.

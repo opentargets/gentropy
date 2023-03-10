@@ -1,5 +1,0 @@
-#baseconfig
-defaults:
-  - base_dataset_from_file
-# hardcoded config
-path: /path/to/dataset/gene_index

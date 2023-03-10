@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
@@ -40,17 +40,17 @@ class GeneIndex(Dataset):
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 
     @classmethod
-    def from_parquet(cls: type[GeneIndex], etl: ETLSession, path: str) -> GeneIndex:
+    def from_parquet(cls: type[GeneIndex], session: Session, path: str) -> GeneIndex:
         """Initialise GeneIndex from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             GeneIndex: Gene index dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(session, path, cls.schema)
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> None:
         """Filter by approved biotypes.

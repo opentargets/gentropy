@@ -10,7 +10,7 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
@@ -24,15 +24,15 @@ class StudyLocusOverlap(Dataset):
 
     @classmethod
     def from_parquet(
-        cls: type[StudyLocusOverlap], etl: ETLSession, path: str
+        cls: type[StudyLocusOverlap], session: Session, path: str
     ) -> StudyLocusOverlap:
         """Initialise StudyLocusOverlap from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             StudyLocusOverlap: Study-locus overlap dataset
         """
-        return super().from_parquet(etl, path, cls.schema)
+        return super().from_parquet(session, path, cls.schema)
