@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Dict, List
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
@@ -12,7 +13,7 @@ from omegaconf import MISSING
 class Config:
     """Configuration for otg."""
 
-    defaults: list[dict[str, str]] = field(
+    defaults: List[Dict[str, str]] = field(
         default_factory=lambda: [{"step": "???"}, {"session": "session_config"}]
     )
 
@@ -43,7 +44,7 @@ class LDIndexStepConfig:
     ld_radius: int = 500_000
     grch37_to_grch38_chain_path: str = MISSING
     ld_index_template: str = MISSING
-    ld_populations: list[str] = field(
+    ld_populations: List[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
@@ -109,7 +110,7 @@ class VariantAnnotationStepConfig:
     gnomad_genomes: str = MISSING
     chain_38_to_37: str = MISSING
     variant_annotation_path: str = MISSING
-    populations: list[str] = field(
+    populations: List[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
@@ -158,7 +159,7 @@ class V2GStepConfig:
     liftover_max_length_difference: int = 100
     max_distance: int = 500_000
     v2g_path: str = MISSING
-    approved_biotypes: list[str] = field(
+    approved_biotypes: List[str] = field(
         default_factory=lambda: [
             "protein_coding",
             "3prime_overlapping_ncRNA",
@@ -202,7 +203,7 @@ class GWASCatalogStepConfig:
     min_r2: float = 0.5
     ld_matrix_template: str = MISSING
     ld_index_template: str = MISSING
-    ld_populations: list[str] = field(
+    ld_populations: List[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
