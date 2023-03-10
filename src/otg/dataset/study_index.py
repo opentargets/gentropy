@@ -12,7 +12,7 @@ import pyspark.sql.types as t
 from pyspark.sql import Column, Window
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.utils import column2camel_case
+from otg.common.spark_helpers import column2camel_case
 from otg.dataset.dataset import Dataset
 from otg.json import data
 
