@@ -82,3 +82,6 @@ profile = "black"
 fail-under = 95
 color = true
 exclude = ["dist"]
+
+[tool.pytest.ini_options]
+addopts = "--ignore=deprecated_tests"
