@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
 
 
@@ -29,23 +29,23 @@ class VariantAnnotation(Dataset):
 
     @classmethod
     def from_parquet(
-        cls: type[VariantAnnotation], etl: ETLSession, path: str
+        cls: type[VariantAnnotation], session: Session, path: str
     ) -> VariantAnnotation:
         """Initialise VariantAnnotation from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             VariantAnnotation: VariantAnnotation dataset
         """
-        return super().from_parquet(etl, path, cls._schema)
+        return super().from_parquet(session, path, cls._schema)
 
     @classmethod
     def from_gnomad(
         cls: type[VariantAnnotation],
-        etl: ETLSession,
+        session: Session,
         gnomad_file: str,
         grch38_to_grch37_chain: str,
         populations: list,
@@ -60,7 +60,7 @@ class VariantAnnotation(Dataset):
         3. Field names are converted to camel case to follow the convention.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset
             grch38_to_grch37_chain (str): Path to chain file for liftover
             populations (list): List of populations to include in the dataset
@@ -69,7 +69,7 @@ class VariantAnnotation(Dataset):
         Returns:
             VariantAnnotation: Variant annotation dataset
         """
-        hl.init(sc=etl.spark.sparkContext, log="/tmp/hail.log")
+        hl.init(sc=session.spark.sparkContext, log="/tmp/hail.log")
 
         # Load variants dataset
         ht = hl.read_table(
@@ -216,14 +216,18 @@ class VariantAnnotation(Dataset):
 
     def filter_by_variant_df(
         self: VariantAnnotation, df: DataFrame, cols: list[str]
-    ) -> None:
+    ) -> VariantAnnotation:
         """Filter variant annotation dataset by a variant dataframe.
 
         Args:
             df (DataFrame): A dataframe of variants
             cols (List[str]): A list of columns to join on
+
+        Returns:
+            VariantAnnotation: A filtered variant annotation dataset
         """
-        self.df = self._df.join(f.broadcast(df.select(cols)), on=cols, how="inner")
+        self._df = self.df.join(f.broadcast(df.select(cols)), on=cols, how="inner")
+        return self
 
     def get_transcript_consequence_df(
         self: VariantAnnotation, filter_by: GeneIndex = None

@@ -1,4 +1,0 @@
-spark_uri: local[*]
-app_name: "ot_genetics_local"
-write_mode: "overwrite"
-_target_: otg.common.session.ETLSession

@@ -1,5 +1,0 @@
-_target_: otg.variant_index.VariantIndexStep
-defaults:
-   - /etl: local
-   - /dataset@variant_index: variant_index_credsets
-   - /dataset@variant_annotation: variant_annotation_from_file

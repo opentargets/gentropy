@@ -12,7 +12,7 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
 
 
@@ -26,17 +26,17 @@ class V2G(Dataset):
     _schema: StructType = parse_spark_schema("v2g.json")
 
     @classmethod
-    def from_parquet(cls: type[V2G], etl: ETLSession, path: str) -> V2G:
+    def from_parquet(cls: type[V2G], session: Session, path: str) -> V2G:
         """Initialise V2G from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             V2G: V2G dataset
         """
-        return super().from_parquet(etl, path, cls._schema)
+        return super().from_parquet(session, path, cls._schema)
 
     def filter_by_genes(self: V2G, genes: GeneIndex) -> None:
         """Filter by V2G dataset by genes.

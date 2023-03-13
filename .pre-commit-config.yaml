@@ -92,5 +92,9 @@ repos:
   - repo: https://github.com/pycqa/pydocstyle
     rev: 6.3.0
     hooks:
-    -   id: pydocstyle
+      - id: pydocstyle
         args: [--convention=google]
+  - repo: https://github.com/lovesegfault/beautysh
+    rev: v6.2.1
+    hooks:
+      - id: beautysh

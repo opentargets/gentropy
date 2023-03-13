@@ -1,0 +1,14 @@
+# Default config
+defaults:
+  - v2g
+# Additional config
+variant_index_path: ${datasets.variant_index}
+variant_annotation_path: ${datasets.variant_annotation}
+gene_index_path: ${datasets.gene_index}
+vep_consequences_path: ${datasets.vep_consequences}
+liftover_chain_file_path: ${datasets.chain_37_38}
+anderson_path: ${datasets.anderson}
+javierre_path: ${datasets.javierre}
+jung_path: ${datasets.jung}
+thurnman_path: ${datasets.thurnman}
+v2g_path: ${datasets.v2g}

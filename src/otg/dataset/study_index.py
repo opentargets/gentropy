@@ -1,21 +1,26 @@
 """Variant index dataset."""
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
+import json
 from dataclasses import dataclass
+from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql import Column, Window
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import column2camel_case
 from otg.dataset.dataset import Dataset
+from otg.json import data
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
@@ -28,17 +33,17 @@ class StudyIndex(Dataset):
     _schema: StructType = parse_spark_schema("studies.json")
 
     @classmethod
-    def from_parquet(cls: type[StudyIndex], etl: ETLSession, path: str) -> StudyIndex:
+    def from_parquet(cls: type[StudyIndex], session: Session, path: str) -> StudyIndex:
         """Initialise StudyIndex from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             StudyIndex: Study index dataset
         """
-        return super().from_parquet(etl, path, cls._schema)
+        return super().from_parquet(session, path, cls._schema)
 
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.
@@ -64,6 +69,26 @@ class StudyIndexGWASCatalog(StudyIndex):
     - The number of samples with European ancestry extracted.
 
     """
+
+    @staticmethod
+    def _gwas_ancestry_to_gnomad(gwas_catalog_ancestry: Column) -> Column:
+        """Normalised ancestry column from GWAS Catalog into Gnomad ancestry.
+
+        Args:
+            gwas_catalog_ancestry (Column): GWAS Catalog ancestry
+
+        Returns:
+            Column: mapped Gnomad ancestry using LUT
+        """
+        # GWAS Catalog to p-value mapping
+        json_dict = json.loads(
+            pkg_resources.read_text(
+                data, "gwascat_2_gnomad_superpopulation_map.json", encoding="utf-8"
+            )
+        )
+        map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
+
+        return f.transform(gwas_catalog_ancestry, lambda x: map_expr[x])
 
     @classmethod
     def _parse_study_table(
@@ -121,6 +146,80 @@ class StudyIndexGWASCatalog(StudyIndex):
             ._annotate_sumstats_info(sumstats_lut)
             ._annotate_discovery_sample_sizes()
         )
+
+    def get_gnomad_ancestry_sample_sizes(self: StudyIndexGWASCatalog) -> DataFrame:
+        """Get all studies and their ancestries.
+
+        Returns:
+            DataFrame: containing `studyId`, `gnomadPopulation` and `relativeSampleSize` columns
+        """
+        # Study ancestries
+        w_study = Window.partitionBy("studyId")
+        return (
+            self.df
+            # Excluding studies where no sample discription is provided:
+            .filter(f.col("discoverySamples").isNotNull())
+            # Exploding sample description and study identifier:
+            .withColumn("discoverySample", f.explode(f.col("discoverySamples")))
+            # Splitting sample descriptions further:
+            .withColumn(
+                "ancestries",
+                f.split(f.col("discoverySample.ancestry"), r",\s(?![^()]*\))"),
+            )
+            # Dividing sample sizes assuming even distribution
+            .withColumn(
+                "adjustedSampleSize",
+                f.col("discoverySample.sampleSize") / f.size(f.col("ancestries")),
+            )
+            # mapped to gnomAD superpopulation and exploded
+            .withColumn(
+                "gnomadPopulation",
+                f.explode(
+                    StudyIndexGWASCatalog._gwas_ancestry_to_gnomad(f.col("ancestries"))
+                ),
+            )
+            # Group by studies and aggregate for major population:
+            .groupBy("studyId", "gnomadPopulation")
+            .agg(f.sum(f.col("adjustedSampleSize")).alias("sampleSize"))
+            # Calculate proportions for each study
+            .withColumn(
+                "relativeSampleSize",
+                f.col("sampleSize") / f.sum("sampleSize").over(w_study),
+            )
+            .drop("sampleSize")
+        )
+
+    def update_study_id(
+        self: StudyIndexGWASCatalog, study_annotation: DataFrame
+    ) -> None:
+        """Update studyId with a dataframe containing study.
+
+        Args:
+            study_annotation (DataFrame): Dataframe containing `updatedStudyId`, `traitFromSource`, `traitFromSourceMappedIds` and key column `studyId`.
+        """
+        self.df = (
+            self._df.alias("studyIndex")
+            .join(study_annotation.alias("studyAnnotation"), on="studyId", how="left")
+            .withColumn(
+                "studyIndex.studyId",
+                f.coalesce("studyAnnotation.updatedStudyId", "studyIndex.studyId"),
+            )
+            .withColumn(
+                "studyIndex.traitFromSource",
+                f.coalesce(
+                    "studyAnnotation.traitFromSource", "studyIndex.traitFromSource"
+                ),
+            )
+            .withColumn(
+                "studyIndex.traitFromSourceMappedIds",
+                f.coalesce(
+                    "studyAnnotation.traitFromSourceMappedIds",
+                    "studyIndex.traitFromSourceMappedIds",
+                ),
+            )
+            .select("studyIndex.*")
+        )
+        self.validate_schema()
 
     def _annotate_ancestries(
         self: StudyIndexGWASCatalog, ancestry_lut: DataFrame

@@ -64,7 +64,7 @@
     {
       "name": "position",
       "type": "integer",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
 
 
 @dataclass
@@ -35,6 +35,7 @@ class Dataset:
 
     @df.setter
     def df(self: Dataset, new_df: DataFrame) -> None:  # noqa: CCE001
+        """Dataframe setter."""
         self._df = new_df
         self.validate_schema()
 
@@ -61,19 +62,19 @@ class Dataset:
 
     @classmethod
     def from_parquet(
-        cls: type[Dataset], etl: ETLSession, path: str, schema: StructType
+        cls: type[Dataset], session: Session, path: str, schema: StructType
     ) -> Dataset:
         """Reads a parquet file into a Dataset with a given schema.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
             schema (StructType): Schema to use
 
         Returns:
             Dataset: Dataset with given schema
         """
-        df = etl.read_parquet(path=path, schema=schema)
+        df = session.read_parquet(path=path, schema=schema)
         return cls(_df=df, _schema=schema, path=path)
 
     def validate_schema(self: Dataset) -> None:
@@ -99,6 +100,7 @@ class Dataset:
         if missing_required_fields:
             raise ValueError(error_message)
 
-    def persist(self: Dataset) -> None:
+    def persist(self: Dataset) -> Dataset:
         """Persist DataFrame included in the Dataset."""
-        self.df.persist()
+        self._df = self.df.persist()
+        return self

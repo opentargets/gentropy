@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from otg.common.Liftover import LiftOverSpark
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
     from otg.dataset.variant_index import VariantIndex
 
@@ -30,22 +30,22 @@ class Intervals(Dataset):
     _schema: StructType = parse_spark_schema("intervals.json")
 
     @classmethod
-    def from_parquet(cls: type[Intervals], etl: ETLSession, path: str) -> Intervals:
+    def from_parquet(cls: type[Intervals], session: Session, path: str) -> Intervals:
         """Initialise Intervals from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): ETL session
             path (str): Path to parquet file
 
         Returns:
             Intervals: Intervals dataset
         """
-        return super().from_parquet(etl, path, cls._schema)
+        return super().from_parquet(session, path, cls._schema)
 
     @classmethod
     def parse_andersson(
         cls: type[Intervals],
-        etl: ETLSession,
+        session: Session,
         path: str,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
@@ -53,7 +53,7 @@ class Intervals(Dataset):
         """Parse Andersson et al. 2014 dataset.
 
         Args:
-            etl (ETLSession): session
+            session (Session): session
             path (str): Path to dataset
             gene_index (GeneIndex): Gene index
             lift (LiftOverSpark): LiftOverSpark instance
@@ -68,8 +68,8 @@ class Intervals(Dataset):
         bio_feature = "aggregate"
         twosided_threshold = 2.45e6  # <-  this needs to phased out. Filter by percentile instead of absolute value.
 
-        etl.logger.info("Parsing Andersson 2014 data...")
-        etl.logger.info(f"Reading data from {path}")
+        session.logger.info("Parsing Andersson 2014 data...")
+        session.logger.info(f"Reading data from {path}")
 
         # Expected andersson et al. schema:
         input_schema = t.StructType.fromJson(
@@ -80,7 +80,7 @@ class Intervals(Dataset):
 
         # Read the anderson file:
         parsed_anderson_df = (
-            etl.spark.read.option("delimiter", "\t")
+            session.spark.read.option("delimiter", "\t")
             .option("header", "true")
             .schema(input_schema)
             .csv(path)
@@ -154,7 +154,7 @@ class Intervals(Dataset):
     @classmethod
     def parse_javierre(
         cls: type[Intervals],
-        etl: ETLSession,
+        session: Session,
         path: str,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
@@ -162,7 +162,7 @@ class Intervals(Dataset):
         """Parse Javierre et al. 2016 dataset.
 
         Args:
-            etl (ETLSession): session
+            session (Session): session
             path (str): Path to dataset
             gene_index (GeneIndex): Gene index
             lift (LiftOverSpark): LiftOverSpark instance
@@ -176,12 +176,12 @@ class Intervals(Dataset):
         pmid = "27863249"
         twosided_threshold = 2.45e6
 
-        etl.logger.info("Parsing Javierre 2016 data...")
-        etl.logger.info(f"Reading data from {path}")
+        session.logger.info("Parsing Javierre 2016 data...")
+        session.logger.info(f"Reading data from {path}")
 
         # Read Javierre data:
         javierre_raw = (
-            etl.spark.read.parquet(path)
+            session.spark.read.parquet(path)
             # Splitting name column into chromosome, start, end, and score:
             .withColumn("name_split", f.split(f.col("name"), r":|-|,"))
             .withColumn(
@@ -294,7 +294,7 @@ class Intervals(Dataset):
     @classmethod
     def parse_jung(
         cls: type[Intervals],
-        etl: ETLSession,
+        session: Session,
         path: str,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
@@ -302,7 +302,7 @@ class Intervals(Dataset):
         """Parse the Jung et al. 2019 dataset.
 
         Args:
-            etl (ETLSession): session
+            session (Session): session
             path (str): path to the Jung et al. 2019 dataset
             gene_index (GeneIndex): gene index
             lift (LiftOverSpark): LiftOverSpark instance
@@ -314,12 +314,12 @@ class Intervals(Dataset):
         experiment_type = "pchic"
         pmid = "27863249"
 
-        etl.logger.info("Parsing Jung 2019 data...")
-        etl.logger.info(f"Reading data from {path}")
+        session.logger.info("Parsing Jung 2019 data...")
+        session.logger.info(f"Reading data from {path}")
 
         # Read Jung data:
         jung_raw = (
-            etl.spark.read.csv(path, sep=",", header=True)
+            session.spark.read.csv(path, sep=",", header=True)
             .withColumn("interval", f.split(f.col("Interacting_fragment"), r"\."))
             .select(
                 # Parsing intervals:
@@ -373,7 +373,7 @@ class Intervals(Dataset):
     @classmethod
     def parse_thurman(
         cls: type[Intervals],
-        etl: ETLSession,
+        session: Session,
         path: str,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
@@ -381,7 +381,7 @@ class Intervals(Dataset):
         """Parse the Thurman et al. 2019 dataset.
 
         Args:
-            etl (ETLSession): session
+            session (Session): session
             path (str): path to the Thurman et al. 2019 dataset
             gene_index (GeneIndex): gene index
             lift (LiftOverSpark): LiftOverSpark instance
@@ -393,12 +393,12 @@ class Intervals(Dataset):
         experiment_type = "dhscor"
         pmid = "22955617"
 
-        etl.logger.info("Parsing Jung 2019 data...")
-        etl.logger.info(f"Reading data from {path}")
+        session.logger.info("Parsing Jung 2019 data...")
+        session.logger.info(f"Reading data from {path}")
 
         # Read Jung data:
         jung_raw = (
-            etl.spark.read.csv(path, sep=",", header=True)
+            session.spark.read.csv(path, sep=",", header=True)
             .withColumn("interval", f.split(f.col("Interacting_fragment"), r"\."))
             .select(
                 # Parsing intervals:

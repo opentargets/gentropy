@@ -104,7 +104,7 @@ class Coloc:
 
         Example:
             >>> l = [0.2, 0.1, 0.05, 0]
-            >>> round(_get_logsum(l), 6)
+            >>> round(Coloc._get_logsum(l), 6)
             1.476557
         """
         themax = np.max(log_abf)

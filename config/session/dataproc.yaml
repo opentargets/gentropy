@@ -1,0 +1,4 @@
+defaults:
+  - session_config
+spark_uri: yarn
+write_mode: overwrite

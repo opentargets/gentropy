@@ -23,12 +23,14 @@ from otg.common.spark_helpers import (
 )
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
+from otg.method.ld import LDAnnotatorGnomad, LDclumping
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import ETLSession
+    from otg.common.session import Session
+    from otg.dataset.study_index import StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -42,6 +44,9 @@ class StudyLocusQualityCheck(Enum):
         VARIANT_INCONSISTENCY_FLAG (str): Inconsistencies in the reported variants
         NON_MAPPED_VARIANT_FLAG (str): Variant not mapped to GnomAd
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
+        AMBIGUOUS_STUDY (str): Association with ambiguous study
+        UNRESOLVED_LD (str): Variant not found in LD reference
+        LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -50,6 +55,9 @@ class StudyLocusQualityCheck(Enum):
     INCONSISTENCY_FLAG = "Variant inconsistency"
     NON_MAPPED_VARIANT_FLAG = "No mapping in GnomAd"
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
+    AMBIGUOUS_STUDY = "Association with ambiguous study"
+    UNRESOLVED_LD = "Variant not found in LD reference"
+    LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
 
 
 class CredibleInterval(Enum):
@@ -177,18 +185,49 @@ class StudyLocus(Dataset):
             f.array_union(qc, f.array(f.lit(flag_text))),
         ).otherwise(qc)
 
+    @staticmethod
+    def _is_in_credset(
+        posterior_probability: Column,
+        credset_probability: float,
+    ) -> Column:
+        """Check whether a variant is in the XX% credible set.
+
+        Args:
+            posterior_probability (Column): Posterior probability of the tag variant
+            credset_probability (float): Credible set probability
+
+        Returns:
+            Column: Whether the variant is in the specified credible set
+        """
+        w_cumlead = Window.orderBy(f.desc(posterior_probability)).rowsBetween(
+            Window.unboundedPreceding, Window.currentRow
+        )
+        pics_postprob_cumsum = f.sum(posterior_probability).over(w_cumlead)
+        w_credset = Window.orderBy(pics_postprob_cumsum)
+        return (
+            # If posterior probability is null, credible set flag is False:
+            f.when(posterior_probability.isNull(), False)
+            # If the posterior probability meets the criteria the flag is True:
+            .when(
+                f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
+                False,
+            )
+            # IF criteria is not met, flag is False:
+            .otherwise(True)
+        )
+
     @classmethod
-    def from_parquet(cls: type[StudyLocus], etl: ETLSession, path: str) -> StudyLocus:
+    def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
 
         Args:
-            etl (ETLSession): ETL session
+            session (Session): spark session
             path (str): Path to parquet file
 
         Returns:
             StudyLocus: Study-locus dataset
         """
-        return super().from_parquet(etl, path, cls._schema)
+        return super().from_parquet(session, path, cls._schema)
 
     def credible_set(
         self: StudyLocus,
@@ -236,7 +275,7 @@ class StudyLocus(Dataset):
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(credset_to_overlap, peak_overlaps)
 
-    def unique_variants(self: StudyLocus) -> DataFrame:
+    def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.
 
         Returns:
@@ -255,6 +294,35 @@ class StudyLocus(Dataset):
             lead_tags.select("variantId", "chromosome")
             .union(
                 lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome")
+            )
+            .distinct()
+        )
+
+    def unique_study_locus_ancestries(
+        self: StudyLocus, studies: StudyIndexGWASCatalog
+    ) -> DataFrame:
+        """All unique lead variant and ancestries contained in the `StudyLocus`.
+
+        Args:
+            studies (StudyIndexGWASCatalog): Metadata about studies in the `StudyLocus`.
+
+        Returns:
+            DataFrame: unique ["variantId", "studyId", "gnomadPopulation", "chromosome", "relativeSampleSize"]
+
+        Note:
+            This method is only available for GWAS Catalog studies.
+        """
+        return (
+            self.df.join(
+                studies.get_gnomad_ancestry_sample_sizes(), on="studyId", how="left"
+            )
+            .filter(f.col("position").isNotNull())
+            .select(
+                "variantId",
+                "studyId",
+                "gnomadPopulation",
+                "chromosome",
+                "relativeSampleSize",
             )
             .distinct()
         )
@@ -293,6 +361,63 @@ class StudyLocus(Dataset):
             .drop("credibleSetExploded")
             .distinct()
         )
+
+    def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
+        """Annotate study-locus dataset with credible set flags.
+
+        Returns:
+            StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
+        """
+        self.df = self._df.withColumn(
+            "credibleSet",
+            f.transform(
+                f.col("credibleSet"),
+                lambda x: x.withField(
+                    "is95CredibleSet",
+                    StudyLocus._is_in_credset(x.posteriorProbability, 0.95),
+                ),
+            ),
+        ).withColumn(
+            "credibleSet",
+            f.transform(
+                f.col("credibleSet"),
+                lambda x: x.withField(
+                    "is99CredibleSet",
+                    StudyLocus._is_in_credset(x.posteriorProbability, 0.99),
+                ),
+            ),
+        )
+        return self
+
+    def clump(self: StudyLocus) -> StudyLocus:
+        """Perform LD clumping of the studyLocus.
+
+        Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.
+
+        Returns:
+            StudyLocus: with empty credible sets for linked variants and QC flag.
+        """
+        is_lead_linked = LDclumping._is_lead_linked(
+            self.df.studyId,
+            self.df.variantId,
+            self.neglog_pvalue,
+            self.df.credibleSet,
+        )
+
+        self.df = self.df.withColumn(
+            "credibleSet",
+            f.when(is_lead_linked, f.lit(None)).otherwise(self.df.credibleSet),
+        )
+
+        self._df.withColumn(
+            "qualityControls",
+            StudyLocus._update_quality_flag(
+                f.col("qualityControls"),
+                is_lead_linked,
+                StudyLocusQualityCheck.LD_CLUMPED,
+            ),
+        )
+        return self
 
 
 class StudyLocusGWASCatalog(StudyLocus):
@@ -339,7 +464,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         splitted_col = f.split(f.regexp_replace(p_value_text, r"[\(\)]", ""), ",")
-        return f.concat_ws(", ", f.transform(splitted_col, lambda x: map_expr[x]))
+        return f.transform(splitted_col, lambda x: map_expr[x])
 
     @staticmethod
     def _normalise_risk_allele(risk_allele: Column) -> Column:
@@ -489,7 +614,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ...    (4, [], []),
             ... ]
             >>> df = spark.createDataFrame(d, ['associationId', 'gnomad', 'gwas'])
-            >>> df.withColumn("rsid_matches", _compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
+            >>> df.withColumn("rsid_matches", StudyLocusGWASCatalog._compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
             +-------------+--------------+-------+------------+
             |associationId|        gnomad|   gwas|rsid_matches|
             +-------------+--------------+-------+------------+
@@ -532,7 +657,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         ...    (3, True),
         ... ]
         >>> df = spark.createDataFrame(d, ['associationId', 'filter'])
-        >>> df.withColumn("isConcordant", _flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
+        >>> df.withColumn("isConcordant", StudyLocusGWASCatalog._flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
         +-------------+------+------------+
         |associationId|filter|isConcordant|
         +-------------+------+------------+
@@ -584,7 +709,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ...     (None, None, 'A'),
             ... ]
             >>> df = spark.createDataFrame(d, ['riskAllele', 'referenceAllele', 'alternateAllele'])
-            >>> df.withColumn("isConcordant", _check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
+            >>> df.withColumn("isConcordant", StudyLocusGWASCatalog._check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
             +----------+---------------+---------------+------------+
             |riskAllele|referenceAllele|alternateAllele|isConcordant|
             +----------+---------------+---------------+------------+
@@ -639,7 +764,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         Examples:
             >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("revcom_allele", _get_reverse_complement(f.col("allele"))).show()
+            >>> df.withColumn("revcom_allele", StudyLocusGWASCatalog._get_reverse_complement(f.col("allele"))).show()
             +------+-------------+
             |allele|revcom_allele|
             +------+-------------+
@@ -709,7 +834,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         Examples:
             >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("zscore", _pval_to_zscore(f.col("pval"))).show()
+            >>> df.withColumn("zscore", StudyLocusGWASCatalog._pval_to_zscore(f.col("pval"))).show()
             +---+-------+----------+
             | id|   pval|    zscore|
             +---+-------+----------+
@@ -898,144 +1023,30 @@ class StudyLocusGWASCatalog(StudyLocus):
         )
 
     @staticmethod
-    def _harmonise_gwascatalog_associations(
-        gwas_associations: DataFrame,
-        variant_annotation: VariantAnnotation,
-        pval_threshold: float,
-    ) -> DataFrame:
-        """Read GWASCatalog associations.
-
-        It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
-        applies some pre-defined filters on the data:
+    def _concatenate_substudy_description(
+        association_trait: Column, pvalue_text: Column, mapped_trait_uri: Column
+    ) -> Column:
+        """Substudy description parsing. Complex string containing metadata about the substudy (e.g. QTL, specific EFO, etc.).
 
         Args:
-            gwas_associations (DataFrame): GWAS Catalog raw associations dataset
-            variant_annotation (VariantAnnotation): Variant annotation dataset
-            pval_threshold (float): P-value threshold for flagging associations
+            association_trait (Column): GWAS Catalog association trait column
+            pvalue_text (Column): GWAS Catalog p-value text column
+            mapped_trait_uri (Column): GWAS Catalog mapped trait URI column
 
         Returns:
-            DataFrame: `DataFrame` with the GWAS Catalog associations
+            A column with the substudy description in the shape EFO1_EFO2|pvaluetext1_pvaluetext2.
         """
-        # Reading and filtering associations:
-        return (
-            gwas_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id()
-            )
-            .transform(
-                # Map/harmonise variants to variant annotation dataset:
-                # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
-                lambda df: StudyLocusGWASCatalog._map_to_variant_annotation_variants(
-                    df, variant_annotation
-                )
-            )
-            .withColumn(
-                # Perform all quality control checks:
-                "qualityControls",
-                StudyLocusGWASCatalog._qc_all(
-                    f.array(),
-                    f.col("CHR_ID"),
-                    f.col("CHR_POS"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("STRONGEST SNP-RISK ALLELE"),
-                    StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")),
-                    StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")),
-                    pval_threshold,
-                ),
-            )
-            .select(
-                # INSIDE STUDY-LOCUS SCHEMA:
-                "studyLocusId",
-                "variantId",
-                # Mapped genomic location of the variant (; separated list)
-                "chromosome",
-                "position",
-                f.col("STUDY ACCESSION").alias("studyId"),
-                # beta value of the association
-                StudyLocusGWASCatalog._harmonise_beta(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                ).alias("beta"),
-                # odds ratio of the association
-                StudyLocusGWASCatalog._harmonise_odds_ratio(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                ).alias("oddsRatio"),
-                # CI lower of the beta value
-                StudyLocusGWASCatalog._harmonise_beta_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "lower",
-                ).alias("betaConfidenceIntervalLower"),
-                # CI upper for the beta value
-                StudyLocusGWASCatalog._harmonise_beta_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "upper",
-                ).alias("betaConfidenceIntervalUpper"),
-                # CI lower of the odds ratio value
-                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "lower",
-                ).alias("oddsRatioConfidenceIntervalLower"),
-                # CI upper of the odds ratio value
-                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
-                    StudyLocusGWASCatalog._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "upper",
-                ).alias("oddsRatioConfidenceIntervalUpper"),
-                # p-value of the association, string: split into exponent and mantissa.
-                StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")).alias(
-                    "pvalueMantissa"
-                ),
-                StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")).alias(
-                    "pValueExponent"
-                ),
-                # OUTSIDE STUDY-LOCUS SCHEMA:
-                # TODO: to clean up
-                StudyLocusGWASCatalog._parse_efos(f.col("MAPPED_TRAIT_URI")).alias(
-                    "associationEfos"
-                ),
-                # Association details:
-                StudyLocusGWASCatalog._normalise_pvaluetext(
-                    f.col("P-VALUE (TEXT)")
-                ).alias("pvalueText"),
-            )
+        return f.concat_ws(
+            "|",
+            association_trait,
+            f.concat_ws(
+                "_",
+                StudyLocusGWASCatalog._normalise_pvaluetext(pvalue_text),
+            ),
+            f.concat_ws(
+                "_",
+                StudyLocusGWASCatalog._parse_efos(mapped_trait_uri),
+            ),
         )
 
     @staticmethod
@@ -1222,18 +1233,254 @@ class StudyLocusGWASCatalog(StudyLocus):
         variant_annotation: VariantAnnotation,
         pvalue_threshold: float = 5e-8,
     ) -> StudyLocusGWASCatalog:
-        """Load GWAS Catalog associations from source.
+        """Read GWASCatalog associations.
+
+        It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
+        applies some pre-defined filters on the data:
 
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset
             variant_annotation (VariantAnnotation): Variant annotation dataset
-            pvalue_threshold (float): Association p-value threshold. Defaults to 5e-8.
+            pvalue_threshold (float): P-value threshold for flagging associations
 
         Returns:
-            StudyLocusGWASCatalog: GWAS Catalog associations
+            StudyLocusGWASCatalog: StudyLocusGWASCatalog dataset
         """
         return cls(
-            _df=cls._harmonise_gwascatalog_associations(
-                gwas_associations, variant_annotation, pvalue_threshold
+            _df=gwas_associations.withColumn(
+                "studyLocusId", f.monotonically_increasing_id()
+            )
+            .transform(
+                # Map/harmonise variants to variant annotation dataset:
+                # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
+                lambda df: StudyLocusGWASCatalog._map_to_variant_annotation_variants(
+                    df, variant_annotation
+                )
+            )
+            .withColumn(
+                # Perform all quality control checks:
+                "qualityControls",
+                StudyLocusGWASCatalog._qc_all(
+                    f.array().alias("qualityControls"),
+                    f.col("CHR_ID"),
+                    f.col("CHR_POS"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("STRONGEST SNP-RISK ALLELE"),
+                    StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")),
+                    StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")),
+                    pvalue_threshold,
+                ),
+            )
+            .select(
+                # INSIDE STUDY-LOCUS SCHEMA:
+                "studyLocusId",
+                "variantId",
+                # Mapped genomic location of the variant (; separated list)
+                "chromosome",
+                "position",
+                f.col("STUDY ACCESSION").alias("studyId"),
+                # beta value of the association
+                StudyLocusGWASCatalog._harmonise_beta(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                ).alias("beta"),
+                # odds ratio of the association
+                StudyLocusGWASCatalog._harmonise_odds_ratio(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                ).alias("oddsRatio"),
+                # CI lower of the beta value
+                StudyLocusGWASCatalog._harmonise_beta_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "lower",
+                ).alias("betaConfidenceIntervalLower"),
+                # CI upper for the beta value
+                StudyLocusGWASCatalog._harmonise_beta_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "upper",
+                ).alias("betaConfidenceIntervalUpper"),
+                # CI lower of the odds ratio value
+                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "lower",
+                ).alias("oddsRatioConfidenceIntervalLower"),
+                # CI upper of the odds ratio value
+                StudyLocusGWASCatalog._harmonise_odds_ratio_ci(
+                    StudyLocusGWASCatalog._normalise_risk_allele(
+                        f.col("STRONGEST SNP-RISK ALLELE")
+                    ),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                    f.col("OR or BETA"),
+                    f.col("95% CI (TEXT)"),
+                    f.col("P-VALUE"),
+                    "upper",
+                ).alias("oddsRatioConfidenceIntervalUpper"),
+                # p-value of the association, string: split into exponent and mantissa.
+                StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")).alias(
+                    "pvalueMantissa"
+                ),
+                StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")).alias(
+                    "pValueExponent"
+                ),
+                # Capturing phenotype granularity at the association level
+                StudyLocusGWASCatalog._concatenate_substudy_description(
+                    f.col("DISEASE/TRAIT"),
+                    f.col("P-VALUE (TEXT)"),
+                    f.col("MAPPED_TRAIT_URI"),
+                ).alias("subStudyDescription"),
+                # Quality controls (array of strings)
+                "qualityControls",
             )
         )
+
+    def update_study_id(
+        self: StudyLocusGWASCatalog, study_annotation: DataFrame
+    ) -> StudyLocusGWASCatalog:
+        """Update studyId with a dataframe containing study.
+
+        Args:
+            study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
+
+        Returns:
+            StudyLocusGWASCatalog: Updated study locus.
+        """
+        self.df = (
+            self._df.join(
+                study_annotation, on=["studyId", "subStudyDescription"], how="left"
+            )
+            .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
+            .drop("updatedStudyId")
+        )
+        self.validate_schema()
+        return self
+
+    def annotate_ld(
+        self: StudyLocusGWASCatalog,
+        session: Session,
+        studies: StudyIndexGWASCatalog,
+        ld_populations: list[str],
+        ld_index_template: str,
+        ld_matrix_template: str,
+        min_r2: float,
+    ) -> StudyLocus:
+        """Annotate LD set for every studyLocus using gnomAD.
+
+        Args:
+            session (Session): Session
+            studies (StudyIndexGWASCatalog): Study index containing ancestry information
+            ld_populations (list[str]): List of populations to annotate
+            ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected
+            ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected
+            min_r2 (float): Minimum r2 to include in the LD set
+
+        Returns:
+            StudyLocus: Study-locus with an annotated credible set.
+        """
+        # LD annotation for all unique lead variants in all populations (study independent).
+        ld_r = LDAnnotatorGnomad.ld_annotation_by_locus_ancestry(
+            session,
+            self,
+            studies,
+            ld_populations,
+            ld_index_template,
+            ld_matrix_template,
+            min_r2,
+        )
+
+        # Study-locus ld_set
+        ld_set = (
+            self.unique_study_locus_ancestries(studies)
+            .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
+            .withColumn(
+                "r2Overall",
+                LDAnnotatorGnomad.weighted_r_overall(
+                    f.col("chromosome"),
+                    f.col("studyId"),
+                    f.col("variantId"),
+                    f.col("tagVariantId"),
+                    f.col("relativeSampleSize"),
+                    f.col("r"),
+                ),
+            )
+            .groupBy("chromosome", "studyId", "variantId")
+            .agg(
+                f.collect_set(f.struct("tagVariantId", "r2Overall")).alias(
+                    "credibleSet"
+                )
+            )
+        )
+
+        self.df = self.df.join(
+            ld_set, on=["chromosome", "studyId", "variantId"], how="left"
+        )
+
+        return self._qc_unresolved_ld()
+
+    def _qc_ambiguous_study(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+        """Flag associations with variants that can not be unambiguously associated with one study.
+
+        Returns:
+            StudyLocusGWASCatalog: Updated study locus.
+        """
+        assoc_ambiguity_window = Window.partitionBy(
+            f.col("studyId"), f.col("variantId")
+        )
+
+        self._df.withColumn(
+            "qualityControls",
+            StudyLocus._update_quality_flag(
+                f.col("qualityControls"),
+                f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
+                StudyLocusQualityCheck.AMBIGUOUS_STUDY,
+            ),
+        )
+        return self
+
+    def _qc_unresolved_ld(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+        """Flag associations with variants that are not found in the LD reference.
+
+        Returns:
+            StudyLocusGWASCatalog: Updated study locus.
+        """
+        self._df.withColumn(
+            "qualityControls",
+            StudyLocus._update_quality_flag(
+                f.col("qualityControls"),
+                f.col("credibleSet").isNull(),
+                StudyLocusQualityCheck.UNRESOLVED_LD,
+            ),
+        )
+        return self

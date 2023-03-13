@@ -12,13 +12,13 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
 
-class ETLSession:
+class Session:
     """Spark session class."""
 
     spark_config = SparkConf()
 
     def __init__(
-        self: ETLSession,
+        self: Session,
         spark_uri: str,
         app_name: str,
         write_mode: str,
@@ -42,7 +42,7 @@ class ETLSession:
         self.logger = Log4j(self.spark)
         self.write_mode = write_mode
 
-    def read_parquet(self: ETLSession, path: str, schema: StructType) -> DataFrame:
+    def read_parquet(self: Session, path: str, schema: StructType) -> DataFrame:
         """Reads parquet dataset with a provided schema.
 
         Args:
@@ -69,7 +69,7 @@ class Log4j:
         app_id = conf.get("spark.app.id")
         app_name = conf.get("spark.app.name")
 
-        log4j = spark._jvm.org.apache.log4j
+        log4j = spark._jvm.org.apache.log4j  # type: ignore
 
         message_prefix = f"<{app_name}-{app_id}>"
         self.logger = log4j.LogManager.getLogger(message_prefix)
