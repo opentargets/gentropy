@@ -10,17 +10,18 @@ from otg.config import Config, register_configs
 register_configs()
 
 
-@hydra.main(config_path="config", version_base=None, config_name="config")
+@hydra.main(version_base=None, config_path="config", config_name="config")
 def run_step(cfg: Config) -> None:
     """OTG ETL CLI.
 
     Args:
         cfg (Config): hydra configuration object
     """
-    # Print config
     print(OmegaConf.to_yaml(cfg))
 
-    step = instantiate(cfg.step)  # cfg.step contains the whole YAML
+    step = instantiate(
+        cfg.step
+    )  # cfg.step contains the whole YAML corresponding to the step
     step.run()
 
 

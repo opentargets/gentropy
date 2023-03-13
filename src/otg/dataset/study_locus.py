@@ -18,7 +18,6 @@ from scipy.stats import norm
 from otg import data
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
-    _convert_from_wide_to_long,
     calculate_neglog_pvalue,
     get_record_with_maximum_value,
 )
@@ -30,7 +29,6 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from otg.common.session import ETLSession
-    from otg.dataset.v2g import V2G
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -294,46 +292,6 @@ class StudyLocus(Dataset):
             .filter(f.col("leadVariantId") == f.col("tagVariantId"))
             .drop("credibleSetExploded")
             .distinct()
-        )
-
-    def _get_tss_distance_features(
-        self: StudyLocus, distances: V2G, etl: ETLSession
-    ) -> DataFrame:
-        """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
-
-        Args:
-            distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
-            etl (ETLSession): ETL session
-
-        Returns:
-            DataFrame: Dataframe with the minimum distance among all variants in the credible set and a gene TSS.
-        """
-        wide_df = (
-            self.credible_set(CredibleInterval.IS95.value)
-            .select(
-                "studyLocusId",
-                "variantId",
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
-            )
-            .join(
-                distances.df.selectExpr(
-                    "variantId as tagVariantId", "geneId", "distance"
-                ),
-                on="tagVariantId",
-                how="inner",
-            )
-            .groupBy("studyLocusId", "variantId", "geneId")
-            .agg(
-                f.min("distance").alias("dist_tss_min"),
-                f.mean("distance").alias("dist_tss_ave"),
-            )
-        )
-        return _convert_from_wide_to_long(
-            wide_df,
-            id_vars=("studyLocusId", "geneId"),
-            var_name="feature",
-            value_name="value",
-            spark=etl.spark,  # not great, but necessary to go from pandas to spark
         )
 
 
@@ -1209,9 +1167,9 @@ class StudyLocusGWASCatalog(StudyLocus):
         return StudyLocusGWASCatalog._update_quality_flag(
             qc,
             # Number of chromosomes does not correspond to the number of positions:
-            (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";"))) |
+            (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";")))
             # NUmber of chromosome values different from riskAllele values:
-            (
+            | (
                 f.size(f.split(chromosome, ";"))
                 != f.size(f.split(strongest_snp_risk_allele, ";"))
             ),

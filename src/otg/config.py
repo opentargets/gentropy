@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Any, List, Optional
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
@@ -15,12 +15,10 @@ class Config:
     """Configuration for OTG ETL.
 
     Two parameters are required:
-    - etl: ETL session name
     - step: Step to be run. This is one of the step config classes defined in the config store file.
     """
 
-    etl: str = MISSING
-    step: str = MISSING
+    defaults: List[Any] = field(default_factory=lambda: [{"step": "MISSING"}])
 
 
 def register_configs() -> None:
@@ -42,7 +40,7 @@ def register_configs() -> None:
     #     name="base_variant_index_credsets",
     #     node=VariantIndexCredsetConfig,
     # )
-    # cs.store(name="config", node=Config)
+    cs.store(name="config", node=Config)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
 
 
