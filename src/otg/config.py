@@ -336,7 +336,7 @@ def register_configs() -> None:
     #     name="base_variant_index_credsets",
     #     node=VariantIndexCredsetConfig,
     # )
-    # cs.store(name="config", node=Config)
+    cs.store(name="config", node=Config)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
 
 

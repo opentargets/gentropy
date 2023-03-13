@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import get_record_with_maximum_value, pivot_df
+from otg.common.utils import get_record_with_maximum_value, pivot_df
 from otg.dataset.dataset import Dataset
 
 if TYPE_CHECKING:

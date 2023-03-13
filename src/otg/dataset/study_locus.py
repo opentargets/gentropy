@@ -9,7 +9,6 @@ import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
-    _convert_from_wide_to_long,
     calculate_neglog_pvalue,
     order_array_of_structs_by_field,
 )
@@ -23,6 +22,8 @@ if TYPE_CHECKING:
 
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.v2g import V2G
+    from otg.common.session import Session
+    from otg.dataset.variant_annotation import VariantAnnotation
 
 
 class StudyLocusQualityCheck(Enum):
@@ -404,6 +405,7 @@ class StudyLocus(Dataset):
             .distinct()
         )
 
+<<<<<<< HEAD
     def _get_tss_distance_features(
         self: StudyLocus, distances: V2G, etl: ETLSession
     ) -> DataFrame:

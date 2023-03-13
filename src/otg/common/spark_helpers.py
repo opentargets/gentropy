@@ -84,22 +84,6 @@ def _convert_from_long_to_wide(df: DataFrame, id_vars: list[str], var_name: str,
     """
     return df.groupBy(id_vars).pivot(var_name).agg(f.first(value_name))
 
-    # pivot_values = df.select(pivot_col).distinct().rdd.flatMap(lambda x: x).collect()
-    # return (
-    #     df.groupBy(grouping_cols)
-    #     .pivot(pivot_col)
-    #     .agg({value_col: "first"})
-    #     .select(
-    #         grouping_cols
-    #         + [
-    #             f.when(f.col(x).isNull(), None)
-    #             .otherwise(f.col(x))
-    #             .alias(f"{x}_{value_col}")
-    #             for x in pivot_values
-    #         ],
-    #     )
-    # )
-
 
 def pvalue_to_zscore(pval_col: Column) -> Column:
     """Convert p-value column to z-score column.

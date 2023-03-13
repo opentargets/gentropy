@@ -17,7 +17,6 @@ def main(cfg: Config) -> None:
     Args:
         cfg (Config): hydra configuration object
     """
-    # Print config
     print(OmegaConf.to_yaml(cfg))
     # Instantiate ETL session
     session = instantiate(cfg.session)

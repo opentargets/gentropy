@@ -59,7 +59,7 @@ class LocusToGeneStep(LocusToGeneConfig):
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
-        # self.etl.logger.info(f"Executing {self.id} step")
+        self.etl.logger.info(f"Executing {self.id} step")
 
         if self.run_mode == "train":
             gold_standards = get_gold_standards(
@@ -74,23 +74,21 @@ class LocusToGeneStep(LocusToGeneConfig):
             data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(frac=0.1, seed=42)
             # TODO: data normalization and standardisation of features
 
-        # if self.cfg.run_mode == "train":
-        #     gold_standards = get_gold_standards(
-        #         etl=self.etl,
-        #         study_locus_path=self.cfg.study_locus_path,
-        #         v2g_path=self.cfg.variant_gene_path,
-        #         study_locus_overlap_path=self.cfg.study_locus_overlap_path,
-        #         gold_standard_curation=self.cfg.gold_standard_curation_path,
-        #         interactions_path=self.cfg.gene_interactions_path,
-        #     )
-        #     gold_standards = self.etl.spark.read.parquet(
-        #         "/Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/processed_gs"
-        #     )
-        #     fm = L2GFeatureMatrix  # FIXME: debug credset TODO: inverse matrix
-        #     data = gold_standards.join(
-        #         fm, on="studyLocusId", how="inner"
-        #     ).train_test_split(frac=0.1, seed=42)
-        #     # TODO: data normalization and standardisation of features
+        if self.cfg.run_mode == "train":
+            gold_standards = L2GGoldStandard.get_gold_standards(
+                etl=self.etl,
+                study_locus_path=self.cfg.study_locus_path,
+                v2g_path=self.cfg.variant_gene_path,
+                study_locus_overlap_path=self.cfg.study_locus_overlap_path,
+                gold_standard_curation=self.cfg.gold_standard_curation_path,
+                interactions_path=self.cfg.gene_interactions_path,
+            )
+            #     gold_standards = self.etl.spark.read.parquet(
+            #         "/Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/processed_gs"
+            #     )
+            fm = L2GFeatureMatrix  # FIXME: debug credset
+            data = gold_standards.join(fm, on="studyLocusId", how="inner").train_test_split(frac=0.1, seed=42)
+            # TODO: data normalization and standardisation of features
 
         #     LocusToGeneTrainer.train(
         #         train_set=data["train"],
