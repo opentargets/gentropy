@@ -91,10 +91,7 @@ class L2GFeatureMatrix(Dataset):
         Returns:
             tuple[L2GFeatureMatrix, L2GFeatureMatrix]: Training and test datasets
         """
-        train, test = (
-            L2GFeatureMatrix(),
-            L2GFeatureMatrix(),
-        )  # TODO: Split L2GFeatureMatrix into 2 sets
+        train, test = self._df.randomSplit([fraction, 1 - fraction], seed=42)
         return (
             L2GFeatureMatrix(_df=train),
             L2GFeatureMatrix(_df=test),

@@ -13,7 +13,7 @@ from otg.method.locus_to_gene import LocusToGeneTrainer
 class LocusToGeneStep(LocusToGeneConfig):
     """Locus to gene step."""
 
-    def run(self: LocusToGeneStep) -> None:
+    def run(self: LocusToGeneStep, track: bool = True) -> None:
         """Run Locus to Gene step."""
         self.etl.logger.info(f"Executing {self.id} step")
 
@@ -31,15 +31,22 @@ class LocusToGeneStep(LocusToGeneConfig):
             #     gold_standards = self.etl.spark.read.parquet(
             #         "/Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/processed_gs"
             #     )
-            fm = L2GFeatureMatrix  # FIXME: debug credset
-            data = gold_standards.join(
+            fm = L2GFeatureMatrix.generate_features(
+                etl=self.etl,
+                study_locus_path=self.cfg.study_locus_path,
+                study_index_path=self.cfg.study_index_path,
+                variant_gene_path=self.cfg.variant_gene_path,
+                colocalisation_path=self.cfg.colocalisation_path,
+            )
+            train, test = gold_standards.join(
                 fm, on="studyLocusId", how="inner"
-            ).train_test_split(frac=0.1, seed=42)
+            ).train_test_split(fraction=0.8)
             # TODO: data normalization and standardisation of features
 
         LocusToGeneTrainer.train(
-            train_set=data["train"],
-            test_set=data["test"],
+            train_set=train,
+            test_set=test,
+            track=track,
             **self.hyperparameters,
-            # TODO: Add push to hub, and push to W&B
+            # TODO: Add push to hub
         )
