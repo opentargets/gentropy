@@ -816,9 +816,28 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             A boolean column indicating if the alleles are palindromic.
+
+        Examples:
+            >>> d = [{"reference": 'A', "alternate": 'T'}, {"reference": 'AT', "alternate": 'AG'}, {"reference": 'AT', "alternate": 'AT'}, {"reference": 'CATATG', "alternate": 'CATATG'}, {"reference": '-', "alternate": None}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("is_palindromic", StudyLocusGWASCatalog._are_alleles_palindromic(f.col("reference"), f.col("alternate"))).show()
+            +---------+---------+--------------+
+            |alternate|reference|is_palindromic|
+            +---------+---------+--------------+
+            |        T|        A|          true|
+            |       AG|       AT|         false|
+            |       AT|       AT|          true|
+            |   CATATG|   CATATG|          true|
+            |     null|        -|         false|
+            +---------+---------+--------------+
+            <BLANKLINE>
+
         """
-        return reference_allele == StudyLocusGWASCatalog._get_reverse_complement(
-            alternate_allele
+        revcomp = StudyLocusGWASCatalog._get_reverse_complement(alternate_allele)
+        return (
+            f.when(reference_allele == revcomp, True)
+            .when(revcomp.isNull(), False)
+            .otherwise(False)
         )
 
     @staticmethod
