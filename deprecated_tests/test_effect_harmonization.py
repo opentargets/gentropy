@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_allele_columns(spark: SparkSession) -> DataFrame:
     """Mock Dataframe to test harmonisation."""
     return spark.createDataFrame(
@@ -30,7 +30,7 @@ def mock_allele_columns(spark: SparkSession) -> DataFrame:
     ).persist()
 
 
-@pytest.fixture
+@pytest.fixture()
 def call_get_reverse_complement(mock_allele_columns: DataFrame) -> DataFrame:
     """Test reverse complement on mock data."""
     return mock_allele_columns.transform(
