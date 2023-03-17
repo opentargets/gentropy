@@ -40,7 +40,6 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
-            name="colocalisation",
         )
         .withSchema(schema)
         .withColumnSpec("coloc_h0", percentNulls=0.1)
@@ -65,7 +64,6 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
-            name="v2g",
         )
         .withSchema(schema)
         .withColumnSpec(
@@ -131,7 +129,6 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
-            name="study_locus_overlap",
         )
         .withSchema(schema)
         .withColumnSpec("right_logABF", percentNulls=0.1)
@@ -153,7 +150,6 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
-            name="study_locus",
         )
         .withSchema(schema)
         .withColumnSpec("chromosome", percentNulls=0.1)
@@ -211,7 +207,6 @@ def mock_v2g(spark: SparkSession) -> V2G:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
-            name="v2g",
         )
         .withSchema(v2g_schema)
         .withColumnSpec("distance", percentNulls=0.1)
@@ -238,7 +233,6 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
-            name="variant_index",
         )
         .withSchema(vi_schema)
         .withColumnSpec("chromosomeB37", percentNulls=0.1)
