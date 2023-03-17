@@ -424,28 +424,36 @@ class StudyLocusGWASCatalog(StudyLocus):
     """Study-locus dataset derived from GWAS Catalog."""
 
     @staticmethod
-    def _parse_pvalue_exponent(pvalue_column: Column) -> Column:
-        """Parse p-value exponent.
+    def _parse_pvalue(pvalue: Column) -> tuple[Column, Column]:
+        """Parse p-value column.
 
         Args:
-            pvalue_column (Column): Column from GWASCatalog containing the p-value
+            pvalue (Column): p-value [string]
 
         Returns:
-            Column: Column containing the p-value exponent
+            tuple[Column, Column]: p-value mantissa and exponent
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [("1.0"), ("0.5"), ("1E-20"), ("3E-3"), ("1E-1000")]
+            >>> df = spark.createDataFrame(d, t.StringType())
+            >>> df.select('value',*_parse_pvalue(f.col('value'))).show()
+            +-------+--------------+--------------+
+            |  value|pValueMantissa|pValueExponent|
+            +-------+--------------+--------------+
+            |    1.0|           1.0|             1|
+            |    0.5|           0.5|             1|
+            |  1E-20|           1.0|           -20|
+            |   3E-3|           3.0|            -3|
+            |1E-1000|           1.0|         -1000|
+            +-------+--------------+--------------+
+            <BLANKLINE>
+
         """
-        return f.split(pvalue_column, "E").getItem(1).cast("integer")
-
-    @staticmethod
-    def _parse_pvalue_mantissa(pvalue_column: Column) -> Column:
-        """Parse p-value mantis.
-
-        Args:
-            pvalue_column (Column): Column from GWASCatalog containing the p-value
-
-        Returns:
-            Column: Column containing the p-value mantis
-        """
-        return f.split(pvalue_column, "E").getItem(0).cast("float")
+        split = f.split(pvalue, "E")
+        return split.getItem(0).cast("float").alias("pValueMantissa"), f.coalesce(
+            split.getItem(1).cast("integer"), f.lit(1)
+        ).alias("pValueExponent")
 
     @staticmethod
     def _normalise_pvaluetext(p_value_text: Column) -> Column:
@@ -1286,8 +1294,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                     f.col("referenceAllele"),
                     f.col("alternateAllele"),
                     f.col("STRONGEST SNP-RISK ALLELE"),
-                    StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")),
-                    StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")),
+                    *StudyLocusGWASCatalog._parse_pvalue(f.col("P-VALUE")),
                     pvalue_threshold,
                 ),
             )
@@ -1368,12 +1375,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                     "upper",
                 ).alias("oddsRatioConfidenceIntervalUpper"),
                 # p-value of the association, string: split into exponent and mantissa.
-                StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")).alias(
-                    "pvalueMantissa"
-                ),
-                StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")).alias(
-                    "pValueExponent"
-                ),
+                *StudyLocusGWASCatalog._parse_pvalue(f.col("P-VALUE")),
                 # Capturing phenotype granularity at the association level
                 StudyLocusGWASCatalog._concatenate_substudy_description(
                     f.col("DISEASE/TRAIT"),
