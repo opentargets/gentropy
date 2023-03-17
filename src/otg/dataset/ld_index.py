@@ -28,7 +28,7 @@ import hail as hl
 class LDIndex(Dataset):
     """Dataset to index access to LD information from GnomAD."""
 
-    schema: StructType = parse_spark_schema("ld_index.json")
+    _schema: StructType = parse_spark_schema("ld_index.json")
 
     @staticmethod
     def _liftover_loci(variant_index: Table, grch37_to_grch38_chain_path: str) -> Table:

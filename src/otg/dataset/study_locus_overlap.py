@@ -20,7 +20,7 @@ class StudyLocusOverlap(Dataset):
     This dataset captures pairs of overlapping `StudyLocus`.
     """
 
-    schema: StructType = parse_spark_schema("study_locus_overlap.json")
+    _schema: StructType = parse_spark_schema("study_locus_overlap.json")
 
     @classmethod
     def from_parquet(
@@ -35,4 +35,4 @@ class StudyLocusOverlap(Dataset):
         Returns:
             StudyLocusOverlap: Study-locus overlap dataset
         """
-        return super().from_parquet(session, path, cls.schema)
+        return super().from_parquet(session, path, cls._schema)

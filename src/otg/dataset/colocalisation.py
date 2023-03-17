@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class Colocalisation(Dataset):
     """Colocalisation results for pairs of overlapping study-locus."""
 
-    schema: StructType = parse_spark_schema("colocalisation.json")
+    _schema: StructType = parse_spark_schema("colocalisation.json")
 
     @classmethod
     def from_parquet(
@@ -32,4 +32,4 @@ class Colocalisation(Dataset):
         Returns:
             Colocalisation: Colocalisation results
         """
-        return super().from_parquet(session, path, cls.schema)
+        return super().from_parquet(session, path, cls._schema)

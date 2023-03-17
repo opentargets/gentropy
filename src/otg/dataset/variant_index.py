@@ -24,7 +24,7 @@ class VariantIndex(Dataset):
     Variant index dataset is the result of intersecting the variant annotation (gnomad) dataset with the variants with V2D available information.
     """
 
-    schema: StructType = parse_spark_schema("variant_index.json")
+    _schema: StructType = parse_spark_schema("variant_index.json")
 
     @classmethod
     def from_parquet(
@@ -39,7 +39,7 @@ class VariantIndex(Dataset):
         Returns:
             VariantIndex: VariantIndex dataset
         """
-        return super().from_parquet(session, path, cls.schema)
+        return super().from_parquet(session, path, cls._schema)
 
     @classmethod
     def from_variant_annotation(
@@ -71,7 +71,6 @@ class VariantIndex(Dataset):
                 f.lit(True).alias("variantInGnomad"),
             ),
         )
-        vi.validate_schema()
         return vi.df.repartition(
             400,
             "chromosome",

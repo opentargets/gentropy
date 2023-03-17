@@ -334,7 +334,8 @@ class LDclumping:
     def _is_lead_linked(
         study_id: Column,
         variant_id: Column,
-        neg_log_pval: Column,  # *|MARKER_CURSOR|*
+        p_value_exponent: Column,
+        p_value_mantissa: Column,
         credible_set: Column,
     ) -> Column:
         """Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.
@@ -342,7 +343,8 @@ class LDclumping:
         Args:
             study_id (Column): studyId
             variant_id (Column): Lead variant id
-            neg_log_pval (Column): -log10(p-value) of the association
+            p_value_exponent (Column): p-value exponent
+            p_value_mantissa (Column): p-value mantissa
             credible_set (Column): Credible set <array of structs>
 
         Returns:
@@ -353,7 +355,7 @@ class LDclumping:
         intersect_lead_tags = f.array_intersect(leads_in_study, tags_in_study_locus)
         rank = f.row_number().over(
             Window.partitionBy(study_id, intersect_lead_tags).orderBy(
-                neg_log_pval.desc()
+                p_value_exponent, p_value_mantissa
             )
         )
         return rank > 1
