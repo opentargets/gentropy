@@ -464,6 +464,21 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: mapped using GWAS Catalog mapping
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease")]
+            >>> df = spark.createDataFrame(d, t.StringType())
+            >>> df.withColumn('normalised', StudyLocusGWASCatalog._normalise_pvaluetext(f.col('value'))).show()
+            +-------------------+----------+
+            |              value|normalised|
+            +-------------------+----------+
+            |  European Ancestry|      [EA]|
+            |   African ancestry|      [AA]|
+            |Alzheimer’s Disease|      [AD]|
+            +-------------------+----------+
+            <BLANKLINE>
+
         """
         # GWAS Catalog to p-value mapping
         json_dict = json.loads(
