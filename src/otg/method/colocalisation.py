@@ -61,7 +61,7 @@ class ECaviar:
                         f.col("right_posteriorProbability"),
                     ),
                 )
-                .groupBy("left_studyLocusId", "right_studyLocusId")
+                .groupBy("left_studyLocusId", "right_studyLocusId", "chromosome")
                 .agg(
                     f.count("*").alias("coloc_n_vars"),
                     f.sum(f.col("clpp")).alias("clpp"),
@@ -149,7 +149,7 @@ class Coloc:
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
-                overlapping_signals
+                overlapping_signals.df
                 # Before summing log_abf columns nulls need to be filled with 0:
                 .fillna(0, subset=["left_logABF", "right_logABF"])
                 # Sum of log_abfs for each pair of signals

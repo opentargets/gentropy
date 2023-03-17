@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from otg.common.session import Session
-    from otg.dataset.study_index import StudyIndexGWASCatalog
+    from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -79,7 +79,7 @@ class StudyLocus(Dataset):
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
 
-    schema: StructType = parse_spark_schema("study_locus.json")
+    _schema: StructType = parse_spark_schema("study_locus.json")
 
     @staticmethod
     def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
@@ -110,8 +110,8 @@ class StudyLocus(Dataset):
                 how="inner",
             )
             .select(
-                f.col("left.studyLoucusId").alias("left_studyLocusId"),
-                f.col("right.studyLoucusId").alias("right_studyLocusId"),
+                f.col("left.studyLocusId").alias("left_studyLocusId"),
+                f.col("right.studyLocusId").alias("right_studyLocusId"),
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
@@ -162,6 +162,16 @@ class StudyLocus(Dataset):
                 ],
                 how="outer",
             )
+            # ensures nullable=false for following columns
+            .fillna(
+                value="unknown",
+                subset=[
+                    "chromosome",
+                    "right_studyLocusId",
+                    "left_studyLocusId",
+                    "tagVariantId",
+                ],
+            )
         )
 
     @staticmethod
@@ -180,7 +190,7 @@ class StudyLocus(Dataset):
         """
         return f.when(
             flag_condition,
-            f.array_union(qc, f.array(f.lit(flag_text))),
+            f.array_union(qc, f.array(f.lit(flag_text.value))),
         ).otherwise(qc)
 
     @staticmethod
@@ -205,13 +215,16 @@ class StudyLocus(Dataset):
         return (
             # If posterior probability is null, credible set flag is False:
             f.when(posterior_probability.isNull(), False)
-            # If the posterior probability meets the criteria the flag is True:
+            # If the posterior probability meets the criteria the flag is False:
             .when(
                 f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
                 False,
+            ).when(
+                f.lag(pics_postprob_cumsum, 1).over(w_credset) < credset_probability,
+                True,
             )
-            # IF criteria is not met, flag is False:
-            .otherwise(True)
+            # ensures nullable=True:
+            .otherwise(None)
         )
 
     @classmethod
@@ -225,7 +238,7 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Study-locus dataset
         """
-        return super().from_parquet(session, path, cls.schema)
+        return super().from_parquet(session, path, cls._schema)
 
     def credible_set(
         self: StudyLocus,
@@ -239,29 +252,34 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Filtered study-locus dataset.
         """
-        self.df.filter(f"credibleSet, tag -> (tag.{credible_interval})")
+        self.df = self._df.withColumn(
+            "credibleSet",
+            f.expr(f"filter(credibleSet, tag -> (tag.{credible_interval.value}))"),
+        )
         return self
 
-    def overlaps(self: StudyLocus) -> StudyLocusOverlap:
+    def overlaps(self: StudyLocus, study_index: StudyIndex) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
         Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
         appearing on the right side.
 
+        Args:
+            study_index (StudyIndex): Study index to resolve study types.
+
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         credset_to_overlap = (
-            self.df.withColumn("credibleSet", f.explode("credibleSet"))
+            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            .withColumn("credibleSet", f.explode("credibleSet"))
             .select(
                 "studyLocusId",
                 "studyType",
                 "chromosome",
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
-                f.explode("credibleSet.logABF").alias("logABF"),
-                f.explode("credibleSet.posteriorProbability").alias(
-                    "posteriorProbability"
-                ),
+                f.col("credibleSet.tagVariantId").alias("tagVariantId"),
+                f.col("credibleSet.logABF").alias("logABF"),
+                f.col("credibleSet.posteriorProbability").alias("posteriorProbability"),
             )
             .persist()
         )
@@ -331,8 +349,8 @@ class StudyLocus(Dataset):
             Column: Negative log p-value
         """
         return calculate_neglog_pvalue(
-            self.df.pvalueMantissa,
-            self.df.pvalueExponent,
+            self.df.pValueMantissa,
+            self.df.pValueExponent,
         )
 
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
@@ -341,12 +359,12 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
-        self.df = self._df.withColumn(
+        self.df = self.df.withColumn(
             "credibleSet",
             f.transform(
                 f.col("credibleSet"),
                 lambda x: x.withField(
-                    "is95CredibleSet",
+                    CredibleInterval.IS95.value,
                     StudyLocus._is_in_credset(x.posteriorProbability, 0.95),
                 ),
             ),
@@ -355,7 +373,7 @@ class StudyLocus(Dataset):
             f.transform(
                 f.col("credibleSet"),
                 lambda x: x.withField(
-                    "is99CredibleSet",
+                    CredibleInterval.IS99.value,
                     StudyLocus._is_in_credset(x.posteriorProbability, 0.99),
                 ),
             ),
@@ -370,25 +388,32 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: with empty credible sets for linked variants and QC flag.
         """
-        is_lead_linked = LDclumping._is_lead_linked(
-            self.df.studyId,
-            self.df.variantId,
-            self.neglog_pvalue,
-            self.df.credibleSet,
-        )
-
-        self.df = self.df.withColumn(
-            "credibleSet",
-            f.when(is_lead_linked, f.lit(None)).otherwise(self.df.credibleSet),
-        )
-
-        self._df.withColumn(
-            "qualityControls",
-            StudyLocus._update_quality_flag(
-                f.col("qualityControls"),
-                is_lead_linked,
-                StudyLocusQualityCheck.LD_CLUMPED,
-            ),
+        self.df = (
+            self.df.withColumn(
+                "is_lead_linked",
+                LDclumping._is_lead_linked(
+                    self.df.studyId,
+                    self.df.variantId,
+                    self.df.pValueExponent,
+                    self.df.pValueMantissa,
+                    self.df.credibleSet,
+                ),
+            )
+            .withColumn(
+                "credibleSet",
+                f.when(f.col("is_lead_linked"), f.array()).otherwise(
+                    f.col("credibleSet")
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyLocus._update_quality_flag(
+                    f.col("qualityControls"),
+                    f.col("is_lead_linked"),
+                    StudyLocusQualityCheck.LD_CLUMPED,
+                ),
+            )
+            .drop("is_lead_linked")
         )
         return self
 

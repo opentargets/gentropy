@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 class VariantAnnotation(Dataset):
     """Dataset with variant-level annotations derived from GnomAD."""
 
-    schema: StructType = parse_spark_schema("variant_annotation.json")
+    _schema: StructType = parse_spark_schema("variant_annotation.json")
 
     @classmethod
     def from_parquet(
@@ -40,7 +40,7 @@ class VariantAnnotation(Dataset):
         Returns:
             VariantAnnotation: VariantAnnotation dataset
         """
-        return super().from_parquet(session, path, cls.schema)
+        return super().from_parquet(session, path, cls._schema)
 
     @classmethod
     def from_gnomad(

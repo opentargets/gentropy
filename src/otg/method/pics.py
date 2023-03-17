@@ -90,6 +90,7 @@ class PICS:
 
     @staticmethod
     def _pics_posterior_probability(
+        study_locus_id: Column,
         neglog_p: Column,
         r: Column,
         k: float,
@@ -97,6 +98,7 @@ class PICS:
         """Compute the PICS posterior probability.
 
         Args:
+            study_locus_id (Column): Study-Locus ID required for windowing purposes
             neglog_p (Column): Negative log p-value
             r (Column): R-squared
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
@@ -104,13 +106,15 @@ class PICS:
         Returns:
             Column: PICS posterior probability
         """
+        w_lead = Window.partitionBy(study_locus_id)
+
         pics_mu = PICS._pics_mu(neglog_p, r)
         pics_std = PICS._pics_standard_deviation(neglog_p, r, k)
 
         pics_relative_prob = f.when(pics_std == 0, 1.0).otherwise(
             PICS._norm_sf(pics_mu, pics_std, neglog_p)
         )
-        return pics_relative_prob / f.sum(pics_relative_prob)
+        return pics_relative_prob / f.sum(pics_relative_prob).over(w_lead)
 
     @staticmethod
     def _pics_standard_deviation(neglog_p: Column, r: Column, k: float) -> Column:
@@ -184,16 +188,26 @@ class PICS:
         Returns:
             StudyLocus: Study locus with PICS results
         """
-        associations.df = associations.df.withColumn(
-            "credibleSet",
-            f.transform(
-                f.col("credibleSet"),
-                lambda x: x.withField(
-                    "posteriorProbability",
-                    PICS._pics_posterior_probability(
-                        associations.neglog_pvalue, x.rOverall, k
+        associations.df = (
+            associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
+            .withColumn(
+                "credibleSet",
+                f.when(
+                    f.col("credibleSet").isNotNull(),
+                    f.transform(
+                        f.col("credibleSet"),
+                        lambda x: x.withField(
+                            "posteriorProbability",
+                            PICS._pics_posterior_probability(
+                                f.col("studyLocusId"),
+                                f.col("neglog_pvalue"),
+                                x.r2Overall,
+                                k,
+                            ),
+                        ),
                     ),
                 ),
-            ),
+            )
+            .drop("neglog_pvalue")
         )
         return associations

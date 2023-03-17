@@ -5,20 +5,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from omegaconf import MISSING
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import Session
-
-
-@dataclass
-class DatasetFromFileConfig:
-    """Read dataset from file configuration."""
-
-    path: str = MISSING
 
 
 @dataclass
@@ -29,7 +21,6 @@ class Dataset:
     """
 
     _df: DataFrame
-    path: str | None
     _schema: StructType
 
     def __post_init__(self: Dataset) -> None:
@@ -83,7 +74,7 @@ class Dataset:
             Dataset: Dataset with given schema
         """
         df = session.read_parquet(path=path, schema=schema)
-        return cls(_df=df, _schema=schema, path=path)
+        return cls(_df=df, _schema=schema)
 
     def validate_schema(self: Dataset) -> None:
         """Validate DataFrame schema against expected class schema.
@@ -91,7 +82,7 @@ class Dataset:
         Raises:
             ValueError: DataFrame schema is not valid
         """
-        expected_schema = self.schema  # type: ignore[attr-defined]
+        expected_schema = self._schema  # type: ignore[attr-defined]
         observed_schema = self.df.schema  # type: ignore[attr-defined]
         # Observed fields no    t in schema
         missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
