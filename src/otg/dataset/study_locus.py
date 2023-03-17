@@ -437,7 +437,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             >>> import pyspark.sql.types as t
             >>> d = [("1.0"), ("0.5"), ("1E-20"), ("3E-3"), ("1E-1000")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.select('value',*_parse_pvalue(f.col('value'))).show()
+            >>> df.select('value',*StudyLocusGWASCatalog._parse_pvalue(f.col('value'))).show()
             +-------+--------------+--------------+
             |  value|pValueMantissa|pValueExponent|
             +-------+--------------+--------------+
