@@ -2,16 +2,55 @@
 from __future__ import annotations
 
 import re
+import sys
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import MinMaxScaler, VectorAssembler
 from pyspark.ml.functions import vector_to_array
 from pyspark.sql import Window
+from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame, WindowSpec
+
+
+def pvalue_to_zscore(pval_col: Column) -> Column:
+    """Convert p-value column to z-score column.
+
+    Args:
+        pval_col (Column): pvalues to be casted to floats.
+
+    Returns:
+        Column: p-values transformed to z-scores
+
+    Examples:
+        >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("zscore", pvalue_to_zscore(f.col("pval"))).show()
+        +---+-------+----------+
+        | id|   pval|    zscore|
+        +---+-------+----------+
+        | t1|      1|       0.0|
+        | t2|    0.9|0.12566137|
+        | t3|   0.05|  1.959964|
+        | t4| 1e-300| 37.537838|
+        | t5|1e-1000| 37.537838|
+        | t6|     NA|      null|
+        +---+-------+----------+
+        <BLANKLINE>
+
+    """
+    pvalue_float = pval_col.cast(t.FloatType())
+    pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
+        pvalue_float
+    )
+    return f.udf(
+        lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
+        t.FloatType(),
+    )(pvalue_nozero)
 
 
 def nullify_empty_array(column: Column) -> Column:
@@ -151,6 +190,38 @@ def calculate_neglog_pvalue(
         <BLANKLINE>
     """
     return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
+
+
+def parse_pvalue(p_value: Column) -> tuple:
+    """Extract p-value mantissa and exponent from p-value.
+
+    Args:
+        p_value (Column): column with p-values. Will try to cast to float.
+
+    Returns:
+        tuple: contains columns pValueMantissa and pValueExponent
+
+    Examples:
+        >>> data = [(1.0),(0.5), (1e-20), (3e-3)]
+        >>> spark.createDataFrame(data, t.FloatType()).select('value',*parsepv(f.col('value'))).show()
+        +-------+--------------+--------------+
+        |  value|pValueMantissa|pValueExponent|
+        +-------+--------------+--------------+
+        |    1.0|           1.0|             0|
+        |    0.5|           5.0|            -1|
+        |1.0E-20|           1.0|           -20|
+        |  0.003|           3.0|            -3|
+        +-------+--------------+--------------+
+    """
+    pv = f.when(p_value == 0, sys.float_info.min).otherwise(p_value)
+
+    # To get the right exponent we need to do some rounding:
+    exponent = f.floor(f.round(f.log10(pv), 4)).alias("pValueExponent")
+
+    # Mantissa also needs to be rounded:
+    mantissa = f.round(pv * f.pow(f.lit(10), -exponent), 3).alias("pValueMantissa")
+
+    return (mantissa, exponent)
 
 
 def column2camel_case(col_name: str) -> str:
