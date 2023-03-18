@@ -19,9 +19,9 @@ class Session:
 
     def __init__(
         self: Session,
-        spark_uri: str,
-        app_name: str,
-        write_mode: str,
+        spark_uri: str = "local[*]",
+        write_mode: str = "errorifexists",
+        app_name: str = "otgenetics",
         spark_config: SparkConf = spark_config,
     ) -> None:
         """Initialises spark session and logger.
@@ -65,14 +65,11 @@ class Log4j:
             spark (SparkSession): Available spark session
         """
         # get spark app details with which to prefix all messages
-        conf = spark.sparkContext.getConf()
-        app_id = conf.get("spark.app.id")
-        app_name = conf.get("spark.app.name")
+        log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore
+        self.logger = log4j.Logger.getLogger(__name__)
 
-        log4j = spark._jvm.org.apache.log4j  # type: ignore
-
-        message_prefix = f"<{app_name}-{app_id}>"
-        self.logger = log4j.LogManager.getLogger(message_prefix)
+        log4j_logger = spark.sparkContext._jvm.org.apache.log4j  # type: ignore
+        self.logger = log4j_logger.LogManager.getLogger(__name__)
 
     def error(self: Log4j, message: str) -> None:
         """Log an error.
