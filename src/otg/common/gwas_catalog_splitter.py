@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 import pyspark.sql.functions as f
 from pyspark.sql.window import Window
@@ -74,7 +74,7 @@ class GWASCatalogSplitter:
         """
         split_w = Window.partitionBy(study_id).orderBy(sub_study_description)
         row_number = f.dense_rank().over(split_w)
-        substudy_count = f.countDistinct(row_number).over(split_w)
+        substudy_count = f.count(row_number).over(split_w)
         return f.when(substudy_count == 1, study_id).otherwise(
             f.concat_ws("_", study_id, row_number)
         )
@@ -84,7 +84,7 @@ class GWASCatalogSplitter:
         cls: type[GWASCatalogSplitter],
         studies: StudyIndexGWASCatalog,
         associations: StudyLocusGWASCatalog,
-    ) -> tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]:
+    ) -> Tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]:
         """Splitting multi-trait GWAS Catalog studies.
 
         If assigned disease of the study and the association don't agree, we assume the study needs to be split.
@@ -104,7 +104,7 @@ class GWASCatalogSplitter:
                 "studyId",
                 "subStudyDescription",
                 cls._resolve_study_id(
-                    f.col("currentStudyId"), f.col("subStudyDescription")
+                    f.col("studyId"), f.col("subStudyDescription")
                 ).alias("updatedStudyId"),
                 cls._resolve_trait(
                     f.col("traitFromSource"),
