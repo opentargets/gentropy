@@ -493,11 +493,28 @@ class StudyLocusGWASCatalog(StudyLocus):
     def _normalise_risk_allele(risk_allele: Column) -> Column:
         """Normalised risk allele column to a standardised format.
 
+        If multiple risk alleles are present, the first one is returned.
+
         Args:
             risk_allele (Column): `riskAllele` column from GWASCatalog
 
         Returns:
             Column: mapped using GWAS Catalog mapping
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [("rs1234-A-G"), ("rs1234-A"), ("rs1234-A; rs1235-G")]
+            >>> df = spark.createDataFrame(d, t.StringType())
+            >>> df.withColumn('normalised', StudyLocusGWASCatalog._normalise_risk_allele(f.col('value'))).show()
+            +------------------+----------+
+            |             value|normalised|
+            +------------------+----------+
+            |        rs1234-A-G|         A|
+            |          rs1234-A|         A|
+            |rs1234-A; rs1235-G|         A|
+            +------------------+----------+
+            <BLANKLINE>
+
         """
         # GWAS Catalog to risk allele mapping
         return f.split(f.split(risk_allele, "; ").getItem(0), "-").getItem(1)
@@ -821,6 +838,21 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             A boolean column indicating if the effect allele needs to be harmonised.
+
+        Examples:
+            >>> d = [{"risk": 'A', "reference": 'A'}, {"risk": 'A', "reference": 'T'}, {"risk": 'AT', "reference": 'TA'}, {"risk": 'AT', "reference": 'AT'}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("needs_harmonisation", StudyLocusGWASCatalog._effect_needs_harmonisation(f.col("risk"), f.col("reference"))).show()
+            +---------+----+-------------------+
+            |reference|risk|needs_harmonisation|
+            +---------+----+-------------------+
+            |        A|   A|               true|
+            |        T|   A|               true|
+            |       TA|  AT|              false|
+            |       AT|  AT|               true|
+            +---------+----+-------------------+
+            <BLANKLINE>
+
         """
         return (risk_allele == reference_allele) | (
             risk_allele
@@ -1420,7 +1452,6 @@ class StudyLocusGWASCatalog(StudyLocus):
             .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
             .drop("updatedStudyId")
         )
-        self.validate_schema()
         return self
 
     def annotate_ld(
