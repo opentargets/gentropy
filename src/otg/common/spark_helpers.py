@@ -153,6 +153,28 @@ def calculate_neglog_pvalue(
     return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
 
 
+def string2camelcase(col_name: str) -> str:
+    """Converting a string to camelcase.
+
+    Args:
+        col_name (str): a random string
+
+    Returns:
+        str: Camel cased string
+
+    Examples:
+        >>> string2camelcase("hello_world")
+        'helloWorld'
+        >>> string2camelcase("hello world")
+        'helloWorld'
+    """
+    # Removing a bunch of unwanted characters from the column names:
+    col_name_normalised = re.sub(r"[\/\(\)\-]+", " ", col_name)
+
+    first, *rest = re.split("[ _-]", col_name_normalised)
+    return "".join([first.lower(), *map(str.capitalize, rest)])
+
+
 def column2camel_case(col_name: str) -> str:
     """A helper function to convert column names to camel cases.
 
@@ -161,21 +183,9 @@ def column2camel_case(col_name: str) -> str:
 
     Returns:
         str: spark expression to select and rename the column
+
+    Examples:
+        >>> column2camel_case("hello_world")
+        '`hello_world` as helloWorld'
     """
-
-    def string2camelcase(col_name: str) -> str:
-        """Converting a string to camelcase.
-
-        Args:
-            col_name (str): a random string
-
-        Returns:
-            str: Camel cased string
-        """
-        # Removing a bunch of unwanted characters from the column names:
-        col_name = re.sub(r"[\/\(\)\-]+", " ", col_name)
-
-        first, *rest = col_name.split(" ")
-        return "".join([first.lower(), *map(str.capitalize, rest)])
-
     return f"`{col_name}` as {string2camelcase(col_name)}"
