@@ -24,6 +24,20 @@ def convert_gnomad_position_to_ensembl(
 
     Returns:
         The position of the variant in the Ensembl genome.
+
+    Examples:
+        >>> d = [(1, "A", "C"), (2, "AA", "C"), (3, "A", "AA")]
+        >>> df = spark.createDataFrame(d).toDF("position", "reference", "alternate")
+        >>> df.withColumn("new_position", convert_gnomad_position_to_ensembl(f.col("position"), f.col("reference"), f.col("alternate"))).show()
+        +--------+---------+---------+------------+
+        |position|reference|alternate|new_position|
+        +--------+---------+---------+------------+
+        |       1|        A|        C|           1|
+        |       2|       AA|        C|           3|
+        |       3|        A|       AA|           4|
+        +--------+---------+---------+------------+
+        <BLANKLINE>
+
     """
     return f.when(
         (f.length(reference) > 1) | (f.length(alternate) > 1), position + 1
