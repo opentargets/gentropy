@@ -36,6 +36,18 @@ class GeneIndex(Dataset):
 
         Returns:
             Column: Column containing the TSS of the gene.
+
+        Examples:
+            >>> df = spark.createDataFrame([{"strand": 1, "start": 100, "end": 200}, {"strand": -1, "start": 100, "end": 200}])
+            >>> df.withColumn("tss", GeneIndex._get_gene_tss(f.col("strand"), f.col("start"), f.col("end"))).show()
+            +---+-----+------+---+
+            |end|start|strand|tss|
+            +---+-----+------+---+
+            |200|  100|     1|100|
+            |200|  100|    -1|200|
+            +---+-----+------+---+
+            <BLANKLINE>
+
         """
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 

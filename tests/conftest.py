@@ -7,6 +7,7 @@ from pyspark.sql import DataFrame, SparkSession
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.colocalisation import Colocalisation
+from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
@@ -256,6 +257,20 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
         )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
     )
-    data_spec.build().printSchema()
 
     return VariantIndex(_df=data_spec.build(), _schema=vi_schema)
+
+
+@pytest.fixture()
+def mock_ld_index(spark: SparkSession) -> LDIndex:
+    """Mock gene index."""
+    ld_schema = parse_spark_schema("ld_index.json")
+
+    data_spec = dg.DataGenerator(
+        spark,
+        rows=400,
+        partitions=4,
+        randomSeedMethod="hash_fieldname",
+    ).withSchema(ld_schema)
+
+    return LDIndex(_df=data_spec.build(), _schema=ld_schema)
