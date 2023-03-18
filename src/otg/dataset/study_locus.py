@@ -190,6 +190,7 @@ class StudyLocus(Dataset):
         Returns:
             Column: Array column with the updated list of qc flags.
         """
+        qc = f.when(qc.isNull(), f.array()).otherwise(qc)
         return f.when(
             flag_condition,
             f.array_union(qc, f.array(f.lit(flag_text.value))),
@@ -1271,6 +1272,21 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'alternate_allele': 'A', 'qc': None}, {'alternate_allele': None, 'qc': None}]
+            >>> schema = t.StructType([t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
+            >>> df = spark.createDataFrame(data=d, schema=schema)
+            >>> df.withColumn("new_qc", StudyLocusGWASCatalog._qc_unmapped_variants(f.col("qc"), f.col("alternate_allele"))).show()
+            +----------------+----+--------------------+
+            |alternate_allele|  qc|              new_qc|
+            +----------------+----+--------------------+
+            |               A|null|                  []|
+            |            null|null|[No mapping in Gn...|
+            +----------------+----+--------------------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,
