@@ -203,7 +203,7 @@ def parse_pvalue(p_value: Column) -> tuple:
 
     Examples:
         >>> data = [(1.0),(0.5), (1e-20), (3e-3)]
-        >>> spark.createDataFrame(data, t.FloatType()).select('value',*parsepv(f.col('value'))).show()
+        >>> spark.createDataFrame(data, t.FloatType()).select('value',*parse_pvalue(f.col('value'))).show()
         +-------+--------------+--------------+
         |  value|pValueMantissa|pValueExponent|
         +-------+--------------+--------------+
@@ -212,6 +212,7 @@ def parse_pvalue(p_value: Column) -> tuple:
         |1.0E-20|           1.0|           -20|
         |  0.003|           3.0|            -3|
         +-------+--------------+--------------+
+        <BLANKLINE>
     """
     pv = f.when(p_value == 0, sys.float_info.min).otherwise(p_value)
 
