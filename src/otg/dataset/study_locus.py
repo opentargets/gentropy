@@ -1204,11 +1204,27 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Examples:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
+            >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
+            >>> df.withColumn('qc', StudyLocusGWASCatalog._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
+            +------------------------+----------------+----------------+
+            |qc                      |p_value_mantissa|p_value_exponent|
+            +------------------------+----------------+----------------+
+            |[Subsignificant p-value]|1               |-7              |
+            |[]                      |1               |-8              |
+            |[]                      |5               |-8              |
+            |[]                      |1               |-9              |
+            +------------------------+----------------+----------------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,
             calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
-            < -np.log10(pvalue_cutoff),
+            < f.lit(-np.log10(pvalue_cutoff)),
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
 
@@ -1323,6 +1339,22 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> schema = t.StructType([t.StructField('reference_allele', t.StringType(), True), t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
+            >>> d = [{'reference_allele': 'A', 'alternate_allele': 'T', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'TA', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'AT', 'qc': None}]
+            >>> df = spark.createDataFrame(data=d, schema=schema)
+            >>> df.withColumn("qc", StudyLocusGWASCatalog._qc_palindromic_alleles(f.col("qc"), f.col("reference_allele"), f.col("alternate_allele"))).show(truncate=False)
+            +----------------+----------------+---------------------------------------+
+            |reference_allele|alternate_allele|qc                                     |
+            +----------------+----------------+---------------------------------------+
+            |A               |T               |[Palindrome alleles - cannot harmonize]|
+            |AT              |TA              |[]                                     |
+            |AT              |AT              |[Palindrome alleles - cannot harmonize]|
+            +----------------+----------------+---------------------------------------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,
