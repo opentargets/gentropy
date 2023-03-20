@@ -61,8 +61,7 @@ class VariantIndex(Dataset):
             "cadd",
         ]
         vi = cls(
-            path=path,
-            df=variant_annotation.df.select(
+            _df=variant_annotation.df.select(
                 *unchanged_cols,
                 f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
                 # filters/rsid are arrays that can be empty, in this case we convert them to null

@@ -20,9 +20,8 @@ class Dataset:
     `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `schemas` module.
     """
 
-    path: str | None
+    _df: DataFrame
     _schema: StructType
-    _df: DataFrame | None = None
 
     def __post_init__(self: Dataset) -> None:
         """Post init."""
@@ -75,7 +74,7 @@ class Dataset:
             Dataset: Dataset with given schema
         """
         df = session.read_parquet(path=path, schema=schema)
-        return cls(_df=df, _schema=schema, path=path)
+        return cls(_df=df, _schema=schema)
 
     def validate_schema(self: Dataset) -> None:
         """Validate DataFrame schema against expected class schema.

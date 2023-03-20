@@ -36,6 +36,18 @@ class GeneIndex(Dataset):
 
         Returns:
             Column: Column containing the TSS of the gene.
+
+        Examples:
+            >>> df = spark.createDataFrame([{"strand": 1, "start": 100, "end": 200}, {"strand": -1, "start": 100, "end": 200}])
+            >>> df.withColumn("tss", GeneIndex._get_gene_tss(f.col("strand"), f.col("start"), f.col("end"))).show()
+            +---+-----+------+---+
+            |end|start|strand|tss|
+            +---+-----+------+---+
+            |200|  100|     1|100|
+            |200|  100|    -1|200|
+            +---+-----+------+---+
+            <BLANKLINE>
+
         """
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 
@@ -52,13 +64,17 @@ class GeneIndex(Dataset):
         """
         return super().from_parquet(session, path, cls._schema)
 
-    def filter_by_biotypes(self: GeneIndex, biotypes: list) -> None:
+    def filter_by_biotypes(self: GeneIndex, biotypes: list) -> GeneIndex:
         """Filter by approved biotypes.
 
         Args:
             biotypes (list): List of Ensembl biotypes to keep.
+
+        Returns:
+            GeneIndex: Gene index dataset filtered by biotypes.
         """
         self.df = self._df.filter(f.col("biotype").isin(biotypes))
+        return self
 
     def locations_lut(self: GeneIndex) -> DataFrame:
         """Gene location information.

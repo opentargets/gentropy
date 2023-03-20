@@ -191,11 +191,14 @@ class StudyIndexGWASCatalog(StudyIndex):
 
     def update_study_id(
         self: StudyIndexGWASCatalog, study_annotation: DataFrame
-    ) -> None:
+    ) -> StudyIndexGWASCatalog:
         """Update studyId with a dataframe containing study.
 
         Args:
             study_annotation (DataFrame): Dataframe containing `updatedStudyId`, `traitFromSource`, `traitFromSourceMappedIds` and key column `studyId`.
+
+        Returns:
+            StudyIndexGWASCatalog: Updated study table.
         """
         self.df = (
             self._df.alias("studyIndex")
@@ -219,7 +222,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
             .select("studyIndex.*")
         )
-        self.validate_schema()
+        return self
 
     def _annotate_ancestries(
         self: StudyIndexGWASCatalog, ancestry_lut: DataFrame
@@ -390,5 +393,5 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.sum("sampleSize").alias("nSamples"),
             )
         )
-
-        return self.df.join(sample_size_lut, on="projectId", how="left")
+        self.df = self.df.join(sample_size_lut, on="projectId", how="left")
+        return self

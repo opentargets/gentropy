@@ -4,17 +4,14 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
+import pytest
 from pyspark.sql.types import StructType
-
-if TYPE_CHECKING:
-    from pytest import Metafunc
 
 SCHEMA_DIR = "src/otg/schemas"
 
 
-def pytest_generate_tests(metafunc: Metafunc) -> None:
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Testing accross all schemas.
 
     Pytest hook to parametrise testing

@@ -95,7 +95,7 @@ class TestFindGwasVsAllOverlappingPeaks:
     ]
 
     @pytest.mark.parametrize(
-        "test_input, expected_output", zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output)
     )
     def test_find_gwas_vs_all_overlapping_peaks(
         self: TestFindGwasVsAllOverlappingPeaks,
@@ -202,7 +202,7 @@ class TestEcaviarColocalisation:
         )
 
     @pytest.mark.parametrize(
-        "test_input, expected_output", zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output)
     )
     def test_ecaviar_colocalisation(
         self: TestEcaviarColocalisation,
@@ -399,7 +399,7 @@ class TestExtractCredibleSets:
         )
 
     @pytest.mark.parametrize(
-        "test_input, expected_output", zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output)
     )
     def test_extract_credible_sets(
         self: TestExtractCredibleSets,

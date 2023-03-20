@@ -3,58 +3,84 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import dbldatagen as dg
-import pytest
+from pyspark.sql import Column, DataFrame
 
-from otg.common.schemas import parse_spark_schema
-from otg.dataset.study_locus import StudyLocus
+from otg.dataset.study_locus import (
+    CredibleInterval,
+    StudyLocus,
+    StudyLocusGWASCatalog,
+    StudyLocusOverlap,
+)
 
 if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
-
-
-@pytest.fixture
-def mock_study_locus(spark: SparkSession) -> StudyLocus:
-    """Mock study_locus dataset."""
-    schema = parse_spark_schema("study_locus.json")
-
-    data_spec = (
-        dg.DataGenerator(
-            spark,
-            rows=400,
-            partitions=4,
-            randomSeedMethod="hash_fieldname",
-            name="study_locus",
-        )
-        .withSchema(schema)
-        .withColumnSpec("chromosome", percentNulls=0.1)
-        .withColumnSpec("position", percentNulls=0.1)
-        .withColumnSpec("beta", percentNulls=0.1)
-        .withColumnSpec("oddsRatio", percentNulls=0.1)
-        .withColumnSpec("oddsRatioConfidenceIntervalLower", percentNulls=0.1)
-        .withColumnSpec("oddsRatioConfidenceIntervalUpper", percentNulls=0.1)
-        .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
-        .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
-        .withColumnSpec("pValueMantissa", percentNulls=0.1)
-        .withColumnSpec("pValueExponent", percentNulls=0.1)
-        .withColumnSpec(
-            "qualityControls",
-            expr="array(cast(rand() as string))",
-            percentNulls=0.1,
-        )
-        .withColumnSpec("finemappingMethod", percentNulls=0.1)
-        .withColumnSpec(
-            "credibleSet",
-            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logABF", rand(), "posteriorProbability", rand(), "tagVariantId", cast(rand() as string), "tagPValue", rand(), "tagPValueConditioned", rand(), "tagBeta", rand(), "tagStandardError", rand(), "tagBetaConditioned", rand(), "tagStandardErrorConditioned", rand(), "r2Overall", rand()))',
-            percentNulls=0.1,
-        )
-    )
-
-    return StudyLocus(
-        _df=data_spec.build(), path="mock_study_locus.parquet", _schema=schema
-    )
+    from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
 
 
 def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
     """Test study locus creation with mock data."""
     assert isinstance(mock_study_locus, StudyLocus)
+
+
+def test_study_locus_gwas_catalog_creation(
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
+) -> None:
+    """Test study locus creation with mock data."""
+    assert isinstance(mock_study_locus_gwas_catalog, StudyLocusGWASCatalog)
+
+
+def test_study_locus_overlaps(
+    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
+) -> None:
+    """Test study locus overlaps."""
+    assert isinstance(mock_study_locus.overlaps(mock_study_index), StudyLocusOverlap)
+
+
+def test_credible_set(mock_study_locus: StudyLocus) -> None:
+    """Test credible interval."""
+    assert isinstance(mock_study_locus.credible_set(CredibleInterval.IS95), StudyLocus)
+
+
+def test_unique_lead_tag_variants(mock_study_locus: StudyLocus) -> None:
+    """Test unique lead tag variants."""
+    assert isinstance(mock_study_locus.unique_lead_tag_variants(), DataFrame)
+
+
+def test_unique_study_locus_ancestries(
+    mock_study_locus: StudyLocus, mock_study_index_gwas_catalog: StudyIndexGWASCatalog
+) -> None:
+    """Test study locus ancestries."""
+    assert isinstance(
+        mock_study_locus.unique_study_locus_ancestries(mock_study_index_gwas_catalog),
+        DataFrame,
+    )
+
+
+def test_neglog_pvalue(mock_study_locus: StudyLocus) -> None:
+    """Test neglog pvalue."""
+    assert isinstance(mock_study_locus.neglog_pvalue(), Column)
+
+
+def test_annotate_credible_sets(mock_study_locus: StudyLocus) -> None:
+    """Test annotate credible sets."""
+    assert isinstance(mock_study_locus.annotate_credible_sets(), StudyLocus)
+
+
+def test_clump(mock_study_locus: StudyLocus) -> None:
+    """Test clump."""
+    assert isinstance(mock_study_locus.clump(), StudyLocus)
+
+
+def test_qc_ambiguous_study(
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
+) -> None:
+    """Test qc ambiguous."""
+    assert isinstance(
+        mock_study_locus_gwas_catalog._qc_ambiguous_study(), StudyLocusGWASCatalog
+    )
+
+
+def test_qc_unresolved_ld(mock_study_locus_gwas_catalog: StudyLocusGWASCatalog) -> None:
+    """Test qc unresolved ld."""
+    assert isinstance(
+        mock_study_locus_gwas_catalog._qc_unresolved_ld(), StudyLocusGWASCatalog
+    )

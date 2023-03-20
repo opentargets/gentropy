@@ -13,7 +13,7 @@ from otg.gwas_ingest.process_associations import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
     """Mock minor allele frequency DataFrame for filtering.
 
@@ -51,13 +51,13 @@ def mock_maf_filter_data(spark: SparkSession) -> DataFrame:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def call_maf_filter(mock_maf_filter_data: DataFrame) -> DataFrame:
     """Test filter association by MAF based on mock DataFrame."""
     return mock_maf_filter_data.transform(filter_assoc_by_maf)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
     """Mock DataFrame to assess allele concordance.
 
@@ -116,19 +116,19 @@ def mock_concordance_filter_data(spark: SparkSession) -> DataFrame:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def call_concordance_filter(mock_concordance_filter_data: DataFrame) -> DataFrame:
     """Test allele concordance filter based on mock DataFrame."""
     return mock_concordance_filter_data.transform(concordance_filter)
 
 
-@pytest.fixture
+@pytest.fixture()
 def call_rsid_filter(mock_rsid_filter: DataFrame) -> DataFrame:
     """Test filter association by rsid based on mock DataFrame."""
     return mock_rsid_filter.transform(filter_assoc_by_rsid)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_rsid_filter(spark: SparkSession) -> DataFrame:
     """Mock DataFrame to evaluate rsids.
 
