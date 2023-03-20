@@ -1225,10 +1225,26 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Examples:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'qc': None, 'chromosome': None, 'position': None}, {'qc': None, 'chromosome': '1', 'position': None}, {'qc': None, 'chromosome': None, 'position': 1}, {'qc': None, 'chromosome': '1', 'position': 1}]
+            >>> df = spark.createDataFrame(d, schema=t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('chromosome', t.StringType()), t.StructField('position', t.IntegerType())]))
+            >>> df.withColumn('qc', StudyLocusGWASCatalog._qc_genomic_location(df.qc, df.chromosome, df.position)).show(truncate=False)
+            +----------------------------+----------+--------+
+            |qc                          |chromosome|position|
+            +----------------------------+----------+--------+
+            |[Incomplete genomic mapping]|null      |null    |
+            |[Incomplete genomic mapping]|1         |null    |
+            |[Incomplete genomic mapping]|null      |1       |
+            |[]                          |1         |1       |
+            +----------------------------+----------+--------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,
-            position.isNull() & chromosome.isNull(),
+            position.isNull() | chromosome.isNull(),
             StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG,
         )
 
