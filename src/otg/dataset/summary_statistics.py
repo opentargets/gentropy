@@ -9,6 +9,7 @@ import pyspark.sql.types as t
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import parse_pvalue, pvalue_to_zscore
+from otg.common.utils import split_pvalue
 from otg.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -142,3 +143,25 @@ class SummaryStatistics(Dataset):
             200,
             "chromosome",
         ).sortWithinPartitions("position")
+
+    def pvalue_filter(self: SummaryStatistics, pvalue: float) -> SummaryStatistics:
+        """Filter summary statistics based on the provided p-value threshold.
+
+        Args:
+            pvalue (float): upper limit of the p-value to be filtered upon.
+
+        Returns:
+            SummaryStatistics: summary statistics object containing single point associations with p-values at least as significant as the provided threshold.
+        """
+        # Converting p-value to mantissa and exponent:
+        (mantissa, exponent) = split_pvalue(pvalue)
+
+        # Applying filter:
+        df = self._df.filter(
+            (f.col("pValueExponent") < exponent)
+            | (
+                (f.col("pValueExponent") == exponent)
+                & (f.col("pValueMantissa") <= mantissa)
+            )
+        )
+        return SummaryStatistics(_df=df)

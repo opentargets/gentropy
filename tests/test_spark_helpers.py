@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_variant_df(spark: SparkSession) -> DataFrame:
     """Mock Dataframe with info of a variant ID."""
     return spark.createDataFrame(

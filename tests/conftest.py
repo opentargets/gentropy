@@ -10,6 +10,7 @@ from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
+from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_index import VariantIndex
 
@@ -265,3 +266,40 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
     data_spec.build().printSchema()
 
     return VariantIndex(_df=data_spec.build(), _schema=vi_schema)
+
+
+@pytest.fixture()
+def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
+    """Generating a mock summary statistics dataset."""
+    schema = parse_spark_schema("summary_statistics.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+            name="summaryStats",
+        )
+        .withSchema(schema)
+        # Allowing missingness in effect allele frequency and enforce upper limit:
+        .withColumnSpec(
+            "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
+        )
+        # Allowing missingness:
+        .withColumnSpec("variantId", percentNulls=0.1)
+        .withColumnSpec("chromosome", percentNulls=0.1)
+        .withColumnSpec("position", percentNulls=0.1)
+        .withColumnSpec("beta", percentNulls=0.1)
+        .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
+        .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
+        # Making sure p-values are below 1:
+        .withColumnSpec(
+            "pValueMantissa", minValue=1, maxValue=10, random=True, percentNulls=0.1
+        )
+        .withColumnSpec(
+            "pValueExponent", minValue=-40, maxValue=-1, random=True, percentNulls=0.1
+        )
+    )
+
+    return SummaryStatistics(_df=data_spec.build())
