@@ -48,7 +48,7 @@ class VariantIndexStep(VariantIndexStepConfig):
         #     self.variant_invalid
         # )
 
-        self.etl.logger.info(f"Writing variant index to: {self.variant_index_path}")
+        self.session.logger.info(f"Writing variant index to: {self.variant_index_path}")
         (
             vi.df.write.partitionBy("chromosome")
             .mode(self.etl.write_mode)
