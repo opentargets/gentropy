@@ -188,6 +188,7 @@ class StudyLocus(Dataset):
         Returns:
             Column: Array column with the updated list of qc flags.
         """
+        qc = f.when(qc.isNull(), f.array()).otherwise(qc)
         return f.when(
             flag_condition,
             f.array_union(qc, f.array(f.lit(flag_text.value))),
@@ -422,28 +423,36 @@ class StudyLocusGWASCatalog(StudyLocus):
     """Study-locus dataset derived from GWAS Catalog."""
 
     @staticmethod
-    def _parse_pvalue_exponent(pvalue_column: Column) -> Column:
-        """Parse p-value exponent.
+    def _parse_pvalue(pvalue: Column) -> tuple[Column, Column]:
+        """Parse p-value column.
 
         Args:
-            pvalue_column (Column): Column from GWASCatalog containing the p-value
+            pvalue (Column): p-value [string]
 
         Returns:
-            Column: Column containing the p-value exponent
+            tuple[Column, Column]: p-value mantissa and exponent
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [("1.0"), ("0.5"), ("1E-20"), ("3E-3"), ("1E-1000")]
+            >>> df = spark.createDataFrame(d, t.StringType())
+            >>> df.select('value',*StudyLocusGWASCatalog._parse_pvalue(f.col('value'))).show()
+            +-------+--------------+--------------+
+            |  value|pValueMantissa|pValueExponent|
+            +-------+--------------+--------------+
+            |    1.0|           1.0|             1|
+            |    0.5|           0.5|             1|
+            |  1E-20|           1.0|           -20|
+            |   3E-3|           3.0|            -3|
+            |1E-1000|           1.0|         -1000|
+            +-------+--------------+--------------+
+            <BLANKLINE>
+
         """
-        return f.split(pvalue_column, "E").getItem(1).cast("integer")
-
-    @staticmethod
-    def _parse_pvalue_mantissa(pvalue_column: Column) -> Column:
-        """Parse p-value mantis.
-
-        Args:
-            pvalue_column (Column): Column from GWASCatalog containing the p-value
-
-        Returns:
-            Column: Column containing the p-value mantis
-        """
-        return f.split(pvalue_column, "E").getItem(0).cast("float")
+        split = f.split(pvalue, "E")
+        return split.getItem(0).cast("float").alias("pValueMantissa"), f.coalesce(
+            split.getItem(1).cast("integer"), f.lit(1)
+        ).alias("pValueExponent")
 
     @staticmethod
     def _normalise_pvaluetext(p_value_text: Column) -> Column:
@@ -454,6 +463,21 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: mapped using GWAS Catalog mapping
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease")]
+            >>> df = spark.createDataFrame(d, t.StringType())
+            >>> df.withColumn('normalised', StudyLocusGWASCatalog._normalise_pvaluetext(f.col('value'))).show()
+            +-------------------+----------+
+            |              value|normalised|
+            +-------------------+----------+
+            |  European Ancestry|      [EA]|
+            |   African ancestry|      [AA]|
+            |Alzheimer’s Disease|      [AD]|
+            +-------------------+----------+
+            <BLANKLINE>
+
         """
         # GWAS Catalog to p-value mapping
         json_dict = json.loads(
@@ -468,11 +492,28 @@ class StudyLocusGWASCatalog(StudyLocus):
     def _normalise_risk_allele(risk_allele: Column) -> Column:
         """Normalised risk allele column to a standardised format.
 
+        If multiple risk alleles are present, the first one is returned.
+
         Args:
             risk_allele (Column): `riskAllele` column from GWASCatalog
 
         Returns:
             Column: mapped using GWAS Catalog mapping
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [("rs1234-A-G"), ("rs1234-A"), ("rs1234-A; rs1235-G")]
+            >>> df = spark.createDataFrame(d, t.StringType())
+            >>> df.withColumn('normalised', StudyLocusGWASCatalog._normalise_risk_allele(f.col('value'))).show()
+            +------------------+----------+
+            |             value|normalised|
+            +------------------+----------+
+            |        rs1234-A-G|         A|
+            |          rs1234-A|         A|
+            |rs1234-A; rs1235-G|         A|
+            +------------------+----------+
+            <BLANKLINE>
+
         """
         # GWAS Catalog to risk allele mapping
         return f.split(f.split(risk_allele, "; ").getItem(0), "-").getItem(1)
@@ -796,6 +837,21 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             A boolean column indicating if the effect allele needs to be harmonised.
+
+        Examples:
+            >>> d = [{"risk": 'A', "reference": 'A'}, {"risk": 'A', "reference": 'T'}, {"risk": 'AT', "reference": 'TA'}, {"risk": 'AT', "reference": 'AT'}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("needs_harmonisation", StudyLocusGWASCatalog._effect_needs_harmonisation(f.col("risk"), f.col("reference"))).show()
+            +---------+----+-------------------+
+            |reference|risk|needs_harmonisation|
+            +---------+----+-------------------+
+            |        A|   A|               true|
+            |        T|   A|               true|
+            |       TA|  AT|              false|
+            |       AT|  AT|               true|
+            +---------+----+-------------------+
+            <BLANKLINE>
+
         """
         return (risk_allele == reference_allele) | (
             risk_allele
@@ -814,9 +870,28 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             A boolean column indicating if the alleles are palindromic.
+
+        Examples:
+            >>> d = [{"reference": 'A', "alternate": 'T'}, {"reference": 'AT', "alternate": 'AG'}, {"reference": 'AT', "alternate": 'AT'}, {"reference": 'CATATG', "alternate": 'CATATG'}, {"reference": '-', "alternate": None}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("is_palindromic", StudyLocusGWASCatalog._are_alleles_palindromic(f.col("reference"), f.col("alternate"))).show()
+            +---------+---------+--------------+
+            |alternate|reference|is_palindromic|
+            +---------+---------+--------------+
+            |        T|        A|          true|
+            |       AG|       AT|         false|
+            |       AT|       AT|          true|
+            |   CATATG|   CATATG|          true|
+            |     null|        -|         false|
+            +---------+---------+--------------+
+            <BLANKLINE>
+
         """
-        return reference_allele == StudyLocusGWASCatalog._get_reverse_complement(
-            alternate_allele
+        revcomp = StudyLocusGWASCatalog._get_reverse_complement(alternate_allele)
+        return (
+            f.when(reference_allele == revcomp, True)
+            .when(revcomp.isNull(), False)
+            .otherwise(False)
         )
 
     @staticmethod
@@ -1159,6 +1234,21 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'alternate_allele': 'A', 'qc': None}, {'alternate_allele': None, 'qc': None}]
+            >>> schema = t.StructType([t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
+            >>> df = spark.createDataFrame(data=d, schema=schema)
+            >>> df.withColumn("new_qc", StudyLocusGWASCatalog._qc_unmapped_variants(f.col("qc"), f.col("alternate_allele"))).show()
+            +----------------+----+--------------------+
+            |alternate_allele|  qc|              new_qc|
+            +----------------+----+--------------------+
+            |               A|null|                  []|
+            |            null|null|[No mapping in Gn...|
+            +----------------+----+--------------------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,
@@ -1229,8 +1319,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                     f.col("referenceAllele"),
                     f.col("alternateAllele"),
                     f.col("STRONGEST SNP-RISK ALLELE"),
-                    StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")),
-                    StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")),
+                    *StudyLocusGWASCatalog._parse_pvalue(f.col("P-VALUE")),
                     pvalue_threshold,
                 ),
             )
@@ -1311,12 +1400,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                     "upper",
                 ).alias("oddsRatioConfidenceIntervalUpper"),
                 # p-value of the association, string: split into exponent and mantissa.
-                StudyLocusGWASCatalog._parse_pvalue_mantissa(f.col("P-VALUE")).alias(
-                    "pvalueMantissa"
-                ),
-                StudyLocusGWASCatalog._parse_pvalue_exponent(f.col("P-VALUE")).alias(
-                    "pValueExponent"
-                ),
+                *StudyLocusGWASCatalog._parse_pvalue(f.col("P-VALUE")),
                 # Capturing phenotype granularity at the association level
                 StudyLocusGWASCatalog._concatenate_substudy_description(
                     f.col("DISEASE/TRAIT"),
@@ -1346,7 +1430,6 @@ class StudyLocusGWASCatalog(StudyLocus):
             .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
             .drop("updatedStudyId")
         )
-        self.validate_schema()
         return self
 
     def annotate_ld(
