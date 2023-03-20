@@ -362,16 +362,6 @@ class VariantIndexCredsetConfig:
     credible_sets_path: str = MISSING
 
 
-@dataclass
-class EtlConfig:
-    """Local ETL session."""
-
-    spark_uri: str
-    app_name: str
-    write_mode: str
-    _target_: str
-
-
 class LocusToGeneMode(Enum):
     """Locus to Gene step mode."""
 
@@ -394,7 +384,11 @@ class LocusToGeneConfig:
     gold_standard_curation_path: str = MISSING
     gene_interactions_path: str = MISSING
     hyperparameters: dict = MISSING
+<<<<<<< HEAD
     l2g_model_path: str | None = None
     etl: Session = MISSING
+=======
+    l2g_model_path: Optional[str] = None
+>>>>>>> 94a8808 (fix: l2g step uses common etl session)
     id: str = "locus_to_gene"
-    _target_: str = "otg.steps.locus_to_gene.LocusToGene"
+    _target_: str = "otg.l2g.LocusToGeneStep"
