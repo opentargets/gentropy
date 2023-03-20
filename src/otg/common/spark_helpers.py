@@ -33,14 +33,14 @@ def _convert_from_wide_to_long(
         id_vars (Iterable[str]): List of fixed columns to keep
         var_name (str): Name of the column containing the variable names
         value_name (str): Name of the column containing the values
-        value_vars (Iterable[str]): List of columns to melt. If not specified, uses all columns that are not set as id_vars.
+        value_vars (Optional[Iterable[str]]): List of columns to melt. Defaults to None.
 
     Returns:
         DataFrame: Melted dataframe
 
     Examples:
     >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
-    >>> _convert_from_wide_to_long(df, ["id"], "feature", "value", spark).show()
+    >>> _convert_from_wide_to_long(df, ["id"], "feature", "value").show()
     +---+---------+-----+
     | id|  feature|value|
     +---+---------+-----+
