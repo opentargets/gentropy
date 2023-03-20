@@ -283,6 +283,7 @@ class LocusToGeneConfig:
     study_locus_overlap_path: str = MISSING
     gold_standard_curation_path: str = MISSING
     gene_interactions_path: str = MISSING
+    feature_matrix_path: str = MISSING
     hyperparameters: dict = MISSING
     l2g_model_path: Optional[str] = None
     id: str = "locus_to_gene"

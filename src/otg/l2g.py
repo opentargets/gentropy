@@ -36,18 +36,20 @@ class LocusToGeneStep(LocusToGeneConfig):
                 gold_standard_curation=self.gold_standard_curation_path,
                 interactions_path=self.gene_interactions_path,
             )
+            print(type(gold_standards))
             #     gold_standards = self.etl.spark.read.parquet(
             #         "/Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/processed_gs"
             #     )
-            fm = L2GFeatureMatrix.generate_features(
-                etl=self.session,
-                study_locus_path=self.study_locus_path,
-                study_index_path=self.study_index_path,
-                variant_gene_path=self.variant_gene_path,
-                colocalisation_path=self.colocalisation_path,
-            )
-            train, test = gold_standards.join(
-                fm, on="studyLocusId", how="inner"
+            # fm = L2GFeatureMatrix.generate_features(
+            #     etl=self.session,
+            #     study_locus_path=self.study_locus_path,
+            #     study_index_path=self.study_index_path,
+            #     variant_gene_path=self.variant_gene_path,
+            #     colocalisation_path=self.colocalisation_path,
+            # )
+            fm = self.session.spark.read.parquet(self.feature_matrix_path)
+            train, test = L2GFeatureMatrix(
+                _df=gold_standards._df.join(fm, on="studyLocusId", how="inner")
             ).train_test_split(fraction=0.8)
             # TODO: data normalization and standardisation of features
 

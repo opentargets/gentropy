@@ -6,6 +6,7 @@ variant_gene_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock
 study_index_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_index
 colocalisation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_colocalisation
 gold_standard_curation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/curation.json
+feature_matrix_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/feature_matrix_221107_transformed
 gene_interactions_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/interaction
 hyperparameters:
   max_depth: 5

@@ -61,8 +61,8 @@ class L2GGoldStandard(Dataset):
         interactions_df = L2GGoldStandard.process_gene_interactions(
             etl, interactions_path
         )
-        return (
-            etl.spark.read.json(gold_standard_curation)
+        return cls(
+            _df=etl.spark.read.json(gold_standard_curation)
             .select(
                 f.col("association_info.otg_id").alias("studyId"),
                 f.col("gold_standard_info.gene_id").alias("geneId"),
