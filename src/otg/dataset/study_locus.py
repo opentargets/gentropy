@@ -9,6 +9,7 @@ import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
+    _convert_from_wide_to_long,
     calculate_neglog_pvalue,
     order_array_of_structs_by_field,
 )
@@ -20,10 +21,9 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.common.session import Session
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.v2g import V2G
-    from otg.common.session import Session
-    from otg.dataset.variant_annotation import VariantAnnotation
 
 
 class StudyLocusQualityCheck(Enum):
@@ -396,19 +396,17 @@ class StudyLocus(Dataset):
             self.df.selectExpr(
                 "studyLocusId",
                 "studyId",
-                f.col("variantId").alias("leadVariantId"),
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
-                f.explode("credibleSet.tagPValueConditioned").alias("tagPValueConditioned"),
+                "variantId as leadVariantId",
+                "explode(credibleSet) as credibleSetExploded",
+                "credibleSetExploded.tagVariantId as tagVariantId",
+                "credibleSetExploded.tagPValueConditioned as tagPValueConditioned",
             )
             .filter(f.col("leadVariantId") == f.col("tagVariantId"))
             .drop("credibleSetExploded")
             .distinct()
         )
 
-<<<<<<< HEAD
-    def _get_tss_distance_features(
-        self: StudyLocus, distances: V2G, etl: ETLSession
-    ) -> DataFrame:
+    def _get_tss_distance_features(self: StudyLocus, distances: V2G, etl: Session) -> DataFrame:
         """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
 
         Args:
@@ -427,8 +425,8 @@ class StudyLocus(Dataset):
             )
             .join(
                 distances.df.selectExpr("variantId as tagVariantId", "geneId", "distance"),
-                "tagVariantId",
-                "inner",
+                on="tagVariantId",
+                how="inner",
             )
             .groupBy("studyLocusId", "variantId", "geneId")
             .agg(
