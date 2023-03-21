@@ -20,6 +20,7 @@ from otg.common.spark_helpers import (
     calculate_neglog_pvalue,
     get_record_with_maximum_value,
 )
+from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.json import data
@@ -1120,7 +1121,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ),
             f.concat_ws(
                 "_",
-                StudyLocusGWASCatalog._parse_efos(mapped_trait_uri),
+                parse_efos(mapped_trait_uri),
             ),
         )
 

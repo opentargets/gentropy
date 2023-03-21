@@ -4,10 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import pyspark.sql.functions as f
-
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
     from otg.common.session import Session
@@ -42,22 +40,6 @@ class Dataset:
     def schema(self: Dataset) -> StructType:
         """Dataframe expected schema."""
         return self._schema
-
-    @staticmethod
-    def _parse_efos(col_name: str) -> Column:
-        """Extracting EFO identifiers.
-
-        This function parses EFO identifiers from a comma-separated list of EFO URIs.
-
-        Args:
-            col_name (str): name of column with a list of EFO IDs
-
-        Returns:
-            Column: column with a sorted list of parsed EFO IDs
-        """
-        return f.array_sort(
-            f.expr(f"regexp_extract_all({col_name}, '([A-Z]+_[0-9]+)')")
-        )
 
     @classmethod
     def from_parquet(

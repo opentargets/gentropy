@@ -274,3 +274,50 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
     ).withSchema(ld_schema)
 
     return LDIndex(_df=data_spec.build(), _schema=ld_schema)
+
+
+# va = VariantAnnotation.from_parquet(self.etl, self.variant_annotation_path)
+# # GWAS Catalog raw study information
+# catalog_studies =
+# # GWAS Catalog ancestry information
+# ancestry_lut = self.etl.spark.read.csv(
+#     self.catalog_ancestry_file, sep="\t", header=True
+# )
+# # GWAS Catalog summary statistics information
+# sumstats_lut = self.etl.spark.read.csv(
+#     self.catalog_sumstats_lut, sep="\t", header=False
+# )
+# # GWAS Catalog raw association information
+# catalog_associations = self.etl.spark.read.csv(
+#     self.catalog_associations_file, sep="\t", header=True
+# )
+
+
+@pytest.fixture()
+def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
+    """Sample GWAS Catalog studies."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_studies_sample-r2022-11-29.tsv",
+        sep="\t",
+        header=True,
+    )
+
+
+@pytest.fixture()
+def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
+    """Sample GWAS ancestries sample data."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_ancestries_sample_v1.0.3-r2022-11-29.tsv",
+        sep="\t",
+        header=True,
+    )
+
+
+@pytest.fixture()
+def sample_gwas_catalog_harmonised_sumstats(spark: SparkSession) -> DataFrame:
+    """Sample GWAS harmonised sumstats sample data."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_harmonised_list.txt",
+        sep="\t",
+        header=False,
+    )
