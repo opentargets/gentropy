@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List
 
 import wandb
 from pyspark.ml import Pipeline
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
-from xgboost import plot_importance as xgb_plot_importance
 from xgboost.spark import SparkXGBClassifier
 
 if TYPE_CHECKING:
@@ -20,20 +19,32 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class LocusToGeneModel(SparkXGBClassifier):
+class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
-    label_col: str
-    missing: float
-    n_estimators: int
+    # label_col: str
+    # missing: float
+    # n_estimators: int
+
+    _model: Any
 
     def save(self: LocusToGeneModel, path: str) -> None:
         """TBC."""
         pass
 
+    @property
+    def model(self: LocusToGeneModel) -> Any:
+        """Return the model."""
+        return self._model
+
     def plot_importance(self: LocusToGeneModel) -> None:
         """TBC."""
-        xgb_plot_importance(self)  # FIXME: What is the attribute that stores the model?
+        # xgb_plot_importance(self)  # FIXME: What is the attribute that stores the model?
+
+    @model.setter  # type: ignore
+    def model(self: LocusToGeneModel, new_model: Any) -> None:
+        """Set the model."""
+        self._model = new_model
 
 
 @dataclass
@@ -57,15 +68,19 @@ class LocusToGenePredictor:
         self: LocusToGenePredictor, test_df: L2GFeatureMatrix
     ) -> DataFrame:  # FIXME: Review
         """Apply the model to a given L2GFeatureMatrix dataset."""
-        return self.model.transform(test_df._df)
+        return self.model.model.transform(test_df._df)
 
     def evaluate(self: LocusToGenePredictor) -> None:
         """TBC."""
         pass
 
 
+@dataclass
 class LocusToGeneTrainer:
     """Modelling of what is the most likely causal gene associated with a given locus."""
+
+    _model: LocusToGeneModel
+    train_set: L2GFeatureMatrix
 
     @staticmethod
     def evaluate(test_set: DataFrame, wandb_project: str = "otg_l2g") -> None:
@@ -87,28 +102,48 @@ class LocusToGeneTrainer:
         wandb_evaluator.evaluate(test_set)
         run.finish()
 
+    @staticmethod
+    def features_vector_assembler(features_cols: List[str]) -> VectorAssembler:
+        """Spark transformer to assemble the feature columns into a vector."""
+        return VectorAssembler().setInputCols(features_cols).setOutputCol("features")
+
     @classmethod
     def train(
         cls: type[LocusToGeneTrainer],
         model: LocusToGeneModel,
-        train_df: L2GFeatureMatrix,
+        train_set: L2GFeatureMatrix,
+        feature_cols: List[str],
         track: bool,
+        **hyperparams: dict,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
         Args:
-            model (LocusToGeneModel): Model to train
-            train_df (L2GFeatureMatrix): Training data
+            model (LocusToGeneModel): Model to fit to the data
+            train_set (L2GFeatureMatrix): Training data
+            feature_cols (List[str]): List of feature columns to use
             track (bool): Whether to track the training process with wandb
+            hyperparams (dict): Hyperparameters to use for the model
 
         Returns:
             LocusToGeneModel: Trained model
         """
-        # TODO: Read config from hydra to parametrise the model
-        train, eval = train_df.randomSplit([0.8, 0.2])
-        model = model.fit(train)
+        train, eval = train_set.train_test_split(fraction=0.8)
+
+        pipeline = (
+            # Define the stages of the pipeline
+            Pipeline(
+                stages=[
+                    LocusToGeneTrainer.features_vector_assembler(feature_cols),
+                    model._model,
+                ]
+            )
+            # Fit the pipeline to the training data
+            .fit(train.df)
+        )
+
         if track:
-            LocusToGeneTrainer.evaluate(test_set=model.transform(eval))
+            LocusToGeneTrainer.evaluate(test_set=pipeline.transform(eval))
         return model
 
     def k_fold_cross_validation(
@@ -124,7 +159,6 @@ class LocusToGeneTrainer:
 
         # Define model
         xgb = SparkXGBClassifier(
-            objective="binary:logistic",
             eval_metric="logloss",
             num_round=10,
             num_workers=4,
