@@ -384,6 +384,7 @@ class LocusToGeneConfig:
     gold_standard_curation_path: str = MISSING
     gene_interactions_path: str = MISSING
     feature_matrix_path: str = MISSING
+    features_list: List[str] = MISSING
     hyperparameters: dict = MISSING
 <<<<<<< HEAD
     l2g_model_path: str | None = None
