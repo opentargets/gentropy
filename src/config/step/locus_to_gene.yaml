@@ -8,7 +8,6 @@ colocalisation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mo
 gold_standard_curation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/curation.json
 feature_matrix_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/feature_matrix_221107_transformed
 features_list:
-  # TODO: describe features
   - dist_tss_ave # average distance of all tagging variants to gene TSS
   - dist_tss_min # minimum distance of all tagging variants to gene TSS
   - eqtl_max_coloc_clpp_local # max clpp for each (study, locus, gene) aggregating over all eQTLs
