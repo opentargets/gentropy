@@ -7,6 +7,7 @@ from pyspark.sql import DataFrame, SparkSession
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.colocalisation import Colocalisation
+from otg.dataset.gene_index import GeneIndex
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
@@ -314,3 +315,33 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
         sep="\t",
         header=True,
     )
+
+
+@pytest.fixture()
+def sample_target_index(spark: SparkSession) -> DataFrame:
+    """Sample target index sample data."""
+    return spark.read.parquet(
+        "tests/data_samples/target_sample.parquet",
+    )
+
+
+@pytest.fixture()
+def mock_gene_index(spark: SparkSession) -> Colocalisation:
+    """Mock colocalisation dataset."""
+    schema = parse_spark_schema("targets.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(schema)
+        .withColumnSpec("approvedSymbol", percentNulls=0.1)
+        .withColumnSpec("biotype", percentNulls=0.1)
+        .withColumnSpec("approvedName", percentNulls=0.1)
+        .withColumnSpec("tss", percentNulls=0.1)
+    )
+
+    return GeneIndex(_df=data_spec.build(), _schema=schema)
