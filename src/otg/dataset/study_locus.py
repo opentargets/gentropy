@@ -1111,6 +1111,18 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             A column with the substudy description in the shape EFO1_EFO2|pvaluetext1_pvaluetext2.
+
+        Examples:
+            >>> d = {'association_trait': 'Height', 'pvalue_text': 'European Ancestry', 'mapped_trait_uri': 'http://www.ebi.ac.uk/efo/EFO_0000408'}
+            >>> df = spark.createDataFrame([d])
+            >>> df.withColumn('substudy_description', StudyLocusGWASCatalog._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate = False)
+            +-----------------+------------------------------------+-----------------+---------------------+
+            |association_trait|mapped_trait_uri                    |pvalue_text      |substudy_description |
+            +-----------------+------------------------------------+-----------------+---------------------+
+            |Height           |http://www.ebi.ac.uk/efo/EFO_0000408|European Ancestry|Height|EA|EFO_0000408|
+            +-----------------+------------------------------------+-----------------+---------------------+
+            <BLANKLINE>
+
         """
         return f.concat_ws(
             "|",
