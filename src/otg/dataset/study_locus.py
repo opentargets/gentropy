@@ -248,7 +248,7 @@ class StudyLocus(Dataset):
         self: StudyLocus,
         credible_interval: CredibleInterval,
     ) -> StudyLocus:
-        """Filter study-locus dataset based on credible interval.
+        """Filter study-locus tag variants based on given credible interval.
 
         Args:
             credible_interval (CredibleInterval): Credible interval to filter for.
