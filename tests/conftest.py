@@ -7,6 +7,8 @@ from pyspark.sql import DataFrame, SparkSession
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.colocalisation import Colocalisation
+from otg.dataset.gene_index import GeneIndex
+from otg.dataset.intervals import Intervals
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
@@ -199,6 +201,28 @@ def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
 
 
 @pytest.fixture()
+def mock_intervals(spark: SparkSession) -> Intervals:
+    """Mock intervals dataset."""
+    interval_schema = parse_spark_schema("intervals.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(interval_schema)
+        .withColumnSpec("pmid", percentNulls=0.1)
+        .withColumnSpec("resourceScore", percentNulls=0.1)
+        .withColumnSpec("score", percentNulls=0.1)
+        .withColumnSpec("biofeature", percentNulls=0.1)
+    )
+
+    return Intervals(_df=data_spec.build(), _schema=interval_schema)
+
+
+@pytest.fixture()
 def mock_v2g(spark: SparkSession) -> V2G:
     """Mock v2g dataset."""
     v2g_schema = parse_spark_schema("v2g.json")
@@ -276,3 +300,73 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
     ).withSchema(ld_schema)
 
     return LDIndex(_df=data_spec.build(), _schema=ld_schema)
+
+
+@pytest.fixture()
+def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
+    """Sample GWAS Catalog studies."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_studies_sample-r2022-11-29.tsv",
+        sep="\t",
+        header=True,
+    )
+
+
+@pytest.fixture()
+def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
+    """Sample GWAS ancestries sample data."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_ancestries_sample_v1.0.3-r2022-11-29.tsv",
+        sep="\t",
+        header=True,
+    )
+
+
+@pytest.fixture()
+def sample_gwas_catalog_harmonised_sumstats(spark: SparkSession) -> DataFrame:
+    """Sample GWAS harmonised sumstats sample data."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_harmonised_list.txt",
+        sep="\t",
+        header=False,
+    )
+
+
+@pytest.fixture()
+def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
+    """Sample GWAS raw associations sample data."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_associations_sample_e107_r2022-11-29.tsv",
+        sep="\t",
+        header=True,
+    )
+
+
+@pytest.fixture()
+def sample_target_index(spark: SparkSession) -> DataFrame:
+    """Sample target index sample data."""
+    return spark.read.parquet(
+        "tests/data_samples/target_sample.parquet",
+    )
+
+
+@pytest.fixture()
+def mock_gene_index(spark: SparkSession) -> Colocalisation:
+    """Mock colocalisation dataset."""
+    schema = parse_spark_schema("targets.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(schema)
+        .withColumnSpec("approvedSymbol", percentNulls=0.1)
+        .withColumnSpec("biotype", percentNulls=0.1)
+        .withColumnSpec("approvedName", percentNulls=0.1)
+        .withColumnSpec("tss", percentNulls=0.1)
+    )
+
+    return GeneIndex(_df=data_spec.build(), _schema=schema)

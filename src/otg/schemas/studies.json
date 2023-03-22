@@ -126,7 +126,7 @@
             }
           ]
         },
-        "containsNull": true
+        "containsNull": false
       },
       "nullable": true,
       "metadata": {}
@@ -152,7 +152,7 @@
             }
           ]
         },
-        "containsNull": true
+        "containsNull": false
       },
       "nullable": true,
       "metadata": {}

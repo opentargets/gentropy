@@ -52,6 +52,33 @@ class GeneIndex(Dataset):
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 
     @classmethod
+    def from_source(cls: type[GeneIndex], target_index: DataFrame) -> GeneIndex:
+        """Initialise GeneIndex from source dataset.
+
+        Args:
+            target_index (DataFrame): Target index dataframe
+
+        Returns:
+            GeneIndex: Gene index dataset
+        """
+        return cls(
+            _df=target_index.select(
+                f.coalesce(f.col("id"), f.lit("unknown")).alias("geneId"),
+                f.coalesce(f.col("genomicLocation.chromosome"), f.lit("unknown")).alias(
+                    "chromosome"
+                ),
+                GeneIndex._get_gene_tss(
+                    f.col("genomicLocation.strand"),
+                    f.col("genomicLocation.start"),
+                    f.col("genomicLocation.end"),
+                ).alias("tss"),
+                "biotype",
+                "approvedSymbol",
+                "obsoleteSymbols",
+            )
+        )
+
+    @classmethod
     def from_parquet(cls: type[GeneIndex], session: Session, path: str) -> GeneIndex:
         """Initialise GeneIndex from parquet file.
 
@@ -83,14 +110,9 @@ class GeneIndex(Dataset):
             DataFrame: Gene LUT including genomic location information.
         """
         return self.df.select(
-            f.col("id").alias("geneId"),
-            f.col("genomicLocation.chromosome").alias("chromosome"),
-            self._get_gene_tss(
-                f.col("genomicLocation.strand"),
-                f.col("genomicLocation.start"),
-                f.col("genomicLocation.end"),
-            ).alias("tss"),
-            "genomicLocation",
+            "geneId",
+            "chromosome",
+            "tss",
         )
 
     def symbols_lut(self: GeneIndex) -> DataFrame:
@@ -103,7 +125,7 @@ class GeneIndex(Dataset):
             DataFrame: Gene LUT for symbol mapping containing `geneId` and `geneSymbol` columns.
         """
         return self.df.select(
-            f.col("id").alias("geneId"),
+            "geneId",
             f.explode(
                 f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
             ).alias("geneSymbol"),

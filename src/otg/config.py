@@ -227,6 +227,20 @@ class GWASCatalogStepConfig:
     catalog_associations_out: str = MISSING
 
 
+@dataclass
+class GeneIndexStepConfig:
+    """Gene index step requirements.
+
+    Attributes:
+        target_path (str): Open targets Platform target dataset path.
+        gene_index_path (str): Output gene index path.
+    """
+
+    _target_: str = "otg.gene_index.GeneIndexStep"
+    target_path: str = MISSING
+    gene_index_path: str = MISSING
+
+
 # Register all configs
 def register_configs() -> None:
     """Register step configs - each config class has all the parameters needed to run a step."""
@@ -234,6 +248,7 @@ def register_configs() -> None:
     cs.store(name="config", node=Config)
     cs.store(name="session_config", group="session", node=SessionConfig)
     cs.store(name="locus_to_gene", group="step", node=LocusToGeneConfig)
+    cs.store(name="gene_index", group="step", node=GeneIndexStepConfig)
     cs.store(name="ld_index", group="step", node=LDIndexStepConfig)
     cs.store(name="variant_index", group="step", node=VariantIndexStepConfig)
     cs.store(name="variant_annotation", group="step", node=VariantAnnotationStepConfig)
