@@ -87,6 +87,7 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
             expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
             percentNulls=0.1,
         )
+        .withColumnSpec("geneId", percentNulls=0.1)
         .withColumnSpec("pubmedId", percentNulls=0.1)
         .withColumnSpec("publicationFirstAuthor", percentNulls=0.1)
         .withColumnSpec("publicationDate", percentNulls=0.1)

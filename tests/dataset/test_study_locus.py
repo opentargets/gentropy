@@ -37,7 +37,9 @@ def test_study_locus_overlaps(
 
 def test_credible_set(mock_study_locus: StudyLocus) -> None:
     """Test credible interval."""
-    assert isinstance(mock_study_locus.credible_set(CredibleInterval.IS95), StudyLocus)
+    assert isinstance(
+        mock_study_locus.credible_set(CredibleInterval.IS95.value), StudyLocus
+    )
 
 
 def test_unique_lead_tag_variants(mock_study_locus: StudyLocus) -> None:

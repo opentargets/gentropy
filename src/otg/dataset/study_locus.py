@@ -838,7 +838,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             |     C|            G|
             |    AC|           GT|
             |GTaatc|       GATTAC|
-            |     ?|            ?|
+            |     ?|         null|
             |  null|         null|
             +------+-------------+
             <BLANKLINE>

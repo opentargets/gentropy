@@ -25,7 +25,7 @@ class Dataset:
 
     def __post_init__(self: Dataset) -> None:
         """Post init."""
-        # self.validate_schema() FIXME: This is causing issues with the schema validation
+        self.validate_schema()  # FIXME: This is causing issues with the schema validation
 
     @property
     def df(self: Dataset) -> DataFrame:
@@ -83,8 +83,9 @@ class Dataset:
             ValueError: DataFrame schema is not valid
         """
         expected_schema = self._schema  # type: ignore[attr-defined]
-        observed_schema = self.df._schema  # type: ignore[attr-defined]
-        # Observed fields no    t in schema
+        observed_schema = self._df.schema  # type: ignore[attr-defined]
+
+        # Observed fields not in schema
         missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
         error_message = f"The {missing_struct_fields} StructFields are not included in DataFrame schema: {expected_schema}"
         if missing_struct_fields:
