@@ -5,8 +5,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict
 
-import pyspark.sql.functions as f
-
 from otg.common.schemas import flatten_schema
 
 if TYPE_CHECKING:
@@ -28,7 +26,7 @@ class Dataset(ABC):
 
     def __post_init__(self: Dataset) -> None:
         """Post init."""
-        # self.validate_schema() FIXME: This is causing issues with the schema validation
+        self.validate_schema()  # FIXME: This is causing issues with the schema validation
 
     @property
     def df(self: Dataset) -> DataFrame:
