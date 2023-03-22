@@ -458,7 +458,7 @@ class Intervals(Dataset):
             V2G: Variant-to-gene evidence dataset
         """
         return V2G(
-            df=(
+            _df=(
                 # TODO: We can include the start and end position as part of the `on` clause in the join
                 self.df.join(variant_index.df, on="chromosome", how="inner")
                 .filter(f.col("position").between(f.col("start"), f.col("end")))

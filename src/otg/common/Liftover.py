@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import gcsfs
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyliftover import LiftOver
@@ -40,14 +39,7 @@ class LiftOverSpark:
         self.max_difference = max_difference
 
         # Initializing liftover object by opening the chain file:
-        if chain_file.startswith("gs://"):
-            with gcsfs.GCSFileSystem().open(chain_file) as chain_file_object:
-                self.lo = LiftOver(chain_file_object)
-        else:
-            self.lo = LiftOver(chain_file)
-
-        # If no maximum difference is provided, set it to 100:
-        self.max_difference = max_difference
+        self.lo = LiftOver(chain_file)
 
         # UDF to do map genomic coordinates to liftover coordinates:
         self.liftover_udf = f.udf(
