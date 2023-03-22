@@ -3,25 +3,25 @@
     {
       "metadata": {},
       "name": "chromosome",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "start",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "end",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "geneId",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
@@ -51,7 +51,7 @@
     {
       "metadata": {},
       "name": "pmid",
-      "nullable": false,
+      "nullable": true,
       "type": "string"
     },
     {

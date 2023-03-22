@@ -8,6 +8,7 @@ from pyspark.sql import DataFrame, SparkSession
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
+from otg.dataset.intervals import Intervals
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
@@ -196,6 +197,28 @@ def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
         _df=mock_study_locus_data(spark),
         _schema=parse_spark_schema("study_locus.json"),
     )
+
+
+@pytest.fixture()
+def mock_intervals(spark: SparkSession) -> Intervals:
+    """Mock intervals dataset."""
+    interval_schema = parse_spark_schema("intervals.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(interval_schema)
+        .withColumnSpec("pmid", percentNulls=0.1)
+        .withColumnSpec("resourceScore", percentNulls=0.1)
+        .withColumnSpec("score", percentNulls=0.1)
+        .withColumnSpec("biofeature", percentNulls=0.1)
+    )
+
+    return Intervals(_df=data_spec.build(), _schema=interval_schema)
 
 
 @pytest.fixture()

@@ -460,8 +460,19 @@ class Intervals(Dataset):
         return V2G(
             _df=(
                 # TODO: We can include the start and end position as part of the `on` clause in the join
-                self.df.join(variant_index.df, on="chromosome", how="inner")
-                .filter(f.col("position").between(f.col("start"), f.col("end")))
+                self.df.alias("interval")
+                .join(
+                    variant_index.df.alias("vi").select(
+                        "chromosome", "variantId", "position"
+                    ),
+                    on=[
+                        f.col("vi.chromosome") == f.col("interval.chromosome"),
+                        f.col("vi.position").between(
+                            f.col("interval.start"), f.col("interval.end")
+                        ),
+                    ],
+                    how="inner",
+                )
                 .drop("start", "end")
             )
         )
