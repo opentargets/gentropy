@@ -8,7 +8,7 @@ outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${dataset
 gnomad_gnomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
 chain_hail_38_37: gs://hail-common/references/grch38_to_grch37.over.chain.gz
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
-gene_index: ${datasets.inputs}/v2g_input/targets_correct_tss
+target_index: ${datasets.inputs}/v2g_input/targets_correct_tss
 vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
 anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
 javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
@@ -23,6 +23,7 @@ ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.geno
 ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
 
 #Output datasets
+gene_index: ${datasets.outputs}/gene_index/gene_index
 variant_annotation: ${datasets.outputs}/variant_annotation
 variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
