@@ -9,7 +9,7 @@ packages = [
 ]
 
 [tool.poetry.scripts]
-otg = "cli:run_step"
+otg = "otg.cli:main"
 
 [tool.poetry.dependencies]
 python = "3.8.15"
