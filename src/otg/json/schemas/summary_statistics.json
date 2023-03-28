@@ -59,6 +59,12 @@
       "name": "effectAlleleFrequencyFromSource",
       "nullable": true,
       "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "confidenceInterval",
+      "nullable": true,
+      "type": "double"
     }
   ],
   "type": "struct"

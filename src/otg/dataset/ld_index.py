@@ -135,7 +135,7 @@ class LDIndex(Dataset):
         Returns:
             LDIndex: LD index dataset
         """
-        return super().from_parquet(session, path, cls.schema)
+        return super().from_parquet(session, path, cls._schema)
 
     @classmethod
     def create(
