@@ -1,4 +1,4 @@
 # Gene index
 
-::: otg.ld_index.GeneIndexStep
+::: otg.gene_index.GeneIndexStep
 ::: otg.config.GeneIndexStepConfig
