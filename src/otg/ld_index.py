@@ -1,6 +1,7 @@
 """Step to generate variant index dataset."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from otg.common.session import Session
 
 
+@dataclass
 class LDIndexStep(LDIndexStepConfig):
     """LD index step."""
 

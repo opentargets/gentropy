@@ -1,6 +1,7 @@
 """Step to generate variant index dataset."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from otg.common.session import Session
 
 
+@dataclass
 class GeneIndexStep(GeneIndexStepConfig):
     """Gene index step.
 
@@ -23,8 +25,8 @@ class GeneIndexStep(GeneIndexStepConfig):
     def run(self: GeneIndexStepConfig) -> None:
         """Run Target index step."""
         # Extract
-        platform_target = self.etl.spark.read.parquet(self.target_path)
+        platform_target = self.session.spark.read.parquet(self.target_path)
         # Transform
         gene_index = GeneIndex.from_source(platform_target)
         # Load
-        gene_index.df.write.mode(self.etl.write_mode).parquet(self.gene_index_path)
+        gene_index.df.write.mode(self.session.write_mode).parquet(self.gene_index_path)
