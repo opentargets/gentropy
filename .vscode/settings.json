@@ -1,7 +1,10 @@
 {
   "[python]": {
     "editor.formatOnPaste": false,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
   },
   "python.terminal.launchArgs": [
     "-m",
