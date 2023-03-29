@@ -9,7 +9,7 @@ packages = [
 ]
 
 [tool.poetry.scripts]
-otg = "cli:run_step"
+otg = "otg.cli:main"
 
 [tool.poetry.dependencies]
 python = "3.8.15"
@@ -18,7 +18,6 @@ scipy = "^1.6.1"
 hydra-core = "^1.2.0"
 pyliftover = "^0.4"
 numpy = "^1.23.2"
-gcsfs = "^2022.8.2"
 hail = "^0.2.98"
 
 [tool.poetry.dev-dependencies]

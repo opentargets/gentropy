@@ -252,7 +252,7 @@ class VariantAnnotation(Dataset):
             transript_consequences = transript_consequences.join(
                 f.broadcast(
                     filter_by.df.select(
-                        f.col("id").alias("transcriptConsequence.gene_id")
+                        f.col("geneId").alias("transcriptConsequence.gene_id")
                     )
                 ),
                 on="transcriptConsequence.gene_id",

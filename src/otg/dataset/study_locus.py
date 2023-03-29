@@ -18,6 +18,7 @@ from otg.common.spark_helpers import (
     get_record_with_maximum_value,
     pvalue_to_zscore,
 )
+from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.json import data
@@ -245,7 +246,7 @@ class StudyLocus(Dataset):
         self: StudyLocus,
         credible_interval: CredibleInterval,
     ) -> StudyLocus:
-        """Filter study-locus dataset based on credible interval.
+        """Filter study-locus tag variants based on given credible interval.
 
         Args:
             credible_interval (CredibleInterval): Credible interval to filter for.
@@ -1072,6 +1073,18 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             A column with the substudy description in the shape EFO1_EFO2|pvaluetext1_pvaluetext2.
+
+        Examples:
+            >>> d = {'association_trait': 'Height', 'pvalue_text': 'European Ancestry', 'mapped_trait_uri': 'http://www.ebi.ac.uk/efo/EFO_0000408'}
+            >>> df = spark.createDataFrame([d])
+            >>> df.withColumn('substudy_description', StudyLocusGWASCatalog._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate = False)
+            +-----------------+------------------------------------+-----------------+---------------------+
+            |association_trait|mapped_trait_uri                    |pvalue_text      |substudy_description |
+            +-----------------+------------------------------------+-----------------+---------------------+
+            |Height           |http://www.ebi.ac.uk/efo/EFO_0000408|European Ancestry|Height|EA|EFO_0000408|
+            +-----------------+------------------------------------+-----------------+---------------------+
+            <BLANKLINE>
+
         """
         return f.concat_ws(
             "|",
@@ -1082,7 +1095,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ),
             f.concat_ws(
                 "_",
-                StudyLocusGWASCatalog._parse_efos(mapped_trait_uri),
+                parse_efos(mapped_trait_uri),
             ),
         )
 
@@ -1166,11 +1179,27 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Examples:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
+            >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
+            >>> df.withColumn('qc', StudyLocusGWASCatalog._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
+            +------------------------+----------------+----------------+
+            |qc                      |p_value_mantissa|p_value_exponent|
+            +------------------------+----------------+----------------+
+            |[Subsignificant p-value]|1               |-7              |
+            |[]                      |1               |-8              |
+            |[]                      |5               |-8              |
+            |[]                      |1               |-9              |
+            +------------------------+----------------+----------------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,
             calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
-            < -np.log10(pvalue_cutoff),
+            < f.lit(-np.log10(pvalue_cutoff)),
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
 
@@ -1187,10 +1216,26 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Examples:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'qc': None, 'chromosome': None, 'position': None}, {'qc': None, 'chromosome': '1', 'position': None}, {'qc': None, 'chromosome': None, 'position': 1}, {'qc': None, 'chromosome': '1', 'position': 1}]
+            >>> df = spark.createDataFrame(d, schema=t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('chromosome', t.StringType()), t.StructField('position', t.IntegerType())]))
+            >>> df.withColumn('qc', StudyLocusGWASCatalog._qc_genomic_location(df.qc, df.chromosome, df.position)).show(truncate=False)
+            +----------------------------+----------+--------+
+            |qc                          |chromosome|position|
+            +----------------------------+----------+--------+
+            |[Incomplete genomic mapping]|null      |null    |
+            |[Incomplete genomic mapping]|1         |null    |
+            |[Incomplete genomic mapping]|null      |1       |
+            |[]                          |1         |1       |
+            +----------------------------+----------+--------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,
-            position.isNull() & chromosome.isNull(),
+            position.isNull() | chromosome.isNull(),
             StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG,
         )
 
@@ -1269,6 +1314,22 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Returns:
             Column: Updated QC column with flag.
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> schema = t.StructType([t.StructField('reference_allele', t.StringType(), True), t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
+            >>> d = [{'reference_allele': 'A', 'alternate_allele': 'T', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'TA', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'AT', 'qc': None}]
+            >>> df = spark.createDataFrame(data=d, schema=schema)
+            >>> df.withColumn("qc", StudyLocusGWASCatalog._qc_palindromic_alleles(f.col("qc"), f.col("reference_allele"), f.col("alternate_allele"))).show(truncate=False)
+            +----------------+----------------+---------------------------------------+
+            |reference_allele|alternate_allele|qc                                     |
+            +----------------+----------------+---------------------------------------+
+            |A               |T               |[Palindrome alleles - cannot harmonize]|
+            |AT              |TA              |[]                                     |
+            |AT              |AT              |[Palindrome alleles - cannot harmonize]|
+            +----------------+----------------+---------------------------------------+
+            <BLANKLINE>
+
         """
         return StudyLocus._update_quality_flag(
             qc,

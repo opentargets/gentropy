@@ -4,8 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import pyspark.sql.functions as f
-
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
 
@@ -38,12 +36,14 @@ class V2G(Dataset):
         """
         return super().from_parquet(session, path, cls._schema)
 
-    def filter_by_genes(self: V2G, genes: GeneIndex) -> None:
+    def filter_by_genes(self: V2G, genes: GeneIndex) -> V2G:
         """Filter by V2G dataset by genes.
 
         Args:
             genes (GeneIndex): Gene index dataset to filter by
+
+        Returns:
+            V2G: V2G dataset filtered by genes
         """
-        self.df = self._df.join(
-            genes.df.select(f.col("id").alias("geneId")), on="geneId", how="inner"
-        )
+        self.df = self._df.join(genes.df.select("geneId"), on="geneId", how="inner")
+        return self

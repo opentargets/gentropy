@@ -10,8 +10,8 @@ from otg.config import Config, register_configs
 register_configs()
 
 
-@hydra.main(version_base=None, config_name="config")
-def run_step(cfg: Config) -> None:
+@hydra.main(version_base="1.1", config_path=None, config_name="config")
+def main(cfg: Config) -> None:
     """OTG ETL CLI.
 
     Args:
@@ -27,4 +27,4 @@ def run_step(cfg: Config) -> None:
 
 
 if __name__ == "__main__":
-    run_step()
+    main()

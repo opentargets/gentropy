@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pyspark.sql.functions as f
 from pyspark.sql import Column, DataFrame
 
 from otg.dataset.study_locus import (
@@ -83,4 +84,25 @@ def test_qc_unresolved_ld(mock_study_locus_gwas_catalog: StudyLocusGWASCatalog) 
     """Test qc unresolved ld."""
     assert isinstance(
         mock_study_locus_gwas_catalog._qc_unresolved_ld(), StudyLocusGWASCatalog
+    )
+
+
+def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
+    """Test qc all with some hard-coded values."""
+    assert isinstance(
+        sample_gwas_catalog_associations.withColumn(
+            # Perform all quality control checks:
+            "qualityControls",
+            StudyLocusGWASCatalog._qc_all(
+                f.array().alias("qualityControls"),
+                f.col("CHR_ID"),
+                f.col("CHR_POS"),
+                f.lit("A").alias("referenceAllele"),
+                f.lit("T").alias("referenceAllele"),
+                f.col("STRONGEST SNP-RISK ALLELE"),
+                *StudyLocusGWASCatalog._parse_pvalue(f.col("P-VALUE")),
+                5e-8,
+            ),
+        ),
+        DataFrame,
     )

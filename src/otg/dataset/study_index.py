@@ -13,6 +13,7 @@ from pyspark.sql import Column, Window
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import column2camel_case
+from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
 from otg.json import data
 
@@ -104,19 +105,24 @@ class StudyIndexGWASCatalog(StudyIndex):
         """
         return cls(
             _df=catalog_studies.select(
-                f.col("STUDY ACCESSION").alias("studyId"),  # Study index id
-                f.col("STUDY ACCESSION").alias("projectId"),  # GWAS Catalog study id
+                f.coalesce(
+                    f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
+                ).alias("studyId"),
+                f.coalesce(
+                    f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
+                ).alias("projectId"),
+                f.lit("NOT IMPLEMENTED").alias("studyType"),
                 f.col("PUBMED ID").alias("pubmedId"),
                 f.col("FIRST AUTHOR").alias("publicationFirstAuthor"),
                 f.col("DATE").alias("publicationDate"),
                 f.col("JOURNAL").alias("publicationJournal"),
                 f.col("STUDY").alias("publicationTitle"),
-                f.col("DISEASE/TRAIT").alias("traitFromSource"),
-                f.col("INITIAL SAMPLE SIZE").alias("initialSampleSize"),
-                cls._parse_efos(f.col("MAPPED_TRAIT_URI")).alias(
-                    "traitFromSourceMappedIds"
+                f.coalesce(f.col("DISEASE/TRAIT"), f.lit("Unreported")).alias(
+                    "traitFromSource"
                 ),
-                cls._parse_efos(f.col("MAPPED BACKGROUND TRAIT URI")).alias(
+                f.col("INITIAL SAMPLE SIZE").alias("initialSampleSize"),
+                parse_efos(f.col("MAPPED_TRAIT_URI")).alias("traitFromSourceMappedIds"),
+                parse_efos(f.col("MAPPED BACKGROUND TRAIT URI")).alias(
                     "backgroundTraitFromSourceMappedIds"
                 ),
             )
@@ -245,7 +251,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 lambda df: df.select(
                     *[f.expr(column2camel_case(x)) for x in df.columns]
                 )
-            )
+            ).withColumnRenamed("studyAccession", "projectId")
         )
 
         # Get a high resolution dataset on experimental stage:
@@ -311,14 +317,21 @@ class StudyIndexGWASCatalog(StudyIndex):
                 "initialSampleCount",
                 f.col("initialSampleCountEuropean") + f.col("other"),
             )
-            .drop("european", "other", "initialSampleCountOther")
+            .drop(
+                "european",
+                "other",
+                "initialSampleCount",
+                "initialSampleCountEuropean",
+                "initialSampleCountOther",
+            )
         )
 
         parsed_ancestry_lut = ancestry_stages.join(
             europeans_deconvoluted, on="projectId", how="outer"
         )
 
-        return self.df.join(parsed_ancestry_lut, on="projectId", how="left")
+        self.df = self.df.join(parsed_ancestry_lut, on="projectId", how="left")
+        return self
 
     def _annotate_sumstats_info(
         self: StudyIndexGWASCatalog, sumstats_lut: DataFrame
@@ -349,9 +362,17 @@ class StudyIndexGWASCatalog(StudyIndex):
             f.lit(True).alias("hasSumstats"),
         )
 
-        return self.df.join(parsed_sumstats_lut, on="projectId", how="left").withColumn(
-            "hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False))
+        self.df = (
+            self.df.drop("hasSumstats")
+            .join(parsed_sumstats_lut, on="projectId", how="left")
+            .withColumn(
+                "hasSumstats",
+                f.when(f.col("hasSumstats"), True)
+                .when(f.col("hasSumstats").isNull(), False)
+                .otherwise(None),
+            )
         )
+        return self
 
     def _annotate_discovery_sample_sizes(
         self: StudyIndexGWASCatalog,

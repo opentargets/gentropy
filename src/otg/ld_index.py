@@ -18,7 +18,6 @@ class LDIndexStep(LDIndexStepConfig):
     session: Session = SparkSession.builder.getOrCreate()
 
     def run(self: LDIndexStepConfig) -> None:
-        # TODO: loop through populations
         """Run LD index step."""
         for population in self.ld_populations:
             self.etl.logger.info(f"Processing population: {population}")
