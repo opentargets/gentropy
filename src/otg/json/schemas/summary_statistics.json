@@ -62,7 +62,7 @@
     },
     {
       "metadata": {},
-      "name": "confidenceInterval",
+      "name": "standardError",
       "nullable": true,
       "type": "double"
     }

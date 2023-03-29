@@ -139,7 +139,7 @@ class SummaryStatistics(Dataset):
                 "studyId",
                 "variantId",
                 "chromosome",
-                f.col("position").cast(t.LongType()),
+                f.col("position").cast(t.IntegerType()),
                 # Parsing p-value (string) to mantissa (float) and exponent (int):
                 *parse_pvalue(f.col("pValue").cast(t.FloatType())),
                 # Converting/calculating effect and confidence interval:
@@ -178,9 +178,11 @@ class SummaryStatistics(Dataset):
 
     @classmethod
     def from_gwas_harmonized_summary_stats(
-        cls: type[SummaryStatistics], sumstats_df: DataFrame, study_id: str
+        cls: type[SummaryStatistics],
+        sumstats_df: DataFrame,
+        study_id: str,
     ) -> SummaryStatistics:
-        """Create summary statistics object from harmonized dataset.
+        """Create summary statistics object from summary statistics harmonized by the GWAS Catalog.
 
         Args:
             sumstats_df (DataFrame): Harmonized dataset read as dataframe from GWAS Catalog.
@@ -197,34 +199,32 @@ class SummaryStatistics(Dataset):
         )
 
         # Processing columns of interest:
-        processed_sumstats_df = sumstats_df.select(
-            # Adding study identifier:
-            f.lit(study_id).cast(t.StringType()).alias("studyId"),
-            # Adding variant identifier:
-            f.col("hm_variant_id").alias("variantId"),
-            f.col("hm_chrom").alias("chromosome"),
-            f.col("hm_pos").cast(t.LongType()).alias("position"),
-            # Parsing p-value mantissa and exponent:
-            *parse_pvalue(f.col("p_value").cast(t.FloatType())),
-            # Converting/calculating effect and confidence interval:
-            *cls._harmonize_effect(
-                f.col("p_value").cast(t.FloatType()),
-                f.col("hm_beta").cast(t.FloatType()),
-                f.col("hm_odds_ratio").cast(t.FloatType()),
-                f.col("hm_ci_lower").cast(t.FloatType()),
-                f.col("standard_error").cast(t.FloatType()),
-            ),
-            allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
-        )
-        # Initializing summary statistics object:
-        summary_stats = cls(
-            _df=processed_sumstats_df,
+        processed_sumstats_df = (
+            sumstats_df.select(
+                # Adding study identifier:
+                f.lit(study_id).cast(t.StringType()).alias("studyId"),
+                # Adding variant identifier:
+                f.col("hm_variant_id").alias("variantId"),
+                f.col("hm_chrom").alias("chromosome"),
+                f.col("hm_pos").cast(t.IntegerType()).alias("position"),
+                # Parsing p-value mantissa and exponent:
+                *parse_pvalue(f.col("pValue").cast(t.FloatType())),
+                # Converting/calculating effect and confidence interval:
+                *cls._convert_oddsRatio_to_beta(
+                    f.col("hm_beta"),
+                    f.col("hm_odds_ratio"),
+                    f.col("standard_error"),
+                ),
+                allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
+            )
+            .repartition(200, "chromosome")
+            .sortWithinPartitions("position")
         )
 
-        return summary_stats.df.repartition(
-            200,
-            "chromosome",
-        ).sortWithinPartitions("position")
+        # Initializing summary statistics object:
+        return cls(
+            _df=processed_sumstats_df,
+        )
 
     def calculate_confidence_interval(self: SummaryStatistics) -> SummaryStatistics:
         """A Function to add upper and lower confidence interval to a summary statistics dataset.

@@ -287,6 +287,7 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
         .withColumnSpec("beta", percentNulls=0.1)
         .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
         .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
+        .withColumnSpec("standardError", percentNulls=0.1)
         # Making sure p-values are below 1:
         .withColumnSpec(
             "pValueMantissa", minValue=1, maxValue=10, random=True, percentNulls=0.1
@@ -294,9 +295,14 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
         .withColumnSpec(
             "pValueExponent", minValue=-40, maxValue=-1, random=True, percentNulls=0.1
         )
+    ).build()
+
+    # Because some of the columns are not strictly speaking required, they are dropped now:
+    data_spec = data_spec.drop(
+        "betaConfidenceIntervalLower", "betaConfidenceIntervalUpper"
     )
 
-    return SummaryStatistics(_df=data_spec.build())
+    return SummaryStatistics(_df=data_spec)
 
 
 @pytest.fixture()
