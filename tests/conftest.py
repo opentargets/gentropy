@@ -1,6 +1,8 @@
 """Unit test configuration."""
 from __future__ import annotations
 
+from functools import reduce
+
 import dbldatagen as dg
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -341,7 +343,13 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
         randomSeedMethod="hash_fieldname",
     ).withSchema(ld_schema)
 
-    return LDIndex(_df=data_spec.build(), _schema=ld_schema)
+    data_spec = reduce(
+        lambda df, colname: df.withColumnSpec(colname, percentNulls=0.1),
+        ld_schema.fieldNames(),
+        data_spec,
+    )
+
+    return LDIndex(_df=data_spec.build())
 
 
 @pytest.fixture()
