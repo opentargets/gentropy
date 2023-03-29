@@ -11,11 +11,11 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import Column, Window
 
+from otg.assets import data
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import column2camel_case
 from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
-from otg.json import data
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame

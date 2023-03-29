@@ -15,6 +15,7 @@ import pyspark.sql.types as t
 from pyspark.sql.window import Window
 from scipy.stats import norm
 
+from otg.assets import data
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
     calculate_neglog_pvalue,
@@ -23,7 +24,6 @@ from otg.common.spark_helpers import (
 from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
-from otg.json import data
 from otg.method.ld import LDAnnotatorGnomad, LDclumping
 
 if TYPE_CHECKING:

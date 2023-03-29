@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pyspark.sql.types import StructType
 
-SCHEMA_DIR = "src/otg/json/schemas"
+SCHEMA_DIR = "src/otg/assets/schemas"
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:

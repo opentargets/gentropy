@@ -6,7 +6,7 @@ import json
 
 from pyspark.sql.types import StructType
 
-from otg.json import schemas
+from otg.assets import schemas
 
 
 def parse_spark_schema(schema_json: str) -> StructType:
