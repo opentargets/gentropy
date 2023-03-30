@@ -108,74 +108,6 @@ class SummaryStatistics(Dataset):
         return (ci_lower, ci_upper)
 
     @classmethod
-    def from_ingested_gwas_summarystats(
-        cls: type[SummaryStatistics], session: Session, path: str
-    ) -> SummaryStatistics:
-        """Generate summary statistics dataset from ingested GWAS Catalog summary statistics.
-
-        Args:
-            session (Session): Session
-            path (str): path to ingested summary satistics in parquet format
-
-        Returns:
-            SummaryStatistics
-        """
-        # Raw sumstats schema:
-        gwas_sumstats_schema = t.StructType(
-            [
-                t.StructField("studyId", t.StringType(), True),
-                t.StructField("rsId", t.StringType(), True),
-                t.StructField("variantId", t.StringType(), True),
-                t.StructField("chromosome", t.StringType(), True),
-                t.StructField("position", t.IntegerType(), True),
-                t.StructField("referenceAllele", t.StringType(), True),
-                t.StructField("alternateAllele", t.StringType(), True),
-                t.StructField("pValue", t.StringType(), True),
-                t.StructField("oddsRatio", t.DoubleType(), True),
-                t.StructField("beta", t.DoubleType(), True),
-                t.StructField("confidenceIntervalLower", t.DoubleType(), True),
-                t.StructField("confidenceIntervalUpper", t.DoubleType(), True),
-                t.StructField("standardError", t.DoubleType(), True),
-                t.StructField("alternateAlleleFrequency", t.DoubleType(), True),
-            ]
-        )
-
-        # Reading all data:
-        df = (
-            session.spark.read.option("recursiveFileLookup", "true")
-            .schema(gwas_sumstats_schema)
-            .parquet(path)
-        )
-
-        summarystats_df = (
-            df.select(
-                # Select study and variant related columns:
-                "studyId",
-                "variantId",
-                "chromosome",
-                f.col("position").cast(t.IntegerType()),
-                # Parsing p-value (string) to mantissa (float) and exponent (int):
-                *parse_pvalue(f.col("pValue").cast(t.FloatType())),
-                # Converting/calculating effect and confidence interval:
-                *cls._convert_oddsRatio_to_beta(
-                    f.col("beta"),
-                    f.col("oddsRatio"),
-                    f.col("standardError"),
-                ),
-                f.col("alternateAlleleFrequency").alias(
-                    "effectAlleleFrequencyFromSource"
-                ),
-            )
-            .repartition(200, "chromosome")
-            .sortWithinPartitions("position")
-        )
-
-        # Returning summary statistics:
-        return cls(
-            _df=summarystats_df,
-        )
-
-    @classmethod
     def from_parquet(
         cls: type[SummaryStatistics], session: Session, path: str
     ) -> SummaryStatistics:
@@ -222,9 +154,9 @@ class SummaryStatistics(Dataset):
                 f.col("hm_chrom").alias("chromosome"),
                 f.col("hm_pos").cast(t.IntegerType()).alias("position"),
                 # Parsing p-value mantissa and exponent:
-                *parse_pvalue(f.col("pValue").cast(t.FloatType())),
+                *parse_pvalue(f.col("p_value").cast(t.FloatType())),
                 # Converting/calculating effect and confidence interval:
-                *cls._convert_oddsRatio_to_beta(
+                *cls._convert_odds_ratio_to_beta(
                     f.col("hm_beta"),
                     f.col("hm_odds_ratio"),
                     f.col("standard_error"),

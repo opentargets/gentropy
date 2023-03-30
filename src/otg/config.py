@@ -242,6 +242,7 @@ class GWASCatalogSumstatsPreprocessConfig:
     Attributes:
         raw_sumstats_path (str): Input raw GWAS Catalog summary statistics path.
         out_sumstats_path (str): Output GWAS Catalog summary statistics path.
+        study_id (str): GWAS Catalog study identifier.
     """
 
     _target_: str = (
@@ -249,6 +250,7 @@ class GWASCatalogSumstatsPreprocessConfig:
     )
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
+    study_id: str = MISSING
 
 
 # Register all configs
