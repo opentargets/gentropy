@@ -217,7 +217,9 @@ def parse_pvalue(p_value: Column) -> tuple:
     pv = f.when(p_value == 0, sys.float_info.min).otherwise(p_value)
 
     # To get the right exponent we need to do some rounding:
-    exponent = f.floor(f.round(f.log10(pv), 4)).alias("pValueExponent")
+    exponent = (
+        f.floor(f.round(f.log10(pv), 4)).cast(t.IntegerType()).alias("pValueExponent")
+    )
 
     # Mantissa also needs to be rounded:
     mantissa = f.round(pv * f.pow(f.lit(10), -exponent), 3).alias("pValueMantissa")

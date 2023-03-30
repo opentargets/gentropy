@@ -22,7 +22,7 @@
       "metadata": {},
       "name": "position",
       "nullable": true,
-      "type": "long"
+      "type": "integer"
     },
     {
       "metadata": {},
@@ -52,7 +52,7 @@
       "metadata": {},
       "name": "pValueExponent",
       "nullable": true,
-      "type": "long"
+      "type": "integer"
     },
     {
       "metadata": {},

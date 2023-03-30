@@ -157,9 +157,9 @@ class SummaryStatistics(Dataset):
                 *parse_pvalue(f.col("p_value").cast(t.FloatType())),
                 # Converting/calculating effect and confidence interval:
                 *cls._convert_odds_ratio_to_beta(
-                    f.col("hm_beta"),
-                    f.col("hm_odds_ratio"),
-                    f.col("standard_error"),
+                    f.col("hm_beta").cast(t.DoubleType()),
+                    f.col("hm_odds_ratio").cast(t.DoubleType()),
+                    f.col("standard_error").cast(t.DoubleType()),
                 ),
                 allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
             )
