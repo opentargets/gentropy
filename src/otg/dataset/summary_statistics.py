@@ -41,6 +41,20 @@ class SummaryStatistics(Dataset):
 
         Returns:
             tuple: beta, standard error
+
+        Examples:
+            >>> df = spark.createDataFrame([{"beta": 0.1, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": None, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": None, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": 1.1, "standardError": None}])
+            >>> df.select("*", *SummaryStatistics._convert_odds_ratio_to_beta(f.col("beta"), f.col("oddsRatio"), f.col("standardError"))).show()
+            +----+---------+-------------+-------------------+-------------+
+            |beta|oddsRatio|standardError|               beta|standardError|
+            +----+---------+-------------+-------------------+-------------+
+            | 0.1|      1.1|          0.1|                0.1|          0.1|
+            |null|      1.1|          0.1|0.09531017980432493|         null|
+            | 0.1|     null|          0.1|                0.1|          0.1|
+            | 0.1|      1.1|         null|                0.1|         null|
+            +----+---------+-------------+-------------------+-------------+
+            <BLANKLINE>
+
         """
         # We keep standard error when effect is given in beta, otherwise drop.
         standard_error = f.when(
