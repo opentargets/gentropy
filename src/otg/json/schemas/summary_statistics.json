@@ -9,25 +9,25 @@
     {
       "metadata": {},
       "name": "variantId",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "chromosome",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "position",
-      "nullable": true,
+      "nullable": false,
       "type": "integer"
     },
     {
       "metadata": {},
       "name": "beta",
-      "nullable": true,
+      "nullable": false,
       "type": "double"
     },
     {
@@ -45,13 +45,13 @@
     {
       "metadata": {},
       "name": "pValueMantissa",
-      "nullable": true,
+      "nullable": false,
       "type": "double"
     },
     {
       "metadata": {},
       "name": "pValueExponent",
-      "nullable": true,
+      "nullable": false,
       "type": "integer"
     },
     {
