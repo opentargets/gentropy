@@ -37,7 +37,7 @@ class V2G(Dataset):
         return super().from_parquet(session, path, cls._schema)
 
     def filter_by_genes(self: V2G, genes: GeneIndex) -> V2G:
-        """Filter by V2G dataset by genes.
+        """Filter V2G dataset by genes.
 
         Args:
             genes (GeneIndex): Gene index dataset to filter by

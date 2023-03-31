@@ -236,7 +236,6 @@ def mock_v2g(spark: SparkSession) -> V2G:
         )
         .withSchema(v2g_schema)
         .withColumnSpec("distance", percentNulls=0.1)
-        .withColumnSpec("position", percentNulls=0.1)
         .withColumnSpec("resourceScore", percentNulls=0.1)
         .withColumnSpec("score", percentNulls=0.1)
         .withColumnSpec("pmid", percentNulls=0.1)
