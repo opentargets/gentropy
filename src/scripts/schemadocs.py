@@ -36,6 +36,6 @@ def generate_schema_assets(assets_dir: str, schema_dir: str) -> None:
 def main(config: dict) -> None:
     """Main function."""
     generate_schema_assets(
-        assets_dir="docs/assets/schemas", schema_dir="src/otg/schemas"
+        assets_dir="docs/assets/schemas", schema_dir="src/otg/dataset/schemas"
     )
     print(f"Schema assests generated for {config['site_name']}")
