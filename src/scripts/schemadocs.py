@@ -26,6 +26,8 @@ def generate_schema_assets(assets_dir: str, schema_dir: str) -> None:
                 input_schema = t.StructType.fromJson(d)
                 df = spark.createDataFrame([], input_schema)
                 outfilename = i.replace("json", "md")
+                if not os.path.exists(assets_dir):
+                    os.makedirs(assets_dir)
                 with open(f"{assets_dir}/{outfilename}", "w") as out:
                     tree = df._jdf.schema().treeString()
                     out.write(f"```\n{tree}\n```")

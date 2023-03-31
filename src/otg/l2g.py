@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from pyspark.sql import SparkSession
-from xgboost.spark import SparkXGBClassifier
+from xgboost.spark import SparkXGBClassifier  # type: ignore
 
 from otg.common.spark_helpers import _convert_from_long_to_wide
 from otg.config import LocusToGeneConfig
@@ -23,31 +23,35 @@ class LocusToGeneStep(LocusToGeneConfig):
 
     session: Session = SparkSession.builder.getOrCreate()
 
-    def run(self: LocusToGeneStep, track: bool = True) -> None:
+    def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
         self.session.logger.info(f"Executing {self.id} step")
 
         print("Config for the L2G step: ", self)
 
         if self.run_mode == "train":
-            gold_standards = L2GGoldStandard.from_curation(
-                etl=self.session,
-                study_locus_path=self.study_locus_path,
-                v2g_path=self.variant_gene_path,
-                study_locus_overlap_path=self.study_locus_overlap_path,
-                gold_standard_curation=self.gold_standard_curation_path,
-                interactions_path=self.gene_interactions_path,
-            )
-            #     gold_standards = self.etl.spark.read.parquet(
-            #         "/Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/processed_gs"
-            #     )
+            # Process gold standard and L2G features
+
+            # gold_standards = L2GGoldStandard.from_curation(
+            #     session=self.session,
+            #     study_locus_path=self.study_locus_path,
+            #     v2g_path=self.variant_gene_path,
+            #     study_locus_overlap_path=self.study_locus_overlap_path,
+            #     gold_standard_curation=self.gold_standard_curation_path,
+            #     interactions_path=self.gene_interactions_path,
+            # )
+
             # fm = L2GFeatureMatrix.generate_features(
-            #     etl=self.session,
+            #     session=self.session,
             #     study_locus_path=self.study_locus_path,
             #     study_index_path=self.study_index_path,
             #     variant_gene_path=self.variant_gene_path,
             #     colocalisation_path=self.colocalisation_path,
             # )
+
+            gold_standards = L2GGoldStandard(
+                _df=self.session.spark.read.parquet(self.gold_standard_processed_path)
+            )
             fm = _convert_from_long_to_wide(
                 self.session.spark.read.parquet(self.feature_matrix_path),
                 id_vars=["studyLocusId", "geneId"],
@@ -55,24 +59,42 @@ class LocusToGeneStep(LocusToGeneConfig):
                 value_name="value",
             )
 
+            # Join and split
             train, test = L2GFeatureMatrix(
-                _df=gold_standards._df.join(fm, on="studyLocusId", how="inner"),
+                _df=gold_standards._df.join(
+                    fm, on=["studyLocusId", "geneId"], how="inner"
+                ),
             ).train_test_split(fraction=0.8)
-            # TODO: data normalization and standardisation of features
 
-            model = LocusToGeneModel(
-                _model=SparkXGBClassifier(
-                    eval_metric="logloss",
-                    features_col="features",
-                    label_col="gsStatus",
-                    use_gpu=False,
-                )
+            # Instantiate classifier
+            xgb_classifier = SparkXGBClassifier(
+                eval_metric="logloss",
+                features_col="features",
+                label_col="label",
+                max_depth=5,
             )
+
+            classifier = LocusToGeneModel(
+                _classifier=xgb_classifier,
+                features_list=list(self.features_list),
+            )
+
+            # Perform cross validation to extract what are the best hyperparameters
+            # if self.perform_cross_validation:
+            #     self.hyperparameters = LocusToGeneTrainer.k_fold_cross_validation(
+            #         num_folds=3,
+            #         classifier=classifier,
+            #         train_set=train,
+            #     )
+            #     self.wandb_run_name = f"{self.wandb_run_name}_cv_best_params"
+
+            # Train model
             LocusToGeneTrainer.train(
                 train_set=train,
-                model=model,
-                track=track,
+                test_set=test,
+                classifier=classifier,
                 feature_cols=list(self.features_list),
+                model_path=self.model_path,
+                wandb_run_name=self.wandb_run_name,
                 **self.hyperparameters,
-                # TODO: Add push to hub
             )

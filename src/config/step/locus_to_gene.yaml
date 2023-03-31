@@ -1,11 +1,15 @@
 _target_: otg.l2g.LocusToGeneStep
 run_mode: train
+perform_cross_validation: False
+wandb_run_name: null # set to null if you don't want to track the experiment
+model_path: /tmp/{wandb_run_name}_model
 study_locus_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus
 study_locus_overlap_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus_overlap
 variant_gene_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_v2g
 study_index_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_index
 colocalisation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_colocalisation
 gold_standard_curation_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/curation.json
+gold_standard_processed_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/gold_standards_221107_transformed
 feature_matrix_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/feature_matrix_221107_transformed
 features_list:
   - dist_tss_ave # average distance of all tagging variants to gene TSS
@@ -25,3 +29,4 @@ features_list:
 gene_interactions_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/interaction
 hyperparameters:
   max_depth: 5
+  loss_function: binary:logistic

@@ -21,7 +21,7 @@ from otg.common.spark_helpers import (
     calculate_neglog_pvalue,
     get_record_with_maximum_value,
 )
-from otg.common.utils import parse_efos
+from otg.common.utils import get_study_locus_id, parse_efos
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.ld import LDAnnotatorGnomad, LDclumping
@@ -1426,7 +1426,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         """
         return cls(
             _df=gwas_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id()
+                "studyLocusId", get_study_locus_id("variantId", "studyId")
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
