@@ -365,8 +365,6 @@ class VariantIndexCredsetConfig:
 class LocusToGeneMode(Enum):
     """Locus to Gene step mode."""
 
-    # TODO: configure them as groups
-
     TRAIN = "train"
     PREDICT = "predict"
 
@@ -375,22 +373,23 @@ class LocusToGeneMode(Enum):
 class LocusToGeneConfig:
     """Config for Locus to Gene classifier."""
 
-    run_mode: str = MISSING  # FIXME: define it as LocusToGeneMode
+    run_mode: str = MISSING
+    wandb_run_name: Optional[str] = None
+    perform_cross_validation: bool = False
+    model_path: Optional[str] = None
     study_locus_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
     study_locus_overlap_path: str = MISSING
     gold_standard_curation_path: str = MISSING
+    gold_standard_processed_path: str = MISSING
     gene_interactions_path: str = MISSING
     feature_matrix_path: str = MISSING
     features_list: List[str] = MISSING
     hyperparameters: dict = MISSING
-<<<<<<< HEAD
     l2g_model_path: str | None = None
     etl: Session = MISSING
-=======
     l2g_model_path: Optional[str] = None
->>>>>>> 94a8808 (fix: l2g step uses common etl session)
     id: str = "locus_to_gene"
     _target_: str = "otg.l2g.LocusToGeneStep"

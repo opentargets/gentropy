@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import partial, reduce
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, List, Optional, Type
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import _convert_from_long_to_wide
@@ -43,6 +43,13 @@ class L2GFeatureMatrix(Dataset):
     _schema: StructType = parse_spark_schema("l2g_feature_matrix.json")
     _df: DataFrame = field(default_factory=partial(etl.spark.createDataFrame, [], schema=_schema))
 
+    @staticmethod
+    def fill_na(
+        df: DataFrame, value: float = 0.0, subset: Optional[List[str]] = None
+    ) -> DataFrame:
+        """Fill missing values in a column with a given value."""
+        return df.fillna(value, subset=subset)
+
     @classmethod
     def from_parquet(cls: type[L2GFeatureMatrix], etl: Session, path: str) -> Dataset:
         """Initialise L2GFeatureMatrix from parquet file.
@@ -54,7 +61,7 @@ class L2GFeatureMatrix(Dataset):
         Returns:
             L2GFeatureMatrix: Locus to gene feature matrix
         """
-        return super().from_parquet(etl, path, cls._schema)
+        return super().from_parquet(session, path, cls._schema)
 
     @classmethod
     def generate_features(
@@ -67,10 +74,10 @@ class L2GFeatureMatrix(Dataset):
     ) -> L2GFeatureMatrix:
         """Generate features from the OTG datasets."""
         # Load datasets
-        study_locus = StudyLocus.from_parquet(etl, study_locus_path)
-        studies = StudyIndex.from_parquet(etl, study_index_path)
-        distances = V2G.from_parquet(etl, variant_gene_path)
-        coloc = Colocalisation.from_parquet(etl, colocalisation_path)
+        study_locus = StudyLocus.from_parquet(session, study_locus_path)
+        studies = StudyIndex.from_parquet(session, study_index_path)
+        distances = V2G.from_parquet(session, variant_gene_path)
+        coloc = Colocalisation.from_parquet(session, colocalisation_path)
 
         # Extract features
         coloc_features = ColocalisationFactory._get_coloc_features_df(study_locus, studies, coloc)
@@ -97,8 +104,8 @@ class L2GFeatureMatrix(Dataset):
         """
         train, test = self._df.randomSplit([fraction, 1 - fraction], seed=42)
         return (
-            L2GFeatureMatrix(_df=train),
-            L2GFeatureMatrix(_df=test),
+            L2GFeatureMatrix(_df=train).persist(),
+            L2GFeatureMatrix(_df=test).persist(),
         )
 
     def fill_na(self: L2GFeatureMatrix) -> type[NotImplementedError]:
@@ -118,5 +125,7 @@ class L2GFeatureMatrix(Dataset):
 @classmethod
 class L2G(Dataset):
     """Output L2G."""
+
+    # TODO: Do i need this class?
 
     pass

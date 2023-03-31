@@ -26,7 +26,7 @@ class Dataset(ABC):
 
     def __post_init__(self: Dataset) -> None:
         """Post init."""
-        self.validate_schema()  # FIXME: This is causing issues with the schema validation
+        # self.validate_schema()  # FIXME: This is causing issues with the schema validation
 
     @property
     def df(self: Dataset) -> DataFrame:

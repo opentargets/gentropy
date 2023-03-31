@@ -10,3 +10,5 @@ docs/assets/schemas/
 src/airflow/logs/
 site/
 mock_data/
+notebooks/wandb/
+src/wandb/

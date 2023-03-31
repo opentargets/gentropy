@@ -58,6 +58,7 @@ pytest-xdist = "^3.3.1"
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.5.0"
 ipykernel = "^6.19.0"
+<<<<<<< HEAD
 google-cloud-dataproc = "^5.4.1"
 apache-airflow = "^2.7.0"
 apache-airflow-providers-google = "^10.6.0"
@@ -71,6 +72,8 @@ commit_version_number = true # required for version_source = "tag"
 tag_commit = true
 upload_to_pypi = false
 upload_to_release = false
+xgboost = "^1.7.4"
+pyarrow = "^11.0.0"
 
 
 [tool.poetry.group.dev-dependencies.dependencies]

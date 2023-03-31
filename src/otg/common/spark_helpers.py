@@ -24,9 +24,7 @@ def _convert_from_wide_to_long(
     value_name: str,
     value_vars: Optional[Iterable[str]] = None,
 ) -> DataFrame:
-    """Converts a dataframe from wide to long format using Pandas melt built-in function.
-
-    The Pandas df schema needs to be parsed to account for the cases where the df is empty and Spark cannot infer the schema.
+    """Converts a dataframe from wide to long format.
 
     Args:
         df (DataFrame): Dataframe to melt
