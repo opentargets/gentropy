@@ -164,7 +164,7 @@ class LocusToGeneModel:
                 print(e)
 
     def plot_importance(self: LocusToGeneModel) -> None:
-        """TBC."""
+        """Plot the feature importance of the model."""
         # xgb_plot_importance(self)  # FIXME: What is the attribute that stores the model?
 
     def fit(self: LocusToGeneModel, df: DataFrame) -> LocusToGeneModel:
