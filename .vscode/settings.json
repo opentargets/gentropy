@@ -45,5 +45,6 @@
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "docwriter.style": "Google"
+  "docwriter.style": "Google",
+  "python.analysis.typeCheckingMode": "basic"
 }
