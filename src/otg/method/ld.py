@@ -17,6 +17,7 @@ if TYPE_CHECKING:
         StudyLocus,
         StudyLocusGWASCatalog,
     )
+
 from hail.linalg import BlockMatrix
 
 
@@ -103,7 +104,7 @@ class LDAnnotatorGnomad:
         )
 
     @staticmethod
-    def _weighted_r_overall(
+    def weighted_r_overall(
         chromosome: Column,
         study_id: Column,
         variant_id: Column,

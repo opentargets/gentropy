@@ -35,4 +35,5 @@ class StudyLocusOverlap(Dataset):
         Returns:
             StudyLocusOverlap: Study-locus overlap dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)

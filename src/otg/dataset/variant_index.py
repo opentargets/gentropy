@@ -39,13 +39,13 @@ class VariantIndex(Dataset):
         Returns:
             VariantIndex: VariantIndex dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     @classmethod
     def from_variant_annotation(
         cls: type[VariantIndex],
         variant_annotation: VariantAnnotation,
-        path: str | None = None,
     ) -> VariantIndex:
         """Initialise VariantIndex from pre-existing variant annotation dataset."""
         unchanged_cols = [
@@ -70,7 +70,14 @@ class VariantIndex(Dataset):
                 f.lit(True).alias("variantInGnomad"),
             ),
         )
-        return vi.df.repartition(
-            400,
-            "chromosome",
-        ).sortWithinPartitions("chromosome", "position")
+        return VariantIndex(
+            _df=vi.df.repartition(
+                400,
+                "chromosome",
+            ).sortWithinPartitions("chromosome", "position")
+        )
+
+    def persist(self: VariantIndex) -> VariantIndex:
+        """Persist DataFrame included in the Dataset."""
+        self.df = self._df.persist()
+        return self

@@ -3,20 +3,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import reduce
-from typing import TYPE_CHECKING
-
-from pyspark.sql import SparkSession
 
 from otg.common.Liftover import LiftOverSpark
+from otg.common.session import Session
 from otg.config import V2GStepConfig
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
-
-if TYPE_CHECKING:
-    from otg.common.session import Session
 
 
 @dataclass
@@ -31,20 +26,23 @@ class V2GStep(V2GStepConfig):
 
     """
 
-    session: Session = SparkSession.builder.getOrCreate()
+    session: Session = Session()
 
     def run(self: V2GStep) -> None:
         """Run V2G dataset generation."""
         # Filter gene index by approved biotypes to define V2G gene universe
         gene_index_filtered = GeneIndex.from_parquet(
-            self.etl, self.gene_index_path
+            self.session, self.gene_index_path
         ).filter_by_biotypes(self.approved_biotypes)
 
-        vi = VariantIndex.from_parquet(self.etl, self.variant_index_path).persist()
-        va = VariantAnnotation.from_parquet(self.etl, self.variant_annotation_path)
+        vi = VariantIndex.from_parquet(self.session, self.variant_index_path).persist()
+        va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
+        vep_consequences = self.session.spark.read.csv(
+            self.vep_consequences_path, sep="\t", header=True
+        )
 
         # Variant annotation reduced to the variant index to define V2G variant universe
-        va_slimmed = va.filter_by_variant_df(vi, ["id", "chromosome"]).persist()
+        va_slimmed = va.filter_by_variant_df(vi.df, ["id", "chromosome"]).persist()
 
         # lift over variants to hg38
         lift = LiftOverSpark(
@@ -54,30 +52,28 @@ class V2GStep(V2GStepConfig):
         v2g_datasets = [
             va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
             # variant effects
-            va_slimmed.get_most_severe_variant_consequence(
-                self.vep_consequences_path, gene_index_filtered
-            ),
+            va_slimmed.get_most_severe_vep_v2g(vep_consequences, gene_index_filtered),
             va_slimmed.get_polyphen_v2g(gene_index_filtered),
             va_slimmed.get_sift_v2g(gene_index_filtered),
             va_slimmed.get_plof_v2g(gene_index_filtered),
             # intervals
             Intervals.parse_andersson(
-                self.etl, self.anderson_path, gene_index_filtered, lift
+                self.session, self.anderson_path, gene_index_filtered, lift
             ).v2g(vi),
             Intervals.parse_javierre(
-                self.etl, self.javierre_path, gene_index_filtered, lift
+                self.session, self.javierre_path, gene_index_filtered, lift
             ).v2g(vi),
             Intervals.parse_jung(
-                self.etl, self.jung_path, gene_index_filtered, lift
+                self.session, self.jung_path, gene_index_filtered, lift
             ).v2g(vi),
-            Intervals.parse_thurnman(
-                self.etl, self.thurnman_path, gene_index_filtered, lift
+            Intervals.parse_thurman(
+                self.session, self.thurnman_path, gene_index_filtered, lift
             ).v2g(vi),
         ]
 
         # merge all V2G datasets
         v2g = V2G(
-            df=reduce(
+            _df=reduce(
                 lambda x, y: x.unionByName(y, allowMissingColumns=True),
                 [dataset.df for dataset in v2g_datasets],
             ).repartition("chromosome")
@@ -85,6 +81,6 @@ class V2GStep(V2GStepConfig):
         # write V2G dataset
         (
             v2g.df.write.partitionBy("chromosome")
-            .mode(self.etl.write_mode)
+            .mode(self.session.write_mode)
             .parquet(self.v2g_path)
         )

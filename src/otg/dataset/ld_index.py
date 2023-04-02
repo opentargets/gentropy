@@ -135,7 +135,8 @@ class LDIndex(Dataset):
         Returns:
             LDIndex: LD index dataset
         """
-        return super().from_parquet(session, path, cls.schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     @classmethod
     def create(
@@ -161,11 +162,13 @@ class LDIndex(Dataset):
             _df=ld_index_38.to_spark()
             .filter(f.col("`locus38.position`").isNotNull())
             .select(
-                f.col("idx"),
-                f.regexp_replace("`locus38.contig`", "chr", "").alias("chromosome"),
-                f.col("`locus38.position`").alias("position"),
-                f.col("`alleles`").getItem(0).alias("referenceAllele"),
-                f.col("`alleles`").getItem(1).alias("alternateAllele"),
+                f.coalesce(f.col("idx"), f.monotonically_increasing_id()).alias("idx"),
+                f.coalesce(
+                    f.regexp_replace("`locus38.contig`", "chr", ""), f.lit("unknown")
+                ).alias("chromosome"),
+                f.coalesce(f.col("`locus38.position`"), f.lit(-1)).alias("position"),
+                f.coalesce(f.col("`alleles`").getItem(0), "?").alias("referenceAllele"),
+                f.coalesce(f.col("`alleles`").getItem(1), "?").alias("alternateAllele"),
             )
             .withColumn(
                 "position",

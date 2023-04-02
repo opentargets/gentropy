@@ -2,15 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-from pyspark.sql import SparkSession
-
+from otg.common.session import Session
 from otg.config import GeneIndexStepConfig
 from otg.dataset.gene_index import GeneIndex
-
-if TYPE_CHECKING:
-    from otg.common.session import Session
 
 
 @dataclass
@@ -20,9 +15,9 @@ class GeneIndexStep(GeneIndexStepConfig):
     This step generates a gene index dataset from an Open Targets Platform target dataset.
     """
 
-    session: Session = SparkSession.builder.getOrCreate()
+    session: Session = Session()
 
-    def run(self: GeneIndexStepConfig) -> None:
+    def run(self: GeneIndexStep) -> None:
         """Run Target index step."""
         # Extract
         platform_target = self.session.spark.read.parquet(self.target_path)

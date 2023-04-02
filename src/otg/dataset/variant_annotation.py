@@ -40,16 +40,15 @@ class VariantAnnotation(Dataset):
         Returns:
             VariantAnnotation: VariantAnnotation dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     @classmethod
     def from_gnomad(
         cls: type[VariantAnnotation],
-        session: Session,
         gnomad_file: str,
         grch38_to_grch37_chain: str,
         populations: list,
-        path: str | None = None,
     ) -> VariantAnnotation:
         """Generate variant annotation dataset from gnomAD.
 
@@ -60,17 +59,13 @@ class VariantAnnotation(Dataset):
         3. Field names are converted to camel case to follow the convention.
 
         Args:
-            session (Session): ETL session
             gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset
             grch38_to_grch37_chain (str): Path to chain file for liftover
             populations (list): List of populations to include in the dataset
-            path (Optional[str], optional): Path to save the dataset to. Defaults to None.
 
         Returns:
             VariantAnnotation: Variant annotation dataset
         """
-        hl.init(sc=session.spark.sparkContext, log="/tmp/hail.log")
-
         # Load variants dataset
         ht = hl.read_table(
             gnomad_file,
@@ -197,7 +192,12 @@ class VariantAnnotation(Dataset):
                 "filters",
             )
         )
-        return cls(df=df, path=path)
+        return cls(_df=df)
+
+    def persist(self: VariantAnnotation) -> VariantAnnotation:
+        """Persist DataFrame included in the Dataset."""
+        self.df = self._df.persist()
+        return self
 
     def max_maf(self: VariantAnnotation) -> Column:
         """Maximum minor allele frequency accross all populations.
@@ -226,11 +226,11 @@ class VariantAnnotation(Dataset):
         Returns:
             VariantAnnotation: A filtered variant annotation dataset
         """
-        self._df = self.df.join(f.broadcast(df.select(cols)), on=cols, how="inner")
+        self.df = self._df.join(f.broadcast(df.select(cols)), on=cols, how="inner")
         return self
 
     def get_transcript_consequence_df(
-        self: VariantAnnotation, filter_by: GeneIndex = None
+        self: VariantAnnotation, filter_by: GeneIndex | None
     ) -> DataFrame:
         """Dataframe of exploded transcript consequences.
 
@@ -261,23 +261,21 @@ class VariantAnnotation(Dataset):
 
     def get_most_severe_vep_v2g(
         self: VariantAnnotation,
-        variant_consequence_lut_path: str,
-        filter_by: GeneIndex = None,
+        vep_consequences: DataFrame,
+        filter_by: GeneIndex | None,
     ) -> V2G:
         """Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.
 
         Optionally the trancript consequences can be reduced to the universe of a gene index.
 
         Args:
-            variant_consequence_lut_path (str): Path to csv containing variant consequences sorted by severity
+            vep_consequences (DataFrame): A dataframe of VEP consequences
             filter_by (GeneIndex): A gene index to filter by. Defaults to None.
 
         Returns:
             V2G: High and medium severity variant to gene assignments
         """
-        variant_consequence_lut = self.etl.spark.read.csv(
-            variant_consequence_lut_path, sep="\t", header=True
-        ).select(
+        vep_lut = vep_consequences.select(
             f.element_at(f.split("Accession", r"/"), -1).alias(
                 "variantFunctionalConsequenceId"
             ),
@@ -286,7 +284,7 @@ class VariantAnnotation(Dataset):
         )
 
         return V2G(
-            df=self.get_transcript_consequence_df(filter_by)
+            _df=self.get_transcript_consequence_df(filter_by)
             .select(
                 "variantId",
                 "chromosome",
@@ -297,7 +295,7 @@ class VariantAnnotation(Dataset):
             )
             # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
             .join(
-                f.broadcast(variant_consequence_lut),
+                f.broadcast(vep_lut),
                 on="label",
                 how="inner",
             )
@@ -309,7 +307,7 @@ class VariantAnnotation(Dataset):
             )
         )
 
-    def get_polyphen_v2g(self: VariantAnnotation, filter_by: GeneIndex = None) -> V2G:
+    def get_polyphen_v2g(self: VariantAnnotation, filter_by: GeneIndex | None) -> V2G:
         """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
 
         Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.
@@ -321,7 +319,7 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments with their polyphen scores
         """
         return V2G(
-            df=self.get_transcript_consequence_df(filter_by)
+            _df=self.get_transcript_consequence_df(filter_by)
             .filter(f.col("transcriptConsequence.polyphen_score").isNotNull())
             .select(
                 "variantId",
@@ -334,7 +332,7 @@ class VariantAnnotation(Dataset):
             )
         )
 
-    def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex = None) -> V2G:
+    def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex | None) -> V2G:
         """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
 
         SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.
@@ -347,7 +345,7 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments with their SIFT scores
         """
         return V2G(
-            df=self.get_transcript_consequence_df(filter_by)
+            _df=self.get_transcript_consequence_df(filter_by)
             .filter(f.col("transcriptConsequence.sift_score").isNotNull())
             .select(
                 "variantId",
@@ -360,7 +358,7 @@ class VariantAnnotation(Dataset):
             )
         )
 
-    def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex = None) -> V2G:
+    def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex | None) -> V2G:
         """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
 
         Optionally the trancript consequences can be reduced to the universe of a gene index.
@@ -372,7 +370,7 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments from the LOFTEE algorithm
         """
         return V2G(
-            df=self.get_transcript_consequence_df(filter_by)
+            _df=self.get_transcript_consequence_df(filter_by)
             .filter(f.col("transcriptConsequence.lof").isNotNull())
             .withColumn(
                 "isHighQualityPlof",
@@ -412,7 +410,7 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments with their distance to the TSS
         """
         return V2G(
-            df=self.df.alias("variant")
+            _df=self.df.alias("variant")
             .join(
                 f.broadcast(filter_by.locations_lut()).alias("gene"),
                 on=[

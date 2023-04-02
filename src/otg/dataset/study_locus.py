@@ -242,7 +242,8 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Study-locus dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     def credible_set(
         self: StudyLocus,

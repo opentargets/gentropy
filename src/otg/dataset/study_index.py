@@ -44,7 +44,8 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: Study index dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.

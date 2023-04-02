@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
@@ -26,6 +26,7 @@ class SessionConfig:
     app_name: str = "otgenetics"
     spark_uri: str = "local[*]"
     write_mode: str = "overwrite"
+    hail_home: Optional[str] = None
 
 
 @dataclass
@@ -89,6 +90,7 @@ class ColocalisationStepConfig:
 
     _target_: str = "otg.colocalisation.ColocalisationStep"
     study_locus_path: str = MISSING
+    study_index_path: str = MISSING
     coloc_path: str = MISSING
     priorc1: float = 1e-4
     priorc2: float = 1e-4
