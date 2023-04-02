@@ -167,8 +167,12 @@ class LDIndex(Dataset):
                     f.regexp_replace("`locus38.contig`", "chr", ""), f.lit("unknown")
                 ).alias("chromosome"),
                 f.coalesce(f.col("`locus38.position`"), f.lit(-1)).alias("position"),
-                f.coalesce(f.col("`alleles`").getItem(0), "?").alias("referenceAllele"),
-                f.coalesce(f.col("`alleles`").getItem(1), "?").alias("alternateAllele"),
+                f.coalesce(f.col("`alleles`").getItem(0), f.lit("?")).alias(
+                    "referenceAllele"
+                ),
+                f.coalesce(f.col("`alleles`").getItem(1), f.lit("?")).alias(
+                    "alternateAllele"
+                ),
             )
             .withColumn(
                 "position",
