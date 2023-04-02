@@ -1,0 +1,16 @@
+- id: "my_gene_index"
+- id: "my_variant_annotation"
+- id: "my_ld_index"
+- id: "my_gwas_catalog"
+  prerequisites:
+    - "my_variant_annotation"
+    - "my_ld_index"
+- id: "my_variant_index"
+  prerequisites:
+    - "my_variant_annotation"
+    - "my_gwas_catalog"
+- id: "my_v2g"
+  prerequisites:
+    - "my_variant_index"
+    - "my_variant_annotation"
+    - "my_gene_index"
