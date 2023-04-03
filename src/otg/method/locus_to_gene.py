@@ -44,7 +44,6 @@ class LocusToGeneModel:
             stages=[
                 label_indexer,
                 vector_assembler,
-                self._classifier,
             ]
         )
 
@@ -120,10 +119,17 @@ class LocusToGeneModel:
         """Return the parameter grid for the model."""
         return (
             ParamGridBuilder()
-            .addGrid(self._classifier.learning_rate, [0.0, 0.01, 0.1])
-            .addGrid(self._classifier.max_depth, [2, 3, 5])
+            .addGrid(self._classifier.max_depth, [3, 5, 7])
+            .addGrid(self._classifier.learning_rate, [0.01, 0.1, 1.0])
             .build()
         )
+
+    def add_pipeline_stage(self: LocusToGeneModel, estimator: Any) -> LocusToGeneModel:
+        """Adds a stage to the L2G pipeline."""
+        pipeline_stages = self.pipeline.getStages()
+        new_stages = pipeline_stages + [estimator]
+        self.pipeline = Pipeline(stages=new_stages)
+        return self
 
     def evaluate(
         self: LocusToGeneModel,
@@ -248,18 +254,18 @@ class LocusToGeneTrainer:
         classifier: LocusToGeneModel,
         train_set: L2GFeatureMatrix,
         num_folds: int,
-    ) -> dict:
+    ) -> LocusToGeneModel:
         """Perform k-fold cross validation on the model."""
         params_grid = classifier.get_param_grid()
         evaluator = MulticlassClassificationEvaluator()
         cv = CrossValidator(
             numFolds=num_folds,
-            estimator=classifier.pipeline,
+            estimator=classifier._classifier,
             estimatorParamMaps=params_grid,
             evaluator=evaluator,
             parallelism=2,
+            collectSubModels=False,
             seed=42,
         )
-        cv_model = cv.fit(train_set.df)
 
-        return cv_model.bestModel.extractParamMap()
+        return classifier.add_pipeline_stage(cv).fit(train_set.df)
