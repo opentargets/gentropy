@@ -290,12 +290,17 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
     """Mock gene index."""
     ld_schema = parse_spark_schema("ld_index.json")
 
-    data_spec = dg.DataGenerator(
-        spark,
-        rows=400,
-        partitions=4,
-        randomSeedMethod="hash_fieldname",
-    ).withSchema(ld_schema)
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(ld_schema)
+        .withColumnSpec("start_idx", percentNulls=0.1)
+        .withColumnSpec("stop_idx", percentNulls=0.1)
+    )
 
     return LDIndex(_df=data_spec.build(), _schema=ld_schema)
 
@@ -349,8 +354,8 @@ def sample_target_index(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def mock_gene_index(spark: SparkSession) -> Colocalisation:
-    """Mock colocalisation dataset."""
+def mock_gene_index(spark: SparkSession) -> GeneIndex:
+    """Mock gene index dataset."""
     schema = parse_spark_schema("targets.json")
 
     data_spec = (
