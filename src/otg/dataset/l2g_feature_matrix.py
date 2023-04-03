@@ -126,6 +126,4 @@ class L2GFeatureMatrix(Dataset):
 class L2G(Dataset):
     """Output L2G."""
 
-    # TODO: Do i need this class?
-
     pass
