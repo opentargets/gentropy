@@ -39,13 +39,13 @@
     {
       "metadata": {},
       "name": "start_idx",
-      "nullable": false,
+      "nullable": true,
       "type": "long"
     },
     {
       "metadata": {},
       "name": "stop_idx",
-      "nullable": false,
+      "nullable": true,
       "type": "long"
     }
   ],

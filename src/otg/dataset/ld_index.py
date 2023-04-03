@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import Window
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
@@ -192,6 +193,8 @@ class LDIndex(Dataset):
                     f.col("alternateAllele"),
                 ),
             )
+            .withColumn("start_idx", f.lit(None).cast(t.LongType()))
+            .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
             # Convert gnomad position to Ensembl position (1-based for indels)
             .repartition(400, "chromosome")
             .sortWithinPartitions("position")
@@ -207,19 +210,23 @@ class LDIndex(Dataset):
         Returns:
             LDIndex: including `start_idx` and `stop_idx` columns
         """
-        index_with_positions = self._df.select(
-            "*",
-            LDIndex._interval_start(
-                contig=f.col("chromosome"),
-                position=f.col("position"),
-                ld_radius=ld_radius,
-            ).alias("start_pos"),
-            LDIndex._interval_stop(
-                contig=f.col("chromosome"),
-                position=f.col("position"),
-                ld_radius=ld_radius,
-            ).alias("stop_pos"),
-        ).persist()
+        index_with_positions = (
+            self._df.drop("start_idx", "stop_idx")
+            .select(
+                "*",
+                LDIndex._interval_start(
+                    contig=f.col("chromosome"),
+                    position=f.col("position"),
+                    ld_radius=ld_radius,
+                ).alias("start_pos"),
+                LDIndex._interval_stop(
+                    contig=f.col("chromosome"),
+                    position=f.col("position"),
+                    ld_radius=ld_radius,
+                ).alias("stop_pos"),
+            )
+            .persist()
+        )
 
         self.df = (
             index_with_positions.join(
@@ -253,6 +260,19 @@ class LDIndex(Dataset):
                     )
                 ),
                 on=["chromosome", "stop_pos"],
+            )
+            # Ensure nullable true
+            .withColumn(
+                "start_idx",
+                f.when(f.col("start_idx").isNotNull(), f.col("start_idx")).otherwise(
+                    f.lit(None)
+                ),
+            )
+            .withColumn(
+                "stop_idx",
+                f.when(f.col("stop_idx").isNotNull(), f.col("stop_idx")).otherwise(
+                    f.lit(None)
+                ),
             )
             .drop("start_pos", "stop_pos")
         )
