@@ -1,8 +1,9 @@
 _target_: otg.l2g.LocusToGeneStep
-run_mode: train
+run_mode: predict # can be either 'train' or 'predict'
 perform_cross_validation: False
 wandb_run_name: null # set to null if you don't want to track the experiment
-model_path: /tmp/{wandb_run_name}_model
+model_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/model
+predictions_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/l2g_predictions
 study_locus_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus
 study_locus_overlap_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_study_locus_overlap
 variant_gene_path: /Users/irenelopez/MEGAsync/EBI/repos/genetics_etl_python/mock_data/mock_v2g

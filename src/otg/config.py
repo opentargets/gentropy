@@ -292,6 +292,7 @@ class LocusToGeneConfig:
     wandb_run_name: Optional[str] = None
     perform_cross_validation: bool = False
     model_path: Optional[str] = None
+    predictions_path: Optional[str] = None
     study_locus_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING

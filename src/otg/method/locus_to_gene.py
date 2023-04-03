@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, List, Optional
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, List, Optional, Type
 
 from pyspark.ml import Pipeline, PipelineModel
 from pyspark.ml.evaluation import (
@@ -12,24 +12,26 @@ from pyspark.ml.evaluation import (
 )
 from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+from wandb.wandb_run import Run
 
 import wandb
-from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
 from otg.method.l2g_utils.evaluator import WandbEvaluator
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
-    from wandb.wandb_run import Run
+
+    from otg.dataset.l2g.predictions import L2GPrediction
 
 
 @dataclass
 class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
-    _classifier: Any
     features_list: List[str]
+    _classifier: Any = None  # type: ignore
     pipeline: Pipeline = Pipeline(stages=[])
-    model: PipelineModel = field(init=False)
+    model: Optional[PipelineModel] = None
 
     def __post_init__(self: LocusToGeneModel) -> None:
         """Post init that adds the model to the ML pipeline."""
@@ -48,10 +50,12 @@ class LocusToGeneModel:
 
     def save(self: LocusToGeneModel, path: str) -> None:
         """Saves fitted pipeline model to disk."""
+        if self.model is None:
+            raise ValueError("Model has not been fitted yet.")
         self.model.write().overwrite().save(path)
 
     @property
-    def classifier(self: LocusToGeneModel) -> Any:  # type: ignore
+    def classifier(self: LocusToGeneModel) -> Any:
         """Return the model."""
         return self._classifier
 
@@ -99,6 +103,13 @@ class LocusToGeneModel:
             spark_ml_evaluator=multi_evaluator, wandb_run=wandb_run
         )
         multi_wandb_evaluator.evaluate(results)
+
+    @classmethod
+    def load_from_disk(
+        cls: Type[LocusToGeneModel], path: str, features_list: List[str]
+    ) -> LocusToGeneModel:
+        """Load a fitted pipeline model from disk."""
+        return cls(model=PipelineModel.load(path), features_list=features_list)
 
     @classifier.setter  # type: ignore
     def classifier(self: LocusToGeneModel, new_classifier: Any) -> None:
@@ -152,16 +163,14 @@ class LocusToGeneModel:
 
         if wandb_run_name:
             print("Logging to W&B...")
-            try:
-                run = wandb.init(
-                    project="otg_l2g", config=hyperparameters, name=wandb_run_name
-                )
+            run = wandb.init(
+                project="otg_l2g", config=hyperparameters, name=wandb_run_name
+            )
+            if isinstance(run, Run):
                 LocusToGeneModel.log_to_wandb(
                     results, binary_evaluator, multi_evaluator, run
                 )
                 run.finish()
-            except Exception as e:
-                print(e)
 
     def plot_importance(self: LocusToGeneModel) -> None:
         """Plot the feature importance of the model."""
@@ -175,8 +184,10 @@ class LocusToGeneModel:
     def predict(
         self: LocusToGeneModel,
         df: DataFrame,
-    ) -> DataFrame:
+    ) -> L2GPrediction:
         """Apply the model to a given feature matrix dataframe. The feature matrix needs to be preprocessed first."""
+        if not self.model:
+            raise ValueError("Model not fitted yet. Please call fit() first.")
         return self.model.transform(df)
 
 
@@ -217,8 +228,6 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Trained model
         """
-        # train, eval = train_set.train_test_split(fraction=0.8)
-
         train_df = train_set.df.transform(L2GFeatureMatrix.fill_na)
         test_df = test_set.df.transform(L2GFeatureMatrix.fill_na)
 

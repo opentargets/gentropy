@@ -76,9 +76,6 @@ class L2GFeatureMatrix(Dataset):
         )
         distance_features = StudyLocusFactory._get_tss_distance_features(distances)
 
-        print(coloc_features.df.printSchema())
-        print(distance_features.df.printSchema())
-
         fm = reduce(
             lambda x, y: x.unionByName(y),
             [coloc_features._df, distance_features._df],
