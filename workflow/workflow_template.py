@@ -9,6 +9,7 @@ from google.cloud.dataproc_v1.types import (
     WorkflowTemplate,
     WorkflowTemplatePlacement,
 )
+from google.protobuf.duration_pb2 import Duration
 
 #
 project_id = "open-targets-genetics-dev"
@@ -21,11 +22,12 @@ config_name = "my_config"
 config_tar = "gs://genetics_etl_python_playground/initialisation/config.tar.gz"
 cluster_name = "ochoa-otg-cluster"
 package_wheel = "gs://genetics_etl_python_playground/initialisation/otgenetics-0.1.4-py3-none-any.whl"
-machine_type = "n1-highmem-32"
+machine_type = "n1-highmem-96"
 initialisation_executable_file = (
     "gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh"
 )
 image_version = "2.0"
+num_local_ssds = 1
 
 # Available cluster
 cluster_uuid = "eba42738-2ea3-4b0a-ba1d-38428427e838"
@@ -65,6 +67,7 @@ def generate_managed_placement_template(
     machine_type: str,
     initialisation_executable_file: str,
     image_version: str,
+    num_local_ssds: int = 0,
     initialisation_execution_timeout: str = "600s",
 ) -> WorkflowTemplatePlacement:
     """Generates placement using managed clusters.
@@ -77,6 +80,7 @@ def generate_managed_placement_template(
         machine_type (str): Machine type to use for cluster creation.
         initialisation_executable_file (str): Path to GS location with initialisation script.
         image_version (str): Dataproc image version to use for cluster creation.
+        num_local_ssds (int): Number of local SSDs to use for cluster creation. Defaults to 0.
         initialisation_execution_timeout (str): Initialisation script execution timeout. Defaults to "600s".
 
     Returns:
@@ -89,9 +93,15 @@ def generate_managed_placement_template(
     placement.managed_cluster.config.gce_cluster_config.metadata = dict(
         {"CONFIGTAR": config_tar, "PACKAGE": package_wheel}
     )
+    if num_local_ssds > 0:
+        placement.managed_cluster.config.master_config.disk_config.num_local_ssds = (
+            num_local_ssds
+        )
     initialisation_node = NodeInitializationAction()
     initialisation_node.executable_file = initialisation_executable_file
-    initialisation_node.execution_timeout = initialisation_execution_timeout
+    duration = Duration()
+    duration.FromJsonString(initialisation_execution_timeout)
+    initialisation_node.execution_timeout = duration
     placement.managed_cluster.config.initialization_actions = [initialisation_node]
     placement.managed_cluster.config.initialization_actions
 
@@ -184,6 +194,7 @@ def main() -> None:
         machine_type,
         initialisation_executable_file,
         image_version,
+        num_local_ssds=num_local_ssds,
     )
 
     # Load steps from yaml file
