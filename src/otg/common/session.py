@@ -20,7 +20,7 @@ class Session:
         spark_uri: str = "local[*]",
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
-        hail_home: str | None = "/path/to/python/site-packages/hail",
+        hail_home: str = "unspecified",
     ) -> None:
         """Initialises spark session and logger.
 
@@ -47,7 +47,7 @@ class Session:
                 .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
                 # .set("spark.kryoserializer.buffer", "512m")
             )
-            if hail_home
+            if hail_home != "unspecified"
             else SparkConf()
         )
         self.spark = (

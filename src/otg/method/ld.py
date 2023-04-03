@@ -137,7 +137,7 @@ class LDAnnotatorGnomad:
             ...     .withColumn('variant_id', f.lit('v1'))
             ...     .withColumn(
             ...         'r_overall',
-            ...         LDAnnotatorGnomad._weighted_r_overall(
+            ...         LDAnnotatorGnomad.weighted_r_overall(
             ...             f.col('chr'),
             ...             f.col('study_id'),
             ...             f.col('variant_id'),
