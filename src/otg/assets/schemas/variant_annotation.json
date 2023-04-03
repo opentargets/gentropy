@@ -22,7 +22,7 @@
     {
       "name": "gnomad3VariantId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {

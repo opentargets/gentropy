@@ -128,7 +128,7 @@ class VariantAnnotation(Dataset):
             .to_spark(flatten=False)
             # Creating new column based on the transcript_consequences
             .withColumn(
-                "gnomadVariantId",
+                "gnomad3VariantId",
                 f.concat_ws(
                     "-",
                     "chromosome",
@@ -159,7 +159,7 @@ class VariantAnnotation(Dataset):
                 "alternateAllele",
                 "chromosomeB37",
                 "positionB37",
-                "gnomadVariantId",
+                "gnomad3VariantId",
                 "alleleType",
                 "rsIds",
                 f.array(
