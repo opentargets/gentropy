@@ -76,9 +76,8 @@ class LocusToGeneStep(LocusToGeneConfig):
             )
 
             classifier = LocusToGeneModel(
-                _classifier=xgb_classifier,
                 features_list=list(self.features_list),
-            )
+            ).add_pipeline_stage(xgb_classifier)
 
             # Perform cross validation to extract what are the best hyperparameters
             # if self.perform_cross_validation:
