@@ -8,8 +8,9 @@ from xgboost.spark import SparkXGBClassifier
 
 from otg.common.spark_helpers import _convert_from_long_to_wide
 from otg.config import LocusToGeneConfig
-from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from otg.dataset.l2g_gold_standard import L2GGoldStandard
+from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g.gold_standard import L2GGoldStandard
+from otg.dataset.l2g.predictions import L2GPredictions
 from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 
 if TYPE_CHECKING:
@@ -71,7 +72,7 @@ class LocusToGeneStep(LocusToGeneConfig):
                 value_name="value",
             )
 
-            # Join and split
+            # Join and split - this should happen leater for the case of the xval
             train, test = L2GFeatureMatrix(
                 _df=gold_standards._df.join(
                     fm, on=["studyLocusId", "geneId"], how="inner"
@@ -109,4 +110,16 @@ class LocusToGeneStep(LocusToGeneConfig):
                 model_path=self.model_path,
                 wandb_run_name=self.wandb_run_name,
                 **self.hyperparameters,
+            )
+
+        if self.run_mode == "predict":
+            predictions = L2GPredictions.from_study_locus(
+                self.session, self.feature_matrix_path, self.model_path
+            )
+            predictions.df.write.mode(self.session.write_mode).parquet(
+                self.predictions_path
+            )
+
+            self.session.logger.info(
+                f"Finished {self.id} step. L2G predictions saved to {self.predictions_path}"
             )

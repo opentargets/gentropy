@@ -123,5 +123,5 @@ class L2GGoldStandard(Dataset):
                 )
             )
             .select("studyLocusId", "geneId", "gold_standard_set")
-            # include source of GS
+            # TODO: comment from Daniel: include source of GS
         )
