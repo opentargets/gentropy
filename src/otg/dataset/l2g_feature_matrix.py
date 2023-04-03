@@ -28,9 +28,7 @@ if TYPE_CHECKING:
 class L2GFeatureMatrix(Dataset):
     """Dataset with features for Locus to Gene prediction."""
 
-    _schema: StructType = parse_spark_schema(
-        "l2g_feature.json"
-    )  # TODO: define wide schema once I have all features
+    _schema: StructType = parse_spark_schema("l2g_feature_matrix.json")
 
     @staticmethod
     def fill_na(
@@ -109,7 +107,5 @@ class L2GFeatureMatrix(Dataset):
 @classmethod
 class L2G(Dataset):
     """Output L2G."""
-
-    # TODO: Do i need this class?
 
     pass
