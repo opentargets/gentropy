@@ -214,9 +214,8 @@ class GWASCatalogStepConfig:
             "eas",  # East Asian
             "fin",  # Finnish
             "nfe",  # Non-Finnish European
-            "mid",  # Middle Eastern
-            "sas",  # South Asian
-            "oth",  # Other
+            "nwe",  # Northwestern European
+            "seu",  # Southeastern European
         ]
     )
     catalog_studies_out: str = MISSING
