@@ -65,7 +65,7 @@ class Dataset:
             ValueError: DataFrame schema is not valid
         """
         expected_schema = self._schema  # type: ignore[attr-defined]
-        observed_schema = self.df.schema  # type: ignore[attr-defined]
+        observed_schema = self._df.schema  # type: ignore[attr-defined]
         # Observed fields no    t in schema
         missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
         error_message = f"The {missing_struct_fields} StructFields are not included in DataFrame schema: {expected_schema}"

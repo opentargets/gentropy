@@ -1,6 +1,7 @@
 """Common functions in the Genetics datasets."""
 from __future__ import annotations
 
+from math import floor, log10
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -42,6 +43,20 @@ def convert_gnomad_position_to_ensembl(
     return f.when(
         (f.length(reference) > 1) | (f.length(alternate) > 1), position + 1
     ).otherwise(position)
+
+
+def split_pvalue(pvalue: float) -> tuple[float, int]:
+    """Function to convert a float to 10 based exponent and mantissa.
+
+    Args:
+        pvalue (float): p-value
+
+    Returns:
+        tuple[float, int]: Tuple with mantissa and exponent
+    """
+    exponent = floor(log10(pvalue)) if pvalue != 0 else 0
+    mantissa = round(pvalue / 10**exponent, 3)
+    return (mantissa, exponent)
 
 
 def parse_efos(efo_uri: Column) -> Column:

@@ -13,6 +13,7 @@ from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
+from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_index import VariantIndex
 
@@ -283,6 +284,39 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
     )
 
     return VariantIndex(_df=data_spec.build(), _schema=vi_schema)
+
+
+@pytest.fixture()
+def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
+    """Generating a mock summary statistics dataset."""
+    schema = parse_spark_schema("summary_statistics.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+            name="summaryStats",
+        )
+        .withSchema(schema)
+        # Allowing missingness in effect allele frequency and enforce upper limit:
+        .withColumnSpec(
+            "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
+        )
+        # Allowing missingness:
+        .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
+        .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
+        .withColumnSpec("standardError", percentNulls=0.1)
+        # Making sure p-values are below 1:
+    ).build()
+
+    # Because some of the columns are not strictly speaking required, they are dropped now:
+    data_spec = data_spec.drop(
+        "betaConfidenceIntervalLower", "betaConfidenceIntervalUpper"
+    )
+
+    return SummaryStatistics(_df=data_spec)
 
 
 @pytest.fixture()

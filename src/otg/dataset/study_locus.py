@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import importlib.resources as pkg_resources
 import json
-import sys
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain
@@ -11,15 +10,14 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-import pyspark.sql.types as t
 from pyspark.sql.window import Window
-from scipy.stats import norm
 
 from otg.assets import data
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
     calculate_neglog_pvalue,
     get_record_with_maximum_value,
+    pvalue_to_zscore,
 )
 from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
@@ -899,42 +897,6 @@ class StudyLocusGWASCatalog(StudyLocus):
         )
 
     @staticmethod
-    def _pval_to_zscore(pval_col: Column) -> Column:
-        """Convert p-value column to z-score column.
-
-        Args:
-            pval_col (Column): pvalues to be casted to floats.
-
-        Returns:
-            Column: p-values transformed to z-scores
-
-        Examples:
-            >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
-            >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("zscore", StudyLocusGWASCatalog._pval_to_zscore(f.col("pval"))).show()
-            +---+-------+----------+
-            | id|   pval|    zscore|
-            +---+-------+----------+
-            | t1|      1|       0.0|
-            | t2|    0.9|0.12566137|
-            | t3|   0.05|  1.959964|
-            | t4| 1e-300| 37.537838|
-            | t5|1e-1000| 37.537838|
-            | t6|     NA|      null|
-            +---+-------+----------+
-            <BLANKLINE>
-
-        """
-        pvalue_float = pval_col.cast(t.FloatType())
-        pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
-            pvalue_float
-        )
-        return f.udf(
-            lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
-            t.FloatType(),
-        )(pvalue_nozero)
-
-    @staticmethod
     def _harmonise_beta(
         risk_allele: Column,
         reference_allele: Column,
@@ -1012,7 +974,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             effect_size,
             confidence_interval,
         )
-        zscore = StudyLocusGWASCatalog._pval_to_zscore(p_value)
+        zscore = pvalue_to_zscore(p_value)
         return (
             f.when(f.lit(direction) == "upper", beta + f.abs(zscore_95 * beta) / zscore)
             .when(f.lit(direction) == "lower", beta - f.abs(zscore_95 * beta) / zscore)
@@ -1089,7 +1051,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             confidence_interval,
         )
         odds_ratio_estimate = f.log(odds_ratio)
-        zscore = StudyLocusGWASCatalog._pval_to_zscore(p_value)
+        zscore = pvalue_to_zscore(p_value)
         odds_ratio_se = odds_ratio_estimate / zscore
         return f.when(
             f.lit(direction) == "upper",

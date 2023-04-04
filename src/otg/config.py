@@ -237,6 +237,24 @@ class GeneIndexStepConfig:
     gene_index_path: str = MISSING
 
 
+@dataclass
+class GWASCatalogSumstatsPreprocessConfig:
+    """GWAS Catalog Sumstats Preprocessing step requirements.
+
+    Attributes:
+        raw_sumstats_path (str): Input raw GWAS Catalog summary statistics path.
+        out_sumstats_path (str): Output GWAS Catalog summary statistics path.
+        study_id (str): GWAS Catalog study identifier.
+    """
+
+    _target_: str = (
+        "otg.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
+    )
+    raw_sumstats_path: str = MISSING
+    out_sumstats_path: str = MISSING
+    study_id: str = MISSING
+
+
 # Register all configs
 def register_configs() -> None:
     """Register configs."""
@@ -250,3 +268,8 @@ def register_configs() -> None:
     cs.store(name="v2g", group="step", node=V2GStepConfig)
     cs.store(name="colocalisation", group="step", node=ColocalisationStepConfig)
     cs.store(name="gwas_catalog", group="step", node=GWASCatalogStepConfig)
+    cs.store(
+        name="gwas_catalog_sumstats_preprocess",
+        group="step",
+        node=GWASCatalogSumstatsPreprocessConfig,
+    )
