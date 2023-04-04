@@ -49,13 +49,12 @@ class LDIndexStepConfig:
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
-            "ami",  # Amish ancestry
             "asj",  # Ashkenazi Jewish
             "eas",  # East Asian
             "fin",  # Finnish
             "nfe",  # Non-Finnish European
-            "mid",  # Middle Eastern
-            "sas",  # South Asian
+            "nwe",  # Northwestern European
+            "seu",  # Southeastern European
         ]
     )
 
@@ -209,7 +208,6 @@ class GWASCatalogStepConfig:
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
-            "ami",  # Amish ancestry
             "asj",  # Ashkenazi Jewish
             "eas",  # East Asian
             "fin",  # Finnish
