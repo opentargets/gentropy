@@ -25,14 +25,13 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class L2GFeature:
+class L2GFeature(Dataset):
     """Property of a study locus pair."""
 
-    study_id: str  # TODO: think about moving this to a trait id - so that we can extract the best study for that trait to train on
-    locus_id: str
-    gene_id: str
-    feature_name: str
-    feature_value: float
+    # TODO: think about moving this to a trait id - so that we can extract the best study for that trait to train on
+
+    _df: DataFrame
+    _schema: StructType = parse_spark_schema("l2g_feature.json")
 
 
 @dataclass
