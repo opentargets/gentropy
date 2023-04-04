@@ -29,7 +29,7 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     features_list: List[str]
-    _classifier: Any = None  # type: ignore
+    _estimator: Any = None
     pipeline: Pipeline = Pipeline(stages=[])
     model: Optional[PipelineModel] = None
 
@@ -56,7 +56,7 @@ class LocusToGeneModel:
     @property
     def classifier(self: LocusToGeneModel) -> Any:
         """Return the model."""
-        return self._classifier
+        return self._estimator
 
     @staticmethod
     def features_vector_assembler(features_cols: List[str]) -> VectorAssembler:
@@ -111,23 +111,25 @@ class LocusToGeneModel:
         return cls(model=PipelineModel.load(path), features_list=features_list)
 
     @classifier.setter  # type: ignore
-    def classifier(self: LocusToGeneModel, new_classifier: Any) -> None:
+    def classifier(self: LocusToGeneModel, new_estimator: Any) -> None:
         """Set the model."""
-        self._classifier = new_classifier
+        self._estimator = new_estimator
 
     def get_param_grid(self: LocusToGeneModel) -> list:
         """Return the parameter grid for the model."""
         return (
             ParamGridBuilder()
-            .addGrid(self._classifier.max_depth, [3, 5, 7])
-            .addGrid(self._classifier.learning_rate, [0.01, 0.1, 1.0])
+            .addGrid(self._estimator.max_depth, [3, 5, 7])
+            .addGrid(self._estimator.learning_rate, [0.01, 0.1, 1.0])
             .build()
         )
 
-    def add_pipeline_stage(self: LocusToGeneModel, estimator: Any) -> LocusToGeneModel:
+    def add_pipeline_stage(
+        self: LocusToGeneModel, transformer: Any
+    ) -> LocusToGeneModel:
         """Adds a stage to the L2G pipeline."""
         pipeline_stages = self.pipeline.getStages()
-        new_stages = pipeline_stages + [estimator]
+        new_stages = pipeline_stages + [transformer]
         self.pipeline = Pipeline(stages=new_stages)
         return self
 
@@ -206,7 +208,7 @@ class LocusToGeneTrainer:
 
     @staticmethod
     def fill_na(
-        df: DataFrame, value: Optional[float] = 0.0, subset: Optional[List[str]] = None
+        df: DataFrame, value: float = 0.0, subset: Optional[List[str]] = None
     ) -> DataFrame:
         """Fill missing values in a column with a given value."""
         return df.fillna(value, subset=subset)
@@ -214,9 +216,8 @@ class LocusToGeneTrainer:
     @classmethod
     def train(
         cls: type[LocusToGeneTrainer],
-        classifier: LocusToGeneModel,
-        train_set: L2GFeatureMatrix,
-        test_set: L2GFeatureMatrix,
+        data: L2GFeatureMatrix,
+        l2g_model: LocusToGeneModel,
         wandb_run_name: Optional[str] = None,
         model_path: Optional[str] = None,
         **hyperparams: dict,
@@ -224,9 +225,8 @@ class LocusToGeneTrainer:
         """Train the Locus to Gene model.
 
         Args:
-            classifier (LocusToGeneModel): Model to fit to the data
-            train_set (L2GFeatureMatrix): Training data
-            test_set (L2GFeatureMatrix): Test data
+            l2g_model (LocusToGeneModel): Model to fit to the data on
+            data (L2GFeatureMatrix): Feature matrix containing the data
             wandb_run_name (str): Descriptive name for the run to be tracked with W&B
             model_path (str): Path to save the model to
             hyperparams (dict): Hyperparameters to use for the model
@@ -234,33 +234,44 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Trained model
         """
-        train_df = train_set.df.transform(L2GFeatureMatrix.fill_na)
-        test_df = test_set.df.transform(L2GFeatureMatrix.fill_na)
+        train, test = data.train_test_split(fraction=0.8)
 
-        model = classifier.fit(train_df)
+        model = l2g_model.add_pipeline_stage(l2g_model._estimator).fit(train.df)
 
-        classifier.evaluate(
-            results=model.predict(test_df),
+        l2g_model.evaluate(
+            results=model.predict(test.df),
             hyperparameters=hyperparams,
             wandb_run_name=wandb_run_name,
         )
         if model_path:
-            classifier.save(model_path)
-        return classifier
+            l2g_model.save(model_path)
+        return l2g_model
 
     @classmethod
     def k_fold_cross_validation(
         cls: type[LocusToGeneTrainer],
-        classifier: LocusToGeneModel,
-        train_set: L2GFeatureMatrix,
+        l2g_model: LocusToGeneModel,
+        data: L2GFeatureMatrix,
         num_folds: int,
     ) -> LocusToGeneModel:
-        """Perform k-fold cross validation on the model."""
-        params_grid = classifier.get_param_grid()
+        """Perform k-fold cross validation on the model.
+
+        By providing a model with a parameter grid, this method will perform k-fold cross validation on the model for each
+        combination of parameters and return the best model.
+
+        Args:
+            l2g_model (LocusToGeneModel): Model to fit to the data on
+            data (L2GFeatureMatrix): Data to perform cross validation on
+            num_folds (int): Number of folds to use for cross validation
+
+        Returns:
+            LocusToGeneModel: Trained model fitted with the best hyperparameters
+        """
+        params_grid = l2g_model.get_param_grid()
         evaluator = MulticlassClassificationEvaluator()
         cv = CrossValidator(
             numFolds=num_folds,
-            estimator=classifier._classifier,
+            estimator=l2g_model._estimator,
             estimatorParamMaps=params_grid,
             evaluator=evaluator,
             parallelism=2,
@@ -268,4 +279,6 @@ class LocusToGeneTrainer:
             seed=42,
         )
 
-        return classifier.add_pipeline_stage(cv).fit(train_set.df)
+        df = data.df.transform(L2GFeatureMatrix.fill_na)
+
+        return l2g_model.add_pipeline_stage(cv).fit(df)
