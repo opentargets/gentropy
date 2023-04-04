@@ -15,12 +15,13 @@ from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 from wandb.wandb_run import Run
 
 import wandb
-from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
 from otg.method.l2g_utils.evaluator import WandbEvaluator
 
 if TYPE_CHECKING:
+    from pyspark.ml import Transformer
     from pyspark.sql import DataFrame
 
+    from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
     from otg.dataset.l2g.predictions import L2GPrediction
 
 
@@ -71,7 +72,7 @@ class LocusToGeneModel:
         Examples:
             >>> from pyspark.ml.feature import VectorAssembler
             >>> df = spark.createDataFrame([(5.2, 3.5)], schema="feature_1 FLOAT, feature_2 FLOAT")
-            >>> assembler = features_vector_assembler(["feature_1", "feature_2"])
+            >>> assembler = LocusToGeneModel.features_vector_assembler(["feature_1", "feature_2"])
             >>> assembler.transform(df).show()
             +---------+---------+--------------------+
             |feature_1|feature_2|            features|
@@ -125,9 +126,25 @@ class LocusToGeneModel:
         )
 
     def add_pipeline_stage(
-        self: LocusToGeneModel, transformer: Any
+        self: LocusToGeneModel, transformer: Transformer
     ) -> LocusToGeneModel:
-        """Adds a stage to the L2G pipeline."""
+        """Adds a stage to the L2G pipeline.
+
+        Args:
+            transformer (Transformer): Spark transformer to add to the pipeline
+
+        Returns:
+            LocusToGeneModel: L2G model with the new transformer
+
+        Examples:
+            >>> from pyspark.ml.regression import LinearRegression
+            >>> estimator = LinearRegression()
+            >>> test_model = LocusToGeneModel(features_list=["a", "b"])
+            >>> print(len(test_model.pipeline.getStages()))
+            2
+            >>> print(len(test_model.add_pipeline_stage(estimator).pipeline.getStages()))
+            3
+        """
         pipeline_stages = self.pipeline.getStages()
         new_stages = pipeline_stages + [transformer]
         self.pipeline = Pipeline(stages=new_stages)
@@ -279,6 +296,6 @@ class LocusToGeneTrainer:
             seed=42,
         )
 
-        df = data.df.transform(L2GFeatureMatrix.fill_na)
-
-        return l2g_model.add_pipeline_stage(cv).fit(df)
+        if model := l2g_model.add_pipeline_stage(cv).fit(data.df):
+            print("Best model parameters:", model.model.bestModel.extractParamMap())  # type: ignore
+        return model
