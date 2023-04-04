@@ -15,14 +15,12 @@ if TYPE_CHECKING:
 class Session:
     """Spark session class."""
 
-    spark_config = SparkConf()
-
     def __init__(
         self: Session,
         spark_uri: str = "local[*]",
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
-        spark_config: SparkConf = spark_config,
+        hail_home: str = "unspecified",
     ) -> None:
         """Initialises spark session and logger.
 
@@ -30,9 +28,28 @@ class Session:
             spark_uri (str): spark uri
             app_name (str): spark application name
             write_mode (str): spark write mode
-            spark_config (SparkConf): spark configuration. Defaults to spark_config.
+            hail_home (str): path to hail installation
         """
         # create session and retrieve Spark logger object
+        spark_config = (
+            (
+                SparkConf()
+                .set(
+                    "spark.jars",
+                    f"{hail_home}/backend/hail-all-spark.jar",
+                )
+                .set(
+                    "spark.driver.extraClassPath",
+                    f"{hail_home}/backend/hail-all-spark.jar",
+                )
+                .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
+                .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+                .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
+                # .set("spark.kryoserializer.buffer", "512m")
+            )
+            if hail_home != "unspecified"
+            else SparkConf()
+        )
         self.spark = (
             SparkSession.builder.config(conf=spark_config)
             .master(spark_uri)

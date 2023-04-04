@@ -80,12 +80,3 @@ class Dataset:
         error_message = f"The {missing_required_fields} StructFields are required but missing from the DataFrame schema: {expected_schema}"
         if missing_required_fields:
             raise ValueError(error_message)
-
-    def persist(self: Dataset) -> Dataset:
-        """Persist DataFrame included in the Dataset."""
-        self._df = self.df.persist()
-        return self
-
-    def write_parquet(self: Dataset, file_name: str) -> None:
-        """Saving dataset as partitioned parquet."""
-        self._df.write.mode("overwrite").parquet(file_name)

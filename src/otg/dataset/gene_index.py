@@ -89,7 +89,8 @@ class GeneIndex(Dataset):
         Returns:
             GeneIndex: Gene index dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> GeneIndex:
         """Filter by approved biotypes.

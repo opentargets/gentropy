@@ -2,9 +2,5 @@
 defaults:
   - gene_index
 # Additional config
-target_path: str = MISSING
-gene_index_path: str = MISSING
-
-grch37_to_grch38_chain_path: ${datasets.chain_hail_37_38}
-ld_index_raw_template: ${dataset.ld_index_raw_template}
-ld_index_template: ${dataset.ld_index_template}
+target_path: ${datasets.target_index}
+gene_index_path: ${datasets.gene_index}

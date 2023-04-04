@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import Window
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
@@ -135,7 +136,8 @@ class LDIndex(Dataset):
         Returns:
             LDIndex: LD index dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     @classmethod
     def create(
@@ -161,11 +163,17 @@ class LDIndex(Dataset):
             _df=ld_index_38.to_spark()
             .filter(f.col("`locus38.position`").isNotNull())
             .select(
-                f.col("idx"),
-                f.regexp_replace("`locus38.contig`", "chr", "").alias("chromosome"),
-                f.col("`locus38.position`").alias("position"),
-                f.col("`alleles`").getItem(0).alias("referenceAllele"),
-                f.col("`alleles`").getItem(1).alias("alternateAllele"),
+                f.coalesce(f.col("idx"), f.monotonically_increasing_id()).alias("idx"),
+                f.coalesce(
+                    f.regexp_replace("`locus38.contig`", "chr", ""), f.lit("unknown")
+                ).alias("chromosome"),
+                f.coalesce(f.col("`locus38.position`"), f.lit(-1)).alias("position"),
+                f.coalesce(f.col("`alleles`").getItem(0), f.lit("?")).alias(
+                    "referenceAllele"
+                ),
+                f.coalesce(f.col("`alleles`").getItem(1), f.lit("?")).alias(
+                    "alternateAllele"
+                ),
             )
             .withColumn(
                 "position",
@@ -185,6 +193,8 @@ class LDIndex(Dataset):
                     f.col("alternateAllele"),
                 ),
             )
+            .withColumn("start_idx", f.lit(None).cast(t.LongType()))
+            .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
             # Convert gnomad position to Ensembl position (1-based for indels)
             .repartition(400, "chromosome")
             .sortWithinPartitions("position")
@@ -200,19 +210,23 @@ class LDIndex(Dataset):
         Returns:
             LDIndex: including `start_idx` and `stop_idx` columns
         """
-        index_with_positions = self._df.select(
-            "*",
-            LDIndex._interval_start(
-                contig=f.col("chromosome"),
-                position=f.col("position"),
-                ld_radius=ld_radius,
-            ).alias("start_pos"),
-            LDIndex._interval_stop(
-                contig=f.col("chromosome"),
-                position=f.col("position"),
-                ld_radius=ld_radius,
-            ).alias("stop_pos"),
-        ).persist()
+        index_with_positions = (
+            self._df.drop("start_idx", "stop_idx")
+            .select(
+                "*",
+                LDIndex._interval_start(
+                    contig=f.col("chromosome"),
+                    position=f.col("position"),
+                    ld_radius=ld_radius,
+                ).alias("start_pos"),
+                LDIndex._interval_stop(
+                    contig=f.col("chromosome"),
+                    position=f.col("position"),
+                    ld_radius=ld_radius,
+                ).alias("stop_pos"),
+            )
+            .persist()
+        )
 
         self.df = (
             index_with_positions.join(
@@ -246,6 +260,19 @@ class LDIndex(Dataset):
                     )
                 ),
                 on=["chromosome", "stop_pos"],
+            )
+            # Ensure nullable true
+            .withColumn(
+                "start_idx",
+                f.when(f.col("start_idx").isNotNull(), f.col("start_idx")).otherwise(
+                    f.lit(None)
+                ),
+            )
+            .withColumn(
+                "stop_idx",
+                f.when(f.col("stop_idx").isNotNull(), f.col("stop_idx")).otherwise(
+                    f.lit(None)
+                ),
             )
             .drop("start_pos", "stop_pos")
         )

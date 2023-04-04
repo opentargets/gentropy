@@ -2,3 +2,4 @@ defaults:
   - session_config
 spark_uri: yarn
 write_mode: overwrite
+hail_home: /opt/conda/miniconda3/lib/python3.8/site-packages/hail

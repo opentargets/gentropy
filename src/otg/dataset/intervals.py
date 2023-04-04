@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
+from otg.assets import schemas
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
-from otg.json import schemas
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
@@ -40,7 +40,8 @@ class Intervals(Dataset):
         Returns:
             Intervals: Intervals dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     @classmethod
     def parse_andersson(
@@ -113,7 +114,7 @@ class Intervals(Dataset):
         )
 
         return cls(
-            df=(
+            _df=(
                 # Lift over the intervals:
                 lift.convert_intervals(parsed_anderson_df, "chrom", "start", "end")
                 .drop("start", "end")
@@ -260,7 +261,7 @@ class Intervals(Dataset):
 
         # Joining back the data:
         return cls(
-            df=(
+            _df=(
                 javierre_remapped.join(
                     unique_intervals_with_genes,
                     on=["chrom", "start", "end"],
@@ -334,7 +335,7 @@ class Intervals(Dataset):
 
         # Lifting over the coordinates:
         return cls(
-            df=(
+            _df=(
                 jung_raw
                 # Lifting over to GRCh38 interval 1:
                 .transform(
@@ -412,7 +413,7 @@ class Intervals(Dataset):
         )
 
         return cls(
-            df=(
+            _df=(
                 jung_raw
                 # Lifting over to GRCh38 interval 1:
                 .transform(

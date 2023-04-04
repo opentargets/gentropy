@@ -11,11 +11,11 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import Column, Window
 
+from otg.assets import data
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import column2camel_case
 from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
-from otg.json import data
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -44,7 +44,8 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: Study index dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.

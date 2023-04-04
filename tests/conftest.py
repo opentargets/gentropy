@@ -1,8 +1,6 @@
 """Unit test configuration."""
 from __future__ import annotations
 
-from functools import reduce
-
 import dbldatagen as dg
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -307,20 +305,10 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
         )
         # Allowing missingness:
-        .withColumnSpec("variantId", percentNulls=0.1)
-        .withColumnSpec("chromosome", percentNulls=0.1)
-        .withColumnSpec("position", percentNulls=0.1)
-        .withColumnSpec("beta", percentNulls=0.1)
         .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
         .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
         .withColumnSpec("standardError", percentNulls=0.1)
         # Making sure p-values are below 1:
-        .withColumnSpec(
-            "pValueMantissa", minValue=1, maxValue=10, random=True, percentNulls=0.1
-        )
-        .withColumnSpec(
-            "pValueExponent", minValue=-40, maxValue=-1, random=True, percentNulls=0.1
-        )
     ).build()
 
     # Because some of the columns are not strictly speaking required, they are dropped now:
@@ -336,20 +324,19 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
     """Mock gene index."""
     ld_schema = parse_spark_schema("ld_index.json")
 
-    data_spec = dg.DataGenerator(
-        spark,
-        rows=400,
-        partitions=4,
-        randomSeedMethod="hash_fieldname",
-    ).withSchema(ld_schema)
-
-    data_spec = reduce(
-        lambda df, colname: df.withColumnSpec(colname, percentNulls=0.1),
-        ld_schema.fieldNames(),
-        data_spec,
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(ld_schema)
+        .withColumnSpec("start_idx", percentNulls=0.1)
+        .withColumnSpec("stop_idx", percentNulls=0.1)
     )
 
-    return LDIndex(_df=data_spec.build())
+    return LDIndex(_df=data_spec.build(), _schema=ld_schema)
 
 
 @pytest.fixture()
@@ -401,8 +388,8 @@ def sample_target_index(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def mock_gene_index(spark: SparkSession) -> Colocalisation:
-    """Mock colocalisation dataset."""
+def mock_gene_index(spark: SparkSession) -> GeneIndex:
+    """Mock gene index dataset."""
     schema = parse_spark_schema("targets.json")
 
     data_spec = (

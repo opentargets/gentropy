@@ -7,6 +7,7 @@ outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${dataset
 # Input datasets
 gnomad_gnomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
 chain_hail_38_37: gs://hail-common/references/grch38_to_grch37.over.chain.gz
+chain_hail_37_38: gs://hail-common/references/grch37_to_grch38.over.chain.gz
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
 target_index: ${datasets.inputs}/v2g_input/targets_correct_tss
 vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
@@ -14,10 +15,10 @@ anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associ
 javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
 jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
 thrunman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-catalog_associations: ${dataset.inputs}/v2d/gwas_catalog_v1.0.2-associations_e107_r2022-11-29.tsv
-catalog_studies: ${dataset.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-11-29.tsv
-catalog_ancestries: ${dataset.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-11-29.tsv
-catalog_sumstats_lut: ${dataset.inputs}/v2d/harmonised_list.txt
+catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e107_r2022-11-29.tsv
+catalog_studies: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-11-29.tsv
+catalog_ancestries: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-11-29.tsv
+catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list.txt
 # templates
 ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
 ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
