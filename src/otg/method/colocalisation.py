@@ -13,6 +13,7 @@ from pyspark.sql.types import DoubleType
 from otg.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
+    from numpy import ndarray
     from pyspark.sql import Column
 
     from otg.dataset.study_locus_overlap import StudyLocusOverlap
@@ -37,6 +38,19 @@ class ECaviar:
 
         Returns:
             Column: CLPP
+
+        Examples:
+            >>> d = [{"left_pp": 0.5, "right_pp": 0.5}, {"left_pp": 0.25, "right_pp": 0.75}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("clpp", ECaviar._get_clpp(f.col("left_pp"), f.col("right_pp"))).show()
+            +-------+--------+------+
+            |left_pp|right_pp|  clpp|
+            +-------+--------+------+
+            |    0.5|     0.5|  0.25|
+            |   0.25|    0.75|0.1875|
+            +-------+--------+------+
+            <BLANKLINE>
+
         """
         return left_pp * right_pp
 
@@ -90,14 +104,14 @@ class Coloc:
     """
 
     @staticmethod
-    def _get_logsum(log_abf: VectorUDT) -> float:
+    def _get_logsum(log_abf: ndarray) -> float:
         """Calculates logsum of vector.
 
         This function calculates the log of the sum of the exponentiated
         logs taking out the max, i.e. insuring that the sum is not Inf
 
         Args:
-            log_abf (VectorUDT): log approximate bayes factor
+            log_abf (ndarray): log approximate bayes factor
 
         Returns:
             float: logsum
@@ -112,14 +126,19 @@ class Coloc:
         return float(result)
 
     @staticmethod
-    def _get_posteriors(all_abfs: VectorUDT) -> DenseVector:
+    def _get_posteriors(all_abfs: ndarray) -> DenseVector:
         """Calculate posterior probabilities for each hypothesis.
 
         Args:
-            all_abfs (VectorUDT): h0-h4 bayes factors
+            all_abfs (ndarray): h0-h4 bayes factors
 
         Returns:
             DenseVector: Posterior
+
+        Example:
+            >>> l = np.array([0.2, 0.1, 0.05, 0])
+            >>> Coloc._get_posteriors(l)
+            DenseVector([0.279, 0.2524, 0.2401, 0.2284])
         """
         diff = all_abfs - Coloc._get_logsum(all_abfs)
         abfs_posteriors = np.exp(diff)
