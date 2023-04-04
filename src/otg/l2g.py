@@ -72,44 +72,41 @@ class LocusToGeneStep(LocusToGeneConfig):
                 value_name="value",
             )
 
-            # Join and split - this should happen leater for the case of the xval
-            train, test = L2GFeatureMatrix(
+            # Join and fill null values with 0
+            data = L2GFeatureMatrix(
                 _df=gold_standards._df.join(
                     fm, on=["studyLocusId", "geneId"], how="inner"
-                ),
-            ).train_test_split(fraction=0.8)
+                ).transform(L2GFeatureMatrix.fill_na),
+            )
 
             # Instantiate classifier
-            xgb_classifier = SparkXGBClassifier(
+            estimator = SparkXGBClassifier(
                 eval_metric="logloss",
                 features_col="features",
                 label_col="label",
                 max_depth=5,
             )
-
-            classifier = LocusToGeneModel(
-                features_list=list(self.features_list),
-            ).add_pipeline_stage(xgb_classifier)
-
-            # Perform cross validation to extract what are the best hyperparameters
-            # if self.perform_cross_validation:
-            #     self.hyperparameters = LocusToGeneTrainer.k_fold_cross_validation(
-            #         num_folds=3,
-            #         classifier=classifier,
-            #         train_set=train,
-            #     )
-            #     self.wandb_run_name = f"{self.wandb_run_name}_cv_best_params"
-
-            # Train model
-            LocusToGeneTrainer.train(
-                train_set=train,
-                test_set=test,
-                classifier=classifier,
-                feature_cols=list(self.features_list),
-                model_path=self.model_path,
-                wandb_run_name=self.wandb_run_name,
-                **self.hyperparameters,
+            l2g_model = LocusToGeneModel(
+                features_list=list(self.features_list), estimator=estimator
             )
+            if self.hyperparameters.cross_validation_folds:
+                # Perform cross validation to extract what are the best hyperparameters
+                LocusToGeneTrainer.cross_validate(
+                    l2g_model=l2g_model,
+                    data=data,
+                    num_folds=self.hyperparameters.cross_validation_folds,
+                )
+                # self.wandb_run_name = f"{self.wandb_run_name}_cv_best_params"
+            else:
+                # Train model
+                LocusToGeneTrainer.train(
+                    data=data,
+                    l2g_model=l2g_model,
+                    feature_cols=list(self.features_list),
+                    model_path=self.model_path,
+                    wandb_run_name=self.wandb_run_name,
+                    **self.hyperparameters,
+                )
 
         if self.run_mode == "predict":
             predictions = L2GPredictions.from_study_locus(
