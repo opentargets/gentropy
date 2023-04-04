@@ -120,7 +120,8 @@ class SummaryStatistics(Dataset):
         Returns:
             SummaryStatistics: SummaryStatistics dataset
         """
-        return super().from_parquet(session, path, cls._schema)
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)
 
     @classmethod
     def from_gwas_harmonized_summary_stats(
