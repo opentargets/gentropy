@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
@@ -16,6 +16,9 @@ class Config:
     defaults: List[Dict[str, str]] = field(
         default_factory=lambda: [{"step": "???"}, {"session": "session_config"}]
     )
+
+    step: Any = MISSING
+    session: Any = MISSING
 
 
 @dataclass
