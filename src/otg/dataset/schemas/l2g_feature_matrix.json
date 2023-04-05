@@ -20,7 +20,7 @@
     },
     {
       "metadata": {},
-      "name": "dist_tss_ave",
+      "name": "dist_tss_min",
       "nullable": true,
       "type": "double"
     },
