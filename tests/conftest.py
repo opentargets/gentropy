@@ -9,6 +9,9 @@ from otg.common.Liftover import LiftOverSpark
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
+from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g.gold_standard import L2GGoldStandard
+from otg.dataset.l2g.predictions import L2GPredictions
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
@@ -535,3 +538,57 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
     """Sample liftover chain file."""
     return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")
+
+
+@pytest.fixture()
+def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
+    """Mock l2g feature matrix dataset."""
+    schema = parse_spark_schema("l2g_feature_matrix.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(schema)
+        .withColumnSpec("dist_tss_ave", percentNulls=0.1)
+        .withColumnSpec("dist_tss_ave", percentNulls=0.1)
+        .withColumnSpec("eqtl_max_coloc_clpp_local", percentNulls=0.1)
+        .withColumnSpec("eqtl_max_coloc_clpp_nbh", percentNulls=0.1)
+        .withColumnSpec("eqtl_max_coloc_llr_local", percentNulls=0.1)
+        .withColumnSpec("eqtl_max_coloc_llr_nbh", percentNulls=0.1)
+        .withColumnSpec("pqtl_max_coloc_clpp_local", percentNulls=0.1)
+        .withColumnSpec("pqtl_max_coloc_clpp_nbh", percentNulls=0.1)
+        .withColumnSpec("pqtl_max_coloc_llr_local", percentNulls=0.1)
+        .withColumnSpec("pqtl_max_coloc_llr_nbh", percentNulls=0.1)
+        .withColumnSpec("sqtl_max_coloc_clpp_local", percentNulls=0.1)
+        .withColumnSpec("sqtl_max_coloc_clpp_nbh", percentNulls=0.1)
+        .withColumnSpec("sqtl_max_coloc_llr_local", percentNulls=0.1)
+        .withColumnSpec("sqtl_max_coloc_llr_nbh", percentNulls=0.1)
+    )
+
+    return L2GFeatureMatrix(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
+    """Mock l2g gold standard dataset."""
+    schema = parse_spark_schema("l2g_gold_standard.json")
+    data_spec = dg.DataGenerator(
+        spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
+    ).withSchema(schema)
+
+    return L2GGoldStandard(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def mock_l2g_predictions(spark: SparkSession) -> L2GPredictions:
+    """Mock l2g predictions dataset."""
+    schema = parse_spark_schema("l2g_predictions.json")
+    data_spec = dg.DataGenerator(
+        spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
+    ).withSchema(schema)
+
+    return L2GPredictions(_df=data_spec.build(), _schema=schema)
