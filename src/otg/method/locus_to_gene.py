@@ -265,11 +265,12 @@ class LocusToGeneTrainer:
         return l2g_model
 
     @classmethod
-    def k_fold_cross_validation(
+    def cross_validate(
         cls: type[LocusToGeneTrainer],
         l2g_model: LocusToGeneModel,
         data: L2GFeatureMatrix,
         num_folds: int,
+        param_grid: Optional[list] = None,
     ) -> LocusToGeneModel:
         """Perform k-fold cross validation on the model.
 
@@ -280,12 +281,13 @@ class LocusToGeneTrainer:
             l2g_model (LocusToGeneModel): Model to fit to the data on
             data (L2GFeatureMatrix): Data to perform cross validation on
             num_folds (int): Number of folds to use for cross validation
+            param_grid (Optional[list]): List of parameter maps to use for cross validation
 
         Returns:
             LocusToGeneModel: Trained model fitted with the best hyperparameters
         """
-        params_grid = l2g_model.get_param_grid()
         evaluator = MulticlassClassificationEvaluator()
+        params_grid = param_grid or l2g_model.get_param_grid()
         cv = CrossValidator(
             numFolds=num_folds,
             estimator=l2g_model._estimator,
@@ -297,5 +299,6 @@ class LocusToGeneTrainer:
         )
 
         if model := l2g_model.add_pipeline_stage(cv).fit(data.df):
-            print("Best model parameters:", model.model.bestModel.extractParamMap())  # type: ignore
+            # print("Best model parameters:", model.model.bestModel.extractParamMap())  # type: ignore
+            print("trained")
         return model
