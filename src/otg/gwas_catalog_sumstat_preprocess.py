@@ -2,24 +2,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-from pyspark.sql import SparkSession
-
+from otg.common.session import Session
 from otg.config import GWASCatalogSumstatsPreprocessConfig
 from otg.dataset.summary_statistics import SummaryStatistics
-
-if TYPE_CHECKING:
-    from otg.common.session import Session
 
 
 @dataclass
 class GWASCatalogSumstatsPreprocessStep(GWASCatalogSumstatsPreprocessConfig):
     """Step to preprocess GWAS Catalog harmonised summary stats."""
 
-    session: Session = SparkSession.builder.getOrCreate()
+    session: Session = Session()
 
-    def run(self: GWASCatalogSumstatsPreprocessConfig) -> None:
+    def run(self: GWASCatalogSumstatsPreprocessStep) -> None:
         """Run Step."""
         # Extract
         self.session.logger.info(self.raw_sumstats_path)
