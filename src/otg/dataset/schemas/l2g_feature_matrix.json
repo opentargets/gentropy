@@ -3,13 +3,13 @@
     {
       "metadata": {},
       "name": "studyLocusId",
-      "nullable": true,
+      "nullable": false,
       "type": "long"
     },
     {
       "metadata": {},
       "name": "geneId",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
@@ -20,7 +20,7 @@
     },
     {
       "metadata": {},
-      "name": "dist_tss_min",
+      "name": "dist_tss_ave",
       "nullable": true,
       "type": "double"
     },
