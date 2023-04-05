@@ -554,7 +554,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
         )
         .withSchema(schema)
         .withColumnSpec("dist_tss_ave", percentNulls=0.1)
-        .withColumnSpec("dist_tss_ave", percentNulls=0.1)
+        .withColumnSpec("dist_tss_min", percentNulls=0.1)
         .withColumnSpec("eqtl_max_coloc_clpp_local", percentNulls=0.1)
         .withColumnSpec("eqtl_max_coloc_clpp_nbh", percentNulls=0.1)
         .withColumnSpec("eqtl_max_coloc_llr_local", percentNulls=0.1)
