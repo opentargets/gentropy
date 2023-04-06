@@ -5,7 +5,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 
-@hydra.main(version_base=None, config_path="../configs/", config_name="config")
+@hydra.main(version_base=None, config_path=None, config_name="my_config")
 def configure(cfg: DictConfig) -> None:
     """Prints the configuration.
 

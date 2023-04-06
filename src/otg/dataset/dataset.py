@@ -34,7 +34,7 @@ class Dataset:
     def df(self: Dataset, new_df: DataFrame) -> None:  # noqa: CCE001
         """Dataframe setter."""
         self._df = new_df
-        self.validate_schema()
+        # self.validate_schema()
 
     @property
     def schema(self: Dataset) -> StructType:

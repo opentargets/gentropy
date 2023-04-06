@@ -7,3 +7,6 @@ outputs/
 coverage.xml
 docs/assets/schemas/
 .cache/
+mock_data/
+notebooks/wandb
+src/wandb
