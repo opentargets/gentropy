@@ -595,28 +595,39 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         # Semi-resolved ids (still contains duplicates when conclusion was not possible to make
         # based on rsIds or allele concordance)
-        filtered_associations = gwas_associations_subset.join(
-            f.broadcast(va_subset),
-            on=["chromosome", "position"],
-            how="left",
-        ).filter(
-            # Filter out rows where GWAS Catalog rsId does not match with GnomAD rsId,
-            # but there is corresponding variant for the same association
-            StudyLocusGWASCatalog._flag_mappings_to_retain(
-                f.col("studyLocusId"),
-                StudyLocusGWASCatalog._compare_rsids(
-                    f.col("rsIdsGnomad"), f.col("rsIdsGwasCatalog")
+        filtered_associations = (
+            gwas_associations_subset.join(
+                f.broadcast(va_subset),
+                on=["chromosome", "position"],
+                how="left",
+            )
+            .withColumn(
+                "rsIdFilter",
+                StudyLocusGWASCatalog._flag_mappings_to_retain(
+                    f.col("studyLocusId"),
+                    StudyLocusGWASCatalog._compare_rsids(
+                        f.col("rsIdsGnomad"), f.col("rsIdsGwasCatalog")
+                    ),
                 ),
             )
-            # or filter out rows where GWAS Catalog alleles are not concordant with GnomAD alleles,
-            # but there is corresponding variant for the same association
-            | StudyLocusGWASCatalog._flag_mappings_to_retain(
-                f.col("studyLocusId"),
-                StudyLocusGWASCatalog._check_concordance(
-                    f.col("riskAllele"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
+            .withColumn(
+                "concordanceFilter",
+                StudyLocusGWASCatalog._flag_mappings_to_retain(
+                    f.col("studyLocusId"),
+                    StudyLocusGWASCatalog._check_concordance(
+                        f.col("riskAllele"),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                    ),
                 ),
+            )
+            .filter(
+                # Filter out rows where GWAS Catalog rsId does not match with GnomAD rsId,
+                # but there is corresponding variant for the same association
+                f.col("rsIdFilter")
+                # or filter out rows where GWAS Catalog alleles are not concordant with GnomAD alleles,
+                # but there is corresponding variant for the same association
+                | f.col("concordanceFilter")
             )
         )
 
