@@ -91,7 +91,7 @@ class LDAnnotatorGnomad:
         return (
             variants_df.join(
                 ld_index.df,
-                on=["chromosome", "position", "referenceAllele", "alternateAllele"],
+                on=["variantId", "chromosome"],
             )  # start idx > stop idx in rare occasions due to liftover
             .filter(f.col("start_idx") < f.col("stop_idx"))
             .groupBy("chromosome", "idx")
