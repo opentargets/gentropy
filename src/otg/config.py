@@ -192,8 +192,10 @@ class GWASCatalogStepConfig:
         catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
         catalog_associations_file (str): Raw GWAS catalog associations file.
         variant_annotation_path (str): Input variant annotation path.
-        ld_populations (list): List of populations to include.
         min_r2 (float): Minimum r2 to consider when considering variants within a window.
+        ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected
+        ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected
+        ld_populations (list): List of populations to include.
         catalog_studies_out (str): Output GWAS catalog studies path.
         catalog_associations_out (str): Output GWAS catalog associations path.
     """

@@ -175,6 +175,7 @@ class LDIndex(Dataset):
                     "alternateAllele"
                 ),
             )
+            # Convert gnomad position to Ensembl position (1-based for indels)
             .withColumn(
                 "position",
                 convert_gnomad_position_to_ensembl(
@@ -195,7 +196,6 @@ class LDIndex(Dataset):
             )
             .withColumn("start_idx", f.lit(None).cast(t.LongType()))
             .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
-            # Convert gnomad position to Ensembl position (1-based for indels)
             .repartition(400, "chromosome")
             .sortWithinPartitions("position")
             .persist()
