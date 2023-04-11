@@ -10,10 +10,32 @@ plugins:
             filters:
               - "!^_[^_]"
   - section-index
-  - git-revision-date-localized
+  - git-revision-date-localized:
+      type: timeago
+      enable_creation_date: true
+      exclude:
+        - index.md
   - autolinks
   - minify:
       minify_html: true
+  - exclude:
+      glob:
+        - assets/schemas/*
+  # trigger scripts (e.g. schema generator)
+  - mkdocs-simple-hooks:
+      hooks:
+        on_pre_build: "scripts.schemadocs:main"
+  # Show git commiters in the footer
+  - git-committers:
+      repository: opentargets/genetics_etl_python
+      branch: main
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: "docs"
 
 repo_name: opentargets/genetics_etl_python
 repo_url: https://github.com/opentargets/genetics_etl_python
@@ -22,6 +44,7 @@ theme:
   name: "material"
   favicon: assets/favicon.png
   logo: assets/otlogo.png
+  custom_dir: docs/assets/overrides
 
   features:
     - navigation.instant
@@ -53,3 +76,9 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/genetics_etl_python
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra_javascript:
+  - assets/javascripts/extra.js

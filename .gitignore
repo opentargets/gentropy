@@ -5,3 +5,5 @@ outputs/
 **/.DS_Store
 .coverage
 coverage.xml
+docs/assets/schemas/
+.cache/

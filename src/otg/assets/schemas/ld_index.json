@@ -1,0 +1,53 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "variantId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "chromosome",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "position",
+      "nullable": false,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "referenceAllele",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "alternateAllele",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "idx",
+      "nullable": false,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "start_idx",
+      "nullable": true,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "stop_idx",
+      "nullable": true,
+      "type": "long"
+    }
+  ],
+  "type": "struct"
+}

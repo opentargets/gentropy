@@ -3,6 +3,7 @@
 set -exo pipefail
 
 readonly PACKAGE=$(/usr/share/google/get_metadata_value attributes/PACKAGE || true)
+readonly CONFIGTAR=$(/usr/share/google/get_metadata_value attributes/CONFIGTAR || true)
 
 function err() {
     echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
@@ -50,6 +51,10 @@ function main() {
 
     echo "Install package..."
     run_with_retry pip install --upgrade ${PACKAGENAME}
+
+    echo "Downloading and uncompressing config..."
+    gsutil cp ${CONFIGTAR} .
+    tar -xvf $(basename ${CONFIGTAR})
 }
 
 main

@@ -1,7 +1,10 @@
 {
   "[python]": {
     "editor.formatOnPaste": false,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
   },
   "python.terminal.launchArgs": [
     "-m",
@@ -42,5 +45,6 @@
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "docwriter.style": "Google"
+  "docwriter.style": "Google",
+  "python.analysis.typeCheckingMode": "basic"
 }

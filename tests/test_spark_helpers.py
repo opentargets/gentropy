@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pytest
 
-from etl.common.spark_helpers import (
+from otg.common.spark_helpers import (
     get_record_with_maximum_value,
     get_record_with_minimum_value,
 )
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_variant_df(spark: SparkSession) -> DataFrame:
     """Mock Dataframe with info of a variant ID."""
     return spark.createDataFrame(
