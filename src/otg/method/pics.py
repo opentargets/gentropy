@@ -66,6 +66,37 @@ class PICS:
 
         Returns:
             Column: Whether the variant is in the credible set
+
+        Examples:
+            >>> d = [
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.1},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.2},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.3},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.4},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.5},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.6},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.7},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.8},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.9},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 1.0}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("is_in_credset", PICS._is_in_credset(f.col("chromosome"), f.col("study_id"), f.col("variant_id"), f.col("pics_postprob"), 0.95)).show()
+            +----------+-------------+--------+----------+-------------+
+            |chromosome|pics_postprob|study_id|variant_id|is_in_credset|
+            +----------+-------------+--------+----------+-------------+
+            |         1|          1.0|       1|         1|         true|
+            |         1|          0.9|       1|         1|        false|
+            |         1|          0.8|       1|         1|        false|
+            |         1|          0.7|       1|         1|        false|
+            |         1|          0.6|       1|         1|        false|
+            |         1|          0.5|       1|         1|        false|
+            |         1|          0.4|       1|         1|        false|
+            |         1|          0.3|       1|         1|        false|
+            |         1|          0.2|       1|         1|        false|
+            |         1|          0.1|       1|         1|        false|
+            +----------+-------------+--------+----------+-------------+
+            <BLANKLINE>
+
         """
         w_cumlead = (
             Window.partitionBy(chromosome, study_id, variant_id)
