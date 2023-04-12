@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from otg.common.schemas import flatten_schema
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
@@ -64,10 +66,10 @@ class Dataset:
         Raises:
             ValueError: DataFrame schema is not valid
         """
-        expected_schema = self._schema  # type: ignore[attr-defined]
-        expected_fields = [(field.name, field.dataType) for field in expected_schema]
-        observed_schema = self._df.schema  # type: ignore[attr-defined]
-        observed_fields = [(field.name, field.dataType) for field in observed_schema]
+        expected_schema = self._schema
+        expected_fields = flatten_schema(expected_schema)
+        observed_schema = self._df.schema
+        observed_fields = flatten_schema(observed_schema)
 
         # Unexpected fields in dataset
         if unexpected_struct_fields := [
