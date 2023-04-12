@@ -241,9 +241,9 @@ class LDAnnotatorGnomad:
         # idxs for lead, first variant in the region and last variant in the region
         entries = LDAnnotatorGnomad._query_block_matrix(
             ld_matrix + ld_matrix.T,
-            variants_ld_coordinates.rdd.map(lambda x: x.idx).collect(),
-            variants_ld_coordinates.rdd.map(lambda x: x.start_idx).collect(),
-            variants_ld_coordinates.rdd.map(lambda x: x.stop_idx).collect(),
+            variants_ld_coordinates.rdd.map(lambda x: x.idxs).collect(),
+            variants_ld_coordinates.rdd.map(lambda x: x.starts).collect(),
+            variants_ld_coordinates.rdd.map(lambda x: x.stops).collect(),
             min_r2,
         )
 

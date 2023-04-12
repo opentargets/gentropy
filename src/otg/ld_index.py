@@ -30,7 +30,7 @@ class LDIndexStep(LDIndexStepConfig):
             )
 
             self.session.logger.info(
-                f"Writing LD index to: {self.ld_index_template.format(POP=population)}"
+                f"Writing ls index to: {self.ld_index_template.format(POP=population)}"
             )
             (
                 ld_index.df.write.partitionBy("chromosome")
