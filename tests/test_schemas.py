@@ -72,3 +72,14 @@ class TestValidateSchema:
         df = spark.createDataFrame([("A",), ("B",)], schema=["geneId"])
         with pytest.raises(ValueError, match="geneId"):
             Dataset(df, mock_expected_schema)
+
+    def test_validate_schema_different_datatype(
+        self: TestValidateSchema, spark: SparkSession, mock_expected_schema: StructType
+    ) -> None:
+        """Test that validate_schema raises an error if any field in the observed schema has a different type than expected."""
+        df = spark.createDataFrame(
+            [(2, "ENSG0001"), (1, "ENSG0002")],
+            schema=["studyLocusId", "geneId"],
+        )
+        with pytest.raises(ValueError, match="studyLocusId"):
+            Dataset(df, mock_expected_schema)
