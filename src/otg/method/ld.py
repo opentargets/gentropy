@@ -232,11 +232,9 @@ class LDAnnotatorGnomad:
             DataFrame: LD information in the columns ["variantId", "chromosome", "gnomadPopulation", "tagVariantId", "r"]
         """
         # map variants to precomputed LD indexes from gnomAD
-        variants_ld_coordinates = (
-            LDAnnotatorGnomad._variant_coordinates_in_ldindex(variants_df, ld_index)
-            .sort(f.col("idx"))
-            .persist()
-        )
+        variants_ld_coordinates = LDAnnotatorGnomad._variant_coordinates_in_ldindex(
+            variants_df, ld_index
+        ).persist()
 
         # idxs for lead, first variant in the region and last variant in the region
         entries = LDAnnotatorGnomad._query_block_matrix(
@@ -247,7 +245,7 @@ class LDAnnotatorGnomad:
             min_r2,
         )
 
-        variants_with_ld = (
+        return (
             entries.join(
                 f.broadcast(variants_ld_coordinates),
                 on="i",
@@ -270,8 +268,6 @@ class LDAnnotatorGnomad:
                 "variantId", "leads.chromosome", "gnomadPopulation", "tagVariantId", "r"
             )
         )
-        variants_ld_coordinates.unpersist()
-        return variants_with_ld
 
     @classmethod
     def ld_annotation_by_locus_ancestry(
