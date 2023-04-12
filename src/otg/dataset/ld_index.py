@@ -27,7 +27,7 @@ import hail as hl
 
 @dataclass
 class LDIndex(Dataset):
-    """Dataset to access to LD information from GnomAD."""
+    """Dataset to index access to LD information from GnomAD."""
 
     _schema: StructType = parse_spark_schema("ld_index.json")
 
