@@ -34,4 +34,4 @@ ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.outputs}/catalog_study_index
 catalog_study_locus: ${datasets.outputs}/catalog_study_locus
 #templates
-ld_index_template: ${datasets.outputs}/ld_indices/gnomad_r2.1.1.{POP}.common.ld.variant_indices
+ld_index_template: ${datasets.outputs}/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet
