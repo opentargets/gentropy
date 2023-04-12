@@ -28,7 +28,7 @@ def generate_schema_assets(assets_dir: Path, schema_dir: str) -> None:
                 df = spark.createDataFrame([], input_schema)
                 outfilename = i.replace("json", "md")
                 with (assets_dir / outfilename).open("w") as out:
-                    tree = df._jdf.schema().treeString()
+                    tree = df._jdf.schema().treeString()  # type: ignore
                     out.write(f"```\n{tree}\n```")
 
 
@@ -40,6 +40,6 @@ def main(config: dict) -> None:
 
     generate_schema_assets(
         assets_dir=assets_dir,
-        schema_dir="src/otg/json/schemas",
+        schema_dir="src/otg/assets/schemas",
     )
     print(f"Schema assests generated for {config['site_name']}")
