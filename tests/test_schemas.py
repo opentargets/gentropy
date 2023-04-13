@@ -118,6 +118,27 @@ class TestValidateSchema:
             (mock_observed_nested_data, mock_expected_nested_schema),
         ],
     )
+    def test_validate_schema_duplicated_field(
+        self: TestValidateSchema,
+        spark: SparkSession,
+        observed_data: list,
+        expected_schema: StructType,
+    ) -> None:
+        """Test that validate_schema raises an error if the observed schema has a duplicated field."""
+        df = spark.createDataFrame(
+            observed_data,
+            schema=expected_schema,
+        ).select("*", f.lit("A").alias("studyLocusId"))
+        with pytest.raises(ValueError, match="studyLocusId"):
+            Dataset(df, expected_schema)
+
+    @pytest.mark.parametrize(
+        ("observed_data", "expected_schema"),
+        [
+            (mock_observed_data, mock_expected_schema),
+            (mock_observed_nested_data, mock_expected_nested_schema),
+        ],
+    )
     def test_validate_schema_different_datatype(
         self: TestValidateSchema,
         spark: SparkSession,

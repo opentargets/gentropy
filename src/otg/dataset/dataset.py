@@ -90,6 +90,14 @@ class Dataset:
                 f"The {missing_required_fields} fields are required but missing: {required_fields}"
             )
 
+        # Fields with duplicated names
+        if duplicated_fields := [
+            x for x in set(observed_fields) if observed_fields.count(x) > 1
+        ]:
+            raise ValueError(
+                f"The following fields are duplicated in DataFrame schema: {duplicated_fields}"
+            )
+
         # Fields with different datatype
         if fields_with_different_observed_datatype := [
             field
@@ -97,5 +105,5 @@ class Dataset:
             if observed_fields.count(field) != expected_fields.count(field)
         ]:
             raise ValueError(
-                f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}"
+                f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
             )
