@@ -193,7 +193,26 @@
 <span class=normal>210</span>
 <span class=normal>211</span>
 <span class=normal>212</span>
-<span class=normal>213</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>PICS</span><span class=p>:</span>
+<span class=normal>213</span>
+<span class=normal>214</span>
+<span class=normal>215</span>
+<span class=normal>216</span>
+<span class=normal>217</span>
+<span class=normal>218</span>
+<span class=normal>219</span>
+<span class=normal>220</span>
+<span class=normal>221</span>
+<span class=normal>222</span>
+<span class=normal>223</span>
+<span class=normal>224</span>
+<span class=normal>225</span>
+<span class=normal>226</span>
+<span class=normal>227</span>
+<span class=normal>228</span>
+<span class=normal>229</span>
+<span class=normal>230</span>
+<span class=normal>231</span>
+<span class=normal>232</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>PICS</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Probabilistic Identification of Causal SNPs (PICS), an algorithm estimating the probability that an individual variant is causal considering the haplotype structure and observed pattern of association at the genetic locus.&quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
@@ -244,6 +263,21 @@
 
 <span class=sd>        Returns:</span>
 <span class=sd>            Column: Whether the variant is in the credible set</span>
+
+<span class=sd>        Examples:</span>
+<span class=sd>            &gt;&gt;&gt; d = [</span>
+<span class=sd>            ... {&quot;chromosome&quot;: &quot;1&quot;, &quot;study_id&quot;: &quot;1&quot;, &quot;variant_id&quot;: &quot;1&quot;, &quot;pics_postprob&quot;: 1.0},</span>
+<span class=sd>            ... {&quot;chromosome&quot;: &quot;1&quot;, &quot;study_id&quot;: &quot;1&quot;, &quot;variant_id&quot;: &quot;1&quot;, &quot;pics_postprob&quot;: 0.9}]</span>
+<span class=sd>            &gt;&gt;&gt; df = spark.createDataFrame(d)</span>
+<span class=sd>            &gt;&gt;&gt; df.withColumn(&quot;is_in_credset&quot;, PICS._is_in_credset(f.col(&quot;chromosome&quot;), f.col(&quot;study_id&quot;), f.col(&quot;variant_id&quot;), f.col(&quot;pics_postprob&quot;), 0.95)).show()</span>
+<span class=sd>            +----------+-------------+--------+----------+-------------+</span>
+<span class=sd>            |chromosome|pics_postprob|study_id|variant_id|is_in_credset|</span>
+<span class=sd>            +----------+-------------+--------+----------+-------------+</span>
+<span class=sd>            |         1|          1.0|       1|         1|         true|</span>
+<span class=sd>            |         1|          0.9|       1|         1|        false|</span>
+<span class=sd>            +----------+-------------+--------+----------+-------------+</span>
+<span class=sd>            &lt;BLANKLINE&gt;</span>
+
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>w_cumlead</span> <span class=o>=</span> <span class=p>(</span>
             <span class=n>Window</span><span class=o>.</span><span class=n>partitionBy</span><span class=p>(</span><span class=n>chromosome</span><span class=p>,</span> <span class=n>study_id</span><span class=p>,</span> <span class=n>variant_id</span><span class=p>)</span>
@@ -255,15 +289,19 @@
             <span class=n>pics_postprob_cumsum</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=p>(</span>
-            <span class=c1># If posterior probability is null, credible set flag is False:</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>pics_postprob</span><span class=o>.</span><span class=n>isNull</span><span class=p>(),</span> <span class=kc>False</span><span class=p>)</span>
+            <span class=c1># If there is only one row and the posterior probability meets the criteria, the flag is True:</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
+                <span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=n>pics_postprob_cumsum</span><span class=p>)</span><span class=o>.</span><span class=n>over</span><span class=p>(</span><span class=n>w_credset</span><span class=p>)</span> <span class=o>==</span> <span class=mi>1</span><span class=p>)</span>
+                <span class=o>&amp;</span> <span class=p>(</span><span class=n>pics_postprob_cumsum</span> <span class=o>&gt;=</span> <span class=n>credset_probability</span><span class=p>),</span>
+                <span class=kc>True</span><span class=p>,</span>
+            <span class=p>)</span>
             <span class=c1># If the posterior probability meets the criteria the flag is True:</span>
             <span class=o>.</span><span class=n>when</span><span class=p>(</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lag</span><span class=p>(</span><span class=n>pics_postprob_cumsum</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>over</span><span class=p>(</span><span class=n>w_credset</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=n>credset_probability</span><span class=p>,</span>
                 <span class=kc>False</span><span class=p>,</span>
             <span class=p>)</span>
-            <span class=c1># IF criteria is not met, flag is False:</span>
-            <span class=o>.</span><span class=n>otherwise</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+            <span class=c1># If criteria is not met (posterior probability is null), flag is False:</span>
+            <span class=o>.</span><span class=n>otherwise</span><span class=p>(</span><span class=kc>False</span><span class=p>)</span>
         <span class=p>)</span>
 
     <span class=nd>@staticmethod</span>
@@ -389,26 +427,7 @@
             <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=n>associations</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.pics.PICS.finemap class="doc doc-heading"> <code class="highlight language-python"><span class=n>finemap</span><span class=p>(</span><span class=n>associations</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mf>6.4</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Run PICS on a study locus.</p> <div class="admonition info"> <p class=admonition-title>Study locus needs to be LD annotated</p> <p>The study locus needs to be LD annotated before PICS can be calculated.</p> </div> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>associations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus to finemap using PICS</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>k</code></td> <td> <code>float</code> </td> <td><p>Empiric constant that can be adjusted to fit the curve, 6.4 recommended.</p></td> <td> <code>6.4</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus with PICS results</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>otg/method/pics.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>175</span>
-<span class=normal>176</span>
-<span class=normal>177</span>
-<span class=normal>178</span>
-<span class=normal>179</span>
-<span class=normal>180</span>
-<span class=normal>181</span>
-<span class=normal>182</span>
-<span class=normal>183</span>
-<span class=normal>184</span>
-<span class=normal>185</span>
-<span class=normal>186</span>
-<span class=normal>187</span>
-<span class=normal>188</span>
-<span class=normal>189</span>
-<span class=normal>190</span>
-<span class=normal>191</span>
-<span class=normal>192</span>
-<span class=normal>193</span>
-<span class=normal>194</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.pics.PICS.finemap class="doc doc-heading"> <code class="highlight language-python"><span class=n>finemap</span><span class=p>(</span><span class=n>associations</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mf>6.4</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Run PICS on a study locus.</p> <div class="admonition info"> <p class=admonition-title>Study locus needs to be LD annotated</p> <p>The study locus needs to be LD annotated before PICS can be calculated.</p> </div> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>associations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus to finemap using PICS</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>k</code></td> <td> <code>float</code> </td> <td><p>Empiric constant that can be adjusted to fit the curve, 6.4 recommended.</p></td> <td> <code>6.4</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus with PICS results</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>otg/method/pics.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>194</span>
 <span class=normal>195</span>
 <span class=normal>196</span>
 <span class=normal>197</span>
@@ -427,7 +446,26 @@
 <span class=normal>210</span>
 <span class=normal>211</span>
 <span class=normal>212</span>
-<span class=normal>213</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>213</span>
+<span class=normal>214</span>
+<span class=normal>215</span>
+<span class=normal>216</span>
+<span class=normal>217</span>
+<span class=normal>218</span>
+<span class=normal>219</span>
+<span class=normal>220</span>
+<span class=normal>221</span>
+<span class=normal>222</span>
+<span class=normal>223</span>
+<span class=normal>224</span>
+<span class=normal>225</span>
+<span class=normal>226</span>
+<span class=normal>227</span>
+<span class=normal>228</span>
+<span class=normal>229</span>
+<span class=normal>230</span>
+<span class=normal>231</span>
+<span class=normal>232</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>finemap</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>PICS</span><span class=p>],</span> <span class=n>associations</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>6.4</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
