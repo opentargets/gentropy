@@ -8,3 +8,5 @@ coverage.xml
 mock_data
 notebooks/wandb
 src/wandb
+docs/assets/schemas/
+.cache/

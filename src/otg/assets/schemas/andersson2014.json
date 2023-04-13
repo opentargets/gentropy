@@ -1,0 +1,77 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "chrom",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "chromStart",
+      "type": "long",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "chromEnd",
+      "type": "long",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "score",
+      "type": "long",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "strand",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "thickStart",
+      "type": "long",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "thickEnd",
+      "type": "long",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "itemRgb",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "blockCount",
+      "type": "long",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "blockSizes",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "chromStarts",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

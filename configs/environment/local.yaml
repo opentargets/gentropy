@@ -1,3 +1,0 @@
-sparkUri: local[*]
-storage: "./"
-sparkWriteMode: overwrite

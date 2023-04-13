@@ -1,0 +1,46 @@
+<hr />
+<div class="md-source-file">
+    <small>
+        <ul class="metadata page-metadata" data-bi-name="page info" lang="en-us" dir="ltr">
+            <!-- mkdocs-git-revision-date-plugin -->
+            {% if page.meta.git_creation_date_localized %}
+            <li>
+                <span class="icon twemoji">
+                    {% include ".icons/material/clock-plus-outline.svg" %}
+                </span>
+                <span class="label">
+                    {{ page.meta.git_creation_date_localized }}
+                </span>
+            </li>
+            {% endif %}
+
+            {% if page.meta.git_revision_date_localized %}
+            <li>
+                <span class="icon twemoji">
+                    {% include ".icons/material/clock-edit-outline.svg" %}
+                </span>
+                <span class="label">
+                    {{ page.meta.git_revision_date_localized }}
+                </span>
+            </li>
+            {% endif %}
+
+            <li>
+                <span class="icon twemoji">
+                    {% include ".icons/material/github.svg" %}
+                </span>
+                <span class="label">
+                    Contributors
+                </span>
+            </li>
+            <li class="contributors-holder">
+                <ul class="contributors" data-bi-name="contributors">
+                    {%- for user in committers -%}
+                    <li><a href="{{ user.url }}" title="{{ user.name }}" data-bi-name="contributorprofile"
+                            target="_blank"><img src="{{ user.avatar }}" alt="{{ user.name }}"></a></li>
+                    {%- endfor -%}
+                </ul>
+            </li>
+        </ul>
+    </small>
+</div>
