@@ -69,16 +69,8 @@ class PICS:
 
         Examples:
             >>> d = [
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.1},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.2},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.3},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.4},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.5},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.6},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.7},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.8},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.9},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 1.0}]
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 1.0},
+            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.9}]
             >>> df = spark.createDataFrame(d)
             >>> df.withColumn("is_in_credset", PICS._is_in_credset(f.col("chromosome"), f.col("study_id"), f.col("variant_id"), f.col("pics_postprob"), 0.95)).show()
             +----------+-------------+--------+----------+-------------+
@@ -86,14 +78,6 @@ class PICS:
             +----------+-------------+--------+----------+-------------+
             |         1|          1.0|       1|         1|         true|
             |         1|          0.9|       1|         1|        false|
-            |         1|          0.8|       1|         1|        false|
-            |         1|          0.7|       1|         1|        false|
-            |         1|          0.6|       1|         1|        false|
-            |         1|          0.5|       1|         1|        false|
-            |         1|          0.4|       1|         1|        false|
-            |         1|          0.3|       1|         1|        false|
-            |         1|          0.2|       1|         1|        false|
-            |         1|          0.1|       1|         1|        false|
             +----------+-------------+--------+----------+-------------+
             <BLANKLINE>
 
@@ -108,15 +92,19 @@ class PICS:
             pics_postprob_cumsum
         )
         return (
-            # If posterior probability is null, credible set flag is False:
-            f.when(pics_postprob.isNull(), False)
+            # If there is only one row and the posterior probability meets the criteria, the flag is True:
+            f.when(
+                (f.count(pics_postprob_cumsum).over(w_credset) == 1)
+                & (pics_postprob_cumsum >= credset_probability),
+                True,
+            )
             # If the posterior probability meets the criteria the flag is True:
             .when(
                 f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
                 False,
             )
-            # IF criteria is not met, flag is False:
-            .otherwise(True)
+            # If criteria is not met (posterior probability is null), flag is False:
+            .otherwise(False)
         )
 
     @staticmethod
