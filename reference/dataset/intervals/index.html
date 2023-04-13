@@ -891,18 +891,18 @@
                 <span class=c1># TODO: We can include the start and end position as part of the `on` clause in the join</span>
                 <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;interval&quot;</span><span class=p>)</span>
                 <span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                    <span class=n>variant_index</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;vi&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                        <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span>
-                    <span class=p>),</span>
+                    <span class=n>variant_index</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>selectExpr</span><span class=p>(</span>
+                        <span class=s2>&quot;chromosome as vi_chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span>
+                    <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;vi&quot;</span><span class=p>),</span>
                     <span class=n>on</span><span class=o>=</span><span class=p>[</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vi.chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.chromosome&quot;</span><span class=p>),</span>
+                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vi.vi_chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.chromosome&quot;</span><span class=p>),</span>
                         <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vi.position&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>between</span><span class=p>(</span>
                             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.start&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.end&quot;</span><span class=p>)</span>
                         <span class=p>),</span>
                     <span class=p>],</span>
                     <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
                 <span class=p>)</span>
-                <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;start&quot;</span><span class=p>,</span> <span class=s2>&quot;end&quot;</span><span class=p>)</span>
+                <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;start&quot;</span><span class=p>,</span> <span class=s2>&quot;end&quot;</span><span class=p>,</span> <span class=s2>&quot;vi_chromosome&quot;</span><span class=p>)</span>
             <span class=p>)</span>
         <span class=p>)</span>
 </code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.intervals.Intervals.from_parquet class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_parquet</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>path</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Initialise Intervals from parquet file.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>session</code></td> <td> <code><span title="otg.common.session.Session">Session</span></code> </td> <td><p>ETL session</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>path</code></td> <td> <code>str</code> </td> <td><p>Path to parquet file</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Intervals</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="#otg.dataset.intervals.Intervals">Intervals</a></code> </td> <td><p>Intervals dataset</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>otg/dataset/intervals.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>32</span>
@@ -1771,18 +1771,18 @@
             <span class=c1># TODO: We can include the start and end position as part of the `on` clause in the join</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;interval&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                <span class=n>variant_index</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;vi&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                    <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span>
-                <span class=p>),</span>
+                <span class=n>variant_index</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>selectExpr</span><span class=p>(</span>
+                    <span class=s2>&quot;chromosome as vi_chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span>
+                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;vi&quot;</span><span class=p>),</span>
                 <span class=n>on</span><span class=o>=</span><span class=p>[</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vi.chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.chromosome&quot;</span><span class=p>),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vi.vi_chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.chromosome&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vi.position&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>between</span><span class=p>(</span>
                         <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.start&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;interval.end&quot;</span><span class=p>)</span>
                     <span class=p>),</span>
                 <span class=p>],</span>
                 <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
             <span class=p>)</span>
-            <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;start&quot;</span><span class=p>,</span> <span class=s2>&quot;end&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;start&quot;</span><span class=p>,</span> <span class=s2>&quot;end&quot;</span><span class=p>,</span> <span class=s2>&quot;vi_chromosome&quot;</span><span class=p>)</span>
         <span class=p>)</span>
     <span class=p>)</span>
 </code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div><hr> <h2 id=schema>Schema</h2> <div class=highlight><pre><span></span><code>root

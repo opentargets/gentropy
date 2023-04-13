@@ -353,12 +353,7 @@
 <span class=normal>411</span>
 <span class=normal>412</span>
 <span class=normal>413</span>
-<span class=normal>414</span>
-<span class=normal>415</span>
-<span class=normal>416</span>
-<span class=normal>417</span>
-<span class=normal>418</span>
-<span class=normal>419</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>414</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>StudyIndexGWASCatalog</span><span class=p>(</span><span class=n>StudyIndex</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study index dataset from GWAS Catalog.</span>
 
@@ -668,12 +663,7 @@
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>parsed_sumstats_lut</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;projectId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;hasSumstats&quot;</span><span class=p>,</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>),</span> <span class=kc>True</span><span class=p>)</span>
-                <span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNull</span><span class=p>(),</span> <span class=kc>False</span><span class=p>)</span>
-                <span class=o>.</span><span class=n>otherwise</span><span class=p>(</span><span class=kc>None</span><span class=p>),</span>
-            <span class=p>)</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>False</span><span class=p>)))</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
 
@@ -683,7 +673,7 @@
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            StudyIndexGWASCatalog: df with columns `nCases`, `nControls`, and `nSamples` per `ProjectId`</span>
+<span class=sd>            StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `ProjectId` correctly extracted.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>sample_size_lut</span> <span class=o>=</span> <span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
