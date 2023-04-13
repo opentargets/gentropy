@@ -364,14 +364,9 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
 
         self.df = (
-            self.df.drop("hasSumstats")
+            self.df.drop("hasSumstats", "summarystatsLocation")
             .join(parsed_sumstats_lut, on="projectId", how="left")
-            .withColumn(
-                "hasSumstats",
-                f.when(f.col("hasSumstats"), True)
-                .when(f.col("hasSumstats").isNull(), False)
-                .otherwise(None),
-            )
+            .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
         )
         return self
 
