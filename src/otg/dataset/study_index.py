@@ -331,9 +331,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             europeans_deconvoluted, on="projectId", how="outer"
         )
 
-        self.df = self.df.drop("discoverySamples", "replicationSamples").join(
-            parsed_ancestry_lut, on="projectId", how="left"
-        )
+        self.df = self.df.join(parsed_ancestry_lut, on="projectId", how="left")
         return self
 
     def _annotate_sumstats_info(
@@ -366,7 +364,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
 
         self.df = (
-            self.df.drop("hasSumstats", "summarystatsLocation")
+            self.df.drop("hasSumstats")
             .join(parsed_sumstats_lut, on="projectId", how="left")
             .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
         )
@@ -412,7 +410,5 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.sum("sampleSize").alias("nSamples"),
             )
         )
-        self.df = self.df.drop("nCases", "nControls", "nSamples").join(
-            sample_size_lut, on="projectId", how="left"
-        )
+        self.df = self.df.join(sample_size_lut, on="projectId", how="left")
         return self

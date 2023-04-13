@@ -36,6 +36,9 @@ def test_annotate_discovery_sample_sizes(
     mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
 ) -> None:
     """Test annotate discovery sample sizes."""
+    mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
+        "nCases", "nControls", "nSamples"
+    )
     assert isinstance(
         mock_study_index_gwas_catalog._annotate_discovery_sample_sizes(),
         StudyIndexGWASCatalog,
@@ -55,6 +58,9 @@ def test_annotate_ancestry(
     sample_gwas_catalog_ancestries_lut: DataFrame,
 ) -> None:
     """Test annotate ancestry of StudyIndexGWASCatalog."""
+    mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
+        "discoverySamples", "replicationSamples"
+    )
     assert isinstance(
         mock_study_index_gwas_catalog._annotate_ancestries(
             sample_gwas_catalog_ancestries_lut
@@ -68,6 +74,9 @@ def test_annotate_sumstats(
     sample_gwas_catalog_harmonised_sumstats: DataFrame,
 ) -> None:
     """Test annotate sumstats of StudyIndexGWASCatalog."""
+    mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
+        "summarystatsLocation"
+    )
     assert isinstance(
         mock_study_index_gwas_catalog._annotate_sumstats_info(
             sample_gwas_catalog_harmonised_sumstats
