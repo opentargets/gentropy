@@ -378,7 +378,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
         Returns:
-            StudyIndexGWASCatalog: df with columns `nCases`, `nControls`, and `nSamples` per `ProjectId`
+            StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `ProjectId` correctly extracted.
         """
         sample_size_lut = (
             self.df.select(
@@ -412,5 +412,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.sum("sampleSize").alias("nSamples"),
             )
         )
-        self.df = self.df.join(sample_size_lut, on="projectId", how="left")
+        self.df = self.df.drop("nCases", "nControls", "nSamples").join(
+            sample_size_lut, on="projectId", how="left"
+        )
         return self
