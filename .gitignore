@@ -5,3 +5,6 @@ outputs/
 **/.DS_Store
 .coverage
 coverage.xml
+mock_data
+notebooks/wandb
+src/wandb
