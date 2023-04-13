@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from otg.common.schemas import flatten_schema
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
@@ -64,19 +66,44 @@ class Dataset:
         Raises:
             ValueError: DataFrame schema is not valid
         """
-        expected_schema = self._schema  # type: ignore[attr-defined]
-        observed_schema = self._df.schema  # type: ignore[attr-defined]
-        # Observed fields no    t in schema
-        missing_struct_fields = [x for x in observed_schema if x not in expected_schema]
-        error_message = f"The {missing_struct_fields} StructFields are not included in DataFrame schema: {expected_schema}"
-        if missing_struct_fields:
-            raise ValueError(error_message)
+        expected_schema = self._schema
+        expected_fields = flatten_schema(expected_schema)
+        observed_schema = self._df.schema
+        observed_fields = flatten_schema(observed_schema)
+
+        # Unexpected fields in dataset
+        if unexpected_struct_fields := [
+            x for x in observed_fields if x not in expected_fields
+        ]:
+            raise ValueError(
+                f"The {unexpected_struct_fields} fields are not included in DataFrame schema: {expected_fields}"
+            )
 
         # Required fields not in dataset
-        required_fields = [x for x in expected_schema if not x.nullable]
-        missing_required_fields = [
-            x for x in required_fields if x not in observed_schema
+        required_fields = [
+            (x.name, x.dataType) for x in expected_schema if not x.nullable
         ]
-        error_message = f"The {missing_required_fields} StructFields are required but missing from the DataFrame schema: {expected_schema}"
-        if missing_required_fields:
-            raise ValueError(error_message)
+        if missing_required_fields := [
+            x for x in required_fields if x not in observed_fields
+        ]:
+            raise ValueError(
+                f"The {missing_required_fields} fields are required but missing: {required_fields}"
+            )
+
+        # Fields with duplicated names
+        if duplicated_fields := [
+            x for x in set(observed_fields) if observed_fields.count(x) > 1
+        ]:
+            raise ValueError(
+                f"The following fields are duplicated in DataFrame schema: {duplicated_fields}"
+            )
+
+        # Fields with different datatype
+        if fields_with_different_observed_datatype := [
+            field
+            for field in set(observed_fields)
+            if observed_fields.count(field) != expected_fields.count(field)
+        ]:
+            raise ValueError(
+                f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
+            )
