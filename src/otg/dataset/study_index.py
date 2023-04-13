@@ -331,7 +331,9 @@ class StudyIndexGWASCatalog(StudyIndex):
             europeans_deconvoluted, on="projectId", how="outer"
         )
 
-        self.df = self.df.join(parsed_ancestry_lut, on="projectId", how="left")
+        self.df = self.df.drop("discoverySamples", "replicationSamples").join(
+            parsed_ancestry_lut, on="projectId", how="left"
+        )
         return self
 
     def _annotate_sumstats_info(
