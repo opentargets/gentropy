@@ -65,14 +65,14 @@
             {
               "name": "populationName",
               "type": "string",
-              "nullable": true,
+              "nullable": false,
               "metadata": {}
             }
           ]
         },
-        "containsNull": true
+        "containsNull": false
       },
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
@@ -100,16 +100,6 @@
     {
       "name": "mostSevereConsequence",
       "type": "string",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "filters",
-      "type": {
-        "type": "array",
-        "elementType": "string",
-        "containsNull": true
-      },
       "nullable": true,
       "metadata": {}
     },

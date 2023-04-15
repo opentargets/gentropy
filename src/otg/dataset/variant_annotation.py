@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import hail as hl
 import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import get_record_with_maximum_value, normalise_column
-from otg.common.utils import convert_gnomad_position_to_ensembl
+from otg.common.utils import convert_gnomad_position_to_ensembl_hail
 from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
 
@@ -71,128 +71,87 @@ class VariantAnnotation(Dataset):
             gnomad_file,
             _load_refs=False,
         )
-        # Drop non biallelic variants
-        ht = ht.filter(ht.alleles.length() == 2)
-
-        # Generate struct for alt. allele frequency in selected populations:
-        population_indices = ht.globals.freq_index_dict.collect()[0]
-        population_indices = {
-            pop: population_indices[f"{pop}-adj"] for pop in populations
-        }
-        ht = ht.annotate(
-            alleleFrequenciesRaw=hl.struct(
-                **{pop: ht.freq[index].AF for pop, index in population_indices.items()}
-            )
-        )
 
         # Liftover
         grch37 = hl.get_reference("GRCh37")
         grch38 = hl.get_reference("GRCh38")
         grch38.add_liftover(grch38_to_grch37_chain, grch37)
+
+        # Drop non biallelic variants
+        ht = ht.filter(ht.alleles.length() == 2)
+        # Liftover
         ht = ht.annotate(locus_GRCh37=hl.liftover(ht.locus, "GRCh37"))
-
-        # Adding build-specific coordinates to the table:
-        ht = (
-            # Creating a new column called gnomadVariantId which is a concatenation of chromosome, position,
-            # referenceAllele and alternateAllele.
-            ht.annotate(
-                chromosome=ht.locus.contig.replace("chr", ""),
-                position=ht.locus.position,
-                chromosomeB37=ht.locus_GRCh37.contig.replace("chr", ""),
-                positionB37=ht.locus_GRCh37.position,
-                referenceAllele=ht.alleles[0],
-                alternateAllele=ht.alleles[1],
-                alleleType=ht.allele_info.allele_type,
-                cadd=ht.cadd.rename({"raw_score": "raw"}).drop("has_duplicate"),
-                vepRaw=ht.vep.drop(
-                    "assembly_name",
-                    "allele_string",
-                    "ancestral",
-                    "context",
-                    "end",
-                    "id",
-                    "input",
-                    "intergenic_consequences",
-                    "seq_region_name",
-                    "start",
-                    "strand",
-                    "variant_class",
-                ),
-            )
-            .rename({"rsid": "rsIds"})
-            .drop("vep")
-        )
-
-        df = (
-            ht.select_globals()
-            .to_spark(flatten=False)
-            # Creating new column based on the transcript_consequences
-            .withColumn(
-                "gnomad3VariantId",
-                f.concat_ws(
-                    "-",
-                    "chromosome",
-                    "position",
-                    "referenceAllele",
-                    "alternateAllele",
-                ),
-            )
-            .withColumn(
-                "ensembl_position",
-                convert_gnomad_position_to_ensembl(
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                ),
-            )
-            .select(
-                f.concat_ws(
-                    "_",
-                    "chromosome",
-                    "ensembl_position",
-                    "referenceAllele",
-                    "alternateAllele",
-                ).alias("variantId"),
-                "chromosome",
-                f.col("ensembl_position").alias("position"),
-                "referenceAllele",
-                "alternateAllele",
-                "chromosomeB37",
-                "positionB37",
-                "gnomad3VariantId",
-                "alleleType",
-                "rsIds",
-                f.array(
-                    *[
-                        f.struct(
-                            f.col(f"alleleFrequenciesRaw.{pop}").alias(
-                                "alleleFrequency"
+        # Select relevant fields and nested records to create class
+        return cls(
+            _df=(
+                ht.select(
+                    gnomad3VariantId=hl.str("-").join(
+                        [
+                            ht.locus.contig.replace("chr", ""),
+                            hl.str(ht.locus.position),
+                            ht.alleles[0],
+                            ht.alleles[1],
+                        ]
+                    ),
+                    chromosome=ht.locus.contig.replace("chr", ""),
+                    position=convert_gnomad_position_to_ensembl_hail(
+                        ht.locus.position, ht.alleles[0], ht.alleles[1]
+                    ),
+                    variantId=hl.str("_").join(
+                        [
+                            ht.locus.contig.replace("chr", ""),
+                            hl.str(
+                                convert_gnomad_position_to_ensembl_hail(
+                                    ht.locus.position, ht.alleles[0], ht.alleles[1]
+                                )
                             ),
-                            f.lit(pop).alias("populationName"),
+                            ht.alleles[0],
+                            ht.alleles[1],
+                        ]
+                    ),
+                    chromosomeB37=ht.locus_GRCh37.contig.replace("chr", ""),
+                    positionB37=ht.locus_GRCh37.position,
+                    referenceAllele=ht.alleles[0],
+                    alternateAllele=ht.alleles[1],
+                    rsIds=ht.rsid,
+                    alleleType=ht.allele_info.allele_type,
+                    cadd=hl.struct(
+                        raw=ht.cadd.raw_score,
+                        phred=ht.cadd.phred,
+                    ),
+                    alleleFrequencies=hl.set([f"{pop}-adj" for pop in populations]).map(
+                        lambda p: hl.struct(
+                            populationName=p,
+                            alleleFrequency=ht.freq[ht.globals.freq_index_dict[p]].AF,
                         )
-                        for pop in populations
-                    ]
-                ).alias("alleleFrequencies"),
-                "cadd",
-                f.struct(
-                    f.col("vepRaw.most_severe_consequence").alias(
-                        "mostSevereConsequence"
                     ),
-                    f.col("vepRaw.motif_feature_consequences").alias(
-                        "motifFeatureConsequences"
+                    vep=hl.struct(
+                        mostSevereConsequence=ht.vep.most_severe_consequence,
+                        transcriptConsequences=hl.map(
+                            lambda x: hl.struct(
+                                aminoAcids=x.amino_acids,
+                                consequenceTerms=x.consequence_terms,
+                                geneId=x.gene_id,
+                                lof=x.lof,
+                                polyphenScore=x.polyphen_score,
+                                polyphenPrediction=x.polyphen_prediction,
+                                siftScore=x.sift_score,
+                                siftPrediction=x.sift_prediction,
+                            ),
+                            # Only keeping canonical transcripts
+                            ht.vep.transcript_consequences.filter(
+                                lambda x: (x.canonical == 1)
+                                & (x.gene_symbol_source == "HGNC")
+                            ),
+                        ),
                     ),
-                    f.col("vepRaw.regulatory_feature_consequences").alias(
-                        "regulatoryFeatureConsequences"
-                    ),
-                    # Non canonical transcripts and gene IDs other than ensembl are filtered out
-                    f.expr(
-                        "filter(vepRaw.transcript_consequences, array -> (array.canonical == 1) and (array.gene_symbol_source == 'HGNC'))"
-                    ).alias("transcriptConsequences"),
-                ).alias("vep"),
-                "filters",
+                )
+                .key_by("chromosome", "position")
+                .drop("locus", "alleles")
+                .select_globals()
+                .to_spark(flatten=False)
             )
         )
-        return cls(_df=df)
 
     def persist(self: VariantAnnotation) -> VariantAnnotation:
         """Persist DataFrame included in the Dataset."""
@@ -230,7 +189,7 @@ class VariantAnnotation(Dataset):
         return self
 
     def get_transcript_consequence_df(
-        self: VariantAnnotation, filter_by: GeneIndex | None
+        self: VariantAnnotation, filter_by: Optional[GeneIndex] = None
     ) -> DataFrame:
         """Dataframe of exploded transcript consequences.
 
@@ -240,29 +199,29 @@ class VariantAnnotation(Dataset):
             filter_by (GeneIndex): A gene index. Defaults to None.
 
         Returns:
-            DataFrame: A dataframe exploded by transcript consequences
+            DataFrame: A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence
         """
-        transript_consequences = self.df.select(
+        # exploding the array removes records without VEP annotation
+        transript_consequences = self.df.withColumn(
+            "transcriptConsequence", f.explode("vep.transcriptConsequences")
+        ).select(
             "variantId",
             "chromosome",
-            # exploding the array removes records without VEP annotation
-            f.explode("vep.transcriptConsequences").alias("transcriptConsequence"),
+            "position",
+            "transcriptConsequence",
+            f.col("transcriptConsequence.geneId").alias("geneId"),
         )
         if filter_by:
             transript_consequences = transript_consequences.join(
-                f.broadcast(
-                    filter_by.df.select(
-                        f.col("geneId").alias("transcriptConsequence.gene_id")
-                    )
-                ),
-                on="transcriptConsequence.gene_id",
+                f.broadcast(filter_by.df),
+                on=["chromosome", "geneId"],
             )
         return transript_consequences.persist()
 
     def get_most_severe_vep_v2g(
         self: VariantAnnotation,
         vep_consequences: DataFrame,
-        filter_by: GeneIndex | None,
+        filter_by: GeneIndex,
     ) -> V2G:
         """Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.
 
@@ -288,8 +247,9 @@ class VariantAnnotation(Dataset):
             .select(
                 "variantId",
                 "chromosome",
-                f.col("transcriptConsequence.gene_id").alias("geneId"),
-                f.explode("transcriptConsequence.consequence_terms").alias("label"),
+                "position",
+                f.col("transcriptConsequence.geneId").alias("geneId"),
+                f.explode("transcriptConsequence.consequenceTerms").alias("label"),
                 f.lit("vep").alias("datatypeId"),
                 f.lit("variantConsequence").alias("datasourceId"),
             )
@@ -307,7 +267,9 @@ class VariantAnnotation(Dataset):
             )
         )
 
-    def get_polyphen_v2g(self: VariantAnnotation, filter_by: GeneIndex | None) -> V2G:
+    def get_polyphen_v2g(
+        self: VariantAnnotation, filter_by: Optional[GeneIndex] = None
+    ) -> V2G:
         """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
 
         Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.
@@ -320,51 +282,53 @@ class VariantAnnotation(Dataset):
         """
         return V2G(
             _df=self.get_transcript_consequence_df(filter_by)
-            .filter(f.col("transcriptConsequence.polyphen_score").isNotNull())
+            .filter(f.col("transcriptConsequence.polyphenScore").isNotNull())
             .select(
                 "variantId",
                 "chromosome",
-                f.col("transcriptConsequence.gene_id").alias("geneId"),
-                f.col("transcriptConsequence.polyphen_score").alias("score"),
-                f.col("transcriptConsequence.polyphen_prediction").alias("label"),
+                "position",
+                "geneId",
+                f.col("transcriptConsequence.polyphenScore").alias("score"),
+                f.col("transcriptConsequence.polyphenPrediction").alias("label"),
                 f.lit("vep").alias("datatypeId"),
                 f.lit("polyphen").alias("datasourceId"),
             )
         )
 
-    def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex | None) -> V2G:
+    def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
 
         SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.
         Optionally the trancript consequences can be reduced to the universe of a gene index.
 
         Args:
-            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+            filter_by (GeneIndex): A gene index to filter by.
 
         Returns:
             V2G: variant to gene assignments with their SIFT scores
         """
         return V2G(
             _df=self.get_transcript_consequence_df(filter_by)
-            .filter(f.col("transcriptConsequence.sift_score").isNotNull())
+            .filter(f.col("transcriptConsequence.siftScore").isNotNull())
             .select(
                 "variantId",
                 "chromosome",
-                f.col("transcriptConsequence.gene_id").alias("geneId"),
-                f.expr("1 - transcriptConsequence.sift_score").alias("score"),
-                f.col("transcriptConsequence.sift_prediction").alias("label"),
+                "position",
+                "geneId",
+                f.expr("1 - transcriptConsequence.siftScore").alias("score"),
+                f.col("transcriptConsequence.siftPrediction").alias("label"),
                 f.lit("vep").alias("datatypeId"),
                 f.lit("sift").alias("datasourceId"),
             )
         )
 
-    def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex | None) -> V2G:
+    def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
 
         Optionally the trancript consequences can be reduced to the universe of a gene index.
 
         Args:
-            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+            filter_by (GeneIndex): A gene index to filter by.
 
         Returns:
             V2G: variant to gene assignments from the LOFTEE algorithm
@@ -385,9 +349,10 @@ class VariantAnnotation(Dataset):
                 ),
             )
             .select(
-                f.col("id").alias("variantId"),
+                "variantId",
                 "chromosome",
-                f.col("transcriptConsequence.gene_id").alias("geneId"),
+                "position",
+                "geneId",
                 "isHighQualityPlof",
                 f.col("score"),
                 f.lit("vep").alias("datatypeId"),
@@ -420,11 +385,14 @@ class VariantAnnotation(Dataset):
                 ],
                 how="inner",
             )
-            .withColumn("inverse_distance", max_distance - f.col("distance"))
+            .withColumn(
+                "inverse_distance",
+                max_distance - f.abs(f.col("variant.position") - f.col("gene.tss")),
+            )
             .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
             .select(
                 "variantId",
-                "chromosome",
+                f.col("variant.chromosome").alias("chromosome"),
                 "position",
                 "geneId",
                 "score",

@@ -15,6 +15,7 @@ from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
+from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 
 
@@ -249,6 +250,45 @@ def mock_v2g(spark: SparkSession) -> V2G:
 
 
 @pytest.fixture()
+def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
+    """Mock variant annotation."""
+    va_schema = parse_spark_schema("variant_annotation.json")
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(va_schema)
+        .withColumnSpec("alleleType", percentNulls=0.1)
+        .withColumnSpec("chromosomeB37", percentNulls=0.1)
+        .withColumnSpec("positionB37", percentNulls=0.1)
+        # Nested column handling workaround
+        # https://github.com/databrickslabs/dbldatagen/issues/135
+        # It's a workaround for nested column handling in dbldatagen.
+        .withColumnSpec(
+            "alleleFrequencies",
+            expr='array(named_struct("alleleFrequency", rand(), "populationName", cast(rand() as string)))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "cadd",
+            expr='named_struct("phred", cast(rand() as float), "raw", cast(rand() as float))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
+        .withColumnSpec(
+            "vep",
+            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string), "polyphenPrediction", cast(rand() as string), "polyphenScore", cast(rand() as float), "siftPrediction", cast(rand() as string), "siftScore", cast(rand() as float))))',
+            percentNulls=0.1,
+        )
+    )
+    return VariantAnnotation(_df=data_spec.build())
+
+
+@pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
     """Mock gene index."""
     vi_schema = parse_spark_schema("variant_index.json")
@@ -276,9 +316,6 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             "cadd",
             expr='named_struct("phred", cast(rand() AS float), "raw", cast(rand() AS float))',
             percentNulls=0.1,
-        )
-        .withColumnSpec(
-            "filters", expr="array(cast(rand() AS string))", percentNulls=0.1
         )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
     )
