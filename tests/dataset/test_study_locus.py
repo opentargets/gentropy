@@ -15,11 +15,25 @@ from otg.dataset.study_locus import (
 
 if TYPE_CHECKING:
     from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
+    from otg.dataset.variant_annotation import VariantAnnotation
 
 
 def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
     """Test study locus creation with mock data."""
     assert isinstance(mock_study_locus, StudyLocus)
+
+
+def test_study_locus_gwas_catalog_from_source(
+    mock_variant_annotation: VariantAnnotation,
+    sample_gwas_catalog_associations: DataFrame,
+) -> None:
+    """Test study locus from gwas catalog mock data."""
+    assert isinstance(
+        StudyLocusGWASCatalog.from_source(
+            sample_gwas_catalog_associations, mock_variant_annotation
+        ),
+        StudyLocusGWASCatalog,
+    )
 
 
 def test_study_locus_gwas_catalog_creation(
