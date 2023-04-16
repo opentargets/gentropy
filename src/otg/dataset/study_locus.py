@@ -552,7 +552,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         """Add variant metadata in associations.
 
         Args:
-            gwas_associations (DataFrame): raw GWAS Catalog associations
+            gwas_associations (DataFrame): raw GWAS Catalog associations with additional `studyLocusId` column
             variant_annotation (VariantAnnotation): variant annotation dataset
 
         Returns:

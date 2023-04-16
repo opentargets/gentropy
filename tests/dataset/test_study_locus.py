@@ -32,7 +32,23 @@ def test_study_locus_gwas_catalog_from_source(
         StudyLocusGWASCatalog.from_source(
             sample_gwas_catalog_associations, mock_variant_annotation
         ),
-        StudyLocusGWASCatalog,
+        DataFrame,
+    )
+
+
+def test__map_to_variant_annotation_variants(
+    sample_gwas_catalog_associations: DataFrame,
+    mock_variant_annotation: VariantAnnotation,
+) -> None:
+    """Test mapping to variant annotation variants."""
+    assert isinstance(
+        StudyLocusGWASCatalog._map_to_variant_annotation_variants(
+            sample_gwas_catalog_associations.withColumn(
+                "studyLocusId", f.monotonically_increasing_id()
+            ),
+            mock_variant_annotation,
+        ),
+        DataFrame,
     )
 
 
