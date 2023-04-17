@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 from pyspark.sql import Column, DataFrame
+from pyspark.sql.types import LongType
 
 from otg.dataset.study_locus import (
     CredibleInterval,
@@ -32,7 +33,7 @@ def test_study_locus_gwas_catalog_from_source(
         StudyLocusGWASCatalog.from_source(
             sample_gwas_catalog_associations, mock_variant_annotation
         ),
-        DataFrame,
+        StudyLocusGWASCatalog,
     )
 
 
@@ -44,7 +45,7 @@ def test__map_to_variant_annotation_variants(
     assert isinstance(
         StudyLocusGWASCatalog._map_to_variant_annotation_variants(
             sample_gwas_catalog_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id()
+                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             ),
             mock_variant_annotation,
         ),

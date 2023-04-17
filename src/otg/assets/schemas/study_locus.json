@@ -4,7 +4,7 @@
       "metadata": {},
       "name": "studyLocusId",
       "nullable": false,
-      "type": "string"
+      "type": "long"
     },
     {
       "metadata": {},
@@ -70,13 +70,13 @@
       "metadata": {},
       "name": "pValueMantissa",
       "nullable": true,
-      "type": "double"
+      "type": "float"
     },
     {
       "metadata": {},
       "name": "pValueExponent",
       "nullable": true,
-      "type": "long"
+      "type": "integer"
     },
     {
       "metadata": {},
@@ -89,7 +89,7 @@
       "type": {
         "type": "array",
         "elementType": "string",
-        "containsNull": true
+        "containsNull": false
       },
       "nullable": true,
       "metadata": {}
