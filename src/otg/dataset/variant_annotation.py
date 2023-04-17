@@ -116,8 +116,8 @@ class VariantAnnotation(Dataset):
                     rsIds=ht.rsid,
                     alleleType=ht.allele_info.allele_type,
                     cadd=hl.struct(
-                        raw=ht.cadd.raw_score,
                         phred=ht.cadd.phred,
+                        raw=ht.cadd.raw_score,
                     ),
                     alleleFrequencies=hl.set([f"{pop}-adj" for pop in populations]).map(
                         lambda p: hl.struct(

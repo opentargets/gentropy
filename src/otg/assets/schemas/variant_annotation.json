@@ -73,20 +73,20 @@
           "type": "struct",
           "fields": [
             {
-              "name": "alleleFrequency",
-              "type": "double",
+              "name": "populationName",
+              "type": "string",
               "nullable": true,
               "metadata": {}
             },
             {
-              "name": "populationName",
-              "type": "string",
-              "nullable": false,
+              "name": "alleleFrequency",
+              "type": "double",
+              "nullable": true,
               "metadata": {}
             }
           ]
         },
-        "containsNull": false
+        "containsNull": true
       },
       "nullable": false,
       "metadata": {}
@@ -160,19 +160,13 @@
                     "metadata": {}
                   },
                   {
-                    "name": "polyphenPrediction",
-                    "type": "string",
-                    "nullable": true,
-                    "metadata": {}
-                  },
-                  {
                     "name": "polyphenScore",
                     "type": "double",
                     "nullable": true,
                     "metadata": {}
                   },
                   {
-                    "name": "siftPrediction",
+                    "name": "polyphenPrediction",
                     "type": "string",
                     "nullable": true,
                     "metadata": {}
@@ -180,6 +174,12 @@
                   {
                     "name": "siftScore",
                     "type": "double",
+                    "nullable": true,
+                    "metadata": {}
+                  },
+                  {
+                    "name": "siftPrediction",
+                    "type": "string",
                     "nullable": true,
                     "metadata": {}
                   }
