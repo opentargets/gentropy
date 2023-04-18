@@ -20,7 +20,7 @@ pyenv install --skip-existing $PYTHON_VERSION
 pyenv shell $PYTHON_VERSION
 
 echo "Installing dependencies through Poetry..."
-poetry install --remove-untracked
+poetry install --sync
 
 echo "Setting up pre-commit..."
 poetry run pre-commit install

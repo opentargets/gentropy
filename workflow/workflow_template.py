@@ -26,7 +26,7 @@ machine_type = "n1-highmem-96"
 initialisation_executable_file = (
     "gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh"
 )
-image_version = "2.0"
+image_version = "2.1"
 num_local_ssds = 1
 
 # Available cluster
@@ -53,9 +53,9 @@ def generate_available_placement_template(
         WorkflowTemplatePlacement: Placement template.
     """
     placement = dataproc.WorkflowTemplatePlacement()
-    placement.cluster_selector.cluster_labels = dict(
-        {"goog-dataproc-cluster-uuid": cluster_uuid}
-    )
+    placement.cluster_selector.cluster_labels = {
+        "goog-dataproc-cluster-uuid": cluster_uuid
+    }
     return placement
 
 
@@ -90,9 +90,10 @@ def generate_managed_placement_template(
     placement.managed_cluster.cluster_name = cluster_name
     placement.managed_cluster.config.endpoint_config.enable_http_port_access = True
     placement.managed_cluster.config.gce_cluster_config.zone_uri = zone
-    placement.managed_cluster.config.gce_cluster_config.metadata = dict(
-        {"CONFIGTAR": config_tar, "PACKAGE": package_wheel}
-    )
+    placement.managed_cluster.config.gce_cluster_config.metadata = {
+        "CONFIGTAR": config_tar,
+        "PACKAGE": package_wheel,
+    }
     if num_local_ssds > 0:
         placement.managed_cluster.config.master_config.disk_config.num_local_ssds = (
             num_local_ssds
@@ -107,9 +108,9 @@ def generate_managed_placement_template(
 
     placement.managed_cluster.config.master_config.machine_type_uri = machine_type
     placement.managed_cluster.config.software_config.image_version = image_version
-    placement.managed_cluster.config.software_config.properties = dict(
-        {"dataproc:dataproc.allow.zero.workers": "true"}
-    )
+    placement.managed_cluster.config.software_config.properties = {
+        "dataproc:dataproc.allow.zero.workers": "true"
+    }
     return placement
 
 
@@ -137,15 +138,13 @@ def pyspark_job_template(
         f"--config-name={ config_name }",
     ]
     # to provide hail support
-    job.pyspark_job.properties = dict(
-        {
-            "spark.jars": "/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar",
-            "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar",
-            "spark.executor.extraClassPath": "./hail-all-spark.jar",
-            "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
-            "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
-        }
-    )
+    job.pyspark_job.properties = {
+        "spark.jars": "/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar",
+        "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar",
+        "spark.executor.extraClassPath": "./hail-all-spark.jar",
+        "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+        "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
+    }
     # dependency steps
     if "prerequisites" in step:
         job.prerequisite_step_ids = step["prerequisites"]

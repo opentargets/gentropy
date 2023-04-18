@@ -13,7 +13,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8.15
+          python-version: 3.10.9
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
