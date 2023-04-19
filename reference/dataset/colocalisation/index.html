@@ -69,8 +69,8 @@
     <span class=n>df</span> <span class=o>=</span> <span class=n>session</span><span class=o>.</span><span class=n>read_parquet</span><span class=p>(</span><span class=n>path</span><span class=o>=</span><span class=n>path</span><span class=p>,</span> <span class=n>schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>_schema</span><span class=p>)</span>
     <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span><span class=n>_df</span><span class=o>=</span><span class=n>df</span><span class=p>,</span> <span class=n>_schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>_schema</span><span class=p>)</span>
 </code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div><hr> <h2 id=schema>Schema</h2> <div class=highlight><pre><span></span><code>root
- |-- left_studyLocusId: string (nullable = false)
- |-- right_studyLocusId: string (nullable = false)
+ |-- left_studyLocusId: long (nullable = false)
+ |-- right_studyLocusId: long (nullable = false)
  |-- chromosome: string (nullable = false)
  |-- colocalisationMethod: string (nullable = false)
  |-- coloc_n_vars: long (nullable = false)
