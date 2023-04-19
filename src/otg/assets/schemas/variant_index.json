@@ -57,14 +57,14 @@
           "type": "struct",
           "fields": [
             {
-              "name": "alleleFrequency",
-              "type": "double",
+              "name": "populationName",
+              "type": "string",
               "nullable": true,
               "metadata": {}
             },
             {
-              "name": "populationName",
-              "type": "string",
+              "name": "alleleFrequency",
+              "type": "double",
               "nullable": true,
               "metadata": {}
             }
@@ -72,7 +72,7 @@
         },
         "containsNull": true
       },
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
@@ -100,16 +100,6 @@
     {
       "name": "mostSevereConsequence",
       "type": "string",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "filters",
-      "type": {
-        "type": "array",
-        "elementType": "string",
-        "containsNull": true
-      },
       "nullable": true,
       "metadata": {}
     },

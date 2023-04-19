@@ -4,9 +4,11 @@ from __future__ import annotations
 from math import floor, log10
 from typing import TYPE_CHECKING
 
+import hail as hl
 import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
+    from hail.expr.expressions import Int32Expression, StringExpression
     from pyspark.sql import Column
 
 
@@ -43,6 +45,27 @@ def convert_gnomad_position_to_ensembl(
     return f.when(
         (f.length(reference) > 1) | (f.length(alternate) > 1), position + 1
     ).otherwise(position)
+
+
+def convert_gnomad_position_to_ensembl_hail(
+    position: Int32Expression, reference: StringExpression, alternate: StringExpression
+) -> Int32Expression:
+    """Converting GnomAD variant position to Ensembl variant position in hail table.
+
+    For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.
+    More info about the problem: https://www.biostars.org/p/84686/
+
+    Args:
+        position (Int32Expression): Position of the variant in the GnomAD genome.
+        reference (StringExpression): The reference allele.
+        alternate (StringExpression): The alternate allele
+
+    Returns:
+        The position of the variant according to Ensembl genome.
+    """
+    return hl.if_else(
+        (reference.length() > 1) | (alternate.length() > 1), position + 1, position
+    )
 
 
 def split_pvalue(pvalue: float) -> tuple[float, int]:

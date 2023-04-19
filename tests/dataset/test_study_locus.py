@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 from pyspark.sql import Column, DataFrame
+from pyspark.sql.types import LongType
 
 from otg.dataset.study_locus import (
     CredibleInterval,
@@ -15,11 +16,41 @@ from otg.dataset.study_locus import (
 
 if TYPE_CHECKING:
     from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
+    from otg.dataset.variant_annotation import VariantAnnotation
 
 
 def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
     """Test study locus creation with mock data."""
     assert isinstance(mock_study_locus, StudyLocus)
+
+
+def test_study_locus_gwas_catalog_from_source(
+    mock_variant_annotation: VariantAnnotation,
+    sample_gwas_catalog_associations: DataFrame,
+) -> None:
+    """Test study locus from gwas catalog mock data."""
+    assert isinstance(
+        StudyLocusGWASCatalog.from_source(
+            sample_gwas_catalog_associations, mock_variant_annotation
+        ),
+        StudyLocusGWASCatalog,
+    )
+
+
+def test__map_to_variant_annotation_variants(
+    sample_gwas_catalog_associations: DataFrame,
+    mock_variant_annotation: VariantAnnotation,
+) -> None:
+    """Test mapping to variant annotation variants."""
+    assert isinstance(
+        StudyLocusGWASCatalog._map_to_variant_annotation_variants(
+            sample_gwas_catalog_associations.withColumn(
+                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
+            ),
+            mock_variant_annotation,
+        ),
+        DataFrame,
+    )
 
 
 def test_study_locus_gwas_catalog_creation(
