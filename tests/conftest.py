@@ -27,7 +27,21 @@ def spark() -> SparkSession:
     """
     return (
         SparkSession.builder.config("spark.driver.bindAddress", "127.0.0.1")
-        .master("local")
+        .master("local[1]")
+        # no shuffling
+        .config("spark.sql.shuffle.partitions", "1")
+        # ui settings
+        .config("spark.ui.showConsoleProgress", "false")
+        .config("spark.ui.enabled", "false")
+        .config("spark.ui.dagGraph.retainedRootRDDs", "1")
+        .config("spark.ui.retainedJobs", "1")
+        .config("spark.ui.retainedStages", "1")
+        .config("spark.ui.retainedTasks", "1")
+        .config("spark.sql.ui.retainedExecutions", "1")
+        .config("spark.worker.ui.retainedExecutors", "1")
+        .config("spark.worker.ui.retainedDrivers", "1")
+        # fixed memory
+        .config("spark.driver.memory", "2g")
         .appName("test")
         .getOrCreate()
     )
