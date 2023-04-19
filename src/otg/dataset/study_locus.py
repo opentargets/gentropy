@@ -938,23 +938,22 @@ class StudyLocusGWASCatalog(StudyLocus):
                 ),
                 None,
             )
-            .otherwise(
-                f.when(
-                    (
-                        StudyLocusGWASCatalog._effect_needs_harmonisation(
-                            risk_allele, reference_allele
-                        )
-                        & confidence_interval.contains("increase")
+            .when(
+                (
+                    StudyLocusGWASCatalog._effect_needs_harmonisation(
+                        risk_allele, reference_allele
                     )
-                    | (
-                        ~StudyLocusGWASCatalog._effect_needs_harmonisation(
-                            risk_allele, reference_allele
-                        )
-                        & confidence_interval.contains("decrease")
-                    ),
-                    -effect_size,
-                ).otherwise(effect_size)
+                    & confidence_interval.contains("increase")
+                )
+                | (
+                    ~StudyLocusGWASCatalog._effect_needs_harmonisation(
+                        risk_allele, reference_allele
+                    )
+                    & confidence_interval.contains("decrease")
+                ),
+                -effect_size,
             )
+            .otherwise(effect_size)
             .cast(DoubleType())
         )
 
@@ -1024,17 +1023,16 @@ class StudyLocusGWASCatalog(StudyLocus):
                 ),
                 None,
             )
-            .otherwise(
-                f.when(
-                    (
-                        StudyLocusGWASCatalog._effect_needs_harmonisation(
-                            risk_allele, reference_allele
-                        )
-                        & ~confidence_interval.rlike("|".join(["decrease", "increase"]))
-                    ),
-                    1 / effect_size,
-                ).otherwise(effect_size)
+            .when(
+                (
+                    StudyLocusGWASCatalog._effect_needs_harmonisation(
+                        risk_allele, reference_allele
+                    )
+                    & ~confidence_interval.rlike("|".join(["decrease", "increase"]))
+                ),
+                1 / effect_size,
             )
+            .otherwise(effect_size)
             .cast(DoubleType())
         )
 
