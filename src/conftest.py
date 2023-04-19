@@ -21,6 +21,25 @@ def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
         SparkSession: local spark session
     """
     # init spark session
-    spark = SparkSession.builder.getOrCreate()
+    spark = (
+        SparkSession.builder.master("local[1]")
+        # no shuffling
+        .config("spark.sql.shuffle.partitions", "1")
+        # ui settings
+        .config("spark.ui.showConsoleProgress", "false")
+        .config("spark.ui.enabled", "false")
+        .config("spark.ui.dagGraph.retainedRootRDDs", "1")
+        .config("spark.ui.retainedJobs", "1")
+        .config("spark.ui.retainedStages", "1")
+        .config("spark.ui.retainedTasks", "1")
+        .config("spark.sql.ui.retainedExecutions", "1")
+        .config("spark.worker.ui.retainedExecutors", "1")
+        .config("spark.worker.ui.retainedDrivers", "1")
+        # fixed memory
+        .config("spark.driver.memory", "2g")
+        .appName("test")
+        .getOrCreate()
+    )
+
     doctest_namespace["spark"] = spark
     return spark
