@@ -24,14 +24,13 @@ def test_is_in_credset(
 ) -> None:
     """Test _is_in_credset over a range of probabilities."""
     df = spark.createDataFrame(
-        [("1", "A", "varA", pics_postprob)],
-        ["chromosome", "study_id", "variant_id", "pics_postprob"],
+        [("A", "varA", pics_postprob)],
+        ["study_id", "variant_id", "pics_postprob"],
     )
 
     result = df.withColumn(
         "is_in_credset",
         PICS._is_in_credset(
-            f.col("chromosome"),
             f.col("study_id"),
             f.col("variant_id"),
             f.col("pics_postprob"),
