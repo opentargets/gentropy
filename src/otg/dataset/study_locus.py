@@ -704,10 +704,10 @@ class StudyLocusGWASCatalog(StudyLocus):
         +-------------+------+------------+
         |            1| false|        true|
         |            1| false|        true|
-        |            3|  true|        true|
-        |            3|  true|        true|
         |            2| false|       false|
         |            2|  true|        true|
+        |            3|  true|        true|
+        |            3|  true|        true|
         +-------------+------+------------+
         <BLANKLINE>
 

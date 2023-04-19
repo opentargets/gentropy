@@ -197,11 +197,11 @@ class LDAnnotatorGnomad:
             +-------+---------+------------+----------------+
             |studyId|variantId|tagVariantId|flag_to_keep_tag|
             +-------+---------+------------+----------------+
-            |study_1|   lead_3|        null|            true|
             |study_1|   lead_1|       tag_1|            true|
             |study_1|   lead_1|       tag_2|            true|
             |study_1|   lead_2|       tag_3|            true|
             |study_1|   lead_2|        null|           false|
+            |study_1|   lead_3|        null|            true|
             +-------+---------+------------+----------------+
             <BLANKLINE>
         """
