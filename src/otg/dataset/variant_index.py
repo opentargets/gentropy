@@ -65,9 +65,7 @@ class VariantIndex(Dataset):
                 *unchanged_cols,
                 f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
                 # filters/rsid are arrays that can be empty, in this case we convert them to null
-                nullify_empty_array(f.col("filters")).alias("filters"),
                 nullify_empty_array(f.col("rsIds")).alias("rsIds"),
-                f.lit(True).alias("variantInGnomad"),
             ),
         )
         return VariantIndex(
