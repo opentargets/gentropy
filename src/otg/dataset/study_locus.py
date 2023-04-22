@@ -198,36 +198,60 @@ class StudyLocus(Dataset):
 
     @staticmethod
     def _is_in_credset(
-        posterior_probability: Column,
+        study_id: Column,
+        variant_id: Column,
+        pics_postprob: Column,
         credset_probability: float,
     ) -> Column:
-        """Check whether a variant is in the XX% credible set.
+        """Check whether a tagging variant is in the XX% credible set by aggregating on a study/locus association.
 
         Args:
-            posterior_probability (Column): Posterior probability of the tag variant
+            study_id (Column): Study ID column
+            variant_id (Column): Variant ID column
+            pics_postprob (Column): PICS posterior probability column
             credset_probability (float): Credible set probability
 
         Returns:
-            Column: Whether the variant is in the specified credible set
+            Column: Whether the variant is in the credible set
+
+        Examples:
+            >>> d = [
+            ... {"study_id": "1", "variant_id": "1", "pics_postprob": 1.0},
+            ... {"study_id": "1", "variant_id": "1", "pics_postprob": 0.9}]
+            >>> df = spark.createDataFrame(d)
+            >>> df.withColumn("is_in_credset", StudyLocus._is_in_credset(f.col("study_id"), f.col("variant_id"), f.col("pics_postprob"), 0.95)).show()
+            +-------------+--------+----------+-------------+
+            |pics_postprob|study_id|variant_id|is_in_credset|
+            +-------------+--------+----------+-------------+
+            |          1.0|       1|         1|         true|
+            |          0.9|       1|         1|        false|
+            +-------------+--------+----------+-------------+
+            <BLANKLINE>
+
         """
-        w_cumlead = Window.orderBy(f.desc(posterior_probability)).rowsBetween(
-            Window.unboundedPreceding, Window.currentRow
+        w_cumlead = (
+            Window.partitionBy(study_id, variant_id)
+            .orderBy(f.desc(pics_postprob))
+            .rowsBetween(Window.unboundedPreceding, Window.currentRow)
         )
-        pics_postprob_cumsum = f.sum(posterior_probability).over(w_cumlead)
-        w_credset = Window.orderBy(pics_postprob_cumsum)
+        pics_postprob_cumsum = f.sum(pics_postprob).over(w_cumlead)
+        w_credset = Window.partitionBy(study_id, variant_id).orderBy(
+            pics_postprob_cumsum
+        )
         return (
-            # If posterior probability is null, credible set flag is False:
-            f.when(posterior_probability.isNull(), False)
-            # If the posterior probability meets the criteria the flag is False:
+            # If there is only one row and the posterior probability meets the criteria, the flag is True:
+            f.when(
+                (f.count(pics_postprob_cumsum).over(w_credset) == 1)
+                & (pics_postprob_cumsum >= credset_probability),
+                True,
+            )
+            # If the posterior probability meets the criteria the flag is True:
             .when(
                 f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
                 False,
-            ).when(
-                f.lag(pics_postprob_cumsum, 1).over(w_credset) < credset_probability,
-                True,
             )
-            # ensures nullable=True:
-            .otherwise(None)
+            # If criteria is not met (posterior probability is null), flag is False:
+            .otherwise(False)
         )
 
     @classmethod
@@ -360,26 +384,49 @@ class StudyLocus(Dataset):
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
 
+        Sorts the array in the `credibleSet` column elements by their `posteriorProbability` values in descending order and adds
+        `is95CredibleSet` and `is99CredibleSet` fields to the elements, indicating which are the tagging variants whose cumulative sum
+        of their `posteriorProbability` values is below 0.95 and 0.99, respectively.
+
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
         self.df = self.df.withColumn(
+            # Sort credible set by posterior probability in descending order - hacky solution, as array_sort does not have a sorting key argument
             "credibleSet",
-            f.transform(
-                f.col("credibleSet"),
-                lambda x: x.withField(
-                    CredibleInterval.IS95.value,
-                    StudyLocus._is_in_credset(x.posteriorProbability, 0.95),
-                ),
+            f.expr(
+                """
+                array_sort(
+                    credibleSet,
+                    (left, right) -> case when left.posteriorProbability < right.posteriorProbability then 1
+                                    when left.posteriorProbability > right.posteriorProbability then -1
+                                    else 0
+                            end)
+                """
             ),
         ).withColumn(
+            # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
+            # and zip the cumulative sums array with the credible set array to add the flags
             "credibleSet",
-            f.transform(
+            f.zip_with(
                 f.col("credibleSet"),
-                lambda x: x.withField(
-                    CredibleInterval.IS99.value,
-                    StudyLocus._is_in_credset(x.posteriorProbability, 0.99),
+                f.transform(
+                    f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
+                    lambda index: f.aggregate(
+                        f.slice(
+                            # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
+                            # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
+                            f.col("credibleSet.posteriorProbability"),
+                            1,
+                            index - 1,
+                        ),
+                        f.lit(0.0),
+                        lambda acc, el: acc + el,
+                    ),
                 ),
+                lambda struct_e, acc: struct_e.withField(
+                    CredibleInterval.IS95.value, acc < 0.95
+                ).withField(CredibleInterval.IS99.value, acc < 0.99),
             ),
         )
         return self
