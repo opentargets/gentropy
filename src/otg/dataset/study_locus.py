@@ -196,64 +196,6 @@ class StudyLocus(Dataset):
             f.array_union(qc, f.array(f.lit(flag_text.value))),
         ).otherwise(qc)
 
-    @staticmethod
-    def _is_in_credset(
-        study_id: Column,
-        variant_id: Column,
-        pics_postprob: Column,
-        credset_probability: float,
-    ) -> Column:
-        """Check whether a tagging variant is in the XX% credible set by aggregating on a study/locus association.
-
-        Args:
-            study_id (Column): Study ID column
-            variant_id (Column): Variant ID column
-            pics_postprob (Column): PICS posterior probability column
-            credset_probability (float): Credible set probability
-
-        Returns:
-            Column: Whether the variant is in the credible set
-
-        Examples:
-            >>> d = [
-            ... {"study_id": "1", "variant_id": "1", "pics_postprob": 1.0},
-            ... {"study_id": "1", "variant_id": "1", "pics_postprob": 0.9}]
-            >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("is_in_credset", StudyLocus._is_in_credset(f.col("study_id"), f.col("variant_id"), f.col("pics_postprob"), 0.95)).show()
-            +-------------+--------+----------+-------------+
-            |pics_postprob|study_id|variant_id|is_in_credset|
-            +-------------+--------+----------+-------------+
-            |          1.0|       1|         1|         true|
-            |          0.9|       1|         1|        false|
-            +-------------+--------+----------+-------------+
-            <BLANKLINE>
-
-        """
-        w_cumlead = (
-            Window.partitionBy(study_id, variant_id)
-            .orderBy(f.desc(pics_postprob))
-            .rowsBetween(Window.unboundedPreceding, Window.currentRow)
-        )
-        pics_postprob_cumsum = f.sum(pics_postprob).over(w_cumlead)
-        w_credset = Window.partitionBy(study_id, variant_id).orderBy(
-            pics_postprob_cumsum
-        )
-        return (
-            # If there is only one row and the posterior probability meets the criteria, the flag is True:
-            f.when(
-                (f.count(pics_postprob_cumsum).over(w_credset) == 1)
-                & (pics_postprob_cumsum >= credset_probability),
-                True,
-            )
-            # If the posterior probability meets the criteria the flag is True:
-            .when(
-                f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
-                False,
-            )
-            # If criteria is not met (posterior probability is null), flag is False:
-            .otherwise(False)
-        )
-
     @classmethod
     def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
