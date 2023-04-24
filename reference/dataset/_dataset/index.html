@@ -138,7 +138,7 @@
         <span class=n>df</span> <span class=o>=</span> <span class=n>session</span><span class=o>.</span><span class=n>read_parquet</span><span class=p>(</span><span class=n>path</span><span class=o>=</span><span class=n>path</span><span class=p>,</span> <span class=n>schema</span><span class=o>=</span><span class=n>schema</span><span class=p>)</span>
         <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span><span class=n>_df</span><span class=o>=</span><span class=n>df</span><span class=p>,</span> <span class=n>_schema</span><span class=o>=</span><span class=n>schema</span><span class=p>)</span>
 
-    <span class=k>def</span> <span class=nf>validate_schema</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>validate_schema</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># sourcery skip: invert-any-all</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Validate DataFrame schema against expected class schema.</span>
 
 <span class=sd>        Raises:</span>
@@ -158,11 +158,11 @@
             <span class=p>)</span>
 
         <span class=c1># Required fields not in dataset</span>
-        <span class=n>required_fields</span> <span class=o>=</span> <span class=p>[</span>
-            <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>x</span><span class=o>.</span><span class=n>dataType</span><span class=p>)</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>expected_schema</span> <span class=k>if</span> <span class=ow>not</span> <span class=n>x</span><span class=o>.</span><span class=n>nullable</span>
-        <span class=p>]</span>
+        <span class=n>required_fields</span> <span class=o>=</span> <span class=p>[</span><span class=n>x</span><span class=o>.</span><span class=n>name</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>expected_schema</span> <span class=k>if</span> <span class=ow>not</span> <span class=n>x</span><span class=o>.</span><span class=n>nullable</span><span class=p>]</span>
         <span class=k>if</span> <span class=n>missing_required_fields</span> <span class=o>:=</span> <span class=p>[</span>
-            <span class=n>x</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>required_fields</span> <span class=k>if</span> <span class=n>x</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>observed_fields</span>
+            <span class=n>req</span>
+            <span class=k>for</span> <span class=n>req</span> <span class=ow>in</span> <span class=n>required_fields</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>any</span><span class=p>(</span><span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=n>req</span> <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=n>observed_fields</span><span class=p>)</span>
         <span class=p>]:</span>
             <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
                 <span class=sa>f</span><span class=s2>&quot;The </span><span class=si>{</span><span class=n>missing_required_fields</span><span class=si>}</span><span class=s2> fields are required but missing: </span><span class=si>{</span><span class=n>required_fields</span><span class=si>}</span><span class=s2>&quot;</span>
@@ -185,7 +185,7 @@
             <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
                 <span class=sa>f</span><span class=s2>&quot;The following fields present differences in their datatypes: </span><span class=si>{</span><span class=n>fields_with_different_observed_datatype</span><span class=si>}</span><span class=s2>.&quot;</span>
             <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.df class="doc doc-heading"> <code class="highlight language-python"><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-writable"><code>writable</code></small> <small class="doc doc-label doc-label-property"><code>property</code></small> </span> </h2> <div class="doc doc-contents "> <p>Dataframe included in the Dataset.</p> </div> </div> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>schema</span><span class=p>:</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-property"><code>property</code></small> </span> </h2> <div class="doc doc-contents "> <p>Dataframe expected schema.</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.__post_init__ class="doc doc-heading"> <code class="highlight language-python"><span class=n>__post_init__</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Post init.</p> <details class=quote> <summary>Source code in <code>otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>26</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.df class="doc doc-heading"> <code class="highlight language-python"><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-property"><code>property</code></small> <small class="doc doc-label doc-label-writable"><code>writable</code></small> </span> </h2> <div class="doc doc-contents "> <p>Dataframe included in the Dataset.</p> </div> </div> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>schema</span><span class=p>:</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-property"><code>property</code></small> </span> </h2> <div class="doc doc-contents "> <p>Dataframe expected schema.</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.__post_init__ class="doc doc-heading"> <code class="highlight language-python"><span class=n>__post_init__</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Post init.</p> <details class=quote> <summary>Source code in <code>otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>26</span>
 <span class=normal>27</span>
 <span class=normal>28</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>__post_init__</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Post init.&quot;&quot;&quot;</span>
@@ -267,7 +267,7 @@
 <span class=normal>106</span>
 <span class=normal>107</span>
 <span class=normal>108</span>
-<span class=normal>109</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>validate_schema</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+<span class=normal>109</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>validate_schema</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># sourcery skip: invert-any-all</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Validate DataFrame schema against expected class schema.</span>
 
 <span class=sd>    Raises:</span>
@@ -287,11 +287,11 @@
         <span class=p>)</span>
 
     <span class=c1># Required fields not in dataset</span>
-    <span class=n>required_fields</span> <span class=o>=</span> <span class=p>[</span>
-        <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>x</span><span class=o>.</span><span class=n>dataType</span><span class=p>)</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>expected_schema</span> <span class=k>if</span> <span class=ow>not</span> <span class=n>x</span><span class=o>.</span><span class=n>nullable</span>
-    <span class=p>]</span>
+    <span class=n>required_fields</span> <span class=o>=</span> <span class=p>[</span><span class=n>x</span><span class=o>.</span><span class=n>name</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>expected_schema</span> <span class=k>if</span> <span class=ow>not</span> <span class=n>x</span><span class=o>.</span><span class=n>nullable</span><span class=p>]</span>
     <span class=k>if</span> <span class=n>missing_required_fields</span> <span class=o>:=</span> <span class=p>[</span>
-        <span class=n>x</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>required_fields</span> <span class=k>if</span> <span class=n>x</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>observed_fields</span>
+        <span class=n>req</span>
+        <span class=k>for</span> <span class=n>req</span> <span class=ow>in</span> <span class=n>required_fields</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>any</span><span class=p>(</span><span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=n>req</span> <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=n>observed_fields</span><span class=p>)</span>
     <span class=p>]:</span>
         <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
             <span class=sa>f</span><span class=s2>&quot;The </span><span class=si>{</span><span class=n>missing_required_fields</span><span class=si>}</span><span class=s2> fields are required but missing: </span><span class=si>{</span><span class=n>required_fields</span><span class=si>}</span><span class=s2>&quot;</span>
