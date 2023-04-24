@@ -60,7 +60,7 @@ class Dataset:
         df = session.read_parquet(path=path, schema=schema)
         return cls(_df=df, _schema=schema)
 
-    def validate_schema(self: Dataset) -> None:
+    def validate_schema(self: Dataset) -> None:  # sourcery skip: invert-any-all
         """Validate DataFrame schema against expected class schema.
 
         Raises:
@@ -80,11 +80,11 @@ class Dataset:
             )
 
         # Required fields not in dataset
-        required_fields = [
-            (x.name, x.dataType) for x in expected_schema if not x.nullable
-        ]
+        required_fields = [x.name for x in expected_schema if not x.nullable]
         if missing_required_fields := [
-            x for x in required_fields if x not in observed_fields
+            req
+            for req in required_fields
+            if not any(field.name == req for field in observed_fields)
         ]:
             raise ValueError(
                 f"The {missing_required_fields} fields are required but missing: {required_fields}"

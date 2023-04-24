@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.resources as pkg_resources
 import json
+from collections import namedtuple
 
 from pyspark.sql.types import ArrayType, StructType
 
@@ -44,15 +45,19 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
         ... )
         >>> df = spark.createDataFrame([("A", [{"tagVariantId": "varA"}]), ("B", [{"tagVariantId": "varB"}])], schema)
         >>> flatten_schema(df.schema)
-        [('studyLocusId', StringType), ('credibleSet', ArrayType(StructType(List(StructField(tagVariantId,StringType,false))),true)), ('credibleSet.tagVariantId', StringType)]
+        [Field(name='studyLocusId', dataType=StringType()), Field(name='credibleSet', dataType=ArrayType(StructType([]), True)), Field(name='credibleSet.tagVariantId', dataType=StringType())]
     """
+    Field = namedtuple("Field", ["name", "dataType"])
     fields = []
     for field in schema.fields:
         name = f"{prefix}.{field.name}" if prefix else field.name
         dtype = field.dataType
-        fields.append((name, dtype))
         if isinstance(dtype, StructType):
+            fields.append(Field(name, ArrayType(StructType())))
             fields += flatten_schema(dtype, prefix=name)
         elif isinstance(dtype, ArrayType) and isinstance(dtype.elementType, StructType):
+            fields.append(Field(name, ArrayType(StructType())))
             fields += flatten_schema(dtype.elementType, prefix=name)
+        else:
+            fields.append(Field(name, dtype))
     return fields
