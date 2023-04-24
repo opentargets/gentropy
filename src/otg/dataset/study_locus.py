@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
+from pyspark.sql.types import DoubleType, IntegerType, LongType
 from pyspark.sql.window import Window
 
 from otg.assets import data
@@ -563,7 +564,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         gwas_associations_subset = gwas_associations.select(
             "studyLocusId",
             f.col("CHR_ID").alias("chromosome"),
-            f.col("CHR_POS").alias("position"),
+            f.col("CHR_POS").cast(IntegerType()).alias("position"),
             # List of all SNPs associated with the variant
             StudyLocusGWASCatalog._collect_rsids(
                 f.split(f.col("SNPS"), "; ").getItem(0),
@@ -595,28 +596,39 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         # Semi-resolved ids (still contains duplicates when conclusion was not possible to make
         # based on rsIds or allele concordance)
-        filtered_associations = gwas_associations_subset.join(
-            f.broadcast(va_subset),
-            on=["chromosome", "position"],
-            how="left",
-        ).filter(
-            # Filter out rows where GWAS Catalog rsId does not match with GnomAD rsId,
-            # but there is corresponding variant for the same association
-            StudyLocusGWASCatalog._flag_mappings_to_retain(
-                f.col("studyLocusId"),
-                StudyLocusGWASCatalog._compare_rsids(
-                    f.col("rsIdsGnomad"), f.col("rsIdsGwasCatalog")
+        filtered_associations = (
+            gwas_associations_subset.join(
+                f.broadcast(va_subset),
+                on=["chromosome", "position"],
+                how="left",
+            )
+            .withColumn(
+                "rsIdFilter",
+                StudyLocusGWASCatalog._flag_mappings_to_retain(
+                    f.col("studyLocusId"),
+                    StudyLocusGWASCatalog._compare_rsids(
+                        f.col("rsIdsGnomad"), f.col("rsIdsGwasCatalog")
+                    ),
                 ),
             )
-            # or filter out rows where GWAS Catalog alleles are not concordant with GnomAD alleles,
-            # but there is corresponding variant for the same association
-            | StudyLocusGWASCatalog._flag_mappings_to_retain(
-                f.col("studyLocusId"),
-                StudyLocusGWASCatalog._check_concordance(
-                    f.col("riskAllele"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
+            .withColumn(
+                "concordanceFilter",
+                StudyLocusGWASCatalog._flag_mappings_to_retain(
+                    f.col("studyLocusId"),
+                    StudyLocusGWASCatalog._check_concordance(
+                        f.col("riskAllele"),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                    ),
                 ),
+            )
+            .filter(
+                # Filter out rows where GWAS Catalog rsId does not match with GnomAD rsId,
+                # but there is corresponding variant for the same association
+                f.col("rsIdFilter")
+                # or filter out rows where GWAS Catalog alleles are not concordant with GnomAD alleles,
+                # but there is corresponding variant for the same association
+                | f.col("concordanceFilter")
             )
         )
 
@@ -704,10 +716,10 @@ class StudyLocusGWASCatalog(StudyLocus):
         +-------------+------+------------+
         |            1| false|        true|
         |            1| false|        true|
-        |            3|  true|        true|
-        |            3|  true|        true|
         |            2| false|       false|
         |            2|  true|        true|
+        |            3|  true|        true|
+        |            3|  true|        true|
         +-------------+------+------------+
         <BLANKLINE>
 
@@ -919,13 +931,14 @@ class StudyLocusGWASCatalog(StudyLocus):
         Returns:
             A column containing the beta value.
         """
-        return f.when(
-            StudyLocusGWASCatalog._are_alleles_palindromic(
-                reference_allele, alternate_allele
-            ),
-            None,
-        ).otherwise(
+        return (
             f.when(
+                StudyLocusGWASCatalog._are_alleles_palindromic(
+                    reference_allele, alternate_allele
+                ),
+                None,
+            )
+            .when(
                 (
                     StudyLocusGWASCatalog._effect_needs_harmonisation(
                         risk_allele, reference_allele
@@ -939,7 +952,9 @@ class StudyLocusGWASCatalog(StudyLocus):
                     & confidence_interval.contains("decrease")
                 ),
                 -effect_size,
-            ).otherwise(effect_size)
+            )
+            .otherwise(effect_size)
+            .cast(DoubleType())
         )
 
     @staticmethod
@@ -1001,13 +1016,14 @@ class StudyLocusGWASCatalog(StudyLocus):
         Returns:
             A column with the odds ratio, or 1/odds_ratio if harmonization required.
         """
-        return f.when(
-            StudyLocusGWASCatalog._are_alleles_palindromic(
-                reference_allele, alternate_allele
-            ),
-            None,
-        ).otherwise(
+        return (
             f.when(
+                StudyLocusGWASCatalog._are_alleles_palindromic(
+                    reference_allele, alternate_allele
+                ),
+                None,
+            )
+            .when(
                 (
                     StudyLocusGWASCatalog._effect_needs_harmonisation(
                         risk_allele, reference_allele
@@ -1015,7 +1031,9 @@ class StudyLocusGWASCatalog(StudyLocus):
                     & ~confidence_interval.rlike("|".join(["decrease", "increase"]))
                 ),
                 1 / effect_size,
-            ).otherwise(effect_size)
+            )
+            .otherwise(effect_size)
+            .cast(DoubleType())
         )
 
     @staticmethod
@@ -1362,7 +1380,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         """
         return cls(
             _df=gwas_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id()
+                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
@@ -1377,7 +1395,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                 StudyLocusGWASCatalog._qc_all(
                     f.array().alias("qualityControls"),
                     f.col("CHR_ID"),
-                    f.col("CHR_POS"),
+                    f.col("CHR_POS").cast(IntegerType()),
                     f.col("referenceAllele"),
                     f.col("alternateAllele"),
                     f.col("STRONGEST SNP-RISK ALLELE"),
