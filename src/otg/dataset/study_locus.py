@@ -1538,6 +1538,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         ld_set = (
             self.unique_study_locus_ancestries(studies)
             .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
+            .withColumn("r2", f.pow(f.col("r"), f.lit(2)))
             .withColumn(
                 "r2Overall",
                 LDAnnotatorGnomad.weighted_r_overall(
@@ -1546,7 +1547,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                     f.col("variantId"),
                     f.col("tagVariantId"),
                     f.col("relativeSampleSize"),
-                    f.col("r"),
+                    f.col("r2"),
                 ),
             )
             .groupBy("chromosome", "studyId", "variantId")
