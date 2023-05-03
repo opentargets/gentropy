@@ -1269,7 +1269,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             qc,
             # Number of chromosomes does not correspond to the number of positions:
             (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";"))) |
-            # NUmber of chromosome values different from riskAllele values:
+            # Number of chromosome values different from riskAllele values:
             (
                 f.size(f.split(chromosome, ";"))
                 != f.size(f.split(strongest_snp_risk_allele, ";"))

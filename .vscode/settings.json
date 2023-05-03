@@ -4,7 +4,8 @@
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": true
-    }
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "python.terminal.launchArgs": [
     "-m",
@@ -32,7 +33,7 @@
   "python.linting.pydocstyleArgs": [
     "--convention=google"
   ],
-  "python.formatting.provider": "black",
+  "python.formatting.provider": "none",
   "isort.args": [
     "--profile",
     "black"
