@@ -196,40 +196,6 @@ class StudyLocus(Dataset):
             f.array_union(qc, f.array(f.lit(flag_text.value))),
         ).otherwise(qc)
 
-    @staticmethod
-    def _is_in_credset(
-        posterior_probability: Column,
-        credset_probability: float,
-    ) -> Column:
-        """Check whether a variant is in the XX% credible set.
-
-        Args:
-            posterior_probability (Column): Posterior probability of the tag variant
-            credset_probability (float): Credible set probability
-
-        Returns:
-            Column: Whether the variant is in the specified credible set
-        """
-        w_cumlead = Window.orderBy(f.desc(posterior_probability)).rowsBetween(
-            Window.unboundedPreceding, Window.currentRow
-        )
-        pics_postprob_cumsum = f.sum(posterior_probability).over(w_cumlead)
-        w_credset = Window.orderBy(pics_postprob_cumsum)
-        return (
-            # If posterior probability is null, credible set flag is False:
-            f.when(posterior_probability.isNull(), False)
-            # If the posterior probability meets the criteria the flag is False:
-            .when(
-                f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
-                False,
-            ).when(
-                f.lag(pics_postprob_cumsum, 1).over(w_credset) < credset_probability,
-                True,
-            )
-            # ensures nullable=True:
-            .otherwise(None)
-        )
-
     @classmethod
     def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
@@ -360,26 +326,49 @@ class StudyLocus(Dataset):
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
 
+        Sorts the array in the `credibleSet` column elements by their `posteriorProbability` values in descending order and adds
+        `is95CredibleSet` and `is99CredibleSet` fields to the elements, indicating which are the tagging variants whose cumulative sum
+        of their `posteriorProbability` values is below 0.95 and 0.99, respectively.
+
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
         self.df = self.df.withColumn(
+            # Sort credible set by posterior probability in descending order - hacky solution, as array_sort does not have a sorting key argument
             "credibleSet",
-            f.transform(
-                f.col("credibleSet"),
-                lambda x: x.withField(
-                    CredibleInterval.IS95.value,
-                    StudyLocus._is_in_credset(x.posteriorProbability, 0.95),
-                ),
+            f.expr(
+                """
+                array_sort(
+                    credibleSet,
+                    (left, right) -> case when left.posteriorProbability < right.posteriorProbability then 1
+                                    when left.posteriorProbability > right.posteriorProbability then -1
+                                    else 0
+                            end)
+                """
             ),
         ).withColumn(
+            # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
+            # and zip the cumulative sums array with the credible set array to add the flags
             "credibleSet",
-            f.transform(
+            f.zip_with(
                 f.col("credibleSet"),
-                lambda x: x.withField(
-                    CredibleInterval.IS99.value,
-                    StudyLocus._is_in_credset(x.posteriorProbability, 0.99),
+                f.transform(
+                    f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
+                    lambda index: f.aggregate(
+                        f.slice(
+                            # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
+                            # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
+                            f.col("credibleSet.posteriorProbability"),
+                            1,
+                            index - 1,
+                        ),
+                        f.lit(0.0),
+                        lambda acc, el: acc + el,
+                    ),
                 ),
+                lambda struct_e, acc: struct_e.withField(
+                    CredibleInterval.IS95.value, acc < 0.95
+                ).withField(CredibleInterval.IS99.value, acc < 0.99),
             ),
         )
         return self
@@ -1280,7 +1269,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             qc,
             # Number of chromosomes does not correspond to the number of positions:
             (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";"))) |
-            # NUmber of chromosome values different from riskAllele values:
+            # Number of chromosome values different from riskAllele values:
             (
                 f.size(f.split(chromosome, ";"))
                 != f.size(f.split(strongest_snp_risk_allele, ";"))
@@ -1549,6 +1538,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         ld_set = (
             self.unique_study_locus_ancestries(studies)
             .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
+            .withColumn("r2", f.pow(f.col("r"), f.lit(2)))
             .withColumn(
                 "r2Overall",
                 LDAnnotatorGnomad.weighted_r_overall(
@@ -1557,7 +1547,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                     f.col("variantId"),
                     f.col("tagVariantId"),
                     f.col("relativeSampleSize"),
-                    f.col("r"),
+                    f.col("r2"),
                 ),
             )
             .groupBy("chromosome", "studyId", "variantId")

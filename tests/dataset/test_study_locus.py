@@ -4,8 +4,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql import Column, DataFrame
-from pyspark.sql.types import LongType
+import pytest
+from pyspark.sql import Column, DataFrame, SparkSession
+from pyspark.sql.types import (
+    ArrayType,
+    BooleanType,
+    DoubleType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from otg.dataset.study_locus import (
     CredibleInterval,
@@ -92,11 +101,6 @@ def test_neglog_pvalue(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus.neglog_pvalue(), Column)
 
 
-def test_annotate_credible_sets(mock_study_locus: StudyLocus) -> None:
-    """Test annotate credible sets."""
-    assert isinstance(mock_study_locus.annotate_credible_sets(), StudyLocus)
-
-
 def test_clump(mock_study_locus: StudyLocus) -> None:
     """Test clump."""
     assert isinstance(mock_study_locus.clump(), StudyLocus)
@@ -137,3 +141,126 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
         ),
         DataFrame,
     )
+
+
+@pytest.mark.parametrize(
+    ("observed", "expected"),
+    [
+        (
+            # Simple case
+            [
+                # Observed
+                (
+                    1,
+                    "traitA",
+                    "leadB",
+                    [{"tagVariantId": "tagVariantA", "posteriorProbability": 1.0}],
+                ),
+            ],
+            [
+                # Expected
+                (
+                    1,
+                    "traitA",
+                    "leadB",
+                    [
+                        {
+                            "tagVariantId": "tagVariantA",
+                            "posteriorProbability": 1.0,
+                            "is95CredibleSet": True,
+                            "is99CredibleSet": True,
+                        }
+                    ],
+                )
+            ],
+        ),
+        (
+            # Unordered credible set
+            [
+                # Observed
+                (
+                    1,
+                    "traitA",
+                    "leadA",
+                    [
+                        {"tagVariantId": "tagVariantA", "posteriorProbability": 0.44},
+                        {"tagVariantId": "tagVariantB", "posteriorProbability": 0.01},
+                        {"tagVariantId": "tagVariantC", "posteriorProbability": 0.04},
+                        {"tagVariantId": "tagVariantD", "posteriorProbability": 0.01},
+                        {"tagVariantId": "tagVariantE", "posteriorProbability": 0.5},
+                    ],
+                )
+            ],
+            [
+                # Expected
+                (
+                    1,
+                    "traitA",
+                    "leadA",
+                    [
+                        {
+                            "tagVariantId": "tagVariantE",
+                            "posteriorProbability": 0.5,
+                            "is95CredibleSet": True,
+                            "is99CredibleSet": True,
+                        },
+                        {
+                            "tagVariantId": "tagVariantA",
+                            "posteriorProbability": 0.44,
+                            "is95CredibleSet": True,
+                            "is99CredibleSet": True,
+                        },
+                        {
+                            "tagVariantId": "tagVariantC",
+                            "posteriorProbability": 0.04,
+                            "is95CredibleSet": True,
+                            "is99CredibleSet": True,
+                        },
+                        {
+                            "tagVariantId": "tagVariantB",
+                            "posteriorProbability": 0.01,
+                            "is95CredibleSet": False,
+                            "is99CredibleSet": True,
+                        },
+                        {
+                            "tagVariantId": "tagVariantD",
+                            "posteriorProbability": 0.01,
+                            "is95CredibleSet": False,
+                            "is99CredibleSet": False,
+                        },
+                    ],
+                )
+            ],
+        ),
+    ],
+)
+def test_annotate_credible_sets(
+    spark: SparkSession, observed: list, expected: list
+) -> None:
+    """Test annotate_credible_sets."""
+    schema = StructType(
+        [
+            StructField("studyLocusId", LongType(), True),
+            StructField("studyId", StringType(), True),
+            StructField("variantId", StringType(), True),
+            StructField(
+                "credibleSet",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("tagVariantId", StringType(), True),
+                            StructField("posteriorProbability", DoubleType(), True),
+                            StructField("is95CredibleSet", BooleanType(), True),
+                            StructField("is99CredibleSet", BooleanType(), True),
+                        ]
+                    )
+                ),
+                True,
+            ),
+        ]
+    )
+    data_sl = StudyLocus(
+        _df=spark.createDataFrame(observed, schema)
+    ).annotate_credible_sets()
+    expected_sl = StudyLocus(_df=spark.createDataFrame(expected, schema))
+    assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
