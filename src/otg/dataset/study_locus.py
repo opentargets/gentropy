@@ -1523,6 +1523,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         Returns:
             StudyLocus: Study-locus with an annotated credible set.
         """
+        # TODO: call unique_study_locus_ancestries here so that it is not duplicated with ld_annotation_by_locus_ancestry
         # LD annotation for all unique lead variants in all populations (study independent).
         ld_r = LDAnnotatorGnomad.ld_annotation_by_locus_ancestry(
             session,
