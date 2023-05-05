@@ -36,9 +36,9 @@ class LDAnnotatorGnomad:
 
         Args:
             bm (BlockMatrix): LD matrix containing r values
-            idxs (List[int]): Row indexes to query (distinct and incremenetal)
+            idxs (List[int]): Row indexes to query (distinct and incremental)
             starts (List[int]): Interval start column indexes (same size as idxs)
-            stops (List[int]): Interval start column indexes (same size as idxs)
+            stops (List[int]): Interval stop column indexes (same size as idxs)
             min_r2 (float): Minimum r2 to keep
 
         Returns:
@@ -79,6 +79,8 @@ class LDAnnotatorGnomad:
         ld_index: LDIndex,
     ) -> DataFrame:
         """Idxs for variants, first variant in the region and last variant in the region in precomputed ld index.
+
+        It checks if the window defined by the start/stop indices is maintained after lifting over the variants.
 
         Args:
             variants_df (DataFrame): Lead variants from `_annotate_index_intervals` output
@@ -245,7 +247,7 @@ class LDAnnotatorGnomad:
             min_r2,
         )
 
-        return (
+        ld_expanded_variants_df = (
             entries.join(
                 f.broadcast(variants_ld_coordinates),
                 on="i",
@@ -268,6 +270,8 @@ class LDAnnotatorGnomad:
                 "variantId", "leads.chromosome", "gnomadPopulation", "tagVariantId", "r"
             )
         )
+        variants_ld_coordinates.unpersist()
+        return ld_expanded_variants_df
 
     @classmethod
     def ld_annotation_by_locus_ancestry(
