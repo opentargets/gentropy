@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "otgenetics"
-version = "0.1.4"
+version = "0.1.4.2"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache License v2"
@@ -12,7 +12,7 @@ packages = [
 otg = "otg.cli:main"
 
 [tool.poetry.dependencies]
-python = "3.10.9"
+python = "3.10.8"
 pyspark = "3.3.0"
 scipy = "^1.6.1"
 hydra-core = "^1.2.0"

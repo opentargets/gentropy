@@ -31,14 +31,14 @@ pyenv versions
 Otherwise, install
 
 ```bash
-pyenv install 3.10
+pyenv install 3.10.8
 ```
 
 Make sure you are using the local Python version
 
 ``` bash
 python -V
-poetry env use 3.10
+poetry env use 3.10.8
 ```
 
 ``` bash

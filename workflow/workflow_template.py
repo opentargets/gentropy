@@ -20,14 +20,14 @@ zone = "europe-west1-d"
 python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
 config_name = "my_config"
 config_tar = "gs://genetics_etl_python_playground/initialisation/config.tar.gz"
-cluster_name = "ochoa-otg-cluster"
+cluster_name = "ill-otg-cluster"
 package_wheel = "gs://genetics_etl_python_playground/initialisation/otgenetics-0.1.4-py3-none-any.whl"
 machine_type = "n1-highmem-96"
 initialisation_executable_file = (
     "gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh"
 )
 image_version = "2.1"
-num_local_ssds = 1
+num_local_ssds = 0
 
 # Available cluster
 cluster_uuid = "eba42738-2ea3-4b0a-ba1d-38428427e838"
@@ -139,8 +139,8 @@ def pyspark_job_template(
     ]
     # to provide hail support
     job.pyspark_job.properties = {
-        "spark.jars": "/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar",
-        "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.8/site-packages/hail/backend/hail-all-spark.jar",
+        "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+        "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
         "spark.executor.extraClassPath": "./hail-all-spark.jar",
         "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
         "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
