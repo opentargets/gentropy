@@ -20,11 +20,11 @@ catalog_studies: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-11-29.
 catalog_ancestries: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-11-29.tsv
 catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list.txt
 finngen_phenotype_table_url: https://r8.finngen.fi/api/phenos
-# templates
+# Templates
 ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
 ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
 
-#Output datasets
+# Output datasets
 gene_index: ${datasets.outputs}/gene_index/gene_index
 variant_annotation: ${datasets.outputs}/variant_annotation
 variant_index: ${datasets.outputs}/variant_index
@@ -35,7 +35,7 @@ ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.outputs}/catalog_study_index
 catalog_study_locus: ${datasets.outputs}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
-#templates
+# Templates
 ld_index_template: ${datasets.outputs}/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet
 finngen_release_prefix: FINNGEN_R8_
 finngen_sumstat_url_prefix: https://storage.googleapis.com/finngen-public-data-r8/summary_stats/finngen_R8_
