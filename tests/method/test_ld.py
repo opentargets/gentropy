@@ -11,6 +11,8 @@ from otg.dataset.study_locus import StudyLocus
 from otg.method.ld import LDAnnotatorGnomad, LDclumping
 
 if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
+
     from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
@@ -45,7 +47,15 @@ class TestVariantCoordinatesInLdIndex:
 
     def test_schema(self: TestVariantCoordinatesInLdIndex) -> None:
         """Test function that checks the schema of the output of `variant_coordinates_in_ldindex`."""
-        expected_cols = ["chromosome", "idx", "start_idx", "stop_idx", "i"]
+        expected_cols = [
+            "variantId",
+            "chromosome",
+            "gnomadPopulation",
+            "idx",
+            "start_idx",
+            "stop_idx",
+            "i",
+        ]
         assert set(self.variants_w_indices_df.columns) == set(expected_cols)
 
     def test_idx_order(self: TestVariantCoordinatesInLdIndex) -> None:
@@ -55,6 +65,37 @@ class TestVariantCoordinatesInLdIndex:
         )
         assert idx_list == sorted(idx_list)
 
+    def test_variants_ld_info(
+        self: TestVariantCoordinatesInLdIndex, spark: SparkSession
+    ) -> None:
+        """Tests that the joining function to annotate coordinates and LD scores for a set of variants works."""
+        # scores based on the output of _query_block_matrix
+        variants_ld_scores = spark.createDataFrame(
+            [(0, 0, 0.8), (0, 1, 1.0), (1, 2, 1.0)],
+            ["i", "j", "r"],
+        )
+
+        # coordinate based on the output of _variant_coordinates_in_ldindex
+        variants_ld_indices = self.variants_w_indices_df
+
+        variants_ld_info = variants_ld_scores.join(
+            f.broadcast(variants_ld_indices),
+            on="i",
+            how="inner",
+        )
+        expected_cols = [
+            "variantId",
+            "chromosome",
+            "gnomadPopulation",
+            "j",
+            "i",
+            "r",
+            "idx",
+            "start_idx",
+            "stop_idx",
+        ]
+        assert set(variants_ld_info.columns) == set(expected_cols)
+
     @pytest.fixture(autouse=True)
     def _setup(
         self: TestVariantCoordinatesInLdIndex,
@@ -63,6 +104,7 @@ class TestVariantCoordinatesInLdIndex:
         mock_ld_index: LDIndex,
     ) -> None:
         """Prepares the data for the tests."""
+        # variants_df is the result of extracting the unique locus/ancestry pairs
         self.variants_df = mock_study_locus.unique_study_locus_ancestries(
             studies=mock_study_index_gwas_catalog
         )

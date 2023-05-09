@@ -87,16 +87,16 @@ class LDAnnotatorGnomad:
             ld_index (LDIndex): LD index precomputed
 
         Returns:
-            DataFrame: LD coordinates [i, idxs, start_idx and stop_idx]
+            DataFrame: LD coordinates [variantId, chromosome, gnomadPopulation, i, idxs, start_idx and stop_idx]
         """
         w = Window.orderBy("chromosome", "idx")
         return (
             variants_df.join(
                 ld_index.df,
-                on="variantId",
+                on=["variantId", "chromosome"],
             )  # start idx > stop idx in rare occasions due to liftover
             .filter(f.col("start_idx") < f.col("stop_idx"))
-            .groupBy("chromosome", "idx")
+            .groupBy("chromosome", "idx", "variantId", "gnomadPopulation")
             .agg(
                 f.min("start_idx").alias("start_idx"),
                 f.max("stop_idx").alias("stop_idx"),
@@ -131,7 +131,7 @@ class LDAnnotatorGnomad:
         Returns:
             Column: Estimates weighted R information
 
-        Exmples:
+        Examples:
             >>> data = [('t3', 0.25, 0.2), ('t3', 0.25, 0.2), ('t3', 0.5, 0.99)]
             >>> columns = ['tag_variant_id', 'relative_sample_size', 'r']
             >>> (

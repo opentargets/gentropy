@@ -304,6 +304,7 @@ class StudyLocus(Dataset):
             .filter(f.col("position").isNotNull())
             .select(
                 "variantId",
+                "chromosome",
                 "studyId",
                 "gnomadPopulation",
                 "relativeSampleSize",
