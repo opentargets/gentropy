@@ -267,7 +267,7 @@ class FinnGenStepConfig:
         finngen_study_index_out (str): Output path for the FinnGen study index dataset.
     """
 
-    _target_: str = "otg.finngen.FinnGen"
+    _target_: str = "otg.finngen.FinnGenStep"
     finngen_phenotype_table_url: str = MISSING
     finngen_release_prefix: str = MISSING
     finngen_sumstat_url_prefix: str = MISSING
