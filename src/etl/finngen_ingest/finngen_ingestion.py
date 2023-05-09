@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import tempfile
 from typing import TYPE_CHECKING
 
+import requests
 from ontoma import OnToma
 from pyspark.sql import functions as f
 from pyspark.sql.types import ArrayType, StringType, StructField, StructType
 
-from src.etl.common.ontology import ontoma_udf
+from etl.common.ontology import ontoma_udf
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -44,7 +46,13 @@ def ingest_finngen_studies(
         DataFrame: Parsed and annotated FinnGen study table.
     """
     # Read the JSON data from the URL.
-    df = etl.spark.read.json(phenotype_table_url)
+    # Using a temporary file may look somewhat silly, but PySpark actually refuses to read this either directly from HTTPS, or even from BytesIO.
+    response = requests.get(phenotype_table_url)
+    json_data = response.content
+    with tempfile.NamedTemporaryFile(mode="wb") as temp:
+        temp.write(json_data)
+        temp.seek(0)
+        df = etl.spark.read.json(temp.name)
 
     # Select the desired columns.
     df = df.select("phenocode", "phenostring", "num_cases", "num_controls")
@@ -57,7 +65,7 @@ def ingest_finngen_studies(
 
     # Transform the column values.
     df = df.withColumn("id", f.concat(f.lit(finngen_release_prefix), df["id"]))
-    df = df.withColumn("nSamples", f.sum(df["nCases"], df["nControls"]))
+    df = df.withColumn("nSamples", df["nCases"] + df["nControls"])
     df = df.withColumn(
         "summarystatsLocation",
         f.concat(f.lit(sumstat_url_prefix), df["id"], f.lit(sumstat_url_suffix)),
