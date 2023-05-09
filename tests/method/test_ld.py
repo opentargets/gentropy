@@ -11,6 +11,7 @@ from otg.method.ld import LDAnnotatorGnomad, LDclumping
 
 if TYPE_CHECKING:
     from otg.dataset.ld_index import LDIndex
+    from otg.dataset.study_index import StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -20,11 +21,14 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
 
 
 def test_variant_coordinates_in_ldindex(
-    mock_variant_annotation: VariantAnnotation, mock_ld_index: LDIndex
+    mock_study_locus: StudyLocus,
+    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
+    mock_ld_index: LDIndex,
 ) -> None:
     """Test function that finds the indices of a particular set of variants in a LDIndex to query it afterwards."""
-    variants_df = mock_variant_annotation.df.select(
-        "chromosome", "position", "referenceAllele", "alternateAllele"
+    # set of variants is defined by `unique_study_locus_ancestries``
+    variants_df = mock_study_locus.unique_study_locus_ancestries(
+        studies=mock_study_index_gwas_catalog
     )
     variants_w_indices_df = LDAnnotatorGnomad._variant_coordinates_in_ldindex(
         variants_df, mock_ld_index
@@ -48,4 +52,5 @@ def test_variants_in_ld_in_gnomad_pop(
     expanded_variants_df = LDAnnotatorGnomad.variants_in_ld_in_gnomad_pop(
         variants_w_ld_info, mock_ld_index
     )
-    print(expanded_variants_df.columns)
+    expected_cols = ["variantId", "chromosome", "gnomadPopulation", "tagVariantId", "r"]
+    assert set(expanded_variants_df.columns) == set(expected_cols)

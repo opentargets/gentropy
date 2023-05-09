@@ -306,7 +306,6 @@ class StudyLocus(Dataset):
                 "variantId",
                 "studyId",
                 "gnomadPopulation",
-                "chromosome",
                 "relativeSampleSize",
             )
             .distinct()
