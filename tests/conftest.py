@@ -10,7 +10,7 @@ from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
+from otg.dataset.study_index import StudyIndex, StudyIndexFinnGen, StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.summary_statistics import SummaryStatistics
@@ -132,6 +132,15 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
 def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
     """Mock StudyIndexGWASCatalog dataset."""
     return StudyIndexGWASCatalog(
+        _df=mock_study_index_data(spark),
+        _schema=parse_spark_schema("studies.json"),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_finngen(spark: SparkSession) -> StudyIndexFinnGen:
+    """Mock StudyIndexFinnGen dataset."""
+    return StudyIndexFinnGen(
         _df=mock_study_index_data(spark),
         _schema=parse_spark_schema("studies.json"),
     )
