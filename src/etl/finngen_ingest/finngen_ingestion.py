@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ontoma import OnToma
 from pyspark.sql import functions as f
+from pyspark.sql.types import ArrayType, StringType, StructField, StructType
+
+from src.etl.common.ontology import ontoma_udf
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -65,5 +69,22 @@ def ingest_finngen_studies(
         "initialSampleSize", f.lit("309,154 (173,746 females and 135,408 males)")
     )
     df = df.withColumn("hasSumstats", f.lit(True))
+
+    # Compute the EFO mapping iformation.
+    traits_map = df.select("traitFromSource").distinct().toPandas()
+    ontoma_instance = OnToma()
+    traits_map["efos"] = traits_map.parallel_apply(
+        ontoma_udf, args=(ontoma_instance,), axis=1
+    )
+
+    # Join the EFO mapping information back into the dataframe.
+    schema = StructType(
+        [
+            StructField("traitFromSource", StringType(), nullable=False),
+            StructField("efos", ArrayType(StringType(), nullable=True), nullable=False),
+        ]
+    )
+    disease_info_df = etl.spak.createDataFrame(traits_map, schema=schema)
+    df = df.join(disease_info_df, on="traitFromSource", how="left")
 
     return df
