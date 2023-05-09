@@ -440,6 +440,14 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_finngen_studies(spark: SparkSession) -> DataFrame:
+    """Sample FinnGen studies."""
+    # For reference, the sample file was generated with the following command:
+    # curl https://r8.finngen.fi/api/phenos | jq '.[:10]' > tests/data_samples/finngen_studies_sample-r8.json
+    return spark.read.json("tests/data_samples/finngen_studies_sample-r8.json")
+
+
+@pytest.fixture()
 def sample_target_index(spark: SparkSession) -> DataFrame:
     """Sample target index sample data."""
     return spark.read.parquet(
