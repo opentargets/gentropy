@@ -6,9 +6,7 @@ import tempfile
 from typing import TYPE_CHECKING
 
 import requests
-from ontoma import OnToma
 from pyspark.sql import functions as f
-from pyspark.sql.types import ArrayType, StringType, StructField, StructType
 
 from etl.common.ontology import ontoma_udf
 
@@ -79,20 +77,6 @@ def ingest_finngen_studies(
     df = df.withColumn("hasSumstats", f.lit(True))
 
     # Compute the EFO mapping iformation.
-    traits_map = df.select("traitFromSource").distinct().toPandas()
-    ontoma_instance = OnToma()
-    traits_map["efos"] = traits_map.parallel_apply(
-        ontoma_udf, args=(ontoma_instance,), axis=1
-    )
-
-    # Join the EFO mapping information back into the dataframe.
-    schema = StructType(
-        [
-            StructField("traitFromSource", StringType(), nullable=False),
-            StructField("efos", ArrayType(StringType(), nullable=True), nullable=False),
-        ]
-    )
-    disease_info_df = etl.spak.createDataFrame(traits_map, schema=schema)
-    df = df.join(disease_info_df, on="traitFromSource", how="left")
+    df = df.withColumn("efos", ontoma_udf(df["traitFromSource"]))
 
     return df
