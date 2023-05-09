@@ -419,6 +419,7 @@ class StudyIndexFinnGen(StudyIndex):
     """Study index dataset from FinnGen.
 
     The following information is aggregated/extracted:
+
     - Study ID in the special format (FINNGEN_R8_*)
     - Trait name (for example, Amoebiasis)
     - Number of cases and controls
@@ -460,6 +461,10 @@ class StudyIndexFinnGen(StudyIndex):
                     # Set constant value columns.
                     f.lit("FINNGEN_R8").alias("projectId"),
                     f.lit("gwas").alias("studyType"),
+                    f.lit(True).alias("hasSumstats"),
+                    f.lit("342,499 (190,879 females and 151,620 males)").alias(
+                        "initialSampleSize"
+                    ),
                 )
                 .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
                 .withColumn(
@@ -470,14 +475,5 @@ class StudyIndexFinnGen(StudyIndex):
                         f.lit(finngen_sumstat_url_suffix),
                     ),
                 )
-                # Then f.when(f.lit(True)) trick makes sure that the column is created as nullable, to ensure that it is not flagged as incorrect by validate_df_schema. See: https://stackoverflow.com/a/68578278.
-                .withColumn(
-                    "initialSampleSize",
-                    f.when(
-                        f.lit(True),
-                        f.lit("342,499 (190,879 females and 151,620 males)"),
-                    ),
-                )
-                .withColumn("hasSumstats", f.when(f.lit(True), f.lit(True)))
             )
         )
