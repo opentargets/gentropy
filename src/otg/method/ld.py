@@ -103,6 +103,8 @@ class LDAnnotatorGnomad:
             )
             # necessary to resolve return of .entries() function
             .withColumn("i", f.row_number().over(w))
+            # the dataframe has to be ordered to query the block matrix
+            .orderBy("idx")
         )
 
     @staticmethod

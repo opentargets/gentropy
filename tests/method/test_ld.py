@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+import pytest
 
 from otg.dataset.study_locus import StudyLocus
 from otg.method.ld import LDAnnotatorGnomad, LDclumping
@@ -18,23 +19,6 @@ if TYPE_CHECKING:
 def test_clump(mock_study_locus: StudyLocus) -> None:
     """Test PICS."""
     assert isinstance(LDclumping.clump(mock_study_locus), StudyLocus)
-
-
-def test_variant_coordinates_in_ldindex(
-    mock_study_locus: StudyLocus,
-    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
-    mock_ld_index: LDIndex,
-) -> None:
-    """Test function that finds the indices of a particular set of variants in a LDIndex to query it afterwards."""
-    # set of variants is defined by `unique_study_locus_ancestries``
-    variants_df = mock_study_locus.unique_study_locus_ancestries(
-        studies=mock_study_index_gwas_catalog
-    )
-    variants_w_indices_df = LDAnnotatorGnomad._variant_coordinates_in_ldindex(
-        variants_df, mock_ld_index
-    )
-    expected_cols = ["chromosome", "idx", "start_idx", "stop_idx", "i"]
-    assert set(variants_w_indices_df.columns) == set(expected_cols)
 
 
 def test_variants_in_ld_in_gnomad_pop(
@@ -54,3 +38,34 @@ def test_variants_in_ld_in_gnomad_pop(
     )
     expected_cols = ["variantId", "chromosome", "gnomadPopulation", "tagVariantId", "r"]
     assert set(expanded_variants_df.columns) == set(expected_cols)
+
+
+class TestVariantCoordinatesInLdIndex:
+    """Test function that finds the indices of a particular set of variants in a LDIndex to query it afterwards."""
+
+    def test_schema(self: TestVariantCoordinatesInLdIndex) -> None:
+        """Test function that checks the schema of the output of `variant_coordinates_in_ldindex`."""
+        expected_cols = ["chromosome", "idx", "start_idx", "stop_idx", "i"]
+        assert set(self.variants_w_indices_df.columns) == set(expected_cols)
+
+    def test_idx_order(self: TestVariantCoordinatesInLdIndex) -> None:
+        """Test function that checks that the indices are ordered."""
+        idx_list = (
+            self.variants_w_indices_df.select("idx").rdd.flatMap(lambda x: x).collect()
+        )
+        assert idx_list == sorted(idx_list)
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestVariantCoordinatesInLdIndex,
+        mock_study_locus: StudyLocus,
+        mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
+        mock_ld_index: LDIndex,
+    ) -> None:
+        """Prepares the data for the tests."""
+        self.variants_df = mock_study_locus.unique_study_locus_ancestries(
+            studies=mock_study_index_gwas_catalog
+        )
+        self.variants_w_indices_df = LDAnnotatorGnomad._variant_coordinates_in_ldindex(
+            self.variants_df, mock_ld_index
+        )
