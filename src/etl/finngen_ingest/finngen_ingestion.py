@@ -51,27 +51,30 @@ def ingest_finngen_studies(
     df = df.select("phenocode", "phenostring", "num_cases", "num_controls")
 
     # Rename the columns.
-    df = df.withColumnRenamed("phenocode", "id")
-    df = df.withColumnRenamed("phenostring", "traitFromSource")
+    df = df.withColumnRenamed("phenocode", "studyId")
+    df = df.withColumnRenamed("phenostring", "diseaseTrait")
     df = df.withColumnRenamed("num_cases", "nCases")
     df = df.withColumnRenamed("num_controls", "nControls")
 
     # Transform the column values.
-    df = df.withColumn("id", f.concat(f.lit(finngen_release_prefix), df["id"]))
+    df = df.withColumn(
+        "studyId", f.concat(f.lit(finngen_release_prefix), df["studyId"])
+    )
     df = df.withColumn("nSamples", df["nCases"] + df["nControls"])
     df = df.withColumn(
         "summarystatsLocation",
-        f.concat(f.lit(sumstat_url_prefix), df["id"], f.lit(sumstat_url_suffix)),
+        f.concat(f.lit(sumstat_url_prefix), df["studyId"], f.lit(sumstat_url_suffix)),
     )
 
     # Set constant value columns.
-    df = df.withColumn("type", f.lit("gwas"))
+    # Then f.when(f.lit(True)) trick makes sure that the column is created as nullable, to ensure that it is not flagged as incorrect by validate_df_schema. See: https://stackoverflow.com/a/68578278.
     df = df.withColumn(
-        "initialSampleSize", f.lit("309,154 (173,746 females and 135,408 males)")
+        "initialSampleSize",
+        f.when(f.lit(True), f.lit("309,154 (173,746 females and 135,408 males)")),
     )
-    df = df.withColumn("hasSumstats", f.lit(True))
+    df = df.withColumn("hasSumstats", f.when(f.lit(True), f.lit(True)))
 
     # Compute the EFO mapping iformation.
-    df = df.withColumn("efos", ontoma_udf(df["traitFromSource"]))
+    df = df.withColumn("efos", ontoma_udf(df["diseaseTrait"]))
 
     return df
