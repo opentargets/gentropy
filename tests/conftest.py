@@ -444,7 +444,10 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
     """Sample FinnGen studies."""
     # For reference, the sample file was generated with the following command:
     # curl https://r8.finngen.fi/api/phenos | jq '.[:10]' > tests/data_samples/finngen_studies_sample-r8.json
-    return spark.read.json("tests/data_samples/finngen_studies_sample-r8.json")
+    with open("tests/data_samples/finngen_studies_sample-r8.json") as finngen_studies:
+        json_data = finngen_studies.read()
+        rdd = spark.sparkContext.parallelize([json_data])
+        return spark.read.json(rdd)
 
 
 @pytest.fixture()
