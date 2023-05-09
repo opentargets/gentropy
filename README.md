@@ -26,6 +26,24 @@ Run `make setup-dev`; it will install or update the necessary packages and activ
 
 Then run VS Code (`code`) and select the interpreter.
 
+In some cases, Pyenv and Poetry may cause various exotic errors which are hard to diagnose and get rid of. In this case, it helps to remove them from the system completely before running the `make setup-dev` command. See instructions in [utils/remove_pyenv_poetry.md](utils/remove_pyenv_poetry.md).
+
+### Configuration
+
+We use [hydra](https://hydra.cc) for managing the ETL configuration. The `configs` directory contains the source YAMLs neccessary to produce an instance of the configuration. To manually run an instance of the configuration run:
+
+```bash
+poetry run python ./utils/configure.py --cfg job # add --resolve to resolve interpolations
+```
+
+A local instance of the configuration file can be used in `src/config.yaml` for debugging purposes (gitignored).
+
+Configurations can be modified using hydra options.
+
+```bash
+poetry run python ./utils/configure.py environment=local
+```
+
 ### Build
 
 Use `make build` to create a bundle that will contain the neccessary code, configuration and dependencies to run the ETL pipeline. The build is stored in `dist/` (gitignored).
