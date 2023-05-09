@@ -20,7 +20,11 @@ def main(cfg: DictConfig) -> None:
 
     etl.logger.info("Ingesting FinnGen study data...")
     finngen_studies = ingest_finngen_studies(
-        etl=etl, phenotype_table_url=cfg.etl.finngen_ingest.inputs.phenotype_table_url
+        etl=etl,
+        phenotype_table_url=cfg.etl.finngen_ingest.inputs.phenotype_table_url,
+        finngen_release_prefix=cfg.etl.finngen_ingest.parameters.finngen_release_prefix,
+        sumstat_url_prefix=cfg.etl.finngen_ingest.parameters.sumstat_url_prefix,
+        sumstat_url_suffix=cfg.etl.finngen_ingest.parameters.sumstat_url_suffix,
     )
 
     etl.logger.info("Saving FinnGen study data...")
