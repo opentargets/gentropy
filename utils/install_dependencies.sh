@@ -19,7 +19,8 @@ PYTHON_VERSION=$(grep '^python = ".*"' pyproject.toml | cut -d'"' -f2)
 pyenv install --skip-existing $PYTHON_VERSION
 pyenv shell $PYTHON_VERSION
 
-echo "Installing dependencies through Poetry..."
+echo "Activating the Poetry environment and installing dependencies..."
+poetry shell
 poetry install --remove-untracked
 
 echo "Setting up pre-commit..."
