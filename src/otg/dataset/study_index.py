@@ -449,18 +449,17 @@ class StudyIndexFinnGen(StudyIndex):
         return cls(
             _df=(
                 # Read FinnGen raw data.
-                finngen_studies
-                # Select the desired columns.
-                .select("phenocode", "phenostring", "num_cases", "num_controls")
-                # Rename the columns.
-                .withColumnRenamed("phenocode", "studyId")
-                .withColumnRenamed("phenostring", "traitFromSource")
-                .withColumnRenamed("num_cases", "nCases")
-                .withColumnRenamed("num_controls", "nControls")
-                # Transform the column values.
-                .withColumn(
-                    "studyId",
-                    f.concat(f.lit(finngen_release_prefix), f.col("studyId")),
+                finngen_studies.select(
+                    # Select the desired columns.
+                    f.concat(f.lit(finngen_release_prefix), f.col("phenocode")).alias(
+                        "studyId"
+                    ),
+                    f.col("phenostring").alias("traitFromSource"),
+                    f.col("num_cases").alias("nCases"),
+                    f.col("num_controls").alias("nControls"),
+                    # Set constant value columns.
+                    f.lit("FINNGEN_R8").alias("projectId"),
+                    f.lit("gwas").alias("studyType"),
                 )
                 .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
                 .withColumn(
@@ -471,9 +470,6 @@ class StudyIndexFinnGen(StudyIndex):
                         f.lit(finngen_sumstat_url_suffix),
                     ),
                 )
-                # Set constant value columns.
-                .withColumn("projectId", f.lit("FINNGEN_R8"))
-                .withColumn("studyType", f.lit("gwas"))
                 # Then f.when(f.lit(True)) trick makes sure that the column is created as nullable, to ensure that it is not flagged as incorrect by validate_df_schema. See: https://stackoverflow.com/a/68578278.
                 .withColumn(
                     "initialSampleSize",
