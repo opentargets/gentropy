@@ -22,31 +22,9 @@
 
 ### Setup development environment
 
-Ensure python version described in `.python-version` is available
+Run `make setup-dev`; it will install or update the necessary packages and activate the environment.
 
-```bash
-pyenv versions
-```
-
-Otherwise, install
-
-```bash
-pyenv install 3.8.15
-```
-
-Make sure you are using the local Python version
-
-``` bash
-python -V
-poetry env use 3.8.15
-```
-
-``` bash
-make setup-dev
-
-#VS-code
-code . #...and select interpreter
-```
+Then run VS Code (`code`) and select the interpreter.
 
 ### Build
 
