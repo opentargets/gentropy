@@ -106,3 +106,18 @@ def test_study_index_from_source(
         ),
         StudyIndexGWASCatalog,
     )
+
+
+def test_finngen_study_index_from_source(
+    sample_finngen_studies: DataFrame,
+) -> None:
+    """Test study index from source."""
+    assert isinstance(
+        StudyIndexFinnGen.from_source(
+            sample_finngen_studies,
+            "FINNGEN_R8_",
+            "https://storage.googleapis.com/finngen-public-data-r8/summary_stats/finngen_R8_",
+            ".gz",
+        ),
+        StudyIndexFinnGen,
+    )
