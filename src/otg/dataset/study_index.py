@@ -412,3 +412,74 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
         self.df = self.df.join(sample_size_lut, on="projectId", how="left")
         return self
+
+
+@dataclass
+class StudyIndexFinnGen(StudyIndex):
+    """Study index dataset from FinnGen.
+
+    The following information is aggregated/extracted:
+    - Study ID in the special format (FINNGEN_R8_*)
+    - Trait name (for example, Amoebiasis)
+    - Number of cases and controls
+    - Link to the summary statistics location
+
+    Some fields are also populated as constants, such as study type and the initial sample size.
+    """
+
+    @classmethod
+    def from_source(
+        cls: type[StudyIndexFinnGen],
+        finngen_studies: DataFrame,
+        finngen_release_prefix: str,
+        finngen_sumstat_url_prefix: str,
+        finngen_sumstat_url_suffix: str,
+    ) -> StudyIndexFinnGen:
+        """This function ingests study level metadata from FinnGen.
+
+        Args:
+            finngen_studies (DataFrame): FinnGen raw study table
+            finngen_release_prefix (str): Release prefix pattern.
+            finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
+            finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+
+        Returns:
+            StudyIndexFinnGen: Parsed and annotated FinnGen study table.
+        """
+        return cls(
+            _df=(
+                # Read FinnGen raw data.
+                finngen_studies
+                # Select the desired columns.
+                .select("phenocode", "phenostring", "num_cases", "num_controls")
+                # Rename the columns.
+                .withColumnRenamed("phenocode", "studyId")
+                .withColumnRenamed("phenostring", "traitFromSource")
+                .withColumnRenamed("num_cases", "nCases")
+                .withColumnRenamed("num_controls", "nControls")
+                # Transform the column values.
+                .withColumn(
+                    "studyId",
+                    f.concat(f.lit(finngen_release_prefix), f.col("studyId")),
+                )
+                .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
+                .withColumn(
+                    "summarystatsLocation",
+                    f.concat(
+                        f.lit(finngen_sumstat_url_prefix),
+                        f.col("studyId"),
+                        f.lit(finngen_sumstat_url_suffix),
+                    ),
+                )
+                # Set constant value columns.
+                # Then f.when(f.lit(True)) trick makes sure that the column is created as nullable, to ensure that it is not flagged as incorrect by validate_df_schema. See: https://stackoverflow.com/a/68578278.
+                .withColumn(
+                    "initialSampleSize",
+                    f.when(
+                        f.lit(True),
+                        f.lit("342,499 (190,879 females and 151,620 males)"),
+                    ),
+                )
+                .withColumn("hasSumstats", f.when(f.lit(True), f.lit(True)))
+            )
+        )
