@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import tempfile
 from typing import TYPE_CHECKING
+from urllib.request import urlopen
 
-import requests
 from pyspark.sql import functions as f
 
 from etl.common.ontology import ontoma_udf
@@ -44,13 +43,9 @@ def ingest_finngen_studies(
         DataFrame: Parsed and annotated FinnGen study table.
     """
     # Read the JSON data from the URL.
-    # Using a temporary file may look somewhat silly, but PySpark actually refuses to read this either directly from HTTPS, or even from BytesIO.
-    response = requests.get(phenotype_table_url)
-    json_data = response.content
-    with tempfile.NamedTemporaryFile(mode="wb") as temp:
-        temp.write(json_data)
-        temp.seek(0)
-        df = etl.spark.read.json(temp.name)
+    json_data = urlopen(phenotype_table_url).read().decode("utf-8")
+    rdd = etl.spark.sparkContext.parallelize([json_data])
+    df = etl.spark.read.json(rdd)
 
     # Select the desired columns.
     df = df.select("phenocode", "phenostring", "num_cases", "num_controls")
