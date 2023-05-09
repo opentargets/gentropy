@@ -472,6 +472,8 @@ class StudyIndexFinnGen(StudyIndex):
                     ),
                 )
                 # Set constant value columns.
+                .withColumn("projectId", f.lit("FINNGEN_R8"))
+                .withColumn("studyType", f.lit("gwas"))
                 # Then f.when(f.lit(True)) trick makes sure that the column is created as nullable, to ensure that it is not flagged as incorrect by validate_df_schema. See: https://stackoverflow.com/a/68578278.
                 .withColumn(
                     "initialSampleSize",
