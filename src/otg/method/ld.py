@@ -93,7 +93,7 @@ class LDAnnotatorGnomad:
         return (
             variants_df.join(
                 ld_index.df,
-                on=["chromosome", "position", "referenceAllele", "alternateAllele"],
+                on="variantId",
             )  # start idx > stop idx in rare occasions due to liftover
             .filter(f.col("start_idx") < f.col("stop_idx"))
             .groupBy("chromosome", "idx")
@@ -214,6 +214,43 @@ class LDAnnotatorGnomad:
             True,
         )
 
+    @staticmethod
+    def get_ld_annotated_assocs_for_population(
+        population: str,
+        ld_index: LDIndex,
+        ld_matrix: BlockMatrix,
+        locus_ancestry: DataFrame,
+        min_r2: float,
+    ) -> DataFrame:
+        """This function annotates association data with LD information."""
+        # map variants to precomputed LD indexes from gnomAD
+        variants_in_pop = locus_ancestry.filter(f.col("gnomadPopulation") == population)
+        variants_ld_coordinates = LDAnnotatorGnomad._variant_coordinates_in_ldindex(
+            variants_in_pop, ld_index
+        ).persist()
+
+        # idxs for lead, first variant in the region and last variant in the region
+        variants_ld_scores = LDAnnotatorGnomad._query_block_matrix(
+            ld_matrix + ld_matrix.T,
+            variants_ld_coordinates.rdd.map(lambda x: x.idxs).collect(),
+            variants_ld_coordinates.rdd.map(lambda x: x.starts).collect(),
+            variants_ld_coordinates.rdd.map(lambda x: x.stops).collect(),
+            min_r2,
+        )
+
+        # aggregate LD info
+        variants_ld_info = variants_ld_scores.join(
+            f.broadcast(variants_ld_coordinates),
+            on="i",
+            how="inner",
+        ).select("variantId", "chromosome", "gnomadPopulation", "j", "r")
+
+        variants_ld_coordinates.unpersist()
+        return LDAnnotatorGnomad.variants_in_ld_in_gnomad_pop(
+            variants_ld_info=variants_ld_info,
+            ld_index=ld_index,
+        )
+
     @classmethod
     def variants_in_ld_in_gnomad_pop(
         cls: type[LDAnnotatorGnomad],
@@ -292,40 +329,17 @@ class LDAnnotatorGnomad:
             if population in assoc_populations:
                 pop_parsed_ldindex_path = ld_index_template.format(POP=population)
                 pop_matrix_path = ld_matrix_template.format(POP=population)
-                variants_in_pop = locus_ancestry.filter(
-                    f.col("gnomadPopulation") == population
-                )
                 ld_index = LDIndex.from_parquet(session, pop_parsed_ldindex_path)
                 ld_matrix = BlockMatrix.read(pop_matrix_path)
-                # map variants to precomputed LD indexes from gnomAD
-                variants_ld_coordinates = (
-                    LDAnnotatorGnomad._variant_coordinates_in_ldindex(
-                        variants_in_pop, ld_index
-                    ).persist()
-                )
-
-                # idxs for lead, first variant in the region and last variant in the region
-                variants_ld_scores = LDAnnotatorGnomad._query_block_matrix(
-                    ld_matrix + ld_matrix.T,
-                    variants_ld_coordinates.rdd.map(lambda x: x.idxs).collect(),
-                    variants_ld_coordinates.rdd.map(lambda x: x.starts).collect(),
-                    variants_ld_coordinates.rdd.map(lambda x: x.stops).collect(),
-                    min_r2,
-                )
-                # aggregate LD info
-                variants_ld_info = variants_ld_scores.join(
-                    f.broadcast(variants_ld_coordinates),
-                    on="i",
-                    how="inner",
-                ).select("variantId", "chromosome", "gnomadPopulation", "j", "r")
-
                 ld_annotated_assocs.append(
-                    LDAnnotatorGnomad.variants_in_ld_in_gnomad_pop(
-                        variants_ld_info=variants_ld_info,
-                        ld_index=ld_index,
+                    LDAnnotatorGnomad.get_ld_annotated_assocs_for_population(
+                        population,
+                        ld_index,
+                        ld_matrix,
+                        locus_ancestry,
+                        min_r2,
                     )
                 )
-                variants_ld_coordinates.unpersist()
         return reduce(DataFrame.unionByName, ld_annotated_assocs)
 
 
