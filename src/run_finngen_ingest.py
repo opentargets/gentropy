@@ -8,6 +8,7 @@ import hydra
 
 from etl.common.ETLSession import ETLSession
 from etl.finngen_ingest.finngen_ingestion import ingest_finngen_studies
+from etl.json import validate_df_schema
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
@@ -31,6 +32,9 @@ def main(cfg: DictConfig) -> None:
     finngen_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
         cfg.etl.finngen_ingest.outputs.finngen_catalog_studies
     )
+
+    etl.logger.info("Validating FinnGen study data against the schema...")
+    validate_df_schema(finngen_studies, "studies.json")
 
 
 if __name__ == "__main__":
