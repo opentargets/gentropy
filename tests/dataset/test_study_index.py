@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pyspark.sql import DataFrame
 
-from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
+from otg.dataset.study_index import StudyIndex, StudyIndexFinnGen, StudyIndexGWASCatalog
 
 
 def test_study_index_creation(mock_study_index: StudyIndex) -> None:
@@ -16,6 +16,13 @@ def test_study_index_gwas_catalog_creation(
 ) -> None:
     """Test study index creation with mock data."""
     assert isinstance(mock_study_index_gwas_catalog, StudyIndexGWASCatalog)
+
+
+def test_study_index_finngen_creation(
+    mock_study_index_finngen: StudyIndexFinnGen,
+) -> None:
+    """Test study index creation with mock data."""
+    assert isinstance(mock_study_index_finngen, StudyIndexFinnGen)
 
 
 def test_study_index_type_lut(mock_study_index: StudyIndex) -> None:
@@ -98,4 +105,19 @@ def test_study_index_from_source(
             sample_gwas_catalog_harmonised_sumstats,
         ),
         StudyIndexGWASCatalog,
+    )
+
+
+def test_finngen_study_index_from_source(
+    sample_finngen_studies: DataFrame,
+) -> None:
+    """Test study index from source."""
+    assert isinstance(
+        StudyIndexFinnGen.from_source(
+            sample_finngen_studies,
+            "FINNGEN_R8_",
+            "https://storage.googleapis.com/finngen-public-data-r8/summary_stats/finngen_R8_",
+            ".gz",
+        ),
+        StudyIndexFinnGen,
     )
