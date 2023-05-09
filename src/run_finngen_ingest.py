@@ -30,7 +30,7 @@ def main(cfg: DictConfig) -> None:
 
     etl.logger.info("Saving FinnGen study data...")
     finngen_studies.write.mode(cfg.environment.sparkWriteMode).parquet(
-        cfg.etl.finngen_ingest.outputs.finngen_catalog_studies
+        cfg.etl.finngen_ingest.outputs.finngen_studies
     )
 
     etl.logger.info("Validating FinnGen study data against the schema...")
