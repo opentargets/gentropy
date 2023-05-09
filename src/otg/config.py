@@ -273,3 +273,23 @@ def register_configs() -> None:
         group="step",
         node=GWASCatalogSumstatsPreprocessConfig,
     )
+
+
+@dataclass
+class FinnGenStepConfig:
+    """FinnGen study table ingestion step requirements.
+
+    Attributes:
+        finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
+        finngen_study_index (str): Output path for the FinnGen study index dataset.
+        finngen_release_prefix (str): Release prefix pattern.
+        finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
+        finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+    """
+
+    _target_: str = "otg.finngen.FinnGen"
+    finngen_phenotype_table_url: str = MISSING
+    finngen_study_index: str = MISSING
+    finngen_release_prefix: str = MISSING
+    finngen_sumstat_url_prefix: str = MISSING
+    finngen_sumstat_url_suffix: str = MISSING
