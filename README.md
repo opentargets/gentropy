@@ -28,11 +28,11 @@ All pipelines in this repository are intended to be run in Google Dataproc. Runn
 
 In order to run the code:
 1. Manually edit your local [`workflow/dag.yaml`](workflow/dag.yaml) file and comment out the steps you do not want to run.
-1. Manually edit your local [`workflow/workflow_template.py`](workflow/workflow_template.py) file and change the following parameters:
+2. Manually edit your local [`workflow/workflow_template.py`](workflow/workflow_template.py) file and change the following parameters:
   - `cluster_name` and `template_id` to reflect your own name/initials
   - `machine_type` to set the VM size suitable for your workflow
-1. Run `make build`. This will create a bundle that will contain the neccessary code, configuration and dependencies to run the ETL pipeline, and then upload this bundle to Google Cloud. **Note:** currently, there is just one upload path which is shared by all users. So when you upload the code, it replaces a version uploaded previously by anyone else.
-1. Submit the Dataproc job: `poetry run python workflow/workflow_template.py`. You can then monitor the progress of your job on this page: https://console.cloud.google.com/dataproc/jobs?project=open-targets-genetics-dev.
+3. Run `make build`. This will create a bundle that will contain the neccessary code, configuration and dependencies to run the ETL pipeline, and then upload this bundle to Google Cloud. **Note:** currently, there is just one upload path which is shared by all users. So when you upload the code, it replaces a version uploaded previously by anyone else.
+4. Submit the Dataproc job: `poetry run python workflow/workflow_template.py`. You can then monitor the progress of your job on this page: https://console.cloud.google.com/dataproc/jobs?project=open-targets-genetics-dev.
 
 ## Troubleshooting
 In some cases, Pyenv and Poetry may cause various exotic errors which are hard to diagnose and get rid of. In this case, it helps to remove them from the system completely before running the `make setup-dev` command. See instructions in [utils/remove_pyenv_poetry.md](utils/remove_pyenv_poetry.md).
