@@ -112,6 +112,8 @@ class PICS:
             tag_dict = (
                 tag_struct.asDict()
             )  # tag_struct is of type pyspark.Row, we'll represent it as a dict
+            if tag_dict["r2Overall"] is None:
+                continue
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
                 lead_neglog_p, tag_dict["r2Overall"], 6.4
@@ -177,9 +179,9 @@ class PICS:
             .withColumn(
                 "credibleSet",
                 f.when(
-                    f.col("credibleSet").isNotNull(),
+                    f.size("credibleSet") > 0,
                     _finemap_udf(f.col("credibleSet"), f.col("neglog_pvalue")),
-                ),
+                ).otherwise(f.col("credibleSet")),
             )
             .drop("neglog_pvalue")
         )
