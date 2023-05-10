@@ -165,7 +165,7 @@ class PICS:
         """
         # Register UDF by defining the structure of the output credibleSet array of structs
         credset_schema = t.ArrayType(
-            associations.df.select("credibleSet").schema.fields[0].dataType.elementType  # type: ignore
+            [field.dataType.elementType for field in associations.schema if field.name == "credibleSet"][0]  # type: ignore
         )
         _finemap_udf = f.udf(
             lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p),
