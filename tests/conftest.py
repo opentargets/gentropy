@@ -1,6 +1,8 @@
 """Unit test configuration."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import dbldatagen as dg
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -17,6 +19,9 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+
+if TYPE_CHECKING:
+    from pyspark.sql.types import StructType
 
 
 @pytest.fixture(scope="session")
@@ -198,21 +203,29 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def mock_study_locus(spark: SparkSession) -> StudyLocus:
+def mock_study_locus(spark: SparkSession, study_locus_schema: StructType) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocus(
         _df=mock_study_locus_data(spark),
-        _schema=parse_spark_schema("study_locus.json"),
+        _schema=study_locus_schema,
     )
 
 
 @pytest.fixture()
-def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
+def mock_study_locus_gwas_catalog(
+    spark: SparkSession, study_locus_schema: StructType
+) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocusGWASCatalog(
         _df=mock_study_locus_data(spark),
-        _schema=parse_spark_schema("study_locus.json"),
+        _schema=study_locus_schema,
     )
+
+
+@pytest.fixture()
+def study_locus_schema() -> StructType:
+    """Mock study_locus schema."""
+    return parse_spark_schema("study_locus.json")
 
 
 @pytest.fixture()

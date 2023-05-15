@@ -92,7 +92,7 @@ class PICS:
         return neglog_p * r2 if r2 >= 0.5 else None
 
     @staticmethod
-    def _finemap(credible_set: list, lead_neglog_p: float) -> list:
+    def _finemap(credible_set: list, lead_neglog_p: float, k: float) -> list:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
         It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
@@ -102,21 +102,25 @@ class PICS:
         Args:
             credible_set (list): list of tagging variants after expanding the locus
             lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.
+            k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
             List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
         """
         tmp_credible_set = []
+        new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
         for tag_struct in credible_set:
             tag_dict = (
                 tag_struct.asDict()
             )  # tag_struct is of type pyspark.Row, we'll represent it as a dict
-            if tag_dict["r2Overall"] is None:
+            # If PICS cannot be calculated, we'll return the original credible set
+            if tag_dict["r2Overall"] is None or lead_neglog_p is None:
+                new_credible_set.append(tag_dict)
                 continue
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
-                lead_neglog_p, tag_dict["r2Overall"], 6.4
+                lead_neglog_p, tag_dict["r2Overall"], k
             )
             posterior_probability = (
                 PICS._pics_relative_posterior_probability(
@@ -140,7 +144,6 @@ class PICS:
         )
 
         # Third iteration: calculation of the final posteriorProbability
-        new_credible_set = []
         for tag_dict in tmp_credible_set:
             tag_dict["posteriorProbability"] = float(
                 tag_dict["relativePosteriorProbability"] / total_posteriors
@@ -170,7 +173,7 @@ class PICS:
             [field.dataType.elementType for field in associations.schema if field.name == "credibleSet"][0]  # type: ignore
         )
         _finemap_udf = f.udf(
-            lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p),
+            lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
             credset_schema,
         )
 
