@@ -333,6 +333,7 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
+        # TODO: handle abscense of data raising error
         self.df = self.df.withColumn(
             # Sort credible set by posterior probability in descending order - hacky solution, as array_sort does not have a sorting key argument
             "credibleSet",
@@ -1534,8 +1535,35 @@ class StudyLocusGWASCatalog(StudyLocus):
             ld_matrix_template,
             min_r2,
         )
+        # ld_r.write.parquet(
+        #     "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/locus_ancestry_ld"
+        # )
 
         # Study-locus ld_set
+        # ld_unaggregated_set = (
+        #     self.unique_study_locus_ancestries(studies)
+        #     .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
+        #     .withColumn("r2", f.pow(f.col("r"), f.lit(2)))
+        #     .withColumn(
+        #         "r2Overall",
+        #         LDAnnotatorGnomad.weighted_r_overall(
+        #             f.col("chromosome"),
+        #             f.col("studyId"),
+        #             f.col("variantId"),
+        #             f.col("tagVariantId"),
+        #             f.col("relativeSampleSize"),
+        #             f.col("r2"),
+        #         ),
+        #     )
+        # )
+        # ld_unaggregated_set.write.parquet(
+        #     "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/catalog_study_locus_unagg",
+        #     mode="overwrite",
+        # )
+        self.unique_study_locus_ancestries(studies).write.parquet(
+            "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/unique_study_locus_ancestries",
+            mode="overwrite",
+        )
         ld_set = (
             self.unique_study_locus_ancestries(studies)
             .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
@@ -1553,9 +1581,12 @@ class StudyLocusGWASCatalog(StudyLocus):
             )
             .groupBy("chromosome", "studyId", "variantId")
             .agg(
-                f.collect_set(f.struct("tagVariantId", "r2Overall")).alias(
-                    "credibleSet"
-                )
+                f.collect_set(
+                    f.when(
+                        f.col("tagVariantId").isNotNull(),
+                        f.struct("tagVariantId", "r2Overall"),
+                    )
+                ).alias("credibleSet")
             )
         )
 
