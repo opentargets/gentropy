@@ -112,7 +112,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.coalesce(
                     f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
                 ).alias("projectId"),
-                f.lit("NOT IMPLEMENTED").alias("studyType"),
+                f.lit("gwas").alias("studyType"),
                 f.col("PUBMED ID").alias("pubmedId"),
                 f.col("FIRST AUTHOR").alias("publicationFirstAuthor"),
                 f.col("DATE").alias("publicationDate"),
@@ -208,27 +208,36 @@ class StudyIndexGWASCatalog(StudyIndex):
             StudyIndexGWASCatalog: Updated study table.
         """
         self.df = (
-            self._df.alias("studyIndex")
-            .join(study_annotation.alias("studyAnnotation"), on="studyId", how="left")
-            .withColumn(
-                "studyIndex.studyId",
-                f.coalesce("studyAnnotation.updatedStudyId", "studyIndex.studyId"),
+            self._df.join(
+                study_annotation.select(
+                    *[
+                        f.col(c).alias(f"updated{c}")
+                        if c not in ["studyId", "updatedStudyId"]
+                        else f.col(c)
+                        for c in study_annotation.columns
+                    ]
+                ),
+                on="studyId",
+                how="left",
             )
             .withColumn(
-                "studyIndex.traitFromSource",
+                "studyId",
+                f.coalesce(f.col("updatedStudyId"), f.col("studyId")),
+            )
+            .withColumn(
+                "traitFromSource",
+                f.coalesce(f.col("updatedtraitFromSource"), f.col("traitFromSource")),
+            )
+            .withColumn(
+                "traitFromSourceMappedIds",
                 f.coalesce(
-                    "studyAnnotation.traitFromSource", "studyIndex.traitFromSource"
+                    f.col("updatedtraitFromSourceMappedIds"),
+                    f.col("traitFromSourceMappedIds"),
                 ),
             )
-            .withColumn(
-                "studyIndex.traitFromSourceMappedIds",
-                f.coalesce(
-                    "studyAnnotation.traitFromSourceMappedIds",
-                    "studyIndex.traitFromSourceMappedIds",
-                ),
-            )
-            .select("studyIndex.*")
+            .select(self._df.columns)
         )
+
         return self
 
     def _annotate_ancestries(
