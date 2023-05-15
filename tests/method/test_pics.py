@@ -22,6 +22,11 @@ def test_pics(mock_study_locus: StudyLocus) -> None:
 class TestFinemap:
     """Test PICS finemap function under different scenarios."""
 
+    def test_finemap_pipeline(self: TestFinemap, mock_study_locus: StudyLocus) -> None:
+        """Test finemap works with a mock study locus."""
+        observed = PICS.finemap(mock_study_locus)
+        assert isinstance(observed, StudyLocus)
+
     def test_finemap_empty_array(
         self: TestFinemap, mock_study_locus: StudyLocus
     ) -> None:
