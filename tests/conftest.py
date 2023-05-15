@@ -180,8 +180,8 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
         .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
         .withColumnSpec("subStudyDescription", percentNulls=0.1)
-        .withColumnSpec("pValueMantissa", percentNulls=0.1)
-        .withColumnSpec("pValueExponent", percentNulls=0.1)
+        .withColumnSpec("pValueMantissa", minValue=1, percentNulls=0.1)
+        .withColumnSpec("pValueExponent", minValue=1, percentNulls=0.1)
         .withColumnSpec(
             "qualityControls",
             expr="array(cast(rand() as string))",
