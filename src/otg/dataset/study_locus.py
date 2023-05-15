@@ -18,6 +18,7 @@ from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
     calculate_neglog_pvalue,
     get_record_with_maximum_value,
+    order_array_of_structs_by_field,
     pvalue_to_zscore,
 )
 from otg.common.utils import parse_efos
@@ -337,16 +338,7 @@ class StudyLocus(Dataset):
         self.df = self.df.withColumn(
             # Sort credible set by posterior probability in descending order - hacky solution, as array_sort does not have a sorting key argument
             "credibleSet",
-            f.expr(
-                """
-                array_sort(
-                    credibleSet,
-                    (left, right) -> case when left.posteriorProbability < right.posteriorProbability then 1
-                                    when left.posteriorProbability > right.posteriorProbability then -1
-                                    else 0
-                            end)
-                """
-            ),
+            order_array_of_structs_by_field("credibleSet", "posteriorProbability"),
         ).withColumn(
             # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
             # and zip the cumulative sums array with the credible set array to add the flags
@@ -1269,9 +1261,9 @@ class StudyLocusGWASCatalog(StudyLocus):
         return StudyLocusGWASCatalog._update_quality_flag(
             qc,
             # Number of chromosomes does not correspond to the number of positions:
-            (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";"))) |
+            (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";")))
             # Number of chromosome values different from riskAllele values:
-            (
+            | (
                 f.size(f.split(chromosome, ";"))
                 != f.size(f.split(strongest_snp_risk_allele, ";"))
             ),
