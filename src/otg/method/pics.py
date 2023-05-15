@@ -181,10 +181,7 @@ class PICS:
             associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
             .withColumn(
                 "credibleSet",
-                f.when(
-                    f.size("credibleSet") > 0,
-                    _finemap_udf(f.col("credibleSet"), f.col("neglog_pvalue")),
-                ).otherwise(f.col("credibleSet")),
+                _finemap_udf(f.col("credibleSet"), f.col("neglog_pvalue")),
             )
             .drop("neglog_pvalue")
         )
