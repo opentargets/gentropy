@@ -41,6 +41,14 @@ class TestFinemap:
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         assert observed_df.collect()[0]["credibleSet"] == []
 
+    def test_finemap_null_credible_set(
+        self: TestFinemap, mock_study_locus: StudyLocus
+    ) -> None:
+        """Test how we apply `finemap` when `credibleSet` is null by returning a null field."""
+        mock_study_locus.df = mock_study_locus.df.filter(f.col("credibleSet").isNull())
+        observed_df = PICS.finemap(mock_study_locus).df.limit(1)
+        assert observed_df.collect()[0]["credibleSet"] is None
+
     def test_finemap_null_r2(
         self: TestFinemap, spark: SparkSession, study_locus_schema: StructType
     ) -> None:
