@@ -334,35 +334,40 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
-        # TODO: handle abscense of data raising error
         self.df = self.df.withColumn(
-            # Sort credible set by posterior probability in descending order - hacky solution, as array_sort does not have a sorting key argument
+            # Sort credible set by posterior probability in descending order
             "credibleSet",
-            order_array_of_structs_by_field("credibleSet", "posteriorProbability"),
+            f.when(
+                f.size(f.col("credibleSet")) > 0,
+                order_array_of_structs_by_field("credibleSet", "posteriorProbability"),
+            ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
         ).withColumn(
             # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
             # and zip the cumulative sums array with the credible set array to add the flags
             "credibleSet",
-            f.zip_with(
-                f.col("credibleSet"),
-                f.transform(
-                    f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
-                    lambda index: f.aggregate(
-                        f.slice(
-                            # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
-                            # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                            f.col("credibleSet.posteriorProbability"),
-                            1,
-                            index - 1,
+            f.when(
+                f.size(f.col("credibleSet")) > 0,
+                f.zip_with(
+                    f.col("credibleSet"),
+                    f.transform(
+                        f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
+                        lambda index: f.aggregate(
+                            f.slice(
+                                # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
+                                # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
+                                f.col("credibleSet.posteriorProbability"),
+                                1,
+                                index - 1,
+                            ),
+                            f.lit(0.0),
+                            lambda acc, el: acc + el,
                         ),
-                        f.lit(0.0),
-                        lambda acc, el: acc + el,
                     ),
+                    lambda struct_e, acc: struct_e.withField(
+                        CredibleInterval.IS95.value, acc < 0.95
+                    ).withField(CredibleInterval.IS99.value, acc < 0.99),
                 ),
-                lambda struct_e, acc: struct_e.withField(
-                    CredibleInterval.IS95.value, acc < 0.95
-                ).withField(CredibleInterval.IS99.value, acc < 0.99),
-            ),
+            ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
         )
         return self
 
