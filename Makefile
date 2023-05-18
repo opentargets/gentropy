@@ -1,8 +1,8 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/
 APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
+BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/
 
 .PHONY: $(shell sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' $(MAKEFILE_LIST))
 
@@ -11,14 +11,14 @@ VERSION_NO ?= $$(poetry version --short)
 help: ## This is help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-clean: ## CleanUp Prior to Build
+clean: ## Clean up prior to building
 	@rm -Rf ./dist
 
 setup-dev: SHELL:=/bin/bash
-setup-dev: ## Setup dev environment
+setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
 
-build: clean ## Build Python Package with Dependencies
+build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
 	@rm -rf ./dist
