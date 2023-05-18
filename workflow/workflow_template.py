@@ -1,6 +1,7 @@
 """Generate jinja2 template for workflow."""
 from __future__ import annotations
 
+import argparse
 import subprocess
 
 import yaml
@@ -13,7 +14,24 @@ from google.cloud.dataproc_v1.types import (
 )
 from google.protobuf.duration_pb2 import Duration
 
-#
+# Command line arguments
+parser = argparse.ArgumentParser(description="Submit the workflow to Dataproc")
+parser.add_argument(
+    "cluster_prefix",
+    metavar="cluster_prefix",
+    type=str,
+    help="A prefix to use for cluster and template name construction. It's a good idea to use your initials.",
+)
+parser.add_argument(
+    "--machine-type",
+    metavar="machine_type",
+    type=str,
+    default="n1-highmem-8",
+    help="Google Dataproc machine type, default: %(default)s",
+)
+args = parser.parse_args()
+
+# Google Cloud configuration
 project_id = "open-targets-genetics-dev"
 region = "europe-west1"
 zone = "europe-west1-d"
@@ -31,9 +49,8 @@ initialisation_base_path = (
 python_cli = f"{initialisation_base_path}/cli.py"
 config_name = "my_config"
 config_tar = "{initialisation_base_path}/config.tar.gz"
-cluster_name = "ochoa-otg-cluster"
+cluster_name = f"{args.cluster_prefix}-otg-cluster"
 package_wheel = "{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
-machine_type = "n1-highmem-96"
 initialisation_executable_file = "{initialisation_base_path}/initialise_cluster.sh"
 image_version = "2.0"
 num_local_ssds = 1
@@ -46,7 +63,7 @@ python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
 cluster_config_dir = "/config"
 
 # template
-template_id = "do-ot-genetics-workflow"
+template_id = f"{args.cluster_prefix}-ot-genetics-workflow"
 dag_yaml = "workflow/dag.yaml"
 
 
@@ -200,7 +217,7 @@ def main() -> None:
         config_tar,
         package_wheel,
         zone,
-        machine_type,
+        args.machine_type,
         initialisation_executable_file,
         image_version,
         num_local_ssds=num_local_ssds,
