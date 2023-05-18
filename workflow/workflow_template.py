@@ -15,7 +15,7 @@ from google.cloud.dataproc_v1.types import (
 from google.protobuf.duration_pb2 import Duration
 
 # Command line arguments
-parser = argparse.ArgumentParser(description="Submit the workflow to Dataproc")
+parser = argparse.ArgumentParser(description="Submit the workflow to Dataproc.")
 parser.add_argument(
     "cluster_prefix",
     metavar="cluster_prefix",
@@ -27,7 +27,7 @@ parser.add_argument(
     metavar="machine_type",
     type=str,
     default="n1-highmem-8",
-    help="Google Dataproc machine type, default: %(default)s",
+    help="Google Dataproc machine type, default: %(default)s.",
 )
 args = parser.parse_args()
 
