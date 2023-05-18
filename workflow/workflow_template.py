@@ -29,7 +29,6 @@ parser.add_argument(
     default="n1-highmem-8",
     help="Google Dataproc machine type, default: %(default)s.",
 )
-args = parser.parse_args()
 
 # Google Cloud configuration
 project_id = "open-targets-genetics-dev"
@@ -49,7 +48,6 @@ initialisation_base_path = (
 python_cli = f"{initialisation_base_path}/cli.py"
 config_name = "my_config"
 config_tar = "{initialisation_base_path}/config.tar.gz"
-cluster_name = f"{args.cluster_prefix}-otg-cluster"
 package_wheel = "{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
 initialisation_executable_file = "{initialisation_base_path}/initialise_cluster.sh"
 image_version = "2.0"
@@ -63,7 +61,6 @@ python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
 cluster_config_dir = "/config"
 
 # template
-template_id = f"{args.cluster_prefix}-ot-genetics-workflow"
 dag_yaml = "workflow/dag.yaml"
 
 
@@ -205,12 +202,13 @@ def instantiate_inline_workflow_template(
     print("Workflow ran successfully.")
 
 
-def main() -> None:
+def main(args: argparse.Namespace) -> None:
     """Submit dataproc workflow."""
     template = dataproc.WorkflowTemplate()
 
     # Initialize request argument(s)
-    template.id = template_id
+    template.id = f"{args.cluster_prefix}-ot-genetics-workflow"
+    cluster_name = f"{args.cluster_prefix}-otg-cluster"
     # template.placement = generate_available_placement_template(cluster_uuid)
     template.placement = generate_managed_placement_template(
         cluster_name,
@@ -235,4 +233,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(parser.parse_args())
