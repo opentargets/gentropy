@@ -1531,36 +1531,8 @@ class StudyLocusGWASCatalog(StudyLocus):
             ld_index_template,
             ld_matrix_template,
             min_r2,
-        )
-        # ld_r.write.parquet(
-        #     "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/locus_ancestry_ld"
-        # )
+        ).repartition(400, "chromosome", "variantId", "gnomadPopulation")
 
-        # Study-locus ld_set
-        # ld_unaggregated_set = (
-        #     self.unique_study_locus_ancestries(studies)
-        #     .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
-        #     .withColumn("r2", f.pow(f.col("r"), f.lit(2)))
-        #     .withColumn(
-        #         "r2Overall",
-        #         LDAnnotatorGnomad.weighted_r_overall(
-        #             f.col("chromosome"),
-        #             f.col("studyId"),
-        #             f.col("variantId"),
-        #             f.col("tagVariantId"),
-        #             f.col("relativeSampleSize"),
-        #             f.col("r2"),
-        #         ),
-        #     )
-        # )
-        # ld_unaggregated_set.write.parquet(
-        #     "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/catalog_study_locus_unagg",
-        #     mode="overwrite",
-        # )
-        self.unique_study_locus_ancestries(studies).write.parquet(
-            "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/unique_study_locus_ancestries",
-            mode="overwrite",
-        )
         ld_set = (
             self.unique_study_locus_ancestries(studies)
             .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")

@@ -340,7 +340,7 @@ class LDAnnotatorGnomad:
                         ld_matrix,
                         locus_ancestry,
                         min_r2,
-                    )
+                    ).coalesce(400)
                 )
         return reduce(DataFrame.unionByName, ld_annotated_assocs)
 
