@@ -1,6 +1,8 @@
 """Generate jinja2 template for workflow."""
 from __future__ import annotations
 
+import subprocess
+
 import yaml
 from google.cloud import dataproc_v1 as dataproc
 from google.cloud.dataproc_v1.types import (
@@ -17,15 +19,22 @@ region = "europe-west1"
 zone = "europe-west1-d"
 
 # Managed cluster
-python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
-config_name = "my_config"
-config_tar = "gs://genetics_etl_python_playground/initialisation/config.tar.gz"
-cluster_name = "ochoa-otg-cluster"
-package_wheel = "gs://genetics_etl_python_playground/initialisation/otgenetics-0.1.4-py3-none-any.whl"
-machine_type = "n1-highmem-96"
-initialisation_executable_file = (
-    "gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh"
+code_version = (
+    subprocess.check_output(["poetry", "version", "--short"]).decode("utf-8").strip()
 )
+assert (
+    code_version
+), "Could not fetch code version from the current Poetry configuration"
+initialisation_base_path = (
+    f"gs://genetics_etl_python_playground/initialisation/{code_version}"
+)
+python_cli = f"{initialisation_base_path}/cli.py"
+config_name = "my_config"
+config_tar = "{initialisation_base_path}/config.tar.gz"
+cluster_name = "ochoa-otg-cluster"
+package_wheel = "{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
+machine_type = "n1-highmem-96"
+initialisation_executable_file = "{initialisation_base_path}/initialise_cluster.sh"
 image_version = "2.0"
 num_local_ssds = 1
 
