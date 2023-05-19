@@ -355,7 +355,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             StudyIndexGWASCatalog: including `summarystatsLocation` and `hasSumstats` columns
         """
         gwas_sumstats_base_uri = (
-            "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics"
+            "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/"
         )
 
         parsed_sumstats_lut = sumstats_lut.withColumn(
