@@ -9,17 +9,18 @@ if ! command -v pyenv &>/dev/null; then
     . <(tail -n3 ~/.bashrc)
 fi
 
-if ! command -v poetry &>/dev/null; then
-    echo "Installing Poetry, a tool to manage Python dependencies..."
-    curl -sSL https://install.python-poetry.org | python3 -
-fi
-
 echo "Activating Pyenv environment with a Python version required for the project..."
 PYTHON_VERSION=$(grep '^python = ".*"' pyproject.toml | cut -d'"' -f2)
 pyenv install --skip-existing $PYTHON_VERSION
 pyenv shell $PYTHON_VERSION
 
-echo "Installing dependencies through Poetry..."
+if ! command -v poetry &>/dev/null; then
+    echo "Installing Poetry, a tool to manage Python dependencies..."
+    curl -sSL https://install.python-poetry.org | python3 -
+fi
+
+echo "Preparing the Poetry environment and installing dependencies..."
+poetry env use $PYTHON_VERSION
 poetry install --sync
 
 echo "Setting up pre-commit..."
@@ -27,4 +28,5 @@ poetry run pre-commit install
 poetry run pre-commit autoupdate
 poetry run pre-commit install --hook-type commit-msg
 
-echo "You are ready to code!"
+echo "Activating the Poetry environment..."
+poetry shell

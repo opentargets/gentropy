@@ -421,3 +421,68 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
         self.df = self.df.join(sample_size_lut, on="projectId", how="left")
         return self
+
+
+@dataclass
+class StudyIndexFinnGen(StudyIndex):
+    """Study index dataset from FinnGen.
+
+    The following information is aggregated/extracted:
+
+    - Study ID in the special format (FINNGEN_R8_*)
+    - Trait name (for example, Amoebiasis)
+    - Number of cases and controls
+    - Link to the summary statistics location
+
+    Some fields are also populated as constants, such as study type and the initial sample size.
+    """
+
+    @classmethod
+    def from_source(
+        cls: type[StudyIndexFinnGen],
+        finngen_studies: DataFrame,
+        finngen_release_prefix: str,
+        finngen_sumstat_url_prefix: str,
+        finngen_sumstat_url_suffix: str,
+    ) -> StudyIndexFinnGen:
+        """This function ingests study level metadata from FinnGen.
+
+        Args:
+            finngen_studies (DataFrame): FinnGen raw study table
+            finngen_release_prefix (str): Release prefix pattern.
+            finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
+            finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+
+        Returns:
+            StudyIndexFinnGen: Parsed and annotated FinnGen study table.
+        """
+        return cls(
+            _df=(
+                # Read FinnGen raw data.
+                finngen_studies.select(
+                    # Select the desired columns.
+                    f.concat(f.lit(finngen_release_prefix), f.col("phenocode")).alias(
+                        "studyId"
+                    ),
+                    f.col("phenostring").alias("traitFromSource"),
+                    f.col("num_cases").alias("nCases"),
+                    f.col("num_controls").alias("nControls"),
+                    # Set constant value columns.
+                    f.lit("FINNGEN_R8").alias("projectId"),
+                    f.lit("gwas").alias("studyType"),
+                    f.lit(True).alias("hasSumstats"),
+                    f.lit("342,499 (190,879 females and 151,620 males)").alias(
+                        "initialSampleSize"
+                    ),
+                )
+                .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
+                .withColumn(
+                    "summarystatsLocation",
+                    f.concat(
+                        f.lit(finngen_sumstat_url_prefix),
+                        f.col("studyId"),
+                        f.lit(finngen_sumstat_url_suffix),
+                    ),
+                )
+            )
+        )

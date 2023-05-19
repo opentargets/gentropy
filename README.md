@@ -6,52 +6,44 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python/main.svg)](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python)
 
 # Genetics Portal Data Pipeline (experimental)
-
 - [Documentation](https://opentargets.github.io/genetics_etl_python/)
 
-## Development
+## One-time configuration
+The steps in this section only ever need to be done once on any particular system.
 
-### Requirements
+Google Cloud configuration:
+1. Install Google Cloud SDK: https://cloud.google.com/sdk/docs/install.
+1. Log in to your work Google Account: run `gcloud auth login` and follow instructions.
+1. Obtain Google application credentials: run `gcloud auth application-default login` and follow instructions.
 
-- [pyenv](https://github.com/pyenv/pyenv)
-- [Poetry](https://python-poetry.org/docs/)
-- gcloud installed and authorised to your GCP Project
-- gsutil
-- [make](https://www.gnu.org/software/make/) build tool
-- OpenBLAS and LAPACK libraries (for scipy). [more info](https://stackoverflow.com/questions/69954587/no-blas-lapack-libraries-found-when-installing-scipy)
+Check that you have the `make` utility installed, and if not (which is unlikely), install it using your system package manager.
 
-### Setup development environment
+## Environment configuration
+Run `make setup-dev` to install/update the necessary packages and activate the development environment. You need to do this every time you open a new shell.
 
-Ensure python version described in `.python-version` is available
+It is recommended to use VS Code as an IDE for development.
 
-```bash
-pyenv versions
-```
+## How to run the code
+All pipelines in this repository are intended to be run in Google Dataproc. Running them locally is not currently supported.
 
-Otherwise, install
+In order to run the code:
+1. Manually edit your local [`workflow/dag.yaml`](workflow/dag.yaml) file and comment out the steps you do not want to run.
+2. Manually edit your local [`pyproject.toml`](pyproject.toml) file and modify the version of the code.
+  - This must be different from the version used by any other people working on the repository to avoid any deployment conflicts, so it's a good idea to use your name, for example: `1.2.3+jdoe`.
+  - You can also add a brief branch description, for example: `1.2.3+jdoe.myfeature`.
+  - Note that the version must comply with [PEP440 conventions](https://peps.python.org/pep-0440/#normalization), otherwise Poetry will not allow it to be deployed.
+3. Run `make build`.
+  - This will create a bundle containing the neccessary code, configuration and dependencies to run the ETL pipeline, and then upload this bundle to Google Cloud.
+  - A version specific subpath is used, so uploading the code will not affect any branches but your own.
+  - If there was already a code bundle uploaded with the same version number, it will be replaced.
+4. Submit the Dataproc job with `poetry run python workflow/workflow_template.py`
+  - You will need to specify additional parameters, some are mandatory and some are optional. Run with `--help` to see usage.
+  - The script will provision the cluster and submit the job.
+  - The cluster will take a few minutes to get provisioned and running, during which the script will not output anything, this is normal.
+  - Once submitted, you can monitor the progress of your job on this page: https://console.cloud.google.com/dataproc/jobs?project=open-targets-genetics-dev.
+  - On completion (whether successful or a failure), the cluster will be automatically removed, so you don't have to worry about shutting it down to avoid incurring charges.
 
-```bash
-pyenv install 3.10.8
-```
+## Troubleshooting
+In some cases, Pyenv and Poetry may cause various exotic errors which are hard to diagnose and get rid of. In this case, it helps to remove them from the system completely before running the `make setup-dev` command. See instructions in [utils/remove_pyenv_poetry.md](utils/remove_pyenv_poetry.md).
 
-Make sure you are using the local Python version
-
-``` bash
-python -V
-poetry env use 3.10.8
-```
-
-``` bash
-make setup-dev
-
-#VS-code
-code . #...and select interpreter
-```
-
-### Build
-
-Use `make build` to create a bundle that will contain the neccessary code, configuration and dependencies to run the ETL pipeline. The build is stored in `dist/` (gitignored).
-
-### GCP Dataproc workflow
-
-A full dataproc workflow DAG can be triggered using the `workflow/workflow_template.py`
+If you see errors related to BLAS/LAPACK libraries, see [this StackOverflow post](https://stackoverflow.com/questions/69954587/no-blas-lapack-libraries-found-when-installing-scipy) for more info.
