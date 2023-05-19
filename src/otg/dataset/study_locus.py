@@ -1531,7 +1531,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ld_index_template,
             ld_matrix_template,
             min_r2,
-        ).repartition(400, "chromosome", "variantId", "gnomadPopulation")
+        ).coalesce(400)
 
         ld_set = (
             self.unique_study_locus_ancestries(studies)
