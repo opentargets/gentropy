@@ -1,6 +1,9 @@
 """Generate jinja2 template for workflow."""
 from __future__ import annotations
 
+import argparse
+import subprocess
+
 import yaml
 from google.cloud import dataproc_v1 as dataproc
 from google.cloud.dataproc_v1.types import (
@@ -11,23 +14,44 @@ from google.cloud.dataproc_v1.types import (
 )
 from google.protobuf.duration_pb2 import Duration
 
-#
+# Command line arguments
+parser = argparse.ArgumentParser(description="Submit the workflow to Dataproc.")
+parser.add_argument(
+    "cluster_prefix",
+    metavar="cluster_prefix",
+    type=str,
+    help="A prefix to use for cluster and template name construction. It's a good idea to use your initials.",
+)
+parser.add_argument(
+    "--machine-type",
+    metavar="machine_type",
+    type=str,
+    default="n1-highmem-8",
+    help="Google Dataproc machine type, default: %(default)s.",
+)
+
+# Google Cloud configuration
 project_id = "open-targets-genetics-dev"
 region = "europe-west1"
 zone = "europe-west1-d"
 
 # Managed cluster
-python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
-config_name = "my_config"
-config_tar = "gs://genetics_etl_python_playground/initialisation/config.tar.gz"
-cluster_name = "ill-otg-cluster"
-package_wheel = "gs://genetics_etl_python_playground/initialisation/otgenetics-0.1.4-py3-none-any.whl"
-machine_type = "n1-highmem-96"
-initialisation_executable_file = (
-    "gs://genetics_etl_python_playground/initialisation/initialise_cluster.sh"
+code_version = (
+    subprocess.check_output(["poetry", "version", "--short"]).decode("utf-8").strip()
 )
-image_version = "2.1"
-num_local_ssds = 0
+assert (
+    code_version
+), "Could not fetch code version from the current Poetry configuration"
+initialisation_base_path = (
+    f"gs://genetics_etl_python_playground/initialisation/{code_version}"
+)
+python_cli = f"{initialisation_base_path}/cli.py"
+config_name = "my_config"
+config_tar = f"{initialisation_base_path}/config.tar.gz"
+package_wheel = f"{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
+initialisation_executable_file = f"{initialisation_base_path}/initialise_cluster.sh"
+image_version = "2.0"
+num_local_ssds = 1
 
 # Available cluster
 cluster_uuid = "eba42738-2ea3-4b0a-ba1d-38428427e838"
@@ -37,7 +61,6 @@ python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
 cluster_config_dir = "/config"
 
 # template
-template_id = "do-ot-genetics-workflow"
 dag_yaml = "workflow/dag.yaml"
 
 
@@ -178,19 +201,20 @@ def instantiate_inline_workflow_template(
     print("Workflow ran successfully.")
 
 
-def main() -> None:
+def main(args: argparse.Namespace) -> None:
     """Submit dataproc workflow."""
     template = dataproc.WorkflowTemplate()
 
     # Initialize request argument(s)
-    template.id = template_id
+    template.id = f"{args.cluster_prefix}-ot-genetics-workflow"
+    cluster_name = f"{args.cluster_prefix}-otg-cluster"
     # template.placement = generate_available_placement_template(cluster_uuid)
     template.placement = generate_managed_placement_template(
         cluster_name,
         config_tar,
         package_wheel,
         zone,
-        machine_type,
+        args.machine_type,
         initialisation_executable_file,
         image_version,
         num_local_ssds=num_local_ssds,
@@ -208,4 +232,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(parser.parse_args())
