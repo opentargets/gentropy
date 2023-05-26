@@ -3,7 +3,12 @@ from __future__ import annotations
 
 from pyspark.sql import DataFrame
 
-from otg.dataset.study_index import StudyIndex, StudyIndexFinnGen, StudyIndexGWASCatalog
+from otg.dataset.study_index import (
+    StudyIndex,
+    StudyIndexFinnGen,
+    StudyIndexGWASCatalog,
+    StudyIndexUKBiobank,
+)
 
 
 def test_study_index_creation(mock_study_index: StudyIndex) -> None:
@@ -23,6 +28,13 @@ def test_study_index_finngen_creation(
 ) -> None:
     """Test study index creation with mock data."""
     assert isinstance(mock_study_index_finngen, StudyIndexFinnGen)
+
+
+def test_study_index_ukbiobank_creation(
+    mock_study_index_ukbiobank: StudyIndexUKBiobank,
+) -> None:
+    """Test study index creation with mock data."""
+    assert isinstance(mock_study_index_ukbiobank, StudyIndexUKBiobank)
 
 
 def test_study_index_type_lut(mock_study_index: StudyIndex) -> None:
@@ -120,4 +132,16 @@ def test_finngen_study_index_from_source(
             ".gz",
         ),
         StudyIndexFinnGen,
+    )
+
+
+def test_ukbiobank_study_index_from_source(
+    sample_ukbiobank_studies: DataFrame,
+) -> None:
+    """Test study index from source."""
+    assert isinstance(
+        StudyIndexUKBiobank.from_source(
+            sample_ukbiobank_studies,
+        ),
+        StudyIndexUKBiobank,
     )
