@@ -477,3 +477,113 @@ class StudyIndexFinnGen(StudyIndex):
                 )
             )
         )
+
+
+@dataclass
+class StudyIndexUKBiobank(StudyIndex):
+    """Study index dataset from UKBiobank.
+
+    The following information is extracted:
+
+    - studyId
+    - pubmedId
+    - publicationDate
+    - publicationJournal
+    - publicationTitle
+    - publicationFirstAuthor
+    - traitFromSource
+    - ancestry_discoverySamples
+    - ancestry_replicationSamples
+    - initialSampleSize
+    - nCases
+    - replicationSamples
+
+    Some fields are populated as constants, such as projectID, studyType, and initial sample size.
+    """
+
+    @classmethod
+    def from_source(
+        cls: type[StudyIndexUKBiobank],
+        ukbiobank_studies: DataFrame,
+    ) -> StudyIndexUKBiobank:
+        """This function ingests study level metadata from UKBiobank.
+
+        Args:
+            ukbiobank_studies (DataFrame): UKBiobank study manifest file loaded in spark session.
+
+        Returns:
+            StudyIndexUKBiobank: Annotated UKBiobank study table.
+        """
+        return cls(
+            _df=(
+                ukbiobank_studies.select(
+                    f.col("code").alias("studyId"),
+                    f.col("trait").alias("traitFromSource"),
+                    f.col("n_cases").cast("long").alias("nCases"),
+                    f.col("n_total").cast("string").alias("initialSampleSize"),
+                    f.col("in_path").alias("summarystatsLocation"),
+                )
+                # Replace any trait double spaces with single.
+                .withColumn(
+                    "traitFromSource",
+                    f.regexp_replace(f.col("traitFromSource"), r" +", " "),
+                )
+                # Swap trait prefix and suffix positions.
+                .withColumn(
+                    "traitFromSource",
+                    f.when(
+                        f.col("traitFromSource").contains(":"),
+                        f.concat(
+                            f.initcap(
+                                f.split(f.col("traitFromSource"), ": ").getItem(1)
+                            ),
+                            f.lit(" | "),
+                            f.lower(f.split(f.col("traitFromSource"), ": ").getItem(0)),
+                        ),
+                    ).otherwise(f.col("traitFromSource")),
+                )
+                # Make publication and ancestry schema columns.
+                .withColumn(
+                    "publicationDate",
+                    f.when(
+                        f.col("studyId").startswith("NEALE2_"),
+                        "2018-08-01",
+                    ).otherwise("2018-10-24"),
+                )
+                .withColumn("pubmedId", f.lit(""))
+                .withColumn("publicationJournal", f.lit(""))
+                .withColumn("publicationTitle", f.lit(""))
+                .withColumn(
+                    "publicationFirstAuthor",
+                    f.when(
+                        f.col("studyId").startswith("NEALE2_"), "UKB Neale v2"
+                    ).otherwise("UKB SAIGE"),
+                )
+                .withColumn(
+                    "discoverySamples",
+                    f.array(
+                        f.struct(
+                            f.col("initialSampleSize")
+                            .cast("string")
+                            .alias("sampleSize"),
+                            f.concat(
+                                f.lit("European="),
+                                f.col("initialSampleSize").cast("string"),
+                            ).alias("ancestry"),
+                        )
+                    ),
+                )
+                .withColumn(
+                    "replicationSamples",
+                    f.array(
+                        f.struct(
+                            f.lit("").alias("sampleSize"), f.lit("").alias("ancestry")
+                        )
+                    ),
+                )
+                # Set constant value columns.
+                .withColumn("projectId", f.lit("UKBiobank"))
+                .withColumn("studyType", f.lit("gwas"))
+                .withColumn("hasSumstats", f.lit(True))
+            )
+        )
