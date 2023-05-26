@@ -18,6 +18,8 @@ Google Cloud configuration:
 
 Check that you have the `make` utility installed, and if not (which is unlikely), install it using your system package manager.
 
+Ensure that you have `java` version 8 installed on your system (also known as java 1.8).
+
 ## Environment configuration
 Run `make setup-dev` to install/update the necessary packages and activate the development environment. You need to do this every time you open a new shell.
 
