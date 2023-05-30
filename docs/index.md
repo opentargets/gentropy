@@ -23,3 +23,5 @@
 Ingestion and analysis of genetic and functional genomic data for the identification and prioritisation of drug targets.
 
 This project is still in experimental phase. Please refer to the [roadmap section](./roadmap/) for more information.
+
+For information on how to configure the development environment, run the code, or contribute changes, see the [contributing section](./contributing/).
