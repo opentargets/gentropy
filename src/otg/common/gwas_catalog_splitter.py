@@ -108,11 +108,11 @@ class GWASCatalogSplitter:
                 ).alias("updatedStudyId"),
                 cls._resolve_trait(
                     f.col("traitFromSource"),
-                    f.split("subStudyDescription", "|").getItem(0),
-                    f.split("subStudyDescription", "|").getItem(1),
+                    f.split("subStudyDescription", r"\|").getItem(0),
+                    f.split("subStudyDescription", r"\|").getItem(1),
                 ).alias("traitFromSource"),
                 cls._resolve_efo(
-                    f.split("subStudyDescription", "|").getItem(2),
+                    f.split("subStudyDescription", r"\|").getItem(2),
                     f.col("traitFromSourceMappedIds"),
                 ).alias("traitFromSourceMappedIds"),
             )
