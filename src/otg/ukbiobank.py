@@ -1,4 +1,4 @@
-"""Step to run ukb study table ingestion."""
+"""Step to run UKBiobank study table ingestion."""
 
 from __future__ import annotations
 
