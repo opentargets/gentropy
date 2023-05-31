@@ -263,3 +263,20 @@ def column2camel_case(col_name: str) -> str:
         '`hello_world` as helloWorld'
     """
     return f"`{col_name}` as {string2camelcase(col_name)}"
+
+
+def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column:
+    """Sort a column of array of structs by a field in descending order, nulls last."""
+    return f.expr(
+        f"""
+        array_sort(
+        {column_name},
+        (left, right) -> case
+                        when left.{field_name} is null then 1
+                        when right.{field_name} is null then -1
+                        when left.{field_name} < right.{field_name} then 1
+                        when left.{field_name} > right.{field_name} then -1
+                        else 0
+                end)
+        """
+    )

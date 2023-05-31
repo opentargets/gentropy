@@ -92,7 +92,7 @@ class PICS:
         return neglog_p * r2 if r2 >= 0.5 else None
 
     @staticmethod
-    def _finemap(credible_set: list, lead_neglog_p: float) -> list:
+    def _finemap(credible_set: list, lead_neglog_p: float, k: float) -> list | None:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
         It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
@@ -102,47 +102,57 @@ class PICS:
         Args:
             credible_set (list): list of tagging variants after expanding the locus
             lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.
+            k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
             List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
         """
+        if credible_set is None:
+            return None
+        elif not credible_set:
+            return []
+
         tmp_credible_set = []
+        new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
         for tag_struct in credible_set:
             tag_dict = (
                 tag_struct.asDict()
             )  # tag_struct is of type pyspark.Row, we'll represent it as a dict
+            if (
+                not tag_dict["r2Overall"]
+                or tag_dict["r2Overall"] < 0.5
+                or not lead_neglog_p
+            ):
+                # If PICS cannot be calculated, we'll return the original credible set
+                new_credible_set.append(tag_dict)
+                continue
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
-                lead_neglog_p, tag_dict["r2Overall"], 6.4
+                lead_neglog_p, tag_dict["r2Overall"], k
             )
-            posterior_probability = (
-                PICS._pics_relative_posterior_probability(
+            if pics_snp_mu and pics_snp_std:
+                posterior_probability = PICS._pics_relative_posterior_probability(
                     lead_neglog_p, pics_snp_mu, pics_snp_std
                 )
-                if pics_snp_mu and pics_snp_std
-                else None
-            )
-            tag_dict["tagPValue"] = 10**-pics_snp_mu if pics_snp_mu else None
-            tag_dict["tagStandardError"] = 10**-pics_snp_std if pics_snp_std else None
-            tag_dict["relativePosteriorProbability"] = posterior_probability
+                tag_dict["tagPValue"] = 10**-pics_snp_mu
+                tag_dict["tagStandardError"] = 10**-pics_snp_std
+                tag_dict["relativePosteriorProbability"] = posterior_probability
 
-            if posterior_probability is not None:
                 tmp_credible_set.append(tag_dict)
 
         # Second iteration: calculation of the sum of all the posteriors in each study-locus, so that we scale them between 0-1
         total_posteriors = sum(
-            tag_dict["relativePosteriorProbability"]
+            tag_dict.get("relativePosteriorProbability", 0)
             for tag_dict in tmp_credible_set
-            if tag_dict["relativePosteriorProbability"] is not None
         )
 
         # Third iteration: calculation of the final posteriorProbability
-        new_credible_set = []
         for tag_dict in tmp_credible_set:
-            tag_dict["posteriorProbability"] = float(
-                tag_dict["relativePosteriorProbability"] / total_posteriors
-            )
+            if total_posteriors != 0:
+                tag_dict["posteriorProbability"] = float(
+                    tag_dict.get("relativePosteriorProbability", 0) / total_posteriors
+                )
             tag_dict.pop("relativePosteriorProbability")
             new_credible_set.append(tag_dict)
         return new_credible_set
@@ -165,10 +175,10 @@ class PICS:
         """
         # Register UDF by defining the structure of the output credibleSet array of structs
         credset_schema = t.ArrayType(
-            associations.df.select("credibleSet").schema.fields[0].dataType.elementType  # type: ignore
+            [field.dataType.elementType for field in associations.schema if field.name == "credibleSet"][0]  # type: ignore
         )
         _finemap_udf = f.udf(
-            lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p),
+            lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
             credset_schema,
         )
 

@@ -232,6 +232,48 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                 )
             ],
         ),
+        (
+            # Null credible set
+            [
+                # Observed
+                (
+                    1,
+                    "traitA",
+                    "leadB",
+                    None,
+                ),
+            ],
+            [
+                # Expected
+                (
+                    1,
+                    "traitA",
+                    "leadB",
+                    None,
+                )
+            ],
+        ),
+        (
+            # Empty credible set
+            [
+                # Observed
+                (
+                    1,
+                    "traitA",
+                    "leadB",
+                    [],
+                ),
+            ],
+            [
+                # Expected
+                (
+                    1,
+                    "traitA",
+                    "leadB",
+                    [],
+                )
+            ],
+        ),
     ],
 )
 def test_annotate_credible_sets(
