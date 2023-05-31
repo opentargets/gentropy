@@ -472,7 +472,7 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
         "tests/data_samples/neale2_saige_study_manifest.samples.tsv",
         sep="\t",
         header=True,
-        inferSchema=True
+        inferSchema=True,
     )
 
 
