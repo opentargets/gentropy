@@ -50,7 +50,7 @@ config_name = "my_config"
 config_tar = f"{initialisation_base_path}/config.tar.gz"
 package_wheel = f"{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
 initialisation_executable_file = f"{initialisation_base_path}/initialise_cluster.sh"
-image_version = "2.0"
+image_version = "2.1"
 num_local_ssds = 1
 
 # Available cluster
