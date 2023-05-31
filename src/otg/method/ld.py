@@ -36,9 +36,9 @@ class LDAnnotatorGnomad:
 
         Args:
             bm (BlockMatrix): LD matrix containing r values
-            idxs (List[int]): Row indexes to query (distinct and incremenetal)
+            idxs (List[int]): Row indexes to query (distinct and incremental)
             starts (List[int]): Interval start column indexes (same size as idxs)
-            stops (List[int]): Interval start column indexes (same size as idxs)
+            stops (List[int]): Interval stop column indexes (same size as idxs)
             min_r2 (float): Minimum r2 to keep
 
         Returns:
@@ -80,27 +80,31 @@ class LDAnnotatorGnomad:
     ) -> DataFrame:
         """Idxs for variants, first variant in the region and last variant in the region in precomputed ld index.
 
+        It checks if the window defined by the start/stop indices is maintained after lifting over the variants.
+
         Args:
             variants_df (DataFrame): Lead variants from `_annotate_index_intervals` output
             ld_index (LDIndex): LD index precomputed
 
         Returns:
-            DataFrame: LD coordinates [i, idxs, start_idx and stop_idx]
+            DataFrame: LD coordinates [variantId, chromosome, gnomadPopulation, i, idxs, start_idx and stop_idx]
         """
         w = Window.orderBy("chromosome", "idx")
         return (
             variants_df.join(
                 ld_index.df,
-                on=["chromosome", "position", "referenceAllele", "alternateAllele"],
+                on=["variantId", "chromosome"],
             )  # start idx > stop idx in rare occasions due to liftover
             .filter(f.col("start_idx") < f.col("stop_idx"))
-            .groupBy("chromosome", "idx")
+            .groupBy("chromosome", "idx", "variantId", "gnomadPopulation")
             .agg(
                 f.min("start_idx").alias("start_idx"),
                 f.max("stop_idx").alias("stop_idx"),
             )
             # necessary to resolve return of .entries() function
             .withColumn("i", f.row_number().over(w))
+            # the dataframe has to be ordered to query the block matrix
+            .orderBy("idx")
         )
 
     @staticmethod
@@ -127,7 +131,7 @@ class LDAnnotatorGnomad:
         Returns:
             Column: Estimates weighted R information
 
-        Exmples:
+        Examples:
             >>> data = [('t3', 0.25, 0.2), ('t3', 0.25, 0.2), ('t3', 0.5, 0.99)]
             >>> columns = ['tag_variant_id', 'relative_sample_size', 'r']
             >>> (
@@ -212,47 +216,60 @@ class LDAnnotatorGnomad:
             True,
         )
 
+    @staticmethod
+    def get_ld_annotated_assocs_for_population(
+        population: str,
+        ld_index: LDIndex,
+        ld_matrix: BlockMatrix,
+        locus_ancestry: DataFrame,
+        min_r2: float,
+    ) -> DataFrame:
+        """This function annotates association data with LD information."""
+        # map variants to precomputed LD indexes from gnomAD
+        variants_in_pop = locus_ancestry.filter(f.col("gnomadPopulation") == population)
+        variants_ld_coordinates = LDAnnotatorGnomad._variant_coordinates_in_ldindex(
+            variants_in_pop, ld_index
+        ).persist()
+
+        # idxs for lead, first variant in the region and last variant in the region
+        variants_ld_scores = LDAnnotatorGnomad._query_block_matrix(
+            ld_matrix + ld_matrix.T,
+            variants_ld_coordinates.rdd.map(lambda x: x.idx).collect(),
+            variants_ld_coordinates.rdd.map(lambda x: x.start_idx).collect(),
+            variants_ld_coordinates.rdd.map(lambda x: x.stop_idx).collect(),
+            min_r2,
+        )
+
+        # aggregate LD info
+        variants_ld_info = variants_ld_scores.join(
+            f.broadcast(variants_ld_coordinates),
+            on="i",
+            how="inner",
+        ).select("variantId", "chromosome", "gnomadPopulation", "j", "r")
+
+        variants_ld_coordinates.unpersist()
+        return LDAnnotatorGnomad.variants_in_ld_in_gnomad_pop(
+            variants_ld_info=variants_ld_info,
+            ld_index=ld_index,
+        )
+
     @classmethod
     def variants_in_ld_in_gnomad_pop(
         cls: type[LDAnnotatorGnomad],
-        variants_df: DataFrame,
-        ld_matrix: BlockMatrix,
+        variants_ld_info: DataFrame,
         ld_index: LDIndex,
-        min_r2: float,
     ) -> DataFrame:
         """Return LD annotation for variants in specific gnomad population.
 
         Args:
-            variants_df (DataFrame): variants to annotate
-            ld_matrix (BlockMatrix): LD matrix
+            variants_ld_info (DataFrame): variant and their LD scores (r) and coordinates from the LD matrix of a population
             ld_index (LDIndex): LD index precomputed
-            min_r2 (float): minimum r2 to keep
 
         Returns:
             DataFrame: LD information in the columns ["variantId", "chromosome", "gnomadPopulation", "tagVariantId", "r"]
         """
-        # map variants to precomputed LD indexes from gnomAD
-        variants_ld_coordinates = LDAnnotatorGnomad._variant_coordinates_in_ldindex(
-            variants_df, ld_index
-        ).persist()
-
-        # idxs for lead, first variant in the region and last variant in the region
-        entries = LDAnnotatorGnomad._query_block_matrix(
-            ld_matrix + ld_matrix.T,
-            variants_ld_coordinates.rdd.map(lambda x: x.idxs).collect(),
-            variants_ld_coordinates.rdd.map(lambda x: x.starts).collect(),
-            variants_ld_coordinates.rdd.map(lambda x: x.stops).collect(),
-            min_r2,
-        )
-
         return (
-            entries.join(
-                f.broadcast(variants_ld_coordinates),
-                on="i",
-                how="inner",
-            )
-            .select("variantId", "chromosome", "gnomadPopulation", "j", "r")
-            .alias("left")
+            variants_ld_info.alias("left")
             .join(
                 ld_index.df.select(
                     f.col("chromosome"),
@@ -265,7 +282,7 @@ class LDAnnotatorGnomad:
                 ],
             )
             .select(
-                "variantId", "leads.chromosome", "gnomadPopulation", "tagVariantId", "r"
+                "variantId", "left.chromosome", "gnomadPopulation", "tagVariantId", "r"
             )
         )
 
@@ -314,16 +331,16 @@ class LDAnnotatorGnomad:
             if population in assoc_populations:
                 pop_parsed_ldindex_path = ld_index_template.format(POP=population)
                 pop_matrix_path = ld_matrix_template.format(POP=population)
-                variants_in_pop = locus_ancestry.filter(
-                    f.col("gnomadPopulation") == population
-                )
+                ld_index = LDIndex.from_parquet(session, pop_parsed_ldindex_path)
+                ld_matrix = BlockMatrix.read(pop_matrix_path)
                 ld_annotated_assocs.append(
-                    LDAnnotatorGnomad.variants_in_ld_in_gnomad_pop(
-                        variants_df=variants_in_pop,
-                        ld_matrix=BlockMatrix.read(pop_matrix_path),
-                        ld_index=LDIndex.from_parquet(session, pop_parsed_ldindex_path),
-                        min_r2=min_r2,
-                    )
+                    LDAnnotatorGnomad.get_ld_annotated_assocs_for_population(
+                        population,
+                        ld_index,
+                        ld_matrix,
+                        locus_ancestry,
+                        min_r2,
+                    ).coalesce(400)
                 )
         return reduce(DataFrame.unionByName, ld_annotated_assocs)
 

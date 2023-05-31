@@ -21,7 +21,7 @@ fi
 
 echo "Preparing the Poetry environment and installing dependencies..."
 poetry env use $PYTHON_VERSION
-poetry install --remove-untracked
+poetry install --sync
 
 echo "Setting up pre-commit..."
 poetry run pre-commit install

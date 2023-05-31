@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pytest
+from pyspark.sql.types import ArrayType, DoubleType, StructField, StructType
 
 from otg.common.spark_helpers import (
     get_record_with_maximum_value,
     get_record_with_minimum_value,
+    order_array_of_structs_by_field,
 )
 
 if TYPE_CHECKING:
@@ -50,3 +52,41 @@ def test_get_record_with_maximum_value_group_two_cols(
         lambda df: get_record_with_maximum_value(df, grouping_col, sorting_col)
     )
     assert df.count(), 3
+
+
+@pytest.mark.parametrize(
+    ("observed", "expected"),
+    [
+        (
+            # observed - unordered array of structs
+            [([{"probability": 0.5}, {"probability": 0.7}],)],
+            # expected - ordered array of structs
+            [([{"probability": 0.7}, {"probability": 0.5}],)],
+        ),
+        (
+            # observed - array of structs with null values
+            [([{"probability": 0.5}, {"probability": None}, {"probability": 0.7}],)],
+            # expected - null values at the end
+            [([{"probability": 0.7}, {"probability": 0.5}, {"probability": None}],)],
+        ),
+    ],
+)
+def test_order_array_of_structs_by_field(
+    spark: SparkSession, observed: list, expected: list
+) -> None:
+    """Test the util that returns an array of structs ordered by a field."""
+    mock_schema = StructType(
+        [
+            StructField(
+                "array_of_structs",
+                ArrayType(StructType([StructField("probability", DoubleType())])),
+            )
+        ]
+    )
+    observed_df = spark.createDataFrame(observed, mock_schema).select(
+        order_array_of_structs_by_field("array_of_structs", "probability").alias(
+            "array_of_structs"
+        )
+    )
+    expected_df = spark.createDataFrame(expected, mock_schema)
+    assert observed_df.collect() == expected_df.collect()

@@ -6,12 +6,9 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.sql import Window
 from scipy.stats import norm
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column
-
     from otg.dataset.study_locus import StudyLocus
 
 
@@ -19,177 +16,146 @@ class PICS:
     """Probabilistic Identification of Causal SNPs (PICS), an algorithm estimating the probability that an individual variant is causal considering the haplotype structure and observed pattern of association at the genetic locus."""
 
     @staticmethod
-    @f.udf(t.DoubleType())
-    def _norm_sf(mu: float, std: float, neglog_p: float) -> float | None:
-        """Returns the survival function of the normal distribution for the p-value.
+    def _pics_relative_posterior_probability(
+        neglog_p: float, pics_snp_mu: float, pics_snp_std: float
+    ) -> float:
+        """Compute the PICS posterior probability for a given SNP.
+
+        !!! info "This probability needs to be scaled to take into account the probabilities of the other variants in the locus."
 
         Args:
-            mu (float): mean
-            std (float): standard deviation
-            neglog_p (float): negative log p-value
+            neglog_p (float): Negative log p-value of the lead variant
+            pics_snp_mu (float): Mean P value of the association between a SNP and a trait
+            pics_snp_std (float): Standard deviation for the P value of the association between a SNP and a trait
 
         Returns:
-            float: survival function
+            Relative posterior probability of a SNP being causal in a locus
 
         Examples:
-            >>> d = [{"mu": 0, "neglog_p": 0, "std": 1}, {"mu": 1, "neglog_p": 10, "std": 10}]
-            >>> spark.createDataFrame(d).withColumn("norm_sf", PICS._norm_sf(f.col("mu"), f.col("std"), f.col("neglog_p"))).show()
-            +---+--------+---+-------------------+
-            | mu|neglog_p|std|            norm_sf|
-            +---+--------+---+-------------------+
-            |  0|       0|  1|                1.0|
-            |  1|      10| 10|0.36812025069351895|
-            +---+--------+---+-------------------+
-            <BLANKLINE>
+            >>> rel_prob = PICS._pics_relative_posterior_probability(neglog_p=10.0, pics_snp_mu=1.0, pics_snp_std=10.0)
+            >>> round(rel_prob, 3)
+            0.368
         """
-        try:
-            return float(norm(mu, std).sf(neglog_p) * 2)
-        except TypeError:
-            return None
+        return float(norm(pics_snp_mu, pics_snp_std).sf(neglog_p) * 2)
 
     @staticmethod
-    def _is_in_credset(
-        chromosome: Column,
-        study_id: Column,
-        variant_id: Column,
-        pics_postprob: Column,
-        credset_probability: float,
-    ) -> Column:
-        """Check whether a variant is in the XX% credible set.
-
-        Args:
-            chromosome (Column): Chromosome column
-            study_id (Column): Study ID column
-            variant_id (Column): Variant ID column
-            pics_postprob (Column): PICS posterior probability column
-            credset_probability (float): Credible set probability
-
-        Returns:
-            Column: Whether the variant is in the credible set
-
-        Examples:
-            >>> d = [
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 1.0},
-            ... {"chromosome": "1", "study_id": "1", "variant_id": "1", "pics_postprob": 0.9}]
-            >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("is_in_credset", PICS._is_in_credset(f.col("chromosome"), f.col("study_id"), f.col("variant_id"), f.col("pics_postprob"), 0.95)).show()
-            +----------+-------------+--------+----------+-------------+
-            |chromosome|pics_postprob|study_id|variant_id|is_in_credset|
-            +----------+-------------+--------+----------+-------------+
-            |         1|          1.0|       1|         1|         true|
-            |         1|          0.9|       1|         1|        false|
-            +----------+-------------+--------+----------+-------------+
-            <BLANKLINE>
-
-        """
-        w_cumlead = (
-            Window.partitionBy(chromosome, study_id, variant_id)
-            .orderBy(f.desc(pics_postprob))
-            .rowsBetween(Window.unboundedPreceding, Window.currentRow)
-        )
-        pics_postprob_cumsum = f.sum(pics_postprob).over(w_cumlead)
-        w_credset = Window.partitionBy(chromosome, study_id, variant_id).orderBy(
-            pics_postprob_cumsum
-        )
-        return (
-            # If there is only one row and the posterior probability meets the criteria, the flag is True:
-            f.when(
-                (f.count(pics_postprob_cumsum).over(w_credset) == 1)
-                & (pics_postprob_cumsum >= credset_probability),
-                True,
-            )
-            # If the posterior probability meets the criteria the flag is True:
-            .when(
-                f.lag(pics_postprob_cumsum, 1).over(w_credset) >= credset_probability,
-                False,
-            )
-            # If criteria is not met (posterior probability is null), flag is False:
-            .otherwise(False)
-        )
-
-    @staticmethod
-    def _pics_posterior_probability(
-        study_locus_id: Column,
-        neglog_p: Column,
-        r: Column,
-        k: float,
-    ) -> Column:
-        """Compute the PICS posterior probability.
-
-        Args:
-            study_locus_id (Column): Study-Locus ID required for windowing purposes
-            neglog_p (Column): Negative log p-value
-            r (Column): R-squared
-            k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
-
-        Returns:
-            Column: PICS posterior probability
-        """
-        w_lead = Window.partitionBy(study_locus_id)
-
-        pics_mu = PICS._pics_mu(neglog_p, r)
-        pics_std = PICS._pics_standard_deviation(neglog_p, r, k)
-
-        pics_relative_prob = f.when(pics_std == 0, 1.0).otherwise(
-            PICS._norm_sf(pics_mu, pics_std, neglog_p)
-        )
-        return pics_relative_prob / f.sum(pics_relative_prob).over(w_lead)
-
-    @staticmethod
-    def _pics_standard_deviation(neglog_p: Column, r: Column, k: float) -> Column:
+    def _pics_standard_deviation(neglog_p: float, r2: float, k: float) -> float | None:
         """Compute the PICS standard deviation.
 
+        This distribution is obtained after a series of permutation tests described in the PICS method, and it is only
+        valid when the SNP is highly linked with the lead (r2 > 0.5).
+
         Args:
-            neglog_p (Column): Negative log p-value
-            r (Column): R-squared
+            neglog_p (float): Negative log p-value of the lead variant
+            r2 (float): LD score between a given SNP and the lead variant
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
-            Column: PICS standard deviation
+            Standard deviation for the P value of the association between a SNP and a trait
 
         Examples:
-            >>> k = 6.4
-            >>> d = [(1.0, 1.0), (10.0, 1.0), (10.0, 0.5), (100.0, 0.5), (1.0, 0.0)]
-            >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("std", PICS._pics_standard_deviation(f.col("neglog_p"), f.col("r"), k)).show()
-            +--------+---+-----------------+
-            |neglog_p|  r|              std|
-            +--------+---+-----------------+
-            |     1.0|1.0|              0.0|
-            |    10.0|1.0|              0.0|
-            |    10.0|0.5|1.571749395040553|
-            |   100.0|0.5|4.970307999319905|
-            |     1.0|0.0|              0.5|
-            +--------+---+-----------------+
-            <BLANKLINE>
+            >>> PICS._pics_standard_deviation(neglog_p=1.0, r2=1.0, k=6.4)
+            0.0
+            >>> round(PICS._pics_standard_deviation(neglog_p=10.0, r2=0.5, k=6.4), 3)
+            0.143
+            >>> print(PICS._pics_standard_deviation(neglog_p=1.0, r2=0.0, k=6.4))
+            None
         """
-        return f.sqrt(1 - f.abs(r) ** k) * f.sqrt(neglog_p) / 2
+        return (
+            (1 - abs(r2) ** 0.5**k) ** 0.5 * (neglog_p) ** 0.5 / 2
+            if r2 >= 0.5
+            else None
+        )
 
     @staticmethod
-    def _pics_mu(neglog_p: Column, r: Column) -> Column:
-        """Compute the PICS mu.
+    def _pics_mu(neglog_p: float, r2: float) -> float | None:
+        """Compute the PICS mu that estimates the probability of association between a given SNP and the trait.
+
+        This distribution is obtained after a series of permutation tests described in the PICS method, and it is only
+        valid when the SNP is highly linked with the lead (r2 > 0.5).
 
         Args:
-            neglog_p (Column): Negative log p-value
-            r (Column): R
+            neglog_p (float): Negative log p-value of the lead variant
+            r2 (float): LD score between a given SNP and the lead variant
 
         Returns:
-            Column: PICS mu
+            Mean P value of the association between a SNP and a trait
 
         Examples:
-            >>> d = [(1.0, 1.0), (10.0, 1.0), (10.0, 0.5), (100.0, 0.5), (1.0, 0.0)]
-            >>> spark.createDataFrame(d).toDF("neglog_p", "r").withColumn("mu", PICS._pics_mu(f.col("neglog_p"), f.col("r"))).show()
-            +--------+---+----+
-            |neglog_p|  r|  mu|
-            +--------+---+----+
-            |     1.0|1.0| 1.0|
-            |    10.0|1.0|10.0|
-            |    10.0|0.5| 2.5|
-            |   100.0|0.5|25.0|
-            |     1.0|0.0| 0.0|
-            +--------+---+----+
-            <BLANKLINE>
+            >>> PICS._pics_mu(neglog_p=1.0, r2=1.0)
+            1.0
+            >>> PICS._pics_mu(neglog_p=10.0, r2=0.5)
+            5.0
+            >>> print(PICS._pics_mu(neglog_p=10.0, r2=0.3))
+            None
         """
-        return neglog_p * (r**2)
+        return neglog_p * r2 if r2 >= 0.5 else None
+
+    @staticmethod
+    def _finemap(credible_set: list, lead_neglog_p: float, k: float) -> list | None:
+        """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
+
+        It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
+        The function iterates over every SNP in the `credibleSet` array, and it returns an updated credibleSet with
+        its association signal and causality probability as of PICS.
+
+        Args:
+            credible_set (list): list of tagging variants after expanding the locus
+            lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.
+            k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
+
+        Returns:
+            List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
+        """
+        if credible_set is None:
+            return None
+        elif not credible_set:
+            return []
+
+        tmp_credible_set = []
+        new_credible_set = []
+        # First iteration: calculation of mu, standard deviation, and the relative posterior probability
+        for tag_struct in credible_set:
+            tag_dict = (
+                tag_struct.asDict()
+            )  # tag_struct is of type pyspark.Row, we'll represent it as a dict
+            if (
+                not tag_dict["r2Overall"]
+                or tag_dict["r2Overall"] < 0.5
+                or not lead_neglog_p
+            ):
+                # If PICS cannot be calculated, we'll return the original credible set
+                new_credible_set.append(tag_dict)
+                continue
+            pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
+            pics_snp_std = PICS._pics_standard_deviation(
+                lead_neglog_p, tag_dict["r2Overall"], k
+            )
+            if pics_snp_mu and pics_snp_std:
+                posterior_probability = PICS._pics_relative_posterior_probability(
+                    lead_neglog_p, pics_snp_mu, pics_snp_std
+                )
+                tag_dict["tagPValue"] = 10**-pics_snp_mu
+                tag_dict["tagStandardError"] = 10**-pics_snp_std
+                tag_dict["relativePosteriorProbability"] = posterior_probability
+
+                tmp_credible_set.append(tag_dict)
+
+        # Second iteration: calculation of the sum of all the posteriors in each study-locus, so that we scale them between 0-1
+        total_posteriors = sum(
+            tag_dict.get("relativePosteriorProbability", 0)
+            for tag_dict in tmp_credible_set
+        )
+
+        # Third iteration: calculation of the final posteriorProbability
+        for tag_dict in tmp_credible_set:
+            if total_posteriors != 0:
+                tag_dict["posteriorProbability"] = float(
+                    tag_dict.get("relativePosteriorProbability", 0) / total_posteriors
+                )
+            tag_dict.pop("relativePosteriorProbability")
+            new_credible_set.append(tag_dict)
+        return new_credible_set
 
     @classmethod
     def finemap(
@@ -207,24 +173,22 @@ class PICS:
         Returns:
             StudyLocus: Study locus with PICS results
         """
+        # Register UDF by defining the structure of the output credibleSet array of structs
+        credset_schema = t.ArrayType(
+            [field.dataType.elementType for field in associations.schema if field.name == "credibleSet"][0]  # type: ignore
+        )
+        _finemap_udf = f.udf(
+            lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
+            credset_schema,
+        )
+
         associations.df = (
             associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
             .withColumn(
                 "credibleSet",
                 f.when(
                     f.col("credibleSet").isNotNull(),
-                    f.transform(
-                        f.col("credibleSet"),
-                        lambda x: x.withField(
-                            "posteriorProbability",
-                            PICS._pics_posterior_probability(
-                                f.col("studyLocusId"),
-                                f.col("neglog_pvalue"),
-                                x.r2Overall,
-                                k,
-                            ),
-                        ),
-                    ),
+                    _finemap_udf(f.col("credibleSet"), f.col("neglog_pvalue")),
                 ),
             )
             .drop("neglog_pvalue")

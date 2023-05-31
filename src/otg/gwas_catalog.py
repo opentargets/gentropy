@@ -21,7 +21,7 @@ class GWASCatalogStep(GWASCatalogStepConfig):
     session: Session = Session()
 
     def run(self: GWASCatalogStep) -> None:
-        """Run variant annotation step."""
+        """Run GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
         # All inputs:
         # Variant annotation dataset
