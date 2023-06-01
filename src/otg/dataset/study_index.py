@@ -508,6 +508,10 @@ class StudyIndexUKBiobank(StudyIndex):
     ) -> StudyIndexUKBiobank:
         """This function ingests study level metadata from UKBiobank.
 
+        The University of Michigan SAIGE analysis (N=1281) utilized PheCode derived phenotypes and a novel method that ensures accurate P values, even with highly unbalanced case-control ratios (Zhou et al., 2018).
+
+        The Neale lab Round 2 study (N=2139) used GWAS with imputed genotypes from HRC to analyze all data fields in UK Biobank, excluding ICD-10 related traits to reduce overlap with the SAIGE results.
+
         Args:
             ukbiobank_studies (DataFrame): UKBiobank study manifest file loaded in spark session.
 
@@ -522,11 +526,6 @@ class StudyIndexUKBiobank(StudyIndex):
                     f.col("n_cases").cast("long").alias("nCases"),
                     f.col("n_total").cast("string").alias("initialSampleSize"),
                     f.col("in_path").alias("summarystatsLocation"),
-                )
-                # Replace any trait double spaces with single.
-                .withColumn(
-                    "traitFromSource",
-                    f.regexp_replace(f.col("traitFromSource"), r" +", " "),
                 )
                 # Swap trait prefix and suffix positions.
                 .withColumn(
@@ -550,34 +549,36 @@ class StudyIndexUKBiobank(StudyIndex):
                         "2018-08-01",
                     ).otherwise("2018-10-24"),
                 )
-                .withColumn("pubmedId", f.lit(""))
-                .withColumn("publicationJournal", f.lit(""))
-                .withColumn("publicationTitle", f.lit(""))
                 .withColumn(
-                    "publicationFirstAuthor",
+                    "pubmedId",
                     f.when(
-                        f.col("studyId").startswith("NEALE2_"), "UKB Neale v2"
-                    ).otherwise("UKB SAIGE"),
+                        f.col("studyId").startswith("SAIGE_"),
+                        "30104761",
+                    ),
+                )
+                .withColumn(
+                    "publicationJournal",
+                    f.when(
+                        f.col("studyId").startswith("SAIGE_"),
+                        "Nature Genetics",
+                    ),
+                )
+                .withColumn(
+                    "publicationTitle",
+                    f.when(
+                        f.col("studyId").startswith("SAIGE_"),
+                        "Efficiently controlling for case-control imbalance and sample relatedness in large-scale genetic association studies",
+                    ),
                 )
                 .withColumn(
                     "discoverySamples",
                     f.array(
                         f.struct(
-                            f.col("initialSampleSize")
-                            .cast("string")
-                            .alias("sampleSize"),
+                            f.col("initialSampleSize").alias("sampleSize"),
                             f.concat(
                                 f.lit("European="),
-                                f.col("initialSampleSize").cast("string"),
+                                f.col("initialSampleSize"),
                             ).alias("ancestry"),
-                        )
-                    ),
-                )
-                .withColumn(
-                    "replicationSamples",
-                    f.array(
-                        f.struct(
-                            f.lit("").alias("sampleSize"), f.lit("").alias("ancestry")
                         )
                     ),
                 )
