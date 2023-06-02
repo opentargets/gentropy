@@ -522,13 +522,41 @@ class StudyIndexUKBiobank(StudyIndex):
             _df=(
                 ukbiobank_studies.select(
                     f.col("code").alias("studyId"),
+                    f.lit("UKBiobank").alias("projectId"),
+                    f.lit("gwas").alias("studyType"),
                     f.col("trait").alias("traitFromSource"),
-                    f.col("n_cases").cast("long").alias("nCases"),
+                    # Make publication and ancestry schema columns.
+                    f.when(f.col("code").startswith("SAIGE_"), "30104761").alias(
+                        "pubmedId"
+                    ),
+                    f.when(
+                        f.col("code").startswith("SAIGE_"),
+                        "Efficiently controlling for case-control imbalance and sample relatedness in large-scale genetic association studies",
+                    )
+                    .otherwise(None)
+                    .alias("publicationTitle"),
+                    f.when(f.col("code").startswith("SAIGE_"), "Wei Zhou").alias(
+                        "publicationFirstAuthor"
+                    ),
+                    f.when(f.col("code").startswith("NEALE2_"), "2018-08-01")
+                    .otherwise("2018-10-24")
+                    .alias("publicationDate"),
+                    f.when(f.col("code").startswith("SAIGE_"), "Nature Genetics").alias(
+                        "publicationJournal"
+                    ),
                     f.col("n_total").cast("string").alias("initialSampleSize"),
+                    f.col("n_cases").cast("long").alias("nCases"),
+                    f.array(
+                        f.struct(
+                            f.col("n_total").cast("string").alias("sampleSize"),
+                            f.concat(f.lit("European="), f.col("n_total")).alias(
+                                "ancestry"
+                            ),
+                        )
+                    ).alias("discoverySamples"),
                     f.col("in_path").alias("summarystatsLocation"),
-                )
-                # Swap trait prefix and suffix positions.
-                .withColumn(
+                    f.lit(True).alias("hasSumstats"),
+                ).withColumn(
                     "traitFromSource",
                     f.when(
                         f.col("traitFromSource").contains(":"),
@@ -541,50 +569,5 @@ class StudyIndexUKBiobank(StudyIndex):
                         ),
                     ).otherwise(f.col("traitFromSource")),
                 )
-                # Make publication and ancestry schema columns.
-                .withColumn(
-                    "publicationDate",
-                    f.when(
-                        f.col("studyId").startswith("NEALE2_"),
-                        "2018-08-01",
-                    ).otherwise("2018-10-24"),
-                )
-                .withColumn(
-                    "pubmedId",
-                    f.when(
-                        f.col("studyId").startswith("SAIGE_"),
-                        "30104761",
-                    ),
-                )
-                .withColumn(
-                    "publicationJournal",
-                    f.when(
-                        f.col("studyId").startswith("SAIGE_"),
-                        "Nature Genetics",
-                    ),
-                )
-                .withColumn(
-                    "publicationTitle",
-                    f.when(
-                        f.col("studyId").startswith("SAIGE_"),
-                        "Efficiently controlling for case-control imbalance and sample relatedness in large-scale genetic association studies",
-                    ),
-                )
-                .withColumn(
-                    "discoverySamples",
-                    f.array(
-                        f.struct(
-                            f.col("initialSampleSize").alias("sampleSize"),
-                            f.concat(
-                                f.lit("European="),
-                                f.col("initialSampleSize"),
-                            ).alias("ancestry"),
-                        )
-                    ),
-                )
-                # Set constant value columns.
-                .withColumn("projectId", f.lit("UKBiobank"))
-                .withColumn("studyType", f.lit("gwas"))
-                .withColumn("hasSumstats", f.lit(True))
             )
         )
