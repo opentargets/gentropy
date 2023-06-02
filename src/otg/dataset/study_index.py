@@ -109,9 +109,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.coalesce(
                     f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
                 ).alias("studyId"),
-                f.coalesce(
-                    f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
-                ).alias("projectId"),
+                f.lit("GCST").alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.col("PUBMED ID").alias("pubmedId"),
                 f.col("FIRST AUTHOR").alias("publicationFirstAuthor"),
