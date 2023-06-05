@@ -1506,7 +1506,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                 study_annotation, on=["studyId", "subStudyDescription"], how="left"
             )
             .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
-            .drop("updatedStudyId")
+            .drop("subStudyDescription", "updatedStudyId")
         )
         return self
 
