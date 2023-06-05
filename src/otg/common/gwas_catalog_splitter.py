@@ -33,7 +33,7 @@ class GWASCatalogSplitter:
         """
         return (
             f.when(
-                p_value_text.isNotNull(),
+                (p_value_text.isNotNull()) & (p_value_text != ("no_pvalue_text")),
                 f.concat(
                     association_trait,
                     f.lit(" ["),
