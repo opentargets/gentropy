@@ -1086,17 +1086,17 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Examples:
         >>> df = spark.createDataFrame([
-        ...    ("Height", "http://www.ebi.ac.uk/efo/EFO_0000408", "European Ancestry"),
+        ...    ("Height", "http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002", "European Ancestry"),
         ...    ("Schizophrenia", "http://www.ebi.ac.uk/efo/MONDO_0005090", None)],
         ...    ["association_trait", "mapped_trait_uri", "pvalue_text"]
         ... )
         >>> df.withColumn('substudy_description', StudyLocusGWASCatalog._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate=False)
-        +-----------------+--------------------------------------+-----------------+------------------------------------------+
-        |association_trait|mapped_trait_uri                      |pvalue_text      |substudy_description                      |
-        +-----------------+--------------------------------------+-----------------+------------------------------------------+
-        |Height           |http://www.ebi.ac.uk/efo/EFO_0000408  |European Ancestry|Height|EA|EFO_0000408                     |
-        |Schizophrenia    |http://www.ebi.ac.uk/efo/MONDO_0005090|null             |Schizophrenia|no_pvalue_text|MONDO_0005090|
-        +-----------------+--------------------------------------+-----------------+------------------------------------------+
+        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
+        |association_trait|mapped_trait_uri                                                         |pvalue_text      |substudy_description                      |
+        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
+        |Height           |http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002|European Ancestry|Height|EA|EFO_0000001/EFO_0000002         |
+        |Schizophrenia    |http://www.ebi.ac.uk/efo/MONDO_0005090                                   |null             |Schizophrenia|no_pvalue_text|MONDO_0005090|
+        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
         <BLANKLINE>
         """
         p_value_text = f.coalesce(
@@ -1107,11 +1107,11 @@ class StudyLocusGWASCatalog(StudyLocus):
             "|",
             association_trait,
             f.concat_ws(
-                "_",
+                "/",
                 p_value_text,
             ),
             f.concat_ws(
-                "_",
+                "/",
                 parse_efos(mapped_trait_uri),
             ),
         )
