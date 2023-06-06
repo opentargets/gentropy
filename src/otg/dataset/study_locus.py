@@ -448,6 +448,8 @@ class StudyLocusGWASCatalog(StudyLocus):
     def _normalise_pvaluetext(p_value_text: Column) -> Column:
         """Normalised p-value text column to a standardised format.
 
+        For cases where there is no mapping, the value is set to null.
+
         Args:
             p_value_text (Column): `pValueText` column from GWASCatalog
 
@@ -456,7 +458,7 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         Example:
             >>> import pyspark.sql.types as t
-            >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease"), (""), (None)]
+            >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease"), ("(progression)"), (""), (None)]
             >>> df = spark.createDataFrame(d, t.StringType())
             >>> df.withColumn('normalised', StudyLocusGWASCatalog._normalise_pvaluetext(f.col('value'))).show()
             +-------------------+----------+
@@ -465,6 +467,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             |  European Ancestry|      [EA]|
             |   African ancestry|      [AA]|
             |Alzheimer’s Disease|      [AD]|
+            |      (progression)|      null|
             |                   |      null|
             |               null|      null|
             +-------------------+----------+
@@ -478,8 +481,9 @@ class StudyLocusGWASCatalog(StudyLocus):
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         splitted_col = f.split(f.regexp_replace(p_value_text, r"[\(\)]", ""), ",")
-        return f.when(
-            p_value_text != "", f.transform(splitted_col, lambda x: map_expr[x])
+        mapped_col = f.transform(splitted_col, lambda x: map_expr[x])
+        return f.when(f.forall(mapped_col, lambda x: x.isNull()), None).otherwise(
+            mapped_col
         )
 
     @staticmethod
