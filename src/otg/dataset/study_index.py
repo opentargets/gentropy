@@ -384,6 +384,8 @@ class StudyIndexGWASCatalog(StudyIndex):
     ) -> StudyIndexGWASCatalog:
         """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
+        For some studies that measure quantitative traits, nCases and nControls can't be extracted. Therefore, we assume these are 0.
+
         Returns:
             StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `studyId` correctly extracted.
         """
