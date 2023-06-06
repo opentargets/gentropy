@@ -79,6 +79,12 @@
       "type": "integer"
     },
     {
+      "metadata": {},
+      "name": "subStudyDescription",
+      "nullable": true,
+      "type": "string"
+    },
+    {
       "name": "qualityControls",
       "type": {
         "type": "array",
