@@ -275,6 +275,20 @@ class FinnGenStepConfig:
     finngen_study_index_out: str = MISSING
 
 
+@dataclass
+class UKBiobankStepConfig:
+    """UKBiobank study table ingestion step requirements.
+
+    Attributes:
+        ukbiobank_manifest (str): UKBiobank manifest of studies.
+        ukbiobank_study_index_out (str): Output path for the UKBiobank study index dataset.
+    """
+
+    _target_: str = "otg.ukbiobank.UKBiobankStep"
+    ukbiobank_manifest: str = MISSING
+    ukbiobank_study_index_out: str = MISSING
+
+
 # Register all configs
 def register_configs() -> None:
     """Register configs."""
@@ -289,6 +303,7 @@ def register_configs() -> None:
     cs.store(name="colocalisation", group="step", node=ColocalisationStepConfig)
     cs.store(name="gwas_catalog", group="step", node=GWASCatalogStepConfig)
     cs.store(name="finngen", group="step", node=FinnGenStepConfig)
+    cs.store(name="ukbiobank", group="step", node=UKBiobankStepConfig)
     cs.store(
         name="gwas_catalog_sumstats_preprocess",
         group="step",

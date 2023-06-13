@@ -1,0 +1,6 @@
+# Default config
+defaults:
+  - ukbiobank
+# Additional config
+ukbiobank_manifest: ${datasets.ukbiobank_manifest}
+ukbiobank_study_index_out: ${datasets.ukbiobank_study_index}

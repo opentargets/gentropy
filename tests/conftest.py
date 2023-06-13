@@ -12,7 +12,12 @@ from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import StudyIndex, StudyIndexFinnGen, StudyIndexGWASCatalog
+from otg.dataset.study_index import (
+    StudyIndex,
+    StudyIndexFinnGen,
+    StudyIndexGWASCatalog,
+    StudyIndexUKBiobank,
+)
 from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.summary_statistics import SummaryStatistics
@@ -145,6 +150,15 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
 def mock_study_index_finngen(spark: SparkSession) -> StudyIndexFinnGen:
     """Mock StudyIndexFinnGen dataset."""
     return StudyIndexFinnGen(
+        _df=mock_study_index_data(spark),
+        _schema=parse_spark_schema("studies.json"),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_ukbiobank(spark: SparkSession) -> StudyIndexUKBiobank:
+    """Mock StudyIndexUKBiobank dataset."""
+    return StudyIndexUKBiobank(
         _df=mock_study_index_data(spark),
         _schema=parse_spark_schema("studies.json"),
     )
@@ -460,6 +474,18 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
         json_data = finngen_studies.read()
         rdd = spark.sparkContext.parallelize([json_data])
         return spark.read.json(rdd)
+
+
+@pytest.fixture()
+def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
+    """Sample UKBiobank manifest."""
+    # Sampled 10 rows of the UKBB manifest tsv
+    return spark.read.csv(
+        "tests/data_samples/neale2_saige_study_manifest.samples.tsv",
+        sep="\t",
+        header=True,
+        inferSchema=True,
+    )
 
 
 @pytest.fixture()
