@@ -2,6 +2,7 @@ PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
+CLEAN_VERSION_NO := $(shell echo "$(VERSION_NO)" | tr -cd '[:alnum:]')
 BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/
 
 .PHONY: $(shell sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' $(MAKEFILE_LIST))
@@ -17,6 +18,19 @@ clean: ## Clean up prior to building
 setup-dev: SHELL:=/bin/bash
 setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
+
+create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies for development purposes
+	@${MAKE} build
+	@echo "Creating Dataproc Cluster"
+	@gcloud config set project ${PROJECT_ID}
+	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
+		--image-version 2.1 \
+		--region ${REGION} \
+		--master-machine-type n1-standard-16 \
+		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/initialise_cluster.sh \
+		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/otgenetics-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
+		--single-node \
+		--enable-component-gateway
 
 build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
