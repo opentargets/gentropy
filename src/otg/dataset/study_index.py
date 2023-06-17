@@ -109,9 +109,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.coalesce(
                     f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
                 ).alias("studyId"),
-                f.coalesce(
-                    f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
-                ).alias("projectId"),
+                f.lit("GCST").alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.col("PUBMED ID").alias("pubmedId"),
                 f.col("FIRST AUTHOR").alias("publicationFirstAuthor"),
@@ -261,12 +259,14 @@ class StudyIndexGWASCatalog(StudyIndex):
                 lambda df: df.select(
                     *[f.expr(column2camel_case(x)) for x in df.columns]
                 )
-            ).withColumnRenamed("studyAccession", "projectId")
+            ).withColumnRenamed(
+                "studyAccession", "studyId"
+            )  # studyId has not been split yet
         )
 
         # Get a high resolution dataset on experimental stage:
         ancestry_stages = (
-            ancestry.groupBy("projectId")
+            ancestry.groupBy("studyId")
             .pivot("stage")
             .agg(
                 f.collect_set(
@@ -306,13 +306,13 @@ class StudyIndexGWASCatalog(StudyIndex):
                 .otherwise("other"),
             )
             # Grouping by study accession and initial sample description:
-            .groupBy("projectId")
+            .groupBy("studyId")
             .pivot("ancestryFlag")
             .agg(
                 # Summarizing sample sizes for all ancestries:
                 f.sum(f.col("numberOfIndividuals"))
             )
-            # Do aritmetics to make sure we have the right proportion of european in the set:
+            # Do arithmetics to make sure we have the right proportion of european in the set:
             .withColumn(
                 "initialSampleCountEuropean",
                 f.when(f.col("european").isNull(), f.lit(0)).otherwise(
@@ -337,10 +337,10 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
 
         parsed_ancestry_lut = ancestry_stages.join(
-            europeans_deconvoluted, on="projectId", how="outer"
+            europeans_deconvoluted, on="studyId", how="outer"
         )
 
-        self.df = self.df.join(parsed_ancestry_lut, on="projectId", how="left")
+        self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left")
         return self
 
     def _annotate_sumstats_info(
@@ -366,7 +366,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             ),
         ).select(
             f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)\/", 1).alias(
-                "projectId"
+                "studyId"
             ),
             "summarystatsLocation",
             f.lit(True).alias("hasSumstats"),
@@ -374,7 +374,7 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         self.df = (
             self.df.drop("hasSumstats")
-            .join(parsed_sumstats_lut, on="projectId", how="left")
+            .join(parsed_sumstats_lut, on="studyId", how="left")
             .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
         )
         return self
@@ -384,12 +384,14 @@ class StudyIndexGWASCatalog(StudyIndex):
     ) -> StudyIndexGWASCatalog:
         """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
+        For some studies that measure quantitative traits, nCases and nControls can't be extracted. Therefore, we assume these are 0.
+
         Returns:
-            StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `ProjectId` correctly extracted.
+            StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `studyId` correctly extracted.
         """
         sample_size_lut = (
             self.df.select(
-                "projectId",
+                "studyId",
                 f.explode_outer(f.split(f.col("initialSampleSize"), r",\s+")).alias(
                     "samples"
                 ),
@@ -402,7 +404,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 ).cast(t.IntegerType()),
             )
             .select(
-                "projectId",
+                "studyId",
                 "sampleSize",
                 f.when(f.col("samples").contains("cases"), f.col("sampleSize"))
                 .otherwise(f.lit(0))
@@ -412,14 +414,14 @@ class StudyIndexGWASCatalog(StudyIndex):
                 .alias("nControls"),
             )
             # Aggregating sample sizes for all ancestries:
-            .groupBy("projectId")
+            .groupBy("studyId")  # studyId has not been split yet
             .agg(
                 f.sum("nCases").alias("nCases"),
                 f.sum("nControls").alias("nControls"),
                 f.sum("sampleSize").alias("nSamples"),
             )
         )
-        self.df = self.df.join(sample_size_lut, on="projectId", how="left")
+        self.df = self.df.join(sample_size_lut, on="studyId", how="left")
         return self
 
 

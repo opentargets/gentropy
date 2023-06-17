@@ -448,15 +448,17 @@ class StudyLocusGWASCatalog(StudyLocus):
     def _normalise_pvaluetext(p_value_text: Column) -> Column:
         """Normalised p-value text column to a standardised format.
 
+        For cases where there is no mapping, the value is set to null.
+
         Args:
             p_value_text (Column): `pValueText` column from GWASCatalog
 
         Returns:
-            Column: mapped using GWAS Catalog mapping
+            Column: Array column after using GWAS Catalog mappings. There might be multiple mappings for a single p-value text.
 
         Example:
             >>> import pyspark.sql.types as t
-            >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease")]
+            >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease"), ("(progression)"), (""), (None)]
             >>> df = spark.createDataFrame(d, t.StringType())
             >>> df.withColumn('normalised', StudyLocusGWASCatalog._normalise_pvaluetext(f.col('value'))).show()
             +-------------------+----------+
@@ -465,6 +467,9 @@ class StudyLocusGWASCatalog(StudyLocus):
             |  European Ancestry|      [EA]|
             |   African ancestry|      [AA]|
             |Alzheimer’s Disease|      [AD]|
+            |      (progression)|      null|
+            |                   |      null|
+            |               null|      null|
             +-------------------+----------+
             <BLANKLINE>
 
@@ -476,7 +481,10 @@ class StudyLocusGWASCatalog(StudyLocus):
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         splitted_col = f.split(f.regexp_replace(p_value_text, r"[\(\)]", ""), ",")
-        return f.transform(splitted_col, lambda x: map_expr[x])
+        mapped_col = f.transform(splitted_col, lambda x: map_expr[x])
+        return f.when(f.forall(mapped_col, lambda x: x.isNull()), None).otherwise(
+            mapped_col
+        )
 
     @staticmethod
     def _normalise_risk_allele(risk_allele: Column) -> Column:
@@ -1078,29 +1086,36 @@ class StudyLocusGWASCatalog(StudyLocus):
             mapped_trait_uri (Column): GWAS Catalog mapped trait URI column
 
         Returns:
-            A column with the substudy description in the shape EFO1_EFO2|pvaluetext1_pvaluetext2.
+            A column with the substudy description in the shape trait|pvaluetext1_pvaluetext2|EFO1_EFO2.
 
         Examples:
-            >>> d = {'association_trait': 'Height', 'pvalue_text': 'European Ancestry', 'mapped_trait_uri': 'http://www.ebi.ac.uk/efo/EFO_0000408'}
-            >>> df = spark.createDataFrame([d])
-            >>> df.withColumn('substudy_description', StudyLocusGWASCatalog._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate = False)
-            +-----------------+------------------------------------+-----------------+---------------------+
-            |association_trait|mapped_trait_uri                    |pvalue_text      |substudy_description |
-            +-----------------+------------------------------------+-----------------+---------------------+
-            |Height           |http://www.ebi.ac.uk/efo/EFO_0000408|European Ancestry|Height|EA|EFO_0000408|
-            +-----------------+------------------------------------+-----------------+---------------------+
-            <BLANKLINE>
-
+        >>> df = spark.createDataFrame([
+        ...    ("Height", "http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002", "European Ancestry"),
+        ...    ("Schizophrenia", "http://www.ebi.ac.uk/efo/MONDO_0005090", None)],
+        ...    ["association_trait", "mapped_trait_uri", "pvalue_text"]
+        ... )
+        >>> df.withColumn('substudy_description', StudyLocusGWASCatalog._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate=False)
+        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
+        |association_trait|mapped_trait_uri                                                         |pvalue_text      |substudy_description                      |
+        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
+        |Height           |http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002|European Ancestry|Height|EA|EFO_0000001/EFO_0000002         |
+        |Schizophrenia    |http://www.ebi.ac.uk/efo/MONDO_0005090                                   |null             |Schizophrenia|no_pvalue_text|MONDO_0005090|
+        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
+        <BLANKLINE>
         """
+        p_value_text = f.coalesce(
+            StudyLocusGWASCatalog._normalise_pvaluetext(pvalue_text),
+            f.array(f.lit("no_pvalue_text")),
+        )
         return f.concat_ws(
             "|",
             association_trait,
             f.concat_ws(
-                "_",
-                StudyLocusGWASCatalog._normalise_pvaluetext(pvalue_text),
+                "/",
+                p_value_text,
             ),
             f.concat_ws(
-                "_",
+                "/",
                 parse_efos(mapped_trait_uri),
             ),
         )
@@ -1495,7 +1510,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                 study_annotation, on=["studyId", "subStudyDescription"], how="left"
             )
             .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
-            .drop("updatedStudyId")
+            .drop("subStudyDescription", "updatedStudyId")
         )
         return self
 

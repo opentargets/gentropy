@@ -33,7 +33,7 @@ class GWASCatalogSplitter:
         """
         return (
             f.when(
-                p_value_text.isNotNull(),
+                (p_value_text.isNotNull()) & (p_value_text != ("no_pvalue_text")),
                 f.concat(
                     association_trait,
                     f.lit(" ["),
@@ -59,7 +59,7 @@ class GWASCatalogSplitter:
         Returns:
             Column: Consolidated EFO column.
         """
-        return f.coalesce(f.split(association_efo, "_"), study_efo)
+        return f.coalesce(f.split(association_efo, r"\/"), study_efo)
 
     @staticmethod
     def _resolve_study_id(study_id: Column, sub_study_description: Column) -> Column:
