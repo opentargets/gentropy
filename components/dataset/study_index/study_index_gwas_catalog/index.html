@@ -362,7 +362,9 @@
 <span class=normal>420</span>
 <span class=normal>421</span>
 <span class=normal>422</span>
-<span class=normal>423</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>423</span>
+<span class=normal>424</span>
+<span class=normal>425</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>StudyIndexGWASCatalog</span><span class=p>(</span><span class=n>StudyIndex</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study index dataset from GWAS Catalog.</span>
 
@@ -415,9 +417,7 @@
                 <span class=n>f</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STUDY ACCESSION&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>monotonically_increasing_id</span><span class=p>()</span>
                 <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STUDY ACCESSION&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>monotonically_increasing_id</span><span class=p>()</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;projectId&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;GCST&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;projectId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;gwas&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;studyType&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;PUBMED ID&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;pubmedId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;FIRST AUTHOR&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;publicationFirstAuthor&quot;</span><span class=p>),</span>
@@ -567,12 +567,14 @@
                 <span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
                     <span class=o>*</span><span class=p>[</span><span class=n>f</span><span class=o>.</span><span class=n>expr</span><span class=p>(</span><span class=n>column2camel_case</span><span class=p>(</span><span class=n>x</span><span class=p>))</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>df</span><span class=o>.</span><span class=n>columns</span><span class=p>]</span>
                 <span class=p>)</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span><span class=s2>&quot;studyAccession&quot;</span><span class=p>,</span> <span class=s2>&quot;projectId&quot;</span><span class=p>)</span>
+            <span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span>
+                <span class=s2>&quot;studyAccession&quot;</span><span class=p>,</span> <span class=s2>&quot;studyId&quot;</span>
+            <span class=p>)</span>  <span class=c1># studyId has not been split yet</span>
         <span class=p>)</span>
 
         <span class=c1># Get a high resolution dataset on experimental stage:</span>
         <span class=n>ancestry_stages</span> <span class=o>=</span> <span class=p>(</span>
-            <span class=n>ancestry</span><span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;projectId&quot;</span><span class=p>)</span>
+            <span class=n>ancestry</span><span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>pivot</span><span class=p>(</span><span class=s2>&quot;stage&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>collect_set</span><span class=p>(</span>
@@ -612,13 +614,13 @@
                 <span class=o>.</span><span class=n>otherwise</span><span class=p>(</span><span class=s2>&quot;other&quot;</span><span class=p>),</span>
             <span class=p>)</span>
             <span class=c1># Grouping by study accession and initial sample description:</span>
-            <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;projectId&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>pivot</span><span class=p>(</span><span class=s2>&quot;ancestryFlag&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
                 <span class=c1># Summarizing sample sizes for all ancestries:</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;numberOfIndividuals&quot;</span><span class=p>))</span>
             <span class=p>)</span>
-            <span class=c1># Do aritmetics to make sure we have the right proportion of european in the set:</span>
+            <span class=c1># Do arithmetics to make sure we have the right proportion of european in the set:</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;initialSampleCountEuropean&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;european&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNull</span><span class=p>(),</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>0</span><span class=p>))</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span>
@@ -643,10 +645,10 @@
         <span class=p>)</span>
 
         <span class=n>parsed_ancestry_lut</span> <span class=o>=</span> <span class=n>ancestry_stages</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-            <span class=n>europeans_deconvoluted</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;projectId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;outer&quot;</span>
+            <span class=n>europeans_deconvoluted</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;outer&quot;</span>
         <span class=p>)</span>
 
-        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>parsed_ancestry_lut</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;projectId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>parsed_ancestry_lut</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
 
     <span class=k>def</span> <span class=nf>_annotate_sumstats_info</span><span class=p>(</span>
@@ -672,7 +674,7 @@
             <span class=p>),</span>
         <span class=p>)</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>regexp_extract</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;summarystatsLocation&quot;</span><span class=p>),</span> <span class=sa>r</span><span class=s2>&quot;\/(GCST\d+)\/&quot;</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span>
-                <span class=s2>&quot;projectId&quot;</span>
+                <span class=s2>&quot;studyId&quot;</span>
             <span class=p>),</span>
             <span class=s2>&quot;summarystatsLocation&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>),</span>
@@ -680,7 +682,7 @@
 
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>parsed_sumstats_lut</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;projectId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>parsed_sumstats_lut</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;hasSumstats&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>False</span><span class=p>)))</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
@@ -690,12 +692,14 @@
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.</span>
 
+<span class=sd>        For some studies that measure quantitative traits, nCases and nControls can&#39;t be extracted. Therefore, we assume these are 0.</span>
+
 <span class=sd>        Returns:</span>
-<span class=sd>            StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `ProjectId` correctly extracted.</span>
+<span class=sd>            StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `studyId` correctly extracted.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>sample_size_lut</span> <span class=o>=</span> <span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                <span class=s2>&quot;projectId&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;studyId&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>explode_outer</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;initialSampleSize&quot;</span><span class=p>),</span> <span class=sa>r</span><span class=s2>&quot;,\s+&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span>
                     <span class=s2>&quot;samples&quot;</span>
                 <span class=p>),</span>
@@ -708,7 +712,7 @@
                 <span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>IntegerType</span><span class=p>()),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                <span class=s2>&quot;projectId&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;studyId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;sampleSize&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;samples&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>contains</span><span class=p>(</span><span class=s2>&quot;cases&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;sampleSize&quot;</span><span class=p>))</span>
                 <span class=o>.</span><span class=n>otherwise</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>0</span><span class=p>))</span>
@@ -718,16 +722,18 @@
                 <span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;nControls&quot;</span><span class=p>),</span>
             <span class=p>)</span>
             <span class=c1># Aggregating sample sizes for all ancestries:</span>
-            <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;projectId&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>)</span>  <span class=c1># studyId has not been split yet</span>
             <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=s2>&quot;nCases&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;nCases&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=s2>&quot;nControls&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;nControls&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=s2>&quot;sampleSize&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;nSamples&quot;</span><span class=p>),</span>
             <span class=p>)</span>
         <span class=p>)</span>
-        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>sample_size_lut</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;projectId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>sample_size_lut</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_index.StudyIndexGWASCatalog.from_source class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_source</span><span class=p>(</span><span class=n>catalog_studies</span><span class=p>,</span> <span class=n>ancestry_file</span><span class=p>,</span> <span class=n>sumstats_lut</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>This function ingests study level metadata from the GWAS Catalog.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>catalog_studies</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWAS Catalog raw study table</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ancestry_file</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWAS Catalog ancestry table.</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>sumstats_lut</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWAS Catalog summary statistics list.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyIndexGWASCatalog</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndexGWASCatalog" href="#otg.dataset.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code> </td> <td><p>Parsed and annotated GWAS Catalog study table.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>132</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_index.StudyIndexGWASCatalog.from_source class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_source</span><span class=p>(</span><span class=n>catalog_studies</span><span class=p>,</span> <span class=n>ancestry_file</span><span class=p>,</span> <span class=n>sumstats_lut</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>This function ingests study level metadata from the GWAS Catalog.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>catalog_studies</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWAS Catalog raw study table</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ancestry_file</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWAS Catalog ancestry table.</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>sumstats_lut</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWAS Catalog summary statistics list.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyIndexGWASCatalog</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndexGWASCatalog" href="#otg.dataset.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code> </td> <td><p>Parsed and annotated GWAS Catalog study table.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>130</span>
+<span class=normal>131</span>
+<span class=normal>132</span>
 <span class=normal>133</span>
 <span class=normal>134</span>
 <span class=normal>135</span>
@@ -748,9 +754,7 @@
 <span class=normal>150</span>
 <span class=normal>151</span>
 <span class=normal>152</span>
-<span class=normal>153</span>
-<span class=normal>154</span>
-<span class=normal>155</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>153</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>from_source</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>StudyIndexGWASCatalog</span><span class=p>],</span>
     <span class=n>catalog_studies</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
@@ -774,7 +778,9 @@
         <span class=o>.</span><span class=n>_annotate_sumstats_info</span><span class=p>(</span><span class=n>sumstats_lut</span><span class=p>)</span>
         <span class=o>.</span><span class=n>_annotate_discovery_sample_sizes</span><span class=p>()</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_index.StudyIndexGWASCatalog.get_gnomad_ancestry_sample_sizes class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_gnomad_ancestry_sample_sizes</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Get all studies and their ancestries.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>containing <code>studyId</code>, <code>gnomadPopulation</code> and <code>relativeSampleSize</code> columns</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>157</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_index.StudyIndexGWASCatalog.get_gnomad_ancestry_sample_sizes class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_gnomad_ancestry_sample_sizes</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Get all studies and their ancestries.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>containing <code>studyId</code>, <code>gnomadPopulation</code> and <code>relativeSampleSize</code> columns</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>155</span>
+<span class=normal>156</span>
+<span class=normal>157</span>
 <span class=normal>158</span>
 <span class=normal>159</span>
 <span class=normal>160</span>
@@ -812,9 +818,7 @@
 <span class=normal>192</span>
 <span class=normal>193</span>
 <span class=normal>194</span>
-<span class=normal>195</span>
-<span class=normal>196</span>
-<span class=normal>197</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_gnomad_ancestry_sample_sizes</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>195</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_gnomad_ancestry_sample_sizes</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Get all studies and their ancestries.</span>
 
 <span class=sd>    Returns:</span>
@@ -855,7 +859,9 @@
         <span class=p>)</span>
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;sampleSize&quot;</span><span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_index.StudyIndexGWASCatalog.update_study_id class="doc doc-heading"> <code class="highlight language-python"><span class=n>update_study_id</span><span class=p>(</span><span class=n>study_annotation</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Update studyId with a dataframe containing study.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_annotation</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Dataframe containing <code>updatedStudyId</code>, <code>traitFromSource</code>, <code>traitFromSourceMappedIds</code> and key column <code>studyId</code>.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyIndexGWASCatalog</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndexGWASCatalog" href="#otg.dataset.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code> </td> <td><p>Updated study table.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>199</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_index.StudyIndexGWASCatalog.update_study_id class="doc doc-heading"> <code class="highlight language-python"><span class=n>update_study_id</span><span class=p>(</span><span class=n>study_annotation</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Update studyId with a dataframe containing study.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_annotation</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Dataframe containing <code>updatedStudyId</code>, <code>traitFromSource</code>, <code>traitFromSourceMappedIds</code> and key column <code>studyId</code>.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyIndexGWASCatalog</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndexGWASCatalog" href="#otg.dataset.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code> </td> <td><p>Updated study table.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>197</span>
+<span class=normal>198</span>
+<span class=normal>199</span>
 <span class=normal>200</span>
 <span class=normal>201</span>
 <span class=normal>202</span>
@@ -895,9 +901,7 @@
 <span class=normal>236</span>
 <span class=normal>237</span>
 <span class=normal>238</span>
-<span class=normal>239</span>
-<span class=normal>240</span>
-<span class=normal>241</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>update_study_id</span><span class=p>(</span>
+<span class=normal>239</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>update_study_id</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>,</span> <span class=n>study_annotation</span><span class=p>:</span> <span class=n>DataFrame</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Update studyId with a dataframe containing study.</span>
