@@ -39,7 +39,7 @@ In order to run the code:
     - You will need to specify additional parameters, some are mandatory and some are optional. Run with `--help` to see usage.
     - The script will provision the cluster and submit the job.
     - The cluster will take a few minutes to get provisioned and running, during which the script will not output anything, this is normal.
-    - Once submitted, you can monitor the progress of your job on this page:    .
+    - Once submitted, you can monitor the progress of your job on this page: https://console.cloud.google.com/dataproc/jobs?project=open-targets-genetics-dev.
     - On completion (whether successful or a failure), the cluster will be automatically removed, so you don't have to worry about shutting it down to avoid incurring charges.
 
 ## How to generate a local copy of the documentation
