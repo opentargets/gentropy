@@ -463,14 +463,14 @@ class StudyIndexFinnGen(StudyIndex):
                 # Read FinnGen raw data.
                 finngen_studies.select(
                     # Select the desired columns.
-                    f.concat(f.lit(finngen_release_prefix), f.col("phenocode")).alias(
-                        "studyId"
-                    ),
+                    f.concat(
+                        f.lit(finngen_release_prefix + "_"), f.col("phenocode")
+                    ).alias("studyId"),
                     f.col("phenostring").alias("traitFromSource"),
                     f.col("num_cases").alias("nCases"),
                     f.col("num_controls").alias("nControls"),
                     # Set constant value columns.
-                    f.lit("FINNGEN_R9").alias("projectId"),
+                    f.lit(finngen_release_prefix).alias("projectId"),
                     f.lit("gwas").alias("studyType"),
                     f.lit(True).alias("hasSumstats"),
                     f.lit("377,277 (210,870 females and 166,407 males)").alias(
