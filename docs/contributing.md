@@ -28,6 +28,7 @@ In order to run the code:
     - This must be different from the version used by any other people working on the repository to avoid any deployment conflicts, so it's a good idea to use your name, for example: `1.2.3+jdoe`.
     - You can also add a brief branch description, for example: `1.2.3+jdoe.myfeature`.
     - Note that the version must comply with [PEP440 conventions](https://peps.python.org/pep-0440/#normalization), otherwise Poetry will not allow it to be deployed.
+    - Do not use underscores or hyphens in your version name. When building the WHL file, they will be automatically converted to dots, which means the file name will no longer match the version and the build will fail. Use dots instead.
 
 3. Run `make build`.
     - This will create a bundle containing the neccessary code, configuration and dependencies to run the ETL pipeline, and then upload this bundle to Google Cloud.
@@ -43,6 +44,9 @@ In order to run the code:
 
 ## How to generate a local copy of the documentation
 Run `poetry run mkdocs serve`. This will generate the local copy of the documentation and will start a local server to browse it (URL will be printed, usually http://127.0.0.1:8000/).
+
+## How to run the tests
+Run `poetry run pytest`.
 
 ## Troubleshooting
 In some cases, Pyenv and Poetry may cause various exotic errors which are hard to diagnose and get rid of. In this case, it helps to remove them from the system completely before running the `make setup-dev` command. See instructions in [utils/remove_pyenv_poetry.md](utils/remove_pyenv_poetry.md).
@@ -69,5 +73,5 @@ When making changes, and especially when implementing a new module or feature, i
 
 ### Tests
 * Test study fixture in `tests/conftest.py` (example: `mock_study_index_finngen` in that module)
-* Test sample data in `tests/data_samples` (example: `tests/data_samples/finngen_studies_sample-r8.json`)
+* Test sample data in `tests/data_samples` (example: `tests/data_samples/finngen_studies_sample.json`)
 * Test definition in `tests/` (example: `tests/dataset/test_study_index.py` → `test_study_index_finngen_creation`)

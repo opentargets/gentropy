@@ -127,8 +127,8 @@ def test_finngen_study_index_from_source(
     assert isinstance(
         StudyIndexFinnGen.from_source(
             sample_finngen_studies,
-            "FINNGEN_R8_",
-            "https://storage.googleapis.com/finngen-public-data-r8/summary_stats/finngen_R8_",
+            "FINNGEN_R9_",
+            "https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_",
             ".gz",
         ),
         StudyIndexFinnGen,
