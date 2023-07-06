@@ -195,9 +195,9 @@ class LDIndex(Dataset):
                 ),
             )
             # Filter out variants mapping to several indices due to liftover
-            .withColumn('count', f.count('*').over(Window.partitionBy(["variantId"])))
-            .filter(f.col('count') == 1)
-            .drop('count')
+            .withColumn("count", f.count("*").over(Window.partitionBy(["variantId"])))
+            .filter(f.col("count") == 1)
+            .drop("count")
             .withColumn("start_idx", f.lit(None).cast(t.LongType()))
             .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
             .repartition(400, "chromosome")
@@ -264,19 +264,6 @@ class LDIndex(Dataset):
                     )
                 ),
                 on=["chromosome", "stop_pos"],
-            )
-            # Ensure nullable true
-            .withColumn(
-                "start_idx",
-                f.when(f.col("start_idx").isNotNull(), f.col("start_idx")).otherwise(
-                    f.lit(None)
-                ),
-            )
-            .withColumn(
-                "stop_idx",
-                f.when(f.col("stop_idx").isNotNull(), f.col("stop_idx")).otherwise(
-                    f.lit(None)
-                ),
             )
             # Filter out variants for which start idx > stop idx due to liftover
             .filter(f.col("start_idx") < f.col("stop_idx"))
