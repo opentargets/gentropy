@@ -11,28 +11,34 @@ from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
 from otg.common.spark_helpers import calculate_neglog_pvalue
+from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
-    # from otg.dataset.study_locus import StudyLocus
     from numpy import ndarray
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column
+
+    from otg.dataset.summary_statistics import SummaryStatistics
 
 
 class WindowBasedClumping:
     """Get semi-lead snps from summary statistics using a window based function."""
 
     @staticmethod
-    def cluster_peaks(df: DataFrame, window_length: int) -> DataFrame:
+    def _identify_cluster_peaks(
+        study: Column, chromosome: Column, position: Column, window_length: int
+    ) -> Column:
         """Cluster GWAS significant variants, were clusters are separated by a defined distance.
 
         !! Important to note that the length of the clusters can be arbitrarily big.
 
         Args:
-            df (DataFrame): table with studyId, chromosome and position columns
-            window_length (int): a minimal basepair distance required between snps to call for a new cluster
+            study (Column): study identifier
+            chromosome (Column): chromosome identifier
+            position (Column): position of the variant
+            window_length (int): window length in basepair
 
         Returns:
-            DataFrame: with cluster_id column added.
+            Column: containing cluster identifier
 
         Examples:
             >>> data = [
@@ -56,8 +62,14 @@ class WindowBasedClumping:
             >>> window_length = 10
             >>> (
             ...     spark.createDataFrame(data, ['studyId', 'chromosome', 'position'])
-            ...     .transform(lambda df: WindowBasedClumping.cluster_peaks(df, window_length))
-            ...     .show()
+            ...     .withColumn("cluster_id",
+            ...         WindowBasedClumping._identify_cluster_peaks(
+            ...             f.col('studyId'),
+            ...             f.col('chromosome'),
+            ...             f.col('position'),
+            ...             window_length
+            ...         )
+            ...     ).show()
             ... )
             +-------+----------+--------+----------+
             |studyId|chromosome|position|cluster_id|
@@ -76,44 +88,31 @@ class WindowBasedClumping:
             |     s2|      chr2|      70|s2_chr2_55|
             +-------+----------+--------+----------+
             <BLANKLINE>
+
         """
-        return (
-            df
-            # By adding previous position, the cluster boundary can be identified:
-            .withColumn(
-                "previous_position",
-                f.lag("position").over(
-                    Window.partitionBy("studyId", "chromosome").orderBy("position")
-                ),
-            )
-            # We consider a cluster boudary if subsequent snps are further than the defined window:
-            .withColumn(
-                "cluster_id",
-                f.when(
-                    (f.col("previous_position").isNull())
-                    | (f.col("position") - f.col("previous_position") > window_length),
-                    f.concat_ws(
-                        "_", f.col("studyId"), f.col("chromosome"), f.col("position")
-                    ),
-                ),
-            )
-            # The cluster identifier is propagated across every variant of the cluster:
-            .withColumn(
-                "cluster_id",
-                f.when(
-                    f.col("cluster_id").isNull(),
-                    f.last("cluster_id", ignorenulls=True).over(
-                        Window.partitionBy("studyId", "chromosome")
-                        .orderBy("position")
-                        .rowsBetween(Window.unboundedPreceding, Window.currentRow)
-                    ),
-                ).otherwise(f.col("cluster_id")),
-            ).drop("previous_position")
+        # By adding previous position, the cluster boundary can be identified:
+        previous_position = f.lag(position).over(
+            Window.partitionBy(study, chromosome).orderBy(position)
         )
+        # We consider a cluster boudary if subsequent snps are further than the defined window:
+        cluster_id = f.when(
+            (previous_position.isNull())
+            | (position - previous_position > window_length),
+            f.concat_ws("_", study, chromosome, position),
+        )
+        # The cluster identifier is propagated across every variant of the cluster:
+        return f.when(
+            cluster_id.isNull(),
+            f.last(cluster_id, ignorenulls=True).over(
+                Window.partitionBy(study, chromosome)
+                .orderBy(position)
+                .rowsBetween(Window.unboundedPreceding, Window.currentRow)
+            ),
+        ).otherwise(cluster_id)
 
     @staticmethod
     @f.udf(VectorUDT())
-    def find_peak(position: ndarray, window_size: int) -> DenseVector:
+    def _find_peak(position: ndarray, window_size: int) -> DenseVector:
         """Establish lead snps based on their positions listed by p-value.
 
         The function `find_peak` assigns lead SNPs based on their positions listed by p-value within a specified window size.
@@ -146,7 +145,7 @@ class WindowBasedClumping:
             ...             .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
             ...         )
             ...     )
-            ...     .withColumn('isLeadList', WindowBasedClumping.find_peak(fml.array_to_vector(f.col('collected_positions')), f.lit(2)))
+            ...     .withColumn('isLeadList', WindowBasedClumping._find_peak(fml.array_to_vector(f.col('collected_positions')), f.lit(2)))
             ...     .show(truncate=False)
             ... )
             +-------+--------+------------+-----------+-------------------+---------------------+
@@ -159,6 +158,7 @@ class WindowBasedClumping:
             |c      |6       |1.0         |true       |[3, 9, 8, 4, 6]    |[1.0,1.0,0.0,0.0,1.0]|
             +-------+--------+------------+-----------+-------------------+---------------------+
             <BLANKLINE>
+
         """
         # Initializing the lead list with zeroes:
         is_lead: ndarray = np.zeros(len(position))
@@ -181,65 +181,125 @@ class WindowBasedClumping:
 
         return DenseVector(is_lead)
 
-    @classmethod
-    def find_index_snps(
-        cls: type[WindowBasedClumping], df: DataFrame, window_length: int
-    ) -> DataFrame:
-        """Finding index snps based on window.
+    @staticmethod
+    def _filter_leads(clump: Column, window_length: int) -> Column:
+        """Filter lead snps from a column containing clumps.
 
         Args:
-            df (DataFrame): dataframe extracted from p-value filtered summary statistics
-            window_length (int): window lenght in basepair
+            clump (Column): column containing array of structs with all variants in the clump.
+            window_length (int): window length in basepair
 
         Returns:
-            DataFrame: Dataframe containing only lead snps
+            Column: column containing array of structs with only lead variants.
         """
-        return (
-            df.transform(lambda df: cls.cluster_peaks(df, window_length))
-            .groupBy("cluster_id")
-            # Aggregating all data from each cluster:
-            .agg(
-                f.sort_array(
-                    f.collect_list(
-                        f.struct(
-                            calculate_neglog_pvalue(
-                                f.col("pValueMantissa"), f.col("pValueExponent")
-                            ).alias("negLogPValue"),
-                            "*",
-                        )
-                    ),
-                    False,
-                ).alias("aggregatedCluster")
-            )
-            # Extract the position vector and identify positions of the leads:
-            .withColumn(
-                "isLeadList",
+        # Combine the lead position vector with the aggregated fields and dropping non-lead snps:
+        return f.filter(
+            f.zip_with(
+                clump,
+                # Extract the position vector and identify positions of the leads:
                 fml.vector_to_array(
-                    cls.find_peak(
-                        fml.array_to_vector(
-                            f.transform(
-                                f.col("aggregatedCluster"), lambda x: x.position
-                            )
-                        ),
+                    WindowBasedClumping._find_peak(
+                        fml.array_to_vector(f.transform(clump, lambda x: x.position)),
                         f.lit(window_length),
                     )
                 ),
+                lambda x, y: f.when(y == 1.0, x.withField("isLead", y)),
+            ),
+            lambda col: col.isNotNull(),
+        )
+
+    @staticmethod
+    def _collect_clump(mantissa: Column, exponent: Column) -> Column:
+        """Collect clump into a sorted struct.
+
+        Args:
+            mantissa (Column): mantissa of the p-value
+            exponent (Column): exponent of the p-value
+
+        Returns:
+            Column: struct containing clumped variants sorted by negLogPValue in descending order
+
+        Examples:
+            >>> data = [
+            ...     ('s1', 'chr1', 2, 0.1, -1),
+            ...     ('s1', 'chr1', 4, 0.2, -1),
+            ...     ('s1', 'chr1', 12, 0.3, -1),
+            ...     ('s1', 'chr1', 31, 0.4, -1),
+            ...     ('s1', 'chr1', 38, 0.5, -1),
+            ...     ('s1', 'chr1', 42, 0.6, -1),
+            ...     ('s1', 'chr2', 41, 0.7, -1),
+            ...     ('s1', 'chr2', 44, 0.8, -1),
+            ...     ('s1', 'chr2', 50, 0.9, -1),
+            ...     ('s2', 'chr2', 55, 1.0, -1),
+            ...     ('s2', 'chr2', 62, 1.1, -1),
+            ...     ('s2', 'chr2', 70, 1.2, -1),
+            ... ]
+            >>> (
+            ...    spark.createDataFrame(data, ['studyId', 'chromosome', 'position', 'pValueMantissa', 'pValueExponent'])
+            ...     .groupBy('studyId', 'chromosome')
+            ...     .agg(WindowBasedClumping._collect_clump(
+            ...                 f.col('pValueMantissa'),
+            ...                 f.col('pValueExponent')
+            ...             ).alias("clump")
+            ...     ).show(truncate=False)
+            ... )
+            +-------+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+            |studyId|chromosome|clump                                                                                                                                                                                                                                                        |
+            +-------+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+            |s1     |chr1      |[{2.0, s1, chr1, 2, 0.1, -1}, {1.6989700043360187, s1, chr1, 4, 0.2, -1}, {1.5228787452803376, s1, chr1, 12, 0.3, -1}, {1.3979400086720375, s1, chr1, 31, 0.4, -1}, {1.3010299956639813, s1, chr1, 38, 0.5, -1}, {1.2218487496163564, s1, chr1, 42, 0.6, -1}]|
+            |s1     |chr2      |[{1.154901959985743, s1, chr2, 41, 0.7, -1}, {1.0969100130080565, s1, chr2, 44, 0.8, -1}, {1.045757490560675, s1, chr2, 50, 0.9, -1}]                                                                                                                        |
+            |s2     |chr2      |[{1.0, s2, chr2, 55, 1.0, -1}, {0.958607314841775, s2, chr2, 62, 1.1, -1}, {0.9208187539523752, s2, chr2, 70, 1.2, -1}]                                                                                                                                      |
+            +-------+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+            <BLANKLINE>
+
+        """
+        return f.sort_array(
+            f.collect_list(
+                f.struct(
+                    calculate_neglog_pvalue(mantissa, exponent).alias("negLogPValue"),
+                    "*",
+                )
+            ),
+            False,
+        )
+
+    @classmethod
+    def clump(
+        cls: type[WindowBasedClumping],
+        summary_stats: SummaryStatistics,
+        window_length: int,
+    ) -> StudyLocus:
+        """Clump summary statistics by distance.
+
+        Args:
+            summary_stats (SummaryStatistics): summary statistics to clump
+            window_length (int): window length in basepair
+
+        Returns:
+            StudyLocus: clumped summary statistics
+        """
+        return StudyLocus(
+            _df=summary_stats.df.groupBy(
+                WindowBasedClumping._identify_cluster_peaks(
+                    f.col("studyId"),
+                    f.col("chromosome"),
+                    f.col("position"),
+                    window_length,
+                )
             )
-            # Combine the lead position vector with the aggregated fields and dropping non-lead snps:
-            .withColumn(
-                "combinedList",
-                f.filter(
-                    f.zip_with(
-                        f.col("aggregatedCluster"),
-                        f.col("isLeadList"),
-                        lambda x, y: f.when(y == 1.0, x.withField("isLead", y)),
-                    ),
-                    lambda col: col.isNotNull(),
-                ),
+            # Aggregating all data from each cluster:
+            .agg(
+                WindowBasedClumping._collect_clump(
+                    f.col("pValueMantissa"), f.col("pValueExponent")
+                ).alias("clump")
             )
             # Explode and extract columns:
-            .withColumn("exploded", f.explode(f.col("combinedList")))
-            .select("exploded.*")
+            .withColumn(
+                "exploded",
+                f.explode(
+                    WindowBasedClumping._filter_leads(f.col("clump"), window_length)
+                ),
+            ).select("exploded.*")
             # Dropping helper columns:
             .drop("isLead", "negLogPValue")
         )
