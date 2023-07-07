@@ -63,6 +63,26 @@ class LDIndexStepConfig:
 
 
 @dataclass
+class LDMatrixStepConfig:
+    """LD matrix step requirements.
+
+    Attributes:
+        ld_matrix_raw_template (str): Template path for LD matrix from gnomAD.
+        ld_matrix_template (str): Output path for filtered LD matrix.
+        ld_populations (List[str]): List of population-specific LD matrices to process.
+    """
+
+    _target_: str = "otg.ld_matrix.LDMatrixStep"
+    ld_matrix_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
+    ld_matrix_template: str = MISSING
+    ld_populations: List[str] = field(
+        default_factory=lambda: [
+            "nfe",  # Non-Finnish European
+        ]
+    )
+
+
+@dataclass
 class VariantIndexStepConfig:
     """Variant index step requirements.
 
@@ -297,6 +317,7 @@ def register_configs() -> None:
     cs.store(name="session_config", group="session", node=SessionConfig)
     cs.store(name="gene_index", group="step", node=GeneIndexStepConfig)
     cs.store(name="ld_index", group="step", node=LDIndexStepConfig)
+    cs.store(name="ld_matrix", group="step", node=LDMatrixStepConfig)
     cs.store(name="variant_index", group="step", node=VariantIndexStepConfig)
     cs.store(name="variant_annotation", group="step", node=VariantAnnotationStepConfig)
     cs.store(name="v2g", group="step", node=V2GStepConfig)
