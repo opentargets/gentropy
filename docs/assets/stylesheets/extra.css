@@ -55,7 +55,7 @@
 }
 
 .page-metadata .contributors li {
-    display: flex;
+    display: inline-flex;
     margin: 0 !important;
     padding: 0 !important;
 }
