@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
+from pyspark.ml import functions as fml
 from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
+
+from otg.common.spark_helpers import calculate_neglog_pvalue
 
 if TYPE_CHECKING:
     # from otg.dataset.study_locus import StudyLocus
@@ -17,8 +20,6 @@ if TYPE_CHECKING:
 
 class WindowBasedClumping:
     """Get semi-lead snps from summary statistics using a window based function."""
-
-    WINDOW_SIZE: int
 
     @staticmethod
     def cluster_peaks(df: DataFrame, window_length: int) -> DataFrame:
@@ -179,3 +180,66 @@ class WindowBasedClumping:
                 is_lead[index] = 1
 
         return DenseVector(is_lead)
+
+    @classmethod
+    def find_index_snps(
+        cls: type[WindowBasedClumping], df: DataFrame, window_length: int
+    ) -> DataFrame:
+        """Finding index snps based on window.
+
+        Args:
+            df (DataFrame): dataframe extracted from p-value filtered summary statistics
+            window_length (int): window lenght in basepair
+
+        Returns:
+            DataFrame: Dataframe containing only lead snps
+        """
+        return (
+            df.transform(lambda df: cls.cluster_peaks(df, window_length))
+            .groupBy("cluster_id")
+            # Aggregating all data from each cluster:
+            .agg(
+                f.sort_array(
+                    f.collect_list(
+                        f.struct(
+                            calculate_neglog_pvalue(
+                                f.col("pValueMantissa"), f.col("pValueExponent")
+                            ).alias("negLogPValue"),
+                            "*",
+                        )
+                    ),
+                    False,
+                ).alias("aggregatedCluster")
+            )
+            # Extract the position vector and identify positions of the leads:
+            .withColumn(
+                "isLeadList",
+                fml.vector_to_array(
+                    cls.find_peak(
+                        fml.array_to_vector(
+                            f.transform(
+                                f.col("aggregatedCluster"), lambda x: x.position
+                            )
+                        ),
+                        f.lit(window_length),
+                    )
+                ),
+            )
+            # Combine the lead position vector with the aggregated fields and dropping non-lead snps:
+            .withColumn(
+                "combinedList",
+                f.filter(
+                    f.zip_with(
+                        f.col("aggregatedCluster"),
+                        f.col("isLeadList"),
+                        lambda x, y: f.when(y == 1.0, x.withField("isLead", y)),
+                    ),
+                    lambda col: col.isNotNull(),
+                ),
+            )
+            # Explode and extract columns:
+            .withColumn("exploded", f.explode(f.col("combinedList")))
+            .select("exploded.*")
+            # Dropping helper columns:
+            .drop("isLead", "negLogPValue")
+        )
