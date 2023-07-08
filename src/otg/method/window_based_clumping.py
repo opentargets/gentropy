@@ -183,14 +183,41 @@ class WindowBasedClumping:
 
     @staticmethod
     def _filter_leads(clump: Column, window_length: int) -> Column:
-        """Filter lead snps from a column containing clumps.
+        """Filter lead snps from a column containing clumps with prioritised variants.
 
         Args:
-            clump (Column): column containing array of structs with all variants in the clump.
+            clump (Column): column containing array of structs with all variants in the clump sorted by priority.
             window_length (int): window length in basepair
 
         Returns:
             Column: column containing array of structs with only lead variants.
+
+        Examples:
+            >>> data = [
+            ...     ('v6', 10),
+            ...     ('v4', 6),
+            ...     ('v1', 3),
+            ...     ('v2', 4),
+            ...     ('v3', 5),
+            ...     ('v5', 8),
+            ...     ('v7', 13),
+            ...     ('v8', 20)
+            ... ]
+            >>> window_length = 2
+            >>> (
+            ...    spark.createDataFrame(data, ['variantId', 'position']).withColumn("study", f.lit("s1"))
+            ...    .groupBy("study")
+            ...    .agg(f.collect_list(f.struct("*")).alias("clump"))
+            ...    .select(WindowBasedClumping._filter_leads(f.col('clump'), window_length).alias("filtered_clump"))
+            ...    .show(truncate=False)
+            ... )
+            +---------------------------------------------------------------------------------------------------------------+
+            |filtered_clump                                                                                                 |
+            +---------------------------------------------------------------------------------------------------------------+
+            |[{v6, 10, s1, 1.0}, {v4, 6, s1, 1.0}, {v1, 3, s1, 1.0}, {v5, 8, s1, 1.0}, {v7, 13, s1, 1.0}, {v8, 20, s1, 1.0}]|
+            +---------------------------------------------------------------------------------------------------------------+
+            <BLANKLINE>
+
         """
         # Combine the lead position vector with the aggregated fields and dropping non-lead snps:
         return f.filter(
