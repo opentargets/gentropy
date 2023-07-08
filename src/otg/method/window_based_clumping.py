@@ -279,14 +279,16 @@ class WindowBasedClumping:
             StudyLocus: clumped summary statistics
         """
         return StudyLocus(
-            _df=summary_stats.df.groupBy(
+            _df=summary_stats.df.withColumn(
+                "cluster_id",
                 WindowBasedClumping._identify_cluster_peaks(
                     f.col("studyId"),
                     f.col("chromosome"),
                     f.col("position"),
                     window_length,
-                )
+                ),
             )
+            .groupBy("cluster_id")
             # Aggregating all data from each cluster:
             .agg(
                 WindowBasedClumping._collect_clump(
@@ -299,7 +301,8 @@ class WindowBasedClumping:
                 f.explode(
                     WindowBasedClumping._filter_leads(f.col("clump"), window_length)
                 ),
-            ).select("exploded.*")
+            )
+            .select("exploded.*")
             # Dropping helper columns:
             .drop("isLead", "negLogPValue")
         )
