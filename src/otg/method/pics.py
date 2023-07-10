@@ -131,7 +131,8 @@ class PICS:
             pics_snp_std = PICS._pics_standard_deviation(
                 lead_neglog_p, tag_dict["r2Overall"], k
             )
-            if pics_snp_mu and pics_snp_std:
+            pics_snp_std = 0.001 if pics_snp_std == 0 else pics_snp_std
+            if pics_snp_mu is not None and pics_snp_std is not None:
                 posterior_probability = PICS._pics_relative_posterior_probability(
                     lead_neglog_p, pics_snp_mu, pics_snp_std
                 )
