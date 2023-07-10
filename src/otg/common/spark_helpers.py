@@ -222,7 +222,11 @@ def parse_pvalue(p_value: Column) -> tuple:
     )
 
     # Mantissa also needs to be rounded:
-    mantissa = f.round(pv * f.pow(f.lit(10), -exponent), 3).alias("pValueMantissa")
+    mantissa = (
+        f.round(pv * f.pow(f.lit(10), -exponent), 3)
+        .cast(t.FloatType())
+        .alias("pValueMantissa")
+    )
 
     return (mantissa, exponent)
 

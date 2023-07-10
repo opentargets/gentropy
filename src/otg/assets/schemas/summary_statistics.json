@@ -46,7 +46,7 @@
       "metadata": {},
       "name": "pValueMantissa",
       "nullable": false,
-      "type": "double"
+      "type": "float"
     },
     {
       "metadata": {},

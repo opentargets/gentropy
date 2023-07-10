@@ -24,7 +24,8 @@ from otg.common.spark_helpers import (
 from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
-from otg.method.ld import LDAnnotatorGnomad, LDclumping
+from otg.method.clump import LDclumping
+from otg.method.ld import LDAnnotatorGnomad
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
