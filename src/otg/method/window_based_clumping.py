@@ -323,7 +323,7 @@ class WindowBasedClumping:
                     f.col("pValueMantissa"), f.col("pValueExponent")
                 ).alias("clump")
             )
-            # Explode and extract columns:
+            # Explode and identify the index variant representative of the cluster:
             .withColumn(
                 "exploded",
                 f.explode(
