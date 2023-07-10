@@ -11,6 +11,7 @@ from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
 from otg.common.spark_helpers import calculate_neglog_pvalue
+from otg.common.utils import get_study_locus_id
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -332,5 +333,7 @@ class WindowBasedClumping:
             )
             .select("exploded.*")
             # Dropping helper columns:
-            .drop("isLead", "negLogPValue")
+            .drop("isLead", "negLogPValue", "cluster_id")
+            # assign study-locus id:
+            .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
         )
