@@ -12,11 +12,13 @@ from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import parse_pvalue, pvalue_to_zscore
 from otg.common.utils import split_pvalue
 from otg.dataset.dataset import Dataset
+from otg.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
     from otg.common.session import Session
+    from otg.dataset.study_locus import StudyLocus
 
 
 @dataclass
@@ -224,3 +226,15 @@ class SummaryStatistics(Dataset):
             )
         )
         return SummaryStatistics(_df=df)
+
+    def window_based_clumping(self: SummaryStatistics, distance: int) -> StudyLocus:
+        """Perform distance-based clumping.
+
+        Args:
+            distance (int): Distance in base pairs
+
+        Returns:
+            StudyLocus: StudyLocus object
+        """
+        # Calculate distance-based clumping:
+        return WindowBasedClumping.clump(self, distance)
