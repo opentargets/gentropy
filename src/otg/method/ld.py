@@ -95,6 +95,15 @@ class LDAnnotatorGnomad:
                 ld_index.df,
                 on=["variantId", "chromosome"],
             )
+            .select(
+                "variantId",
+                "chromosome",
+                "gnomadPopulation",
+                "idx",
+                "start_idx",
+                "stop_idx",
+            )
+            .distinct()
             # necessary to resolve return of .entries() function
             .withColumn("i", f.row_number().over(w))
             # the dataframe has to be ordered to query the block matrix
