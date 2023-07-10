@@ -9,6 +9,8 @@ import pyspark.sql.types as t
 from scipy.stats import norm
 
 if TYPE_CHECKING:
+    from pyspark.sql import Row
+
     from otg.dataset.study_locus import StudyLocus
 
 
@@ -92,7 +94,9 @@ class PICS:
         return neglog_p * r2 if r2 >= 0.5 else None
 
     @staticmethod
-    def _finemap(credible_set: list, lead_neglog_p: float, k: float) -> list | None:
+    def _finemap(
+        credible_set: list[Row], lead_neglog_p: float, k: float
+    ) -> list | None:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
         It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
