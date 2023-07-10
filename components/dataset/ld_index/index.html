@@ -243,14 +243,7 @@
 <span class=normal>270</span>
 <span class=normal>271</span>
 <span class=normal>272</span>
-<span class=normal>273</span>
-<span class=normal>274</span>
-<span class=normal>275</span>
-<span class=normal>276</span>
-<span class=normal>277</span>
-<span class=normal>278</span>
-<span class=normal>279</span>
-<span class=normal>280</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>273</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>LDIndex</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Dataset to index access to LD information from GnomAD.&quot;&quot;&quot;</span>
 
@@ -400,6 +393,7 @@
                     <span class=s2>&quot;alternateAllele&quot;</span>
                 <span class=p>),</span>
             <span class=p>)</span>
+            <span class=c1># Convert gnomad position to Ensembl position (1-based for indels)</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                 <span class=n>convert_gnomad_position_to_ensembl</span><span class=p>(</span>
@@ -418,16 +412,19 @@
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
                 <span class=p>),</span>
             <span class=p>)</span>
+            <span class=c1># Filter out variants mapping to several indices due to liftover</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;count&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=s2>&quot;*&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>over</span><span class=p>(</span><span class=n>Window</span><span class=o>.</span><span class=n>partitionBy</span><span class=p>([</span><span class=s2>&quot;variantId&quot;</span><span class=p>])))</span>
+            <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;count&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=mi>1</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;count&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>LongType</span><span class=p>()))</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>LongType</span><span class=p>()))</span>
-            <span class=c1># Convert gnomad position to Ensembl position (1-based for indels)</span>
             <span class=o>.</span><span class=n>repartition</span><span class=p>(</span><span class=mi>400</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>sortWithinPartitions</span><span class=p>(</span><span class=s2>&quot;position&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>persist</span><span class=p>()</span>
         <span class=p>)</span><span class=o>.</span><span class=n>annotate_index_intervals</span><span class=p>(</span><span class=n>ld_radius</span><span class=p>)</span>
 
     <span class=k>def</span> <span class=nf>annotate_index_intervals</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>LDIndex</span><span class=p>,</span> <span class=n>ld_radius</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>LDIndex</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Annotate LD index with indexes starting and stopping a given interval.</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Annotate LD index with indices starting and stopping at a given interval.</span>
 
 <span class=sd>        Args:</span>
 <span class=sd>            ld_radius (int): radius around each position</span>
@@ -457,7 +454,7 @@
             <span class=n>index_with_positions</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
                 <span class=p>(</span>
                     <span class=n>index_with_positions</span>
-                    <span class=c1># Given the multiple variants with the same chromosome/position can have different indexes, filter for the lowest index:</span>
+                    <span class=c1># Given the multiple variants with the same chromosome/position can have different indices, filter for the lowest index:</span>
                     <span class=o>.</span><span class=n>transform</span><span class=p>(</span>
                         <span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>get_record_with_minimum_value</span><span class=p>(</span>
                             <span class=n>df</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>],</span> <span class=s2>&quot;idx&quot;</span>
@@ -473,7 +470,7 @@
             <span class=o>.</span><span class=n>join</span><span class=p>(</span>
                 <span class=p>(</span>
                     <span class=n>index_with_positions</span>
-                    <span class=c1># Given the multiple variants with the same chromosome/position can have different indexes, filter for the highest index:</span>
+                    <span class=c1># Given the multiple variants with the same chromosome/position can have different indices, filter for the highest index:</span>
                     <span class=o>.</span><span class=n>transform</span><span class=p>(</span>
                         <span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>get_record_with_maximum_value</span><span class=p>(</span>
                             <span class=n>df</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>],</span> <span class=s2>&quot;idx&quot;</span>
@@ -486,28 +483,13 @@
                 <span class=p>),</span>
                 <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;stop_pos&quot;</span><span class=p>],</span>
             <span class=p>)</span>
-            <span class=c1># Ensure nullable true</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;start_idx&quot;</span><span class=p>,</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
-                <span class=p>),</span>
-            <span class=p>)</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;stop_idx&quot;</span><span class=p>,</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
-                <span class=p>),</span>
-            <span class=p>)</span>
+            <span class=c1># Filter out variants for which start idx &gt; stop idx due to liftover</span>
+            <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>)</span> <span class=o>&lt;</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>))</span>
             <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;start_pos&quot;</span><span class=p>,</span> <span class=s2>&quot;stop_pos&quot;</span><span class=p>)</span>
         <span class=p>)</span>
 
         <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.ld_index.LDIndex.annotate_index_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_index_intervals</span><span class=p>(</span><span class=n>ld_radius</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Annotate LD index with indexes starting and stopping a given interval.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>ld_radius</code></td> <td> <code>int</code> </td> <td><p>radius around each position</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>LDIndex</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.ld_index.LDIndex" href="#otg.dataset.ld_index.LDIndex">LDIndex</a></code> </td> <td><p>including <code>start_idx</code> and <code>stop_idx</code> columns</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/ld_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>204</span>
-<span class=normal>205</span>
-<span class=normal>206</span>
-<span class=normal>207</span>
-<span class=normal>208</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.ld_index.LDIndex.annotate_index_intervals class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_index_intervals</span><span class=p>(</span><span class=n>ld_radius</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Annotate LD index with indices starting and stopping at a given interval.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>ld_radius</code></td> <td> <code>int</code> </td> <td><p>radius around each position</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>LDIndex</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.ld_index.LDIndex" href="#otg.dataset.ld_index.LDIndex">LDIndex</a></code> </td> <td><p>including <code>start_idx</code> and <code>stop_idx</code> columns</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/ld_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>208</span>
 <span class=normal>209</span>
 <span class=normal>210</span>
 <span class=normal>211</span>
@@ -572,15 +554,8 @@
 <span class=normal>270</span>
 <span class=normal>271</span>
 <span class=normal>272</span>
-<span class=normal>273</span>
-<span class=normal>274</span>
-<span class=normal>275</span>
-<span class=normal>276</span>
-<span class=normal>277</span>
-<span class=normal>278</span>
-<span class=normal>279</span>
-<span class=normal>280</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_index_intervals</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>LDIndex</span><span class=p>,</span> <span class=n>ld_radius</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>LDIndex</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Annotate LD index with indexes starting and stopping a given interval.</span>
+<span class=normal>273</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_index_intervals</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>LDIndex</span><span class=p>,</span> <span class=n>ld_radius</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>LDIndex</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Annotate LD index with indices starting and stopping at a given interval.</span>
 
 <span class=sd>    Args:</span>
 <span class=sd>        ld_radius (int): radius around each position</span>
@@ -610,7 +585,7 @@
         <span class=n>index_with_positions</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
             <span class=p>(</span>
                 <span class=n>index_with_positions</span>
-                <span class=c1># Given the multiple variants with the same chromosome/position can have different indexes, filter for the lowest index:</span>
+                <span class=c1># Given the multiple variants with the same chromosome/position can have different indices, filter for the lowest index:</span>
                 <span class=o>.</span><span class=n>transform</span><span class=p>(</span>
                     <span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>get_record_with_minimum_value</span><span class=p>(</span>
                         <span class=n>df</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>],</span> <span class=s2>&quot;idx&quot;</span>
@@ -626,7 +601,7 @@
         <span class=o>.</span><span class=n>join</span><span class=p>(</span>
             <span class=p>(</span>
                 <span class=n>index_with_positions</span>
-                <span class=c1># Given the multiple variants with the same chromosome/position can have different indexes, filter for the highest index:</span>
+                <span class=c1># Given the multiple variants with the same chromosome/position can have different indices, filter for the highest index:</span>
                 <span class=o>.</span><span class=n>transform</span><span class=p>(</span>
                     <span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>get_record_with_maximum_value</span><span class=p>(</span>
                         <span class=n>df</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>],</span> <span class=s2>&quot;idx&quot;</span>
@@ -639,19 +614,8 @@
             <span class=p>),</span>
             <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;stop_pos&quot;</span><span class=p>],</span>
         <span class=p>)</span>
-        <span class=c1># Ensure nullable true</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=s2>&quot;start_idx&quot;</span><span class=p>,</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
-            <span class=p>),</span>
-        <span class=p>)</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=s2>&quot;stop_idx&quot;</span><span class=p>,</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>otherwise</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
-            <span class=p>),</span>
-        <span class=p>)</span>
+        <span class=c1># Filter out variants for which start idx &gt; stop idx due to liftover</span>
+        <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>)</span> <span class=o>&lt;</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>))</span>
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;start_pos&quot;</span><span class=p>,</span> <span class=s2>&quot;stop_pos&quot;</span><span class=p>)</span>
     <span class=p>)</span>
 
@@ -716,7 +680,11 @@
 <span class=normal>199</span>
 <span class=normal>200</span>
 <span class=normal>201</span>
-<span class=normal>202</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>202</span>
+<span class=normal>203</span>
+<span class=normal>204</span>
+<span class=normal>205</span>
+<span class=normal>206</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>create</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>LDIndex</span><span class=p>],</span>
     <span class=n>pop_ldindex_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
@@ -752,6 +720,7 @@
                 <span class=s2>&quot;alternateAllele&quot;</span>
             <span class=p>),</span>
         <span class=p>)</span>
+        <span class=c1># Convert gnomad position to Ensembl position (1-based for indels)</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=s2>&quot;position&quot;</span><span class=p>,</span>
             <span class=n>convert_gnomad_position_to_ensembl</span><span class=p>(</span>
@@ -770,9 +739,12 @@
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
             <span class=p>),</span>
         <span class=p>)</span>
+        <span class=c1># Filter out variants mapping to several indices due to liftover</span>
+        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;count&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=s2>&quot;*&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>over</span><span class=p>(</span><span class=n>Window</span><span class=o>.</span><span class=n>partitionBy</span><span class=p>([</span><span class=s2>&quot;variantId&quot;</span><span class=p>])))</span>
+        <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;count&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;count&quot;</span><span class=p>)</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;start_idx&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>LongType</span><span class=p>()))</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;stop_idx&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>LongType</span><span class=p>()))</span>
-        <span class=c1># Convert gnomad position to Ensembl position (1-based for indels)</span>
         <span class=o>.</span><span class=n>repartition</span><span class=p>(</span><span class=mi>400</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
         <span class=o>.</span><span class=n>sortWithinPartitions</span><span class=p>(</span><span class=s2>&quot;position&quot;</span><span class=p>)</span>
         <span class=o>.</span><span class=n>persist</span><span class=p>()</span>
