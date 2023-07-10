@@ -110,14 +110,14 @@ def test__finemap() -> None:
     result = PICS._finemap(credible_set, lead_neglog_p=10.0, k=6.4)
     expected = [
         {
-            "rsid": "rs1",
+            "variantId": "var1",
             "r2Overall": 0.8,
             "tagPValue": 1e-08,
             "tagStandardError": 0.8294246485510745,
             "posteriorProbability": 7.068873779583866e-134,
         },
         {
-            "rsid": "rs2",
+            "variantId": "var2",
             "r2Overall": 1,
             "tagPValue": 1e-10,
             "tagStandardError": 0.9977000638225533,
