@@ -308,6 +308,7 @@ class WindowBasedClumping:
         return StudyLocus(
             _df=summary_stats.df.withColumn(
                 "cluster_id",
+               # First identify clusters of variants within the window
                 WindowBasedClumping._identify_cluster_peaks(
                     f.col("studyId"),
                     f.col("chromosome"),
