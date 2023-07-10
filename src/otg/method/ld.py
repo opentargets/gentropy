@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from pyspark.sql import Column
     from otg.dataset.study_index import StudyIndexGWASCatalog
     from otg.dataset.study_locus import (
-        StudyLocus,
         StudyLocusGWASCatalog,
     )
 
@@ -343,49 +342,3 @@ class LDAnnotatorGnomad:
                     ).coalesce(400)
                 )
         return reduce(DataFrame.unionByName, ld_annotated_assocs)
-
-
-class LDclumping:
-    """LD clumping reports the most significant genetic associations in a region in terms of a smaller number of “clumps” of genetically linked SNPs."""
-
-    @staticmethod
-    def _is_lead_linked(
-        study_id: Column,
-        variant_id: Column,
-        p_value_exponent: Column,
-        p_value_mantissa: Column,
-        credible_set: Column,
-    ) -> Column:
-        """Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.
-
-        Args:
-            study_id (Column): studyId
-            variant_id (Column): Lead variant id
-            p_value_exponent (Column): p-value exponent
-            p_value_mantissa (Column): p-value mantissa
-            credible_set (Column): Credible set <array of structs>
-
-        Returns:
-            Column: Boolean in which True indicates that the lead is linked to another tag in the same dataset.
-        """
-        leads_in_study = f.collect_set(variant_id).over(Window.partitionBy(study_id))
-        tags_in_study_locus = f.transform(credible_set, lambda x: x.tagVariantId)
-        intersect_lead_tags = f.array_intersect(leads_in_study, tags_in_study_locus)
-        rank = f.row_number().over(
-            Window.partitionBy(study_id, intersect_lead_tags).orderBy(
-                p_value_exponent, p_value_mantissa
-            )
-        )
-        return rank > 1
-
-    @classmethod
-    def clump(cls: type[LDclumping], associations: StudyLocus) -> StudyLocus:
-        """Perform clumping on studyLocus dataset.
-
-        Args:
-            associations (StudyLocus): StudyLocus dataset
-
-        Returns:
-            StudyLocus: including flag and removing credibleSet information for LD clumped loci.
-        """
-        return associations.clump()
