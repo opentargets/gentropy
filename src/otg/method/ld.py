@@ -93,13 +93,16 @@ class LDAnnotatorGnomad:
             variants_df.join(
                 ld_index.df,
                 on=["variantId", "chromosome"],
-            )  # start idx > stop idx in rare occasions due to liftover
-            .filter(f.col("start_idx") < f.col("stop_idx"))
-            .groupBy("chromosome", "idx", "variantId", "gnomadPopulation")
-            .agg(
-                f.min("start_idx").alias("start_idx"),
-                f.max("stop_idx").alias("stop_idx"),
             )
+            .select(
+                "variantId",
+                "chromosome",
+                "gnomadPopulation",
+                "idx",
+                "start_idx",
+                "stop_idx",
+            )
+            .distinct()
             # necessary to resolve return of .entries() function
             .withColumn("i", f.row_number().over(w))
             # the dataframe has to be ordered to query the block matrix
