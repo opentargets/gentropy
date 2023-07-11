@@ -21,6 +21,11 @@ catalog_ancestries: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-
 catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list.txt
 finngen_phenotype_table_url: https://r9.finngen.fi/api/phenos
 ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study_manifest.190430.tsv
+ukbiobank_sumstat_path: gs://genetics-portal-dev-analysis/hn9/sumstats/100001_raw.neale2.gwas.imputed_v3.both_sexes.GRCh38.tsv.gz
+ukbiobank_sumstats_dirs:
+  - gs://genetics-portal-dev-analysis/hn9/neale_sumstats
+  - gs://genetics-portal-dev-analysis/hn9/saige_sumstats
+
 
 # Templates
 ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
@@ -38,9 +43,13 @@ catalog_study_index: ${datasets.outputs}/catalog_study_index
 catalog_study_locus: ${datasets.outputs}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
+ukbiobank_sumstats: ${datasets.outputs}/ukbiobank_sumstats
+ukbiobank_sumstats_merged: ${datasets.outputs}/ukbiobank_sumstats_merged
 
 # Templates
 ld_index_template: ${datasets.outputs}/ld_indices/gnomad_r2.1.1.{POP}.common.ld.variant_indices
 finngen_release_prefix: FINNGEN_R9
 finngen_sumstat_url_prefix: https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_
 finngen_sumstat_url_suffix: .gz
+ukbiobank_study_id: NEALE2_100001_raw
+ukbiobank_file_batch_size: 2
