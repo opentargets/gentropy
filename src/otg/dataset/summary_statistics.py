@@ -93,6 +93,16 @@ class SummaryStatistics(Dataset):
                 ),
                 allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
             )
+            # The previous select expression generated the necessary fields for calculating the confidence intervals:
+            .select(
+                "*",
+                *calculate_confidence_interval(
+                    f.col("pValueMantissa"),
+                    f.col("pValueExponent"),
+                    f.col("beta"),
+                    f.col("standardError"),
+                ),
+            )
             .repartition(200, "chromosome")
             .sortWithinPartitions("position")
         )
@@ -100,38 +110,6 @@ class SummaryStatistics(Dataset):
         # Initializing summary statistics object:
         return cls(
             _df=processed_sumstats_df,
-        )
-
-    def calculate_confidence_interval_for_summary_statistics(
-        self: SummaryStatistics,
-    ) -> SummaryStatistics:
-        """A Function to add upper and lower confidence interval to a summary statistics dataset.
-
-        Returns:
-            SummaryStatistics:
-        """
-        columns = self._df.columns
-
-        # If confidence interval has already been calculated skip:
-        if (
-            "betaConfidenceIntervalLower" in columns
-            and "betaConfidenceIntervalUpper" in columns
-        ):
-            return self
-
-        # Calculate CI:
-        return SummaryStatistics(
-            _df=(
-                self._df.select(
-                    "*",
-                    *calculate_confidence_interval(
-                        f.col("pValueMantissa"),
-                        f.col("pValueExponent"),
-                        f.col("beta"),
-                        f.col("standardError"),
-                    ),
-                )
-            )
         )
 
     def pvalue_filter(self: SummaryStatistics, pvalue: float) -> SummaryStatistics:
