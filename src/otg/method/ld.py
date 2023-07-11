@@ -323,9 +323,9 @@ class LDAnnotatorGnomad:
         )
 
         # All gnomad populations captured in associations:
-        assoc_populations = locus_ancestry.rdd.map(
-            lambda x: x.gnomadPopulation
-        ).collect()
+        assoc_populations = (
+            locus_ancestry.rdd.map(lambda x: x.gnomadPopulation).distinct().collect()
+        )
 
         # Retrieve LD information from gnomAD
         ld_annotated_assocs = []
