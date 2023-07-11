@@ -27,7 +27,8 @@ def test_summary_statistics__calculate_confidence_interval__return_type(
 ) -> None:
     """Test if the confidence interval calculation indeed returns summary statistics object."""
     assert isinstance(
-        mock_summary_statistics.calculate_confidence_interval(), SummaryStatistics
+        mock_summary_statistics.calculate_confidence_interval_for_summary_statistics(),
+        SummaryStatistics,
     )
 
 
@@ -35,7 +36,9 @@ def test_summary_statistics__calculate_confidence_interval__new_columns(
     mock_summary_statistics: SummaryStatistics,
 ) -> None:
     """Test if the confidence interval calculation adds the right column."""
-    columns = mock_summary_statistics.calculate_confidence_interval().df.columns
+    columns = (
+        mock_summary_statistics.calculate_confidence_interval_for_summary_statistics().df.columns
+    )
 
     # These two columns are computed by the tested function:
     assert "betaConfidenceIntervalLower" in columns

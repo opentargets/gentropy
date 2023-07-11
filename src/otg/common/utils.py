@@ -109,13 +109,13 @@ def parse_pvalue(pv: Column) -> List[Column]:
         >>> d = [("0.01",),("4.2E-45",),("43.2E5",),("0",),("1",)]
         >>> spark.createDataFrame(d, ['pval']).select('pval',*parse_pvalue(f.col('pval'))).show()
         +-------+--------------+--------------+
-        |   pval|pValueExponent|pValueMantissa|
+        |   pval|pValueMantissa|pValueExponent|
         +-------+--------------+--------------+
-        |   0.01|            -2|           1.0|
-        |4.2E-45|           -45|           4.2|
-        | 43.2E5|             5|          43.2|
-        |      0|          -308|         2.225|
-        |      1|             0|           1.0|
+        |   0.01|           1.0|            -2|
+        |4.2E-45|           4.2|           -45|
+        | 43.2E5|          43.2|             5|
+        |      0|         2.225|          -308|
+        |      1|           1.0|             0|
         +-------+--------------+--------------+
         <BLANKLINE>
     """
