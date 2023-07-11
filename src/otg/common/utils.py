@@ -34,6 +34,23 @@ def calculate_confidence_interval(
 
     Returns:
         tuple: betaConfidenceIntervalLower (float), betaConfidenceIntervalUpper (float)
+
+    Examples:
+        >>> df = spark.createDataFrame([
+        ...     (2.5, -10, 0.5, 0.2),
+        ...     (3.0, -5, 1.0, None),
+        ...     (1.5, -8, -0.2, 0.1)
+        ...     ], ["pvalue_mantissa", "pvalue_exponent", "beta", "standard_error"]
+        ... )
+        >>> df.select("*", *calculate_confidence_interval(f.col("pvalue_mantissa"), f.col("pvalue_exponent"), f.col("beta"), f.col("standard_error"))).show()
+        +---------------+---------------+----+--------------+---------------------------+---------------------------+
+        |pvalue_mantissa|pvalue_exponent|beta|standard_error|betaConfidenceIntervalLower|betaConfidenceIntervalUpper|
+        +---------------+---------------+----+--------------+---------------------------+---------------------------+
+        |            2.5|            -10| 0.5|           0.2|                        0.3|                        0.7|
+        |            3.0|             -5| 1.0|          null|         0.7603910153486024|         1.2396089846513976|
+        |            1.5|             -8|-0.2|           0.1|       -0.30000000000000004|                       -0.1|
+        +---------------+---------------+----+--------------+---------------------------+---------------------------+
+        <BLANKLINE>
     """
     # Calculate p-value from mantissa and exponent:
     pvalue = pvalue_mantissa * f.pow(10, pvalue_exponent)
