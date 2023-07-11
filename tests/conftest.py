@@ -206,6 +206,8 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("oddsRatioConfidenceIntervalUpper", percentNulls=0.1)
         .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
         .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
+        .withColumnSpec("effectAlleleFrequencyFromSource", percentNulls=0.1)
+        .withColumnSpec("standardError", percentNulls=0.1)
         .withColumnSpec("subStudyDescription", percentNulls=0.1)
         .withColumnSpec("pValueMantissa", minValue=1, percentNulls=0.1)
         .withColumnSpec("pValueExponent", minValue=1, percentNulls=0.1)

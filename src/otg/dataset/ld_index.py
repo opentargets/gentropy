@@ -175,6 +175,7 @@ class LDIndex(Dataset):
                     "alternateAllele"
                 ),
             )
+            # Convert gnomad position to Ensembl position (1-based for indels)
             .withColumn(
                 "position",
                 convert_gnomad_position_to_ensembl(
@@ -193,16 +194,19 @@ class LDIndex(Dataset):
                     f.col("alternateAllele"),
                 ),
             )
+            # Filter out variants mapping to several indices due to liftover
+            .withColumn("count", f.count("*").over(Window.partitionBy(["variantId"])))
+            .filter(f.col("count") == 1)
+            .drop("count")
             .withColumn("start_idx", f.lit(None).cast(t.LongType()))
             .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
-            # Convert gnomad position to Ensembl position (1-based for indels)
             .repartition(400, "chromosome")
             .sortWithinPartitions("position")
             .persist()
         ).annotate_index_intervals(ld_radius)
 
     def annotate_index_intervals(self: LDIndex, ld_radius: int) -> LDIndex:
-        """Annotate LD index with indexes starting and stopping a given interval.
+        """Annotate LD index with indices starting and stopping at a given interval.
 
         Args:
             ld_radius (int): radius around each position
@@ -232,7 +236,7 @@ class LDIndex(Dataset):
             index_with_positions.join(
                 (
                     index_with_positions
-                    # Given the multiple variants with the same chromosome/position can have different indexes, filter for the lowest index:
+                    # Given the multiple variants with the same chromosome/position can have different indices, filter for the lowest index:
                     .transform(
                         lambda df: get_record_with_minimum_value(
                             df, ["chromosome", "position"], "idx"
@@ -248,7 +252,7 @@ class LDIndex(Dataset):
             .join(
                 (
                     index_with_positions
-                    # Given the multiple variants with the same chromosome/position can have different indexes, filter for the highest index:
+                    # Given the multiple variants with the same chromosome/position can have different indices, filter for the highest index:
                     .transform(
                         lambda df: get_record_with_maximum_value(
                             df, ["chromosome", "position"], "idx"
@@ -261,19 +265,8 @@ class LDIndex(Dataset):
                 ),
                 on=["chromosome", "stop_pos"],
             )
-            # Ensure nullable true
-            .withColumn(
-                "start_idx",
-                f.when(f.col("start_idx").isNotNull(), f.col("start_idx")).otherwise(
-                    f.lit(None)
-                ),
-            )
-            .withColumn(
-                "stop_idx",
-                f.when(f.col("stop_idx").isNotNull(), f.col("stop_idx")).otherwise(
-                    f.lit(None)
-                ),
-            )
+            # Filter out variants for which start idx > stop idx due to liftover
+            .filter(f.col("start_idx") < f.col("stop_idx"))
             .drop("start_pos", "stop_pos")
         )
 
