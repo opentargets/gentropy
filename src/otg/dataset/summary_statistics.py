@@ -173,6 +173,62 @@ class SummaryStatistics(Dataset):
             _df=processed_sumstats_df,
         )
 
+    @classmethod
+    def from_ukbiobank_summary_stats(
+        cls: type[SummaryStatistics],
+        sumstats_df: DataFrame,
+        ukbiobank_study_id: str,
+    ) -> SummaryStatistics:
+        """Create summary statistics object from UK Biobank summary statistics.
+
+        Args:
+            sumstats_df (DataFrame): Dataset read as dataframe from UK Biobank.
+            ukbiobank_study_id (str): UK Biobank study id.
+
+        Returns:
+            SummaryStatistics
+        """
+        # The effect allele frequency is an optional column, we have to test if it is there:
+        allele_frequency_expression = (
+            f.col("effect_allele_frequency").cast(t.DoubleType())
+            if "effect_allele_frequency" in sumstats_df.columns
+            else f.lit(None)
+        )
+
+        # Processing columns of interest:
+        processed_sumstats_df = (
+            sumstats_df.select(
+                # Adding study identifier:
+                f.lit(ukbiobank_study_id).cast(t.StringType()).alias("studyId"),
+                # Adding variant identifier:
+                f.concat_ws(
+                    "_",
+                    f.col("chromosome"),
+                    f.col("base_pair_location"),
+                    f.col("other_allele"),
+                    f.col("effect_allele"),
+                ).alias("variantId"),
+                f.col("chromosome").cast(t.StringType()).alias("chromosome"),
+                f.col("base_pair_location").cast(t.IntegerType()).alias("position"),
+                # Parsing p-value mantissa and exponent:
+                *parse_pvalue(f.col("p-value").cast(t.FloatType())),
+                # Converting/calculating effect and confidence interval:
+                *cls._convert_odds_ratio_to_beta(
+                    f.col("beta").cast(t.DoubleType()),
+                    f.col("odds_ratio").cast(t.DoubleType()),
+                    f.col("standard_error").cast(t.DoubleType()),
+                ),
+                allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
+            )
+            .repartition(200, "chromosome")
+            .sortWithinPartitions("position")
+        )
+
+        # Initializing summary statistics object:
+        return cls(
+            _df=processed_sumstats_df,
+        )
+
     def calculate_confidence_interval(self: SummaryStatistics) -> SummaryStatistics:
         """A Function to add upper and lower confidence interval to a summary statistics dataset.
 
