@@ -317,7 +317,7 @@ class LDAnnotatorGnomad:
         locus_ancestry = (
             associations.unique_study_locus_ancestries(studies)
             # Ignoring study information / relativeSampleSize to get unique lead-ancestry pairs
-            .drop("studyId", "relativeSampleSize")
+            .select("variantId", "chromosome", "gnomadPopulation")
             .distinct()
             .persist()
         )
