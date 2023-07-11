@@ -1,6 +1,13 @@
 # Default config
 defaults:
   - ukbiobank
+  - ukbiobank_sumstat_merge
+  - ukbiobank_sumstat_preprocess
 # Additional config
-ukbiobank_manifest: ${datasets.ukbiobank_manifest}
 ukbiobank_study_index_out: ${datasets.ukbiobank_study_index}
+ukbiobank_sumstats_dirs: ${datasets.ukbiobank_sumstats_dirs}
+ukbiobank_file_batch_size: ${datasets.ukbiobank_file_batch_size}
+ukbiobank_sumstats_merged_out: ${datasets.ukbiobank_sumstats_merged}
+ukbiobank_sumstat_path: ${datasets.ukbiobank_sumstat_path}
+ukbiobank_study_id: ${datasets.ukbiobank_study_id}
+ukbiobank_sumstats_out: ${datasets.ukbiobank_sumstats}
