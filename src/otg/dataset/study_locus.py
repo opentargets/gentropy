@@ -1549,6 +1549,13 @@ class StudyLocusGWASCatalog(StudyLocus):
             min_r2=0.2,
         ).coalesce(400)
 
+        credible_set_schema = [
+            (subfield.name, subfield.dataType)
+            for field in self._schema.fields
+            if field.name == "credibleSet"
+            for subfield in field.dataType.elemenType  # type: ignore
+        ]
+
         ld_set = (
             self.unique_study_locus_ancestries(studies)
             .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
@@ -1570,7 +1577,14 @@ class StudyLocusGWASCatalog(StudyLocus):
                 f.collect_set(
                     f.when(
                         f.col("tagVariantId").isNotNull(),
-                        f.struct("tagVariantId", "r2Overall"),
+                        f.struct(
+                            [
+                                f.lit(None).cast(datatype).alias(field)
+                                if field not in ["tagVariantId", "r2Overall"]
+                                else f.col(field)
+                                for field, datatype in credible_set_schema
+                            ]
+                        ).alias("credibleSet"),
                     )
                 ).alias("credibleSet")
             )
