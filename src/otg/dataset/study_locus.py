@@ -1532,7 +1532,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ld_populations (list[str]): List of populations to annotate
             ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected
             ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected
-            min_r2 (float): Minimum r2 to include in the LD set
+            min_r2 (float): Minimum r2 to include in the LD set after weighting per population (r2Overall)
 
         Returns:
             StudyLocus: Study-locus with an annotated credible set.
@@ -1546,7 +1546,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             ld_populations,
             ld_index_template,
             ld_matrix_template,
-            min_r2,
+            min_r2=0.2,
         ).coalesce(400)
 
         ld_set = (
@@ -1564,6 +1564,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                     f.col("r2"),
                 ),
             )
+            .filter(f.col("r2Overall") >= min_r2)
             .groupBy("chromosome", "studyId", "variantId")
             .agg(
                 f.collect_set(
