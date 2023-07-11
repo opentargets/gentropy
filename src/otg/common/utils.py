@@ -8,6 +8,7 @@ import hail as hl
 import pyspark.sql.functions as f
 
 if TYPE_CHECKING:
+    from hail.table import Table
     from hail.expr.expressions import Int32Expression, StringExpression
     from pyspark.sql import Column
 
@@ -67,6 +68,27 @@ def convert_gnomad_position_to_ensembl_hail(
         (reference.length() > 1) | (alternate.length() > 1), position + 1, position
     )
 
+def _liftover_loci(variant_index: Table, chain_path: str, dest_reference_genome: str) -> Table:
+    """Liftover a Hail table containing variant information from GRCh37 to GRCh38 or viceversa.
+
+    Args:
+        variant_index (Table): Variants to be lifted over
+        chain_path (str): Path to chain file for liftover
+        dest_reference_genome (str): Destination reference genome. It can be either GRCh37 or GRCh38.
+
+    Returns:
+        Table: LD variant index with coordinates in the new reference genome
+    """
+    if not hl.get_reference("GRCh37").has_liftover("GRCh38"):  # True when a chain file has already been registered
+        rg37 = hl.get_reference("GRCh37")
+        rg38 = hl.get_reference("GRCh38")
+        if dest_reference_genome == "GRCh38":
+            rg37.add_liftover(chain_path, rg38)
+        elif dest_reference_genome == "GRCh37":
+            rg38.add_liftover(chain_path, rg37)
+    # Dynamically create the new field with transmute
+    new_locus = f"locus_{dest_reference_genome}"
+    return variant_index.transmute(**{new_locus: hl.liftover(variant_index.locus, dest_reference_genome)})
 
 def split_pvalue(pvalue: float) -> tuple[float, int]:
     """Function to convert a float to 10 based exponent and mantissa.
