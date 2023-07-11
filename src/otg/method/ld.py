@@ -104,7 +104,7 @@ class LDAnnotatorGnomad:
             )
             .distinct()
             # necessary to resolve return of .entries() function
-            .withColumn("i", f.row_number().over(w))
+            .withColumn("i", f.row_number().over(w) - 1)
             # the dataframe has to be ordered to query the block matrix
             .orderBy("idx")
         )
