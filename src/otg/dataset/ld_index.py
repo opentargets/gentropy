@@ -1,280 +1,110 @@
-"""LD indexing classes."""
+"""Step to dump a filtered version of a LD matrix (block matrix) as Parquet files."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import hail as hl
+from hail.linalg import BlockMatrix
 from pyspark.sql import Window
-from pyspark.sql import functions as f
-from pyspark.sql import types as t
+import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import (
-    get_record_with_maximum_value,
-    get_record_with_minimum_value,
-)
-from otg.common.utils import convert_gnomad_position_to_ensembl
+from otg.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
 from otg.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from otg.common.session import Session
+    from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
-    from hail.table import Table
-    from pyspark.sql import Column
 
-import hail as hl
+    from otg.common.session import Session
 
 
 @dataclass
-class LDIndex(Dataset):
-    """Dataset to index access to LD information from GnomAD."""
+class LDSet(Dataset):
+    """
+    Dataset that defines a set of variants correlated by LD across populations.
+    The information comes from LD matrices made available by GnomAD.
+    """
 
-    _schema: StructType = parse_spark_schema("ld_index.json")
+    _schema: StructType = parse_spark_schema("ld_set.json")
 
     @staticmethod
-    def _liftover_loci(variant_index: Table, grch37_to_grch38_chain_path: str) -> Table:
-        """Liftover hail table with LD variant index.
-
-        Args:
-            variant_index (Table): LD variant indexes
-            grch37_to_grch38_chain_path (str): Path to chain file
-
-        Returns:
-            Table: LD variant index with locus 38 coordinates
-        """
-        if not hl.get_reference("GRCh37").has_liftover("GRCh38"):
-            rg37 = hl.get_reference("GRCh37")
-            rg38 = hl.get_reference("GRCh38")
-            rg37.add_liftover(grch37_to_grch38_chain_path, rg38)
-
-        return variant_index.annotate(
-            locus38=hl.liftover(variant_index.locus, "GRCh38")
+    def _convert_ld_matrix_to_table(
+        block_matrix: BlockMatrix, min_r2: float
+    ) -> DataFrame:
+        """Convert LD matrix to table."""
+        table = block_matrix.entries(keyed=False)
+        return LDSet._transpose_ld_matrix(
+            table.filter(hl.abs(table.entry) >= min_r2**0.5)
+            .to_spark()
+            .withColumnRenamed("entry", "r")
         )
 
     @staticmethod
-    def _interval_start(contig: Column, position: Column, ld_radius: int) -> Column:
-        """Start position of the interval based on available positions.
-
-        Args:
-            contig (Column): genomic contigs
-            position (Column): genomic positions
-            ld_radius (int): bp around locus
-
-        Returns:
-            Column: Position of the locus starting the interval
-
-        Examples:
-            >>> d = [
-            ...     {"contig": "21", "pos": 100},
-            ...     {"contig": "21", "pos": 200},
-            ...     {"contig": "21", "pos": 300},
-            ... ]
-            >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("start", LDIndex._interval_start(f.col("contig"), f.col("pos"), 100)).show()
-            +------+---+-----+
-            |contig|pos|start|
-            +------+---+-----+
-            |    21|100|  100|
-            |    21|200|  100|
-            |    21|300|  200|
-            +------+---+-----+
-            <BLANKLINE>
-
+    def _transpose_ld_matrix(ld_matrix: DataFrame) -> DataFrame:
+        """Transpose LD matrix.
+        # TODO: add doctest
         """
-        w = (
-            Window.partitionBy(contig)
-            .orderBy(position)
-            .rangeBetween(-ld_radius, ld_radius)
+        ld_matrix_transposed = ld_matrix.selectExpr("i as j", "j as i", "r")
+        return ld_matrix.filter(f.col("i") == f.col("j")).unionByName(
+            ld_matrix_transposed
         )
-        return f.min(position).over(w)
 
     @staticmethod
-    def _interval_stop(contig: Column, position: Column, ld_radius: int) -> Column:
-        """Stop position of the interval based on available positions.
+    def _process_variant_indices(ld_index_path: str, grch37_to_grch38_chain_path: str):
+        """Creates a look up table between variants and their coordinates in the LD Matrix.
 
-        Args:
-            contig (Column): genomic contigs
-            position (Column): genomic positions
-            ld_radius (int): bp around locus
-
-        Returns:
-            Column: Position of the locus at the end of the interval
-
-        Examples:
-            >>> d = [
-            ...     {"contig": "21", "pos": 100},
-            ...     {"contig": "21", "pos": 200},
-            ...     {"contig": "21", "pos": 300},
-            ... ]
-            >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("start", LDIndex._interval_stop(f.col("contig"), f.col("pos"), 100)).show()
-            +------+---+-----+
-            |contig|pos|start|
-            +------+---+-----+
-            |    21|100|  200|
-            |    21|200|  300|
-            |    21|300|  300|
-            +------+---+-----+
-            <BLANKLINE>
-
+        !!! info "Gnomad's LD Matrix and Index are based on GRCh37 coordinates. This function will lift over the coordinates to GRCh38 to build the lookup table."
         """
-        w = (
-            Window.partitionBy(contig)
-            .orderBy(position)
-            .rangeBetween(-ld_radius, ld_radius)
+        ld_index = hl.read_table(ld_index_path).naive_coalesce(400)
+        ld_index_38 = _liftover_loci(ld_index, grch37_to_grch38_chain_path, "GRCh38")
+
+        return (
+            ld_index_38.to_spark()
+            # Filter out variants where the liftover failed
+            .filter(f.col("`locus_GRCh38.position`").isNotNull())
+            .select(
+                f.concat_ws(
+                    "_",
+                    # parse chromosome
+                    f.regexp_replace("`locus_GRCh38.contig`", "chr", ""),
+                    # parse position
+                    convert_gnomad_position_to_ensembl(
+                        f.col("`locus_GRCh38.position`"),
+                        f.col("`alleles`").getItem(0),
+                        f.col("`alleles`").getItem(1),
+                    ),
+                    # parse ref and alt alleles
+                    f.col("`alleles`").getItem(0),
+                    f.col("`alleles`").getItem(1),
+                ).alias("variantId"),
+                f.col("idx"),
+            )
+            # Filter out ambiguous liftover results: multiple indices for the same variant
+            .withColumn("count", f.count("*").over(Window.partitionBy(["variantId"])))
+            .filter(f.col("count") == 1)
+            .drop("count")
+            .repartition(400, "chromosome")
+            .sortWithinPartitions("position")
         )
-        return f.max(position).over(w)
-
-    @classmethod
-    def from_parquet(cls: type[LDIndex], session: Session, path: str) -> LDIndex:
-        """Initialise LD index from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            LDIndex: LD index dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
 
     @classmethod
     def create(
-        cls: type[LDIndex],
-        pop_ldindex_path: str,
-        ld_radius: int,
+        cls: type[LDSet],
+        ld_matrix_path: str,
+        ld_index_path: str,
         grch37_to_grch38_chain_path: str,
-    ) -> LDIndex:
-        """Parse LD index and annotate with interval start and stop.
+        min_r2: float,
+    ) -> LDSet:
+        """Create LDSet dataset for a specific population."""
+        # Prepare LD Block matrix
+        bm = BlockMatrix.read(ld_matrix_path)
+        ldmatrix = LDSet._convert_ld_matrix_to_table(bm, min_r2)
 
-        Args:
-            pop_ldindex_path (str): path to gnomAD LD index
-            ld_radius (int): radius
-            grch37_to_grch38_chain_path (str): path to chain file for liftover
+        # Prepare table with variant indices
+        ld_indices = LDSet._process_variant_indices(
+            ld_index_path, grch37_to_grch38_chain_path
+        ).persist()
 
-        Returns:
-            LDIndex: Created GnomAD LD index
-        """
-        ld_index = hl.read_table(pop_ldindex_path).naive_coalesce(400)
-        ld_index_38 = LDIndex._liftover_loci(ld_index, grch37_to_grch38_chain_path)
-
-        return cls(
-            _df=ld_index_38.to_spark()
-            .filter(f.col("`locus38.position`").isNotNull())
-            .select(
-                f.coalesce(f.col("idx"), f.monotonically_increasing_id()).alias("idx"),
-                f.coalesce(
-                    f.regexp_replace("`locus38.contig`", "chr", ""), f.lit("unknown")
-                ).alias("chromosome"),
-                f.coalesce(f.col("`locus38.position`"), f.lit(-1)).alias("position"),
-                f.coalesce(f.col("`alleles`").getItem(0), f.lit("?")).alias(
-                    "referenceAllele"
-                ),
-                f.coalesce(f.col("`alleles`").getItem(1), f.lit("?")).alias(
-                    "alternateAllele"
-                ),
-            )
-            .withColumn(
-                "position",
-                convert_gnomad_position_to_ensembl(
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                ),
-            )
-            .withColumn(
-                "variantId",
-                f.concat_ws(
-                    "_",
-                    f.col("chromosome"),
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                ),
-            )
-            .withColumn("start_idx", f.lit(None).cast(t.LongType()))
-            .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
-            # Convert gnomad position to Ensembl position (1-based for indels)
-            .repartition(400, "chromosome")
-            .sortWithinPartitions("position")
-            .persist()
-        ).annotate_index_intervals(ld_radius)
-
-    def annotate_index_intervals(self: LDIndex, ld_radius: int) -> LDIndex:
-        """Annotate LD index with indexes starting and stopping a given interval.
-
-        Args:
-            ld_radius (int): radius around each position
-
-        Returns:
-            LDIndex: including `start_idx` and `stop_idx` columns
-        """
-        index_with_positions = (
-            self._df.drop("start_idx", "stop_idx")
-            .select(
-                "*",
-                LDIndex._interval_start(
-                    contig=f.col("chromosome"),
-                    position=f.col("position"),
-                    ld_radius=ld_radius,
-                ).alias("start_pos"),
-                LDIndex._interval_stop(
-                    contig=f.col("chromosome"),
-                    position=f.col("position"),
-                    ld_radius=ld_radius,
-                ).alias("stop_pos"),
-            )
-            .persist()
-        )
-
-        self.df = (
-            index_with_positions.join(
-                (
-                    index_with_positions
-                    # Given the multiple variants with the same chromosome/position can have different indexes, filter for the lowest index:
-                    .transform(
-                        lambda df: get_record_with_minimum_value(
-                            df, ["chromosome", "position"], "idx"
-                        )
-                    ).select(
-                        "chromosome",
-                        f.col("position").alias("start_pos"),
-                        f.col("idx").alias("start_idx"),
-                    )
-                ),
-                on=["chromosome", "start_pos"],
-            )
-            .join(
-                (
-                    index_with_positions
-                    # Given the multiple variants with the same chromosome/position can have different indexes, filter for the highest index:
-                    .transform(
-                        lambda df: get_record_with_maximum_value(
-                            df, ["chromosome", "position"], "idx"
-                        )
-                    ).select(
-                        "chromosome",
-                        f.col("position").alias("stop_pos"),
-                        f.col("idx").alias("stop_idx"),
-                    )
-                ),
-                on=["chromosome", "stop_pos"],
-            )
-            # Ensure nullable true
-            .withColumn(
-                "start_idx",
-                f.when(f.col("start_idx").isNotNull(), f.col("start_idx")).otherwise(
-                    f.lit(None)
-                ),
-            )
-            .withColumn(
-                "stop_idx",
-                f.when(f.col("stop_idx").isNotNull(), f.col("stop_idx")).otherwise(
-                    f.lit(None)
-                ),
-            )
-            .drop("start_pos", "stop_pos")
-        )
-
-        return self
+        return LDSet(_df=ldmatrix)
