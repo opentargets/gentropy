@@ -289,6 +289,38 @@ class UKBiobankStepConfig:
     ukbiobank_study_index_out: str = MISSING
 
 
+@dataclass
+class UKBiobankSumstatsMergeConfig:
+    """UKBiobank Sumstats Merging step requirements.
+
+    Attributes:
+        ukbiobank_sumstats_dirs (list): List of directories containing the summary statistics files.
+        ukbiobank_file_batch_size (int): Number of files to process in each iteration.
+        merged_ukbiobank_sumstats_out (str): Output file path for the merged summary statistics.
+    """
+
+    _target_: str = "otg.ukbiobank_sumstat_merge.UKBiobankSumstatsMergeStep"
+    ukbiobank_sumstats_dirs: List[str] = MISSING
+    ukbiobank_file_batch_size: int = MISSING
+    ukbiobank_sumstats_merged_out: str = MISSING
+
+
+@dataclass
+class UKBiobankSumstatsPreprocessConfig:
+    """UKBiobank Sumstats Preprocessing step requirements.
+
+    Attributes:
+        ukbiobank_sumstat_path (str): UKBiobank input file path for sumstats location.
+        ukbiobank_study_id (str): UKBiobank study identifier.
+        ukbiobank_sumstats_out (str): Output UKBiobank summary statistics path.
+    """
+
+    _target_: str = "otg.ukbiobank_sumstat_preprocess.UKBiobankSumstatsPreprocessStep"
+    ukbiobank_sumstat_path: str = MISSING
+    ukbiobank_study_id: str = MISSING
+    ukbiobank_sumstats_out: str = MISSING
+
+
 # Register all configs
 def register_configs() -> None:
     """Register configs."""
@@ -308,4 +340,14 @@ def register_configs() -> None:
         name="gwas_catalog_sumstats_preprocess",
         group="step",
         node=GWASCatalogSumstatsPreprocessConfig,
+    )
+    cs.store(
+        name="ukbiobank_sumstat_merge",
+        group="step",
+        node=UKBiobankSumstatsMergeConfig,
+    )
+    cs.store(
+        name="ukbiobank_sumstat_preprocess",
+        group="step",
+        node=UKBiobankSumstatsPreprocessConfig,
     )
