@@ -489,6 +489,17 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def ukbb_mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
+    """Generating a mock summary statistics dataset."""
+    return spark.read.csv(
+        "tests/data_samples/100001_raw.neale2.gwas_sample.tsv",
+        sep="\t",
+        header=True,
+        inferSchema=True,
+    )
+
+
+@pytest.fixture()
 def sample_target_index(spark: SparkSession) -> DataFrame:
     """Sample target index sample data."""
     return spark.read.parquet(
