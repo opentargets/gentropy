@@ -88,7 +88,7 @@ class LDAnnotatorGnomad:
         Returns:
             DataFrame: LD coordinates [variantId, chromosome, gnomadPopulation, i, idxs, start_idx and stop_idx]
         """
-        w = Window.orderBy("chromosome", "idx")
+        w = Window.orderBy("idx")
         return (
             variants_df.join(
                 ld_index.df,
