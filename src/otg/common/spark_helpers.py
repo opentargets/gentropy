@@ -192,41 +192,6 @@ def calculate_neglog_pvalue(
     return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
 
 
-def parse_pvalue(p_value: Column) -> tuple:
-    """Extract p-value mantissa and exponent from p-value.
-
-    Args:
-        p_value (Column): column with p-values. Will try to cast to float.
-
-    Returns:
-        tuple: contains columns pValueMantissa and pValueExponent
-
-    Examples:
-        >>> data = [(1.0),(0.5), (1e-20), (3e-3)]
-        >>> spark.createDataFrame(data, t.FloatType()).select('value',*parse_pvalue(f.col('value'))).show()
-        +-------+--------------+--------------+
-        |  value|pValueMantissa|pValueExponent|
-        +-------+--------------+--------------+
-        |    1.0|           1.0|             0|
-        |    0.5|           5.0|            -1|
-        |1.0E-20|           1.0|           -20|
-        |  0.003|           3.0|            -3|
-        +-------+--------------+--------------+
-        <BLANKLINE>
-    """
-    pv = f.when(p_value == 0, sys.float_info.min).otherwise(p_value)
-
-    # To get the right exponent we need to do some rounding:
-    exponent = (
-        f.floor(f.round(f.log10(pv), 4)).cast(t.IntegerType()).alias("pValueExponent")
-    )
-
-    # Mantissa also needs to be rounded:
-    mantissa = f.round(pv * f.pow(f.lit(10), -exponent), 3).alias("pValueMantissa")
-
-    return (mantissa, exponent)
-
-
 def string2camelcase(col_name: str) -> str:
     """Converting a string to camelcase.
 

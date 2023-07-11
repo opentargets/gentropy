@@ -46,7 +46,7 @@
       "metadata": {},
       "name": "pValueMantissa",
       "nullable": false,
-      "type": "double"
+      "type": "float"
     },
     {
       "metadata": {},
@@ -58,7 +58,7 @@
       "metadata": {},
       "name": "effectAlleleFrequencyFromSource",
       "nullable": true,
-      "type": "double"
+      "type": "float"
     },
     {
       "metadata": {},

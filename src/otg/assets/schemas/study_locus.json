@@ -80,6 +80,18 @@
     },
     {
       "metadata": {},
+      "name": "effectAlleleFrequencyFromSource",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "standardError",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
       "name": "subStudyDescription",
       "nullable": true,
       "type": "string"

@@ -7,20 +7,15 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pytest
 
-from otg.dataset.study_locus import StudyLocus
-from otg.method.ld import LDAnnotatorGnomad, LDclumping
+from otg.method.ld import LDAnnotatorGnomad
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
     from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndexGWASCatalog
+    from otg.dataset.study_locus import StudyLocus
     from otg.dataset.variant_annotation import VariantAnnotation
-
-
-def test_clump(mock_study_locus: StudyLocus) -> None:
-    """Test PICS."""
-    assert isinstance(LDclumping.clump(mock_study_locus), StudyLocus)
 
 
 def test_variants_in_ld_in_gnomad_pop(

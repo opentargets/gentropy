@@ -10,7 +10,7 @@ Google Cloud configuration:
 
 Check that you have the `make` utility installed, and if not (which is unlikely), install it using your system package manager.
 
-PySpark requires Java version 8 (a.k.a. 1.8) or above to work. However, it may not work with the most recent Java versions, like Java 20 at the time of writing this section (May 2023). If you are encountering problems with initialising a Spark session, try using Java 11 or Java 8.
+Check that you have `java` installed.
 
 ## Environment configuration
 Run `make setup-dev` to install/update the necessary packages and activate the development environment. You need to do this every time you open a new shell.
@@ -47,11 +47,6 @@ Run `poetry run mkdocs serve`. This will generate the local copy of the document
 
 ## How to run the tests
 Run `poetry run pytest`.
-
-## Troubleshooting
-In some cases, Pyenv and Poetry may cause various exotic errors which are hard to diagnose and get rid of. In this case, it helps to remove them from the system completely before running the `make setup-dev` command. See instructions in [utils/remove_pyenv_poetry.md](utils/remove_pyenv_poetry.md).
-
-If you see errors related to BLAS/LAPACK libraries, see [this StackOverflow post](https://stackoverflow.com/questions/69954587/no-blas-lapack-libraries-found-when-installing-scipy) for more info.
 
 ## Contributing checklist
 When making changes, and especially when implementing a new module or feature, it's essential to ensure that all relevant sections of the code base are modified.
