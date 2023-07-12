@@ -64,29 +64,45 @@ class LDSet(Dataset):
             ld_index_38.to_spark()
             # Filter out variants where the liftover failed
             .filter(f.col("`locus_GRCh38.position`").isNotNull())
+            .withColumn(
+                "chromosome", f.regexp_replace("`locus_GRCh38.contig`", "chr", "")
+            )
+            .withColumn(
+                "position",
+                convert_gnomad_position_to_ensembl(
+                    f.col("`locus_GRCh38.position`"),
+                    f.col("`alleles`").getItem(0),
+                    f.col("`alleles`").getItem(1),
+                ),
+            )
             .select(
                 f.concat_ws(
                     "_",
-                    # parse chromosome
-                    f.regexp_replace("`locus_GRCh38.contig`", "chr", ""),
-                    # parse position
-                    convert_gnomad_position_to_ensembl(
-                        f.col("`locus_GRCh38.position`"),
-                        f.col("`alleles`").getItem(0),
-                        f.col("`alleles`").getItem(1),
-                    ),
-                    # parse ref and alt alleles
+                    f.col("chromosome"),
+                    f.col("position"),
                     f.col("`alleles`").getItem(0),
                     f.col("`alleles`").getItem(1),
                 ).alias("variantId"),
+                "position",
                 f.col("idx"),
             )
             # Filter out ambiguous liftover results: multiple indices for the same variant
             .withColumn("count", f.count("*").over(Window.partitionBy(["variantId"])))
             .filter(f.col("count") == 1)
             .drop("count")
-            .repartition(400, "chromosome")
+            # .repartition(400, "chromosome") # TODO: confirm this is unnecessary
             .sortWithinPartitions("position")
+            .persist()
+        )
+
+    @staticmethod
+    def resolve_variant_indices(ld_index: DataFrame, ld_matrix: DataFrame) -> DataFrame:
+        """Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38)."""
+        ld_index_i = ld_index.selectExpr("idx as i", "variantId as variantId_i")
+        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantId_j")
+        # TODO: remove "j" and "i" - keeping for debugging purposes
+        return ld_matrix.join(ld_index_i, on="i", how="left").join(
+            ld_index_j, on="j", how="inner"
         )
 
     @classmethod
@@ -96,15 +112,18 @@ class LDSet(Dataset):
         ld_index_path: str,
         grch37_to_grch38_chain_path: str,
         min_r2: float,
-    ) -> LDSet:
+    ) -> DataFrame:
         """Create LDSet dataset for a specific population."""
         # Prepare LD Block matrix
-        bm = BlockMatrix.read(ld_matrix_path)
-        ldmatrix = LDSet._convert_ld_matrix_to_table(bm, min_r2)
+        ldmatrix = LDSet._convert_ld_matrix_to_table(
+            BlockMatrix.read(ld_matrix_path), min_r2
+        )
 
         # Prepare table with variant indices
         ld_indices = LDSet._process_variant_indices(
             ld_index_path, grch37_to_grch38_chain_path
         ).persist()
 
-        return LDSet(_df=ldmatrix)
+        # do i have to iterate over the populations here to generate a full (aggregated) LDSet?
+
+        return LDSet.resolve_variant_indices(ld_indices, ldmatrix)
