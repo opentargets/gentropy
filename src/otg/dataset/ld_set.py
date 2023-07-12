@@ -21,13 +21,13 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class LDSet(Dataset):
+class LDIndex(Dataset):
     """
     Dataset that defines a set of variants correlated by LD across populations.
     The information comes from LD matrices made available by GnomAD.
     """
 
-    _schema: StructType = parse_spark_schema("ld_set.json")
+    _schema: StructType = parse_spark_schema("ld_index.json")
 
     @staticmethod
     def _convert_ld_matrix_to_table(
@@ -35,7 +35,7 @@ class LDSet(Dataset):
     ) -> DataFrame:
         """Convert LD matrix to table."""
         table = block_matrix.entries(keyed=False)
-        return LDSet._transpose_ld_matrix(
+        return LDIndex._transpose_ld_matrix(
             table.filter(hl.abs(table.entry) >= min_r2**0.5)
             .to_spark()
             .withColumnRenamed("entry", "r")
@@ -52,13 +52,16 @@ class LDSet(Dataset):
         )
 
     @staticmethod
-    def _process_variant_indices(ld_index_path: str, grch37_to_grch38_chain_path: str):
+    def _process_variant_indices(
+        ld_index_raw: hl.Table, grch37_to_grch38_chain_path: str
+    ):
         """Creates a look up table between variants and their coordinates in the LD Matrix.
 
         !!! info "Gnomad's LD Matrix and Index are based on GRCh37 coordinates. This function will lift over the coordinates to GRCh38 to build the lookup table."
         """
-        ld_index = hl.read_table(ld_index_path).naive_coalesce(400)
-        ld_index_38 = _liftover_loci(ld_index, grch37_to_grch38_chain_path, "GRCh38")
+        ld_index_38 = _liftover_loci(
+            ld_index_raw, grch37_to_grch38_chain_path, "GRCh38"
+        )
 
         return (
             ld_index_38.to_spark()
@@ -107,23 +110,24 @@ class LDSet(Dataset):
 
     @classmethod
     def create(
-        cls: type[LDSet],
+        cls: type[LDIndex],
         ld_matrix_path: str,
-        ld_index_path: str,
+        ld_index_raw_path: str,
         grch37_to_grch38_chain_path: str,
         min_r2: float,
     ) -> DataFrame:
-        """Create LDSet dataset for a specific population."""
+        """Create LDIndex dataset for a specific population."""
         # Prepare LD Block matrix
-        ldmatrix = LDSet._convert_ld_matrix_to_table(
+        ldmatrix = LDIndex._convert_ld_matrix_to_table(
             BlockMatrix.read(ld_matrix_path), min_r2
         )
 
         # Prepare table with variant indices
-        ld_indices = LDSet._process_variant_indices(
-            ld_index_path, grch37_to_grch38_chain_path
+        ld_index = LDIndex._process_variant_indices(
+            hl.read_table(ld_index_raw_path).naive_coalesce(400),
+            grch37_to_grch38_chain_path,
         ).persist()
 
-        # do i have to iterate over the populations here to generate a full (aggregated) LDSet?
+        # do i have to iterate over the populations here to generate a full (aggregated) LDIndex?
 
-        return LDSet.resolve_variant_indices(ld_indices, ldmatrix)
+        return LDIndex.resolve_variant_indices(ld_index, ldmatrix)
