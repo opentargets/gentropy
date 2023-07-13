@@ -33,7 +33,7 @@ variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
 colocalisation: ${datasets.outputs}/colocalisation
 v2g: ${datasets.outputs}/v2g
-ld_index: ${datasets.outputs}/ld_index
+ld_set: ${datasets.outputs}/ld_set
 catalog_study_index: ${datasets.outputs}/catalog_study_index
 catalog_study_locus: ${datasets.outputs}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
