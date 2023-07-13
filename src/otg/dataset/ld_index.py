@@ -170,8 +170,19 @@ class LDIndex(Dataset):
         unaggregated_ld_index: DataFrame,
     ) -> DataFrame:
         """Aggregate LDIndex across populations."""
-        # TODO
-        return unaggregated_ld_index
+        # TODO: add docstring
+        return (
+            unaggregated_ld_index.withColumnRenamed("variantId_i", "variantId")
+            .withColumnRenamed("variantId_j", "tagVariantId")
+            # First level of aggregation: get r/population for each variant/tagVariant pair
+            .withColumn("r_pop_struct", f.struct("population", "r"))
+            .groupBy("variantId", "tagVariantId")
+            .agg(f.collect_set("r_pop_struct").alias("rValues"))
+            # Second level of aggregation: get r/population for each variant
+            .withColumn("r_pop_tag_struct", f.struct("tagVariantId", "rValues"))
+            .groupBy("variantId")
+            .agg(f.collect_set("r_pop_tag_struct").alias("ldSet"))
+        )
 
     @classmethod
     def from_gnomad(
