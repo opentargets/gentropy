@@ -44,16 +44,34 @@ class LDIndex(Dataset):
     def _transpose_ld_matrix(ld_matrix: DataFrame) -> DataFrame:
         """Transpose LD matrix to a square matrix format.
 
-        # TODO: add doctest
-
         Args:
             ld_matrix (DataFrame): Triangular LD matrix converted to a Spark DataFrame
 
         Returns:
             DataFrame: Square LD matrix without diagonal duplicates
+
+        Examples:
+            >>> df = spark.createDataFrame(
+            ...     [
+            ...         (1, 1, 1.0),
+            ...         (1, 2, 0.5),
+            ...         (2, 2, 1.0),
+            ...     ],
+            ...     ["i", "j", "r"],
+            ... )
+            >>> LDIndex._transpose_ld_matrix(df).show()
+            +---+---+---+
+            |  i|  j|  r|
+            +---+---+---+
+            |  1|  2|0.5|
+            |  1|  1|1.0|
+            |  2|  1|0.5|
+            |  2|  2|1.0|
+            +---+---+---+
+            <BLANKLINE>
         """
         ld_matrix_transposed = ld_matrix.selectExpr("i as j", "j as i", "r")
-        return ld_matrix.filter(f.col("i") == f.col("j")).unionByName(
+        return ld_matrix.filter(f.col("i") != f.col("j")).unionByName(
             ld_matrix_transposed
         )
 
