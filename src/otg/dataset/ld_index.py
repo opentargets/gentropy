@@ -143,6 +143,7 @@ class LDIndex(Dataset):
 
     @staticmethod
     def _create_ldindex_for_population(
+        population_id: str,
         ld_matrix_path: str,
         ld_index_raw_path: str,
         grch37_to_grch38_chain_path: str,
@@ -158,9 +159,11 @@ class LDIndex(Dataset):
         ld_index = LDIndex._process_variant_indices(
             hl.read_table(ld_index_raw_path).naive_coalesce(400),
             grch37_to_grch38_chain_path,
-        ).persist()
+        )
 
-        return LDIndex._resolve_variant_indices(ld_index, ld_matrix)
+        return LDIndex._resolve_variant_indices(ld_index, ld_matrix).withColumn(
+            "population", f.lit(population_id)
+        )
 
     @staticmethod
     def _aggregate_ld_index_across_populations(
@@ -186,6 +189,7 @@ class LDIndex(Dataset):
                 ld_matrix_path = ld_matrix_template.format(pop)
                 ld_index_raw_path = ld_index_raw_template.format(pop)
                 pop_ld_index = cls._create_ldindex_for_population(
+                    pop,
                     ld_matrix_path,
                     ld_index_raw_path.format(pop),
                     grch37_to_grch38_chain_path,
