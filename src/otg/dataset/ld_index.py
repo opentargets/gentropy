@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import hail as hl
+import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import Window
-import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
@@ -17,13 +17,11 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
-
 
 @dataclass
 class LDIndex(Dataset):
-    """
-    Dataset that defines a set of variants correlated by LD across populations.
+    """Dataset that defines a set of variants correlated by LD across populations.
+
     The information comes from LD matrices made available by GnomAD.
     """
 
@@ -43,8 +41,15 @@ class LDIndex(Dataset):
 
     @staticmethod
     def _transpose_ld_matrix(ld_matrix: DataFrame) -> DataFrame:
-        """Transpose LD matrix.
+        """Transpose LD matrix to a square matrix format.
+
         # TODO: add doctest
+
+        Args:
+            ld_matrix (DataFrame): Triangular LD matrix converted to a Spark DataFrame
+
+        Returns:
+            DataFrame: Square LD matrix without diagonal duplicates
         """
         ld_matrix_transposed = ld_matrix.selectExpr("i as j", "j as i", "r")
         return ld_matrix.filter(f.col("i") == f.col("j")).unionByName(
@@ -54,10 +59,17 @@ class LDIndex(Dataset):
     @staticmethod
     def _process_variant_indices(
         ld_index_raw: hl.Table, grch37_to_grch38_chain_path: str
-    ):
+    ) -> DataFrame:
         """Creates a look up table between variants and their coordinates in the LD Matrix.
 
         !!! info "Gnomad's LD Matrix and Index are based on GRCh37 coordinates. This function will lift over the coordinates to GRCh38 to build the lookup table."
+
+        Args:
+            ld_index_raw (hl.Table): LD index table from GnomAD
+            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates
+
+        Returns:
+            DataFrame: Look up table between variants in build hg38 and their coordinates in the LD Matrix
         """
         ld_index_38 = _liftover_loci(
             ld_index_raw, grch37_to_grch38_chain_path, "GRCh38"
@@ -109,7 +121,7 @@ class LDIndex(Dataset):
         )
 
     @classmethod
-    def create(
+    def from_gnomad(
         cls: type[LDIndex],
         ld_matrix_path: str,
         ld_index_raw_path: str,
