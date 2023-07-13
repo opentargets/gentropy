@@ -20,19 +20,16 @@ class LDIndexStep(LDIndexStepConfig):
         """Run LD index dump step."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
 
-        for population in self.ld_populations:
-            self.session.logger.info(f"Processing population: {population}")
-            ld_matrix_path = self.ld_matrix_template.format(POP=population)
-            ld_index_raw_path = self.ld_index_raw_template.format(POP=population)
-            ld_index = LDIndex.from_gnomad(
-                ld_matrix_path,
-                ld_index_raw_path,
-                self.grch37_to_grch38_chain_path,
-                self.min_r2,
+        ld_index = LDIndex.from_gnomad(
+            self.ld_populations,
+            self.ld_matrix_template,
+            self.ld_index_raw_template,
+            self.grch37_to_grch38_chain_path,
+            self.min_r2,
+        )
+        self.session.logger.info(f"Writing LD index to: {self.ld_index_out}")
+        (
+            ld_index.df.write.mode(self.session.write_mode).parquet(
+                f"{self.ld_index_out}_eur"
             )
-            self.session.logger.info(f"Writing LD index to: {self.ld_index_out}")
-            (
-                ld_index.write.mode(self.session.write_mode).parquet(
-                    f"{self.ld_index_out}_eur"
-                )
-            )
+        )

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import reduce
 from typing import TYPE_CHECKING
 
 import hail as hl
@@ -111,7 +112,9 @@ class LDIndex(Dataset):
         )
 
     @staticmethod
-    def resolve_variant_indices(ld_index: DataFrame, ld_matrix: DataFrame) -> DataFrame:
+    def _resolve_variant_indices(
+        ld_index: DataFrame, ld_matrix: DataFrame
+    ) -> DataFrame:
         """Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38)."""
         ld_index_i = ld_index.selectExpr("idx as i", "variantId as variantId_i")
         ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantId_j")
@@ -120,17 +123,16 @@ class LDIndex(Dataset):
             ld_index_j, on="j", how="inner"
         )
 
-    @classmethod
-    def from_gnomad(
-        cls: type[LDIndex],
+    @staticmethod
+    def _create_ldindex_for_population(
         ld_matrix_path: str,
         ld_index_raw_path: str,
         grch37_to_grch38_chain_path: str,
         min_r2: float,
     ) -> DataFrame:
-        """Create LDIndex dataset for a specific population."""
+        """Create LDIndex for a specific population."""
         # Prepare LD Block matrix
-        ldmatrix = LDIndex._convert_ld_matrix_to_table(
+        ld_matrix = LDIndex._convert_ld_matrix_to_table(
             BlockMatrix.read(ld_matrix_path), min_r2
         )
 
@@ -140,6 +142,41 @@ class LDIndex(Dataset):
             grch37_to_grch38_chain_path,
         ).persist()
 
-        # do i have to iterate over the populations here to generate a full (aggregated) LDIndex?
+        return LDIndex._resolve_variant_indices(ld_index, ld_matrix)
 
-        return LDIndex.resolve_variant_indices(ld_index, ldmatrix)
+    @staticmethod
+    def _aggregate_ld_index_across_populations(
+        unaggregated_ld_index: DataFrame,
+    ) -> DataFrame:
+        """Aggregate LDIndex across populations."""
+        # TODO
+        return unaggregated_ld_index
+
+    @classmethod
+    def from_gnomad(
+        cls: type[LDIndex],
+        ld_populations: list[str],
+        ld_matrix_template: str,
+        ld_index_raw_template: str,
+        grch37_to_grch38_chain_path: str,
+        min_r2: float,
+    ) -> LDIndex:
+        """Create LDIndex dataset aggregating the LD information across a set of populations."""
+        ld_indices = []
+        for pop in ld_populations:
+            try:
+                ld_matrix_path = ld_matrix_template.format(pop)
+                ld_index_raw_path = ld_index_raw_template.format(pop)
+                pop_ld_index = cls._create_ldindex_for_population(
+                    ld_matrix_path,
+                    ld_index_raw_path.format(pop),
+                    grch37_to_grch38_chain_path,
+                    min_r2,
+                )
+                ld_indices.append(pop_ld_index)
+            except Exception as e:
+                print(f"Failed to create LDIndex for population {pop}: {e}")
+        ld_index_unaggregated = reduce(lambda x, y: x.unionByName(y), ld_indices)
+        return cls(
+            _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
+        )
