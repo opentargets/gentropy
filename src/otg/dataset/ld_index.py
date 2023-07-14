@@ -176,6 +176,23 @@ class LDIndex(Dataset):
 
         Returns:
             DataFrame: Aggregated LDIndex index dataframe  each row is a variant with the LD set across populations
+
+        Examples:
+            >>> data = [("1.0", "var1", "var1", "pop1"), ("1.0", "var2", "var2", "pop1"),
+            ...         ("0.5", "var1", "var2", "pop1"), ("0.5", "var1", "var2", "pop2"),
+            ...         ("0.5", "var2", "var1", "pop1"), ("0.5", "var2", "var1", "pop2")]
+            >>> df = spark.createDataFrame(data, ["r", "variantId", "tagvariantId", "population"])
+            >>> LDIndex._aggregate_ld_index_across_populations(df).printSchema()
+            root
+             |-- variantId: string (nullable = true)
+             |-- ldSet: array (nullable = false)
+             |    |-- element: struct (containsNull = false)
+             |    |    |-- tagVariantId: string (nullable = true)
+             |    |    |-- rValues: array (nullable = false)
+             |    |    |    |-- element: struct (containsNull = false)
+             |    |    |    |    |-- population: string (nullable = true)
+             |    |    |    |    |-- r: string (nullable = true)
+            <BLANKLINE>
         """
         return (
             unaggregated_ld_index.withColumnRenamed("variantId_i", "variantId")
