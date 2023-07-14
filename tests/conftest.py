@@ -409,7 +409,7 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
 
 @pytest.fixture()
 def mock_ld_index(spark: SparkSession) -> LDIndex:
-    """Mock gene index."""
+    """Mock LD index."""
     ld_schema = parse_spark_schema("ld_index.json")
 
     data_spec = (
@@ -420,8 +420,11 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(ld_schema)
-        .withColumnSpec("start_idx", percentNulls=0.1)
-        .withColumnSpec("stop_idx", percentNulls=0.1)
+        .withColumnSpec("variantId", expr="cast(rand() as string)")
+        .withColumnSpec(
+            "ldSet",
+            expr="array(named_struct('tagVariantId', cast(rand() as string), 'rValues', array(named_struct('r', cast(rand() as float), 'population', cast(rand() as string)))))",
+        )
     )
 
     return LDIndex(_df=data_spec.build(), _schema=ld_schema)
