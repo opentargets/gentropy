@@ -34,7 +34,7 @@ def test_ld_index_creation(mock_ld_index: LDIndex) -> None:
                 (-0.7, "varA", "varC"),
             ],
         ),
-        # The ld index contains a subset of the variants in the matrix
+        # LD index is missing a variant in the matrix
         (
             # Observed
             [
