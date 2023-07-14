@@ -54,7 +54,14 @@ class LDIndexStepConfig:
     )
     ld_populations: List[str] = field(
         default_factory=lambda: [
+            "afr",  # African-American
+            "amr",  # American Admixed/Latino
+            "asj",  # Ashkenazi Jewish
+            "eas",  # East Asian
+            "fin",  # Finnish
             "nfe",  # Non-Finnish European
+            "nwe",  # Northwestern European
+            "seu",  # Southeastern European
         ]
     )
     ld_index_out: str = MISSING
