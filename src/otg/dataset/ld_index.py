@@ -1,8 +1,8 @@
 """Step to dump a filtered version of a LD matrix (block matrix) as Parquet files."""
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
-from functools import reduce
 from typing import TYPE_CHECKING
 
 import hail as hl
@@ -17,6 +17,8 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
+
+    from otg.common.session import Session
 
 
 @dataclass
@@ -124,9 +126,6 @@ class LDIndex(Dataset):
             .withColumn("count", f.count("*").over(Window.partitionBy(["variantId"])))
             .filter(f.col("count") == 1)
             .drop("count")
-            # .repartition(400, "chromosome") # TODO: confirm this is unnecessary
-            .sortWithinPartitions("position")
-            .persist()
         )
 
     @staticmethod
@@ -136,9 +135,10 @@ class LDIndex(Dataset):
         """Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38)."""
         ld_index_i = ld_index.selectExpr("idx as i", "variantId as variantId_i")
         ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantId_j")
-        # TODO: remove "j" and "i" - keeping for debugging purposes
-        return ld_matrix.join(ld_index_i, on="i", how="left").join(
-            ld_index_j, on="j", how="inner"
+        return (
+            ld_matrix.join(ld_index_i, on="i", how="left")
+            .join(ld_index_j, on="j", how="inner")
+            .drop("i", "j")
         )
 
     @staticmethod
@@ -161,16 +161,22 @@ class LDIndex(Dataset):
             grch37_to_grch38_chain_path,
         )
 
-        return LDIndex._resolve_variant_indices(ld_index, ld_matrix).withColumn(
-            "population", f.lit(population_id)
+        return LDIndex._resolve_variant_indices(ld_index, ld_matrix).select(
+            "*", f.lit(population_id).alias("population")
         )
 
     @staticmethod
     def _aggregate_ld_index_across_populations(
         unaggregated_ld_index: DataFrame,
     ) -> DataFrame:
-        """Aggregate LDIndex across populations."""
-        # TODO: add docstring
+        """Aggregate LDIndex across populations.
+
+        Args:
+            unaggregated_ld_index (DataFrame): Unaggregate LDIndex index dataframe  each row is a variant pair in a population
+
+        Returns:
+            DataFrame: Aggregated LDIndex index dataframe  each row is a variant with the LD set across populations
+        """
         return (
             unaggregated_ld_index.withColumnRenamed("variantId_i", "variantId")
             .withColumnRenamed("variantId_j", "tagVariantId")
@@ -187,6 +193,7 @@ class LDIndex(Dataset):
     @classmethod
     def from_gnomad(
         cls: type[LDIndex],
+        session: Session,
         ld_populations: list[str],
         ld_matrix_template: str,
         ld_index_raw_template: str,
@@ -194,11 +201,14 @@ class LDIndex(Dataset):
         min_r2: float,
     ) -> LDIndex:
         """Create LDIndex dataset aggregating the LD information across a set of populations."""
-        ld_indices = []
+        ld_index_unaggregated = session.spark.createDataFrame(
+            [], "variantId_i STRING, variantId_j STRING, r DOUBLE, population STRING"
+        )
+
         for pop in ld_populations:
             try:
-                ld_matrix_path = ld_matrix_template.format(pop)
-                ld_index_raw_path = ld_index_raw_template.format(pop)
+                ld_matrix_path = ld_matrix_template.format(POP=pop)
+                ld_index_raw_path = ld_index_raw_template.format(POP=pop)
                 pop_ld_index = cls._create_ldindex_for_population(
                     pop,
                     ld_matrix_path,
@@ -206,10 +216,10 @@ class LDIndex(Dataset):
                     grch37_to_grch38_chain_path,
                     min_r2,
                 )
-                ld_indices.append(pop_ld_index)
+                ld_index_unaggregated = ld_index_unaggregated.unionByName(pop_ld_index)
             except Exception as e:
                 print(f"Failed to create LDIndex for population {pop}: {e}")
-        ld_index_unaggregated = reduce(lambda x, y: x.unionByName(y), ld_indices)
+                sys.exit(1)
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
         )

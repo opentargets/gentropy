@@ -21,6 +21,7 @@ class LDIndexStep(LDIndexStepConfig):
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
 
         ld_index = LDIndex.from_gnomad(
+            self.session,
             self.ld_populations,
             self.ld_matrix_template,
             self.ld_index_raw_template,
@@ -30,6 +31,6 @@ class LDIndexStep(LDIndexStepConfig):
         self.session.logger.info(f"Writing LD index to: {self.ld_index_out}")
         (
             ld_index.df.write.mode(self.session.write_mode).parquet(
-                f"{self.ld_index_out}_eur"
+                f"{self.ld_index_out}_eur_aggregated"
             )
         )
