@@ -1,6 +1,0 @@
-# Default config
-defaults:
-  - ld_matrix
-# Additional config
-ld_matrix_raw_template: ${datasets.ld_matrix_template}
-ld_matrix_template: ${datasets.ld_matrix_filtered_template}
