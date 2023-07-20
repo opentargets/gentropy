@@ -129,7 +129,7 @@ class SummaryStatistics(Dataset):
         """
         # The effect allele frequency is an optional column, we have to test if it is there:
         allele_frequency_expression = (
-            f.col("effect_allele_frequency").cast(t.DoubleType())
+            f.col("effect_allele_frequency").cast(t.FloatType())
             if "effect_allele_frequency" in sumstats_df.columns
             else f.lit(None)
         )
