@@ -1,7 +1,6 @@
 """Summary satistics dataset."""
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -9,13 +8,17 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import parse_pvalue, pvalue_to_zscore
-from otg.common.utils import split_pvalue
+from otg.common.utils import (
+    calculate_confidence_interval,
+    convert_odds_ratio_to_beta,
+    parse_pvalue,
+    split_pvalue,
+)
 from otg.dataset.dataset import Dataset
 from otg.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import DataFrame
 
     from otg.common.session import Session
     from otg.dataset.study_locus import StudyLocus
@@ -29,85 +32,6 @@ class SummaryStatistics(Dataset):
     """
 
     _schema: t.StructType = parse_spark_schema("summary_statistics.json")
-
-    @staticmethod
-    def _convert_odds_ratio_to_beta(
-        beta: Column, odds_ratio: Column, standard_error: Column
-    ) -> tuple:
-        """Harmonizes effect and standard error to beta.
-
-        Args:
-            beta (Column): Effect in beta
-            odds_ratio (Column): Effect in odds ratio
-            standard_error (Column): Standard error of the effect
-
-        Returns:
-            tuple: beta, standard error
-
-        Examples:
-            >>> df = spark.createDataFrame([{"beta": 0.1, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": None, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": None, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": 1.1, "standardError": None}])
-            >>> df.select("*", *SummaryStatistics._convert_odds_ratio_to_beta(f.col("beta"), f.col("oddsRatio"), f.col("standardError"))).show()
-            +----+---------+-------------+-------------------+-------------+
-            |beta|oddsRatio|standardError|               beta|standardError|
-            +----+---------+-------------+-------------------+-------------+
-            | 0.1|      1.1|          0.1|                0.1|          0.1|
-            |null|      1.1|          0.1|0.09531017980432493|         null|
-            | 0.1|     null|          0.1|                0.1|          0.1|
-            | 0.1|      1.1|         null|                0.1|         null|
-            +----+---------+-------------+-------------------+-------------+
-            <BLANKLINE>
-
-        """
-        # We keep standard error when effect is given in beta, otherwise drop.
-        standard_error = f.when(
-            standard_error.isNotNull() & beta.isNotNull(), standard_error
-        ).alias("standardError")
-
-        # Odds ratio is converted to beta:
-        beta = (
-            f.when(beta.isNotNull(), beta)
-            .when(odds_ratio.isNotNull(), f.log(odds_ratio))
-            .alias("beta")
-        )
-
-        return (beta, standard_error)
-
-    @staticmethod
-    def _calculate_confidence_interval(
-        pvalue_mantissa: Column,
-        pvalue_exponent: Column,
-        beta: Column,
-        standard_error: Column,
-    ) -> tuple:
-        """This function calculates the confidence interval for the effect based on the p-value and the effect size.
-
-        If the standard error already available, don't re-calculate from p-value.
-
-        Args:
-            pvalue_mantissa (Column): p-value mantissa (float)
-            pvalue_exponent (Column): p-value exponent (integer)
-            beta (Column): effect size in beta (float)
-            standard_error (Column): standard error.
-
-        Returns:
-            tuple: betaConfidenceIntervalLower (float), betaConfidenceIntervalUpper (float)
-        """
-        # Calculate p-value from mantissa and exponent:
-        pvalue = pvalue_mantissa * f.pow(10, pvalue_exponent)
-
-        # Fix p-value underflow:
-        pvalue = f.when(pvalue == 0, sys.float_info.min).otherwise(pvalue)
-
-        # Compute missing standard error:
-        standard_error = f.when(
-            standard_error.isNull(), f.abs(beta) / f.abs(pvalue_to_zscore(pvalue))
-        ).otherwise(standard_error)
-
-        # Calculate upper and lower confidence interval:
-        ci_lower = (beta - standard_error).alias("betaConfidenceIntervalLower")
-        ci_upper = (beta + standard_error).alias("betaConfidenceIntervalUpper")
-
-        return (ci_lower, ci_upper)
 
     @classmethod
     def from_parquet(
@@ -131,25 +55,28 @@ class SummaryStatistics(Dataset):
         sumstats_df: DataFrame,
         study_id: str,
     ) -> SummaryStatistics:
-        """Create summary statistics object from summary statistics harmonized by the GWAS Catalog.
+        """Create summary statistics object from summary statistics flatfile, harmonized by the GWAS Catalog.
 
         Args:
-            sumstats_df (DataFrame): Harmonized dataset read as dataframe from GWAS Catalog.
-            study_id (str): GWAS Catalog Study accession.
+            sumstats_df (DataFrame): Harmonized dataset read as a spark dataframe from GWAS Catalog.
+            study_id (str): GWAS Catalog study accession.
 
         Returns:
             SummaryStatistics
         """
         # The effect allele frequency is an optional column, we have to test if it is there:
         allele_frequency_expression = (
-            f.col("hm_effect_allele_frequency").cast(t.DoubleType())
+            f.col("hm_effect_allele_frequency").cast(t.FloatType())
             if "hm_effect_allele_frequency" in sumstats_df.columns
             else f.lit(None)
         )
 
         # Processing columns of interest:
         processed_sumstats_df = (
-            sumstats_df.select(
+            sumstats_df
+            # Dropping rows which doesn't have proper position:
+            .filter(f.col("hm_pos").cast(t.IntegerType()).isNotNull())
+            .select(
                 # Adding study identifier:
                 f.lit(study_id).cast(t.StringType()).alias("studyId"),
                 # Adding variant identifier:
@@ -157,14 +84,24 @@ class SummaryStatistics(Dataset):
                 f.col("hm_chrom").alias("chromosome"),
                 f.col("hm_pos").cast(t.IntegerType()).alias("position"),
                 # Parsing p-value mantissa and exponent:
-                *parse_pvalue(f.col("p_value").cast(t.FloatType())),
+                *parse_pvalue(f.col("p_value")),
                 # Converting/calculating effect and confidence interval:
-                *cls._convert_odds_ratio_to_beta(
+                *convert_odds_ratio_to_beta(
                     f.col("hm_beta").cast(t.DoubleType()),
                     f.col("hm_odds_ratio").cast(t.DoubleType()),
                     f.col("standard_error").cast(t.DoubleType()),
                 ),
                 allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
+            )
+            # The previous select expression generated the necessary fields for calculating the confidence intervals:
+            .select(
+                "*",
+                *calculate_confidence_interval(
+                    f.col("pValueMantissa"),
+                    f.col("pValueExponent"),
+                    f.col("beta"),
+                    f.col("standardError"),
+                ),
             )
             .repartition(200, "chromosome")
             .sortWithinPartitions("position")
@@ -215,12 +152,22 @@ class SummaryStatistics(Dataset):
                 # Parsing p-value mantissa and exponent:
                 *parse_pvalue(f.col("p-value").cast(t.FloatType())),
                 # Converting/calculating effect and confidence interval:
-                *cls._convert_odds_ratio_to_beta(
+                *convert_odds_ratio_to_beta(
                     f.col("beta").cast(t.DoubleType()),
                     f.col("odds_ratio").cast(t.DoubleType()),
                     f.col("standard_error").cast(t.DoubleType()),
                 ),
                 allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
+            )
+            # The previous select expression generated the necessary fields for calculating the confidence intervals:
+            .select(
+                "*",
+                *calculate_confidence_interval(
+                    f.col("pValueMantissa"),
+                    f.col("pValueExponent"),
+                    f.col("beta"),
+                    f.col("standardError"),
+                ),
             )
             .repartition(200, "chromosome")
             .sortWithinPartitions("position")
@@ -229,36 +176,6 @@ class SummaryStatistics(Dataset):
         # Initializing summary statistics object:
         return cls(
             _df=processed_sumstats_df,
-        )
-
-    def calculate_confidence_interval(self: SummaryStatistics) -> SummaryStatistics:
-        """A Function to add upper and lower confidence interval to a summary statistics dataset.
-
-        Returns:
-            SummaryStatistics:
-        """
-        columns = self._df.columns
-
-        # If confidence interval has already been calculated skip:
-        if (
-            "betaConfidenceIntervalLower" in columns
-            and "betaConfidenceIntervalUpper" in columns
-        ):
-            return self
-
-        # Calculate CI:
-        return SummaryStatistics(
-            _df=(
-                self._df.select(
-                    "*",
-                    *self._calculate_confidence_interval(
-                        f.col("pValueMantissa"),
-                        f.col("pValueExponent"),
-                        f.col("beta"),
-                        f.col("standardError"),
-                    ),
-                )
-            )
         )
 
     def pvalue_filter(self: SummaryStatistics, pvalue: float) -> SummaryStatistics:

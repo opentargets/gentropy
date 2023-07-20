@@ -1,15 +1,165 @@
 """Common functions in the Genetics datasets."""
 from __future__ import annotations
 
+import sys
 from math import floor, log10
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import hail as hl
-import pyspark.sql.functions as f
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
+
+from otg.common.spark_helpers import pvalue_to_zscore
 
 if TYPE_CHECKING:
     from hail.expr.expressions import Int32Expression, StringExpression
     from pyspark.sql import Column
+
+
+def calculate_confidence_interval(
+    pvalue_mantissa: Column,
+    pvalue_exponent: Column,
+    beta: Column,
+    standard_error: Column,
+) -> tuple:
+    """This function calculates the confidence interval for the effect based on the p-value and the effect size.
+
+    If the standard error already available, don't re-calculate from p-value.
+
+    Args:
+        pvalue_mantissa (Column): p-value mantissa (float)
+        pvalue_exponent (Column): p-value exponent (integer)
+        beta (Column): effect size in beta (float)
+        standard_error (Column): standard error.
+
+    Returns:
+        tuple: betaConfidenceIntervalLower (float), betaConfidenceIntervalUpper (float)
+
+    Examples:
+        >>> df = spark.createDataFrame([
+        ...     (2.5, -10, 0.5, 0.2),
+        ...     (3.0, -5, 1.0, None),
+        ...     (1.5, -8, -0.2, 0.1)
+        ...     ], ["pvalue_mantissa", "pvalue_exponent", "beta", "standard_error"]
+        ... )
+        >>> df.select("*", *calculate_confidence_interval(f.col("pvalue_mantissa"), f.col("pvalue_exponent"), f.col("beta"), f.col("standard_error"))).show()
+        +---------------+---------------+----+--------------+---------------------------+---------------------------+
+        |pvalue_mantissa|pvalue_exponent|beta|standard_error|betaConfidenceIntervalLower|betaConfidenceIntervalUpper|
+        +---------------+---------------+----+--------------+---------------------------+---------------------------+
+        |            2.5|            -10| 0.5|           0.2|                        0.3|                        0.7|
+        |            3.0|             -5| 1.0|          null|         0.7603910153486024|         1.2396089846513976|
+        |            1.5|             -8|-0.2|           0.1|       -0.30000000000000004|                       -0.1|
+        +---------------+---------------+----+--------------+---------------------------+---------------------------+
+        <BLANKLINE>
+    """
+    # Calculate p-value from mantissa and exponent:
+    pvalue = pvalue_mantissa * f.pow(10, pvalue_exponent)
+
+    # Fix p-value underflow:
+    pvalue = f.when(pvalue == 0, sys.float_info.min).otherwise(pvalue)
+
+    # Compute missing standard error:
+    standard_error = f.when(
+        standard_error.isNull(), f.abs(beta) / f.abs(pvalue_to_zscore(pvalue))
+    ).otherwise(standard_error)
+
+    # Calculate upper and lower confidence interval:
+    ci_lower = (beta - standard_error).alias("betaConfidenceIntervalLower")
+    ci_upper = (beta + standard_error).alias("betaConfidenceIntervalUpper")
+
+    return (ci_lower, ci_upper)
+
+
+def convert_odds_ratio_to_beta(
+    beta: Column, odds_ratio: Column, standard_error: Column
+) -> List[Column]:
+    """Harmonizes effect and standard error to beta.
+
+    Args:
+        beta (Column): Effect in beta
+        odds_ratio (Column): Effect in odds ratio
+        standard_error (Column): Standard error of the effect
+
+    Returns:
+        tuple: beta, standard error
+
+    Examples:
+        >>> df = spark.createDataFrame([{"beta": 0.1, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": None, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": None, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": 1.1, "standardError": None}])
+        >>> df.select("*", *convert_odds_ratio_to_beta(f.col("beta"), f.col("oddsRatio"), f.col("standardError"))).show()
+        +----+---------+-------------+-------------------+-------------+
+        |beta|oddsRatio|standardError|               beta|standardError|
+        +----+---------+-------------+-------------------+-------------+
+        | 0.1|      1.1|          0.1|                0.1|          0.1|
+        |null|      1.1|          0.1|0.09531017980432493|         null|
+        | 0.1|     null|          0.1|                0.1|          0.1|
+        | 0.1|      1.1|         null|                0.1|         null|
+        +----+---------+-------------+-------------------+-------------+
+        <BLANKLINE>
+
+    """
+    # We keep standard error when effect is given in beta, otherwise drop.
+    standard_error = f.when(
+        standard_error.isNotNull() & beta.isNotNull(), standard_error
+    ).alias("standardError")
+
+    # Odds ratio is converted to beta:
+    beta = (
+        f.when(beta.isNotNull(), beta)
+        .when(odds_ratio.isNotNull(), f.log(odds_ratio))
+        .alias("beta")
+    )
+
+    return [beta, standard_error]
+
+
+def parse_pvalue(pv: Column) -> List[Column]:
+    """This function takes a p-value string and returns two columns mantissa (float), exponent (integer).
+
+    Args:
+        pv (Column): P-value as string
+
+    Returns:
+        Column: p-value mantissa (float)
+        Column: p-value exponent (integer)
+
+    Examples:
+        >>> d = [("0.01",),("4.2E-45",),("43.2E5",),("0",),("1",)]
+        >>> spark.createDataFrame(d, ['pval']).select('pval',*parse_pvalue(f.col('pval'))).show()
+        +-------+--------------+--------------+
+        |   pval|pValueMantissa|pValueExponent|
+        +-------+--------------+--------------+
+        |   0.01|           1.0|            -2|
+        |4.2E-45|           4.2|           -45|
+        | 43.2E5|          43.2|             5|
+        |      0|         2.225|          -308|
+        |      1|           1.0|             0|
+        +-------+--------------+--------------+
+        <BLANKLINE>
+    """
+    # Making sure there's a number in the string:
+    pv = f.when(
+        pv == f.lit("0"), f.lit(sys.float_info.min).cast(t.StringType())
+    ).otherwise(pv)
+
+    # Get exponent:
+    exponent = f.when(
+        f.upper(pv).contains("E"),
+        f.split(f.upper(pv), "E").getItem(1),
+    ).otherwise(f.floor(f.log10(pv)))
+
+    # Get mantissa:
+    mantissa = f.when(
+        f.upper(pv).contains("E"),
+        f.split(f.upper(pv), "E").getItem(0),
+    ).otherwise(pv / (10**exponent))
+
+    # Round value:
+    mantissa = f.round(mantissa, 3)
+
+    return [
+        mantissa.cast(t.FloatType()).alias("pValueMantissa"),
+        exponent.cast(t.IntegerType()).alias("pValueExponent"),
+    ]
 
 
 def convert_gnomad_position_to_ensembl(
