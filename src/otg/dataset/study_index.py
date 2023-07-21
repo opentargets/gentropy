@@ -152,11 +152,11 @@ class StudyIndexGWASCatalog(StudyIndex):
             ._annotate_discovery_sample_sizes()
         )
 
-    def get_gnomad_ancestry_sample_sizes(self: StudyIndexGWASCatalog) -> DataFrame:
-        """Get all studies and their ancestries.
+    def get_gnomad_population_structure(self: StudyIndexGWASCatalog) -> DataFrame:
+        """Get the population structure (ancestry normalised to gnomAD and population sizes) for every study.
 
         Returns:
-            DataFrame: containing `studyId`, `gnomadPopulation` and `relativeSampleSize` columns
+            DataFrame: containing `studyId` and `populationsStructure`, where each element of the array represents a population
         """
         # Study ancestries
         w_study = Window.partitionBy("studyId")
@@ -191,7 +191,12 @@ class StudyIndexGWASCatalog(StudyIndex):
                 "relativeSampleSize",
                 f.col("sampleSize") / f.sum("sampleSize").over(w_study),
             )
-            .drop("sampleSize")
+            .withColumn(
+                "populationStructure",
+                f.struct("gnomadPopulation", "relativeSampleSize"),
+            )
+            .groupBy("studyId")
+            .agg(f.collect_set("populationStructure").alias("populationsStructure"))
         )
 
     def update_study_id(
