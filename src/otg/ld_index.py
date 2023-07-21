@@ -30,7 +30,7 @@ class LDIndexStep(LDIndexStepConfig):
         )
         self.session.logger.info(f"Writing LD index to: {self.ld_index_out}")
         (
-            ld_index.df.write.mode(self.session.write_mode).parquet(
-                f"{self.ld_index_out}"
-            )
+            ld_index.df.write.partitionBy("chromosome")
+            .mode(self.session.write_mode)
+            .parquet(f"{self.ld_index_out}")
         )

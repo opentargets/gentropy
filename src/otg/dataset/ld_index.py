@@ -162,7 +162,9 @@ class LDIndex(Dataset):
         )
 
         return LDIndex._resolve_variant_indices(ld_index, ld_matrix).select(
-            "*", f.lit(population_id).alias("population")
+            "*",
+            f.lit(population_id).alias("population"),
+            f.split("variantId", "_")[0].alias("chromosome"),
         )
 
     @staticmethod
