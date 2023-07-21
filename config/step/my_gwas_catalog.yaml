@@ -10,4 +10,4 @@ variant_annotation_path: ${datasets.variant_annotation}
 catalog_studies_out: ${datasets.catalog_study_index}
 catalog_associations_out: ${datasets.catalog_study_locus}
 ld_matrix_template: ${datasets.ld_matrix_template}
-ld_index_template: ${datasets.ld_index_template}
+ld_index_template: ${datasets.ld_index_template} # TODO: remove
