@@ -64,8 +64,9 @@ class LDAnnotator:
             ),
         )
 
+    @classmethod
     def annotate_variants_with_ld(
-        self: LDAnnotator, variants_df: DataFrame, ld_index: LDIndex
+        cls: type[LDAnnotator], variants_df: DataFrame, ld_index: LDIndex
     ) -> DataFrame:
         """Annotate linkage disequilibrium (LD) information to a set of variants.
 
@@ -78,8 +79,9 @@ class LDAnnotator:
         """
         return variants_df.join(ld_index.df, on=["variantId", "chromosome"], how="left")
 
+    @classmethod
     def annotate_associations_with_ld(
-        self: LDAnnotator,
+        cls: type[LDAnnotator],
         associations_df: DataFrame,
         ld_index: LDIndex,
     ) -> DataFrame:
@@ -103,13 +105,11 @@ class LDAnnotator:
             # Add population size to each rValues entry in the ldSet
             .withColumn(
                 "ldSet",
-                self._add_population_size(
-                    f.col("ldSet"), f.col("populationsStructure")
-                ),
+                cls._add_population_size(f.col("ldSet"), f.col("populationsStructure")),
             )
             # Aggregate weighted R information using ancestry proportions
             .withColumn(
                 "ldSet",
-                self._calculate_weighted_r_overall(f.col("ldSet")),
+                cls._calculate_weighted_r_overall(f.col("ldSet")),
             )
         )
