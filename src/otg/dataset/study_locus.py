@@ -273,7 +273,7 @@ class StudyLocus(Dataset):
             self.df.select(
                 f.col("variantId"),
                 f.col("chromosome"),
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
+                f.explode("ldSet.tagVariantId").alias("tagVariantId"),
             )
             .repartition("chromosome")
             .persist()
@@ -394,14 +394,12 @@ class StudyLocus(Dataset):
                     self.df.variantId,
                     self.df.pValueExponent,
                     self.df.pValueMantissa,
-                    self.df.credibleSet,
+                    self.df.ldSet,
                 ),
             )
             .withColumn(
-                "credibleSet",
-                f.when(f.col("is_lead_linked"), f.array()).otherwise(
-                    f.col("credibleSet")
-                ),
+                "ldSet",
+                f.when(f.col("is_lead_linked"), f.array()).otherwise(f.col("ldSet")),
             )
             .withColumn(
                 "qualityControls",
