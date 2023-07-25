@@ -21,7 +21,6 @@ class LDIndexStep(LDIndexStepConfig):
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
 
         ld_index = LDIndex.from_gnomad(
-            self.session,
             self.ld_populations,
             self.ld_matrix_template,
             self.ld_index_raw_template,

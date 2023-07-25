@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
+from functools import reduce
 from typing import TYPE_CHECKING
 
 import hail as hl
@@ -17,8 +18,6 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
-
-    from otg.common.session import Session
 
 
 @dataclass
@@ -164,7 +163,7 @@ class LDIndex(Dataset):
         return LDIndex._resolve_variant_indices(ld_index, ld_matrix).select(
             "*",
             f.lit(population_id).alias("population"),
-            f.split("variantId", "_")[0].alias("chromosome"),
+            f.split("variantId_i", "_")[0].alias("chromosome"),
         )
 
     @staticmethod
@@ -180,13 +179,14 @@ class LDIndex(Dataset):
             DataFrame: Aggregated LDIndex index dataframe  each row is a variant with the LD set across populations
 
         Examples:
-            >>> data = [("1.0", "var1", "var1", "pop1"), ("1.0", "var2", "var2", "pop1"),
-            ...         ("0.5", "var1", "var2", "pop1"), ("0.5", "var1", "var2", "pop2"),
-            ...         ("0.5", "var2", "var1", "pop1"), ("0.5", "var2", "var1", "pop2")]
-            >>> df = spark.createDataFrame(data, ["r", "variantId", "tagvariantId", "population"])
+            >>> data = [("1.0", "var1", "X", "var1", "pop1"), ("1.0", "X", "var2", "var2", "pop1"),
+            ...         ("0.5", "var1", "X", "var2", "pop1"), ("0.5", "var1", "X", "var2", "pop2"),
+            ...         ("0.5", "var2", "X", "var1", "pop1"), ("0.5", "X", "var2", "var1", "pop2")]
+            >>> df = spark.createDataFrame(data, ["r", "variantId", "chromosome", "tagvariantId", "population"])
             >>> LDIndex._aggregate_ld_index_across_populations(df).printSchema()
             root
              |-- variantId: string (nullable = true)
+             |-- chromosome: string (nullable = true)
              |-- ldSet: array (nullable = false)
              |    |-- element: struct (containsNull = false)
              |    |    |-- tagVariantId: string (nullable = true)
@@ -201,18 +201,17 @@ class LDIndex(Dataset):
             .withColumnRenamed("variantId_j", "tagVariantId")
             # First level of aggregation: get r/population for each variant/tagVariant pair
             .withColumn("r_pop_struct", f.struct("population", "r"))
-            .groupBy("variantId", "tagVariantId")
+            .groupBy("variantId", "tagVariantId", "chromosome")
             .agg(f.collect_set("r_pop_struct").alias("rValues"))
             # Second level of aggregation: get r/population for each variant
             .withColumn("r_pop_tag_struct", f.struct("tagVariantId", "rValues"))
-            .groupBy("variantId")
+            .groupBy("variantId", "chromosome")
             .agg(f.collect_set("r_pop_tag_struct").alias("ldSet"))
         )
 
     @classmethod
     def from_gnomad(
         cls: type[LDIndex],
-        session: Session,
         ld_populations: list[str],
         ld_matrix_template: str,
         ld_index_raw_template: str,
@@ -220,10 +219,7 @@ class LDIndex(Dataset):
         min_r2: float,
     ) -> LDIndex:
         """Create LDIndex dataset aggregating the LD information across a set of populations."""
-        ld_index_unaggregated = session.spark.createDataFrame(
-            [], "variantId_i STRING, variantId_j STRING, r DOUBLE, population STRING"
-        )
-
+        ld_indices_unaggregated = []
         for pop in ld_populations:
             try:
                 ld_matrix_path = ld_matrix_template.format(POP=pop)
@@ -235,10 +231,14 @@ class LDIndex(Dataset):
                     grch37_to_grch38_chain_path,
                     min_r2,
                 )
-                ld_index_unaggregated = ld_index_unaggregated.unionByName(pop_ld_index)
+                ld_indices_unaggregated.append(pop_ld_index)
             except Exception as e:
                 print(f"Failed to create LDIndex for population {pop}: {e}")
                 sys.exit(1)
+
+        ld_index_unaggregated = reduce(
+            lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated
+        )
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
         )
