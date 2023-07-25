@@ -111,5 +111,5 @@ class LDAnnotator:
             .withColumn(
                 "ldSet",
                 cls._calculate_weighted_r_overall(f.col("ldSet")),
-            )
+            ).drop("populationsStructure")
         )

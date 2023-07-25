@@ -178,13 +178,13 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
             # mapped to gnomAD superpopulation and exploded
             .withColumn(
-                "gnomadPopulation",
+                "population",
                 f.explode(
                     StudyIndexGWASCatalog._gwas_ancestry_to_gnomad(f.col("ancestries"))
                 ),
             )
             # Group by studies and aggregate for major population:
-            .groupBy("studyId", "gnomadPopulation")
+            .groupBy("studyId", "population")
             .agg(f.sum(f.col("adjustedSampleSize")).alias("sampleSize"))
             # Calculate proportions for each study
             .withColumn(
@@ -193,7 +193,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
             .withColumn(
                 "populationStructure",
-                f.struct("gnomadPopulation", "relativeSampleSize"),
+                f.struct("population", "relativeSampleSize"),
             )
             .groupBy("studyId")
             .agg(f.collect_set("populationStructure").alias("populationsStructure"))

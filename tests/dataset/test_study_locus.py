@@ -24,6 +24,7 @@ from otg.dataset.study_locus import (
 )
 
 if TYPE_CHECKING:
+    from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
 
@@ -86,19 +87,25 @@ def test_unique_lead_tag_variants(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus.unique_lead_tag_variants(), DataFrame)
 
 
-def test_unique_study_locus_ancestries(
-    mock_study_locus: StudyLocus, mock_study_index_gwas_catalog: StudyIndexGWASCatalog
-) -> None:
-    """Test study locus ancestries."""
-    assert isinstance(
-        mock_study_locus.unique_study_locus_ancestries(mock_study_index_gwas_catalog),
-        DataFrame,
-    )
-
-
 def test_neglog_pvalue(mock_study_locus: StudyLocus) -> None:
     """Test neglog pvalue."""
     assert isinstance(mock_study_locus.neglog_pvalue(), Column)
+
+
+def test_annotate_ld(
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
+    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
+    mock_ld_index: LDIndex,
+) -> None:
+    """Test LD annotation."""
+    # Drop ldSet column to avoid duplicated columns
+    mock_study_locus_gwas_catalog.df = mock_study_locus_gwas_catalog.df.drop("ldSet")
+    assert isinstance(
+        mock_study_locus_gwas_catalog.annotate_ld(
+            mock_study_index_gwas_catalog, mock_ld_index
+        ),
+        StudyLocus,
+    )
 
 
 def test_clump(mock_study_locus: StudyLocus) -> None:

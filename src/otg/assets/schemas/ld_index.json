@@ -8,6 +8,12 @@
     },
     {
       "metadata": {},
+      "name": "chromosome",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
       "name": "ldSet",
       "nullable": false,
       "type": {

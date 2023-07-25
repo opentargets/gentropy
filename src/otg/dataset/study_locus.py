@@ -286,40 +286,6 @@ class StudyLocus(Dataset):
             .distinct()
         )
 
-    def unique_study_locus_ancestries(
-        self: StudyLocus, studies: StudyIndexGWASCatalog
-    ) -> DataFrame:
-        """All unique lead variant and ancestries contained in the `StudyLocus`.
-
-        Args:
-            studies (StudyIndexGWASCatalog): Metadata about studies in the `StudyLocus`.
-
-        Returns:
-            DataFrame: unique ["variantId", "studyId", "gnomadPopulation", "chromosome", "relativeSampleSize"]
-
-        Note:
-            This method is only available for GWAS Catalog studies.
-        """
-        return (
-            self.df.join(
-                studies.get_gnomad_population_structure(), on="studyId", how="left"
-            )
-            .filter(f.col("position").isNotNull())
-            .withColumn(
-                "studyPopulations",
-                f.collect_set("gnomadPopulation").over(Window.partitionBy("studyId")),
-            )
-            .select(
-                "variantId",
-                "chromosome",
-                "studyId",
-                "gnomadPopulation",
-                "studyPopulations",
-                "relativeSampleSize",
-            )
-            .distinct()
-        )
-
     def neglog_pvalue(self: StudyLocus) -> Column:
         """Returns the negative log p-value.
 
