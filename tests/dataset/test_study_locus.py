@@ -123,10 +123,21 @@ def test_qc_ambiguous_study(
 
 
 def test_qc_unresolved_ld(mock_study_locus_gwas_catalog: StudyLocusGWASCatalog) -> None:
-    """Test qc unresolved ld."""
-    assert isinstance(
-        mock_study_locus_gwas_catalog._qc_unresolved_ld(), StudyLocusGWASCatalog
+    """Test qc unresolved LD by making sure the flag is added when ldSet is null."""
+    mock_study_locus_gwas_catalog.df = mock_study_locus_gwas_catalog.df.filter(
+        f.col("ldSet").isNull()
     )
+    observed_df = (
+        mock_study_locus_gwas_catalog._qc_unresolved_ld()
+        .df.limit(1)
+        .select(
+            f.array_contains(
+                f.col("qualityControls"), "Variant not found in LD reference"
+            )
+        )
+    )
+    expected = True
+    assert observed_df.collect()[0][0] is expected
 
 
 def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:

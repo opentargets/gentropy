@@ -1554,15 +1554,17 @@ class StudyLocusGWASCatalog(StudyLocus):
         )
         return self
 
-    def _qc_unresolved_ld(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+    def _qc_unresolved_ld(
+        self: StudyLocus | StudyLocusGWASCatalog,
+    ) -> StudyLocus | StudyLocusGWASCatalog:
         """Flag associations with variants that are not found in the LD reference.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus.
+            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
         """
-        self._df.withColumn(
+        self.df = self.df.withColumn(
             "qualityControls",
-            StudyLocus._update_quality_flag(
+            self._update_quality_flag(
                 f.col("qualityControls"),
                 f.col("ldSet").isNull(),
                 StudyLocusQualityCheck.UNRESOLVED_LD,
