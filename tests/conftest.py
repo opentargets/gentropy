@@ -420,21 +420,6 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(ld_schema)
-        .withColumnSpec("variantId", expr="cast(rand() as string)")
-        .withColumnSpec(
-            "ldSet",
-            expr="array(named_struct('tagVariantId', cast(rand() as string), 'rValues', array(named_struct('r', cast(rand() as float), 'population', cast(rand() as string)))))",
-        )
-    )
-    data_spec = (
-        dg.DataGenerator(
-            spark,
-            rows=400,
-            partitions=4,
-            randomSeedMethod="hash_fieldname",
-        )
-        .withSchema(ld_schema)
-        .withColumnSpec("variantId", expr="cast(rand() as string)")
         .withColumnSpec(
             "ldSet",
             expr="array(named_struct('tagVariantId', cast(rand() as string), 'rValues', array(named_struct('population', cast(rand() as string), 'r', cast(rand() as double)))))",

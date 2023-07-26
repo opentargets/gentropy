@@ -111,6 +111,7 @@ class LDIndex(Dataset):
                 ),
             )
             .select(
+                "chromosome",
                 f.concat_ws(
                     "_",
                     f.col("chromosome"),
@@ -118,7 +119,6 @@ class LDIndex(Dataset):
                     f.col("`alleles`").getItem(0),
                     f.col("`alleles`").getItem(1),
                 ).alias("variantId"),
-                "position",
                 f.col("idx"),
             )
             # Filter out ambiguous liftover results: multiple indices for the same variant
@@ -132,11 +132,15 @@ class LDIndex(Dataset):
         ld_index: DataFrame, ld_matrix: DataFrame
     ) -> DataFrame:
         """Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38)."""
-        ld_index_i = ld_index.selectExpr("idx as i", "variantId as variantId_i")
-        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantId_j")
+        ld_index_i = ld_index.selectExpr(
+            "idx as i", "variantId as variantId_i", "chromosome"
+        )
+        ld_index_j = ld_index.selectExpr(
+            "idx as j", "variantId as variantId_j", "chromosome"
+        )
         return (
-            ld_matrix.join(ld_index_i, on="i", how="inner")
-            .join(ld_index_j, on="j", how="inner")
+            ld_matrix.join(ld_index_i, on=["i", "chromosome"], how="inner")
+            .join(ld_index_j, on=["j", "chromosome"], how="inner")
             .drop("i", "j")
         )
 
@@ -156,14 +160,13 @@ class LDIndex(Dataset):
 
         # Prepare table with variant indices
         ld_index = LDIndex._process_variant_indices(
-            hl.read_table(ld_index_raw_path).naive_coalesce(400),
+            hl.read_table(ld_index_raw_path),
             grch37_to_grch38_chain_path,
         )
 
         return LDIndex._resolve_variant_indices(ld_index, ld_matrix).select(
             "*",
             f.lit(population_id).alias("population"),
-            f.split("variantId_i", "_")[0].alias("chromosome"),
         )
 
     @staticmethod
@@ -238,7 +241,7 @@ class LDIndex(Dataset):
 
         ld_index_unaggregated = reduce(
             lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated
-        )
+        ).repartition(800)
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
         )
