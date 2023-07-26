@@ -234,18 +234,6 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
                         },
-                        {
-                            "tagVariantId": "tagVariantB",
-                            "posteriorProbability": 0.01,
-                            "is95CredibleSet": False,
-                            "is99CredibleSet": True,
-                        },
-                        {
-                            "tagVariantId": "tagVariantD",
-                            "posteriorProbability": 0.01,
-                            "is95CredibleSet": False,
-                            "is99CredibleSet": False,
-                        },
                     ],
                 )
             ],
