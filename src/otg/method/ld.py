@@ -88,7 +88,7 @@ class LDAnnotatorGnomad:
         Returns:
             DataFrame: LD coordinates [variantId, chromosome, gnomadPopulation, i, idxs, start_idx and stop_idx]
         """
-        w = Window.orderBy("chromosome", "idx")
+        w = Window.orderBy("idx")
         return (
             variants_df.join(
                 ld_index.df,
@@ -104,7 +104,7 @@ class LDAnnotatorGnomad:
             )
             .distinct()
             # necessary to resolve return of .entries() function
-            .withColumn("i", f.row_number().over(w))
+            .withColumn("i", f.row_number().over(w) - 1)
             # the dataframe has to be ordered to query the block matrix
             .orderBy("idx")
         )
@@ -317,15 +317,15 @@ class LDAnnotatorGnomad:
         locus_ancestry = (
             associations.unique_study_locus_ancestries(studies)
             # Ignoring study information / relativeSampleSize to get unique lead-ancestry pairs
-            .drop("studyId", "relativeSampleSize")
+            .select("variantId", "chromosome", "gnomadPopulation")
             .distinct()
             .persist()
         )
 
         # All gnomad populations captured in associations:
-        assoc_populations = locus_ancestry.rdd.map(
-            lambda x: x.gnomadPopulation
-        ).collect()
+        assoc_populations = (
+            locus_ancestry.rdd.map(lambda x: x.gnomadPopulation).distinct().collect()
+        )
 
         # Retrieve LD information from gnomAD
         ld_annotated_assocs = []
