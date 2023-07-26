@@ -199,6 +199,28 @@ class StudyLocus(Dataset):
             f.array_union(qc, f.array(f.lit(flag_text.value))),
         ).otherwise(qc)
 
+    @staticmethod
+    def _filter_credible_set(credible_set: Column) -> Column:
+        """Filter credible set to only contain variants that belong to the 95% credible set.
+
+        Args:
+            credible_set (Column): Credible set column containing all variants in the LD set.
+
+        Returns:
+            Column: Filtered credible set column.
+
+        Example:
+            >>> df = spark.createDataFrame([([{"tagVariantId": "varA", "is95CredibleSet": True}, {"tagVariantId": "varB", "is95CredibleSet": False}],)], "credibleSet: array<struct<tagVariantId: string, is95CredibleSet: boolean>>")
+            >>> df.select(StudyLocus._filter_credible_set(f.col("credibleSet")).alias("filtered")).show(truncate=False)
+            +--------------+
+            |filtered      |
+            +--------------+
+            |[{varA, true}]|
+            +--------------+
+            <BLANKLINE>
+        """
+        return f.filter(credible_set, lambda x: x["is95CredibleSet"])
+
     @classmethod
     def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
@@ -307,40 +329,48 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
-        self.df = self.df.withColumn(
-            # Sort credible set by posterior probability in descending order
-            "credibleSet",
-            f.when(
-                f.size(f.col("credibleSet")) > 0,
-                order_array_of_structs_by_field("credibleSet", "posteriorProbability"),
-            ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
-        ).withColumn(
-            # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
-            # and zip the cumulative sums array with the credible set array to add the flags
-            "credibleSet",
-            f.when(
-                f.size(f.col("credibleSet")) > 0,
-                f.zip_with(
-                    f.col("credibleSet"),
-                    f.transform(
-                        f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
-                        lambda index: f.aggregate(
-                            f.slice(
-                                # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
-                                # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                                f.col("credibleSet.posteriorProbability"),
-                                1,
-                                index - 1,
-                            ),
-                            f.lit(0.0),
-                            lambda acc, el: acc + el,
-                        ),
+        self.df = (
+            self.df.withColumn(
+                # Sort credible set by posterior probability in descending order
+                "credibleSet",
+                f.when(
+                    f.size(f.col("credibleSet")) > 0,
+                    order_array_of_structs_by_field(
+                        "credibleSet", "posteriorProbability"
                     ),
-                    lambda struct_e, acc: struct_e.withField(
-                        CredibleInterval.IS95.value, acc < 0.95
-                    ).withField(CredibleInterval.IS99.value, acc < 0.99),
-                ),
-            ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+            )
+            .withColumn(
+                # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
+                # and zip the cumulative sums array with the credible set array to add the flags
+                "credibleSet",
+                f.when(
+                    f.size(f.col("credibleSet")) > 0,
+                    f.zip_with(
+                        f.col("credibleSet"),
+                        f.transform(
+                            f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
+                            lambda index: f.aggregate(
+                                f.slice(
+                                    # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
+                                    # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
+                                    f.col("credibleSet.posteriorProbability"),
+                                    1,
+                                    index - 1,
+                                ),
+                                f.lit(0.0),
+                                lambda acc, el: acc + el,
+                            ),
+                        ),
+                        lambda struct_e, acc: struct_e.withField(
+                            CredibleInterval.IS95.value, acc < 0.95
+                        ).withField(CredibleInterval.IS99.value, acc < 0.99),
+                    ),
+                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+            )
+            .withColumn(
+                "credibleSet", StudyLocus._filter_credible_set(f.col("credibleSet"))
+            )
         )
         return self
 
