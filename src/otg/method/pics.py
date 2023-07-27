@@ -59,12 +59,12 @@ class PICS:
             >>> PICS._pics_standard_deviation(neglog_p=1.0, r2=1.0, k=6.4)
             0.0
             >>> round(PICS._pics_standard_deviation(neglog_p=10.0, r2=0.5, k=6.4), 3)
-            0.143
+            1.493
             >>> print(PICS._pics_standard_deviation(neglog_p=1.0, r2=0.0, k=6.4))
             None
         """
         return (
-            (1 - abs(r2) ** 0.5**k) ** 0.5 * (neglog_p) ** 0.5 / 2
+            ((1 - (abs(r2) ** 0.5) ** k) ** 0.5) * (neglog_p**0.5) / 2
             if r2 >= 0.5
             else None
         )
