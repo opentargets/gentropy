@@ -1,13 +1,10 @@
 """Unit test configuration."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import dbldatagen as dg
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
-from otg.common.schemas import parse_spark_schema
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
@@ -24,9 +21,6 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
-
-if TYPE_CHECKING:
-    from pyspark.sql.types import StructType
 
 
 @pytest.fixture(scope="session")
@@ -61,7 +55,7 @@ def spark() -> SparkSession:
 @pytest.fixture()
 def mock_colocalisation(spark: SparkSession) -> Colocalisation:
     """Mock colocalisation dataset."""
-    schema = parse_spark_schema("colocalisation.json")
+    coloc_schema = Colocalisation._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -70,7 +64,7 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
             partitions=4,
             randomSeedMethod="hash_fieldname",
         )
-        .withSchema(schema)
+        .withSchema(coloc_schema)
         .withColumnSpec("coloc_h0", percentNulls=0.1)
         .withColumnSpec("coloc_h1", percentNulls=0.1)
         .withColumnSpec("coloc_h2", percentNulls=0.1)
@@ -79,12 +73,12 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("coloc_log2_h4_h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
     )
-    return Colocalisation(_df=data_spec.build(), _schema=schema)
+    return Colocalisation(_df=data_spec.build(), _schema=coloc_schema)
 
 
 def mock_study_index_data(spark: SparkSession) -> DataFrame:
     """Mock v2g dataset."""
-    schema = parse_spark_schema("studies.json")
+    si_schema = StudyIndex._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -93,7 +87,7 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
             partitions=4,
             randomSeedMethod="hash_fieldname",
         )
-        .withSchema(schema)
+        .withSchema(si_schema)
         .withColumnSpec(
             "traitFromSourceMappedIds",
             expr="array(cast(rand() AS string))",
@@ -133,7 +127,7 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
     """Mock StudyIndex dataset."""
     return StudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=parse_spark_schema("studies.json"),
+        _schema=StudyIndex._get_schema(),
     )
 
 
@@ -142,7 +136,7 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
     """Mock StudyIndexGWASCatalog dataset."""
     return StudyIndexGWASCatalog(
         _df=mock_study_index_data(spark),
-        _schema=parse_spark_schema("studies.json"),
+        _schema=StudyIndexGWASCatalog._get_schema(),
     )
 
 
@@ -151,7 +145,7 @@ def mock_study_index_finngen(spark: SparkSession) -> StudyIndexFinnGen:
     """Mock StudyIndexFinnGen dataset."""
     return StudyIndexFinnGen(
         _df=mock_study_index_data(spark),
-        _schema=parse_spark_schema("studies.json"),
+        _schema=StudyIndexFinnGen._get_schema(),
     )
 
 
@@ -160,14 +154,14 @@ def mock_study_index_ukbiobank(spark: SparkSession) -> StudyIndexUKBiobank:
     """Mock StudyIndexUKBiobank dataset."""
     return StudyIndexUKBiobank(
         _df=mock_study_index_data(spark),
-        _schema=parse_spark_schema("studies.json"),
+        _schema=StudyIndexUKBiobank._get_schema(),
     )
 
 
 @pytest.fixture()
 def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
     """Mock StudyLocusOverlap dataset."""
-    schema = parse_spark_schema("study_locus_overlap.json")
+    overlap_schema = StudyLocusOverlap._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -176,19 +170,19 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
             partitions=4,
             randomSeedMethod="hash_fieldname",
         )
-        .withSchema(schema)
+        .withSchema(overlap_schema)
         .withColumnSpec("right_logABF", percentNulls=0.1)
         .withColumnSpec("left_logABF", percentNulls=0.1)
         .withColumnSpec("right_posteriorProbability", percentNulls=0.1)
         .withColumnSpec("left_posteriorProbability", percentNulls=0.1)
     )
 
-    return StudyLocusOverlap(_df=data_spec.build(), _schema=schema)
+    return StudyLocusOverlap(_df=data_spec.build(), _schema=overlap_schema)
 
 
 def mock_study_locus_data(spark: SparkSession) -> DataFrame:
     """Mock study_locus dataset."""
-    schema = parse_spark_schema("study_locus.json")
+    sl_schema = StudyLocus._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -197,7 +191,7 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
             partitions=4,
             randomSeedMethod="hash_fieldname",
         )
-        .withSchema(schema)
+        .withSchema(sl_schema)
         .withColumnSpec("chromosome", percentNulls=0.1)
         .withColumnSpec("position", percentNulls=0.1)
         .withColumnSpec("beta", percentNulls=0.1)
@@ -227,35 +221,27 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def mock_study_locus(spark: SparkSession, study_locus_schema: StructType) -> StudyLocus:
+def mock_study_locus(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocus(
         _df=mock_study_locus_data(spark),
-        _schema=study_locus_schema,
+        _schema=StudyLocusGWASCatalog._get_schema(),
     )
 
 
 @pytest.fixture()
-def mock_study_locus_gwas_catalog(
-    spark: SparkSession, study_locus_schema: StructType
-) -> StudyLocus:
+def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocusGWASCatalog(
         _df=mock_study_locus_data(spark),
-        _schema=study_locus_schema,
+        _schema=StudyLocusGWASCatalog._get_schema(),
     )
-
-
-@pytest.fixture()
-def study_locus_schema() -> StructType:
-    """Mock study_locus schema."""
-    return parse_spark_schema("study_locus.json")
 
 
 @pytest.fixture()
 def mock_intervals(spark: SparkSession) -> Intervals:
     """Mock intervals dataset."""
-    interval_schema = parse_spark_schema("intervals.json")
+    interval_schema = Intervals._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -277,7 +263,7 @@ def mock_intervals(spark: SparkSession) -> Intervals:
 @pytest.fixture()
 def mock_v2g(spark: SparkSession) -> V2G:
     """Mock v2g dataset."""
-    v2g_schema = parse_spark_schema("v2g.json")
+    v2g_schema = V2G._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -303,7 +289,7 @@ def mock_v2g(spark: SparkSession) -> V2G:
 @pytest.fixture()
 def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
     """Mock variant annotation."""
-    va_schema = parse_spark_schema("variant_annotation.json")
+    va_schema = VariantAnnotation._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -336,13 +322,13 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
             percentNulls=0.1,
         )
     )
-    return VariantAnnotation(_df=data_spec.build())
+    return VariantAnnotation(_df=data_spec.build(), _schema=va_schema)
 
 
 @pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
     """Mock gene index."""
-    vi_schema = parse_spark_schema("variant_index.json")
+    vi_schema = VariantIndex._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -377,7 +363,7 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
 @pytest.fixture()
 def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
     """Generating a mock summary statistics dataset."""
-    schema = parse_spark_schema("summary_statistics.json")
+    ss_schema = SummaryStatistics._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -387,7 +373,7 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
             randomSeedMethod="hash_fieldname",
             name="summaryStats",
         )
-        .withSchema(schema)
+        .withSchema(ss_schema)
         # Allowing missingness in effect allele frequency and enforce upper limit:
         .withColumnSpec(
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
@@ -404,13 +390,13 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
         "betaConfidenceIntervalLower", "betaConfidenceIntervalUpper"
     )
 
-    return SummaryStatistics(_df=data_spec)
+    return SummaryStatistics(_df=data_spec, _schema=ss_schema)
 
 
 @pytest.fixture()
 def mock_ld_index(spark: SparkSession) -> LDIndex:
     """Mock gene index."""
-    ld_schema = parse_spark_schema("ld_index.json")
+    ld_schema = LDIndex._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -501,7 +487,7 @@ def sample_target_index(spark: SparkSession) -> DataFrame:
 @pytest.fixture()
 def mock_gene_index(spark: SparkSession) -> GeneIndex:
     """Mock gene index dataset."""
-    schema = parse_spark_schema("targets.json")
+    gi_schema = GeneIndex._get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -510,11 +496,11 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
             partitions=4,
             randomSeedMethod="hash_fieldname",
         )
-        .withSchema(schema)
+        .withSchema(gi_schema)
         .withColumnSpec("approvedSymbol", percentNulls=0.1)
         .withColumnSpec("biotype", percentNulls=0.1)
         .withColumnSpec("approvedName", percentNulls=0.1)
         .withColumnSpec("tss", percentNulls=0.1)
     )
 
-    return GeneIndex(_df=data_spec.build(), _schema=schema)
+    return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
