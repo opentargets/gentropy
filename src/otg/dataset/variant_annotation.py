@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
 
 
@@ -25,23 +24,10 @@ if TYPE_CHECKING:
 class VariantAnnotation(Dataset):
     """Dataset with variant-level annotations derived from GnomAD."""
 
-    _schema: StructType = parse_spark_schema("variant_annotation.json")
-
     @classmethod
-    def from_parquet(
-        cls: type[VariantAnnotation], session: Session, path: str
-    ) -> VariantAnnotation:
-        """Initialise VariantAnnotation from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            VariantAnnotation: VariantAnnotation dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def _get_schema(cls: type[VariantAnnotation]) -> StructType:
+        """Provides the schema for the VariantAnnotation dataset."""
+        return parse_spark_schema("variant_annotation.json")
 
     @classmethod
     def from_gnomad(
@@ -150,7 +136,8 @@ class VariantAnnotation(Dataset):
                 .drop("locus", "alleles")
                 .select_globals()
                 .to_spark(flatten=False)
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
     def persist(self: VariantAnnotation) -> VariantAnnotation:
@@ -243,8 +230,7 @@ class VariantAnnotation(Dataset):
         )
 
         return V2G(
-            _df=self.get_transcript_consequence_df(filter_by)
-            .select(
+            _df=self.get_transcript_consequence_df(filter_by).select(
                 "variantId",
                 "chromosome",
                 "position",
@@ -264,7 +250,8 @@ class VariantAnnotation(Dataset):
                 lambda df: get_record_with_maximum_value(
                     df, ["variantId", "geneId"], "score"
                 )
-            )
+            ),
+            _schema=V2G._get_schema(),
         )
 
     def get_polyphen_v2g(
@@ -281,18 +268,21 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments with their polyphen scores
         """
         return V2G(
-            _df=self.get_transcript_consequence_df(filter_by)
-            .filter(f.col("transcriptConsequence.polyphenScore").isNotNull())
-            .select(
-                "variantId",
-                "chromosome",
-                "position",
-                "geneId",
-                f.col("transcriptConsequence.polyphenScore").alias("score"),
-                f.col("transcriptConsequence.polyphenPrediction").alias("label"),
-                f.lit("vep").alias("datatypeId"),
-                f.lit("polyphen").alias("datasourceId"),
-            )
+            _df=(
+                self.get_transcript_consequence_df(filter_by)
+                .filter(f.col("transcriptConsequence.polyphenScore").isNotNull())
+                .select(
+                    "variantId",
+                    "chromosome",
+                    "position",
+                    "geneId",
+                    f.col("transcriptConsequence.polyphenScore").alias("score"),
+                    f.col("transcriptConsequence.polyphenPrediction").alias("label"),
+                    f.lit("vep").alias("datatypeId"),
+                    f.lit("polyphen").alias("datasourceId"),
+                )
+            ),
+            _schema=V2G._get_schema(),
         )
 
     def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
@@ -308,18 +298,21 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments with their SIFT scores
         """
         return V2G(
-            _df=self.get_transcript_consequence_df(filter_by)
-            .filter(f.col("transcriptConsequence.siftScore").isNotNull())
-            .select(
-                "variantId",
-                "chromosome",
-                "position",
-                "geneId",
-                f.expr("1 - transcriptConsequence.siftScore").alias("score"),
-                f.col("transcriptConsequence.siftPrediction").alias("label"),
-                f.lit("vep").alias("datatypeId"),
-                f.lit("sift").alias("datasourceId"),
-            )
+            _df=(
+                self.get_transcript_consequence_df(filter_by)
+                .filter(f.col("transcriptConsequence.siftScore").isNotNull())
+                .select(
+                    "variantId",
+                    "chromosome",
+                    "position",
+                    "geneId",
+                    f.expr("1 - transcriptConsequence.siftScore").alias("score"),
+                    f.col("transcriptConsequence.siftPrediction").alias("label"),
+                    f.lit("vep").alias("datatypeId"),
+                    f.lit("sift").alias("datasourceId"),
+                )
+            ),
+            _schema=V2G._get_schema(),
         )
 
     def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
@@ -334,30 +327,33 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments from the LOFTEE algorithm
         """
         return V2G(
-            _df=self.get_transcript_consequence_df(filter_by)
-            .filter(f.col("transcriptConsequence.lof").isNotNull())
-            .withColumn(
-                "isHighQualityPlof",
-                f.when(f.col("transcriptConsequence.lof") == "HC", True).when(
-                    f.col("transcriptConsequence.lof") == "LC", False
-                ),
-            )
-            .withColumn(
-                "score",
-                f.when(f.col("isHighQualityPlof"), 1.0).when(
-                    ~f.col("isHighQualityPlof"), 0
-                ),
-            )
-            .select(
-                "variantId",
-                "chromosome",
-                "position",
-                "geneId",
-                "isHighQualityPlof",
-                f.col("score"),
-                f.lit("vep").alias("datatypeId"),
-                f.lit("loftee").alias("datasourceId"),
-            )
+            _df=(
+                self.get_transcript_consequence_df(filter_by)
+                .filter(f.col("transcriptConsequence.lof").isNotNull())
+                .withColumn(
+                    "isHighQualityPlof",
+                    f.when(f.col("transcriptConsequence.lof") == "HC", True).when(
+                        f.col("transcriptConsequence.lof") == "LC", False
+                    ),
+                )
+                .withColumn(
+                    "score",
+                    f.when(f.col("isHighQualityPlof"), 1.0).when(
+                        ~f.col("isHighQualityPlof"), 0
+                    ),
+                )
+                .select(
+                    "variantId",
+                    "chromosome",
+                    "position",
+                    "geneId",
+                    "isHighQualityPlof",
+                    f.col("score"),
+                    f.lit("vep").alias("datatypeId"),
+                    f.lit("loftee").alias("datasourceId"),
+                )
+            ),
+            _schema=V2G._get_schema(),
         )
 
     def get_distance_to_tss(
@@ -375,28 +371,31 @@ class VariantAnnotation(Dataset):
             V2G: variant to gene assignments with their distance to the TSS
         """
         return V2G(
-            _df=self.df.alias("variant")
-            .join(
-                f.broadcast(filter_by.locations_lut()).alias("gene"),
-                on=[
-                    f.col("variant.chromosome") == f.col("gene.chromosome"),
-                    f.abs(f.col("variant.position") - f.col("gene.tss"))
-                    <= max_distance,
-                ],
-                how="inner",
-            )
-            .withColumn(
-                "inverse_distance",
-                max_distance - f.abs(f.col("variant.position") - f.col("gene.tss")),
-            )
-            .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
-            .select(
-                "variantId",
-                f.col("variant.chromosome").alias("chromosome"),
-                "position",
-                "geneId",
-                "score",
-                f.lit("distance").alias("datatypeId"),
-                f.lit("canonical_tss").alias("datasourceId"),
-            )
+            _df=(
+                self.df.alias("variant")
+                .join(
+                    f.broadcast(filter_by.locations_lut()).alias("gene"),
+                    on=[
+                        f.col("variant.chromosome") == f.col("gene.chromosome"),
+                        f.abs(f.col("variant.position") - f.col("gene.tss"))
+                        <= max_distance,
+                    ],
+                    how="inner",
+                )
+                .withColumn(
+                    "inverse_distance",
+                    max_distance - f.abs(f.col("variant.position") - f.col("gene.tss")),
+                )
+                .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
+                .select(
+                    "variantId",
+                    f.col("variant.chromosome").alias("chromosome"),
+                    "position",
+                    "geneId",
+                    "score",
+                    f.lit("distance").alias("datatypeId"),
+                    f.lit("canonical_tss").alias("datasourceId"),
+                )
+            ),
+            _schema=V2G._get_schema(),
         )

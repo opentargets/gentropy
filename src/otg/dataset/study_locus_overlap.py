@@ -10,8 +10,6 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
-
 
 @dataclass
 class StudyLocusOverlap(Dataset):
@@ -20,20 +18,7 @@ class StudyLocusOverlap(Dataset):
     This dataset captures pairs of overlapping `StudyLocus`.
     """
 
-    _schema: StructType = parse_spark_schema("study_locus_overlap.json")
-
     @classmethod
-    def from_parquet(
-        cls: type[StudyLocusOverlap], session: Session, path: str
-    ) -> StudyLocusOverlap:
-        """Initialise StudyLocusOverlap from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            StudyLocusOverlap: Study-locus overlap dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def _get_schema(cls: type[StudyLocusOverlap]) -> StructType:
+        """Provides the schema for the StudyLocusOverlap dataset."""
+        return parse_spark_schema("study_locus_overlap.json")

@@ -83,8 +83,6 @@ class StudyLocus(Dataset):
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
 
-    _schema: StructType = parse_spark_schema("study_locus.json")
-
     @staticmethod
     def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
         """Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.
@@ -156,26 +154,29 @@ class StudyLocus(Dataset):
 
         # Include information about all tag variants in both study-locus aligned by tag variant id
         return StudyLocusOverlap(
-            _df=overlapping_left.join(
-                overlapping_right,
-                on=[
-                    "chromosome",
-                    "right_studyLocusId",
-                    "left_studyLocusId",
-                    "tagVariantId",
-                ],
-                how="outer",
-            )
-            # ensures nullable=false for following columns
-            .fillna(
-                value="unknown",
-                subset=[
-                    "chromosome",
-                    "right_studyLocusId",
-                    "left_studyLocusId",
-                    "tagVariantId",
-                ],
-            )
+            _df=(
+                overlapping_left.join(
+                    overlapping_right,
+                    on=[
+                        "chromosome",
+                        "right_studyLocusId",
+                        "left_studyLocusId",
+                        "tagVariantId",
+                    ],
+                    how="outer",
+                )
+                # ensures nullable=false for following columns
+                .fillna(
+                    value="unknown",
+                    subset=[
+                        "chromosome",
+                        "right_studyLocusId",
+                        "left_studyLocusId",
+                        "tagVariantId",
+                    ],
+                )
+            ),
+            _schema=StudyLocusOverlap._get_schema(),
         )
 
     @staticmethod
@@ -199,18 +200,9 @@ class StudyLocus(Dataset):
         ).otherwise(qc)
 
     @classmethod
-    def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
-        """Initialise StudyLocus from parquet file.
-
-        Args:
-            session (Session): spark session
-            path (str): Path to parquet file
-
-        Returns:
-            StudyLocus: Study-locus dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def _get_schema(cls: type[StudyLocus]) -> StructType:
+        """Provides the schema for the StudyLocus dataset."""
+        return parse_spark_schema("study_locus.json")
 
     def credible_set(
         self: StudyLocus,
@@ -1492,7 +1484,8 @@ class StudyLocusGWASCatalog(StudyLocus):
                 ).alias("subStudyDescription"),
                 # Quality controls (array of strings)
                 "qualityControls",
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
     def update_study_id(

@@ -17,7 +17,6 @@ from otg.common.utils import convert_gnomad_position_to_ensembl
 from otg.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from otg.common.session import Session
     from pyspark.sql.types import StructType
     from hail.table import Table
     from pyspark.sql import Column
@@ -28,8 +27,6 @@ import hail as hl
 @dataclass
 class LDIndex(Dataset):
     """Dataset to index access to LD information from GnomAD."""
-
-    _schema: StructType = parse_spark_schema("ld_index.json")
 
     @staticmethod
     def _liftover_loci(variant_index: Table, grch37_to_grch38_chain_path: str) -> Table:
@@ -126,18 +123,9 @@ class LDIndex(Dataset):
         return f.max(position).over(w)
 
     @classmethod
-    def from_parquet(cls: type[LDIndex], session: Session, path: str) -> LDIndex:
-        """Initialise LD index from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            LDIndex: LD index dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def _get_schema(cls: type[LDIndex]) -> StructType:
+        """Provides the schema for the LDIndex dataset."""
+        return parse_spark_schema("ld_index.json")
 
     @classmethod
     def create(
@@ -160,50 +148,60 @@ class LDIndex(Dataset):
         ld_index_38 = LDIndex._liftover_loci(ld_index, grch37_to_grch38_chain_path)
 
         return cls(
-            _df=ld_index_38.to_spark()
-            .filter(f.col("`locus38.position`").isNotNull())
-            .select(
-                f.coalesce(f.col("idx"), f.monotonically_increasing_id()).alias("idx"),
-                f.coalesce(
-                    f.regexp_replace("`locus38.contig`", "chr", ""), f.lit("unknown")
-                ).alias("chromosome"),
-                f.coalesce(f.col("`locus38.position`"), f.lit(-1)).alias("position"),
-                f.coalesce(f.col("`alleles`").getItem(0), f.lit("?")).alias(
-                    "referenceAllele"
-                ),
-                f.coalesce(f.col("`alleles`").getItem(1), f.lit("?")).alias(
-                    "alternateAllele"
-                ),
-            )
-            # Convert gnomad position to Ensembl position (1-based for indels)
-            .withColumn(
-                "position",
-                convert_gnomad_position_to_ensembl(
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                ),
-            )
-            .withColumn(
-                "variantId",
-                f.concat_ws(
-                    "_",
-                    f.col("chromosome"),
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                ),
-            )
-            # Filter out variants mapping to several indices due to liftover
-            .withColumn("count", f.count("*").over(Window.partitionBy(["variantId"])))
-            .filter(f.col("count") == 1)
-            .drop("count")
-            .withColumn("start_idx", f.lit(None).cast(t.LongType()))
-            .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
-            .repartition(400, "chromosome")
-            .sortWithinPartitions("position")
-            .persist()
-        ).annotate_index_intervals(ld_radius)
+            _df=(
+                ld_index_38.to_spark()
+                .filter(f.col("`locus38.position`").isNotNull())
+                .select(
+                    f.coalesce(f.col("idx"), f.monotonically_increasing_id()).alias(
+                        "idx"
+                    ),
+                    f.coalesce(
+                        f.regexp_replace("`locus38.contig`", "chr", ""),
+                        f.lit("unknown"),
+                    ).alias("chromosome"),
+                    f.coalesce(f.col("`locus38.position`"), f.lit(-1)).alias(
+                        "position"
+                    ),
+                    f.coalesce(f.col("`alleles`").getItem(0), f.lit("?")).alias(
+                        "referenceAllele"
+                    ),
+                    f.coalesce(f.col("`alleles`").getItem(1), f.lit("?")).alias(
+                        "alternateAllele"
+                    ),
+                )
+                # Convert gnomad position to Ensembl position (1-based for indels)
+                .withColumn(
+                    "position",
+                    convert_gnomad_position_to_ensembl(
+                        f.col("position"),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                    ),
+                )
+                .withColumn(
+                    "variantId",
+                    f.concat_ws(
+                        "_",
+                        f.col("chromosome"),
+                        f.col("position"),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                    ),
+                )
+                # Filter out variants mapping to several indices due to liftover
+                .withColumn(
+                    "count", f.count("*").over(Window.partitionBy(["variantId"]))
+                )
+                .filter(f.col("count") == 1)
+                .drop("count")
+                .withColumn("start_idx", f.lit(None).cast(t.LongType()))
+                .withColumn("stop_idx", f.lit(None).cast(t.LongType()))
+                .repartition(400, "chromosome")
+                .sortWithinPartitions("position")
+                .persist()
+            ).annotate_index_intervals(ld_radius),
+            _schema=cls._get_schema(),
+        )
 
     def annotate_index_intervals(self: LDIndex, ld_radius: int) -> LDIndex:
         """Annotate LD index with indices starting and stopping at a given interval.

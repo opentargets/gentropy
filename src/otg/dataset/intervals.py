@@ -27,21 +27,10 @@ if TYPE_CHECKING:
 class Intervals(Dataset):
     """Intervals dataset links genes to genomic regions based on genome interaction studies."""
 
-    _schema: StructType = parse_spark_schema("intervals.json")
-
     @classmethod
-    def from_parquet(cls: type[Intervals], session: Session, path: str) -> Intervals:
-        """Initialise Intervals from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            Intervals: Intervals dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def _get_schema(cls: type[Intervals]) -> StructType:
+        """Provides the schema for the Intervals dataset."""
+        return parse_spark_schema("intervals.json")
 
     @classmethod
     def parse_andersson(
@@ -149,7 +138,8 @@ class Intervals(Dataset):
                     f.lit(pmid).alias("pmid"),
                     f.lit(bio_feature).alias("biofeature"),
                 )
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
     @classmethod
@@ -289,7 +279,8 @@ class Intervals(Dataset):
                     f.lit(experiment_type).alias("datatypeId"),
                     f.lit(pmid).alias("pmid"),
                 )
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
     @classmethod
@@ -368,7 +359,8 @@ class Intervals(Dataset):
                     f.lit(pmid).alias("pmid"),
                 )
                 .drop_duplicates()
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
     @classmethod
@@ -446,7 +438,8 @@ class Intervals(Dataset):
                     f.lit(pmid).alias("pmid"),
                 )
                 .drop_duplicates()
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
     def v2g(self: Intervals, variant_index: VariantIndex) -> V2G:
@@ -475,5 +468,6 @@ class Intervals(Dataset):
                     how="inner",
                 )
                 .drop("start", "end", "vi_chromosome")
-            )
+            ),
+            _schema=V2G._get_schema(),
         )

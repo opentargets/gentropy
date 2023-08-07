@@ -10,27 +10,12 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
-
 
 @dataclass
 class Colocalisation(Dataset):
     """Colocalisation results for pairs of overlapping study-locus."""
 
-    _schema: StructType = parse_spark_schema("colocalisation.json")
-
     @classmethod
-    def from_parquet(
-        cls: type[Colocalisation], session: Session, path: str
-    ) -> Colocalisation:
-        """Initialise Colocalisation dataset from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            Colocalisation: Colocalisation results
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def _get_schema(cls: type[Colocalisation]) -> StructType:
+        """Provides the schema for the Colocalisation dataset."""
+        return parse_spark_schema("colocalisation.json")

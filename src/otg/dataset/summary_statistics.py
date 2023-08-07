@@ -19,8 +19,8 @@ from otg.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
+    from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
     from otg.dataset.study_locus import StudyLocus
 
 
@@ -31,23 +31,10 @@ class SummaryStatistics(Dataset):
     A summary statistics dataset contains all single point statistics resulting from a GWAS.
     """
 
-    _schema: t.StructType = parse_spark_schema("summary_statistics.json")
-
     @classmethod
-    def from_parquet(
-        cls: type[SummaryStatistics], session: Session, path: str
-    ) -> SummaryStatistics:
-        """Initialise SummaryStatistics from parquet file.
-
-        Args:
-            session (Session): Session
-            path (str): Path to parquet file
-
-        Returns:
-            SummaryStatistics: SummaryStatistics dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def _get_schema(cls: type[SummaryStatistics]) -> StructType:
+        """Provides the schema for the SummaryStatistics dataset."""
+        return parse_spark_schema("summary_statistics.json")
 
     @classmethod
     def from_gwas_harmonized_summary_stats(
@@ -110,6 +97,7 @@ class SummaryStatistics(Dataset):
         # Initializing summary statistics object:
         return cls(
             _df=processed_sumstats_df,
+            _schema=cls._get_schema(),
         )
 
     def pvalue_filter(self: SummaryStatistics, pvalue: float) -> SummaryStatistics:
@@ -132,7 +120,7 @@ class SummaryStatistics(Dataset):
                 & (f.col("pValueMantissa") <= mantissa)
             )
         )
-        return SummaryStatistics(_df=df)
+        return SummaryStatistics(_df=df, _schema=self._schema)
 
     def window_based_clumping(self: SummaryStatistics, distance: int) -> StudyLocus:
         """Perform distance-based clumping.

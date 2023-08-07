@@ -21,8 +21,6 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
-
 
 @dataclass
 class StudyIndex(Dataset):
@@ -31,21 +29,10 @@ class StudyIndex(Dataset):
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
 
-    _schema: StructType = parse_spark_schema("studies.json")
-
     @classmethod
-    def from_parquet(cls: type[StudyIndex], session: Session, path: str) -> StudyIndex:
-        """Initialise StudyIndex from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            StudyIndex: Study index dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def get_schema(cls: type[StudyIndex]) -> StructType:
+        """Provides the schema for the StudyIndex dataset."""
+        return parse_spark_schema("studies.json")
 
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.
@@ -124,7 +111,8 @@ class StudyIndexGWASCatalog(StudyIndex):
                 parse_efos(f.col("MAPPED BACKGROUND TRAIT URI")).alias(
                     "backgroundTraitFromSourceMappedIds"
                 ),
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
     @classmethod
@@ -486,7 +474,8 @@ class StudyIndexFinnGen(StudyIndex):
                         f.lit(finngen_sumstat_url_suffix),
                     ),
                 )
-            )
+            ),
+            _schema=cls._get_schema(),
         )
 
 
@@ -580,5 +569,6 @@ class StudyIndexUKBiobank(StudyIndex):
                         ),
                     ).otherwise(f.col("traitFromSource")),
                 )
-            )
+            ),
+            _schema=cls._get_schema(),
         )
