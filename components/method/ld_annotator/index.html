@@ -390,7 +390,7 @@
 <span class=sd>        Returns:</span>
 <span class=sd>            DataFrame: LD coordinates [variantId, chromosome, gnomadPopulation, i, idxs, start_idx and stop_idx]</span>
 <span class=sd>        &quot;&quot;&quot;</span>
-        <span class=n>w</span> <span class=o>=</span> <span class=n>Window</span><span class=o>.</span><span class=n>orderBy</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;idx&quot;</span><span class=p>)</span>
+        <span class=n>w</span> <span class=o>=</span> <span class=n>Window</span><span class=o>.</span><span class=n>orderBy</span><span class=p>(</span><span class=s2>&quot;idx&quot;</span><span class=p>)</span>
         <span class=k>return</span> <span class=p>(</span>
             <span class=n>variants_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
                 <span class=n>ld_index</span><span class=o>.</span><span class=n>df</span><span class=p>,</span>
@@ -406,7 +406,7 @@
             <span class=p>)</span>
             <span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
             <span class=c1># necessary to resolve return of .entries() function</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;i&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>row_number</span><span class=p>()</span><span class=o>.</span><span class=n>over</span><span class=p>(</span><span class=n>w</span><span class=p>))</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;i&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>row_number</span><span class=p>()</span><span class=o>.</span><span class=n>over</span><span class=p>(</span><span class=n>w</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
             <span class=c1># the dataframe has to be ordered to query the block matrix</span>
             <span class=o>.</span><span class=n>orderBy</span><span class=p>(</span><span class=s2>&quot;idx&quot;</span><span class=p>)</span>
         <span class=p>)</span>
@@ -619,15 +619,15 @@
         <span class=n>locus_ancestry</span> <span class=o>=</span> <span class=p>(</span>
             <span class=n>associations</span><span class=o>.</span><span class=n>unique_study_locus_ancestries</span><span class=p>(</span><span class=n>studies</span><span class=p>)</span>
             <span class=c1># Ignoring study information / relativeSampleSize to get unique lead-ancestry pairs</span>
-            <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;relativeSampleSize&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;gnomadPopulation&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
             <span class=o>.</span><span class=n>persist</span><span class=p>()</span>
         <span class=p>)</span>
 
         <span class=c1># All gnomad populations captured in associations:</span>
-        <span class=n>assoc_populations</span> <span class=o>=</span> <span class=n>locus_ancestry</span><span class=o>.</span><span class=n>rdd</span><span class=o>.</span><span class=n>map</span><span class=p>(</span>
-            <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>gnomadPopulation</span>
-        <span class=p>)</span><span class=o>.</span><span class=n>collect</span><span class=p>()</span>
+        <span class=n>assoc_populations</span> <span class=o>=</span> <span class=p>(</span>
+            <span class=n>locus_ancestry</span><span class=o>.</span><span class=n>rdd</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>gnomadPopulation</span><span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span><span class=o>.</span><span class=n>collect</span><span class=p>()</span>
+        <span class=p>)</span>
 
         <span class=c1># Retrieve LD information from gnomAD</span>
         <span class=n>ld_annotated_assocs</span> <span class=o>=</span> <span class=p>[]</span>
@@ -803,15 +803,15 @@
     <span class=n>locus_ancestry</span> <span class=o>=</span> <span class=p>(</span>
         <span class=n>associations</span><span class=o>.</span><span class=n>unique_study_locus_ancestries</span><span class=p>(</span><span class=n>studies</span><span class=p>)</span>
         <span class=c1># Ignoring study information / relativeSampleSize to get unique lead-ancestry pairs</span>
-        <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;relativeSampleSize&quot;</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;gnomadPopulation&quot;</span><span class=p>)</span>
         <span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
         <span class=o>.</span><span class=n>persist</span><span class=p>()</span>
     <span class=p>)</span>
 
     <span class=c1># All gnomad populations captured in associations:</span>
-    <span class=n>assoc_populations</span> <span class=o>=</span> <span class=n>locus_ancestry</span><span class=o>.</span><span class=n>rdd</span><span class=o>.</span><span class=n>map</span><span class=p>(</span>
-        <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>gnomadPopulation</span>
-    <span class=p>)</span><span class=o>.</span><span class=n>collect</span><span class=p>()</span>
+    <span class=n>assoc_populations</span> <span class=o>=</span> <span class=p>(</span>
+        <span class=n>locus_ancestry</span><span class=o>.</span><span class=n>rdd</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>gnomadPopulation</span><span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span><span class=o>.</span><span class=n>collect</span><span class=p>()</span>
+    <span class=p>)</span>
 
     <span class=c1># Retrieve LD information from gnomAD</span>
     <span class=n>ld_annotated_assocs</span> <span class=o>=</span> <span class=p>[]</span>
