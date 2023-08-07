@@ -1,6 +1,7 @@
 """Dataset class for OTG."""
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class Dataset:
+class Dataset(ABC):
     """Open Targets Genetics Dataset.
 
     `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `json.schemas` module.
@@ -44,19 +45,23 @@ class Dataset:
         return self._schema
 
     @classmethod
-    def from_parquet(
-        cls: type[Dataset], session: Session, path: str, schema: StructType
-    ) -> Dataset:
+    @abstractmethod
+    def _get_schema(cls: type[Dataset]) -> StructType:
+        """Abstract method to get the schema. Must be implemented by child classes."""
+        pass
+
+    @classmethod
+    def from_parquet(cls: type[Dataset], session: Session, path: str) -> Dataset:
         """Reads a parquet file into a Dataset with a given schema.
 
         Args:
             session (Session): ETL session
             path (str): Path to parquet file
-            schema (StructType): Schema to use
 
         Returns:
             Dataset: Dataset with given schema
         """
+        schema = cls._get_schema()
         df = session.read_parquet(path=path, schema=schema)
         return cls(_df=df, _schema=schema)
 
