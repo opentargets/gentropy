@@ -59,8 +59,3 @@ class VariantIndex(Dataset):
             ),
             _schema=cls._get_schema(),
         )
-
-    def persist(self: VariantIndex) -> VariantIndex:
-        """Persist DataFrame included in the Dataset."""
-        self.df = self._df.persist()
-        return self

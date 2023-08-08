@@ -140,11 +140,6 @@ class VariantAnnotation(Dataset):
             _schema=cls._get_schema(),
         )
 
-    def persist(self: VariantAnnotation) -> VariantAnnotation:
-        """Persist DataFrame included in the Dataset."""
-        self.df = self._df.persist()
-        return self
-
     def max_maf(self: VariantAnnotation) -> Column:
         """Maximum minor allele frequency accross all populations.
 

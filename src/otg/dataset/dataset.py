@@ -106,3 +106,13 @@ class Dataset(ABC):
             raise ValueError(
                 f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
             )
+
+    def persist(self: Dataset) -> Dataset:
+        """Persist in memory the DataFrame included in the Dataset."""
+        self.df = self._df.persist()
+        return self
+
+    def unpersist(self: Dataset) -> Dataset:
+        """Remove the persisted DataFrame from memory."""
+        self.df = self._df.unpersist()
+        return self
