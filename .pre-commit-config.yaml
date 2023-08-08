@@ -49,7 +49,7 @@ repos:
           - darglint
 
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.2.0
+    rev: v2.2.1
     hooks:
       - id: pycln
         args: [--all]
