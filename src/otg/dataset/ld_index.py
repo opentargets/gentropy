@@ -135,12 +135,10 @@ class LDIndex(Dataset):
         ld_index_i = ld_index.selectExpr(
             "idx as i", "variantId as variantId_i", "chromosome"
         )
-        ld_index_j = ld_index.selectExpr(
-            "idx as j", "variantId as variantId_j", "chromosome"
-        )
+        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantId_j")
         return (
-            ld_matrix.join(ld_index_i, on=["i", "chromosome"], how="inner")
-            .join(ld_index_j, on=["j", "chromosome"], how="inner")
+            ld_matrix.join(ld_index_i, on="i", how="inner")
+            .join(ld_index_j, on="j", how="inner")
             .drop("i", "j")
         )
 
