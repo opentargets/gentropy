@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from otg.common.schemas import flatten_schema
 
@@ -51,18 +51,12 @@ class Dataset(ABC):
         pass
 
     @classmethod
-    def from_parquet(cls: type[Dataset], session: Session, path: str) -> Dataset:
-        """Reads a parquet file into a Dataset with a given schema.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            Dataset: Dataset with given schema
-        """
+    def from_parquet(
+        cls: type[Dataset], session: Session, path: str, **kwargs: Dict[str, Any]
+    ) -> Dataset:
+        """Reads a parquet file into a Dataset with a given schema."""
         schema = cls._get_schema()
-        df = session.read_parquet(path=path, schema=schema)
+        df = session.read_parquet(path=path, schema=schema, **kwargs)
         return cls(_df=df, _schema=schema)
 
     def validate_schema(self: Dataset) -> None:  # sourcery skip: invert-any-all
@@ -112,3 +106,13 @@ class Dataset(ABC):
             raise ValueError(
                 f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
             )
+
+    def persist(self: Dataset) -> Dataset:
+        """Persist in memory the DataFrame included in the Dataset."""
+        self.df = self._df.persist()
+        return self
+
+    def unpersist(self: Dataset) -> Dataset:
+        """Remove the persisted DataFrame from memory."""
+        self.df = self._df.unpersist()
+        return self
