@@ -164,9 +164,13 @@ class LDIndex(Dataset):
             grch37_to_grch38_chain_path,
         )
 
-        return LDIndex._resolve_variant_indices(ld_index, ld_matrix).select(
-            "*",
-            f.lit(population_id).alias("population"),
+        return (
+            LDIndex._resolve_variant_indices(ld_index, ld_matrix)
+            .select(
+                "*",
+                f.lit(population_id).alias("population"),
+            )
+            .coalesce(400)
         )
 
     @staticmethod
@@ -241,7 +245,7 @@ class LDIndex(Dataset):
 
         ld_index_unaggregated = reduce(
             lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated
-        ).repartition(800)
+        )
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
         )
