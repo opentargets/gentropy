@@ -45,7 +45,8 @@ class Session:
                 .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
                 .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
                 .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
-                .set("spark.sql.shuffle.partitions", "10000")
+                .set("spark.sql.files.openCostInBytes", "50gb")
+                .set("spark.sql.files.maxPartitionBytes", "50gb")
                 # .set("spark.kryoserializer.buffer", "512m")
             )
             if hail_home != "unspecified"
