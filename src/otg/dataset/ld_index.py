@@ -35,7 +35,7 @@ class LDIndex(Dataset):
     ) -> DataFrame:
         """Convert LD matrix to table."""
         table = block_matrix.entries(keyed=False)
-        return LDIndex._transpose_ld_matrix(
+        return (
             table.filter(hl.abs(table.entry) >= min_r2**0.5)
             .to_spark()
             .withColumnRenamed("entry", "r")
@@ -54,27 +54,33 @@ class LDIndex(Dataset):
         Examples:
             >>> df = spark.createDataFrame(
             ...     [
-            ...         (1, 1, 1.0),
-            ...         (1, 2, 0.5),
-            ...         (2, 2, 1.0),
+            ...         (1, 1, 1.0, "1", "AFR"),
+            ...         (1, 2, 0.5, "1", "AFR"),
+            ...         (2, 2, 1.0, "1", "AFR"),
             ...     ],
-            ...     ["i", "j", "r"],
+            ...     ["variantId_i", "variantId_j", "r", "chromosome", "population"],
             ... )
             >>> LDIndex._transpose_ld_matrix(df).show()
-            +---+---+---+
-            |  i|  j|  r|
-            +---+---+---+
-            |  1|  2|0.5|
-            |  1|  1|1.0|
-            |  2|  1|0.5|
-            |  2|  2|1.0|
-            +---+---+---+
+            +-----------+-----------+---+----------+----------+
+            |variantId_i|variantId_j|  r|chromosome|population|
+            +-----------+-----------+---+----------+----------+
+            |          1|          2|0.5|         1|       AFR|
+            |          1|          1|1.0|         1|       AFR|
+            |          2|          1|0.5|         1|       AFR|
+            |          2|          2|1.0|         1|       AFR|
+            +-----------+-----------+---+----------+----------+
             <BLANKLINE>
         """
-        ld_matrix_transposed = ld_matrix.selectExpr("i as j", "j as i", "r")
-        return ld_matrix.filter(f.col("i") != f.col("j")).unionByName(
-            ld_matrix_transposed
+        ld_matrix_transposed = ld_matrix.selectExpr(
+            "variantId_i as variantId_j",
+            "variantId_j as variantId_i",
+            "r",
+            "chromosome",
+            "population",
         )
+        return ld_matrix.filter(
+            f.col("variantId_i") != f.col("variantId_j")
+        ).unionByName(ld_matrix_transposed)
 
     @staticmethod
     def _process_variant_indices(
@@ -241,8 +247,8 @@ class LDIndex(Dataset):
                 print(f"Failed to create LDIndex for population {pop}: {e}")
                 sys.exit(1)
 
-        ld_index_unaggregated = reduce(
-            lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated
+        ld_index_unaggregated = LDIndex._transpose_ld_matrix(
+            reduce(lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated)
         )
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
