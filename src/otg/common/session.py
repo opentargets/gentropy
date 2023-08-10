@@ -72,7 +72,7 @@ class Session:
     def detect_spark_memory_limit() -> int:
         """Detect the total amount of physical memory and allow Spark to use (almost) all of it."""
         mem_gib = virtual_memory().total >> 30
-        return int(mem_gib * 0.9)
+        return int(mem_gib * 0.7)
 
     def read_parquet(self: Session, path: str, schema: StructType) -> DataFrame:
         """Reads parquet dataset with a provided schema.
