@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from psutil import virtual_memory
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 
@@ -31,10 +32,16 @@ class Session:
             hail_home (str): path to hail installation
         """
         # create session and retrieve Spark logger object
+        num_executors = 2 if spark_uri == "yarn" else 1
+        memory_limit = int(self.detect_spark_memory_limit() / num_executors)
+        default_spark_conf = (
+            SparkConf()
+            .set("spark.driver.memory", f"{memory_limit}g")
+            .set("spark.executor.memory", f"{memory_limit}g")
+        )
         spark_config = (
             (
-                SparkConf()
-                .set(
+                default_spark_conf.set(
                     "spark.jars",
                     f"{hail_home}/backend/hail-all-spark.jar",
                 )
@@ -50,7 +57,7 @@ class Session:
                 # .set("spark.kryoserializer.buffer", "512m")
             )
             if hail_home != "unspecified"
-            else SparkConf()
+            else default_spark_conf
         )
         self.spark = (
             SparkSession.builder.config(conf=spark_config)
@@ -60,6 +67,12 @@ class Session:
         )
         self.logger = Log4j(self.spark)
         self.write_mode = write_mode
+
+    @staticmethod
+    def detect_spark_memory_limit() -> int:
+        """Detect the total amount of physical memory and allow Spark to use (almost) all of it."""
+        mem_gib = virtual_memory().total >> 30
+        return int(mem_gib * 0.9)
 
     def read_parquet(self: Session, path: str, schema: StructType) -> DataFrame:
         """Reads parquet dataset with a provided schema.
