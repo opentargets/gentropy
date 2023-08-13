@@ -133,6 +133,7 @@ def generate_managed_placement_template(
     placement.managed_cluster.config.master_config.disk_config.boot_disk_type = (
         "pd-ssd" if num_local_ssds > 0 else "pd-standard"
     )
+    placement.managed_cluster.config.master_config.disk_config.boot_disk_size_gb = 1000
     placement.managed_cluster.config.software_config.image_version = image_version
     placement.managed_cluster.config.software_config.properties = {
         "dataproc:dataproc.allow.zero.workers": "true",
