@@ -130,9 +130,13 @@ def generate_managed_placement_template(
     placement.managed_cluster.config.initialization_actions
 
     placement.managed_cluster.config.master_config.machine_type_uri = machine_type
+    placement.managed_cluster.config.master_config.disk_config.boot_disk_type = (
+        "pd-ssd" if num_local_ssds > 0 else "pd-standard"
+    )
     placement.managed_cluster.config.software_config.image_version = image_version
     placement.managed_cluster.config.software_config.properties = {
-        "dataproc:dataproc.allow.zero.workers": "true"
+        "dataproc:dataproc.allow.zero.workers": "true",
+        "yarn:yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage": "98",
     }
     return placement
 
