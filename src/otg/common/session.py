@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from psutil import virtual_memory
@@ -32,12 +33,27 @@ class Session:
             hail_home (str): path to hail installation
         """
         # create session and retrieve Spark logger object
-        num_executors = 2 if spark_uri == "yarn" else 1
-        memory_limit = int(self.detect_spark_memory_limit() / num_executors)
+        total_memory = self.detect_spark_memory_limit()
+        executor_memory = "50g" if total_memory >= 500 else "20g"
+        driver_memory_limit = int(0.15 * total_memory)
+
+        # create executors based on resources
+        total_cores = os.cpu_count() or 16
+        reserved_cores = 5  # for OS and other processes
+        cores_per_executor = 8
+        max_executors = int((total_cores - reserved_cores) / cores_per_executor)
         default_spark_conf = (
             SparkConf()
-            .set("spark.driver.memory", f"{memory_limit}g")
-            .set("spark.executor.memory", f"{memory_limit}g")
+            .set("spark.driver.memory", f"{driver_memory_limit}g")
+            .set("spark.executor.memory", f"{executor_memory}g")
+            # Dynamic allocation
+            .set("spark.dynamicAllocation.enabled", "true")
+            .set("spark.dynamicAllocation.minExecutors", "2")
+            .set("spark.dynamicAllocation.maxExecutors", str(max_executors))
+            .set("spark.dynamicAllocation.initialExecutors", "2")
+            .set(
+                "spark.shuffle.service.enabled", "true"
+            )  # required for dynamic allocation
         )
         spark_config = (
             (
