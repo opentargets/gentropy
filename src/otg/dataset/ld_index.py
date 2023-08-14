@@ -209,6 +209,7 @@ class LDIndex(Dataset):
             .withColumn("r_pop_struct", f.struct("population", "r"))
             .groupBy("variantId", "tagVariantId", "chromosome")
             .agg(f.collect_set("r_pop_struct").alias("rValues"))
+            .persist()
             # Second level of aggregation: get r/population for each variant
             .withColumn("r_pop_tag_struct", f.struct("tagVariantId", "rValues"))
             .groupBy("variantId", "chromosome")
