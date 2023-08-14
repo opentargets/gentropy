@@ -168,13 +168,9 @@ class LDIndex(Dataset):
             grch37_to_grch38_chain_path,
         )
 
-        return (
-            LDIndex._resolve_variant_indices(ld_index, ld_matrix)
-            .select(
-                "*",
-                f.lit(population_id).alias("population"),
-            )
-            .coalesce(400)
+        return LDIndex._resolve_variant_indices(ld_index, ld_matrix).select(
+            "*",
+            f.lit(population_id).alias("population"),
         )
 
     @staticmethod
@@ -208,8 +204,7 @@ class LDIndex(Dataset):
             <BLANKLINE>
         """
         return (
-            unaggregated_ld_index.withColumnRenamed("variantId_i", "variantId")
-            .withColumnRenamed("variantId_j", "tagVariantId")
+            unaggregated_ld_index
             # First level of aggregation: get r/population for each variant/tagVariant pair
             .withColumn("r_pop_struct", f.struct("population", "r"))
             .groupBy("variantId", "tagVariantId", "chromosome")
@@ -247,8 +242,13 @@ class LDIndex(Dataset):
                 print(f"Failed to create LDIndex for population {pop}: {e}")
                 sys.exit(1)
 
-        ld_index_unaggregated = LDIndex._transpose_ld_matrix(
-            reduce(lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated)
+        ld_index_unaggregated = (
+            LDIndex._transpose_ld_matrix(
+                reduce(lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated)
+            )
+            .withColumnRenamed("variantId_i", "variantId")
+            .withColumnRenamed("variantId_j", "tagVariantId")
+            .repartition(10_000, "variantId", "tagVariantId", "chromosome")
         )
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
