@@ -31,5 +31,5 @@ class LDIndexStep(LDIndexStepConfig):
         (
             ld_index.df.write.partitionBy("chromosome")
             .mode(self.session.write_mode)
-            .parquet(f"{self.ld_index_out}")
+            .parquet(f"{self.ld_index_out}_1408")
         )

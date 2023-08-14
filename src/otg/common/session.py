@@ -34,7 +34,7 @@ class Session:
         """
         # create session and retrieve Spark logger object
         total_memory = self.detect_spark_memory_limit()
-        executor_memory = "50g" if total_memory >= 500 else "20g"
+        executor_memory = 50 if total_memory >= 500 else 20
         driver_memory_limit = int(0.15 * total_memory)
 
         # create executors based on resources
