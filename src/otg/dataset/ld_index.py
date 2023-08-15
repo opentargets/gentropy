@@ -206,14 +206,31 @@ class LDIndex(Dataset):
         return (
             unaggregated_ld_index
             # First level of aggregation: get r/population for each variant/tagVariant pair
+            .withColumn(
+                "var_tag_chrom_hash",
+                f.xxhash64("variantId", "tagVariantId", "chromosome"),
+            )
             .withColumn("r_pop_struct", f.struct("population", "r"))
-            .groupBy("variantId", "tagVariantId", "chromosome")
-            .agg(f.collect_set("r_pop_struct").alias("rValues"))
-            .persist()
+            .groupBy("var_tag_chrom_hash")
+            .agg(
+                f.first("variantId").alias("variantId"),
+                f.first("tagVariantId").alias("tagVariantId"),
+                f.first("chromosome").alias("chromosome"),
+                f.collect_set("r_pop_struct").alias("rValues"),
+            )
             # Second level of aggregation: get r/population for each variant
+            .withColumn(
+                "var_chrom_hash",
+                f.xxhash64("variantId", "chromosome"),
+            )
             .withColumn("r_pop_tag_struct", f.struct("tagVariantId", "rValues"))
-            .groupBy("variantId", "chromosome")
-            .agg(f.collect_set("r_pop_tag_struct").alias("ldSet"))
+            .groupBy("var_chrom_hash")
+            .agg(
+                f.first("variantId").alias("variantId"),
+                f.first("chromosome").alias("chromosome"),
+                f.collect_set("r_pop_tag_struct").alias("ldSet"),
+            )
+            .drop("var_chrom_hash")
         )
 
     @classmethod
@@ -249,7 +266,6 @@ class LDIndex(Dataset):
             )
             .withColumnRenamed("variantId_i", "variantId")
             .withColumnRenamed("variantId_j", "tagVariantId")
-            .repartition(10_000, "variantId", "tagVariantId", "chromosome")
         )
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),

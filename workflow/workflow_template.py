@@ -51,7 +51,8 @@ config_tar = f"{initialisation_base_path}/config.tar.gz"
 package_wheel = f"{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
 initialisation_executable_file = f"{initialisation_base_path}/initialise_cluster.sh"
 image_version = "2.1"
-num_local_ssds = 1
+num_local_ssds = 0
+boot_disk_size_gb = 5_000
 
 # Available cluster
 cluster_uuid = "eba42738-2ea3-4b0a-ba1d-38428427e838"
@@ -133,7 +134,9 @@ def generate_managed_placement_template(
     placement.managed_cluster.config.master_config.disk_config.boot_disk_type = (
         "pd-ssd" if num_local_ssds > 0 else "pd-standard"
     )
-    placement.managed_cluster.config.master_config.disk_config.boot_disk_size_gb = 1000
+    placement.managed_cluster.config.master_config.disk_config.boot_disk_size_gb = (
+        boot_disk_size_gb
+    )
     placement.managed_cluster.config.software_config.image_version = image_version
     placement.managed_cluster.config.software_config.properties = {
         "dataproc:dataproc.allow.zero.workers": "true",

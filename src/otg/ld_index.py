@@ -19,7 +19,6 @@ class LDIndexStep(LDIndexStepConfig):
     def run(self: LDIndexStep) -> None:
         """Run LD index dump step."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
-
         ld_index = LDIndex.from_gnomad(
             self.ld_populations,
             self.ld_matrix_template,
@@ -31,5 +30,5 @@ class LDIndexStep(LDIndexStepConfig):
         (
             ld_index.df.write.partitionBy("chromosome")
             .mode(self.session.write_mode)
-            .parquet(f"{self.ld_index_out}_1408")
+            .parquet(f"{self.ld_index_out}")
         )
