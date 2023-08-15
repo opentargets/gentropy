@@ -22,9 +22,14 @@ if TYPE_CHECKING:
 
 @dataclass
 class LDIndex(Dataset):
-    """Dataset that defines a set of variants correlated by LD across populations.
+    """Dataset that defines which are the set of variants correlated by LD across populations.
 
-    The information comes from LD matrices made available by GnomAD.
+    The information comes from LD matrices [made available by GnomAD](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium) in Hail's native format. We aggregate the LD information across 8 ancestries.
+    The basic steps to generate the LDIndex are:
+
+    1. Convert a LD matrix to a Spark DataFrame.
+    2. Resolve the matrix indices to variant IDs by lifting over the coordinates to GRCh38.
+    3. Aggregate the LD information across populations.
     """
 
     _schema: StructType = parse_spark_schema("ld_index.json")
