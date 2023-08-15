@@ -12,7 +12,12 @@ from otg.dataset.ld_index import LDIndex
 
 @dataclass
 class LDIndexStep(LDIndexStepConfig):
-    """LD index step."""
+    """LD index step.
+
+    !!! warning "This step is resource intensive"
+        Suggested params: high memory machine, 5TB of boot disk, no SSDs.
+
+    """
 
     session: Session = Session()
 
