@@ -37,8 +37,8 @@ parser.add_argument(
     help="Number of local SSDs that supplement the boot disk, default: %(default)s.",
 )
 parser.add_argument(
-    "--boot-disk-size-gb",
-    metavar="boot_disk_size_gb",
+    "--boot-disk-size",
+    metavar="boot_disk_size",
     type=int,
     default=500,
     help="Size in GB of the primary disk attached to each node, default: %(default)s.",
@@ -240,8 +240,8 @@ def main(args: argparse.Namespace) -> None:
         args.machine_type,
         initialisation_executable_file,
         image_version,
-        num_local_ssds=args.num_local_ssds,
-        boot_disk_size_gb=args.boot_disk_size_gb,
+        num_local_ssds=args.num_ssds,
+        boot_disk_size_gb=args.boot_disk_size,
     )
 
     # Load steps from yaml file
