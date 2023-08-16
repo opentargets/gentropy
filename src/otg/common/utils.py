@@ -289,19 +289,19 @@ def parse_efos(efo_uri: Column) -> Column:
     return f.array_sort(f.expr(f"regexp_extract_all(`{colname}`, '([A-Z]+_[0-9]+)')"))
 
 
-def get_study_locus_id(study_id_col_name: str, variant_id_col_name: str) -> Column:
+def get_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
     """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
     Args:
-        study_id_col_name (str): column name with a study ID
-        variant_id_col_name (str): column name with a variant ID
+        study_id_col (Column): column name with a study ID
+        variant_id_col (Column): column name with a variant ID
 
     Returns:
         Column: column with a study locus ID
 
     Examples:
         >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-        >>> df.withColumn("study_locus_id", get_study_locus_id(*["variantId", "studyId"])).show()
+        >>> df.withColumn("study_locus_id", get_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
         +----------+----------+--------------------+
         |   studyId| variantId|      study_locus_id|
         +----------+----------+--------------------+
@@ -311,4 +311,4 @@ def get_study_locus_id(study_id_col_name: str, variant_id_col_name: str) -> Colu
         <BLANKLINE>
 
     """
-    return f.xxhash64(*[study_id_col_name, variant_id_col_name]).alias("studyLocusId")
+    return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")

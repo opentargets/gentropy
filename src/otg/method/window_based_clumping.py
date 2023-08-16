@@ -335,5 +335,7 @@ class WindowBasedClumping:
             # Dropping helper columns:
             .drop("isLead", "negLogPValue", "cluster_id")
             # assign study-locus id:
-            .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
+            .withColumn(
+                "studyLocusId", get_study_locus_id(f.col("studyId"), f.col("variantId"))
+            )
         )

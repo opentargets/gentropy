@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import DoubleType, IntegerType
+from pyspark.sql.types import DoubleType, IntegerType, LongType
 from pyspark.sql.window import Window
 
 from otg.assets import data
@@ -1383,7 +1383,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         """
         return cls(
             _df=gwas_associations.withColumn(
-                "studyLocusId", get_study_locus_id("variantId", "studyId")
+                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
@@ -1533,6 +1533,19 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         self.df = LDAnnotator.annotate_associations_with_ld(associations_df, ld_index)
         return self._qc_unresolved_ld()
+
+    def _assign_study_locus_id(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+        """Assign a unique study locus id to every association.
+
+        !!! warning "This method must be called after splitting the studies."
+
+        Returns:
+            StudyLocusGWASCatalog: Updated study locus with the final `studyLocusId`.
+        """
+        self.df = self.df.withColumn(
+            "studyLocusId", get_study_locus_id(f.col("studyId"), f.col("variantId"))
+        )
+        return self
 
     def _qc_ambiguous_study(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
         """Flag associations with variants that can not be unambiguously associated with one study.
