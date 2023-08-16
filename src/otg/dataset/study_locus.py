@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import DoubleType, IntegerType, LongType
+from pyspark.sql.types import DoubleType, IntegerType
 from pyspark.sql.window import Window
 
 from otg.assets import data
@@ -21,7 +21,7 @@ from otg.common.spark_helpers import (
     order_array_of_structs_by_field,
     pvalue_to_zscore,
 )
-from otg.common.utils import parse_efos
+from otg.common.utils import get_study_locus_id, parse_efos
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
@@ -1383,7 +1383,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         """
         return cls(
             _df=gwas_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
+                "studyLocusId", get_study_locus_id("variantId", "studyId")
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
