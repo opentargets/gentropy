@@ -27,7 +27,7 @@ create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies f
 		--image-version 2.1 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
-		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/initialise_cluster.sh \
+		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/install_dependencies_on_cluster.sh \
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/otgenetics-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
 		--single-node \
 		--enable-component-gateway
@@ -42,4 +42,4 @@ build: clean ## Build Python package with dependencies
 	@gsutil cp src/otg/cli.py ${BUCKET_NAME}
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl ${BUCKET_NAME}
 	@gsutil cp ./dist/config.tar.gz ${BUCKET_NAME}
-	@gsutil cp ./utils/initialise_cluster.sh ${BUCKET_NAME}
+	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}
