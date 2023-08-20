@@ -21,7 +21,7 @@ setup-dev: ## Setup development environment
 
 create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@${MAKE} build
-	@echo "Creating Dataproc Cluster"
+	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
 		--image-version 2.1 \
@@ -31,6 +31,15 @@ create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies f
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/otgenetics-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
 		--single-node \
 		--enable-component-gateway
+
+make update-dev-cluster: ## Reinstalls the package on the dev-cluster
+	@${MAKE} build
+	@echo "Updating Dataproc Dev Cluster"
+	@gcloud config set project ${PROJECT_ID}
+	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_VERSION_NO}" \
+		--region ${REGION} \
+		--jars=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
+		-e='sh chmod 750 $${PWD}/install_dependencies_on_cluster.sh; sh $${PWD}/install_dependencies_on_cluster.sh'
 
 build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
