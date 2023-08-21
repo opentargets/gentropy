@@ -13,6 +13,9 @@ from airflow.providers.google.cloud.operators.dataproc import (
     DataprocDeleteClusterOperator,
     DataprocSubmitJobOperator,
 )
+from airflow.providers.google.cloud.utils.credentials_provider import (
+    get_credentials_and_project_id,
+)
 from airflow.utils.trigger_rule import TriggerRule
 
 DAG_ID = "etl_using_external_flat_file"
@@ -24,7 +27,6 @@ SOURCES_FILE_NAME = "dag.yaml"
 SOURCE_CONFIG_FILE_PATH = DAG_DIR / CONFIG_DIR / SOURCES_FILE_NAME
 
 # Managed cluster
-project_id = "open-targets-genetics-dev"
 otg_version = "0.1.4"
 initialisation_base_path = (
     f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
@@ -39,6 +41,8 @@ num_local_ssds = 1
 # job
 python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
 cluster_config_dir = "/config"
+
+_, project_id = get_credentials_and_project_id()
 
 default_args = {
     # Tell airflow to start one day ago, so that it runs as soon as you upload it
