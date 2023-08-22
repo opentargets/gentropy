@@ -22,9 +22,9 @@ All pipelines in this repository are intended to be run in Google Dataproc. Runn
 
 In order to run the code:
 
-1. Manually edit your local [`workflow/dag.yaml`](workflow/dag.yaml) file and comment out the steps you do not want to run.
+1. Manually edit your local [`workflow/dag.yaml`](../workflow/dag.yaml) file and comment out the steps you do not want to run.
 
-2. Manually edit your local [`pyproject.toml`](pyproject.toml) file and modify the version of the code.
+2. Manually edit your local [`pyproject.toml`](../pyproject.toml) file and modify the version of the code.
     - This must be different from the version used by any other people working on the repository to avoid any deployment conflicts, so it's a good idea to use your name, for example: `1.2.3+jdoe`.
     - You can also add a brief branch description, for example: `1.2.3+jdoe.myfeature`.
     - Note that the version must comply with [PEP440 conventions](https://peps.python.org/pep-0440/#normalization), otherwise Poetry will not allow it to be deployed.
