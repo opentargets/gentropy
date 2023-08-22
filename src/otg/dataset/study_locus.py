@@ -165,16 +165,6 @@ class StudyLocus(Dataset):
                 ],
                 how="outer",
             )
-            # ensures nullable=false for following columns
-            .fillna(
-                value="unknown",
-                subset=[
-                    "chromosome",
-                    "right_studyLocusId",
-                    "left_studyLocusId",
-                    "tagVariantId",
-                ],
-            )
         )
 
     @staticmethod
