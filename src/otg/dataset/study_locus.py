@@ -154,17 +154,26 @@ class StudyLocus(Dataset):
         ).join(peak_overlaps, on=["chromosome", "right_studyLocusId"], how="inner")
 
         # Include information about all tag variants in both study-locus aligned by tag variant id
+        overlaps = overlapping_left.join(
+            overlapping_right,
+            on=[
+                "chromosome",
+                "right_studyLocusId",
+                "left_studyLocusId",
+                "tagVariantId",
+            ],
+            how="outer",
+        ).select(
+            "left_studyLocusId",
+            "right_studyLocusId",
+            "chromosome",
+            "tagVariantId",
+            f.struct(
+                *[f"left_{e}" for e in stats_cols] + [f"right_{e}" for e in stats_cols]
+            ).alias("statistics"),
+        )
         return StudyLocusOverlap(
-            _df=overlapping_left.join(
-                overlapping_right,
-                on=[
-                    "chromosome",
-                    "right_studyLocusId",
-                    "left_studyLocusId",
-                    "tagVariantId",
-                ],
-                how="outer",
-            )
+            _df=overlaps,
         )
 
     @staticmethod
