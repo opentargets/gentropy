@@ -20,7 +20,11 @@ class OverlapsIndexStep(StudyLocusOverlapStepConfig):
     session: Session = Session()
 
     def run(self: OverlapsIndexStep) -> None:
-        """Run Overlaps index step."""
+        """Run Overlaps index step.
+
+        !!! note
+            This dataset is defined to contain the overlapping signals between studyLocus associations once they have been clumped and fine-mapped.
+        """
         # Extract
         study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
         study_index = StudyIndex.from_parquet(self.session, self.study_index_path)
