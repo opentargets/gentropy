@@ -137,12 +137,12 @@ class StudyLocus(Dataset):
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         # Complete information about all tags in the left study-locus of the overlap
+        stats_cols = ["logABF", "posteriorProbability", "tagPValue", "tagBeta"]
         overlapping_left = credset_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("left_studyLocusId"),
-            f.col("logABF").alias("left_logABF"),
-            f.col("posteriorProbability").alias("left_posteriorProbability"),
+            *[f.col(col).alias(f"left_{col}") for col in stats_cols],
         ).join(peak_overlaps, on=["chromosome", "left_studyLocusId"], how="inner")
 
         # Complete information about all tags in the right study-locus of the overlap
@@ -150,8 +150,7 @@ class StudyLocus(Dataset):
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("right_studyLocusId"),
-            f.col("logABF").alias("right_logABF"),
-            f.col("posteriorProbability").alias("right_posteriorProbability"),
+            *[f.col(col).alias(f"right_{col}") for col in stats_cols],
         ).join(peak_overlaps, on=["chromosome", "right_studyLocusId"], how="inner")
 
         # Include information about all tag variants in both study-locus aligned by tag variant id
@@ -230,7 +229,7 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def overlaps(self: StudyLocus, study_index: StudyIndex) -> StudyLocusOverlap:
+    def find_overlaps(self: StudyLocus, study_index: StudyIndex) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
         Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
@@ -252,6 +251,8 @@ class StudyLocus(Dataset):
                 f.col("credibleSet.tagVariantId").alias("tagVariantId"),
                 f.col("credibleSet.logABF").alias("logABF"),
                 f.col("credibleSet.posteriorProbability").alias("posteriorProbability"),
+                f.col("credibleSet.tagPValue").alias("tagPValue"),
+                f.col("credibleSet.tagBeta").alias("tagBeta"),
             )
             .persist()
         )
