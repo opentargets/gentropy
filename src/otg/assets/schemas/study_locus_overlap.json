@@ -32,25 +32,25 @@
         "fields": [
           {
             "metadata": {},
-            "name": "left_negLogPValue",
+            "name": "left_tagPValue",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "right_negLogPValue",
+            "name": "right_tagPValue",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "left_beta",
+            "name": "left_tagBeta",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "right_beta",
+            "name": "right_tagBeta",
             "nullable": true,
             "type": "double"
           },
