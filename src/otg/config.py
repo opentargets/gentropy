@@ -325,3 +325,4 @@ def register_configs() -> None:
         group="step",
         node=GWASCatalogSumstatsPreprocessConfig,
     )
+    cs.store(name="study_locus_overlap", group="step", node=StudyLocusOverlapStepConfig)

@@ -2,6 +2,6 @@
 defaults:
   - study_locus_overlap
 # Additional config
-study_locus_path: ${datasets.outputs}/study_locus
+study_locus_path: ${datasets.outputs}/catalog_study_locus
 study_index_path: ${datasets.outputs}/catalog_study_index
-study_locus_overlap_path: ${datasets.outputs}/study_locus_overlap
+overlaps_index_out: ${datasets.outputs}/study_locus_overlap
