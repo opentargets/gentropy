@@ -42,7 +42,8 @@ cluster_config_dir = "/config"
 
 default_args = {
     # Tell airflow to start one day ago, so that it runs as soon as you upload it
-    "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
+    # "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
+    "start_date": pendulum.datetime(2025, 12, 1, tz="Europe/London"),
     "schedule_interval": None,
     "project_id": project_id,
 }
