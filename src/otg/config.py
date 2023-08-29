@@ -224,6 +224,22 @@ class GWASCatalogStepConfig:
 
 
 @dataclass
+class StudyLocusOverlapStepConfig:
+    """StudyLocus overlaps index step requirements.
+
+    Attributes:
+        study_locus_path (str): Input study-locus path.
+        study_index_path (str): Input study index path to extract the type of study.
+        overlaps_index_out (str): Output overlaps index path.
+    """
+
+    _target_: str = "otg.overlaps.OverlapsIndexStep"
+    study_locus_path: str = MISSING
+    study_index_path: str = MISSING
+    overlaps_index_out: str = MISSING
+
+
+@dataclass
 class GeneIndexStepConfig:
     """Gene index step requirements.
 
@@ -309,3 +325,4 @@ def register_configs() -> None:
         group="step",
         node=GWASCatalogSumstatsPreprocessConfig,
     )
+    cs.store(name="study_locus_overlap", group="step", node=StudyLocusOverlapStepConfig)

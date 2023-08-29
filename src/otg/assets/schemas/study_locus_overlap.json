@@ -26,27 +26,61 @@
     },
     {
       "metadata": {},
-      "name": "right_logABF",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "left_logABF",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "right_posteriorProbability",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "left_posteriorProbability",
-      "nullable": true,
-      "type": "double"
+      "name": "statistics",
+      "nullable": false,
+      "type": {
+        "fields": [
+          {
+            "metadata": {},
+            "name": "left_tagPValue",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "right_tagPValue",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "left_tagBeta",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "right_tagBeta",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "left_logABF",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "right_logABF",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "left_posteriorProbability",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "right_posteriorProbability",
+            "nullable": true,
+            "type": "double"
+          }
+        ],
+        "type": "struct"
+      }
     }
   ],
   "type": "struct"
