@@ -7,7 +7,7 @@ from otg.common.session import Session
 from otg.config import StudyLocusOverlapStepConfig
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
+from otg.dataset.study_locus_overlap import StudyLocusOverlap, StudyLocusOverlapMethod
 
 
 @dataclass
@@ -29,7 +29,9 @@ class OverlapsIndexStep(StudyLocusOverlapStepConfig):
         study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
         study_index = StudyIndex.from_parquet(self.session, self.study_index_path)
         # Transform
-        overlaps_index = StudyLocusOverlap.from_associations(study_locus, study_index)
+        overlaps_index = StudyLocusOverlap.from_associations(
+            StudyLocusOverlapMethod.LD, study_locus, study_index
+        )
         # Load
         overlaps_index.df.write.mode(self.session.write_mode).parquet(
             self.overlaps_index_out

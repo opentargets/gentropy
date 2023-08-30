@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from otg.common.schemas import parse_spark_schema
@@ -15,14 +16,23 @@ if TYPE_CHECKING:
     from otg.dataset.study_locus import StudyLocus
 
 
+class StudyLocusOverlapMethod(Enum):
+    """Applied method to find overlaps between StudyLocus associations.
+
+    Attributes:
+        LD (str): Find overlaps between StudyLocus associations using LD information. This method will find overlapping signals in associations where credible sets share at least one tagging variant.
+        DISTANCE (str): Find overlaps between StudyLocus associations within a given region. This method will find overlapping signals in associations where variants are common to both regions and are within a given distance.
+    """
+
+    LD = "LD"
+    DISTANCE = "DISTANCE"
+
+
 @dataclass
 class StudyLocusOverlap(Dataset):
     """Study-Locus overlap.
 
     This dataset captures pairs of overlapping `StudyLocus`: that is associations whose credible sets share at least one tagging variant.
-
-    !!! note
-        This is a helpful dataset for other downstream analyses, such as colocalisation. This dataset will contain the overlapping signals between studyLocus associations once they have been clumped and fine-mapped.
     """
 
     _schema: StructType = parse_spark_schema("study_locus_overlap.json")
@@ -45,15 +55,30 @@ class StudyLocusOverlap(Dataset):
 
     @classmethod
     def from_associations(
-        cls: type[StudyLocusOverlap], study_locus: StudyLocus, study_index: StudyIndex
+        cls: type[StudyLocusOverlap],
+        method: StudyLocusOverlapMethod,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
     ) -> StudyLocusOverlap:
         """Find the overlapping signals in a particular set of associations (StudyLocus dataset).
 
         Args:
+            method (StudyLocusOverlapMethod): Method to find the overlapping signals
             study_locus (StudyLocus): Study-locus associations to find the overlapping signals
             study_index (StudyIndex): Study index to find the overlapping signals
 
         Returns:
             StudyLocusOverlap: Study-locus overlap dataset
+
+        Raises:
+            ValueError: If the method is not supported
         """
-        return study_locus.find_overlaps(study_index)
+        if method not in [
+            StudyLocusOverlapMethod.LD.value,
+            StudyLocusOverlapMethod.DISTANCE.value,
+        ]:
+            raise ValueError(f"Unsupported method: {method}.")
+        elif method == StudyLocusOverlapMethod.LD.value:
+            return study_locus.find_overlaps_in_credible_set(study_index)
+        else:
+            return study_locus.find_overlaps_in_locus()

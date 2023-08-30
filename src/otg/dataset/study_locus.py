@@ -228,11 +228,16 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def find_overlaps(self: StudyLocus, study_index: StudyIndex) -> StudyLocusOverlap:
+    def find_overlaps_in_credible_set(
+        self: StudyLocus, study_index: StudyIndex
+    ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
-        Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
+        Find overlapping study-locus that share at least one tagging variant in their credible sets. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
         appearing on the right side.
+
+        !!! note
+        This is a helpful dataset for other downstream analyses, such as colocalisation. This dataset will contain the overlapping signals between studyLocus associations once they have been clumped and fine-mapped.
 
         Args:
             study_index (StudyIndex): Study index to resolve study types.
@@ -261,6 +266,10 @@ class StudyLocus(Dataset):
 
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(credset_to_overlap, peak_overlaps)
+
+    def find_overlaps_in_locus(self: StudyLocus) -> StudyLocusOverlap:
+        """TODO."""
+        return StudyLocusOverlap(_df=self.df)
 
     def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.
