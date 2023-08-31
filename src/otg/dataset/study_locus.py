@@ -290,7 +290,64 @@ class StudyLocus(Dataset):
         loci_to_overlap = self.filter_locus_by_distance(
             distance_from_lead
         )._get_loci_to_overlap(distance_between_leads)
-        return StudyLocusOverlap(_df=loci_to_overlap)
+
+        # Find common variants in the "left_locus" and "right_locus" arrays
+        overlaps = (
+            loci_to_overlap.withColumn(
+                "common_variants_in_locus",
+                f.array_intersect(
+                    f.col("left_locus.variantId"), f.col("right_locus.variantId")
+                ),
+            )
+            # Explode the common variants array to get one row per common variant
+            .withColumn("commonVariantId", f.explode("common_variants_in_locus"))
+            # Filter each locus to only contain info about the common variant and explode (the array will be of size 1)
+            .withColumn(
+                "left_locus",
+                f.explode(
+                    f.filter(
+                        f.col("left_locus"),
+                        lambda x: f.col("commonVariantId") == x["variantId"],
+                    )
+                ),
+            ).withColumn(
+                "right_locus",
+                f.explode(
+                    f.filter(
+                        f.col("right_locus"),
+                        lambda x: f.col("commonVariantId") == x["variantId"],
+                    )
+                ),
+            )
+            # Populate the statistics field
+            .withColumn(
+                "statistics",
+                f.struct(
+                    # left stats
+                    f.col("left_locus.pValueMantissa").alias(
+                        "left_commonPValueMantissa"
+                    ),
+                    f.col("left_locus.pValueExponent").alias(
+                        "left_commonPValueExponent"
+                    ),
+                    f.col("left_locus.beta").alias("left_commonBeta"),
+                    f.lit(None).alias("left_logABF"),
+                    f.lit(None).alias("left_posteriorProbability"),
+                    # right stats
+                    f.col("right_locus.pValueMantissa").alias(
+                        "right_commonPValueMantissa"
+                    ),
+                    f.col("right_locus.pValueExponent").alias(
+                        "right_commonPValueExponent"
+                    ),
+                    f.col("right_locus.beta").alias("right_commonBeta"),
+                    f.lit(None).alias("right_logABF"),
+                    f.lit(None).alias("right_posteriorProbability"),
+                ),
+            )
+        )
+
+        return StudyLocusOverlap(_df=overlaps)
 
     def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.
@@ -455,21 +512,28 @@ class StudyLocus(Dataset):
         Returns:
             DataFrame: A DataFrame with all pairs that fit the requirements.
         """
-        cols_to_keep = ["studyLocusId", "position", "chromosome", "locus"]
+        cols_to_rename = ["studyLocusId", "position", "chromosome", "locus"]
         overlapping_left = self.df.selectExpr(
-            *[f"{col} as left_{col}" for col in cols_to_keep]
+            *[f"{col} as left_{col}" for col in cols_to_rename]
         )
         overlapping_right = self.df.selectExpr(
-            *[f"{col} as right_{col}" for col in cols_to_keep]
+            *[f"{col} as right_{col}" for col in cols_to_rename]
         )
-        return overlapping_left.alias("left").join(
-            overlapping_right.alias("right"),
-            (f.col("left.left_chromosome") == f.col("right.right_chromosome"))
-            & (
-                f.abs(f.col("left.left_position") - f.col("right.right_position"))
-                <= distance_between_leads
+        return (
+            overlapping_left.alias("left")
+            .join(
+                overlapping_right.alias("right"),
+                (f.col("left.left_chromosome") == f.col("right.right_chromosome"))
+                & (
+                    f.abs(f.col("left.left_position") - f.col("right.right_position"))
+                    <= distance_between_leads
+                )
+                & (
+                    f.col("left.left_studyLocusId") != f.col("right.right_studyLocusId")
+                ),
             )
-            & (f.col("left.left_studyLocusId") != f.col("right.right_studyLocusId")),
+            .drop("left_chromosome", "left_position", "right_position")
+            .withColumnRenamed("right_chromosome", "chromosome")
         )
 
 
