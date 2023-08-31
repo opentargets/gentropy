@@ -71,8 +71,8 @@ class ECaviar:
                 overlapping_signals.df.withColumn(
                     "clpp",
                     ECaviar._get_clpp(
-                        f.col("statistics.left_posteriorProbability"),
-                        f.col("statistics.right_posteriorProbability"),
+                        f.col("commonVariantIdStatistics.left_posteriorProbability"),
+                        f.col("commonVariantIdStatistics.right_posteriorProbability"),
                     ),
                 )
                 .groupBy("left_studyLocusId", "right_studyLocusId", "chromosome")
@@ -170,21 +170,28 @@ class Coloc:
             _df=(
                 overlapping_signals.df
                 # Before summing log_abf columns nulls need to be filled with 0:
-                .fillna(0, subset=["statistics.left_logABF", "statistics.right_logABF"])
+                .fillna(
+                    0,
+                    subset=[
+                        "commonVariantIdStatistics.left_logABF",
+                        "commonVariantIdStatistics.right_logABF",
+                    ],
+                )
                 # Sum of log_abfs for each pair of signals
                 .withColumn(
                     "sum_log_abf",
-                    f.col("statistics.left_logABF") + f.col("statistics.right_logABF"),
+                    f.col("commonVariantIdStatistics.left_logABF")
+                    + f.col("commonVariantIdStatistics.right_logABF"),
                 )
                 # Group by overlapping peak and generating dense vectors of log_abf:
                 .groupBy("chromosome", "left_studyLocusId", "right_studyLocusId")
                 .agg(
                     f.count("*").alias("coloc_n_vars"),
                     fml.array_to_vector(
-                        f.collect_list(f.col("statistics.left_logABF"))
+                        f.collect_list(f.col("commonVariantIdStatistics.left_logABF"))
                     ).alias("left_logABF"),
                     fml.array_to_vector(
-                        f.collect_list(f.col("statistics.right_logABF"))
+                        f.collect_list(f.col("commonVariantIdStatistics.right_logABF"))
                     ).alias("right_logABF"),
                     fml.array_to_vector(f.collect_list(f.col("sum_log_abf"))).alias(
                         "sum_log_abf"
