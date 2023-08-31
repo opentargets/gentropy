@@ -267,11 +267,29 @@ class StudyLocus(Dataset):
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(credset_to_overlap, peak_overlaps)
 
+    def filter_locus_by_distance(
+        self: StudyLocus, distance_from_lead: int
+    ) -> StudyLocus:
+        """Filter the `locus` field to only include variants within a given distance of the lead variant."""
+        self.df = self.df.withColumn(
+            "locus",
+            f.filter(
+                f.col("locus"),
+                # Position of the variant in the locus has to be parsed first
+                lambda x: f.split(x["variantId"], "_")[1].cast(IntegerType())
+                - f.col("position")
+                <= distance_from_lead,
+            ),
+        )
+        return self
+
     def find_overlaps_in_locus(
-        self: StudyLocus, distance_between_leads: int, locus_window: int
+        self: StudyLocus, distance_between_leads: int, distance_from_lead: int
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus by looking at the variants in the locus providing that the lead SNPs are within a given range."""
-        loci_to_overlap = self._get_loci_to_overlap(distance_between_leads)
+        loci_to_overlap = self.filter_locus_by_distance(
+            distance_from_lead
+        )._get_loci_to_overlap(distance_between_leads)
         return StudyLocusOverlap(_df=loci_to_overlap)
 
     def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
