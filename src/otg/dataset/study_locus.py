@@ -301,7 +301,7 @@ class StudyLocus(Dataset):
             )
             # Explode the common variants array to get one row per common variant
             .withColumn("commonVariantId", f.explode("common_variants_in_locus"))
-            # Filter each locus to only contain info about the common variant and explode (the array will be of size 1)
+            # Filter each locus to only contain info about the common variant and explode (the array will have a maximum size 1)
             .withColumn(
                 "left_locus",
                 f.explode(
@@ -321,26 +321,16 @@ class StudyLocus(Dataset):
             )
             # Populate the statistics field
             .withColumn(
-                "statistics",
+                "commonVariantIdStatistics",
                 f.struct(
                     # left stats
-                    f.col("left_locus.pValueMantissa").alias(
-                        "left_commonPValueMantissa"
-                    ),
-                    f.col("left_locus.pValueExponent").alias(
-                        "left_commonPValueExponent"
-                    ),
-                    f.col("left_locus.beta").alias("left_commonBeta"),
+                    f.col("left_locus.pValue").alias("left_pValue"),
+                    f.col("left_locus.beta").alias("left_beta"),
                     f.lit(None).alias("left_logABF"),
                     f.lit(None).alias("left_posteriorProbability"),
                     # right stats
-                    f.col("right_locus.pValueMantissa").alias(
-                        "right_commonPValueMantissa"
-                    ),
-                    f.col("right_locus.pValueExponent").alias(
-                        "right_commonPValueExponent"
-                    ),
-                    f.col("right_locus.beta").alias("right_commonBeta"),
+                    f.col("right_locus.pValue").alias("right_pValue"),
+                    f.col("right_locus.beta").alias("right_beta"),
                     f.lit(None).alias("right_logABF"),
                     f.lit(None).alias("right_posteriorProbability"),
                 ),

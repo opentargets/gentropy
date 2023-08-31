@@ -20,37 +20,37 @@
     },
     {
       "metadata": {},
-      "name": "tagVariantId",
+      "name": "commonVariantId",
       "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "statistics",
+      "name": "commonVariantIdStatistics",
       "nullable": false,
       "type": {
         "fields": [
           {
             "metadata": {},
-            "name": "left_tagPValue",
+            "name": "left_pValue",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "right_tagPValue",
+            "name": "right_pValue",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "left_tagBeta",
+            "name": "left_beta",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "right_tagBeta",
+            "name": "right_beta",
             "nullable": true,
             "type": "double"
           },
