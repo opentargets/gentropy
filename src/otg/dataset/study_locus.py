@@ -310,7 +310,8 @@ class StudyLocus(Dataset):
                         lambda x: f.col("commonVariantId") == x["variantId"],
                     )
                 ),
-            ).withColumn(
+            )
+            .withColumn(
                 "right_locus",
                 f.explode(
                     f.filter(
@@ -326,16 +327,18 @@ class StudyLocus(Dataset):
                     # left stats
                     f.col("left_locus.pValue").alias("left_pValue"),
                     f.col("left_locus.beta").alias("left_beta"),
-                    f.lit(None).alias("left_logABF"),
-                    f.lit(None).alias("left_posteriorProbability"),
+                    f.lit(None).cast(DoubleType()).alias("left_logABF"),
+                    f.lit(None).cast(DoubleType()).alias("left_posteriorProbability"),
                     # right stats
                     f.col("right_locus.pValue").alias("right_pValue"),
                     f.col("right_locus.beta").alias("right_beta"),
-                    f.lit(None).alias("right_logABF"),
-                    f.lit(None).alias("right_posteriorProbability"),
+                    f.lit(None).cast(DoubleType()).alias("right_logABF"),
+                    f.lit(None).cast(DoubleType()).alias("right_posteriorProbability"),
                 ),
             )
+            .drop("left_locus", "right_locus", "common_variants_in_locus")
         )
+        print(overlaps.printSchema())
 
         return StudyLocusOverlap(_df=overlaps)
 
@@ -1067,7 +1070,6 @@ class StudyLocusGWASCatalog(StudyLocus):
                 -effect_size,
             )
             .otherwise(effect_size)
-            .cast(DoubleType())
         )
 
     @staticmethod
@@ -1146,7 +1148,6 @@ class StudyLocusGWASCatalog(StudyLocus):
                 1 / effect_size,
             )
             .otherwise(effect_size)
-            .cast(DoubleType())
         )
 
     @staticmethod

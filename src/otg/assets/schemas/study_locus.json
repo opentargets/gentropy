@@ -80,6 +80,38 @@
     },
     {
       "metadata": {},
+      "name": "locus",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "variantId",
+              "nullable": false,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "pValue",
+              "nullable": false,
+              "type": "double"
+            },
+            {
+              "metadata": {},
+              "name": "beta",
+              "nullable": false,
+              "type": "double"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
       "name": "effectAlleleFrequencyFromSource",
       "nullable": true,
       "type": "float"

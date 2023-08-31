@@ -22,12 +22,21 @@ def test_study_locus_overlap_creation(
     assert isinstance(mock_study_locus_overlap, StudyLocusOverlap)
 
 
+@pytest.mark.parametrize(
+    "method", [StudyLocusOverlapMethod.LD, StudyLocusOverlapMethod.DISTANCE]
+)
 def test_study_locus_overlap_from_associations(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
+    mock_study_locus: StudyLocus,
+    mock_study_index: StudyIndex,
+    method: StudyLocusOverlapMethod,
 ) -> None:
     """Test colocalisation creation from mock associations."""
     overlaps = StudyLocusOverlap.from_associations(
-        StudyLocusOverlapMethod.LD, mock_study_locus, mock_study_index
+        method,
+        mock_study_locus,
+        mock_study_index,
+        distance_between_leads=500_000,
+        distance_from_lead=500_000,
     )
     assert isinstance(overlaps, StudyLocusOverlap)
 
