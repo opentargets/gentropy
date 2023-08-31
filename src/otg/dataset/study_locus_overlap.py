@@ -79,15 +79,15 @@ class StudyLocusOverlap(Dataset):
         Raises:
             ValueError: If the method is not supported
         """
-        if method not in [
+        if method.value not in [
             StudyLocusOverlapMethod.LD.value,
             StudyLocusOverlapMethod.DISTANCE.value,
         ]:
             raise ValueError(f"Unsupported method: {method}.")
-        elif method == StudyLocusOverlapMethod.LD.value:
+        elif method.value == StudyLocusOverlapMethod.LD.value:
             return study_locus.find_overlaps_in_credible_set(study_index)
         elif (
-            method == StudyLocusOverlapMethod.DISTANCE.value
+            method.value == StudyLocusOverlapMethod.DISTANCE.value
             and distance_between_leads
             and distance_from_lead
         ):

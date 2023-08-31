@@ -137,7 +137,7 @@ class StudyLocus(Dataset):
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         # Complete information about all tags in the left study-locus of the overlap
-        stats_cols = ["logABF", "posteriorProbability", "tagPValue", "tagBeta"]
+        stats_cols = ["logABF", "posteriorProbability", "pValue", "beta"]
         overlapping_left = credset_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
@@ -167,10 +167,10 @@ class StudyLocus(Dataset):
             "left_studyLocusId",
             "right_studyLocusId",
             "chromosome",
-            "tagVariantId",
+            f.col("tagVariantId").alias("commonVariantId"),
             f.struct(
                 *[f"left_{e}" for e in stats_cols] + [f"right_{e}" for e in stats_cols]
-            ).alias("statistics"),
+            ).alias("commonVariantIdStatistics"),
         )
         return StudyLocusOverlap(
             _df=overlaps,
@@ -255,8 +255,8 @@ class StudyLocus(Dataset):
                 f.col("credibleSet.tagVariantId").alias("tagVariantId"),
                 f.col("credibleSet.logABF").alias("logABF"),
                 f.col("credibleSet.posteriorProbability").alias("posteriorProbability"),
-                f.col("credibleSet.tagPValue").alias("tagPValue"),
-                f.col("credibleSet.tagBeta").alias("tagBeta"),
+                f.col("credibleSet.tagPValue").alias("pValue"),
+                f.col("credibleSet.tagBeta").alias("beta"),
             )
             .persist()
         )
