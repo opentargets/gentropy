@@ -231,7 +231,7 @@ class StudyLocus(Dataset):
     def find_overlaps_in_credible_set(
         self: StudyLocus, study_index: StudyIndex
     ) -> StudyLocusOverlap:
-        """Calculate overlapping study-locus.
+        """Calculate overlapping study-locus by looking at the credible sets.
 
         Find overlapping study-locus that share at least one tagging variant in their credible sets. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
         appearing on the right side.
@@ -267,9 +267,12 @@ class StudyLocus(Dataset):
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(credset_to_overlap, peak_overlaps)
 
-    def find_overlaps_in_locus(self: StudyLocus) -> StudyLocusOverlap:
-        """TODO."""
-        return StudyLocusOverlap(_df=self.df)
+    def find_overlaps_in_locus(
+        self: StudyLocus, distance_between_leads: int, locus_window: int
+    ) -> StudyLocusOverlap:
+        """Calculate overlapping study-locus by looking at the variants in the locus providing that the lead SNPs are within a given range."""
+        loci_to_overlap = self._get_loci_to_overlap(distance_between_leads)
+        return StudyLocusOverlap(_df=loci_to_overlap)
 
     def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.
@@ -417,6 +420,39 @@ class StudyLocus(Dataset):
             .drop("is_lead_linked")
         )
         return self
+
+    def _get_loci_to_overlap(
+        self: StudyLocus, distance_between_leads: int
+    ) -> DataFrame:
+        """Get combinations of StudyLocus to find overlaps.
+
+        From a StudyLocus, we extract all pairs that:
+        - are in the same chromosome
+        - are within a given distance
+        - are not the same StudyLocus
+
+        Args:
+            distance_between_leads (int): The distance between the loci for overlap consideration.
+
+        Returns:
+            DataFrame: A DataFrame with all pairs that fit the requirements.
+        """
+        cols_to_keep = ["studyLocusId", "position", "chromosome", "locus"]
+        overlapping_left = self.df.selectExpr(
+            *[f"{col} as left_{col}" for col in cols_to_keep]
+        )
+        overlapping_right = self.df.selectExpr(
+            *[f"{col} as right_{col}" for col in cols_to_keep]
+        )
+        return overlapping_left.alias("left").join(
+            overlapping_right.alias("right"),
+            (f.col("left.left_chromosome") == f.col("right.right_chromosome"))
+            & (
+                f.abs(f.col("left.left_position") - f.col("right.right_position"))
+                <= distance_between_leads
+            )
+            & (f.col("left.left_studyLocusId") != f.col("right.right_studyLocusId")),
+        )
 
 
 class StudyLocusGWASCatalog(StudyLocus):
