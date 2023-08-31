@@ -32,7 +32,9 @@ class StudyLocusOverlapMethod(Enum):
 class StudyLocusOverlap(Dataset):
     """Study-Locus overlap.
 
-    This dataset captures pairs of overlapping `StudyLocus`: that is associations whose credible sets share at least one tagging variant.
+    This dataset captures pairs of overlapping `StudyLocus`. We define two types of overlaps:
+    - associations whose credible sets share at least one tagging variant;
+    - associations whose variants are common to both regions and are within a given distance.
     """
 
     _schema: StructType = parse_spark_schema("study_locus_overlap.json")
@@ -59,6 +61,8 @@ class StudyLocusOverlap(Dataset):
         method: StudyLocusOverlapMethod,
         study_locus: StudyLocus,
         study_index: StudyIndex,
+        distance_between_leads: int | None = None,
+        distance_from_lead: int | None = None,
     ) -> StudyLocusOverlap:
         """Find the overlapping signals in a particular set of associations (StudyLocus dataset).
 
@@ -66,6 +70,8 @@ class StudyLocusOverlap(Dataset):
             method (StudyLocusOverlapMethod): Method to find the overlapping signals
             study_locus (StudyLocus): Study-locus associations to find the overlapping signals
             study_index (StudyIndex): Study index to find the overlapping signals
+            distance_between_leads (int | None): Maximum distance between lead variants to consider two associations overlapping. Only necessary with the "distance" method.
+            distance_from_lead (int | None): Maximum distance between a variant and the lead variant to consider it overlapping. Only necessary with the "distance" method.
 
         Returns:
             StudyLocusOverlap: Study-locus overlap dataset
@@ -80,5 +86,15 @@ class StudyLocusOverlap(Dataset):
             raise ValueError(f"Unsupported method: {method}.")
         elif method == StudyLocusOverlapMethod.LD.value:
             return study_locus.find_overlaps_in_credible_set(study_index)
+        elif (
+            method == StudyLocusOverlapMethod.DISTANCE.value
+            and distance_between_leads
+            and distance_from_lead
+        ):
+            return study_locus.find_overlaps_in_locus(
+                distance_between_leads, distance_from_lead
+            )
         else:
-            return study_locus.find_overlaps_in_locus()
+            raise ValueError(
+                f"Provide distance_between_leads and distance_from_lead to use the {method} method."
+            )
