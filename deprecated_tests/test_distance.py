@@ -59,7 +59,7 @@ class TestGetVariantDistanceToGene:
         )
 
     @pytest.mark.parametrize(
-        ("test_input", "expected_output"), zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output, strict=True)
     )
     def test_get_variant_distance_to_gene(
         self: TestGetVariantDistanceToGene,

@@ -173,7 +173,7 @@ class TestGetVariantConsequences:
         )
 
     @pytest.mark.parametrize(
-        ("test_input", "expected_output"), zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output, strict=True)
     )
     def test_coverage_of_consequence_evidence(
         self: TestGetVariantConsequences,
@@ -274,7 +274,7 @@ class TestGetPolypyhenScoreAndGetSiftScore:
     ]
 
     @pytest.mark.parametrize(
-        ("test_input", "expected_output"), zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output, strict=True)
     )
     def test_coverage_of_score_evidence(
         self: TestGetPolypyhenScoreAndGetSiftScore,
@@ -392,7 +392,7 @@ class TestGetPlofFlag:
     ]
 
     @pytest.mark.parametrize(
-        ("test_input", "expected_output"), zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output, strict=True)
     )
     def test_coverage_of_plof_evidence(
         self: TestGetPlofFlag,
