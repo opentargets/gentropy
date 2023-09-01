@@ -20,6 +20,21 @@ setup-dev: SHELL:=/bin/bash
 setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
 
+check: ## Lint and format code
+	@echo "Linting..."
+	@poetry run ruff src/otg ./tests
+	@echo "Formatting..."
+	@poetry run black src/otg ./tests
+	@poetry run isort src/otg ./tests
+
+test: ## Run tests
+	@echo "Running Tests..."
+	@poetry run pytest --doctest-modules --cov=src/ --cov-report=xml
+
+build-documentation: ## Create local server with documentation
+	@echo "Building Documentation..."
+	@poetry run mkdocs serve
+
 create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@${MAKE} build
 	@echo "Creating Dataproc Cluster"

@@ -42,15 +42,14 @@ In order to run the code:
     - Once submitted, you can monitor the progress of your job on this page: https://console.cloud.google.com/dataproc/jobs?project=open-targets-genetics-dev.
     - On completion (whether successful or a failure), the cluster will be automatically removed, so you don't have to worry about shutting it down to avoid incurring charges.
 
-## How to generate a local copy of the documentation
-Run `poetry run mkdocs serve`. This will generate the local copy of the documentation and will start a local server to browse it (URL will be printed, usually http://127.0.0.1:8000/).
-
-## How to run the tests
-Run `poetry run pytest`.
-
 ## Contributing checklist
 When making changes, and especially when implementing a new module or feature, it's essential to ensure that all relevant sections of the code base are modified.
+- [ ] Run `make check`. This will run the linter and formatter to ensure that the code is compliant with the project conventions.
+- [ ] Develop unit tests for your code and run `make test`. This will run all unit tests in the repository, including the examples appended in the docstrings of some methods.
+- [ ] Update the configuration if necessary.
+- [ ] Update the documentation and check it with `run build-documentation`. This will start a local server to browse it (URL will be printed, usually `http://127.0.0.1:8000/`)
 
+For more details on each of these steps, see the sections below.
 ### Documentation
 * If during development you had a question which wasn't covered in the documentation, and someone explained it to you, add it to the documentation. The same applies if you encountered any instructions in the documentation which were obsolete or incorrect.
 * Documentation autogeneration expressions start with `:::`. They will automatically generate sections of the documentation based on class and method docstrings. Be sure to update them for:
