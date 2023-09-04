@@ -42,10 +42,11 @@ cluster_config_dir = "/config"
 
 default_args = {
     # Tell airflow to start one day ago, so that it runs as soon as you upload it
-    # "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
-    "start_date": pendulum.datetime(2025, 12, 1, tz="Europe/London"),
-    "schedule_interval": None,
+    "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
+    # "start_date": pendulum.datetime(2020, 1, 1, tz="Europe/London"),
+    "schedule_interval": "@once",
     "project_id": project_id,
+    "catchup": False,
 }
 
 cluster_generator_config = ClusterGenerator(
@@ -148,6 +149,7 @@ def create_dag() -> None:
                         cluster_config=cluster_generator_config,
                         region="europe-west1",
                         cluster_name=cluster_name,
+                        trigger_rule=TriggerRule.ALL_SUCCESS,
                     )
                     install_dependencies = DataprocSubmitJobOperator(
                         task_id=f"install_dependencies_{step['id']}",
@@ -189,7 +191,6 @@ def create_dag() -> None:
                 thisgroup = tgroup(step)
                 tasks_groups[step["id"]] = thisgroup
                 if "prerequisites" in step:
-                    # thisgroup.trigger_rule = TriggerRule.ALL_SUCCESS
                     for prerequisite in step["prerequisites"]:
                         print(f"|- {prerequisite}")
                         thisgroup.set_upstream(tasks_groups[prerequisite])
