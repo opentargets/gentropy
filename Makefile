@@ -22,10 +22,10 @@ setup-dev: ## Setup development environment
 
 check: ## Lint and format code
 	@echo "Linting..."
-	@poetry run ruff src/otg ./tests
+	@poetry run ruff src/otg .
 	@echo "Formatting..."
-	@poetry run black src/otg ./tests
-	@poetry run isort src/otg ./tests
+	@poetry run black src/otg .
+	@poetry run isort src/otg .
 
 test: ## Run tests
 	@echo "Running Tests..."
