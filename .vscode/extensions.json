@@ -1,10 +1,10 @@
 {
   "recommendations": [
     "charliermarsh.ruff",
+    "ms-python.isort",
     "ms-python.mypy-type-checker",
     "ms-python.python",
-    "ms-vscode.black",
-    "ms-vscode.isort"
+    "ms-vscode.black-formatter"
   ],
   "unwantedRecommendations": []
 }
