@@ -4,7 +4,7 @@
     "ms-python.isort",
     "ms-python.mypy-type-checker",
     "ms-python.python",
-    "ms-vscode.black-formatter"
+    "ms-python.black-formatter"
   ],
   "unwantedRecommendations": []
 }
