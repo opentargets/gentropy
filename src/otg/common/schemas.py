@@ -61,3 +61,29 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
         else:
             fields.append(Field(name, dtype))
     return fields
+
+
+def filter_schema(schema: StructType, fields_of_interest: list) -> StructType:
+    """Filter the fields in a Pyspark schema of type StructType given a list of fields of interest.
+
+    !!! info "Fields in the returned schema will follow the same as the order they appear in the original schema."
+
+    Args:
+        schema: The schema of the dataframe
+        fields_of_interest: The list of fields to keep in the schema
+
+    Returns:
+        StructType: The filtered schema
+
+    Examples:
+        >>> from pyspark.sql.types import StringType, StructField, StructType
+        >>> original_schema = StructType([
+        ...        StructField("A", StringType(), True),
+        ...        StructField("B", StringType(), True)
+        ... ])
+        >>> filter_schema(original_schema, ["A"])
+        StructType([StructField('A', StringType(), True)])
+    """
+    return StructType(
+        [field for field in schema.fields if field.name in fields_of_interest]
+    )

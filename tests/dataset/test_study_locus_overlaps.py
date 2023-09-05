@@ -7,6 +7,7 @@ import pyspark.sql.types as t
 import pytest
 from pyspark.sql import functions as f
 
+from otg.common.schemas import filter_schema
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap, StudyLocusOverlapMethod
 
@@ -139,8 +140,27 @@ class TestFindOverlapsInLocus:
         ]
         assert observed_overlapping_studylocus == expected_overlapping_studylocus
 
-    # def test_find_overlaps_in_locus(self):
-    #     pass
+    @pytest.mark.parametrize(
+        ("distance_between_leads", "distance_from_lead", "expected_common_variants"),
+        [
+            (25, 25, ["10_15_X_X", "10_40_X_X"]),
+            (5, 5, []),
+        ],
+    )
+    def test_find_overlaps_in_locus(
+        self: TestFindOverlapsInLocus,
+        distance_between_leads: int,
+        distance_from_lead: int,
+        expected_common_variants: list,
+    ) -> None:
+        """Test finding overlaps in locus between StudyLocus."""
+        observed_df = self.mock_sl.find_overlaps_in_locus(
+            distance_between_leads, distance_from_lead
+        ).df.select("commonVariantId")
+        observed_common_variants = [
+            row.commonVariantId for row in observed_df.collect()
+        ]
+        assert observed_common_variants == expected_common_variants
 
     @pytest.fixture(autouse=True)
     def _setup(
@@ -152,61 +172,112 @@ class TestFindOverlapsInLocus:
             (
                 1,
                 "varA",
-                "traitA",
                 "chr10",
                 10,
+                "traitA",
                 [
-                    {"variantId": "10_2_X_X"},
-                    {"variantId": "10_6_X_X"},
-                    {"variantId": "10_15_X_X"},
+                    {
+                        "variantId": "10_2_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                    {
+                        "variantId": "10_6_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                    {
+                        "variantId": "10_15_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
                 ],
             ),
             (
                 2,
                 "varB",
-                "traitB",
                 "chr10",
                 30,
+                "traitB",
                 [
-                    {"variantId": "10_15_X_X"},
-                    {"variantId": "10_20_X_X"},
-                    {"variantId": "10_40_X_X"},
+                    {
+                        "variantId": "10_15_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                    {
+                        "variantId": "10_20_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                    {
+                        "variantId": "10_40_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
                 ],
             ),
             # outside of all windows
             (
                 3,
                 "varC",
-                "traitC",
                 "chr10",
                 100,
-                [{"variantId": "10_90_X_X"}, {"variantId": "10_110_X_X"}],
+                "traitC",
+                [
+                    {
+                        "variantId": "10_90_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                    {
+                        "variantId": "10_110_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                ],
             ),
             # outside of the first window
             (
                 4,
                 "varD",
-                "traitD",
                 "chr10",
                 50,
-                [{"variantId": "10_40_X_X"}, {"variantId": "10_60_X_X"}],
+                "traitD",
+                [
+                    {
+                        "variantId": "10_40_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                    {
+                        "variantId": "10_60_X_X",
+                        "pValueMantissa": 3.2,
+                        "pValueExponent": -9,
+                        "beta": 0.01,
+                    },
+                ],
             ),
         ]
-        mock_sl_schema = t.StructType(
-            [
-                t.StructField("studyLocusId", t.LongType(), False),
-                t.StructField("variantId", t.StringType(), False),
-                t.StructField("studyId", t.StringType(), False),
-                t.StructField("chromosome", t.StringType(), True),
-                t.StructField("position", t.IntegerType(), True),
-                t.StructField(
-                    "locus",
-                    t.ArrayType(
-                        t.StructType([t.StructField("variantId", t.StringType(), True)])
-                    ),
-                    True,
-                ),
-            ]
+        mock_sl_schema = filter_schema(
+            StudyLocus._schema,
+            fields_of_interest=[
+                "studyLocusId",
+                "variantId",
+                "studyId",
+                "chromosome",
+                "position",
+                "locus",
+            ],
         )
         self.mock_sl = StudyLocus(
             _df=spark.createDataFrame(mock_sl_data, mock_sl_schema)
