@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import DoubleType, IntegerType, LongType
+from pyspark.sql.types import DoubleType, IntegerType, LongType, StringType
 from pyspark.sql.window import Window
 
 from otg.assets import data
@@ -21,7 +21,7 @@ from otg.common.spark_helpers import (
     order_array_of_structs_by_field,
     pvalue_to_zscore,
 )
-from otg.common.utils import parse_efos
+from otg.common.utils import parse_efos, parse_pvalue
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
@@ -130,14 +130,20 @@ class StudyLocus(Dataset):
         """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
 
         Args:
-            credset_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
+            credset_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF`, `pValueMantissa`, `pValueExponent`, `beta`s and `posteriorProbability` columns.
             peak_overlaps (DataFrame): containing `left_studyLocusId`, `right_studyLocusId` and `chromosome` columns.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         # Complete information about all tags in the left study-locus of the overlap
-        stats_cols = ["logABF", "posteriorProbability", "pValue", "beta"]
+        stats_cols = [
+            "logABF",
+            "posteriorProbability",
+            "pValueMantissa",
+            "pValueExponent",
+            "beta",
+        ]
         overlapping_left = credset_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
@@ -255,7 +261,7 @@ class StudyLocus(Dataset):
                 f.col("credibleSet.tagVariantId").alias("tagVariantId"),
                 f.col("credibleSet.logABF").alias("logABF"),
                 f.col("credibleSet.posteriorProbability").alias("posteriorProbability"),
-                f.col("credibleSet.tagPValue").alias("pValue"),
+                *parse_pvalue(f.col("credibleSet.tagPValue").cast(StringType())),
                 f.col("credibleSet.tagBeta").alias("beta"),
             )
             .persist()
