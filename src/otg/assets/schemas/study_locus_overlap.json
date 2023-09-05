@@ -32,15 +32,27 @@
         "fields": [
           {
             "metadata": {},
-            "name": "left_pValue",
+            "name": "left_pValueMantissa",
             "nullable": true,
-            "type": "double"
+            "type": "float"
           },
           {
             "metadata": {},
-            "name": "right_pValue",
+            "name": "left_pValueExponent",
             "nullable": true,
-            "type": "double"
+            "type": "integer"
+          },
+          {
+            "metadata": {},
+            "name": "right_pValueMantissa",
+            "nullable": true,
+            "type": "float"
+          },
+          {
+            "metadata": {},
+            "name": "right_pValueExponent",
+            "nullable": true,
+            "type": "integer"
           },
           {
             "metadata": {},

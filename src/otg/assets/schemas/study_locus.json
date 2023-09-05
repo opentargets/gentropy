@@ -94,9 +94,15 @@
             },
             {
               "metadata": {},
-              "name": "pValue",
+              "name": "pValueMantissa",
               "nullable": false,
-              "type": "double"
+              "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "pValueExponent",
+              "nullable": false,
+              "type": "integer"
             },
             {
               "metadata": {},

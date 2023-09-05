@@ -325,12 +325,14 @@ class StudyLocus(Dataset):
                 "commonVariantIdStatistics",
                 f.struct(
                     # left stats
-                    f.col("left_locus.pValue").alias("left_pValue"),
+                    f.col("left_locus.pValueMantissa").alias("left_pValueMantissa"),
+                    f.col("left_locus.pValueExponent").alias("left_pValueExponent"),
                     f.col("left_locus.beta").alias("left_beta"),
                     f.lit(None).cast(DoubleType()).alias("left_logABF"),
                     f.lit(None).cast(DoubleType()).alias("left_posteriorProbability"),
                     # right stats
-                    f.col("right_locus.pValue").alias("right_pValue"),
+                    f.col("right_locus.pValueMantissa").alias("right_pValueMantissa"),
+                    f.col("right_locus.pValueExponent").alias("right_pValueExponent"),
                     f.col("right_locus.beta").alias("right_beta"),
                     f.lit(None).cast(DoubleType()).alias("right_logABF"),
                     f.lit(None).cast(DoubleType()).alias("right_posteriorProbability"),
