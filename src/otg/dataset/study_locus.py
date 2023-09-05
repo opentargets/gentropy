@@ -338,7 +338,6 @@ class StudyLocus(Dataset):
             )
             .drop("left_locus", "right_locus", "common_variants_in_locus")
         )
-        print(overlaps.printSchema())
 
         return StudyLocusOverlap(_df=overlaps)
 
@@ -1070,6 +1069,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                 -effect_size,
             )
             .otherwise(effect_size)
+            .cast(DoubleType())
         )
 
     @staticmethod
@@ -1148,6 +1148,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                 1 / effect_size,
             )
             .otherwise(effect_size)
+            .cast(DoubleType())
         )
 
     @staticmethod

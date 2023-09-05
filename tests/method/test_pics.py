@@ -69,6 +69,7 @@ class TestFinemap:
                 0.0,
                 5.0,
                 -8,
+                None,
                 0.0,
                 0.0,
                 "0",
