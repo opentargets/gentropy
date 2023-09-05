@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.types as t
 import pytest
+from pyspark.sql import functions as f
 
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap, StudyLocusOverlapMethod
@@ -94,3 +95,99 @@ def test_overlapping_peaks(spark: SparkSession, observed: list, expected: list) 
     result_df = StudyLocus._overlapping_peaks(observed_df)
     expected_df = spark.createDataFrame(expected, expected_schema)
     assert result_df.collect() == expected_df.collect()
+
+
+class TestFindOverlapsInLocus:
+    """Tests the StudyLocus.find_overlaps_in_locus method."""
+
+    @pytest.mark.parametrize(
+        ("distance_from_lead", "expected_locus_size"),
+        [
+            (25, [3, 3, 2, 2]),
+            (5, [2, 0, 0, 0]),
+        ],
+    )
+    def test_filter_locus_by_distance(
+        self, distance_from_lead: int, expected_locus_size: list
+    ) -> None:
+        """Test filtering of locus by distance."""
+        observed_df = self.mock_sl.filter_locus_by_distance(distance_from_lead).df
+        observed_locus_size = (
+            observed_df.select(f.size("locus").alias("locus_size"))
+            .toPandas()["locus_size"]
+            .to_list()
+        )
+        assert observed_locus_size == expected_locus_size
+
+    # def test_find_overlaps_in_locus(self):
+    #     pass
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestFindOverlapsInLocus,
+        spark: SparkSession,
+    ) -> None:
+        """Prepares the data for the tests."""
+        mock_sl_data = [
+            (
+                1,
+                "varA",
+                "traitA",
+                "chr10",
+                10,
+                [
+                    {"variantId": "10_2_X_X"},
+                    {"variantId": "10_6_X_X"},
+                    {"variantId": "10_15_X_X"},
+                ],
+            ),
+            (
+                2,
+                "varB",
+                "traitB",
+                "chr10",
+                30,
+                [
+                    {"variantId": "10_15_X_X"},
+                    {"variantId": "10_20_X_X"},
+                    {"variantId": "10_40_X_X"},
+                ],
+            ),
+            # outside of all windows
+            (
+                3,
+                "varC",
+                "traitC",
+                "chr10",
+                100,
+                [{"variantId": "10_90_X_X"}, {"variantId": "10_110_X_X"}],
+            ),
+            # outside of the first window
+            (
+                4,
+                "varD",
+                "traitD",
+                "chr10",
+                50,
+                [{"variantId": "10_40_X_X"}, {"variantId": "10_60_X_X"}],
+            ),
+        ]
+        mock_sl_schema = t.StructType(
+            [
+                t.StructField("studyLocusId", t.LongType(), False),
+                t.StructField("variantId", t.StringType(), False),
+                t.StructField("studyId", t.StringType(), False),
+                t.StructField("chromosome", t.StringType(), True),
+                t.StructField("position", t.IntegerType(), True),
+                t.StructField(
+                    "locus",
+                    t.ArrayType(
+                        t.StructType([t.StructField("variantId", t.StringType(), True)])
+                    ),
+                    True,
+                ),
+            ]
+        )
+        self.mock_sl = StudyLocus(
+            _df=spark.createDataFrame(mock_sl_data, mock_sl_schema)
+        )

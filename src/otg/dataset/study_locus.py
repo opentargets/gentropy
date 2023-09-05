@@ -276,8 +276,10 @@ class StudyLocus(Dataset):
             f.filter(
                 f.col("locus"),
                 # Position of the variant in the locus has to be parsed first
-                lambda x: f.split(x["variantId"], "_")[1].cast(IntegerType())
-                - f.col("position")
+                lambda x: f.abs(
+                    f.split(x["variantId"], "_")[1].cast(IntegerType())
+                    - f.col("position")
+                )
                 <= distance_from_lead,
             ),
         )
