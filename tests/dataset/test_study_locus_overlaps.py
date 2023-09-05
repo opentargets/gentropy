@@ -119,6 +119,26 @@ class TestFindOverlapsInLocus:
         )
         assert observed_locus_size == expected_locus_size
 
+    @pytest.mark.parametrize(
+        ("distance_between_leads", "expected_overlapping_studylocus"),
+        [
+            (25, [(1, 2), (2, 4)]),
+            (5, []),
+        ],
+    )
+    def test_get_loci_to_overlap(
+        self: TestFindOverlapsInLocus,
+        distance_between_leads: int,
+        expected_overlapping_studylocus: list,
+    ) -> None:
+        """Test getting loci to overlap."""
+        observed_df = self.mock_sl._get_loci_to_overlap(distance_between_leads)
+        observed_overlapping_studylocus = [
+            (row.left_studyLocusId, row.right_studyLocusId)
+            for row in observed_df.collect()
+        ]
+        assert observed_overlapping_studylocus == expected_overlapping_studylocus
+
     # def test_find_overlaps_in_locus(self):
     #     pass
 

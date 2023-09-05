@@ -524,9 +524,10 @@ class StudyLocus(Dataset):
                     f.abs(f.col("left.left_position") - f.col("right.right_position"))
                     <= distance_between_leads
                 )
+                & (f.col("left.left_studyLocusId") != f.col("right.right_studyLocusId"))
                 & (
-                    f.col("left.left_studyLocusId") != f.col("right.right_studyLocusId")
-                ),
+                    f.col("left.left_studyLocusId") < f.col("right.right_studyLocusId")
+                ),  # Avoid duplicates,
             )
             .drop("left_chromosome", "left_position", "right_position")
             .withColumnRenamed("right_chromosome", "chromosome")
