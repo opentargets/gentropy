@@ -307,46 +307,28 @@ class StudyLocus(Dataset):
                     f.col("left_locus.variantId"), f.col("right_locus.variantId")
                 ),
             )
-            # Explode the common variants array to get one row per common variant
-            .withColumn("commonVariantId", f.explode("common_variants_in_locus"))
-            # Filter each locus to only contain info about the common variant and explode (the array will have a maximum size 1)
+            # Filter pairs without any common variants
+            .filter(f.size(f.col("common_variants_in_locus")) > 0)
+            # Filter each locus to only contain info about the common variants
             .withColumn(
                 "left_locus",
-                f.explode(
-                    f.filter(
-                        f.col("left_locus"),
-                        lambda x: f.col("commonVariantId") == x["variantId"],
-                    )
+                f.filter(
+                    f.col("left_locus"),
+                    lambda x: f.array_contains(
+                        f.col("common_variants_in_locus"), x["variantId"]
+                    ),
                 ),
             )
             .withColumn(
                 "right_locus",
-                f.explode(
-                    f.filter(
-                        f.col("right_locus"),
-                        lambda x: f.col("commonVariantId") == x["variantId"],
-                    )
+                f.filter(
+                    f.col("right_locus"),
+                    lambda x: f.array_contains(
+                        f.col("common_variants_in_locus"), x["variantId"]
+                    ),
                 ),
             )
-            # Populate the statistics field
-            .withColumn(
-                "commonVariantIdStatistics",
-                f.struct(
-                    # left stats
-                    f.col("left_locus.pValueMantissa").alias("left_pValueMantissa"),
-                    f.col("left_locus.pValueExponent").alias("left_pValueExponent"),
-                    f.col("left_locus.beta").alias("left_beta"),
-                    f.lit(None).cast(DoubleType()).alias("left_logABF"),
-                    f.lit(None).cast(DoubleType()).alias("left_posteriorProbability"),
-                    # right stats
-                    f.col("right_locus.pValueMantissa").alias("right_pValueMantissa"),
-                    f.col("right_locus.pValueExponent").alias("right_pValueExponent"),
-                    f.col("right_locus.beta").alias("right_beta"),
-                    f.lit(None).cast(DoubleType()).alias("right_logABF"),
-                    f.lit(None).cast(DoubleType()).alias("right_posteriorProbability"),
-                ),
-            )
-            .drop("left_locus", "right_locus", "common_variants_in_locus")
+            .drop("common_variants_in_locus")
         )
 
         return StudyLocusOverlap(_df=overlaps)

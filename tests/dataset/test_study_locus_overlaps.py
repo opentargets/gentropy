@@ -143,7 +143,7 @@ class TestFindOverlapsInLocus:
     @pytest.mark.parametrize(
         ("distance_between_leads", "distance_from_lead", "expected_common_variants"),
         [
-            (25, 25, ["10_15_X_X", "10_40_X_X"]),
+            (25, 25, [["10_15_X_X"], ["10_40_X_X"]]),
             (5, 5, []),
         ],
     )
@@ -156,10 +156,19 @@ class TestFindOverlapsInLocus:
         """Test finding overlaps in locus between StudyLocus."""
         observed_df = self.mock_sl.find_overlaps_in_locus(
             distance_between_leads, distance_from_lead
-        ).df.select("commonVariantId")
-        observed_common_variants = [
-            row.commonVariantId for row in observed_df.collect()
-        ]
+        ).df.select(
+            f.col("left_locus.variantId").alias("left_variants"),
+            f.col("right_locus.variantId").alias("right_variants"),
+        )
+        # Assert that the left and right variants are the same
+        assert (
+            observed_df.filter(
+                f.col("left_variants") != f.col("right_variants")
+            ).count()
+            == 0
+        )
+        # Assert that the common variants are the same as expected
+        observed_common_variants = [row.left_variants for row in observed_df.collect()]
         assert observed_common_variants == expected_common_variants
 
     @pytest.fixture(autouse=True)
