@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pyspark.conf import SparkConf
@@ -69,7 +70,10 @@ class Session:
         Returns:
             DataFrame: Dataframe with provided schema
         """
-        return self.spark.read.schema(schema).format("parquet").load(path)
+        path_obj = Path(path) / "*"  # to read the folder recursively
+        return (
+            self.spark.read.schema(schema).format("parquet").load(path_obj.as_posix())
+        )
 
 
 class Log4j:
