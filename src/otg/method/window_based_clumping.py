@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import numpy as np
 import pyspark.sql.functions as f
@@ -11,7 +11,7 @@ from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
 from otg.common.spark_helpers import calculate_neglog_pvalue
-from otg.common.utils import get_study_locus_id
+from otg.common.utils import get_study_locus_id, split_pvalue
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -291,23 +291,99 @@ class WindowBasedClumping:
             False,
         )
 
+    @staticmethod
+    def collect_locus(
+        study_id: Column,
+        chromosome: Column,
+        position: Column,
+        window_length: int,
+        collected_columns: List[Column],
+    ) -> Column:
+        """Collect a list of specified columns within a specified window position.
+
+        Args:
+            study_id (Column): A column representing the study ID.
+            chromosome (Column): A column representing the chromosome of a genetic locus.
+            position (Column): The `position` parameter represents the position of a locus
+            window_length (int): Distance around variant collected into a locus object.
+            collected_columns (List[Column]): A list of columns that you want to collect for each locus.
+
+        Returns:
+            Column: locus object is a list of statistical parameters of the surrounding single point
+            associations within the specified window.
+        """
+        # Defining the locus window:
+        locus_window = (
+            Window.partitionBy(study_id, chromosome)
+            .orderBy(position)
+            .rangeBetween(
+                Window.currentRow - window_length,
+                Window.currentRow + window_length,
+            )
+        )
+
+        # Collecting the requested columns within the window:
+        return f.collect_list(f.struct(*collected_columns)).over(locus_window)
+
     @classmethod
     def clump(
         cls: type[WindowBasedClumping],
         summary_stats: SummaryStatistics,
         window_length: int,
+        p_value_significance: float = 5e-8,
+        p_value_baseline: float = 0.05,
     ) -> StudyLocus:
         """Clump summary statistics by distance.
 
         Args:
             summary_stats (SummaryStatistics): summary statistics to clump
             window_length (int): window length in basepair
+            p_value_baseline (float): above this p-value snps will not be collected into locus
+            p_value_significance (float): above this p-value threshol snps will not be considered as index snps
 
         Returns:
             StudyLocus: clumped summary statistics
         """
+        # Create a window with a defined length:
+        locus_window = (
+            Window.partitionBy("studyId", "chromosome")
+            .orderBy("position")
+            .rangeBetween(
+                Window.currentRow - window_length,
+                Window.currentRow + window_length,
+            )
+        )
+        # Splitting p-value into mantissa and exponent:
+        (mantissa_threshold, exponent_threshold) = split_pvalue(p_value_significance)
+
+        # This filter expression will be used twice: once to collect locus data and when we filter for significant
+        filter_expression = (f.col("pValueExponent") < exponent_threshold) | (
+            (f.col("pValueExponent") == exponent_threshold)
+            & (f.col("pValueMantissa") <= mantissa_threshold)
+        )
         return StudyLocus(
-            _df=summary_stats.df.withColumn(
+            _df=summary_stats
+            # Dropping all snps below p-value of interest:
+            .pvalue_filter(p_value_baseline)
+            .df
+            # Collect locus data for snps reacing significance:
+            .withColumn(
+                "locus",
+                f.when(
+                    filter_expression,
+                    f.collect_set(
+                        f.struct(
+                            f.col("variantId"),
+                            f.col("pValueMantissa"),
+                            f.col("pValueExponent"),
+                            f.col("beta"),
+                        )
+                    ).over(locus_window),
+                ).otherwise(None),
+            )
+            # Dropping non-significant spns:
+            .filter(filter_expression)
+            .withColumn(
                 "cluster_id",
                 # First identify clusters of variants within the window
                 WindowBasedClumping._identify_cluster_peaks(
