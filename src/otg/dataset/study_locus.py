@@ -328,6 +328,13 @@ class StudyLocus(Dataset):
                     ),
                 ),
             )
+            .withColumn(
+                "left_locus", order_array_of_structs_by_field("left_locus", "variantId")
+            )
+            .withColumn(
+                "right_locus",
+                order_array_of_structs_by_field("right_locus", "variantId"),
+            )
             .drop("common_variants_in_locus")
         )
 
