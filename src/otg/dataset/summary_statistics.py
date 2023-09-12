@@ -12,6 +12,7 @@ from otg.common.utils import (
     calculate_confidence_interval,
     convert_odds_ratio_to_beta,
     parse_pvalue,
+    parse_region,
     split_pvalue,
 )
 from otg.dataset.dataset import Dataset
@@ -145,3 +146,28 @@ class SummaryStatistics(Dataset):
         """
         # Calculate distance-based clumping:
         return WindowBasedClumping.clump(self, distance)
+
+    def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
+        """Exclude a region from the summary stats dataset.
+
+        Args:
+            region (str): region given in "chr##:#####-####" format
+
+        Returns:
+            SummaryStatistics: filtered summary statistics.
+        """
+        (chromosome, start_position, end_position) = parse_region(region)
+
+        return SummaryStatistics(
+            _df=(
+                self.df.filter(
+                    ~(
+                        (f.col("chromosome") == chromosome)
+                        & (
+                            (f.col("position") >= start_position)
+                            & (f.col("position") <= end_position)
+                        )
+                    )
+                )
+            )
+        )

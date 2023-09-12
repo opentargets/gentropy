@@ -43,6 +43,7 @@ def parse_region(region: str) -> Tuple[str, int, int]:
             ...
         ValueError: Start and the end position of the region has to be integer.
     """
+    region = region.replace(":", "-").replace(",", "")
     try:
         (chromosome, start_position, end_position) = region.split("-")
     except ValueError:
