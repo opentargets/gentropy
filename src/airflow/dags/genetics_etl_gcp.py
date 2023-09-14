@@ -41,16 +41,13 @@ cluster_config_dir = "/config"
 
 default_args = {
     "owner": "Open Targets Data Team",
-    "description": "Open Targets Genetics ETL workflow",
     # Tell airflow to start one day ago, so that it runs as soon as you upload it
     "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
     # "start_date": pendulum.datetime(2020, 1, 1, tz="Europe/London"),
-    "tags": ["genetics_etl", "experimental"],
     "schedule_interval": "@once",
     "project_id": project_id,
     "catchup": False,
     "retries": 3,
-    "orientation": "TB",
 }
 
 cluster_generator_config = ClusterGenerator(
@@ -117,6 +114,8 @@ def generate_pyspark_job_from_dict(
 @dag(
     dag_id=Path(__file__).stem,
     default_args=default_args,
+    description="Open Targets Genetics ETL workflow",
+    tags=["genetics_etl", "experimental"],
 )
 def create_dag() -> None:
     """Submit dataproc workflow."""
