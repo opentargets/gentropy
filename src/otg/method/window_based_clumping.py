@@ -353,6 +353,12 @@ class WindowBasedClumping:
                 Window.currentRow + window_length,
             )
         )
+
+        # Create window for locus clusters:
+        cluster_window = Window.partitionBy(
+            "studyId", "chromosome", "cluster_id"
+        ).orderBy(f.col("pValueExponent").asc(), f.col("pValueMantissa").asc())
+
         # Splitting p-value into mantissa and exponent:
         (mantissa_threshold, exponent_threshold) = split_pvalue(p_value_significance)
 
@@ -361,6 +367,7 @@ class WindowBasedClumping:
             (f.col("pValueExponent") == exponent_threshold)
             & (f.col("pValueMantissa") <= mantissa_threshold)
         )
+
         return StudyLocus(
             _df=summary_stats
             # Dropping all snps below p-value of interest:
@@ -393,23 +400,44 @@ class WindowBasedClumping:
                     window_length,
                 ),
             )
-            .groupBy("cluster_id")
-            # Aggregating all data from each cluster:
-            .agg(
-                WindowBasedClumping._collect_clump(
-                    f.col("pValueMantissa"), f.col("pValueExponent")
-                ).alias("clump")
-            )
-            # Explode and identify the index variant representative of the cluster:
+            # Rank hits in cluster:
+            .withColumn("pvRank", f.row_number().over(cluster_window))
+            # Collect positions in cluster for the first
             .withColumn(
-                "exploded",
-                f.explode(
-                    WindowBasedClumping._filter_leads(f.col("clump"), window_length)
+                "collectedPositions",
+                f.when(
+                    f.col("pvRank") == 1,
+                    f.collect_list(f.col("position")).over(
+                        cluster_window.rowsBetween(
+                            Window.currentRow, Window.unboundedFollowing
+                        )
+                    ),
+                ).otherwise(f.array()),
+            )
+            # Get leads:
+            .withColumn(
+                "semiIndices",
+                f.when(
+                    f.size(f.col("collectedPositions")) > 0,
+                    fml.vector_to_array(
+                        WindowBasedClumping._find_peak(
+                            fml.array_to_vector(f.col("collectedPositions")),
+                            f.lit(window_length),
+                        )
+                    ),
                 ),
             )
-            .select("exploded.*")
-            # Dropping helper columns:
-            .drop("isLead", "negLogPValue", "cluster_id")
-            # assign study-locus id:
+            .withColumn(
+                "semiIndices",
+                f.when(
+                    f.col("semiIndices").isNull(),
+                    f.first(f.col("semiIndices"), ignorenulls=True).over(
+                        cluster_window
+                    ),
+                ).otherwise(f.col("semiIndices")),
+            )
+            .filter(f.col("semiIndices").getItem(f.col("pvRank") - 1) > 0)
+            .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
+            # Adding study-locus id:
             .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
         )
