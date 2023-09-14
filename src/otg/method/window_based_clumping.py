@@ -16,7 +16,7 @@ from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from numpy import ndarray
-    from pyspark.sql import Column
+    from pyspark.sql import Column, DataFrame
 
     from otg.dataset.summary_statistics import SummaryStatistics
 
@@ -292,6 +292,126 @@ class WindowBasedClumping:
         )
 
     @staticmethod
+    def _cluster_sumstats(
+        df: DataFrame, window_size: int, pvalue_threshold: float
+    ) -> DataFrame:
+        """Clustering summary statistics data based on window size and p-value threshold.
+
+        Single point associations are dropped if they are below the p-value threshold OR their
+        distance from a significant variant is above the distance threshold.
+
+        Args:
+            df (DataFrame): A DataFrame containing the summary statistics data.
+            window_size (int): bp distance required between a sub significant and significant variant
+            pvalue_threshold (float): p-value marking significance.
+
+        Returns:
+            DataFrame pruned data, with cluster id column.
+        """
+        (threshold_mantissa, threshold_exponent) = split_pvalue(pvalue_threshold)
+
+        clustering_window = Window.partitionBy("studyId", "chromosome")
+
+        filter_expression = (f.col("pValueExponent") < threshold_exponent) | (
+            (f.col("pValueExponent") == threshold_exponent)
+            & (f.col("PValueMantissa") <= threshold_mantissa)
+        )
+
+        return (
+            df
+            # Flagging significant snps:
+            .withColumn(
+                "lead_pos", f.when(filter_expression, f.col("position")).otherwise(None)
+            )
+            # Propagate significant snp position to the neighbouring snps:
+            .withColumn(
+                "previous_lead",
+                f.when(
+                    f.col("lead_pos").isNull(),
+                    f.last(f.col("lead_pos"), ignorenulls=True).over(
+                        clustering_window.orderBy(f.col("position"))
+                    ),
+                ).otherwise(f.col("lead_pos")),
+            )
+            .withColumn(
+                "next_lead",
+                f.when(
+                    f.col("lead_pos").isNull(),
+                    f.last(f.col("lead_pos"), ignorenulls=True).over(
+                        clustering_window.orderBy(f.col("position").desc())
+                    ),
+                ).otherwise(f.col("lead_pos")),
+            )
+            # Filter for snps that are closer to a significant snp than the threshold:
+            .filter(
+                f.array_min(
+                    f.array(
+                        (f.col("position") - f.col("previous_lead")),
+                        (f.col("next_lead") - f.col("position")),
+                    )
+                )
+                <= window_size
+            )
+            .withColumn(
+                "cluster_start",
+                f.when(f.col("previous_lead").isNull(), f.col("position"))
+                .when(
+                    ((f.col("next_lead") - f.col("previous_lead") > window_size))
+                    & ((f.col("position") - f.col("previous_lead")) > window_size),
+                    f.col("position"),
+                )
+                .otherwise(None),
+            )
+            .withColumn(
+                "cluster_end",
+                f.when(f.col("next_lead").isNull(), f.col("position"))
+                .when(
+                    ((f.col("next_lead") - f.col("previous_lead") > window_size))
+                    & ((f.col("next_lead") - f.col("position")) > window_size),
+                    f.col("position"),
+                )
+                .otherwise(None),
+            )
+            # Filling up the gaps:
+            .withColumn(
+                "cluster_start",
+                f.when(
+                    f.col("cluster_start").isNull(),
+                    f.last(f.col("cluster_start"), ignorenulls=True).over(
+                        clustering_window.orderBy(f.col("position").asc())
+                    ),
+                ).otherwise(f.col("cluster_start")),
+            )
+            .withColumn(
+                "cluster_end",
+                f.when(
+                    f.col("cluster_end").isNull(),
+                    f.last(f.col("cluster_end"), ignorenulls=True).over(
+                        clustering_window.orderBy(f.col("position").desc())
+                    ),
+                ).otherwise(f.col("cluster_end")),
+            )
+            .withColumn(
+                "cluster_id",
+                f.concat_ws(
+                    "_",
+                    f.col("studyId"),
+                    f.col("chromosome"),
+                    f.col("cluster_start"),
+                    f.col("cluster_end"),
+                ),
+            )
+            .drop(
+                "lead_pos",
+                "previous_lead",
+                "next_lead",
+                "distance",
+                "cluster_start",
+                "cluster_end",
+            )
+        )
+
+    @staticmethod
     def collect_locus(
         study_id: Column,
         chromosome: Column,
@@ -373,6 +493,12 @@ class WindowBasedClumping:
             # Dropping all snps below p-value of interest:
             .pvalue_filter(p_value_baseline)
             .df
+            # Clustering summary statistics:
+            .transform(
+                lambda df: WindowBasedClumping._cluster_sumstats(
+                    df, window_length, p_value_significance
+                )
+            )
             # Collect locus data for snps reacing significance:
             .withColumn(
                 "locus",
@@ -390,16 +516,6 @@ class WindowBasedClumping:
             )
             # Dropping non-significant spns:
             .filter(filter_expression)
-            .withColumn(
-                "cluster_id",
-                # First identify clusters of variants within the window
-                WindowBasedClumping._identify_cluster_peaks(
-                    f.col("studyId"),
-                    f.col("chromosome"),
-                    f.col("position"),
-                    window_length,
-                ),
-            )
             # Rank hits in cluster:
             .withColumn("pvRank", f.row_number().over(cluster_window))
             # Collect positions in cluster for the first
