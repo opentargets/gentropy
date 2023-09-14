@@ -7,7 +7,6 @@ catalog_ancestry_file: ${datasets.catalog_ancestries}
 catalog_associations_file: ${datasets.catalog_associations}
 catalog_sumstats_lut: ${datasets.catalog_sumstats_lut}
 variant_annotation_path: ${datasets.variant_annotation}
+ld_index_path: ${datasets.ld_index}
 catalog_studies_out: ${datasets.catalog_study_index}
 catalog_associations_out: ${datasets.catalog_study_locus}
-ld_matrix_template: ${datasets.ld_matrix_template}
-ld_index_template: ${datasets.ld_index_template}

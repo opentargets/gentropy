@@ -30,11 +30,20 @@ class Session:
             write_mode (str): spark write mode
             hail_home (str): path to hail installation
         """
-        # create session and retrieve Spark logger object
+        # create executors based on resources
+        default_spark_conf = (
+            SparkConf()
+            # Dynamic allocation
+            .set("spark.dynamicAllocation.enabled", "true")
+            .set("spark.dynamicAllocation.minExecutors", "2")
+            .set("spark.dynamicAllocation.initialExecutors", "2")
+            .set(
+                "spark.shuffle.service.enabled", "true"
+            )  # required for dynamic allocation
+        )
         spark_config = (
             (
-                SparkConf()
-                .set(
+                default_spark_conf.set(
                     "spark.jars",
                     f"{hail_home}/backend/hail-all-spark.jar",
                 )
@@ -45,10 +54,12 @@ class Session:
                 .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
                 .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
                 .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
+                .set("spark.sql.files.openCostInBytes", "50gb")
+                .set("spark.sql.files.maxPartitionBytes", "50gb")
                 # .set("spark.kryoserializer.buffer", "512m")
             )
             if hail_home != "unspecified"
-            else SparkConf()
+            else default_spark_conf
         )
         self.spark = (
             SparkSession.builder.config(conf=spark_config)

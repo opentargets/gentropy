@@ -114,6 +114,32 @@
     },
     {
       "metadata": {},
+      "name": "ldSet",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "tagVariantId",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "r2Overall",
+              "nullable": true,
+              "type": "double"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
       "name": "credibleSet",
       "nullable": true,
       "type": {
