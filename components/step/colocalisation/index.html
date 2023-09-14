@@ -82,25 +82,25 @@
     <span class=n>coloc_results</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>unionByName</span><span class=p>(</span><span class=n>ecaviar_results</span><span class=o>.</span><span class=n>df</span><span class=p>,</span> <span class=n>allowMissingColumns</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
 
     <span class=n>coloc_results</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>write</span><span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>coloc_path</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.ColocalisationStepConfig></a> <div class="doc doc-contents first"> <p>Colocalisation step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>study_locus_path</code></td> <td> <code>DictConfig</code> </td> <td><p>Input Study-locus path.</p></td> </tr> <tr> <td><code>coloc_path</code></td> <td> <code>DictConfig</code> </td> <td><p>Output Colocalisation path.</p></td> </tr> <tr> <td><code>priorc1</code></td> <td> <code>float</code> </td> <td><p>Prior on variant being causal for trait 1.</p></td> </tr> <tr> <td><code>priorc2</code></td> <td> <code>float</code> </td> <td><p>Prior on variant being causal for trait 2.</p></td> </tr> <tr> <td><code>priorc12</code></td> <td> <code>float</code> </td> <td><p>Prior on variant being causal for traits 1 and 2.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>81</span>
-<span class=normal>82</span>
-<span class=normal>83</span>
-<span class=normal>84</span>
-<span class=normal>85</span>
-<span class=normal>86</span>
-<span class=normal>87</span>
-<span class=normal>88</span>
-<span class=normal>89</span>
-<span class=normal>90</span>
-<span class=normal>91</span>
-<span class=normal>92</span>
-<span class=normal>93</span>
-<span class=normal>94</span>
-<span class=normal>95</span>
-<span class=normal>96</span>
-<span class=normal>97</span>
-<span class=normal>98</span>
-<span class=normal>99</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.ColocalisationStepConfig></a> <div class="doc doc-contents first"> <p>Colocalisation step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>study_locus_path</code></td> <td> <code>DictConfig</code> </td> <td><p>Input Study-locus path.</p></td> </tr> <tr> <td><code>coloc_path</code></td> <td> <code>DictConfig</code> </td> <td><p>Output Colocalisation path.</p></td> </tr> <tr> <td><code>priorc1</code></td> <td> <code>float</code> </td> <td><p>Prior on variant being causal for trait 1.</p></td> </tr> <tr> <td><code>priorc2</code></td> <td> <code>float</code> </td> <td><p>Prior on variant being causal for trait 2.</p></td> </tr> <tr> <td><code>priorc12</code></td> <td> <code>float</code> </td> <td><p>Prior on variant being causal for traits 1 and 2.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 86</span>
+<span class=normal> 87</span>
+<span class=normal> 88</span>
+<span class=normal> 89</span>
+<span class=normal> 90</span>
+<span class=normal> 91</span>
+<span class=normal> 92</span>
+<span class=normal> 93</span>
+<span class=normal> 94</span>
+<span class=normal> 95</span>
+<span class=normal> 96</span>
+<span class=normal> 97</span>
+<span class=normal> 98</span>
+<span class=normal> 99</span>
+<span class=normal>100</span>
+<span class=normal>101</span>
+<span class=normal>102</span>
+<span class=normal>103</span>
+<span class=normal>104</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>ColocalisationStepConfig</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Colocalisation step requirements.</span>
 

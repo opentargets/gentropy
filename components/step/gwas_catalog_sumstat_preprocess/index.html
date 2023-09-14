@@ -88,22 +88,22 @@
         <span class=n>raw_dataset</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>study_id</span>
     <span class=p>)</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>write</span><span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>out_sumstats_path</span><span class=p>)</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Processing dataset successfully completed.&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.GWASCatalogSumstatsPreprocessConfig></a> <div class="doc doc-contents first"> <p>GWAS Catalog Sumstats Preprocessing step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>raw_sumstats_path</code></td> <td> <code>str</code> </td> <td><p>Input raw GWAS Catalog summary statistics path.</p></td> </tr> <tr> <td><code>out_sumstats_path</code></td> <td> <code>str</code> </td> <td><p>Output GWAS Catalog summary statistics path.</p></td> </tr> <tr> <td><code>study_id</code></td> <td> <code>str</code> </td> <td><p>GWAS Catalog study identifier.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>256</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.GWASCatalogSumstatsPreprocessConfig></a> <div class="doc doc-contents first"> <p>GWAS Catalog Sumstats Preprocessing step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>raw_sumstats_path</code></td> <td> <code>str</code> </td> <td><p>Input raw GWAS Catalog summary statistics path.</p></td> </tr> <tr> <td><code>out_sumstats_path</code></td> <td> <code>str</code> </td> <td><p>Output GWAS Catalog summary statistics path.</p></td> </tr> <tr> <td><code>study_id</code></td> <td> <code>str</code> </td> <td><p>GWAS Catalog study identifier.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>248</span>
+<span class=normal>249</span>
+<span class=normal>250</span>
+<span class=normal>251</span>
+<span class=normal>252</span>
+<span class=normal>253</span>
+<span class=normal>254</span>
+<span class=normal>255</span>
+<span class=normal>256</span>
 <span class=normal>257</span>
 <span class=normal>258</span>
 <span class=normal>259</span>
 <span class=normal>260</span>
 <span class=normal>261</span>
 <span class=normal>262</span>
-<span class=normal>263</span>
-<span class=normal>264</span>
-<span class=normal>265</span>
-<span class=normal>266</span>
-<span class=normal>267</span>
-<span class=normal>268</span>
-<span class=normal>269</span>
-<span class=normal>270</span>
-<span class=normal>271</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>263</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>GWASCatalogSumstatsPreprocessConfig</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;GWAS Catalog Sumstats Preprocessing step requirements.</span>
 

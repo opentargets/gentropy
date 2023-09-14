@@ -84,7 +84,15 @@
     <span class=n>finngen_studies</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>write</span><span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>finngen_study_index_out</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.FinnGenStepConfig></a> <div class="doc doc-contents first"> <p>FinnGen study table ingestion step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>finngen_phenotype_table_url</code></td> <td> <code>str</code> </td> <td><p>FinnGen API for fetching the list of studies.</p></td> </tr> <tr> <td><code>finngen_release_prefix</code></td> <td> <code>str</code> </td> <td><p>Release prefix pattern.</p></td> </tr> <tr> <td><code>finngen_sumstat_url_prefix</code></td> <td> <code>str</code> </td> <td><p>URL prefix for summary statistics location.</p></td> </tr> <tr> <td><code>finngen_sumstat_url_suffix</code></td> <td> <code>str</code> </td> <td><p>URL prefix suffix for summary statistics location.</p></td> </tr> <tr> <td><code>finngen_study_index_out</code></td> <td> <code>str</code> </td> <td><p>Output path for the FinnGen study index dataset.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>274</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.FinnGenStepConfig></a> <div class="doc doc-contents first"> <p>FinnGen study table ingestion step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>finngen_phenotype_table_url</code></td> <td> <code>str</code> </td> <td><p>FinnGen API for fetching the list of studies.</p></td> </tr> <tr> <td><code>finngen_release_prefix</code></td> <td> <code>str</code> </td> <td><p>Release prefix pattern.</p></td> </tr> <tr> <td><code>finngen_sumstat_url_prefix</code></td> <td> <code>str</code> </td> <td><p>URL prefix for summary statistics location.</p></td> </tr> <tr> <td><code>finngen_sumstat_url_suffix</code></td> <td> <code>str</code> </td> <td><p>URL prefix suffix for summary statistics location.</p></td> </tr> <tr> <td><code>finngen_study_index_out</code></td> <td> <code>str</code> </td> <td><p>Output path for the FinnGen study index dataset.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>266</span>
+<span class=normal>267</span>
+<span class=normal>268</span>
+<span class=normal>269</span>
+<span class=normal>270</span>
+<span class=normal>271</span>
+<span class=normal>272</span>
+<span class=normal>273</span>
+<span class=normal>274</span>
 <span class=normal>275</span>
 <span class=normal>276</span>
 <span class=normal>277</span>
@@ -93,15 +101,7 @@
 <span class=normal>280</span>
 <span class=normal>281</span>
 <span class=normal>282</span>
-<span class=normal>283</span>
-<span class=normal>284</span>
-<span class=normal>285</span>
-<span class=normal>286</span>
-<span class=normal>287</span>
-<span class=normal>288</span>
-<span class=normal>289</span>
-<span class=normal>290</span>
-<span class=normal>291</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>283</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>FinnGenStepConfig</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;FinnGen study table ingestion step requirements.</span>
 

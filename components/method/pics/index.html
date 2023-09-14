@@ -180,9 +180,7 @@
 <span class=normal>196</span>
 <span class=normal>197</span>
 <span class=normal>198</span>
-<span class=normal>199</span>
-<span class=normal>200</span>
-<span class=normal>201</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>PICS</span><span class=p>:</span>
+<span class=normal>199</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>PICS</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Probabilistic Identification of Causal SNPs (PICS), an algorithm estimating the probability that an individual variant is causal considering the haplotype structure and observed pattern of association at the genetic locus.&quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
@@ -262,32 +260,30 @@
         <span class=k>return</span> <span class=n>neglog_p</span> <span class=o>*</span> <span class=n>r2</span> <span class=k>if</span> <span class=n>r2</span> <span class=o>&gt;=</span> <span class=mf>0.5</span> <span class=k>else</span> <span class=kc>None</span>
 
     <span class=nd>@staticmethod</span>
-    <span class=k>def</span> <span class=nf>_finemap</span><span class=p>(</span>
-        <span class=n>credible_set</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Row</span><span class=p>],</span> <span class=n>lead_neglog_p</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>float</span>
-    <span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>_finemap</span><span class=p>(</span><span class=n>ld_set</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Row</span><span class=p>],</span> <span class=n>lead_neglog_p</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.</span>
 
 <span class=sd>        It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.</span>
-<span class=sd>        The function iterates over every SNP in the `credibleSet` array, and it returns an updated credibleSet with</span>
+<span class=sd>        The function iterates over every SNP in the `ldSet` array, and it returns an updated credibleSet with</span>
 <span class=sd>        its association signal and causality probability as of PICS.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            credible_set (list): list of tagging variants after expanding the locus</span>
+<span class=sd>            ld_set (list): list of tagging variants after expanding the locus</span>
 <span class=sd>            lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.</span>
 <span class=sd>            k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
-        <span class=k>if</span> <span class=n>credible_set</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>ld_set</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
             <span class=k>return</span> <span class=kc>None</span>
-        <span class=k>elif</span> <span class=ow>not</span> <span class=n>credible_set</span><span class=p>:</span>
+        <span class=k>elif</span> <span class=ow>not</span> <span class=n>ld_set</span><span class=p>:</span>
             <span class=k>return</span> <span class=p>[]</span>
 
         <span class=n>tmp_credible_set</span> <span class=o>=</span> <span class=p>[]</span>
         <span class=n>new_credible_set</span> <span class=o>=</span> <span class=p>[]</span>
         <span class=c1># First iteration: calculation of mu, standard deviation, and the relative posterior probability</span>
-        <span class=k>for</span> <span class=n>tag_struct</span> <span class=ow>in</span> <span class=n>credible_set</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>tag_struct</span> <span class=ow>in</span> <span class=n>ld_set</span><span class=p>:</span>
             <span class=n>tag_dict</span> <span class=o>=</span> <span class=p>(</span>
                 <span class=n>tag_struct</span><span class=o>.</span><span class=n>asDict</span><span class=p>()</span>
             <span class=p>)</span>  <span class=c1># tag_struct is of type pyspark.Row, we&#39;ll represent it as a dict</span>
@@ -360,14 +356,16 @@
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
-                    <span class=n>_finemap_udf</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
+                    <span class=n>_finemap_udf</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)),</span>
                 <span class=p>),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=n>associations</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.pics.PICS.finemap class="doc doc-heading"> <code class="highlight language-python"><span class=n>finemap</span><span class=p>(</span><span class=n>associations</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mf>6.4</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Run PICS on a study locus.</p> <div class="admonition info"> <p class=admonition-title>Study locus needs to be LD annotated</p> <p>The study locus needs to be LD annotated before PICS can be calculated.</p> </div> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>associations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus to finemap using PICS</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>k</code></td> <td> <code>float</code> </td> <td><p>Empiric constant that can be adjusted to fit the curve, 6.4 recommended.</p></td> <td> <code>6.4</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus with PICS results</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/pics.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>165</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.pics.PICS.finemap class="doc doc-heading"> <code class="highlight language-python"><span class=n>finemap</span><span class=p>(</span><span class=n>associations</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mf>6.4</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Run PICS on a study locus.</p> <div class="admonition info"> <p class=admonition-title>Study locus needs to be LD annotated</p> <p>The study locus needs to be LD annotated before PICS can be calculated.</p> </div> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>associations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus to finemap using PICS</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>k</code></td> <td> <code>float</code> </td> <td><p>Empiric constant that can be adjusted to fit the curve, 6.4 recommended.</p></td> <td> <code>6.4</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study locus with PICS results</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/pics.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>163</span>
+<span class=normal>164</span>
+<span class=normal>165</span>
 <span class=normal>166</span>
 <span class=normal>167</span>
 <span class=normal>168</span>
@@ -401,9 +399,7 @@
 <span class=normal>196</span>
 <span class=normal>197</span>
 <span class=normal>198</span>
-<span class=normal>199</span>
-<span class=normal>200</span>
-<span class=normal>201</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>199</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>finemap</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>PICS</span><span class=p>],</span> <span class=n>associations</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>6.4</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
@@ -433,8 +429,8 @@
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
-                <span class=n>_finemap_udf</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
+                <span class=n>_finemap_udf</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)),</span>
             <span class=p>),</span>
         <span class=p>)</span>
         <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)</span>

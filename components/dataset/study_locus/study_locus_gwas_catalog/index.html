@@ -1158,67 +1158,7 @@
 <span class=normal>1570</span>
 <span class=normal>1571</span>
 <span class=normal>1572</span>
-<span class=normal>1573</span>
-<span class=normal>1574</span>
-<span class=normal>1575</span>
-<span class=normal>1576</span>
-<span class=normal>1577</span>
-<span class=normal>1578</span>
-<span class=normal>1579</span>
-<span class=normal>1580</span>
-<span class=normal>1581</span>
-<span class=normal>1582</span>
-<span class=normal>1583</span>
-<span class=normal>1584</span>
-<span class=normal>1585</span>
-<span class=normal>1586</span>
-<span class=normal>1587</span>
-<span class=normal>1588</span>
-<span class=normal>1589</span>
-<span class=normal>1590</span>
-<span class=normal>1591</span>
-<span class=normal>1592</span>
-<span class=normal>1593</span>
-<span class=normal>1594</span>
-<span class=normal>1595</span>
-<span class=normal>1596</span>
-<span class=normal>1597</span>
-<span class=normal>1598</span>
-<span class=normal>1599</span>
-<span class=normal>1600</span>
-<span class=normal>1601</span>
-<span class=normal>1602</span>
-<span class=normal>1603</span>
-<span class=normal>1604</span>
-<span class=normal>1605</span>
-<span class=normal>1606</span>
-<span class=normal>1607</span>
-<span class=normal>1608</span>
-<span class=normal>1609</span>
-<span class=normal>1610</span>
-<span class=normal>1611</span>
-<span class=normal>1612</span>
-<span class=normal>1613</span>
-<span class=normal>1614</span>
-<span class=normal>1615</span>
-<span class=normal>1616</span>
-<span class=normal>1617</span>
-<span class=normal>1618</span>
-<span class=normal>1619</span>
-<span class=normal>1620</span>
-<span class=normal>1621</span>
-<span class=normal>1622</span>
-<span class=normal>1623</span>
-<span class=normal>1624</span>
-<span class=normal>1625</span>
-<span class=normal>1626</span>
-<span class=normal>1627</span>
-<span class=normal>1628</span>
-<span class=normal>1629</span>
-<span class=normal>1630</span>
-<span class=normal>1631</span>
-<span class=normal>1632</span>
-<span class=normal>1633</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>StudyLocusGWASCatalog</span><span class=p>(</span><span class=n>StudyLocus</span><span class=p>):</span>
+<span class=normal>1573</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>StudyLocusGWASCatalog</span><span class=p>(</span><span class=n>StudyLocus</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study-locus dataset derived from GWAS Catalog.&quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
@@ -2324,84 +2264,22 @@
         <span class=k>return</span> <span class=bp>self</span>
 
     <span class=k>def</span> <span class=nf>annotate_ld</span><span class=p>(</span>
-        <span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>,</span>
-        <span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span>
-        <span class=n>studies</span><span class=p>:</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>,</span>
-        <span class=n>ld_populations</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
-        <span class=n>ld_index_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-        <span class=n>ld_matrix_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-        <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+        <span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>,</span> <span class=n>studies</span><span class=p>:</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>:</span> <span class=n>LDIndex</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Annotate LD set for every studyLocus using gnomAD.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            session (Session): Session</span>
 <span class=sd>            studies (StudyIndexGWASCatalog): Study index containing ancestry information</span>
-<span class=sd>            ld_populations (list[str]): List of populations to annotate</span>
-<span class=sd>            ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected</span>
-<span class=sd>            ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected</span>
-<span class=sd>            min_r2 (float): Minimum r2 to include in the LD set after weighting per population (r2Overall)</span>
+<span class=sd>            ld_index (LDIndex): LD index</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            StudyLocus: Study-locus with an annotated credible set.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
-        <span class=c1># TODO: call unique_study_locus_ancestries here so that it is not duplicated with ld_annotation_by_locus_ancestry</span>
-        <span class=c1># LD annotation for all unique lead variants in all populations (study independent).</span>
-        <span class=n>ld_r</span> <span class=o>=</span> <span class=n>LDAnnotatorGnomad</span><span class=o>.</span><span class=n>ld_annotation_by_locus_ancestry</span><span class=p>(</span>
-            <span class=n>session</span><span class=p>,</span>
-            <span class=bp>self</span><span class=p>,</span>
-            <span class=n>studies</span><span class=p>,</span>
-            <span class=n>ld_populations</span><span class=p>,</span>
-            <span class=n>ld_index_template</span><span class=p>,</span>
-            <span class=n>ld_matrix_template</span><span class=p>,</span>
-            <span class=n>min_r2</span><span class=o>=</span><span class=mf>0.2</span><span class=p>,</span>
-        <span class=p>)</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span><span class=mi>400</span><span class=p>)</span>
-
-        <span class=n>credible_set_schema</span> <span class=o>=</span> <span class=p>[</span>
-            <span class=p>(</span><span class=n>subfield</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>subfield</span><span class=o>.</span><span class=n>dataType</span><span class=p>)</span>
-            <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>_schema</span><span class=o>.</span><span class=n>fields</span>
-            <span class=k>if</span> <span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&quot;credibleSet&quot;</span>
-            <span class=k>for</span> <span class=n>subfield</span> <span class=ow>in</span> <span class=n>field</span><span class=o>.</span><span class=n>dataType</span><span class=o>.</span><span class=n>elemenType</span>  <span class=c1># type: ignore</span>
-        <span class=p>]</span>
-
-        <span class=n>ld_set</span> <span class=o>=</span> <span class=p>(</span>
-            <span class=bp>self</span><span class=o>.</span><span class=n>unique_study_locus_ancestries</span><span class=p>(</span><span class=n>studies</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>ld_r</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;gnomadPopulation&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;r2&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>pow</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;r&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>2</span><span class=p>)))</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;r2Overall&quot;</span><span class=p>,</span>
-                <span class=n>LDAnnotatorGnomad</span><span class=o>.</span><span class=n>weighted_r_overall</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;relativeSampleSize&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;r2&quot;</span><span class=p>),</span>
-                <span class=p>),</span>
-            <span class=p>)</span>
-            <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;r2Overall&quot;</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=n>min_r2</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>collect_set</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                            <span class=p>[</span>
-                                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>datatype</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=n>field</span><span class=p>)</span>
-                                <span class=k>if</span> <span class=n>field</span> <span class=ow>not</span> <span class=ow>in</span> <span class=p>[</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>,</span> <span class=s2>&quot;r2Overall&quot;</span><span class=p>]</span>
-                                <span class=k>else</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=n>field</span><span class=p>)</span>
-                                <span class=k>for</span> <span class=n>field</span><span class=p>,</span> <span class=n>datatype</span> <span class=ow>in</span> <span class=n>credible_set_schema</span>
-                            <span class=p>]</span>
-                        <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>),</span>
-                    <span class=p>)</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)</span>
-            <span class=p>)</span>
+        <span class=n>associations_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+            <span class=n>studies</span><span class=o>.</span><span class=n>get_gnomad_population_structure</span><span class=p>(),</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span>
         <span class=p>)</span>
 
-        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-            <span class=n>ld_set</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span>
-        <span class=p>)</span>
-
+        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=n>LDAnnotator</span><span class=o>.</span><span class=n>annotate_associations_with_ld</span><span class=p>(</span><span class=n>associations_df</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_qc_unresolved_ld</span><span class=p>()</span>
 
     <span class=k>def</span> <span class=nf>_qc_ambiguous_study</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>:</span>
@@ -2424,22 +2302,24 @@
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
 
-    <span class=k>def</span> <span class=nf>_qc_unresolved_ld</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>_qc_unresolved_ld</span><span class=p>(</span>
+        <span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span> <span class=o>|</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>,</span>
+    <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span> <span class=o>|</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Flag associations with variants that are not found in the LD reference.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            StudyLocusGWASCatalog: Updated study locus.</span>
+<span class=sd>            StudyLocusGWASCatalog | StudyLocus: Updated study locus.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
-        <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=s2>&quot;qualityControls&quot;</span><span class=p>,</span>
-            <span class=n>StudyLocus</span><span class=o>.</span><span class=n>_update_quality_flag</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_update_quality_flag</span><span class=p>(</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;qualityControls&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNull</span><span class=p>(),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNull</span><span class=p>(),</span>
                 <span class=n>StudyLocusQualityCheck</span><span class=o>.</span><span class=n>UNRESOLVED_LD</span><span class=p>,</span>
             <span class=p>),</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocusGWASCatalog.annotate_ld class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_ld</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>studies</span><span class=p>,</span> <span class=n>ld_populations</span><span class=p>,</span> <span class=n>ld_index_template</span><span class=p>,</span> <span class=n>ld_matrix_template</span><span class=p>,</span> <span class=n>min_r2</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Annotate LD set for every studyLocus using gnomAD.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>session</code></td> <td> <code><span title="otg.common.session.Session">Session</span></code> </td> <td><p>Session</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>studies</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndexGWASCatalog" href="../../study_index/study_index_gwas_catalog/#otg.dataset.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code> </td> <td><p>Study index containing ancestry information</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_populations</code></td> <td> <code>list[str]</code> </td> <td><p>List of populations to annotate</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_index_template</code></td> <td> <code>str</code> </td> <td><p>Template path of the LD matrix index containing <code>{POP}</code> where the population is expected</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_matrix_template</code></td> <td> <code>str</code> </td> <td><p>Template path of the LD matrix containing <code>{POP}</code> where the population is expected</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>min_r2</code></td> <td> <code>float</code> </td> <td><p>Minimum r2 to include in the LD set after weighting per population (r2Overall)</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study-locus with an annotated credible set.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1518</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocusGWASCatalog.annotate_ld class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_ld</span><span class=p>(</span><span class=n>studies</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Annotate LD set for every studyLocus using gnomAD.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>studies</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndexGWASCatalog" href="../../study_index/study_index_gwas_catalog/#otg.dataset.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code> </td> <td><p>Study index containing ancestry information</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.ld_index.LDIndex" href="../../ld_index/#otg.dataset.ld_index.LDIndex">LDIndex</a></code> </td> <td><p>LD index</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../_study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>Study-locus with an annotated credible set.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1518</span>
 <span class=normal>1519</span>
 <span class=normal>1520</span>
 <span class=normal>1521</span>
@@ -2456,147 +2336,23 @@
 <span class=normal>1532</span>
 <span class=normal>1533</span>
 <span class=normal>1534</span>
-<span class=normal>1535</span>
-<span class=normal>1536</span>
-<span class=normal>1537</span>
-<span class=normal>1538</span>
-<span class=normal>1539</span>
-<span class=normal>1540</span>
-<span class=normal>1541</span>
-<span class=normal>1542</span>
-<span class=normal>1543</span>
-<span class=normal>1544</span>
-<span class=normal>1545</span>
-<span class=normal>1546</span>
-<span class=normal>1547</span>
-<span class=normal>1548</span>
-<span class=normal>1549</span>
-<span class=normal>1550</span>
-<span class=normal>1551</span>
-<span class=normal>1552</span>
-<span class=normal>1553</span>
-<span class=normal>1554</span>
-<span class=normal>1555</span>
-<span class=normal>1556</span>
-<span class=normal>1557</span>
-<span class=normal>1558</span>
-<span class=normal>1559</span>
-<span class=normal>1560</span>
-<span class=normal>1561</span>
-<span class=normal>1562</span>
-<span class=normal>1563</span>
-<span class=normal>1564</span>
-<span class=normal>1565</span>
-<span class=normal>1566</span>
-<span class=normal>1567</span>
-<span class=normal>1568</span>
-<span class=normal>1569</span>
-<span class=normal>1570</span>
-<span class=normal>1571</span>
-<span class=normal>1572</span>
-<span class=normal>1573</span>
-<span class=normal>1574</span>
-<span class=normal>1575</span>
-<span class=normal>1576</span>
-<span class=normal>1577</span>
-<span class=normal>1578</span>
-<span class=normal>1579</span>
-<span class=normal>1580</span>
-<span class=normal>1581</span>
-<span class=normal>1582</span>
-<span class=normal>1583</span>
-<span class=normal>1584</span>
-<span class=normal>1585</span>
-<span class=normal>1586</span>
-<span class=normal>1587</span>
-<span class=normal>1588</span>
-<span class=normal>1589</span>
-<span class=normal>1590</span>
-<span class=normal>1591</span>
-<span class=normal>1592</span>
-<span class=normal>1593</span>
-<span class=normal>1594</span>
-<span class=normal>1595</span>
-<span class=normal>1596</span>
-<span class=normal>1597</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_ld</span><span class=p>(</span>
-    <span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>,</span>
-    <span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span>
-    <span class=n>studies</span><span class=p>:</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>,</span>
-    <span class=n>ld_populations</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
-    <span class=n>ld_index_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-    <span class=n>ld_matrix_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-    <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+<span class=normal>1535</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_ld</span><span class=p>(</span>
+    <span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocusGWASCatalog</span><span class=p>,</span> <span class=n>studies</span><span class=p>:</span> <span class=n>StudyIndexGWASCatalog</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>:</span> <span class=n>LDIndex</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Annotate LD set for every studyLocus using gnomAD.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        session (Session): Session</span>
 <span class=sd>        studies (StudyIndexGWASCatalog): Study index containing ancestry information</span>
-<span class=sd>        ld_populations (list[str]): List of populations to annotate</span>
-<span class=sd>        ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected</span>
-<span class=sd>        ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected</span>
-<span class=sd>        min_r2 (float): Minimum r2 to include in the LD set after weighting per population (r2Overall)</span>
+<span class=sd>        ld_index (LDIndex): LD index</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        StudyLocus: Study-locus with an annotated credible set.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
-    <span class=c1># TODO: call unique_study_locus_ancestries here so that it is not duplicated with ld_annotation_by_locus_ancestry</span>
-    <span class=c1># LD annotation for all unique lead variants in all populations (study independent).</span>
-    <span class=n>ld_r</span> <span class=o>=</span> <span class=n>LDAnnotatorGnomad</span><span class=o>.</span><span class=n>ld_annotation_by_locus_ancestry</span><span class=p>(</span>
-        <span class=n>session</span><span class=p>,</span>
-        <span class=bp>self</span><span class=p>,</span>
-        <span class=n>studies</span><span class=p>,</span>
-        <span class=n>ld_populations</span><span class=p>,</span>
-        <span class=n>ld_index_template</span><span class=p>,</span>
-        <span class=n>ld_matrix_template</span><span class=p>,</span>
-        <span class=n>min_r2</span><span class=o>=</span><span class=mf>0.2</span><span class=p>,</span>
-    <span class=p>)</span><span class=o>.</span><span class=n>coalesce</span><span class=p>(</span><span class=mi>400</span><span class=p>)</span>
-
-    <span class=n>credible_set_schema</span> <span class=o>=</span> <span class=p>[</span>
-        <span class=p>(</span><span class=n>subfield</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>subfield</span><span class=o>.</span><span class=n>dataType</span><span class=p>)</span>
-        <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>_schema</span><span class=o>.</span><span class=n>fields</span>
-        <span class=k>if</span> <span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&quot;credibleSet&quot;</span>
-        <span class=k>for</span> <span class=n>subfield</span> <span class=ow>in</span> <span class=n>field</span><span class=o>.</span><span class=n>dataType</span><span class=o>.</span><span class=n>elemenType</span>  <span class=c1># type: ignore</span>
-    <span class=p>]</span>
-
-    <span class=n>ld_set</span> <span class=o>=</span> <span class=p>(</span>
-        <span class=bp>self</span><span class=o>.</span><span class=n>unique_study_locus_ancestries</span><span class=p>(</span><span class=n>studies</span><span class=p>)</span>
-        <span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>ld_r</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;gnomadPopulation&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>)</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;r2&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>pow</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;r&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>2</span><span class=p>)))</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=s2>&quot;r2Overall&quot;</span><span class=p>,</span>
-            <span class=n>LDAnnotatorGnomad</span><span class=o>.</span><span class=n>weighted_r_overall</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;relativeSampleSize&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;r2&quot;</span><span class=p>),</span>
-            <span class=p>),</span>
-        <span class=p>)</span>
-        <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;r2Overall&quot;</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=n>min_r2</span><span class=p>)</span>
-        <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>)</span>
-        <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>collect_set</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                        <span class=p>[</span>
-                            <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>datatype</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=n>field</span><span class=p>)</span>
-                            <span class=k>if</span> <span class=n>field</span> <span class=ow>not</span> <span class=ow>in</span> <span class=p>[</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>,</span> <span class=s2>&quot;r2Overall&quot;</span><span class=p>]</span>
-                            <span class=k>else</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=n>field</span><span class=p>)</span>
-                            <span class=k>for</span> <span class=n>field</span><span class=p>,</span> <span class=n>datatype</span> <span class=ow>in</span> <span class=n>credible_set_schema</span>
-                        <span class=p>]</span>
-                    <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>),</span>
-                <span class=p>)</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)</span>
-        <span class=p>)</span>
+    <span class=n>associations_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+        <span class=n>studies</span><span class=o>.</span><span class=n>get_gnomad_population_structure</span><span class=p>(),</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span>
     <span class=p>)</span>
 
-    <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-        <span class=n>ld_set</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span>
-    <span class=p>)</span>
-
+    <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=n>LDAnnotator</span><span class=o>.</span><span class=n>annotate_associations_with_ld</span><span class=p>(</span><span class=n>associations_df</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span>
     <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_qc_unresolved_ld</span><span class=p>()</span>
 </code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocusGWASCatalog.from_source class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_source</span><span class=p>(</span><span class=n>gwas_associations</span><span class=p>,</span> <span class=n>variant_annotation</span><span class=p>,</span> <span class=n>pvalue_threshold</span><span class=o>=</span><span class=mf>5e-08</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Read GWASCatalog associations.</p> <p>It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and applies some pre-defined filters on the data:</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gwas_associations</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>GWAS Catalog raw associations dataset</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>variant_annotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="../../variant_annotation/#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td><p>Variant annotation dataset</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>pvalue_threshold</code></td> <td> <code>float</code> </td> <td><p>P-value threshold for flagging associations</p></td> <td> <code>5e-08</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocusGWASCatalog</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocusGWASCatalog" href="#otg.dataset.study_locus.StudyLocusGWASCatalog">StudyLocusGWASCatalog</a></code> </td> <td><p>StudyLocusGWASCatalog dataset</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1364</span>
 <span class=normal>1365</span>

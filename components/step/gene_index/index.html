@@ -46,18 +46,18 @@
     <span class=n>gene_index</span> <span class=o>=</span> <span class=n>GeneIndex</span><span class=o>.</span><span class=n>from_source</span><span class=p>(</span><span class=n>platform_target</span><span class=p>)</span>
     <span class=c1># Load</span>
     <span class=n>gene_index</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>write</span><span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>gene_index_path</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.GeneIndexStepConfig></a> <div class="doc doc-contents first"> <p>Gene index step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>target_path</code></td> <td> <code>str</code> </td> <td><p>Open targets Platform target dataset path.</p></td> </tr> <tr> <td><code>gene_index_path</code></td> <td> <code>str</code> </td> <td><p>Output gene index path.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>242</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.GeneIndexStepConfig></a> <div class="doc doc-contents first"> <p>Gene index step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>target_path</code></td> <td> <code>str</code> </td> <td><p>Open targets Platform target dataset path.</p></td> </tr> <tr> <td><code>gene_index_path</code></td> <td> <code>str</code> </td> <td><p>Output gene index path.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>234</span>
+<span class=normal>235</span>
+<span class=normal>236</span>
+<span class=normal>237</span>
+<span class=normal>238</span>
+<span class=normal>239</span>
+<span class=normal>240</span>
+<span class=normal>241</span>
+<span class=normal>242</span>
 <span class=normal>243</span>
 <span class=normal>244</span>
-<span class=normal>245</span>
-<span class=normal>246</span>
-<span class=normal>247</span>
-<span class=normal>248</span>
-<span class=normal>249</span>
-<span class=normal>250</span>
-<span class=normal>251</span>
-<span class=normal>252</span>
-<span class=normal>253</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>245</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>GeneIndexStepConfig</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Gene index step requirements.</span>
 

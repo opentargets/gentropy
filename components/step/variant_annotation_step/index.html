@@ -90,12 +90,7 @@
         <span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span>
         <span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>variant_annotation_path</span><span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.VariantAnnotationStepConfig></a> <div class="doc doc-contents first"> <p>Variant annotation step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>gnomad_genomes</code></td> <td> <code>str</code> </td> <td><p>Path to gnomAD genomes hail table.</p></td> </tr> <tr> <td><code>chain_38_to_37</code></td> <td> <code>str</code> </td> <td><p>Path to GRCh38 to GRCh37 chain file.</p></td> </tr> <tr> <td><code>variant_annotation_path</code></td> <td> <code>str</code> </td> <td><p>Output variant annotation path.</p></td> </tr> <tr> <td><code>populations</code></td> <td> <code><span title="typing.List">List</span>[str]</code> </td> <td><p>List of populations to include.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>102</span>
-<span class=normal>103</span>
-<span class=normal>104</span>
-<span class=normal>105</span>
-<span class=normal>106</span>
-<span class=normal>107</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.VariantAnnotationStepConfig></a> <div class="doc doc-contents first"> <p>Variant annotation step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>gnomad_genomes</code></td> <td> <code>str</code> </td> <td><p>Path to gnomAD genomes hail table.</p></td> </tr> <tr> <td><code>chain_38_to_37</code></td> <td> <code>str</code> </td> <td><p>Path to GRCh38 to GRCh37 chain file.</p></td> </tr> <tr> <td><code>variant_annotation_path</code></td> <td> <code>str</code> </td> <td><p>Output variant annotation path.</p></td> </tr> <tr> <td><code>populations</code></td> <td> <code><span title="typing.List">List</span>[str]</code> </td> <td><p>List of populations to include.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>107</span>
 <span class=normal>108</span>
 <span class=normal>109</span>
 <span class=normal>110</span>
@@ -118,7 +113,12 @@
 <span class=normal>127</span>
 <span class=normal>128</span>
 <span class=normal>129</span>
-<span class=normal>130</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>130</span>
+<span class=normal>131</span>
+<span class=normal>132</span>
+<span class=normal>133</span>
+<span class=normal>134</span>
+<span class=normal>135</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>VariantAnnotationStepConfig</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Variant annotation step requirements.</span>
 

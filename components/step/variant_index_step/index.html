@@ -134,12 +134,7 @@
         <span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span>
         <span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>variant_index_path</span><span class=p>)</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.VariantIndexStepConfig></a> <div class="doc doc-contents first"> <p>Variant index step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>variant_annotation_path</code></td> <td> <code>str</code> </td> <td><p>Input variant annotation path.</p></td> </tr> <tr> <td><code>study_locus_path</code></td> <td> <code>str</code> </td> <td><p>Input study-locus path.</p></td> </tr> <tr> <td><code>variant_index_path</code></td> <td> <code>str</code> </td> <td><p>Output variant index path.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>65</span>
-<span class=normal>66</span>
-<span class=normal>67</span>
-<span class=normal>68</span>
-<span class=normal>69</span>
-<span class=normal>70</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.VariantIndexStepConfig></a> <div class="doc doc-contents first"> <p>Variant index step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>variant_annotation_path</code></td> <td> <code>str</code> </td> <td><p>Input variant annotation path.</p></td> </tr> <tr> <td><code>study_locus_path</code></td> <td> <code>str</code> </td> <td><p>Input study-locus path.</p></td> </tr> <tr> <td><code>variant_index_path</code></td> <td> <code>str</code> </td> <td><p>Output variant index path.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>70</span>
 <span class=normal>71</span>
 <span class=normal>72</span>
 <span class=normal>73</span>
@@ -147,7 +142,12 @@
 <span class=normal>75</span>
 <span class=normal>76</span>
 <span class=normal>77</span>
-<span class=normal>78</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>78</span>
+<span class=normal>79</span>
+<span class=normal>80</span>
+<span class=normal>81</span>
+<span class=normal>82</span>
+<span class=normal>83</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>VariantIndexStepConfig</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Variant index step requirements.</span>
 
