@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.common.session import Session
+
 
 @dataclass
 class LDIndex(Dataset):
