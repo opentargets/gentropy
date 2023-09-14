@@ -21,7 +21,7 @@ from otg.common.spark_helpers import (
     order_array_of_structs_by_field,
     pvalue_to_zscore,
 )
-from otg.common.utils import get_study_locus_id, parse_efos
+from otg.common.utils import parse_efos
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
@@ -1568,7 +1568,8 @@ class StudyLocusGWASCatalog(StudyLocus):
             StudyLocusGWASCatalog: Updated study locus with the final `studyLocusId`.
         """
         self.df = self.df.withColumn(
-            "studyLocusId", get_study_locus_id(f.col("studyId"), f.col("variantId"))
+            "studyLocusId",
+            StudyLocus.get_study_locus_id(f.col("studyId"), f.col("variantId")),
         )
         return self
 
