@@ -261,3 +261,17 @@ class LDIndex(Dataset):
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
         )
+
+    @classmethod
+    def from_parquet(cls: type[LDIndex], session: Session, path: str) -> LDIndex:
+        """Initialise LDIndex from parquet file.
+
+        Args:
+            session (Session): ETL session
+            path (str): Path to parquet file
+
+        Returns:
+            LDIndex: VariantAnnotation dataset
+        """
+        df = session.read_parquet(path=path, schema=cls._schema)
+        return cls(_df=df, _schema=cls._schema)

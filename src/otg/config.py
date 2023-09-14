@@ -209,21 +209,8 @@ class GWASCatalogStepConfig:
     catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
     variant_annotation_path: str = MISSING
+    ld_index_path: str = MISSING
     min_r2: float = 0.5
-    ld_matrix_template: str = MISSING
-    ld_index_template: str = MISSING  # TODO: remove
-    ld_populations: List[str] = field(
-        default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "asj",  # Ashkenazi Jewish
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-            "nwe",  # Northwestern European
-            "seu",  # Southeastern European
-        ]
-    )
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
 
