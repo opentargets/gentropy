@@ -222,7 +222,7 @@ class StudyLocus(Dataset):
         return f.filter(credible_set, lambda x: x["is95CredibleSet"])
 
     @staticmethod
-    def get_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
+    def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
         """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
         Args:
@@ -234,7 +234,7 @@ class StudyLocus(Dataset):
 
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-            >>> df.withColumn("study_locus_id", StudyLocus.get_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
             +----------+----------+--------------------+
             |   studyId| variantId|      study_locus_id|
             +----------+----------+--------------------+
@@ -1558,20 +1558,6 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         self.df = LDAnnotator.annotate_associations_with_ld(associations_df, ld_index)
         return self._qc_unresolved_ld()
-
-    def _assign_study_locus_id(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
-        """Assign a unique study locus id to every association.
-
-        !!! warning "This method must be called after splitting the studies."
-
-        Returns:
-            StudyLocusGWASCatalog: Updated study locus with the final `studyLocusId`.
-        """
-        self.df = self.df.withColumn(
-            "studyLocusId",
-            StudyLocus.get_study_locus_id(f.col("studyId"), f.col("variantId")),
-        )
-        return self
 
     def _qc_ambiguous_study(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
         """Flag associations with variants that can not be unambiguously associated with one study.

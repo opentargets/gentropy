@@ -336,6 +336,6 @@ class WindowBasedClumping:
             # assign study-locus id:
             .withColumn(
                 "studyLocusId",
-                StudyLocus.get_study_locus_id(f.col("studyId"), f.col("variantId")),
+                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
             )
         )
