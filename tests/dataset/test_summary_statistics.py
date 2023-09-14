@@ -52,6 +52,7 @@ def test_summary_statistics__exclude_region__correctness(
 ) -> None:
     """Testing if the exclude region method returns the right datatype."""
     data = [
+        # Region needs to be dropped:
         ("s1", "c1", "v1", 1, 1.0, -2, 0.0),
         ("s1", "c1", "v1", 10, 1.0, -2, 0.0),
         ("s1", "c1", "v1", 15, 1.0, -2, 0.0),
