@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Tuple
 import pyspark.sql.functions as f
 from pyspark.sql.window import Window
 
-from otg.dataset.study_locus import StudyLocus
-
 if TYPE_CHECKING:
     from pyspark.sql import Column
 
@@ -134,10 +132,7 @@ class GWASCatalogSplitter:
                 st_ass.select(
                     "updatedStudyId", "studyId", "subStudyDescription"
                 ).distinct()
-            )._qc_ambiguous_study()
-            # Overwrite the temporary studyLocusId and create the final hash
-            .withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
-            ),
+            )
+            ._qc_ambiguous_study()
+            .assign_study_locus_id(),  # Overwrite the temporary studyLocusId and create the final hash
         )
