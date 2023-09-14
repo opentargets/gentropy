@@ -1,4 +1,4 @@
-"""Step to generate variant index dataset."""
+"""Step to generate gene index dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass

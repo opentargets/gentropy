@@ -7,3 +7,4 @@ outputs/
 coverage.xml
 docs/assets/schemas/
 .cache/
+src/airflow/logs/

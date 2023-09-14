@@ -169,19 +169,12 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
     """Mock StudyLocusOverlap dataset."""
     schema = parse_spark_schema("study_locus_overlap.json")
 
-    data_spec = (
-        dg.DataGenerator(
-            spark,
-            rows=400,
-            partitions=4,
-            randomSeedMethod="hash_fieldname",
-        )
-        .withSchema(schema)
-        .withColumnSpec("right_logABF", percentNulls=0.1)
-        .withColumnSpec("left_logABF", percentNulls=0.1)
-        .withColumnSpec("right_posteriorProbability", percentNulls=0.1)
-        .withColumnSpec("left_posteriorProbability", percentNulls=0.1)
-    )
+    data_spec = dg.DataGenerator(
+        spark,
+        rows=400,
+        partitions=4,
+        randomSeedMethod="hash_fieldname",
+    ).withSchema(schema)
 
     return StudyLocusOverlap(_df=data_spec.build(), _schema=schema)
 

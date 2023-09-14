@@ -74,7 +74,9 @@ def test_study_locus_overlaps(
     mock_study_locus: StudyLocus, mock_study_index: StudyIndex
 ) -> None:
     """Test study locus overlaps."""
-    assert isinstance(mock_study_locus.overlaps(mock_study_index), StudyLocusOverlap)
+    assert isinstance(
+        mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap
+    )
 
 
 def test_credible_set(mock_study_locus: StudyLocus) -> None:

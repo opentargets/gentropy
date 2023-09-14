@@ -143,7 +143,6 @@ def generate_managed_placement_template(
     duration.FromJsonString(initialisation_execution_timeout)
     initialisation_node.execution_timeout = duration
     placement.managed_cluster.config.initialization_actions = [initialisation_node]
-    placement.managed_cluster.config.initialization_actions
 
     placement.managed_cluster.config.master_config.machine_type_uri = machine_type
     placement.managed_cluster.config.master_config.disk_config.boot_disk_type = (
