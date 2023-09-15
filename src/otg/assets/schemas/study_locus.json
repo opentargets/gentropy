@@ -140,7 +140,7 @@
     },
     {
       "metadata": {},
-      "name": "credibleSet",
+      "name": "locus",
       "nullable": true,
       "type": {
         "containsNull": true,
