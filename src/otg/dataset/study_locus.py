@@ -221,6 +221,30 @@ class StudyLocus(Dataset):
         """
         return f.filter(credible_set, lambda x: x["is95CredibleSet"])
 
+    @staticmethod
+    def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
+        """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
+
+        Args:
+            study_id_col (Column): column name with a study ID
+            variant_id_col (Column): column name with a variant ID
+
+        Returns:
+            Column: column with a study locus ID
+
+        Examples:
+            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
+            +----------+----------+--------------------+
+            |   studyId| variantId|      study_locus_id|
+            +----------+----------+--------------------+
+            |GCST000001|1_1000_A_C| 7437284926964690765|
+            |GCST000002|1_1000_A_C|-7653912547667845377|
+            +----------+----------+--------------------+
+            <BLANKLINE>
+        """
+        return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
+
     @classmethod
     def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
         """Initialise StudyLocus from parquet file.
@@ -234,13 +258,6 @@ class StudyLocus(Dataset):
         """
         df = session.read_parquet(path=path, schema=cls._schema)
         return cls(_df=df, _schema=cls._schema)
-
-    def assign_study_locus_id(self: StudyLocus) -> StudyLocus:
-        """Hashes a column with a variant ID and a study ID to assign a consistent studyLocusId."""
-        self.df = self._df.withColumn(
-            "studyLocusId", f.xxhash64(*["studyId", "variantId"])
-        )
-        return self
 
     def credible_set(
         self: StudyLocus,
@@ -1505,13 +1522,13 @@ class StudyLocusGWASCatalog(StudyLocus):
     def update_study_id(
         self: StudyLocusGWASCatalog, study_annotation: DataFrame
     ) -> StudyLocusGWASCatalog:
-        """Update studyId with a dataframe containing study.
+        """Update final studyId and studyLocusId with a dataframe containing study annotation.
 
         Args:
             study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus.
+            StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.
         """
         self.df = (
             self._df.join(
@@ -1519,6 +1536,9 @@ class StudyLocusGWASCatalog(StudyLocus):
             )
             .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
             .drop("subStudyDescription", "updatedStudyId")
+        ).withColumn(
+            "studyLocusId",
+            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
         )
         return self
 

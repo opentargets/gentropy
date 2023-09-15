@@ -132,7 +132,5 @@ class GWASCatalogSplitter:
                 st_ass.select(
                     "updatedStudyId", "studyId", "subStudyDescription"
                 ).distinct()
-            )
-            ._qc_ambiguous_study()
-            .assign_study_locus_id(),  # Overwrite the temporary studyLocusId and create the final hash
+            )._qc_ambiguous_study(),
         )
