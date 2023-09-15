@@ -12,7 +12,6 @@ from otg.method.pics import PICS
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
-    from pyspark.sql.types import StructType
 
 
 class TestFinemap:
@@ -45,7 +44,8 @@ class TestFinemap:
         assert observed_df.collect()[0]["credibleSet"] is None
 
     def test_finemap_null_r2(
-        self: TestFinemap, spark: SparkSession, study_locus_schema: StructType
+        self: TestFinemap,
+        spark: SparkSession,
     ) -> None:
         """Test finemap works when `r2Overall` is null by returning the same `credibleSet` content."""
         mock_study_locus_null_r2_data: list = [
@@ -80,8 +80,9 @@ class TestFinemap:
 
         mock_study_locus = StudyLocus(
             _df=spark.createDataFrame(
-                mock_study_locus_null_r2_data, schema=study_locus_schema
-            )
+                mock_study_locus_null_r2_data, schema=StudyLocus.get_schema()
+            ),
+            _schema=StudyLocus.get_schema(),
         )
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         # since PICS can't be run, it returns the same content

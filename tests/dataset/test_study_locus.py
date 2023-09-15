@@ -310,7 +310,9 @@ def test_annotate_credible_sets(
         ]
     )
     data_sl = StudyLocus(
-        _df=spark.createDataFrame(observed, schema)
+        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
     ).annotate_credible_sets()
-    expected_sl = StudyLocus(_df=spark.createDataFrame(expected, schema))
+    expected_sl = StudyLocus(
+        _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
+    )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()

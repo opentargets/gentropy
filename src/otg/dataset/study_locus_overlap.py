@@ -10,7 +10,6 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.study_locus import StudyLocus
 
@@ -25,23 +24,10 @@ class StudyLocusOverlap(Dataset):
         This is a helpful dataset for other downstream analyses, such as colocalisation. This dataset will contain the overlapping signals between studyLocus associations once they have been clumped and fine-mapped.
     """
 
-    _schema: StructType = parse_spark_schema("study_locus_overlap.json")
-
     @classmethod
-    def from_parquet(
-        cls: type[StudyLocusOverlap], session: Session, path: str
-    ) -> StudyLocusOverlap:
-        """Initialise StudyLocusOverlap from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            StudyLocusOverlap: Study-locus overlap dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def get_schema(cls: type[StudyLocusOverlap]) -> StructType:
+        """Provides the schema for the StudyLocusOverlap dataset."""
+        return parse_spark_schema("study_locus_overlap.json")
 
     @classmethod
     def from_associations(

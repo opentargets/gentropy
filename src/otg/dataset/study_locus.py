@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
     from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
@@ -83,8 +82,6 @@ class StudyLocus(Dataset):
 
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
-
-    _schema: StructType = parse_spark_schema("study_locus.json")
 
     @staticmethod
     def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
@@ -175,6 +172,7 @@ class StudyLocus(Dataset):
         )
         return StudyLocusOverlap(
             _df=overlaps,
+            _schema=StudyLocusOverlap.get_schema(),
         )
 
     @staticmethod
@@ -244,18 +242,9 @@ class StudyLocus(Dataset):
         return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
 
     @classmethod
-    def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
-        """Initialise StudyLocus from parquet file.
-
-        Args:
-            session (Session): spark session
-            path (str): Path to parquet file
-
-        Returns:
-            StudyLocus: Study-locus dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def get_schema(cls: type[StudyLocus]) -> StructType:
+        """Provides the schema for the StudyLocus dataset."""
+        return parse_spark_schema("study_locus.json")
 
     def credible_set(
         self: StudyLocus,
@@ -1516,7 +1505,8 @@ class StudyLocusGWASCatalog(StudyLocus):
                 ).alias("subStudyDescription"),
                 # Quality controls (array of strings)
                 "qualityControls",
-            )
+            ),
+            _schema=cls.get_schema(),
         )
 
     def update_study_id(

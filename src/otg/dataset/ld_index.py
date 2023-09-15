@@ -19,8 +19,6 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
-
 
 @dataclass
 class LDIndex(Dataset):
@@ -33,8 +31,6 @@ class LDIndex(Dataset):
     2. Resolve the matrix indices to variant IDs by lifting over the coordinates to GRCh38.
     3. Aggregate the LD information across populations.
     """
-
-    _schema: StructType = parse_spark_schema("ld_index.json")
 
     @staticmethod
     def _convert_ld_matrix_to_table(
@@ -227,6 +223,11 @@ class LDIndex(Dataset):
         )
 
     @classmethod
+    def get_schema(cls: type[LDIndex]) -> StructType:
+        """Provides the schema for the LDIndex dataset."""
+        return parse_spark_schema("ld_index.json")
+
+    @classmethod
     def from_gnomad(
         cls: type[LDIndex],
         ld_populations: list[str],
@@ -263,17 +264,3 @@ class LDIndex(Dataset):
         return cls(
             _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
         )
-
-    @classmethod
-    def from_parquet(cls: type[LDIndex], session: Session, path: str) -> LDIndex:
-        """Initialise LDIndex from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            LDIndex: VariantAnnotation dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
@@ -70,17 +70,20 @@ class Session:
         self.logger = Log4j(self.spark)
         self.write_mode = write_mode
 
-    def read_parquet(self: Session, path: str, schema: StructType) -> DataFrame:
+    def read_parquet(
+        self: Session, path: str, schema: StructType, **kwargs: Dict[str, Any]
+    ) -> DataFrame:
         """Reads parquet dataset with a provided schema.
 
         Args:
             path (str): parquet dataset path
             schema (StructType): Spark schema
+            **kwargs: Additional arguments to pass to spark.read.parquet
 
         Returns:
             DataFrame: Dataframe with provided schema
         """
-        return self.spark.read.schema(schema).format("parquet").load(path)
+        return self.spark.read.schema(schema).parquet(path, **kwargs, inferSchema=False)  # type: ignore
 
 
 class Log4j:
