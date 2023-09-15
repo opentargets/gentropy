@@ -81,7 +81,8 @@ class ECaviar:
                     f.sum(f.col("clpp")).alias("clpp"),
                 )
                 .withColumn("colocalisationMethod", f.lit("eCAVIAR"))
-            )
+            ),
+            _schema=Colocalisation.get_schema(),
         )
 
 
@@ -275,5 +276,6 @@ class Coloc:
                     "lH4abf",
                 )
                 .withColumn("colocalisationMethod", f.lit("COLOC"))
-            )
+            ),
+            _schema=Colocalisation.get_schema(),
         )

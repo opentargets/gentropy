@@ -25,13 +25,13 @@ from otg.common.utils import parse_efos, parse_pvalue
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
-from otg.method.ld import LDAnnotatorGnomad
+from otg.method.ld import LDAnnotator
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
+    from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
 
@@ -82,8 +82,6 @@ class StudyLocus(Dataset):
 
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
-
-    _schema: StructType = parse_spark_schema("study_locus.json")
 
     @staticmethod
     def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
@@ -180,6 +178,7 @@ class StudyLocus(Dataset):
         )
         return StudyLocusOverlap(
             _df=overlaps,
+            _schema=StudyLocusOverlap.get_schema(),
         )
 
     @staticmethod
@@ -202,19 +201,56 @@ class StudyLocus(Dataset):
             f.array_union(qc, f.array(f.lit(flag_text.value))),
         ).otherwise(qc)
 
-    @classmethod
-    def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
-        """Initialise StudyLocus from parquet file.
+    @staticmethod
+    def _filter_credible_set(credible_set: Column) -> Column:
+        """Filter credible set to only contain variants that belong to the 95% credible set.
 
         Args:
-            session (Session): spark session
-            path (str): Path to parquet file
+            credible_set (Column): Credible set column containing all variants in the LD set.
 
         Returns:
-            StudyLocus: Study-locus dataset
+            Column: Filtered credible set column.
+
+        Example:
+            >>> df = spark.createDataFrame([([{"tagVariantId": "varA", "is95CredibleSet": True}, {"tagVariantId": "varB", "is95CredibleSet": False}],)], "credibleSet: array<struct<tagVariantId: string, is95CredibleSet: boolean>>")
+            >>> df.select(StudyLocus._filter_credible_set(f.col("credibleSet")).alias("filtered")).show(truncate=False)
+            +--------------+
+            |filtered      |
+            +--------------+
+            |[{varA, true}]|
+            +--------------+
+            <BLANKLINE>
         """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+        return f.filter(credible_set, lambda x: x["is95CredibleSet"])
+
+    @staticmethod
+    def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
+        """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
+
+        Args:
+            study_id_col (Column): column name with a study ID
+            variant_id_col (Column): column name with a variant ID
+
+        Returns:
+            Column: column with a study locus ID
+
+        Examples:
+            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
+            +----------+----------+--------------------+
+            |   studyId| variantId|      study_locus_id|
+            +----------+----------+--------------------+
+            |GCST000001|1_1000_A_C| 7437284926964690765|
+            |GCST000002|1_1000_A_C|-7653912547667845377|
+            +----------+----------+--------------------+
+            <BLANKLINE>
+        """
+        return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
+
+    @classmethod
+    def get_schema(cls: type[StudyLocus]) -> StructType:
+        """Provides the schema for the StudyLocus dataset."""
+        return parse_spark_schema("study_locus.json")
 
     def credible_set(
         self: StudyLocus,
@@ -350,7 +386,7 @@ class StudyLocus(Dataset):
             self.df.select(
                 f.col("variantId"),
                 f.col("chromosome"),
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
+                f.explode("ldSet.tagVariantId").alias("tagVariantId"),
             )
             .repartition("chromosome")
             .persist()
@@ -359,35 +395,6 @@ class StudyLocus(Dataset):
             lead_tags.select("variantId", "chromosome")
             .union(
                 lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome")
-            )
-            .distinct()
-        )
-
-    def unique_study_locus_ancestries(
-        self: StudyLocus, studies: StudyIndexGWASCatalog
-    ) -> DataFrame:
-        """All unique lead variant and ancestries contained in the `StudyLocus`.
-
-        Args:
-            studies (StudyIndexGWASCatalog): Metadata about studies in the `StudyLocus`.
-
-        Returns:
-            DataFrame: unique ["variantId", "studyId", "gnomadPopulation", "chromosome", "relativeSampleSize"]
-
-        Note:
-            This method is only available for GWAS Catalog studies.
-        """
-        return (
-            self.df.join(
-                studies.get_gnomad_ancestry_sample_sizes(), on="studyId", how="left"
-            )
-            .filter(f.col("position").isNotNull())
-            .select(
-                "variantId",
-                "chromosome",
-                "studyId",
-                "gnomadPopulation",
-                "relativeSampleSize",
             )
             .distinct()
         )
@@ -413,40 +420,48 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
-        self.df = self.df.withColumn(
-            # Sort credible set by posterior probability in descending order
-            "credibleSet",
-            f.when(
-                f.size(f.col("credibleSet")) > 0,
-                order_array_of_structs_by_field("credibleSet", "posteriorProbability"),
-            ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
-        ).withColumn(
-            # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
-            # and zip the cumulative sums array with the credible set array to add the flags
-            "credibleSet",
-            f.when(
-                f.size(f.col("credibleSet")) > 0,
-                f.zip_with(
-                    f.col("credibleSet"),
-                    f.transform(
-                        f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
-                        lambda index: f.aggregate(
-                            f.slice(
-                                # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
-                                # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                                f.col("credibleSet.posteriorProbability"),
-                                1,
-                                index - 1,
-                            ),
-                            f.lit(0.0),
-                            lambda acc, el: acc + el,
-                        ),
+        self.df = (
+            self.df.withColumn(
+                # Sort credible set by posterior probability in descending order
+                "credibleSet",
+                f.when(
+                    f.size(f.col("credibleSet")) > 0,
+                    order_array_of_structs_by_field(
+                        "credibleSet", "posteriorProbability"
                     ),
-                    lambda struct_e, acc: struct_e.withField(
-                        CredibleInterval.IS95.value, acc < 0.95
-                    ).withField(CredibleInterval.IS99.value, acc < 0.99),
-                ),
-            ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+            )
+            .withColumn(
+                # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
+                # and zip the cumulative sums array with the credible set array to add the flags
+                "credibleSet",
+                f.when(
+                    f.size(f.col("credibleSet")) > 0,
+                    f.zip_with(
+                        f.col("credibleSet"),
+                        f.transform(
+                            f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
+                            lambda index: f.aggregate(
+                                f.slice(
+                                    # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
+                                    # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
+                                    f.col("credibleSet.posteriorProbability"),
+                                    1,
+                                    index - 1,
+                                ),
+                                f.lit(0.0),
+                                lambda acc, el: acc + el,
+                            ),
+                        ),
+                        lambda struct_e, acc: struct_e.withField(
+                            CredibleInterval.IS95.value, acc < 0.95
+                        ).withField(CredibleInterval.IS99.value, acc < 0.99),
+                    ),
+                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+            )
+            .withColumn(
+                "credibleSet", StudyLocus._filter_credible_set(f.col("credibleSet"))
+            )
         )
         return self
 
@@ -466,14 +481,12 @@ class StudyLocus(Dataset):
                     self.df.variantId,
                     self.df.pValueExponent,
                     self.df.pValueMantissa,
-                    self.df.credibleSet,
+                    self.df.ldSet,
                 ),
             )
             .withColumn(
-                "credibleSet",
-                f.when(f.col("is_lead_linked"), f.array()).otherwise(
-                    f.col("credibleSet")
-                ),
+                "ldSet",
+                f.when(f.col("is_lead_linked"), f.array()).otherwise(f.col("ldSet")),
             )
             .withColumn(
                 "qualityControls",
@@ -1611,19 +1624,20 @@ class StudyLocusGWASCatalog(StudyLocus):
                 ).alias("subStudyDescription"),
                 # Quality controls (array of strings)
                 "qualityControls",
-            )
+            ),
+            _schema=cls.get_schema(),
         )
 
     def update_study_id(
         self: StudyLocusGWASCatalog, study_annotation: DataFrame
     ) -> StudyLocusGWASCatalog:
-        """Update studyId with a dataframe containing study.
+        """Update final studyId and studyLocusId with a dataframe containing study annotation.
 
         Args:
             study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus.
+            StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.
         """
         self.df = (
             self._df.join(
@@ -1631,88 +1645,29 @@ class StudyLocusGWASCatalog(StudyLocus):
             )
             .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
             .drop("subStudyDescription", "updatedStudyId")
+        ).withColumn(
+            "studyLocusId",
+            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
         )
         return self
 
     def annotate_ld(
-        self: StudyLocusGWASCatalog,
-        session: Session,
-        studies: StudyIndexGWASCatalog,
-        ld_populations: list[str],
-        ld_index_template: str,
-        ld_matrix_template: str,
-        min_r2: float,
+        self: StudyLocusGWASCatalog, studies: StudyIndexGWASCatalog, ld_index: LDIndex
     ) -> StudyLocus:
         """Annotate LD set for every studyLocus using gnomAD.
 
         Args:
-            session (Session): Session
             studies (StudyIndexGWASCatalog): Study index containing ancestry information
-            ld_populations (list[str]): List of populations to annotate
-            ld_index_template (str): Template path of the LD matrix index containing `{POP}` where the population is expected
-            ld_matrix_template (str): Template path of the LD matrix containing `{POP}` where the population is expected
-            min_r2 (float): Minimum r2 to include in the LD set after weighting per population (r2Overall)
+            ld_index (LDIndex): LD index
 
         Returns:
             StudyLocus: Study-locus with an annotated credible set.
         """
-        # TODO: call unique_study_locus_ancestries here so that it is not duplicated with ld_annotation_by_locus_ancestry
-        # LD annotation for all unique lead variants in all populations (study independent).
-        ld_r = LDAnnotatorGnomad.ld_annotation_by_locus_ancestry(
-            session,
-            self,
-            studies,
-            ld_populations,
-            ld_index_template,
-            ld_matrix_template,
-            min_r2=0.2,
-        ).coalesce(400)
-
-        credible_set_schema = [
-            (subfield.name, subfield.dataType)
-            for field in self._schema.fields
-            if field.name == "credibleSet"
-            for subfield in field.dataType.elemenType  # type: ignore
-        ]
-
-        ld_set = (
-            self.unique_study_locus_ancestries(studies)
-            .join(ld_r, on=["chromosome", "variantId", "gnomadPopulation"], how="left")
-            .withColumn("r2", f.pow(f.col("r"), f.lit(2)))
-            .withColumn(
-                "r2Overall",
-                LDAnnotatorGnomad.weighted_r_overall(
-                    f.col("chromosome"),
-                    f.col("studyId"),
-                    f.col("variantId"),
-                    f.col("tagVariantId"),
-                    f.col("relativeSampleSize"),
-                    f.col("r2"),
-                ),
-            )
-            .filter(f.col("r2Overall") >= min_r2)
-            .groupBy("chromosome", "studyId", "variantId")
-            .agg(
-                f.collect_set(
-                    f.when(
-                        f.col("tagVariantId").isNotNull(),
-                        f.struct(
-                            [
-                                f.lit(None).cast(datatype).alias(field)
-                                if field not in ["tagVariantId", "r2Overall"]
-                                else f.col(field)
-                                for field, datatype in credible_set_schema
-                            ]
-                        ).alias("credibleSet"),
-                    )
-                ).alias("credibleSet")
-            )
+        associations_df = self.df.join(
+            studies.get_gnomad_population_structure(), on="studyId", how="left"
         )
 
-        self.df = self.df.join(
-            ld_set, on=["chromosome", "studyId", "variantId"], how="left"
-        )
-
+        self.df = LDAnnotator.annotate_associations_with_ld(associations_df, ld_index)
         return self._qc_unresolved_ld()
 
     def _qc_ambiguous_study(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
@@ -1735,17 +1690,19 @@ class StudyLocusGWASCatalog(StudyLocus):
         )
         return self
 
-    def _qc_unresolved_ld(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+    def _qc_unresolved_ld(
+        self: StudyLocus | StudyLocusGWASCatalog,
+    ) -> StudyLocus | StudyLocusGWASCatalog:
         """Flag associations with variants that are not found in the LD reference.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus.
+            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
         """
-        self._df.withColumn(
+        self.df = self.df.withColumn(
             "qualityControls",
-            StudyLocus._update_quality_flag(
+            self._update_quality_flag(
                 f.col("qualityControls"),
-                f.col("credibleSet").isNull(),
+                f.col("ldSet").isNull(),
                 StudyLocusQualityCheck.UNRESOLVED_LD,
             ),
         )
