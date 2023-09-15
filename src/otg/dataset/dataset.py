@@ -1,8 +1,9 @@
 """Dataset class for OTG."""
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from otg.common.schemas import flatten_schema
 
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class Dataset:
+class Dataset(ABC):
     """Open Targets Genetics Dataset.
 
     `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `json.schemas` module.
@@ -44,20 +45,18 @@ class Dataset:
         return self._schema
 
     @classmethod
+    @abstractmethod
+    def get_schema(cls: type[Dataset]) -> StructType:
+        """Abstract method to get the schema. Must be implemented by child classes."""
+        pass
+
+    @classmethod
     def from_parquet(
-        cls: type[Dataset], session: Session, path: str, schema: StructType
+        cls: type[Dataset], session: Session, path: str, **kwargs: Dict[str, Any]
     ) -> Dataset:
-        """Reads a parquet file into a Dataset with a given schema.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-            schema (StructType): Schema to use
-
-        Returns:
-            Dataset: Dataset with given schema
-        """
-        df = session.read_parquet(path=path, schema=schema)
+        """Reads a parquet file into a Dataset with a given schema."""
+        schema = cls.get_schema()
+        df = session.read_parquet(path=path, schema=schema, **kwargs)
         return cls(_df=df, _schema=schema)
 
     def validate_schema(self: Dataset) -> None:  # sourcery skip: invert-any-all
@@ -72,11 +71,13 @@ class Dataset:
         observed_fields = flatten_schema(observed_schema)
 
         # Unexpected fields in dataset
-        if unexpected_struct_fields := [
-            x for x in observed_fields if x not in expected_fields
+        if unexpected_field_names := [
+            x.name
+            for x in observed_fields
+            if x.name not in [y.name for y in expected_fields]
         ]:
             raise ValueError(
-                f"The {unexpected_struct_fields} fields are not included in DataFrame schema: {expected_fields}"
+                f"The {unexpected_field_names} fields are not included in DataFrame schema: {expected_fields}"
             )
 
         # Required fields not in dataset
@@ -99,11 +100,28 @@ class Dataset:
             )
 
         # Fields with different datatype
+        observed_field_types = {
+            field.name: type(field.dataType) for field in observed_fields
+        }
+        expected_field_types = {
+            field.name: type(field.dataType) for field in expected_fields
+        }
         if fields_with_different_observed_datatype := [
-            field
-            for field in set(observed_fields)
-            if observed_fields.count(field) != expected_fields.count(field)
+            name
+            for name, observed_type in observed_field_types.items()
+            if name in expected_field_types
+            and observed_type != expected_field_types[name]
         ]:
             raise ValueError(
                 f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
             )
+
+    def persist(self: Dataset) -> Dataset:
+        """Persist in memory the DataFrame included in the Dataset."""
+        self.df = self._df.persist()
+        return self
+
+    def unpersist(self: Dataset) -> Dataset:
+        """Remove the persisted DataFrame from memory."""
+        self.df = self._df.unpersist()
+        return self

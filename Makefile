@@ -4,6 +4,7 @@ APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
 CLEAN_VERSION_NO := $(shell echo "$(VERSION_NO)" | tr -cd '[:alnum:]')
 BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/
+BUCKET_COMPOSER_DAGS=gs://europe-west1-ot-workflows-fe147745-bucket/dags/
 
 .PHONY: $(shell sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' $(MAKEFILE_LIST))
 
@@ -18,6 +19,21 @@ clean: ## Clean up prior to building
 setup-dev: SHELL:=/bin/bash
 setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
+
+check: ## Lint and format code
+	@echo "Linting..."
+	@poetry run ruff src/otg .
+	@echo "Formatting..."
+	@poetry run black src/otg .
+	@poetry run isort src/otg .
+
+test: ## Run tests
+	@echo "Running Tests..."
+	@poetry run pytest --doctest-modules --cov=src/ --cov-report=xml
+
+build-documentation: ## Create local server with documentation
+	@echo "Building Documentation..."
+	@poetry run mkdocs serve
 
 create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@${MAKE} build
@@ -52,3 +68,4 @@ build: clean ## Build Python package with dependencies
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl ${BUCKET_NAME}
 	@gsutil cp ./dist/config.tar.gz ${BUCKET_NAME}
 	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}
+	@gsutil -m cp -r 'dags/*' ${BUCKET_COMPOSER_DAGS}

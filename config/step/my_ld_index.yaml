@@ -4,4 +4,4 @@ defaults:
 # Additional config
 grch37_to_grch38_chain_path: ${datasets.chain_hail_37_38}
 ld_index_raw_template: ${datasets.ld_index_raw_template}
-ld_index_template: ${datasets.ld_index_template}
+ld_index_out: ${datasets.ld_index}

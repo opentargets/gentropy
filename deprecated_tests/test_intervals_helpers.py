@@ -74,7 +74,7 @@ class TestGetVariantsInInterval:
     ]
 
     @pytest.mark.parametrize(
-        ("test_input", "expected_output"), zip(test_input, expected_output)
+        ("test_input", "expected_output"), zip(test_input, expected_output, strict=True)
     )
     def test_explosion_of_region_into_v2g(
         self: TestGetVariantsInInterval,

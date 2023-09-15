@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
@@ -30,11 +30,20 @@ class Session:
             write_mode (str): spark write mode
             hail_home (str): path to hail installation
         """
-        # create session and retrieve Spark logger object
+        # create executors based on resources
+        default_spark_conf = (
+            SparkConf()
+            # Dynamic allocation
+            .set("spark.dynamicAllocation.enabled", "true")
+            .set("spark.dynamicAllocation.minExecutors", "2")
+            .set("spark.dynamicAllocation.initialExecutors", "2")
+            .set(
+                "spark.shuffle.service.enabled", "true"
+            )  # required for dynamic allocation
+        )
         spark_config = (
             (
-                SparkConf()
-                .set(
+                default_spark_conf.set(
                     "spark.jars",
                     f"{hail_home}/backend/hail-all-spark.jar",
                 )
@@ -45,10 +54,12 @@ class Session:
                 .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
                 .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
                 .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
+                .set("spark.sql.files.openCostInBytes", "50gb")
+                .set("spark.sql.files.maxPartitionBytes", "50gb")
                 # .set("spark.kryoserializer.buffer", "512m")
             )
             if hail_home != "unspecified"
-            else SparkConf()
+            else default_spark_conf
         )
         self.spark = (
             SparkSession.builder.config(conf=spark_config)
@@ -59,17 +70,20 @@ class Session:
         self.logger = Log4j(self.spark)
         self.write_mode = write_mode
 
-    def read_parquet(self: Session, path: str, schema: StructType) -> DataFrame:
+    def read_parquet(
+        self: Session, path: str, schema: StructType, **kwargs: Dict[str, Any]
+    ) -> DataFrame:
         """Reads parquet dataset with a provided schema.
 
         Args:
             path (str): parquet dataset path
             schema (StructType): Spark schema
+            **kwargs: Additional arguments to pass to spark.read.parquet
 
         Returns:
             DataFrame: Dataframe with provided schema
         """
-        return self.spark.read.schema(schema).format("parquet").load(path)
+        return self.spark.read.schema(schema).parquet(path, **kwargs, inferSchema=False)  # type: ignore
 
 
 class Log4j:
