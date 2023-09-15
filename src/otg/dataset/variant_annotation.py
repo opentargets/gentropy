@@ -25,7 +25,7 @@ class VariantAnnotation(Dataset):
     """Dataset with variant-level annotations derived from GnomAD."""
 
     @classmethod
-    def _get_schema(cls: type[VariantAnnotation]) -> StructType:
+    def get_schema(cls: type[VariantAnnotation]) -> StructType:
         """Provides the schema for the VariantAnnotation dataset."""
         return parse_spark_schema("variant_annotation.json")
 
@@ -137,7 +137,7 @@ class VariantAnnotation(Dataset):
                 .select_globals()
                 .to_spark(flatten=False)
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     def max_maf(self: VariantAnnotation) -> Column:
@@ -246,7 +246,7 @@ class VariantAnnotation(Dataset):
                     df, ["variantId", "geneId"], "score"
                 )
             ),
-            _schema=V2G._get_schema(),
+            _schema=V2G.get_schema(),
         )
 
     def get_polyphen_v2g(
@@ -277,7 +277,7 @@ class VariantAnnotation(Dataset):
                     f.lit("polyphen").alias("datasourceId"),
                 )
             ),
-            _schema=V2G._get_schema(),
+            _schema=V2G.get_schema(),
         )
 
     def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
@@ -307,7 +307,7 @@ class VariantAnnotation(Dataset):
                     f.lit("sift").alias("datasourceId"),
                 )
             ),
-            _schema=V2G._get_schema(),
+            _schema=V2G.get_schema(),
         )
 
     def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
@@ -348,7 +348,7 @@ class VariantAnnotation(Dataset):
                     f.lit("loftee").alias("datasourceId"),
                 )
             ),
-            _schema=V2G._get_schema(),
+            _schema=V2G.get_schema(),
         )
 
     def get_distance_to_tss(
@@ -392,5 +392,5 @@ class VariantAnnotation(Dataset):
                     f.lit("canonical_tss").alias("datasourceId"),
                 )
             ),
-            _schema=V2G._get_schema(),
+            _schema=V2G.get_schema(),
         )

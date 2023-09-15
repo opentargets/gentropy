@@ -48,7 +48,7 @@ class GeneIndex(Dataset):
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 
     @classmethod
-    def _get_schema(cls: type[GeneIndex]) -> StructType:
+    def get_schema(cls: type[GeneIndex]) -> StructType:
         """Provides the schema for the GeneIndex dataset."""
         return parse_spark_schema("targets.json")
 
@@ -77,7 +77,7 @@ class GeneIndex(Dataset):
                 "approvedSymbol",
                 "obsoleteSymbols",
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> GeneIndex:

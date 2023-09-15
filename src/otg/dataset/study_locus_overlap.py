@@ -25,7 +25,7 @@ class StudyLocusOverlap(Dataset):
     """
 
     @classmethod
-    def _get_schema(cls: type[StudyLocusOverlap]) -> StructType:
+    def get_schema(cls: type[StudyLocusOverlap]) -> StructType:
         """Provides the schema for the StudyLocusOverlap dataset."""
         return parse_spark_schema("study_locus_overlap.json")
 

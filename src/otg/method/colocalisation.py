@@ -82,7 +82,7 @@ class ECaviar:
                 )
                 .withColumn("colocalisationMethod", f.lit("eCAVIAR"))
             ),
-            _schema=Colocalisation._get_schema(),
+            _schema=Colocalisation.get_schema(),
         )
 
 
@@ -270,5 +270,5 @@ class Coloc:
                 )
                 .withColumn("colocalisationMethod", f.lit("COLOC"))
             ),
-            _schema=Colocalisation._get_schema(),
+            _schema=Colocalisation.get_schema(),
         )

@@ -24,7 +24,7 @@ class VariantIndex(Dataset):
     """
 
     @classmethod
-    def _get_schema(cls: type[VariantIndex]) -> StructType:
+    def get_schema(cls: type[VariantIndex]) -> StructType:
         """Provides the schema for the VariantIndex dataset."""
         return parse_spark_schema("variant_index.json")
 
@@ -57,5 +57,5 @@ class VariantIndex(Dataset):
                 .repartition(400, "chromosome")
                 .sortWithinPartitions("chromosome", "position")
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )

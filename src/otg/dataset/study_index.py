@@ -30,7 +30,7 @@ class StudyIndex(Dataset):
     """
 
     @classmethod
-    def _get_schema(cls: type[StudyIndex]) -> StructType:
+    def get_schema(cls: type[StudyIndex]) -> StructType:
         """Provides the schema for the StudyIndex dataset."""
         return parse_spark_schema("studies.json")
 
@@ -80,7 +80,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         return f.transform(gwas_catalog_ancestry, lambda x: map_expr[x])
 
     @classmethod
-    def _get_schema(cls: type[StudyIndexGWASCatalog]) -> StructType:
+    def get_schema(cls: type[StudyIndexGWASCatalog]) -> StructType:
         """Provides the schema for the StudyIndexGWASCatalog dataset.
 
         This method is a duplication from the parent class, but by definition, the use of abstract methods require that every child class implements them.
@@ -123,7 +123,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                     "backgroundTraitFromSourceMappedIds"
                 ),
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     @classmethod
@@ -444,7 +444,7 @@ class StudyIndexFinnGen(StudyIndex):
     """
 
     @classmethod
-    def _get_schema(cls: type[StudyIndexFinnGen]) -> StructType:
+    def get_schema(cls: type[StudyIndexFinnGen]) -> StructType:
         """Provides the schema for the StudyIndexFinnGen dataset.
 
         This method is a duplication from the parent class, but by definition, the use of abstract methods require that every child class implements them.
@@ -497,7 +497,7 @@ class StudyIndexFinnGen(StudyIndex):
                     f.lit(finngen_sumstat_url_suffix),
                 ),
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
 
@@ -524,7 +524,7 @@ class StudyIndexUKBiobank(StudyIndex):
     """
 
     @classmethod
-    def _get_schema(cls: type[StudyIndexUKBiobank]) -> StructType:
+    def get_schema(cls: type[StudyIndexUKBiobank]) -> StructType:
         """Provides the schema for the StudyIndexFinnGen dataset.
 
         This method is a duplication from the parent class, but by definition, the use of abstract methods require that every child class implements them.
@@ -603,5 +603,5 @@ class StudyIndexUKBiobank(StudyIndex):
                     ).otherwise(f.col("traitFromSource")),
                 )
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )

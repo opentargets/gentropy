@@ -334,5 +334,5 @@ class WindowBasedClumping:
                 "studyLocusId",
                 StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
             ),
-            _schema=StudyLocus._get_schema(),
+            _schema=StudyLocus.get_schema(),
         )

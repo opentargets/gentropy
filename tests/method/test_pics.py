@@ -80,9 +80,9 @@ class TestFinemap:
 
         mock_study_locus = StudyLocus(
             _df=spark.createDataFrame(
-                mock_study_locus_null_r2_data, schema=StudyLocus._get_schema()
+                mock_study_locus_null_r2_data, schema=StudyLocus.get_schema()
             ),
-            _schema=StudyLocus._get_schema(),
+            _schema=StudyLocus.get_schema(),
         )
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         # since PICS can't be run, it returns the same content

@@ -28,7 +28,7 @@ class Intervals(Dataset):
     """Intervals dataset links genes to genomic regions based on genome interaction studies."""
 
     @classmethod
-    def _get_schema(cls: type[Intervals]) -> StructType:
+    def get_schema(cls: type[Intervals]) -> StructType:
         """Provides the schema for the Intervals dataset."""
         return parse_spark_schema("intervals.json")
 
@@ -139,7 +139,7 @@ class Intervals(Dataset):
                     f.lit(bio_feature).alias("biofeature"),
                 )
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     @classmethod
@@ -280,7 +280,7 @@ class Intervals(Dataset):
                     f.lit(pmid).alias("pmid"),
                 )
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     @classmethod
@@ -360,7 +360,7 @@ class Intervals(Dataset):
                 )
                 .drop_duplicates()
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     @classmethod
@@ -439,7 +439,7 @@ class Intervals(Dataset):
                 )
                 .drop_duplicates()
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     def v2g(self: Intervals, variant_index: VariantIndex) -> V2G:
@@ -469,5 +469,5 @@ class Intervals(Dataset):
                 )
                 .drop("start", "end", "vi_chromosome")
             ),
-            _schema=V2G._get_schema(),
+            _schema=V2G.get_schema(),
         )

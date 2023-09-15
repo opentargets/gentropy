@@ -16,6 +16,6 @@ class Colocalisation(Dataset):
     """Colocalisation results for pairs of overlapping study-locus."""
 
     @classmethod
-    def _get_schema(cls: type[Colocalisation]) -> StructType:
+    def get_schema(cls: type[Colocalisation]) -> StructType:
         """Provides the schema for the Colocalisation dataset."""
         return parse_spark_schema("colocalisation.json")

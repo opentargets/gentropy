@@ -172,7 +172,7 @@ class StudyLocus(Dataset):
         )
         return StudyLocusOverlap(
             _df=overlaps,
-            _schema=StudyLocusOverlap._get_schema(),
+            _schema=StudyLocusOverlap.get_schema(),
         )
 
     @staticmethod
@@ -242,7 +242,7 @@ class StudyLocus(Dataset):
         return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
 
     @classmethod
-    def _get_schema(cls: type[StudyLocus]) -> StructType:
+    def get_schema(cls: type[StudyLocus]) -> StructType:
         """Provides the schema for the StudyLocus dataset."""
         return parse_spark_schema("study_locus.json")
 
@@ -1506,7 +1506,7 @@ class StudyLocusGWASCatalog(StudyLocus):
                 # Quality controls (array of strings)
                 "qualityControls",
             ),
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     def update_study_id(

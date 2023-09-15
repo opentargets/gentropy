@@ -46,7 +46,7 @@ class Dataset(ABC):
 
     @classmethod
     @abstractmethod
-    def _get_schema(cls: type[Dataset]) -> StructType:
+    def get_schema(cls: type[Dataset]) -> StructType:
         """Abstract method to get the schema. Must be implemented by child classes."""
         pass
 
@@ -55,7 +55,7 @@ class Dataset(ABC):
         cls: type[Dataset], session: Session, path: str, **kwargs: Dict[str, Any]
     ) -> Dataset:
         """Reads a parquet file into a Dataset with a given schema."""
-        schema = cls._get_schema()
+        schema = cls.get_schema()
         df = session.read_parquet(path=path, schema=schema, **kwargs)
         return cls(_df=df, _schema=schema)
 

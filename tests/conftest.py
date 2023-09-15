@@ -55,7 +55,7 @@ def spark() -> SparkSession:
 @pytest.fixture()
 def mock_colocalisation(spark: SparkSession) -> Colocalisation:
     """Mock colocalisation dataset."""
-    coloc_schema = Colocalisation._get_schema()
+    coloc_schema = Colocalisation.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -78,7 +78,7 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
 
 def mock_study_index_data(spark: SparkSession) -> DataFrame:
     """Mock v2g dataset."""
-    si_schema = StudyIndex._get_schema()
+    si_schema = StudyIndex.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -127,7 +127,7 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
     """Mock StudyIndex dataset."""
     return StudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndex._get_schema(),
+        _schema=StudyIndex.get_schema(),
     )
 
 
@@ -136,7 +136,7 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
     """Mock StudyIndexGWASCatalog dataset."""
     return StudyIndexGWASCatalog(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexGWASCatalog._get_schema(),
+        _schema=StudyIndexGWASCatalog.get_schema(),
     )
 
 
@@ -145,7 +145,7 @@ def mock_study_index_finngen(spark: SparkSession) -> StudyIndexFinnGen:
     """Mock StudyIndexFinnGen dataset."""
     return StudyIndexFinnGen(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexFinnGen._get_schema(),
+        _schema=StudyIndexFinnGen.get_schema(),
     )
 
 
@@ -154,14 +154,14 @@ def mock_study_index_ukbiobank(spark: SparkSession) -> StudyIndexUKBiobank:
     """Mock StudyIndexUKBiobank dataset."""
     return StudyIndexUKBiobank(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexUKBiobank._get_schema(),
+        _schema=StudyIndexUKBiobank.get_schema(),
     )
 
 
 @pytest.fixture()
 def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
     """Mock StudyLocusOverlap dataset."""
-    overlap_schema = StudyLocusOverlap._get_schema()
+    overlap_schema = StudyLocusOverlap.get_schema()
 
     data_spec = dg.DataGenerator(
         spark,
@@ -175,7 +175,7 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
 
 def mock_study_locus_data(spark: SparkSession) -> DataFrame:
     """Mock study_locus dataset."""
-    sl_schema = StudyLocus._get_schema()
+    sl_schema = StudyLocus.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -218,7 +218,7 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocus(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog._get_schema(),
+        _schema=StudyLocusGWASCatalog.get_schema(),
     )
 
 
@@ -227,14 +227,14 @@ def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocusGWASCatalog(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog._get_schema(),
+        _schema=StudyLocusGWASCatalog.get_schema(),
     )
 
 
 @pytest.fixture()
 def mock_intervals(spark: SparkSession) -> Intervals:
     """Mock intervals dataset."""
-    interval_schema = Intervals._get_schema()
+    interval_schema = Intervals.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -256,7 +256,7 @@ def mock_intervals(spark: SparkSession) -> Intervals:
 @pytest.fixture()
 def mock_v2g(spark: SparkSession) -> V2G:
     """Mock v2g dataset."""
-    v2g_schema = V2G._get_schema()
+    v2g_schema = V2G.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -282,7 +282,7 @@ def mock_v2g(spark: SparkSession) -> V2G:
 @pytest.fixture()
 def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
     """Mock variant annotation."""
-    va_schema = VariantAnnotation._get_schema()
+    va_schema = VariantAnnotation.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -321,7 +321,7 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
 @pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
     """Mock gene index."""
-    vi_schema = VariantIndex._get_schema()
+    vi_schema = VariantIndex.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -356,7 +356,7 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
 @pytest.fixture()
 def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
     """Generating a mock summary statistics dataset."""
-    ss_schema = SummaryStatistics._get_schema()
+    ss_schema = SummaryStatistics.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -389,7 +389,7 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
 @pytest.fixture()
 def mock_ld_index(spark: SparkSession) -> LDIndex:
     """Mock gene index."""
-    ld_schema = LDIndex._get_schema()
+    ld_schema = LDIndex.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -482,7 +482,7 @@ def sample_target_index(spark: SparkSession) -> DataFrame:
 @pytest.fixture()
 def mock_gene_index(spark: SparkSession) -> GeneIndex:
     """Mock gene index dataset."""
-    gi_schema = GeneIndex._get_schema()
+    gi_schema = GeneIndex.get_schema()
 
     data_spec = (
         dg.DataGenerator(

@@ -21,7 +21,7 @@ class V2G(Dataset):
     """
 
     @classmethod
-    def _get_schema(cls: type[V2G]) -> StructType:
+    def get_schema(cls: type[V2G]) -> StructType:
         """Provides the schema for the V2G dataset."""
         return parse_spark_schema("v2g.json")
 

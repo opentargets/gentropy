@@ -32,7 +32,7 @@ class SummaryStatistics(Dataset):
     """
 
     @classmethod
-    def _get_schema(cls: type[SummaryStatistics]) -> StructType:
+    def get_schema(cls: type[SummaryStatistics]) -> StructType:
         """Provides the schema for the SummaryStatistics dataset."""
         return parse_spark_schema("summary_statistics.json")
 
@@ -97,7 +97,7 @@ class SummaryStatistics(Dataset):
         # Initializing summary statistics object:
         return cls(
             _df=processed_sumstats_df,
-            _schema=cls._get_schema(),
+            _schema=cls.get_schema(),
         )
 
     def pvalue_filter(self: SummaryStatistics, pvalue: float) -> SummaryStatistics:

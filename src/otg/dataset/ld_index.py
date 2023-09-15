@@ -223,7 +223,7 @@ class LDIndex(Dataset):
         )
 
     @classmethod
-    def _get_schema(cls: type[LDIndex]) -> StructType:
+    def get_schema(cls: type[LDIndex]) -> StructType:
         """Provides the schema for the LDIndex dataset."""
         return parse_spark_schema("ld_index.json")
 
