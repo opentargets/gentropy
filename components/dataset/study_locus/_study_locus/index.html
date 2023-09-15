@@ -1018,45 +1018,7 @@
         <span class=p>)</span>
         <span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div><h2 id=schema>Schema</h2> <div class=highlight><pre><span></span><code>root
- |-- studyLocusId: long (nullable = false)
- |-- variantId: string (nullable = false)
- |-- chromosome: string (nullable = true)
- |-- position: integer (nullable = true)
- |-- studyId: string (nullable = false)
- |-- beta: double (nullable = true)
- |-- oddsRatio: double (nullable = true)
- |-- oddsRatioConfidenceIntervalLower: double (nullable = true)
- |-- oddsRatioConfidenceIntervalUpper: double (nullable = true)
- |-- betaConfidenceIntervalLower: double (nullable = true)
- |-- betaConfidenceIntervalUpper: double (nullable = true)
- |-- pValueMantissa: float (nullable = true)
- |-- pValueExponent: integer (nullable = true)
- |-- effectAlleleFrequencyFromSource: float (nullable = true)
- |-- standardError: double (nullable = true)
- |-- subStudyDescription: string (nullable = true)
- |-- qualityControls: array (nullable = true)
- |    |-- element: string (containsNull = false)
- |-- finemappingMethod: string (nullable = true)
- |-- ldSet: array (nullable = true)
- |    |-- element: struct (containsNull = true)
- |    |    |-- tagVariantId: string (nullable = true)
- |    |    |-- r2Overall: double (nullable = true)
- |-- credibleSet: array (nullable = true)
- |    |-- element: struct (containsNull = true)
- |    |    |-- is95CredibleSet: boolean (nullable = true)
- |    |    |-- is99CredibleSet: boolean (nullable = true)
- |    |    |-- logABF: double (nullable = true)
- |    |    |-- posteriorProbability: double (nullable = true)
- |    |    |-- tagVariantId: string (nullable = true)
- |    |    |-- tagPValue: double (nullable = true)
- |    |    |-- tagPValueConditioned: double (nullable = true)
- |    |    |-- tagBeta: double (nullable = true)
- |    |    |-- tagStandardError: double (nullable = true)
- |    |    |-- tagBetaConditioned: double (nullable = true)
- |    |    |-- tagStandardErrorConditioned: double (nullable = true)
- |    |    |-- r2Overall: double (nullable = true)
-</code></pre></div> <hr> <h1 id=study-locus-quality-controls>Study-locus quality controls</h1> <div class="doc doc-object doc-class"> <a id=otg.dataset.study_locus.StudyLocusQualityCheck></a> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><span title="enum.Enum">Enum</span></code></p> <p>Study-Locus quality control options listing concerns on the quality of the association.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>SUBSIGNIFICANT_FLAG</code></td> <td> <code>str</code> </td> <td><p>p-value below significance threshold</p></td> </tr> <tr> <td><code>NO_GENOMIC_LOCATION_FLAG</code></td> <td> <code>str</code> </td> <td><p>Incomplete genomic mapping</p></td> </tr> <tr> <td><code>COMPOSITE_FLAG</code></td> <td> <code>str</code> </td> <td><p>Composite association due to variant x variant interactions</p></td> </tr> <tr> <td><code>VARIANT_INCONSISTENCY_FLAG</code></td> <td> <code>str</code> </td> <td><p>Inconsistencies in the reported variants</p></td> </tr> <tr> <td><code>NON_MAPPED_VARIANT_FLAG</code></td> <td> <code>str</code> </td> <td><p>Variant not mapped to GnomAd</p></td> </tr> <tr> <td><code>PALINDROMIC_ALLELE_FLAG</code></td> <td> <code>str</code> </td> <td><p>Alleles are palindromic - cannot harmonize</p></td> </tr> <tr> <td><code>AMBIGUOUS_STUDY</code></td> <td> <code>str</code> </td> <td><p>Association with ambiguous study</p></td> </tr> <tr> <td><code>UNRESOLVED_LD</code></td> <td> <code>str</code> </td> <td><p>Variant not found in LD reference</p></td> </tr> <tr> <td><code>LD_CLUMPED</code></td> <td> <code>str</code> </td> <td><p>Explained by a more significant variant in high LD (clumped)</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>40</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div><h2 id=schema>Schema</h2> <hr> <h1 id=study-locus-quality-controls>Study-locus quality controls</h1> <div class="doc doc-object doc-class"> <a id=otg.dataset.study_locus.StudyLocusQualityCheck></a> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><span title="enum.Enum">Enum</span></code></p> <p>Study-Locus quality control options listing concerns on the quality of the association.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>SUBSIGNIFICANT_FLAG</code></td> <td> <code>str</code> </td> <td><p>p-value below significance threshold</p></td> </tr> <tr> <td><code>NO_GENOMIC_LOCATION_FLAG</code></td> <td> <code>str</code> </td> <td><p>Incomplete genomic mapping</p></td> </tr> <tr> <td><code>COMPOSITE_FLAG</code></td> <td> <code>str</code> </td> <td><p>Composite association due to variant x variant interactions</p></td> </tr> <tr> <td><code>VARIANT_INCONSISTENCY_FLAG</code></td> <td> <code>str</code> </td> <td><p>Inconsistencies in the reported variants</p></td> </tr> <tr> <td><code>NON_MAPPED_VARIANT_FLAG</code></td> <td> <code>str</code> </td> <td><p>Variant not mapped to GnomAd</p></td> </tr> <tr> <td><code>PALINDROMIC_ALLELE_FLAG</code></td> <td> <code>str</code> </td> <td><p>Alleles are palindromic - cannot harmonize</p></td> </tr> <tr> <td><code>AMBIGUOUS_STUDY</code></td> <td> <code>str</code> </td> <td><p>Association with ambiguous study</p></td> </tr> <tr> <td><code>UNRESOLVED_LD</code></td> <td> <code>str</code> </td> <td><p>Variant not found in LD reference</p></td> </tr> <tr> <td><code>LD_CLUMPED</code></td> <td> <code>str</code> </td> <td><p>Explained by a more significant variant in high LD (clumped)</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>40</span>
 <span class=normal>41</span>
 <span class=normal>42</span>
 <span class=normal>43</span>
