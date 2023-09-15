@@ -82,7 +82,12 @@ def test_summary_statistics__exclude_region__correctness(
     )
     # Create dataframe and apply region based filter:
     data = spark.createDataFrame(data, schema=schema)
-    filtered_sumstas = SummaryStatistics(_df=data).exclude_region("c1:9-16")
+    filtered_sumstas = SummaryStatistics(
+        _df=data, _schema=SummaryStatistics.get_schema()
+    ).exclude_region("c1:9-16")
 
     # Test for the correct number of rows returned:
     assert filtered_sumstas.df.count() == 8
+
+
+# Look for medium size summary statistics -

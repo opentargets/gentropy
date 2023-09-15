@@ -157,5 +157,6 @@ class SummaryStatistics(Dataset):
                         )
                     )
                 )
-            )
+            ),
+            _schema=SummaryStatistics.get_schema(),
         )

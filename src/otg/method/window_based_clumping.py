@@ -556,7 +556,10 @@ class WindowBasedClumping:
                 .filter(f.col("semiIndices").getItem(f.col("pvRank") - 1) > 0)
                 .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
                 # Adding study-locus id:
-                .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
+                .withColumn(
+                    "studyLocusId",
+                    StudyLocus.assign_study_locus_id("studyId", "variantId"),
+                )
             ),
             _schema=StudyLocus.get_schema(),
         )
