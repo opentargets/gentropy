@@ -206,8 +206,8 @@ class StudyLocus(Dataset):
             Column: Filtered credible set column.
 
         Example:
-            >>> df = spark.createDataFrame([([{"tagVariantId": "varA", "is95CredibleSet": True}, {"tagVariantId": "varB", "is95CredibleSet": False}],)], "credibleSet: array<struct<tagVariantId: string, is95CredibleSet: boolean>>")
-            >>> df.select(StudyLocus._filter_credible_set(f.col("credibleSet")).alias("filtered")).show(truncate=False)
+            >>> df = spark.createDataFrame([([{"tagVariantId": "varA", "is95CredibleSet": True}, {"tagVariantId": "varB", "is95CredibleSet": False}],)], "locus: array<struct<tagVariantId: string, is95CredibleSet: boolean>>")
+            >>> df.select(StudyLocus._filter_credible_set(f.col("locus")).alias("filtered")).show(truncate=False)
             +--------------+
             |filtered      |
             +--------------+
@@ -259,8 +259,8 @@ class StudyLocus(Dataset):
             StudyLocus: Filtered study-locus dataset.
         """
         self.df = self._df.withColumn(
-            "credibleSet",
-            f.expr(f"filter(credibleSet, tag -> (tag.{credible_interval.value}))"),
+            "locus",
+            f.expr(f"filter(locus, tag -> (tag.{credible_interval.value}))"),
         )
         return self
 
@@ -278,16 +278,16 @@ class StudyLocus(Dataset):
         """
         credset_to_overlap = (
             self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
-            .withColumn("credibleSet", f.explode("credibleSet"))
+            .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
                 "studyType",
                 "chromosome",
-                f.col("credibleSet.tagVariantId").alias("tagVariantId"),
-                f.col("credibleSet.logABF").alias("logABF"),
-                f.col("credibleSet.posteriorProbability").alias("posteriorProbability"),
-                f.col("credibleSet.tagPValue").alias("tagPValue"),
-                f.col("credibleSet.tagBeta").alias("tagBeta"),
+                f.col("locus.tagVariantId").alias("tagVariantId"),
+                f.col("locus.logABF").alias("logABF"),
+                f.col("locus.posteriorProbability").alias("posteriorProbability"),
+                f.col("locus.tagPValue").alias("tagPValue"),
+                f.col("locus.tagBeta").alias("tagBeta"),
             )
             .persist()
         )
@@ -335,7 +335,7 @@ class StudyLocus(Dataset):
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
 
-        Sorts the array in the `credibleSet` column elements by their `posteriorProbability` values in descending order and adds
+        Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds
         `is95CredibleSet` and `is99CredibleSet` fields to the elements, indicating which are the tagging variants whose cumulative sum
         of their `posteriorProbability` values is below 0.95 and 0.99, respectively.
 
@@ -345,29 +345,27 @@ class StudyLocus(Dataset):
         self.df = (
             self.df.withColumn(
                 # Sort credible set by posterior probability in descending order
-                "credibleSet",
+                "locus",
                 f.when(
-                    f.size(f.col("credibleSet")) > 0,
-                    order_array_of_structs_by_field(
-                        "credibleSet", "posteriorProbability"
-                    ),
-                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+                    f.size(f.col("locus")) > 0,
+                    order_array_of_structs_by_field("locus", "posteriorProbability"),
+                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
             )
             .withColumn(
                 # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
                 # and zip the cumulative sums array with the credible set array to add the flags
-                "credibleSet",
+                "locus",
                 f.when(
-                    f.size(f.col("credibleSet")) > 0,
+                    f.size(f.col("locus")) > 0,
                     f.zip_with(
-                        f.col("credibleSet"),
+                        f.col("locus"),
                         f.transform(
-                            f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
+                            f.sequence(f.lit(1), f.size(f.col("locus"))),
                             lambda index: f.aggregate(
                                 f.slice(
                                     # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
                                     # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                                    f.col("credibleSet.posteriorProbability"),
+                                    f.col("locus.posteriorProbability"),
                                     1,
                                     index - 1,
                                 ),
@@ -379,11 +377,9 @@ class StudyLocus(Dataset):
                             CredibleInterval.IS95.value, acc < 0.95
                         ).withField(CredibleInterval.IS99.value, acc < 0.99),
                     ),
-                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
             )
-            .withColumn(
-                "credibleSet", StudyLocus._filter_credible_set(f.col("credibleSet"))
-            )
+            .withColumn("locus", StudyLocus._filter_credible_set(f.col("locus")))
         )
         return self
 

@@ -159,7 +159,7 @@ def test_is_lead_linked(
             t.StructField("pValueMantissa", t.FloatType(), True),
             t.StructField("pValueExponent", t.IntegerType(), True),
             t.StructField(
-                "credibleSet",
+                "locus",
                 t.ArrayType(
                     t.StructType(
                         [
@@ -184,7 +184,7 @@ def test_is_lead_linked(
                 f.col("variantId"),
                 f.col("pValueExponent"),
                 f.col("pValueMantissa"),
-                f.col("credibleSet"),
+                f.col("locus"),
             ),
         )
         .orderBy("studyLocusId")

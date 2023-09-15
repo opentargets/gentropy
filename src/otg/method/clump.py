@@ -70,6 +70,6 @@ class LDclumping:
             associations (StudyLocus): StudyLocus dataset
 
         Returns:
-            StudyLocus: including flag and removing credibleSet information for LD clumped loci.
+            StudyLocus: including flag and removing locus information for LD clumped loci.
         """
         return associations.clump()
