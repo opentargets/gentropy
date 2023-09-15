@@ -1,3 +1,3 @@
 # LD annotator
 
-:::otg.method.ld.LDAnnotatorGnomad
+:::otg.method.ld.LDAnnotator

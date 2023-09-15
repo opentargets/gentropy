@@ -29,6 +29,21 @@ parser.add_argument(
     default="n1-highmem-8",
     help="Google Dataproc machine type, default: %(default)s.",
 )
+parser.add_argument(
+    "--num-ssds",
+    metavar="num_local_ssds",
+    type=int,
+    default=1,
+    help="Number of local SSDs that supplement the boot disk, default: %(default)s.",
+)
+parser.add_argument(
+    "--boot-disk-size",
+    metavar="boot_disk_size",
+    type=int,
+    default=500,
+    help="Size in GB of the primary disk attached to each node, default: %(default)s.",
+)
+
 
 # Google Cloud configuration
 project_id = "open-targets-genetics-dev"
@@ -51,7 +66,6 @@ config_tar = f"{initialisation_base_path}/config.tar.gz"
 package_wheel = f"{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
 initialisation_executable_file = f"{initialisation_base_path}/initialise_cluster.sh"
 image_version = "2.1"
-num_local_ssds = 1
 
 # Available cluster
 cluster_uuid = "eba42738-2ea3-4b0a-ba1d-38428427e838"
@@ -91,6 +105,7 @@ def generate_managed_placement_template(
     initialisation_executable_file: str,
     image_version: str,
     num_local_ssds: int = 0,
+    boot_disk_size_gb: int = 500,
     initialisation_execution_timeout: str = "600s",
 ) -> WorkflowTemplatePlacement:
     """Generates placement using managed clusters.
@@ -104,6 +119,7 @@ def generate_managed_placement_template(
         initialisation_executable_file (str): Path to GS location with initialisation script.
         image_version (str): Dataproc image version to use for cluster creation.
         num_local_ssds (int): Number of local SSDs to use for cluster creation. Defaults to 0.
+        boot_disk_size_gb (int): Size in GB of the primary disk attached to each node. Defaults to 500.
         initialisation_execution_timeout (str): Initialisation script execution timeout. Defaults to "600s".
 
     Returns:
@@ -127,12 +143,18 @@ def generate_managed_placement_template(
     duration.FromJsonString(initialisation_execution_timeout)
     initialisation_node.execution_timeout = duration
     placement.managed_cluster.config.initialization_actions = [initialisation_node]
-    placement.managed_cluster.config.initialization_actions
 
     placement.managed_cluster.config.master_config.machine_type_uri = machine_type
+    placement.managed_cluster.config.master_config.disk_config.boot_disk_type = (
+        "pd-ssd" if num_local_ssds > 0 else "pd-standard"
+    )
+    placement.managed_cluster.config.master_config.disk_config.boot_disk_size_gb = (
+        boot_disk_size_gb
+    )
     placement.managed_cluster.config.software_config.image_version = image_version
     placement.managed_cluster.config.software_config.properties = {
-        "dataproc:dataproc.allow.zero.workers": "true"
+        "dataproc:dataproc.allow.zero.workers": "true",
+        "yarn:yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage": "98",
     }
     return placement
 
@@ -217,7 +239,8 @@ def main(args: argparse.Namespace) -> None:
         args.machine_type,
         initialisation_executable_file,
         image_version,
-        num_local_ssds=num_local_ssds,
+        num_local_ssds=args.num_ssds,
+        boot_disk_size_gb=args.boot_disk_size,
     )
 
     # Load steps from yaml file

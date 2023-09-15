@@ -21,10 +21,6 @@ plugins:
   - exclude:
       glob:
         - assets/schemas/*
-  # trigger scripts (e.g. schema generator)
-  - mkdocs-simple-hooks:
-      hooks:
-        on_pre_build: "scripts.schemadocs:main"
   # Show git commiters in the footer
   - git-committers:
       repository: opentargets/genetics_etl_python
@@ -36,6 +32,9 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.snippets:
       base_path: "docs"
+
+hooks:
+  - src/scripts/schemadocs.py
 
 repo_name: opentargets/genetics_etl_python
 repo_url: https://github.com/opentargets/genetics_etl_python
@@ -55,7 +54,7 @@ theme:
 
   palette:
     # Light mode
-    - media: '(prefers-color-scheme: light)'
+    - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: blue grey
       accent: light blue
@@ -64,7 +63,7 @@ theme:
         name: Switch to dark mode
 
     # Dark mode
-    - media: '(prefers-color-scheme: dark)'
+    - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: blue grey
       accent: light blue

@@ -71,11 +71,13 @@ class Dataset(ABC):
         observed_fields = flatten_schema(observed_schema)
 
         # Unexpected fields in dataset
-        if unexpected_struct_fields := [
-            x for x in observed_fields if x not in expected_fields
+        if unexpected_field_names := [
+            x.name
+            for x in observed_fields
+            if x.name not in [y.name for y in expected_fields]
         ]:
             raise ValueError(
-                f"The {unexpected_struct_fields} fields are not included in DataFrame schema: {expected_fields}"
+                f"The {unexpected_field_names} fields are not included in DataFrame schema: {expected_fields}"
             )
 
         # Required fields not in dataset
@@ -98,10 +100,17 @@ class Dataset(ABC):
             )
 
         # Fields with different datatype
+        observed_field_types = {
+            field.name: type(field.dataType) for field in observed_fields
+        }
+        expected_field_types = {
+            field.name: type(field.dataType) for field in expected_fields
+        }
         if fields_with_different_observed_datatype := [
-            field
-            for field in set(observed_fields)
-            if observed_fields.count(field) != expected_fields.count(field)
+            name
+            for name, observed_type in observed_field_types.items()
+            if name in expected_field_types
+            and observed_type != expected_field_types[name]
         ]:
             raise ValueError(
                 f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."

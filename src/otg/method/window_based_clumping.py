@@ -11,7 +11,6 @@ from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
 from otg.common.spark_helpers import calculate_neglog_pvalue
-from otg.common.utils import get_study_locus_id
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -307,36 +306,33 @@ class WindowBasedClumping:
             StudyLocus: clumped summary statistics
         """
         return StudyLocus(
-            _df=(
-                summary_stats.df.withColumn(
-                    "cluster_id",
-                    # First identify clusters of variants within the window
-                    WindowBasedClumping._identify_cluster_peaks(
-                        f.col("studyId"),
-                        f.col("chromosome"),
-                        f.col("position"),
-                        window_length,
-                    ),
-                )
-                .groupBy("cluster_id")
-                # Aggregating all data from each cluster:
-                .agg(
-                    WindowBasedClumping._collect_clump(
-                        f.col("pValueMantissa"), f.col("pValueExponent")
-                    ).alias("clump")
-                )
-                # Explode and identify the index variant representative of the cluster:
-                .withColumn(
-                    "exploded",
-                    f.explode(
-                        WindowBasedClumping._filter_leads(f.col("clump"), window_length)
-                    ),
-                )
-                .select("exploded.*")
-                # Dropping helper columns:
-                .drop("isLead", "negLogPValue", "cluster_id")
-                # assign study-locus id:
-                .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
+            _df=summary_stats.df.withColumn(
+                "cluster_id",
+                # First identify clusters of variants within the window
+                WindowBasedClumping._identify_cluster_peaks(
+                    f.col("studyId"),
+                    f.col("chromosome"),
+                    f.col("position"),
+                    window_length,
+                ),
+            ).groupBy("cluster_id")
+            # Aggregating all data from each cluster:
+            .agg(
+                WindowBasedClumping._collect_clump(
+                    f.col("pValueMantissa"), f.col("pValueExponent")
+                ).alias("clump")
+            )
+            # Explode and identify the index variant representative of the cluster:
+            .withColumn(
+                "exploded",
+                f.explode(
+                    WindowBasedClumping._filter_leads(f.col("clump"), window_length)
+                ),
+            ).select("exploded.*")
+            # Dropping helper columns:
+            .drop("isLead", "negLogPValue", "cluster_id").withColumn(
+                "studyLocusId",
+                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
             ),
             _schema=StudyLocus._get_schema(),
         )

@@ -163,19 +163,12 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
     """Mock StudyLocusOverlap dataset."""
     overlap_schema = StudyLocusOverlap._get_schema()
 
-    data_spec = (
-        dg.DataGenerator(
-            spark,
-            rows=400,
-            partitions=4,
-            randomSeedMethod="hash_fieldname",
-        )
-        .withSchema(overlap_schema)
-        .withColumnSpec("right_logABF", percentNulls=0.1)
-        .withColumnSpec("left_logABF", percentNulls=0.1)
-        .withColumnSpec("right_posteriorProbability", percentNulls=0.1)
-        .withColumnSpec("left_posteriorProbability", percentNulls=0.1)
-    )
+    data_spec = dg.DataGenerator(
+        spark,
+        rows=400,
+        partitions=4,
+        randomSeedMethod="hash_fieldname",
+    ).withSchema(overlap_schema)
 
     return StudyLocusOverlap(_df=data_spec.build(), _schema=overlap_schema)
 
@@ -406,8 +399,10 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(ld_schema)
-        .withColumnSpec("start_idx", percentNulls=0.1)
-        .withColumnSpec("stop_idx", percentNulls=0.1)
+        .withColumnSpec(
+            "ldSet",
+            expr="array(named_struct('tagVariantId', cast(rand() as string), 'rValues', array(named_struct('population', cast(rand() as string), 'r', cast(rand() as double)))))",
+        )
     )
 
     return LDIndex(_df=data_spec.build(), _schema=ld_schema)
