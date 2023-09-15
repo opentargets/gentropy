@@ -264,7 +264,7 @@
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.</span>
 
 <span class=sd>        It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.</span>
-<span class=sd>        The function iterates over every SNP in the `ldSet` array, and it returns an updated credibleSet with</span>
+<span class=sd>        The function iterates over every SNP in the `ldSet` array, and it returns an updated locus with</span>
 <span class=sd>        its association signal and causality probability as of PICS.</span>
 
 <span class=sd>        Args:</span>
@@ -342,9 +342,9 @@
 <span class=sd>        Returns:</span>
 <span class=sd>            StudyLocus: Study locus with PICS results</span>
 <span class=sd>        &quot;&quot;&quot;</span>
-        <span class=c1># Register UDF by defining the structure of the output credibleSet array of structs</span>
+        <span class=c1># Register UDF by defining the structure of the output locus array of structs</span>
         <span class=n>credset_schema</span> <span class=o>=</span> <span class=n>t</span><span class=o>.</span><span class=n>ArrayType</span><span class=p>(</span>
-            <span class=p>[</span><span class=n>field</span><span class=o>.</span><span class=n>dataType</span><span class=o>.</span><span class=n>elementType</span> <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=n>associations</span><span class=o>.</span><span class=n>schema</span> <span class=k>if</span> <span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&quot;credibleSet&quot;</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+            <span class=p>[</span><span class=n>field</span><span class=o>.</span><span class=n>dataType</span><span class=o>.</span><span class=n>elementType</span> <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=n>associations</span><span class=o>.</span><span class=n>schema</span> <span class=k>if</span> <span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&quot;locus&quot;</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># type: ignore</span>
         <span class=p>)</span>
         <span class=n>_finemap_udf</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>udf</span><span class=p>(</span>
             <span class=k>lambda</span> <span class=n>credible_set</span><span class=p>,</span> <span class=n>neglog_p</span><span class=p>:</span> <span class=n>PICS</span><span class=o>.</span><span class=n>_finemap</span><span class=p>(</span><span class=n>credible_set</span><span class=p>,</span> <span class=n>neglog_p</span><span class=p>,</span> <span class=n>k</span><span class=p>),</span>
@@ -354,7 +354,7 @@
         <span class=n>associations</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
             <span class=n>associations</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>,</span> <span class=n>associations</span><span class=o>.</span><span class=n>neglog_pvalue</span><span class=p>())</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
                     <span class=n>_finemap_udf</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)),</span>
@@ -415,9 +415,9 @@
 <span class=sd>    Returns:</span>
 <span class=sd>        StudyLocus: Study locus with PICS results</span>
 <span class=sd>    &quot;&quot;&quot;</span>
-    <span class=c1># Register UDF by defining the structure of the output credibleSet array of structs</span>
+    <span class=c1># Register UDF by defining the structure of the output locus array of structs</span>
     <span class=n>credset_schema</span> <span class=o>=</span> <span class=n>t</span><span class=o>.</span><span class=n>ArrayType</span><span class=p>(</span>
-        <span class=p>[</span><span class=n>field</span><span class=o>.</span><span class=n>dataType</span><span class=o>.</span><span class=n>elementType</span> <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=n>associations</span><span class=o>.</span><span class=n>schema</span> <span class=k>if</span> <span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&quot;credibleSet&quot;</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+        <span class=p>[</span><span class=n>field</span><span class=o>.</span><span class=n>dataType</span><span class=o>.</span><span class=n>elementType</span> <span class=k>for</span> <span class=n>field</span> <span class=ow>in</span> <span class=n>associations</span><span class=o>.</span><span class=n>schema</span> <span class=k>if</span> <span class=n>field</span><span class=o>.</span><span class=n>name</span> <span class=o>==</span> <span class=s2>&quot;locus&quot;</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># type: ignore</span>
     <span class=p>)</span>
     <span class=n>_finemap_udf</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>udf</span><span class=p>(</span>
         <span class=k>lambda</span> <span class=n>credible_set</span><span class=p>,</span> <span class=n>neglog_p</span><span class=p>:</span> <span class=n>PICS</span><span class=o>.</span><span class=n>_finemap</span><span class=p>(</span><span class=n>credible_set</span><span class=p>,</span> <span class=n>neglog_p</span><span class=p>,</span> <span class=n>k</span><span class=p>),</span>
@@ -427,7 +427,7 @@
     <span class=n>associations</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
         <span class=n>associations</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>,</span> <span class=n>associations</span><span class=o>.</span><span class=n>neglog_pvalue</span><span class=p>())</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
+            <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>(),</span>
                 <span class=n>_finemap_udf</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;neglog_pvalue&quot;</span><span class=p>)),</span>

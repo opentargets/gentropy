@@ -338,11 +338,7 @@
 <span class=normal>416</span>
 <span class=normal>417</span>
 <span class=normal>418</span>
-<span class=normal>419</span>
-<span class=normal>420</span>
-<span class=normal>421</span>
-<span class=normal>422</span>
-<span class=normal>423</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>419</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>StudyLocus</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study-Locus dataset.</span>
 
@@ -472,8 +468,8 @@
 <span class=sd>            Column: Filtered credible set column.</span>
 
 <span class=sd>        Example:</span>
-<span class=sd>            &gt;&gt;&gt; df = spark.createDataFrame([([{&quot;tagVariantId&quot;: &quot;varA&quot;, &quot;is95CredibleSet&quot;: True}, {&quot;tagVariantId&quot;: &quot;varB&quot;, &quot;is95CredibleSet&quot;: False}],)], &quot;credibleSet: array&lt;struct&lt;tagVariantId: string, is95CredibleSet: boolean&gt;&gt;&quot;)</span>
-<span class=sd>            &gt;&gt;&gt; df.select(StudyLocus._filter_credible_set(f.col(&quot;credibleSet&quot;)).alias(&quot;filtered&quot;)).show(truncate=False)</span>
+<span class=sd>            &gt;&gt;&gt; df = spark.createDataFrame([([{&quot;tagVariantId&quot;: &quot;varA&quot;, &quot;is95CredibleSet&quot;: True}, {&quot;tagVariantId&quot;: &quot;varB&quot;, &quot;is95CredibleSet&quot;: False}],)], &quot;locus: array&lt;struct&lt;tagVariantId: string, is95CredibleSet: boolean&gt;&gt;&quot;)</span>
+<span class=sd>            &gt;&gt;&gt; df.select(StudyLocus._filter_credible_set(f.col(&quot;locus&quot;)).alias(&quot;filtered&quot;)).show(truncate=False)</span>
 <span class=sd>            +--------------+</span>
 <span class=sd>            |filtered      |</span>
 <span class=sd>            +--------------+</span>
@@ -525,8 +521,8 @@
 <span class=sd>            StudyLocus: Filtered study-locus dataset.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>expr</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;filter(credibleSet, tag -&gt; (tag.</span><span class=si>{</span><span class=n>credible_interval</span><span class=o>.</span><span class=n>value</span><span class=si>}</span><span class=s2>))&quot;</span><span class=p>),</span>
+            <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>expr</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;filter(locus, tag -&gt; (tag.</span><span class=si>{</span><span class=n>credible_interval</span><span class=o>.</span><span class=n>value</span><span class=si>}</span><span class=s2>))&quot;</span><span class=p>),</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
 
@@ -544,16 +540,16 @@
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>credset_to_overlap</span> <span class=o>=</span> <span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>study_index</span><span class=o>.</span><span class=n>study_type_lut</span><span class=p>(),</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>explode</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>explode</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span>
             <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                 <span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;studyType&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.tagVariantId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.logABF&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;logABF&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.posteriorProbability&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;posteriorProbability&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.tagPValue&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagPValue&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.tagBeta&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagBeta&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.tagVariantId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.logABF&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;logABF&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.posteriorProbability&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;posteriorProbability&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.tagPValue&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagPValue&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.tagBeta&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagBeta&quot;</span><span class=p>),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>persist</span><span class=p>()</span>
         <span class=p>)</span>
@@ -601,7 +597,7 @@
     <span class=k>def</span> <span class=nf>annotate_credible_sets</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Annotate study-locus dataset with credible set flags.</span>
 
-<span class=sd>        Sorts the array in the `credibleSet` column elements by their `posteriorProbability` values in descending order and adds</span>
+<span class=sd>        Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds</span>
 <span class=sd>        `is95CredibleSet` and `is99CredibleSet` fields to the elements, indicating which are the tagging variants whose cumulative sum</span>
 <span class=sd>        of their `posteriorProbability` values is below 0.95 and 0.99, respectively.</span>
 
@@ -611,29 +607,27 @@
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=c1># Sort credible set by posterior probability in descending order</span>
-                <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
-                    <span class=n>order_array_of_structs_by_field</span><span class=p>(</span>
-                        <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span> <span class=s2>&quot;posteriorProbability&quot;</span>
-                    <span class=p>),</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
+                    <span class=n>order_array_of_structs_by_field</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=s2>&quot;posteriorProbability&quot;</span><span class=p>),</span>
+                <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>)),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=c1># Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets</span>
                 <span class=c1># and zip the cumulative sums array with the credible set array to add the flags</span>
-                <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>zip_with</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>),</span>
+                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>),</span>
                         <span class=n>f</span><span class=o>.</span><span class=n>transform</span><span class=p>(</span>
-                            <span class=n>f</span><span class=o>.</span><span class=n>sequence</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))),</span>
+                            <span class=n>f</span><span class=o>.</span><span class=n>sequence</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))),</span>
                             <span class=k>lambda</span> <span class=n>index</span><span class=p>:</span> <span class=n>f</span><span class=o>.</span><span class=n>aggregate</span><span class=p>(</span>
                                 <span class=n>f</span><span class=o>.</span><span class=n>slice</span><span class=p>(</span>
                                     <span class=c1># By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant</span>
                                     <span class=c1># that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.</span>
-                                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.posteriorProbability&quot;</span><span class=p>),</span>
+                                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.posteriorProbability&quot;</span><span class=p>),</span>
                                     <span class=mi>1</span><span class=p>,</span>
                                     <span class=n>index</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span>
                                 <span class=p>),</span>
@@ -645,11 +639,9 @@
                             <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.95</span>
                         <span class=p>)</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span><span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS99</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.99</span><span class=p>),</span>
                     <span class=p>),</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)),</span>
+                <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>)),</span>
             <span class=p>)</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>_filter_credible_set</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span>
-            <span class=p>)</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>_filter_credible_set</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>)))</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
 
@@ -687,7 +679,7 @@
             <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;is_lead_linked&quot;</span><span class=p>)</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.annotate_credible_sets class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_credible_sets</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Annotate study-locus dataset with credible set flags.</p> <p>Sorts the array in the <code>credibleSet</code> column elements by their <code>posteriorProbability</code> values in descending order and adds <code>is95CredibleSet</code> and <code>is99CredibleSet</code> fields to the elements, indicating which are the tagging variants whose cumulative sum of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respectively.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>including annotation on <code>is95CredibleSet</code> and <code>is99CredibleSet</code>.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>335</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.annotate_credible_sets class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_credible_sets</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Annotate study-locus dataset with credible set flags.</p> <p>Sorts the array in the <code>locus</code> column elements by their <code>posteriorProbability</code> values in descending order and adds <code>is95CredibleSet</code> and <code>is99CredibleSet</code> fields to the elements, indicating which are the tagging variants whose cumulative sum of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respectively.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>including annotation on <code>is95CredibleSet</code> and <code>is99CredibleSet</code>.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>335</span>
 <span class=normal>336</span>
 <span class=normal>337</span>
 <span class=normal>338</span>
@@ -736,14 +728,10 @@
 <span class=normal>381</span>
 <span class=normal>382</span>
 <span class=normal>383</span>
-<span class=normal>384</span>
-<span class=normal>385</span>
-<span class=normal>386</span>
-<span class=normal>387</span>
-<span class=normal>388</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_credible_sets</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
+<span class=normal>384</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_credible_sets</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Annotate study-locus dataset with credible set flags.</span>
 
-<span class=sd>    Sorts the array in the `credibleSet` column elements by their `posteriorProbability` values in descending order and adds</span>
+<span class=sd>    Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds</span>
 <span class=sd>    `is95CredibleSet` and `is99CredibleSet` fields to the elements, indicating which are the tagging variants whose cumulative sum</span>
 <span class=sd>    of their `posteriorProbability` values is below 0.95 and 0.99, respectively.</span>
 
@@ -753,29 +741,27 @@
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=c1># Sort credible set by posterior probability in descending order</span>
-            <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
+            <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
-                <span class=n>order_array_of_structs_by_field</span><span class=p>(</span>
-                    <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span> <span class=s2>&quot;posteriorProbability&quot;</span>
-                <span class=p>),</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
+                <span class=n>order_array_of_structs_by_field</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=s2>&quot;posteriorProbability&quot;</span><span class=p>),</span>
+            <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>)),</span>
         <span class=p>)</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=c1># Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets</span>
             <span class=c1># and zip the cumulative sums array with the credible set array to add the flags</span>
-            <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
+            <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>zip_with</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>transform</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>sequence</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))),</span>
+                        <span class=n>f</span><span class=o>.</span><span class=n>sequence</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))),</span>
                         <span class=k>lambda</span> <span class=n>index</span><span class=p>:</span> <span class=n>f</span><span class=o>.</span><span class=n>aggregate</span><span class=p>(</span>
                             <span class=n>f</span><span class=o>.</span><span class=n>slice</span><span class=p>(</span>
                                 <span class=c1># By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant</span>
                                 <span class=c1># that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.</span>
-                                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.posteriorProbability&quot;</span><span class=p>),</span>
+                                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.posteriorProbability&quot;</span><span class=p>),</span>
                                 <span class=mi>1</span><span class=p>,</span>
                                 <span class=n>index</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span>
                             <span class=p>),</span>
@@ -787,11 +773,9 @@
                         <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.95</span>
                     <span class=p>)</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span><span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS99</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.99</span><span class=p>),</span>
                 <span class=p>),</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>)),</span>
+            <span class=p>)</span><span class=o>.</span><span class=n>when</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>)),</span>
         <span class=p>)</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-            <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>_filter_credible_set</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span>
-        <span class=p>)</span>
+        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>_filter_credible_set</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>)))</span>
     <span class=p>)</span>
     <span class=k>return</span> <span class=bp>self</span>
 </code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.assign_study_locus_id class="doc doc-heading"> <code class="highlight language-python"><span class=n>assign_study_locus_id</span><span class=p>(</span><span class=n>study_id_col</span><span class=p>,</span> <span class=n>variant_id_col</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_id_col</code></td> <td> <code><span title="pyspark.sql.Column">Column</span></code> </td> <td><p>column name with a study ID</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>variant_id_col</code></td> <td> <code><span title="pyspark.sql.Column">Column</span></code> </td> <td><p>column name with a variant ID</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Column</code></td> <td> <code><span title="pyspark.sql.Column">Column</span></code> </td> <td><p>column with a study locus ID</p></td> </tr> </tbody> </table> <p><strong>Examples:</strong></p> <div class=highlight><pre><span></span><code><span class=gp>&gt;&gt;&gt; </span><span class=n>df</span> <span class=o>=</span> <span class=n>spark</span><span class=o>.</span><span class=n>createDataFrame</span><span class=p>([(</span><span class=s2>&quot;GCST000001&quot;</span><span class=p>,</span> <span class=s2>&quot;1_1000_A_C&quot;</span><span class=p>),</span> <span class=p>(</span><span class=s2>&quot;GCST000002&quot;</span><span class=p>,</span> <span class=s2>&quot;1_1000_A_C&quot;</span><span class=p>)])</span><span class=o>.</span><span class=n>toDF</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>)</span>
@@ -847,7 +831,11 @@
 <span class=sd>        &lt;BLANKLINE&gt;</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>f</span><span class=o>.</span><span class=n>xxhash64</span><span class=p>(</span><span class=o>*</span><span class=p>[</span><span class=n>study_id_col</span><span class=p>,</span> <span class=n>variant_id_col</span><span class=p>])</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.clump class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Perform LD clumping of the studyLocus.</p> <p>Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>with empty credible sets for linked variants and QC flag.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>390</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.clump class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Perform LD clumping of the studyLocus.</p> <p>Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>with empty credible sets for linked variants and QC flag.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>386</span>
+<span class=normal>387</span>
+<span class=normal>388</span>
+<span class=normal>389</span>
+<span class=normal>390</span>
 <span class=normal>391</span>
 <span class=normal>392</span>
 <span class=normal>393</span>
@@ -876,11 +864,7 @@
 <span class=normal>416</span>
 <span class=normal>417</span>
 <span class=normal>418</span>
-<span class=normal>419</span>
-<span class=normal>420</span>
-<span class=normal>421</span>
-<span class=normal>422</span>
-<span class=normal>423</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>clump</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
+<span class=normal>419</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>clump</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Perform LD clumping of the studyLocus.</span>
 
 <span class=sd>    Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</span>
@@ -943,8 +927,8 @@
 <span class=sd>        StudyLocus: Filtered study-locus dataset.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-        <span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span>
-        <span class=n>f</span><span class=o>.</span><span class=n>expr</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;filter(credibleSet, tag -&gt; (tag.</span><span class=si>{</span><span class=n>credible_interval</span><span class=o>.</span><span class=n>value</span><span class=si>}</span><span class=s2>))&quot;</span><span class=p>),</span>
+        <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
+        <span class=n>f</span><span class=o>.</span><span class=n>expr</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;filter(locus, tag -&gt; (tag.</span><span class=si>{</span><span class=n>credible_interval</span><span class=o>.</span><span class=n>value</span><span class=si>}</span><span class=s2>))&quot;</span><span class=p>),</span>
     <span class=p>)</span>
     <span class=k>return</span> <span class=bp>self</span>
 </code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.find_overlaps class="doc doc-heading"> <code class="highlight language-python"><span class=n>find_overlaps</span><span class=p>(</span><span class=n>study_index</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Calculate overlapping study-locus.</p> <p>Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always appearing on the right side.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndex" href="../../study_index/_study_index/#otg.dataset.study_index.StudyIndex">StudyIndex</a></code> </td> <td><p>Study index to resolve study types.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocusOverlap</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus_overlap.StudyLocusOverlap" href="../../study_locus_overlap/#otg.dataset.study_locus_overlap.StudyLocusOverlap">StudyLocusOverlap</a></code> </td> <td><p>Pairs of overlapping study-locus with aligned tags.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>267</span>
@@ -993,16 +977,16 @@
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=n>credset_to_overlap</span> <span class=o>=</span> <span class=p>(</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>study_index</span><span class=o>.</span><span class=n>study_type_lut</span><span class=p>(),</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
-        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>explode</span><span class=p>(</span><span class=s2>&quot;credibleSet&quot;</span><span class=p>))</span>
+        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>explode</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span>
         <span class=o>.</span><span class=n>select</span><span class=p>(</span>
             <span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span>
             <span class=s2>&quot;studyType&quot;</span><span class=p>,</span>
             <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.tagVariantId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.logABF&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;logABF&quot;</span><span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.posteriorProbability&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;posteriorProbability&quot;</span><span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.tagPValue&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagPValue&quot;</span><span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;credibleSet.tagBeta&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagBeta&quot;</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.tagVariantId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.logABF&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;logABF&quot;</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.posteriorProbability&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;posteriorProbability&quot;</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.tagPValue&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagPValue&quot;</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus.tagBeta&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;tagBeta&quot;</span><span class=p>),</span>
         <span class=p>)</span>
         <span class=o>.</span><span class=n>persist</span><span class=p>()</span>
     <span class=p>)</span>
