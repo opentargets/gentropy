@@ -13,6 +13,7 @@ from otg.common.spark_helpers import pvalue_to_zscore
 
 if TYPE_CHECKING:
     from hail.expr.expressions import Int32Expression, StringExpression
+    from hail.table import Table
     from pyspark.sql import Column
 
 
@@ -257,6 +258,35 @@ def convert_gnomad_position_to_ensembl_hail(
     )
 
 
+def _liftover_loci(
+    variant_index: Table, chain_path: str, dest_reference_genome: str
+) -> Table:
+    """Liftover a Hail table containing variant information from GRCh37 to GRCh38 or viceversa.
+
+    Args:
+        variant_index (Table): Variants to be lifted over
+        chain_path (str): Path to chain file for liftover
+        dest_reference_genome (str): Destination reference genome. It can be either GRCh37 or GRCh38.
+
+    Returns:
+        Table: LD variant index with coordinates in the new reference genome
+    """
+    if not hl.get_reference("GRCh37").has_liftover(
+        "GRCh38"
+    ):  # True when a chain file has already been registered
+        rg37 = hl.get_reference("GRCh37")
+        rg38 = hl.get_reference("GRCh38")
+        if dest_reference_genome == "GRCh38":
+            rg37.add_liftover(chain_path, rg38)
+        elif dest_reference_genome == "GRCh37":
+            rg38.add_liftover(chain_path, rg37)
+    # Dynamically create the new field with transmute
+    new_locus = f"locus_{dest_reference_genome}"
+    return variant_index.transmute(
+        **{new_locus: hl.liftover(variant_index.locus, dest_reference_genome)}
+    )
+
+
 def split_pvalue(pvalue: float) -> tuple[float, int]:
     """Function to convert a float to 10 based exponent and mantissa.
 
@@ -296,28 +326,3 @@ def parse_efos(efo_uri: Column) -> Column:
     """
     colname = efo_uri._jc.toString()  # type: ignore
     return f.array_sort(f.expr(f"regexp_extract_all(`{colname}`, '([A-Z]+_[0-9]+)')"))
-
-
-def get_study_locus_id(study_id_col_name: str, variant_id_col_name: str) -> Column:
-    """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
-
-    Args:
-        study_id_col_name (str): column name with a study ID
-        variant_id_col_name (str): column name with a variant ID
-
-    Returns:
-        Column: column with a study locus ID
-
-    Examples:
-        >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-        >>> df.withColumn("study_locus_id", get_study_locus_id(*["variantId", "studyId"])).show()
-        +----------+----------+--------------------+
-        |   studyId| variantId|      study_locus_id|
-        +----------+----------+--------------------+
-        |GCST000001|1_1000_A_C| 7437284926964690765|
-        |GCST000002|1_1000_A_C|-7653912547667845377|
-        +----------+----------+--------------------+
-        <BLANKLINE>
-
-    """
-    return f.xxhash64(*[study_id_col_name, variant_id_col_name]).alias("studyLocusId")

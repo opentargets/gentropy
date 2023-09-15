@@ -94,32 +94,30 @@ class PICS:
         return neglog_p * r2 if r2 >= 0.5 else None
 
     @staticmethod
-    def _finemap(
-        credible_set: list[Row], lead_neglog_p: float, k: float
-    ) -> list | None:
+    def _finemap(ld_set: list[Row], lead_neglog_p: float, k: float) -> list | None:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
         It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
-        The function iterates over every SNP in the `credibleSet` array, and it returns an updated credibleSet with
+        The function iterates over every SNP in the `ldSet` array, and it returns an updated credibleSet with
         its association signal and causality probability as of PICS.
 
         Args:
-            credible_set (list): list of tagging variants after expanding the locus
+            ld_set (list): list of tagging variants after expanding the locus
             lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
             List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
         """
-        if credible_set is None:
+        if ld_set is None:
             return None
-        elif not credible_set:
+        elif not ld_set:
             return []
 
         tmp_credible_set = []
         new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
-        for tag_struct in credible_set:
+        for tag_struct in ld_set:
             tag_dict = (
                 tag_struct.asDict()
             )  # tag_struct is of type pyspark.Row, we'll represent it as a dict
@@ -192,8 +190,8 @@ class PICS:
             .withColumn(
                 "credibleSet",
                 f.when(
-                    f.col("credibleSet").isNotNull(),
-                    _finemap_udf(f.col("credibleSet"), f.col("neglog_pvalue")),
+                    f.col("ldSet").isNotNull(),
+                    _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
                 ),
             )
             .drop("neglog_pvalue")

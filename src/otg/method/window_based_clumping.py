@@ -11,7 +11,8 @@ from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
 from otg.common.spark_helpers import calculate_neglog_pvalue
-from otg.common.utils import get_study_locus_id, split_pvalue
+from otg.common.utils import split_pvalue
+
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -489,71 +490,74 @@ class WindowBasedClumping:
         )
 
         return StudyLocus(
-            _df=summary_stats
-            # Dropping all snps below p-value of interest:
-            .pvalue_filter(p_value_baseline)
-            .df
-            # Clustering summary statistics:
-            .transform(
-                lambda df: WindowBasedClumping._cluster_sumstats(
-                    df, window_length, p_value_significance
-                )
-            )
-            # Collect locus data for snps reacing significance:
-            .withColumn(
-                "locus",
-                f.when(
-                    filter_expression,
-                    f.collect_set(
-                        f.struct(
-                            f.col("variantId"),
-                            f.col("pValueMantissa"),
-                            f.col("pValueExponent"),
-                            f.col("beta"),
-                        )
-                    ).over(locus_window),
-                ).otherwise(None),
-            )
-            # Dropping non-significant spns:
-            .filter(filter_expression)
-            # Rank hits in cluster:
-            .withColumn("pvRank", f.row_number().over(cluster_window))
-            # Collect positions in cluster for the first
-            .withColumn(
-                "collectedPositions",
-                f.when(
-                    f.col("pvRank") == 1,
-                    f.collect_list(f.col("position")).over(
-                        cluster_window.rowsBetween(
-                            Window.currentRow, Window.unboundedFollowing
-                        )
-                    ),
-                ).otherwise(f.array()),
-            )
-            # Get leads:
-            .withColumn(
-                "semiIndices",
-                f.when(
-                    f.size(f.col("collectedPositions")) > 0,
-                    fml.vector_to_array(
-                        WindowBasedClumping._find_peak(
-                            fml.array_to_vector(f.col("collectedPositions")),
-                            f.lit(window_length),
-                        )
-                    ),
-                ),
-            )
-            .withColumn(
-                "semiIndices",
-                f.when(
-                    f.col("semiIndices").isNull(),
-                    f.first(f.col("semiIndices"), ignorenulls=True).over(
-                        cluster_window
-                    ),
-                ).otherwise(f.col("semiIndices")),
-            )
-            .filter(f.col("semiIndices").getItem(f.col("pvRank") - 1) > 0)
-            .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
-            # Adding study-locus id:
-            .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
+            _df=(
+              summary_stats
+              # Dropping all snps below p-value of interest:
+              .pvalue_filter(p_value_baseline)
+              .df
+              # Clustering summary statistics:
+              .transform(
+                  lambda df: WindowBasedClumping._cluster_sumstats(
+                      df, window_length, p_value_significance
+                  )
+              )
+              # Collect locus data for snps reacing significance:
+              .withColumn(
+                  "locus",
+                  f.when(
+                      filter_expression,
+                      f.collect_set(
+                          f.struct(
+                              f.col("variantId"),
+                              f.col("pValueMantissa"),
+                              f.col("pValueExponent"),
+                              f.col("beta"),
+                          )
+                      ).over(locus_window),
+                  ).otherwise(None),
+              )
+              # Dropping non-significant spns:
+              .filter(filter_expression)
+              # Rank hits in cluster:
+              .withColumn("pvRank", f.row_number().over(cluster_window))
+              # Collect positions in cluster for the first
+              .withColumn(
+                  "collectedPositions",
+                  f.when(
+                      f.col("pvRank") == 1,
+                      f.collect_list(f.col("position")).over(
+                          cluster_window.rowsBetween(
+                              Window.currentRow, Window.unboundedFollowing
+                          )
+                      ),
+                  ).otherwise(f.array()),
+              )
+              # Get leads:
+              .withColumn(
+                  "semiIndices",
+                  f.when(
+                      f.size(f.col("collectedPositions")) > 0,
+                      fml.vector_to_array(
+                          WindowBasedClumping._find_peak(
+                              fml.array_to_vector(f.col("collectedPositions")),
+                              f.lit(window_length),
+                          )
+                      ),
+                  ),
+              )
+              .withColumn(
+                  "semiIndices",
+                  f.when(
+                      f.col("semiIndices").isNull(),
+                      f.first(f.col("semiIndices"), ignorenulls=True).over(
+                          cluster_window
+                      ),
+                  ).otherwise(f.col("semiIndices")),
+              )
+              .filter(f.col("semiIndices").getItem(f.col("pvRank") - 1) > 0)
+              .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
+              # Adding study-locus id:
+              .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
+            ),
+            _schema=StudyLocus.get_schema(),
         )

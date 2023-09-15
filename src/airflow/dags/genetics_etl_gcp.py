@@ -37,14 +37,17 @@ initialisation_executable_file = [f"{initialisation_base_path}/initialise_cluste
 image_version = "2.1"
 num_local_ssds = 1
 # job
-python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
 cluster_config_dir = "/config"
 
 default_args = {
+    "owner": "Open Targets Data Team",
     # Tell airflow to start one day ago, so that it runs as soon as you upload it
     "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
-    "schedule_interval": None,
+    # "start_date": pendulum.datetime(2020, 1, 1, tz="Europe/London"),
+    "schedule_interval": "@once",
     "project_id": project_id,
+    "catchup": False,
+    "retries": 3,
 }
 
 cluster_generator_config = ClusterGenerator(
@@ -110,8 +113,9 @@ def generate_pyspark_job_from_dict(
 
 @dag(
     dag_id=Path(__file__).stem,
-    description="genetics_etl_dag",
     default_args=default_args,
+    description="Open Targets Genetics ETL workflow",
+    tags=["genetics_etl", "experimental"],
 )
 def create_dag() -> None:
     """Submit dataproc workflow."""
@@ -147,6 +151,7 @@ def create_dag() -> None:
                         cluster_config=cluster_generator_config,
                         region="europe-west1",
                         cluster_name=cluster_name,
+                        trigger_rule=TriggerRule.ALL_SUCCESS,
                     )
                     install_dependencies = DataprocSubmitJobOperator(
                         task_id=f"install_dependencies_{step['id']}",
@@ -188,7 +193,6 @@ def create_dag() -> None:
                 thisgroup = tgroup(step)
                 tasks_groups[step["id"]] = thisgroup
                 if "prerequisites" in step:
-                    # thisgroup.trigger_rule = TriggerRule.ALL_SUCCESS
                     for prerequisite in step["prerequisites"]:
                         print(f"|- {prerequisite}")
                         thisgroup.set_upstream(tasks_groups[prerequisite])
