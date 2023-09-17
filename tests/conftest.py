@@ -23,16 +23,18 @@ from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 
 
-@pytest.fixture(scope="session")
-def spark() -> SparkSession:
+@pytest.fixture(scope="session", autouse=True)
+def spark(tmp_path_factory) -> SparkSession:
     """Local spark session for testing purposes.
 
     Returns:
         SparkSession: local spark session
     """
     return (
-        SparkSession.builder.config("spark.driver.bindAddress", "127.0.0.1")
-        .master("local[1]")
+        SparkSession.builder.master("local[1]")
+        .config("spark.driver.bindAddress", "127.0.0.1")
+        .config("spark.executor.cores", "1")
+        .config("spark.executor.instances", "1")
         # no shuffling
         .config("spark.sql.shuffle.partitions", "1")
         # ui settings
@@ -47,6 +49,11 @@ def spark() -> SparkSession:
         .config("spark.worker.ui.retainedDrivers", "1")
         # fixed memory
         .config("spark.driver.memory", "2g")
+        .config("spark.sql.warehouse.dir", tmp_path_factory.mktemp("warehouse"))
+        .config(
+            "spark.driver.extraJavaOptions",
+            "-Dderby.system.home={tmp_path_factory.mktemp('derby')}",
+        )
         .appName("test")
         .getOrCreate()
     )

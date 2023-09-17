@@ -29,7 +29,7 @@ check: ## Lint and format code
 
 test: ## Run tests
 	@echo "Running Tests..."
-	@poetry run pytest --doctest-modules --cov=src/ --cov-report=xml
+	@poetry run pytest -n auto --doctest-modules --cov=src/ --cov-report=xml
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
