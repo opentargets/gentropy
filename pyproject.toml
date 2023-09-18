@@ -84,7 +84,7 @@ color = true
 exclude = ["dist"]
 
 [tool.pytest.ini_options]
- addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
+addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
 
 [[tool.mypy.overrides]]
 module = "google.protobuf.duration_pb2"
