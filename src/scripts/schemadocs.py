@@ -6,17 +6,29 @@ import json
 import os
 from pathlib import Path
 
+import mkdocs.plugins
 import pyspark.sql.types as t
+from mkdocs.config import Config as MkdocsConfig
 from pyspark.sql import SparkSession
 
-# Create SparkSession
-spark = SparkSession.builder.master("local[1]").appName("schemas").getOrCreate()
+
+def spark_connect() -> SparkSession:
+    """Create SparkSession.
+
+    Returns:
+        SparkSession: SparkSession object.
+    """
+    spark = SparkSession.builder.master("local[1]").appName("schemas").getOrCreate()
+    return spark
 
 
-def generate_schema_assets(assets_dir: Path, schema_dir: str) -> None:
+def generate_schema_assets(
+    spark: SparkSession, assets_dir: Path, schema_dir: str
+) -> None:
     """Generate schema assets for mkdocs documentation.
 
     Args:
+        spark: SparkSession object.
         assets_dir: Path to assets directory.
         schema_dir: Path to schema directory.
     """
@@ -32,13 +44,21 @@ def generate_schema_assets(assets_dir: Path, schema_dir: str) -> None:
                     out.write(f"```\n{tree}\n```")
 
 
-def main(config: dict) -> None:
-    """Main function."""
+@mkdocs.plugins.event_priority(50)
+def on_pre_build(config: MkdocsConfig, **kwargs) -> None:
+    """Main function.
+
+    Args:
+        config: MkdocsConfig object.
+        **kwargs: Arbitrary keyword arguments.
+    """
     # Create schema dir if not exist:
     assets_dir = Path("docs/assets/schemas")
     assets_dir.mkdir(exist_ok=True)
 
+    spark = spark_connect()
     generate_schema_assets(
+        spark=spark,
         assets_dir=assets_dir,
         schema_dir="src/otg/assets/schemas",
     )
