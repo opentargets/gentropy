@@ -145,7 +145,7 @@ class SummaryStatistics(Dataset):
             self,
             window_length=distance,
             p_value_significance=gwas_signiciance,
-            baseline_significance=baseline_significance,
+            p_value_baseline=baseline_significance,
         )
 
     def window_based_clumping(

@@ -178,12 +178,6 @@
             },
             {
               "metadata": {},
-              "name": "pValue",
-              "nullable": true,
-              "type": "double"
-            },
-            {
-              "metadata": {},
               "name": "pValueMantissa",
               "nullable": true,
               "type": "float"
@@ -196,9 +190,15 @@
             },
             {
               "metadata": {},
-              "name": "pValueConditioned",
+              "name": "pValueMantissaConditioned",
               "nullable": true,
-              "type": "double"
+              "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "pValueExponentConditioned",
+              "nullable": true,
+              "type": "integer"
             },
             {
               "metadata": {},

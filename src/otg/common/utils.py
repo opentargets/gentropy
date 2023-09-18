@@ -24,7 +24,8 @@ def parse_region(region: str) -> Tuple[str, int, int]:
         region (str): Genomic region expected to follow chr##:#,###-#,### format or ##:####-#####.
 
     Raises:
-        ValueError: If the end and start positions cannot be casted to integer or not all three values value error is raised.
+        ValueError: If the end and start positions cannot be casted to integer or not all
+        three values value error is raised.
 
     Returns:
         Tuple[str, int, int]: Chromosome, start position, end position
@@ -66,7 +67,7 @@ def calculate_confidence_interval(
     beta: Column,
     standard_error: Column,
 ) -> tuple:
-    """This function calculates the confidence interval for the effect based on the p-value and the effect size.
+    """Calculate the confidence interval for the effect based on the p-value and the effect size.
 
     If the standard error already available, don't re-calculate from p-value.
 
@@ -209,10 +210,10 @@ def parse_pvalue(pv: Column) -> List[Column]:
 def convert_gnomad_position_to_ensembl(
     position: Column, reference: Column, alternate: Column
 ) -> Column:
-    """Converting GnomAD variant position to Ensembl variant position.
+    """Convert GnomAD variant position to Ensembl variant position.
 
-    For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.
-    More info about the problem: https://www.biostars.org/p/84686/
+    For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs,
+    the position is unchanged. More info about the problem: https://www.biostars.org/p/84686/
 
     Args:
         position (Column): Column
@@ -244,7 +245,7 @@ def convert_gnomad_position_to_ensembl(
 def convert_gnomad_position_to_ensembl_hail(
     position: Int32Expression, reference: StringExpression, alternate: StringExpression
 ) -> Int32Expression:
-    """Converting GnomAD variant position to Ensembl variant position in hail table.
+    """Convert GnomAD variant position to Ensembl variant position in hail table.
 
     For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.
     More info about the problem: https://www.biostars.org/p/84686/
@@ -292,14 +293,27 @@ def _liftover_loci(
 
 
 def split_pvalue(pvalue: float) -> tuple[float, int]:
-    """Function to convert a float to 10 based exponent and mantissa.
+    """Convert a float to 10 based exponent and mantissa.
 
     Args:
         pvalue (float): p-value
 
     Returns:
         tuple[float, int]: Tuple with mantissa and exponent
+
+    Examples:
+        >>> split_pvalue(0.00001234)
+        (1.234, -5)
+
+        >>> split_pvalue(1)
+        (1.0, 0)
+
+        >>> split_pvalue(0.123)
+        (1.23, -1)
     """
+    if pvalue < 0.0 or pvalue > 1.0:
+        raise ValueError("P-value must be between 0 and 1")
+
     exponent = floor(log10(pvalue)) if pvalue != 0 else 0
     mantissa = round(pvalue / 10**exponent, 3)
     return (mantissa, exponent)

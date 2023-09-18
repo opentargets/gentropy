@@ -297,7 +297,7 @@ class WindowBasedClumping:
         filtered_summary_stats = reduce(
             lambda df, region: df.exclude_region(region),
             cls.EXCLUDED_REGIONS,
-            SummaryStatistics,
+            summary_stats,
         )
 
         # Run distance based clumping on the summary stats:
@@ -305,10 +305,10 @@ class WindowBasedClumping:
             filtered_summary_stats,
             window_length=window_length,
             p_value_significance=p_value_significance,
-        ).df
+        ).df.alias("clumped")
 
         # Extract column names:
-        columns = summary_stats.df.columns
+        columns = filtered_summary_stats.df.columns
 
         # Dropping variants not meeting the baseline criteria:
         sumstats_baseline = filtered_summary_stats.pvalue_filter(p_value_baseline).df
@@ -334,11 +334,11 @@ class WindowBasedClumping:
                     & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
                     & (
                         f.col("sumstat.tag_position")
-                        >= f.col("clumped.chromosome") - window_length
+                        >= f.col("clumped.position") - window_length
                     )
                     & (
                         f.col("sumstat.tag_position")
-                        <= f.col("clumped.chromosome") + window_length
+                        <= f.col("clumped.position") + window_length
                     )
                 ],
                 how="right",
@@ -352,15 +352,13 @@ class WindowBasedClumping:
                     f.col("tag_beta").alias("beta"),
                     f.col("tag_pValueMantissa").alias("pValueMantissa"),
                     f.col("tag_pValueExponent").alias("pValueExponent"),
-                    f.col("tag_effectAlleleFrequencyFromSource").alias(
-                        "effectAlleleFrequencyFromSource"
-                    ),
                     f.col("tag_standardError").alias("standardError"),
                 ),
             )
-            .groupby(columns)
+            .groupby(*columns, "studyLocusId")
             .agg(f.collect_list(f.col("locus")).alias("locus"))
         )
+        study_locus_df.show(1, False, True)
 
         return StudyLocus(
             _df=study_locus_df,
