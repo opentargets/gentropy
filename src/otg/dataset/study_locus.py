@@ -123,20 +123,26 @@ class StudyLocus(Dataset):
 
     @staticmethod
     def _align_overlapping_tags(
-        credset_to_overlap: DataFrame, peak_overlaps: DataFrame
+        loci_to_overlap: DataFrame, peak_overlaps: DataFrame
     ) -> StudyLocusOverlap:
         """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
 
         Args:
-            credset_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
+            loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
             peak_overlaps (DataFrame): containing `left_studyLocusId`, `right_studyLocusId` and `chromosome` columns.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         # Complete information about all tags in the left study-locus of the overlap
-        stats_cols = ["logABF", "posteriorProbability", "tagPValue", "beta"]
-        overlapping_left = credset_to_overlap.select(
+        stats_cols = [
+            "logABF",
+            "posteriorProbability",
+            "beta",
+            "pValueMantissa",
+            "pValueExponent",
+        ]
+        overlapping_left = loci_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("left_studyLocusId"),
@@ -144,7 +150,7 @@ class StudyLocus(Dataset):
         ).join(peak_overlaps, on=["chromosome", "left_studyLocusId"], how="inner")
 
         # Complete information about all tags in the right study-locus of the overlap
-        overlapping_right = credset_to_overlap.select(
+        overlapping_right = loci_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("right_studyLocusId"),
@@ -276,7 +282,7 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
-        credset_to_overlap = (
+        loci_to_overlap = (
             self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
             .withColumn("locus", f.explode("locus"))
             .select(
@@ -286,17 +292,18 @@ class StudyLocus(Dataset):
                 f.col("locus.variantId").alias("tagVariantId"),
                 f.col("locus.logABF").alias("logABF"),
                 f.col("locus.posteriorProbability").alias("posteriorProbability"),
-                f.col("locus.tagPValue").alias("tagPValue"),
+                f.col("locus.pValueMantissa").alias("pValueMantissa"),
+                f.col("locus.pValueExponent").alias("pValueExponent"),
                 f.col("locus.beta").alias("beta"),
             )
             .persist()
         )
 
         # overlapping study-locus
-        peak_overlaps = self._overlapping_peaks(credset_to_overlap)
+        peak_overlaps = self._overlapping_peaks(loci_to_overlap)
 
         # study-locus overlap by aligning overlapping variants
-        return self._align_overlapping_tags(credset_to_overlap, peak_overlaps)
+        return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
 
     def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.
