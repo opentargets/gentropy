@@ -17,7 +17,8 @@ def test_window_based_clump__return_type(
 ) -> None:
     """Test window-based clumping."""
     assert isinstance(
-        WindowBasedClumping.clump(mock_summary_statistics, 250_000), StudyLocus
+        WindowBasedClumping.clump_with_locus(mock_summary_statistics, 250_000),
+        StudyLocus,
     )
 
 

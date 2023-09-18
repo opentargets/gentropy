@@ -123,17 +123,48 @@ class SummaryStatistics(Dataset):
         )
         return SummaryStatistics(_df=df, _schema=self._schema)
 
-    def window_based_clumping(self: SummaryStatistics, distance: int) -> StudyLocus:
-        """Perform distance-based clumping.
+    def window_based_clumping_with_locus(
+        self: SummaryStatistics,
+        distance: int,
+        gwas_signiciance: float = 5e-8,
+        baseline_significance: float = 0.05,
+    ) -> StudyLocus:
+        """Generate study-locus from summary statistics by distance based clumping + collect locus.
 
         Args:
-            distance (int): Distance in base pairs
+            self (SummaryStatistics): _description_
+            distance (int): _description_
+            gwas_signiciance (float, optional): _description_. Defaults to 5e-8.
+            baseline_significance (float, optional): _description_. Defaults to 0.05.
 
         Returns:
-            StudyLocus: StudyLocus object
+            StudyLocus: _description_
         """
         # Calculate distance-based clumping:
-        return WindowBasedClumping.clump(self, distance)
+        return WindowBasedClumping.clump_with_locus(
+            self,
+            window_length=distance,
+            p_value_significance=gwas_signiciance,
+            baseline_significance=baseline_significance,
+        )
+
+    def window_based_clumping(
+        self: SummaryStatistics, distance: int, gwas_signiciance: float = 5e-8
+    ) -> StudyLocus:
+        """Generate study-locus from summary statistics by distance based clumping + collect locus.
+
+        Args:
+            self (SummaryStatistics): _description_
+            distance (int): _description_
+            gwas_signiciance (float, optional): _description_. Defaults to 5e-8.
+
+        Returns:
+            StudyLocus: _description_
+        """
+        # Calculate distance-based clumping:
+        return WindowBasedClumping.clump(
+            self, window_length=distance, p_value_significance=gwas_signiciance
+        )
 
     def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
         """Exclude a region from the summary stats dataset.
