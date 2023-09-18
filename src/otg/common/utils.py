@@ -256,7 +256,20 @@ def split_pvalue(pvalue: float) -> tuple[float, int]:
 
     Returns:
         tuple[float, int]: Tuple with mantissa and exponent
+
+    Examples:
+        >>> split_pvalue(0.00001234)
+        (1.234, -5)
+
+        >>> split_pvalue(1)
+        (1.0, 0)
+
+        >>> split_pvalue(0.123)
+        (1.23, -1)
     """
+    if pvalue < 0.0 or pvalue > 1.0:
+        raise ValueError("P-value must be between 0 and 1")
+
     exponent = floor(log10(pvalue)) if pvalue != 0 else 0
     mantissa = round(pvalue / 10**exponent, 3)
     return (mantissa, exponent)

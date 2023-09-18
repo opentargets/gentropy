@@ -101,15 +101,17 @@ def test__finemap() -> None:
         {
             "variantId": "var1",
             "r2Overall": 0.8,
-            "tagPValue": 1e-08,
-            "tagStandardError": 0.8294246485510745,
+            "pValueExponent": -8,
+            "pValueMantissa": 1.0,
+            "standardError": 0.8294246485510745,
             "posteriorProbability": 7.068873779583866e-134,
         },
         {
             "variantId": "var2",
             "r2Overall": 1,
-            "tagPValue": 1e-10,
-            "tagStandardError": 0.9977000638225533,
+            "pValueExponent": -10,
+            "pValueMantissa": 1.0,
+            "standardError": 0.9977000638225533,
             "posteriorProbability": 1.0,
         },
     ]

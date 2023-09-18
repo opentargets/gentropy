@@ -40,12 +40,12 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
         >>> schema = StructType(
         ...     [
         ...        StructField("studyLocusId", StringType(), False),
-        ...        StructField("locus", ArrayType(StructType([StructField("tagVariantId", StringType(), False)])), False)
+        ...        StructField("locus", ArrayType(StructType([StructField("variantId", StringType(), False)])), False)
         ...    ]
         ... )
-        >>> df = spark.createDataFrame([("A", [{"tagVariantId": "varA"}]), ("B", [{"tagVariantId": "varB"}])], schema)
+        >>> df = spark.createDataFrame([("A", [{"variantId": "varA"}]), ("B", [{"variantId": "varB"}])], schema)
         >>> flatten_schema(df.schema)
-        [Field(name='studyLocusId', dataType=StringType()), Field(name='locus', dataType=ArrayType(StructType([]), True)), Field(name='locus.tagVariantId', dataType=StringType())]
+        [Field(name='studyLocusId', dataType=StringType()), Field(name='locus', dataType=ArrayType(StructType([]), True)), Field(name='locus.variantId', dataType=StringType())]
     """
     Field = namedtuple("Field", ["name", "dataType"])
     fields = []

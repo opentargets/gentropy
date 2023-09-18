@@ -174,7 +174,7 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     1,
                     "traitA",
                     "leadB",
-                    [{"tagVariantId": "tagVariantA", "posteriorProbability": 1.0}],
+                    [{"variantId": "tagVariantA", "posteriorProbability": 1.0}],
                 ),
             ],
             [
@@ -185,7 +185,7 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     "leadB",
                     [
                         {
-                            "tagVariantId": "tagVariantA",
+                            "variantId": "tagVariantA",
                             "posteriorProbability": 1.0,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
@@ -203,11 +203,11 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     "traitA",
                     "leadA",
                     [
-                        {"tagVariantId": "tagVariantA", "posteriorProbability": 0.44},
-                        {"tagVariantId": "tagVariantB", "posteriorProbability": 0.01},
-                        {"tagVariantId": "tagVariantC", "posteriorProbability": 0.04},
-                        {"tagVariantId": "tagVariantD", "posteriorProbability": 0.01},
-                        {"tagVariantId": "tagVariantE", "posteriorProbability": 0.5},
+                        {"variantId": "tagVariantA", "posteriorProbability": 0.44},
+                        {"variantId": "tagVariantB", "posteriorProbability": 0.01},
+                        {"variantId": "tagVariantC", "posteriorProbability": 0.04},
+                        {"variantId": "tagVariantD", "posteriorProbability": 0.01},
+                        {"variantId": "tagVariantE", "posteriorProbability": 0.5},
                     ],
                 )
             ],
@@ -219,19 +219,19 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     "leadA",
                     [
                         {
-                            "tagVariantId": "tagVariantE",
+                            "variantId": "tagVariantE",
                             "posteriorProbability": 0.5,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
                         },
                         {
-                            "tagVariantId": "tagVariantA",
+                            "variantId": "tagVariantA",
                             "posteriorProbability": 0.44,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
                         },
                         {
-                            "tagVariantId": "tagVariantC",
+                            "variantId": "tagVariantC",
                             "posteriorProbability": 0.04,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
@@ -298,7 +298,7 @@ def test_annotate_credible_sets(
                 ArrayType(
                     StructType(
                         [
-                            StructField("tagVariantId", StringType(), True),
+                            StructField("variantId", StringType(), True),
                             StructField("posteriorProbability", DoubleType(), True),
                             StructField("is95CredibleSet", BooleanType(), True),
                             StructField("is99CredibleSet", BooleanType(), True),

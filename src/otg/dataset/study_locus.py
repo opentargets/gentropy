@@ -135,7 +135,7 @@ class StudyLocus(Dataset):
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         # Complete information about all tags in the left study-locus of the overlap
-        stats_cols = ["logABF", "posteriorProbability", "tagPValue", "tagBeta"]
+        stats_cols = ["logABF", "posteriorProbability", "tagPValue", "beta"]
         overlapping_left = credset_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
@@ -206,7 +206,7 @@ class StudyLocus(Dataset):
             Column: Filtered credible set column.
 
         Example:
-            >>> df = spark.createDataFrame([([{"tagVariantId": "varA", "is95CredibleSet": True}, {"tagVariantId": "varB", "is95CredibleSet": False}],)], "locus: array<struct<tagVariantId: string, is95CredibleSet: boolean>>")
+            >>> df = spark.createDataFrame([([{"variantId": "varA", "is95CredibleSet": True}, {"variantId": "varB", "is95CredibleSet": False}],)], "locus: array<struct<variantId: string, is95CredibleSet: boolean>>")
             >>> df.select(StudyLocus._filter_credible_set(f.col("locus")).alias("filtered")).show(truncate=False)
             +--------------+
             |filtered      |
@@ -283,11 +283,11 @@ class StudyLocus(Dataset):
                 "studyLocusId",
                 "studyType",
                 "chromosome",
-                f.col("locus.tagVariantId").alias("tagVariantId"),
+                f.col("locus.variantId").alias("tagVariantId"),
                 f.col("locus.logABF").alias("logABF"),
                 f.col("locus.posteriorProbability").alias("posteriorProbability"),
                 f.col("locus.tagPValue").alias("tagPValue"),
-                f.col("locus.tagBeta").alias("tagBeta"),
+                f.col("locus.beta").alias("beta"),
             )
             .persist()
         )

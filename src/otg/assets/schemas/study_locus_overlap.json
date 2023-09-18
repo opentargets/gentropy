@@ -44,13 +44,13 @@
           },
           {
             "metadata": {},
-            "name": "left_tagBeta",
+            "name": "left_beta",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "right_tagBeta",
+            "name": "right_beta",
             "nullable": true,
             "type": "double"
           },

@@ -32,7 +32,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     "GCST005650_1",
                     1.0,
                     -17,
-                    [{"tagVariantId": "T1"}, {"tagVariantId": "L2"}],
+                    [{"variantId": "T1"}, {"variantId": "L2"}],
                     None,
                 ),
                 (
@@ -43,9 +43,9 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     4.0,
                     -18,
                     [
-                        {"tagVariantId": "T2"},
-                        {"tagVariantId": "T3"},
-                        {"tagVariantId": "L1"},
+                        {"variantId": "T2"},
+                        {"variantId": "T3"},
+                        {"variantId": "L1"},
                     ],
                     None,
                 ),
@@ -57,9 +57,9 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     4.0,
                     -18,
                     [
-                        {"tagVariantId": "L3"},
-                        {"tagVariantId": "T4"},
-                        {"tagVariantId": "L5"},
+                        {"variantId": "L3"},
+                        {"variantId": "T4"},
+                        {"variantId": "L5"},
                     ],
                     None,
                 ),
@@ -92,7 +92,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     "GCST005650_1",
                     1.0,
                     -17,
-                    [{"tagVariantId": "T1"}, {"tagVariantId": "L2"}],
+                    [{"variantId": "T1"}, {"variantId": "L2"}],
                     True,
                 ),
                 (
@@ -103,9 +103,9 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     4.0,
                     -18,
                     [
-                        {"tagVariantId": "T2"},
-                        {"tagVariantId": "T3"},
-                        {"tagVariantId": "L1"},
+                        {"variantId": "T2"},
+                        {"variantId": "T3"},
+                        {"variantId": "L1"},
                     ],
                     False,
                 ),
@@ -117,9 +117,9 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     4.0,
                     -18,
                     [
-                        {"tagVariantId": "L3"},
-                        {"tagVariantId": "T4"},
-                        {"tagVariantId": "L5"},
+                        {"variantId": "L3"},
+                        {"variantId": "T4"},
+                        {"variantId": "L5"},
                     ],
                     False,
                 ),
@@ -163,7 +163,7 @@ def test_is_lead_linked(
                 t.ArrayType(
                     t.StructType(
                         [
-                            t.StructField("tagVariantId", t.StringType(), True),
+                            t.StructField("variantId", t.StringType(), True),
                         ]
                     )
                 ),
