@@ -65,7 +65,7 @@
         <span class=n>variant_id</span><span class=p>:</span> <span class=n>Column</span><span class=p>,</span>
         <span class=n>p_value_exponent</span><span class=p>:</span> <span class=n>Column</span><span class=p>,</span>
         <span class=n>p_value_mantissa</span><span class=p>:</span> <span class=n>Column</span><span class=p>,</span>
-        <span class=n>credible_set</span><span class=p>:</span> <span class=n>Column</span><span class=p>,</span>
+        <span class=n>ld_set</span><span class=p>:</span> <span class=n>Column</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Column</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</span>
 
@@ -74,7 +74,7 @@
 <span class=sd>            variant_id (Column): Lead variant id</span>
 <span class=sd>            p_value_exponent (Column): p-value exponent</span>
 <span class=sd>            p_value_mantissa (Column): p-value mantissa</span>
-<span class=sd>            credible_set (Column): Credible set &lt;array of structs&gt;</span>
+<span class=sd>            locus (Column): Credible set &lt;array of structs&gt;</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            Column: Boolean in which True indicates that the lead is linked to another tag in the same dataset.</span>
@@ -82,9 +82,9 @@
         <span class=n>leads_in_study</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>collect_set</span><span class=p>(</span><span class=n>variant_id</span><span class=p>)</span><span class=o>.</span><span class=n>over</span><span class=p>(</span><span class=n>Window</span><span class=o>.</span><span class=n>partitionBy</span><span class=p>(</span><span class=n>study_id</span><span class=p>))</span>
         <span class=n>tags_in_studylocus</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>array_union</span><span class=p>(</span>
             <span class=c1># Get all tag variants from the credible set per studyLocusId</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=n>credible_set</span><span class=p>,</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>tagVariantId</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=n>ld_set</span><span class=p>,</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>tagVariantId</span><span class=p>),</span>
             <span class=c1># And append the lead variant so that the intersection is the same for all studyLocusIds in a study</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>)),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>variant_id</span><span class=p>),</span>
         <span class=p>)</span>
         <span class=n>intersect_lead_tags</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>array_sort</span><span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>array_intersect</span><span class=p>(</span><span class=n>leads_in_study</span><span class=p>,</span> <span class=n>tags_in_studylocus</span><span class=p>)</span>
