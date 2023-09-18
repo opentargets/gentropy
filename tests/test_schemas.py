@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -41,6 +42,31 @@ def test_schema(schema_json: str) -> None:
     """
     core_schema = json.loads(Path(SCHEMA_DIR, schema_json).read_text(encoding="utf-8"))
     isinstance(StructType.fromJson(core_schema), StructType)
+
+
+def is_camelcase(identifier: str) -> bool:
+    """Use a regular expression to check if the identifier is in camelCase.
+
+    CamelCase starts with a lowercase letter and has uppercase letters in between.
+    """
+    return re.match(r"^[a-z]+(?:[A-Z][a-z]*)*$", identifier) is not None
+
+
+def test_schema_columns_camelcase(schema_json: str) -> None:
+    """Test schema column names are in camelCase.
+
+    Args:
+        schema_json (str): schema filename
+    """
+    core_schema = json.loads(Path(SCHEMA_DIR, schema_json).read_text(encoding="utf-8"))
+    schema = StructType.fromJson(core_schema)
+    # Use a regular expression to check if the identifier is in camelCase
+    # CamelCase starts with a lowercase letter and has uppercase letters in between.
+
+    for field in schema.fields:
+        assert is_camelcase(
+            field.name
+        ), f"Column name '{field.name}' is not in camelCase."
 
 
 class TestValidateSchema:
