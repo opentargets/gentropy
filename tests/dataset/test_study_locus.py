@@ -294,7 +294,7 @@ def test_annotate_credible_sets(
             StructField("studyId", StringType(), True),
             StructField("variantId", StringType(), True),
             StructField(
-                "credibleSet",
+                "locus",
                 ArrayType(
                     StructType(
                         [

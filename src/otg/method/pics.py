@@ -98,7 +98,7 @@ class PICS:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
         It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
-        The function iterates over every SNP in the `ldSet` array, and it returns an updated credibleSet with
+        The function iterates over every SNP in the `ldSet` array, and it returns an updated locus with
         its association signal and causality probability as of PICS.
 
         Args:
@@ -176,9 +176,9 @@ class PICS:
         Returns:
             StudyLocus: Study locus with PICS results
         """
-        # Register UDF by defining the structure of the output credibleSet array of structs
+        # Register UDF by defining the structure of the output locus array of structs
         credset_schema = t.ArrayType(
-            [field.dataType.elementType for field in associations.schema if field.name == "credibleSet"][0]  # type: ignore
+            [field.dataType.elementType for field in associations.schema if field.name == "locus"][0]  # type: ignore
         )
         _finemap_udf = f.udf(
             lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
@@ -188,7 +188,7 @@ class PICS:
         associations.df = (
             associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
             .withColumn(
-                "credibleSet",
+                "locus",
                 f.when(
                     f.col("ldSet").isNotNull(),
                     _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),

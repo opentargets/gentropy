@@ -24,30 +24,30 @@ class TestFinemap:
     def test_finemap_empty_array(
         self: TestFinemap, mock_study_locus: StudyLocus
     ) -> None:
-        """Test finemap works when `credibleSet` is an empty array by returning an empty array."""
+        """Test finemap works when `locus` is an empty array by returning an empty array."""
         mock_study_locus.df = mock_study_locus.df.withColumn(
             "ldSet",
-            # empty array following the `credibleSet` schema
+            # empty array following the `locus` schema
             f.when(f.col("ldSet").isNull(), f.array()).otherwise(f.col("ldSet")),
         ).filter(f.size("ldSet") == 0)
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         print("TEST_FINEMAP_EMPTY_ARRAY", observed_df.show(truncate=False))
-        assert observed_df.collect()[0]["credibleSet"] == []
+        assert observed_df.collect()[0]["locus"] == []
 
     def test_finemap_null_ld_set(
         self: TestFinemap, mock_study_locus: StudyLocus
     ) -> None:
-        """Test how we apply `finemap` when `credibleSet` is null by returning a null field."""
+        """Test how we apply `finemap` when `locus` is null by returning a null field."""
         mock_study_locus.df = mock_study_locus.df.filter(f.col("ldSet").isNull())
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         print("TEST_FINEMAP_NULL", observed_df.show(truncate=False))
-        assert observed_df.collect()[0]["credibleSet"] is None
+        assert observed_df.collect()[0]["locus"] is None
 
     def test_finemap_null_r2(
         self: TestFinemap,
         spark: SparkSession,
     ) -> None:
-        """Test finemap works when `r2Overall` is null by returning the same `credibleSet` content."""
+        """Test finemap works when `r2Overall` is null by returning the same `locus` content."""
         mock_study_locus_null_r2_data: list = [
             (
                 1,

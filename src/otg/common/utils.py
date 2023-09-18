@@ -30,7 +30,7 @@ def parse_region(region: str) -> Tuple[str, int, int]:
         Tuple[str, int, int]: Chromosome, start position, end position
 
 
-    Examples
+    Examples:
         >>> parse_region('chr6:28,510,120-33,480,577')
         ('6', 28510120, 33480577)
         >>> parse_region('6:28510120-33480577')
@@ -47,13 +47,17 @@ def parse_region(region: str) -> Tuple[str, int, int]:
     region = region.replace(":", "-").replace(",", "")
     try:
         (chromosome, start_position, end_position) = region.split("-")
-    except ValueError:
-        raise ValueError("Genomic region should follow the chr##:####-#### format.")
+    except ValueError as err:
+        raise ValueError(
+            "Genomic region should follow the chr##:####-#### format."
+        ) from err
 
     try:
         return (chromosome.replace("chr", ""), int(start_position), int(end_position))
-    except ValueError:
-        raise ValueError("Start and the end position of the region has to be integer.")
+    except ValueError as err:
+        raise ValueError(
+            "Start and the end position of the region has to be integer."
+        ) from err
 
 
 def calculate_confidence_interval(

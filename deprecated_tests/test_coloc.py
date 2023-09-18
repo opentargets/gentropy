@@ -246,7 +246,7 @@ class TestExtractCredibleSets:
                 [
                     {
                         "method": "conditional",
-                        "credibleSet": [
+                        "locus": [
                             {
                                 "is95CredibleSet": True,
                                 "tagVariantId": "10_101278237_A_G",
@@ -257,7 +257,7 @@ class TestExtractCredibleSets:
                     },
                     {
                         "method": "SuSIE",
-                        "credibleSet": [
+                        "locus": [
                             {
                                 "is95CredibleSet": True,
                                 "tagVariantId": "10_101278237_A_G",
@@ -268,7 +268,7 @@ class TestExtractCredibleSets:
                     },
                     {
                         "method": "pics",
-                        "credibleSet": [
+                        "locus": [
                             {
                                 "is95CredibleSet": True,
                                 "tagVariantId": "10_101278237_A_G",
@@ -288,7 +288,7 @@ class TestExtractCredibleSets:
                 [
                     {
                         "method": "conditional",
-                        "credibleSet": [
+                        "locus": [
                             {
                                 "is95CredibleSet": False,
                                 "tagVariantId": "10_101278237_A_G",
@@ -345,13 +345,13 @@ class TestExtractCredibleSets:
                 t.StructField("variantId", t.StringType(), True),
                 t.StructField("studyId", t.StringType(), True),
                 t.StructField(
-                    "credibleSets",
+                    "locus",
                     t.ArrayType(
                         t.StructType(
                             [
                                 t.StructField("method", t.StringType(), True),
                                 t.StructField(
-                                    "credibleSet",
+                                    "locus",
                                     t.ArrayType(
                                         t.StructType(
                                             [

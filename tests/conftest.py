@@ -205,7 +205,7 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         )
         .withColumnSpec("finemappingMethod", percentNulls=0.1)
         .withColumnSpec(
-            "credibleSet",
+            "locus",
             expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logABF", rand(), "posteriorProbability", rand(), "tagVariantId", cast(rand() as string), "tagPValue", rand(), "tagPValueConditioned", rand(), "tagBeta", rand(), "tagStandardError", rand(), "tagBetaConditioned", rand(), "tagStandardErrorConditioned", rand(), "r2Overall", rand()))',
             percentNulls=0.1,
         )
