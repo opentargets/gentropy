@@ -30,8 +30,6 @@ check: ## Lint and format code
 test: ## Run tests
 	@echo "Running Tests..."
 	@poetry run pytest
-	@echo "Cleaning up local coverage files..."
-	@rm -f .coverage.*
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
