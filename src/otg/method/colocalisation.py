@@ -75,9 +75,9 @@ class ECaviar:
                         f.col("statistics.right_posteriorProbability"),
                     ),
                 )
-                .groupBy("left_studyLocusId", "right_studyLocusId", "chromosome")
+                .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
                 .agg(
-                    f.count("*").alias("coloc_n_vars"),
+                    f.count("*").alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
                 )
                 .withColumn("colocalisationMethod", f.lit("eCAVIAR"))
@@ -178,9 +178,9 @@ class Coloc:
                     f.col("statistics.left_logABF") + f.col("statistics.right_logABF"),
                 )
                 # Group by overlapping peak and generating dense vectors of log_abf:
-                .groupBy("chromosome", "left_studyLocusId", "right_studyLocusId")
+                .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId")
                 .agg(
-                    f.count("*").alias("coloc_n_vars"),
+                    f.count("*").alias("numberColocalisingVariants"),
                     fml.array_to_vector(
                         f.collect_list(f.col("statistics.left_logABF"))
                     ).alias("left_logABF"),
@@ -250,18 +250,18 @@ class Coloc:
                 .withColumn(
                     "posteriors", fml.vector_to_array(posteriors(f.col("allABF")))
                 )
-                .withColumn("coloc_h0", f.col("posteriors").getItem(0))
-                .withColumn("coloc_h1", f.col("posteriors").getItem(1))
-                .withColumn("coloc_h2", f.col("posteriors").getItem(2))
-                .withColumn("coloc_h3", f.col("posteriors").getItem(3))
-                .withColumn("coloc_h4", f.col("posteriors").getItem(4))
-                .withColumn("coloc_h4_h3", f.col("coloc_h4") / f.col("coloc_h3"))
-                .withColumn("coloc_log2_h4_h3", f.log2(f.col("coloc_h4_h3")))
+                .withColumn("h0", f.col("posteriors").getItem(0))
+                .withColumn("h1", f.col("posteriors").getItem(1))
+                .withColumn("h2", f.col("posteriors").getItem(2))
+                .withColumn("h3", f.col("posteriors").getItem(3))
+                .withColumn("h4", f.col("posteriors").getItem(4))
+                .withColumn("h4h3", f.col("h4") / f.col("h3"))
+                .withColumn("log2h4h3", f.log2(f.col("h4h3")))
                 # clean up
                 .drop(
                     "posteriors",
                     "allABF",
-                    "coloc_h4_h3",
+                    "h4h3",
                     "lH0abf",
                     "lH1abf",
                     "lH2abf",
