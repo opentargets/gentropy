@@ -278,7 +278,7 @@ class TestFindOverlapsInLocus:
             ),
         ]
         mock_sl_schema = filter_schema(
-            StudyLocus._schema,
+            StudyLocus.get_schema(),
             fields_of_interest=[
                 "studyLocusId",
                 "variantId",
