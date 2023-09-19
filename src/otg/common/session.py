@@ -21,6 +21,7 @@ class Session:
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
         hail_home: str = "unspecified",
+        extended_conf: SparkConf = None,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -29,9 +30,22 @@ class Session:
             app_name (str): spark application name
             write_mode (str): spark write mode
             hail_home (str): path to hail installation
+            extended_conf (SparkConf): extended spark configuration
         """
-        # create executors based on resources
-        default_spark_conf = (
+        merged_conf = self._create_merged_config(hail_home, extended_conf)
+
+        self.spark = (
+            SparkSession.builder.config(conf=merged_conf)
+            .master(spark_uri)
+            .appName(app_name)
+            .getOrCreate()
+        )
+        self.logger = Log4j(self.spark)
+        self.write_mode = write_mode
+
+    def _default_config(self: Session) -> SparkConf:
+        """Default spark configuration."""
+        return (
             SparkConf()
             # Dynamic allocation
             .set("spark.dynamicAllocation.enabled", "true")
@@ -41,34 +55,38 @@ class Session:
                 "spark.shuffle.service.enabled", "true"
             )  # required for dynamic allocation
         )
-        spark_config = (
-            (
-                default_spark_conf.set(
-                    "spark.jars",
-                    f"{hail_home}/backend/hail-all-spark.jar",
-                )
-                .set(
-                    "spark.driver.extraClassPath",
-                    f"{hail_home}/backend/hail-all-spark.jar",
-                )
-                .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
-                .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-                .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
-                .set("spark.sql.files.openCostInBytes", "50gb")
-                .set("spark.sql.files.maxPartitionBytes", "50gb")
-                # .set("spark.kryoserializer.buffer", "512m")
+
+    def _hail_config(self: Session, hail_home: str) -> SparkConf:
+        """Returns the Hail specific Spark configuration."""
+        if hail_home == "unspecified":
+            return SparkConf()
+        return (
+            SparkConf()
+            .set("spark.jars", f"{hail_home}/backend/hail-all-spark.jar")
+            .set(
+                "spark.driver.extraClassPath", f"{hail_home}/backend/hail-all-spark.jar"
             )
-            if hail_home != "unspecified"
-            else default_spark_conf
+            .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
+            .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+            .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
+            .set("spark.sql.files.openCostInBytes", "50gb")
+            .set("spark.sql.files.maxPartitionBytes", "50gb")
         )
-        self.spark = (
-            SparkSession.builder.config(conf=spark_config)
-            .master(spark_uri)
-            .appName(app_name)
-            .getOrCreate()
+
+    def _create_merged_config(
+        self: Session, hail_home: str, extended_conf: SparkConf
+    ) -> SparkConf:
+        """Merges the default, and optionally the Hail and extended configurations if provided."""
+        all_settings = (
+            self._default_config().getAll()
+            + self._hail_config(hail_home).getAll()
+            + (
+                extended_conf.getAll()
+                if extended_conf
+                else self._default_config().getAll()
+            )
         )
-        self.logger = Log4j(self.spark)
-        self.write_mode = write_mode
+        return SparkConf().setAll(all_settings)
 
     def read_parquet(self: Session, path: str, schema: StructType) -> DataFrame:
         """Reads parquet dataset with a provided schema.
