@@ -515,27 +515,27 @@ class StudyLocus(Dataset):
         """
         cols_to_rename = ["studyLocusId", "position", "chromosome", "locus"]
         overlapping_left = self.df.selectExpr(
-            *[f"{col} as left_{col}" for col in cols_to_rename]
+            *[f"{col} as left{col[0].upper()}{col[1:]}" for col in cols_to_rename]
         )
         overlapping_right = self.df.selectExpr(
-            *[f"{col} as right_{col}" for col in cols_to_rename]
+            *[f"{col} as right{col[0].upper()}{col[1:]}" for col in cols_to_rename]
         )
         return (
             overlapping_left.alias("left")
             .join(
                 overlapping_right.alias("right"),
-                (f.col("left.left_chromosome") == f.col("right.right_chromosome"))
+                (f.col("left.leftChromosome") == f.col("right.rightChromosome"))
                 & (
-                    f.abs(f.col("left.left_position") - f.col("right.right_position"))
+                    f.abs(f.col("left.leftPosition") - f.col("right.rightPosition"))
                     <= distance_between_leads
                 )
-                & (f.col("left.left_studyLocusId") != f.col("right.right_studyLocusId"))
+                & (f.col("left.leftStudyLocusId") != f.col("right.rightStudyLocusId"))
                 & (
-                    f.col("left.left_studyLocusId") < f.col("right.right_studyLocusId")
+                    f.col("left.leftStudyLocusId") < f.col("right.rightStudyLocusId")
                 ),  # Avoid duplicates,
             )
-            .drop("left_chromosome", "left_position", "right_position")
-            .withColumnRenamed("right_chromosome", "chromosome")
+            .drop("leftChromosome", "leftPosition", "rightPosition")
+            .withColumnRenamed("rightChromosome", "chromosome")
         )
 
 

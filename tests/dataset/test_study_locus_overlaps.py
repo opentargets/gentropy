@@ -135,7 +135,7 @@ class TestFindOverlapsInLocus:
         """Test getting loci to overlap."""
         observed_df = self.mock_sl._get_loci_to_overlap(distance_between_leads)
         observed_overlapping_studylocus = [
-            (row.left_studyLocusId, row.right_studyLocusId)
+            (row.leftStudyLocusId, row.rightStudyLocusId)
             for row in observed_df.collect()
         ]
         assert observed_overlapping_studylocus == expected_overlapping_studylocus
