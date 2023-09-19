@@ -118,9 +118,9 @@
                         <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;statistics.right_posteriorProbability&quot;</span><span class=p>),</span>
                     <span class=p>),</span>
                 <span class=p>)</span>
-                <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;left_studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;right_studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
+                <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;leftStudyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;rightStudyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
                 <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=s2>&quot;*&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;coloc_n_vars&quot;</span><span class=p>),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=s2>&quot;*&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;numberColocalisingVariants&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;clpp&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;clpp&quot;</span><span class=p>),</span>
                 <span class=p>)</span>
                 <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;colocalisationMethod&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;eCAVIAR&quot;</span><span class=p>))</span>
@@ -177,9 +177,9 @@
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;statistics.right_posteriorProbability&quot;</span><span class=p>),</span>
                 <span class=p>),</span>
             <span class=p>)</span>
-            <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;left_studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;right_studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&quot;leftStudyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;rightStudyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=s2>&quot;*&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;coloc_n_vars&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=s2>&quot;*&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;numberColocalisingVariants&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;clpp&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;clpp&quot;</span><span class=p>),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;colocalisationMethod&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;eCAVIAR&quot;</span><span class=p>))</span>

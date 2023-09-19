@@ -360,7 +360,7 @@
 <span class=sd>            credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            DataFrame: containing `left_studyLocusId`, `right_studyLocusId` and `chromosome` columns.</span>
+<span class=sd>            DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=c1># Reduce columns to the minimum to reduce the size of the dataframe</span>
         <span class=n>credset_to_overlap</span> <span class=o>=</span> <span class=n>credset_to_overlap</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
@@ -381,8 +381,8 @@
                 <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;left.studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;left_studyLocusId&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;right.studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;right_studyLocusId&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;left.studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;leftStudyLocusId&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;right.studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;rightStudyLocusId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;left.chromosome&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
@@ -414,31 +414,31 @@
         <span class=n>overlapping_left</span> <span class=o>=</span> <span class=n>loci_to_overlap</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;left_studyLocusId&quot;</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;leftStudyLocusId&quot;</span><span class=p>),</span>
             <span class=o>*</span><span class=p>[</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=n>col</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;left_</span><span class=si>{</span><span class=n>col</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span> <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>stats_cols</span><span class=p>],</span>
-        <span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>peak_overlaps</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;left_studyLocusId&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
+        <span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>peak_overlaps</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;leftStudyLocusId&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
 
         <span class=c1># Complete information about all tags in the right study-locus of the overlap</span>
         <span class=n>overlapping_right</span> <span class=o>=</span> <span class=n>loci_to_overlap</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tagVariantId&quot;</span><span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;right_studyLocusId&quot;</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;rightStudyLocusId&quot;</span><span class=p>),</span>
             <span class=o>*</span><span class=p>[</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=n>col</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;right_</span><span class=si>{</span><span class=n>col</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span> <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>stats_cols</span><span class=p>],</span>
-        <span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>peak_overlaps</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;right_studyLocusId&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
+        <span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>peak_overlaps</span><span class=p>,</span> <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;rightStudyLocusId&quot;</span><span class=p>],</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
 
         <span class=c1># Include information about all tag variants in both study-locus aligned by tag variant id</span>
         <span class=n>overlaps</span> <span class=o>=</span> <span class=n>overlapping_left</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
             <span class=n>overlapping_right</span><span class=p>,</span>
             <span class=n>on</span><span class=o>=</span><span class=p>[</span>
                 <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;right_studyLocusId&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;left_studyLocusId&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;rightStudyLocusId&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;leftStudyLocusId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;tagVariantId&quot;</span><span class=p>,</span>
             <span class=p>],</span>
             <span class=n>how</span><span class=o>=</span><span class=s2>&quot;outer&quot;</span><span class=p>,</span>
         <span class=p>)</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-            <span class=s2>&quot;left_studyLocusId&quot;</span><span class=p>,</span>
-            <span class=s2>&quot;right_studyLocusId&quot;</span><span class=p>,</span>
+            <span class=s2>&quot;leftStudyLocusId&quot;</span><span class=p>,</span>
+            <span class=s2>&quot;rightStudyLocusId&quot;</span><span class=p>,</span>
             <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
             <span class=s2>&quot;tagVariantId&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
