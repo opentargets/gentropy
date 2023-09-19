@@ -32,25 +32,37 @@
         "fields": [
           {
             "metadata": {},
-            "name": "left_tagPValue",
+            "name": "left_pValueMantissa",
+            "nullable": true,
+            "type": "float"
+          },
+          {
+            "metadata": {},
+            "name": "left_pValueExponent",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "metadata": {},
+            "name": "right_pValueMantissa",
+            "nullable": true,
+            "type": "float"
+          },
+          {
+            "metadata": {},
+            "name": "right_pValueExponent",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "metadata": {},
+            "name": "left_beta",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "right_tagPValue",
-            "nullable": true,
-            "type": "double"
-          },
-          {
-            "metadata": {},
-            "name": "left_tagBeta",
-            "nullable": true,
-            "type": "double"
-          },
-          {
-            "metadata": {},
-            "name": "right_tagBeta",
+            "name": "right_beta",
             "nullable": true,
             "type": "double"
           },

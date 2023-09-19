@@ -86,7 +86,6 @@ class TestFinemap:
         )
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         # since PICS can't be run, it returns the same content
-        print("TEST_FINEMAP_EMPTY_R2", observed_df.show(truncate=False))
         assert observed_df.collect()[0] == mock_study_locus.df.collect()[0]
 
 
@@ -101,15 +100,17 @@ def test__finemap() -> None:
         {
             "variantId": "var1",
             "r2Overall": 0.8,
-            "tagPValue": 1e-08,
-            "tagStandardError": 0.8294246485510745,
+            "pValueExponent": -8,
+            "pValueMantissa": 1.0,
+            "standardError": 0.8294246485510745,
             "posteriorProbability": 7.068873779583866e-134,
         },
         {
             "variantId": "var2",
             "r2Overall": 1,
-            "tagPValue": 1e-10,
-            "tagStandardError": 0.9977000638225533,
+            "pValueExponent": -10,
+            "pValueMantissa": 1.0,
+            "standardError": 0.9977000638225533,
             "posteriorProbability": 1.0,
         },
     ]

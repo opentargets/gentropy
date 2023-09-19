@@ -8,6 +8,8 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
+from otg.common.utils import split_pvalue
+
 if TYPE_CHECKING:
     from pyspark.sql import Row
 
@@ -138,8 +140,10 @@ class PICS:
                 posterior_probability = PICS._pics_relative_posterior_probability(
                     lead_neglog_p, pics_snp_mu, pics_snp_std
                 )
-                tag_dict["tagPValue"] = 10**-pics_snp_mu
-                tag_dict["tagStandardError"] = 10**-pics_snp_std
+                mantissa, exponent = split_pvalue(10**-pics_snp_mu)
+                tag_dict["pValueMantissa"] = mantissa
+                tag_dict["pValueExponent"] = exponent
+                tag_dict["standardError"] = 10**-pics_snp_std
                 tag_dict["relativePosteriorProbability"] = posterior_probability
 
                 tmp_credible_set.append(tag_dict)
