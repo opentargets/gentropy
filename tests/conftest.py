@@ -76,7 +76,7 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("h1", percentNulls=0.1)
         .withColumnSpec("h2", percentNulls=0.1)
         .withColumnSpec("h3", percentNulls=0.1)
-        .withColumnSpec("coloc_h4", percentNulls=0.1)
+        .withColumnSpec("h4", percentNulls=0.1)
         .withColumnSpec("coloc_log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
     )

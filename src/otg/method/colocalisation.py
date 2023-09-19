@@ -254,14 +254,14 @@ class Coloc:
                 .withColumn("h1", f.col("posteriors").getItem(1))
                 .withColumn("h2", f.col("posteriors").getItem(2))
                 .withColumn("h3", f.col("posteriors").getItem(3))
-                .withColumn("coloc_h4", f.col("posteriors").getItem(4))
-                .withColumn("coloc_h4_h3", f.col("coloc_h4") / f.col("h3"))
-                .withColumn("coloc_log2h4h3", f.log2(f.col("coloc_h4_h3")))
+                .withColumn("h4", f.col("posteriors").getItem(4))
+                .withColumn("h4h3", f.col("h4") / f.col("h3"))
+                .withColumn("log2h4h3", f.log2(f.col("h4h3")))
                 # clean up
                 .drop(
                     "posteriors",
                     "allABF",
-                    "coloc_h4_h3",
+                    "h4h3",
                     "lH0abf",
                     "lH1abf",
                     "lH2abf",
