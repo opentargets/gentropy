@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
     from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
     from otg.dataset.variant_annotation import VariantAnnotation
@@ -84,8 +83,6 @@ class StudyLocus(Dataset):
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
 
-    _schema: StructType = parse_spark_schema("study_locus.json")
-
     @staticmethod
     def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
         """Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.
@@ -126,20 +123,26 @@ class StudyLocus(Dataset):
 
     @staticmethod
     def _align_overlapping_tags(
-        credset_to_overlap: DataFrame, peak_overlaps: DataFrame
+        loci_to_overlap: DataFrame, peak_overlaps: DataFrame
     ) -> StudyLocusOverlap:
         """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
 
         Args:
-            credset_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
+            loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
             peak_overlaps (DataFrame): containing `left_studyLocusId`, `right_studyLocusId` and `chromosome` columns.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         # Complete information about all tags in the left study-locus of the overlap
-        stats_cols = ["logABF", "posteriorProbability", "tagPValue", "tagBeta"]
-        overlapping_left = credset_to_overlap.select(
+        stats_cols = [
+            "logABF",
+            "posteriorProbability",
+            "beta",
+            "pValueMantissa",
+            "pValueExponent",
+        ]
+        overlapping_left = loci_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("left_studyLocusId"),
@@ -147,7 +150,7 @@ class StudyLocus(Dataset):
         ).join(peak_overlaps, on=["chromosome", "left_studyLocusId"], how="inner")
 
         # Complete information about all tags in the right study-locus of the overlap
-        overlapping_right = credset_to_overlap.select(
+        overlapping_right = loci_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("right_studyLocusId"),
@@ -175,6 +178,7 @@ class StudyLocus(Dataset):
         )
         return StudyLocusOverlap(
             _df=overlaps,
+            _schema=StudyLocusOverlap.get_schema(),
         )
 
     @staticmethod
@@ -208,8 +212,8 @@ class StudyLocus(Dataset):
             Column: Filtered credible set column.
 
         Example:
-            >>> df = spark.createDataFrame([([{"tagVariantId": "varA", "is95CredibleSet": True}, {"tagVariantId": "varB", "is95CredibleSet": False}],)], "credibleSet: array<struct<tagVariantId: string, is95CredibleSet: boolean>>")
-            >>> df.select(StudyLocus._filter_credible_set(f.col("credibleSet")).alias("filtered")).show(truncate=False)
+            >>> df = spark.createDataFrame([([{"variantId": "varA", "is95CredibleSet": True}, {"variantId": "varB", "is95CredibleSet": False}],)], "locus: array<struct<variantId: string, is95CredibleSet: boolean>>")
+            >>> df.select(StudyLocus._filter_credible_set(f.col("locus")).alias("filtered")).show(truncate=False)
             +--------------+
             |filtered      |
             +--------------+
@@ -219,19 +223,34 @@ class StudyLocus(Dataset):
         """
         return f.filter(credible_set, lambda x: x["is95CredibleSet"])
 
-    @classmethod
-    def from_parquet(cls: type[StudyLocus], session: Session, path: str) -> StudyLocus:
-        """Initialise StudyLocus from parquet file.
+    @staticmethod
+    def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
+        """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
         Args:
-            session (Session): spark session
-            path (str): Path to parquet file
+            study_id_col (Column): column name with a study ID
+            variant_id_col (Column): column name with a variant ID
 
         Returns:
-            StudyLocus: Study-locus dataset
+            Column: column with a study locus ID
+
+        Examples:
+            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
+            +----------+----------+--------------------+
+            |   studyId| variantId|      study_locus_id|
+            +----------+----------+--------------------+
+            |GCST000001|1_1000_A_C| 7437284926964690765|
+            |GCST000002|1_1000_A_C|-7653912547667845377|
+            +----------+----------+--------------------+
+            <BLANKLINE>
         """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+        return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
+
+    @classmethod
+    def get_schema(cls: type[StudyLocus]) -> StructType:
+        """Provides the schema for the StudyLocus dataset."""
+        return parse_spark_schema("study_locus.json")
 
     def credible_set(
         self: StudyLocus,
@@ -246,8 +265,8 @@ class StudyLocus(Dataset):
             StudyLocus: Filtered study-locus dataset.
         """
         self.df = self._df.withColumn(
-            "credibleSet",
-            f.expr(f"filter(credibleSet, tag -> (tag.{credible_interval.value}))"),
+            "locus",
+            f.expr(f"filter(locus, tag -> (tag.{credible_interval.value}))"),
         )
         return self
 
@@ -263,27 +282,28 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
-        credset_to_overlap = (
+        loci_to_overlap = (
             self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
-            .withColumn("credibleSet", f.explode("credibleSet"))
+            .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
                 "studyType",
                 "chromosome",
-                f.col("credibleSet.tagVariantId").alias("tagVariantId"),
-                f.col("credibleSet.logABF").alias("logABF"),
-                f.col("credibleSet.posteriorProbability").alias("posteriorProbability"),
-                f.col("credibleSet.tagPValue").alias("tagPValue"),
-                f.col("credibleSet.tagBeta").alias("tagBeta"),
+                f.col("locus.variantId").alias("tagVariantId"),
+                f.col("locus.logABF").alias("logABF"),
+                f.col("locus.posteriorProbability").alias("posteriorProbability"),
+                f.col("locus.pValueMantissa").alias("pValueMantissa"),
+                f.col("locus.pValueExponent").alias("pValueExponent"),
+                f.col("locus.beta").alias("beta"),
             )
             .persist()
         )
 
         # overlapping study-locus
-        peak_overlaps = self._overlapping_peaks(credset_to_overlap)
+        peak_overlaps = self._overlapping_peaks(loci_to_overlap)
 
         # study-locus overlap by aligning overlapping variants
-        return self._align_overlapping_tags(credset_to_overlap, peak_overlaps)
+        return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
 
     def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.
@@ -322,7 +342,7 @@ class StudyLocus(Dataset):
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
 
-        Sorts the array in the `credibleSet` column elements by their `posteriorProbability` values in descending order and adds
+        Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds
         `is95CredibleSet` and `is99CredibleSet` fields to the elements, indicating which are the tagging variants whose cumulative sum
         of their `posteriorProbability` values is below 0.95 and 0.99, respectively.
 
@@ -332,29 +352,27 @@ class StudyLocus(Dataset):
         self.df = (
             self.df.withColumn(
                 # Sort credible set by posterior probability in descending order
-                "credibleSet",
+                "locus",
                 f.when(
-                    f.size(f.col("credibleSet")) > 0,
-                    order_array_of_structs_by_field(
-                        "credibleSet", "posteriorProbability"
-                    ),
-                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+                    f.size(f.col("locus")) > 0,
+                    order_array_of_structs_by_field("locus", "posteriorProbability"),
+                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
             )
             .withColumn(
                 # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
                 # and zip the cumulative sums array with the credible set array to add the flags
-                "credibleSet",
+                "locus",
                 f.when(
-                    f.size(f.col("credibleSet")) > 0,
+                    f.size(f.col("locus")) > 0,
                     f.zip_with(
-                        f.col("credibleSet"),
+                        f.col("locus"),
                         f.transform(
-                            f.sequence(f.lit(1), f.size(f.col("credibleSet"))),
+                            f.sequence(f.lit(1), f.size(f.col("locus"))),
                             lambda index: f.aggregate(
                                 f.slice(
                                     # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
                                     # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                                    f.col("credibleSet.posteriorProbability"),
+                                    f.col("locus.posteriorProbability"),
                                     1,
                                     index - 1,
                                 ),
@@ -366,11 +384,9 @@ class StudyLocus(Dataset):
                             CredibleInterval.IS95.value, acc < 0.95
                         ).withField(CredibleInterval.IS99.value, acc < 0.99),
                     ),
-                ).when(f.size(f.col("credibleSet")) == 0, f.col("credibleSet")),
+                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
             )
-            .withColumn(
-                "credibleSet", StudyLocus._filter_credible_set(f.col("credibleSet"))
-            )
+            .withColumn("locus", StudyLocus._filter_credible_set(f.col("locus")))
         )
         return self
 
@@ -1492,19 +1508,20 @@ class StudyLocusGWASCatalog(StudyLocus):
                 ).alias("subStudyDescription"),
                 # Quality controls (array of strings)
                 "qualityControls",
-            )
+            ),
+            _schema=cls.get_schema(),
         )
 
     def update_study_id(
         self: StudyLocusGWASCatalog, study_annotation: DataFrame
     ) -> StudyLocusGWASCatalog:
-        """Update studyId with a dataframe containing study.
+        """Update final studyId and studyLocusId with a dataframe containing study annotation.
 
         Args:
             study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus.
+            StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.
         """
         self.df = (
             self._df.join(
@@ -1512,6 +1529,9 @@ class StudyLocusGWASCatalog(StudyLocus):
             )
             .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
             .drop("subStudyDescription", "updatedStudyId")
+        ).withColumn(
+            "studyLocusId",
+            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
         )
         return self
 

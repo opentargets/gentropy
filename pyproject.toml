@@ -51,6 +51,7 @@ pytest-sugar = "^0.9.5"
 dbldatagen = "^0.3.1"
 pyparsing = "^3.0.9"
 pytest = "^7.2.2"
+pytest-xdist = "^3.3.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -83,7 +84,7 @@ color = true
 exclude = ["dist"]
 
 [tool.pytest.ini_options]
-addopts = "--ignore=deprecated_tests"
+addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
 
 [[tool.mypy.overrides]]
 module = "google.protobuf.duration_pb2"

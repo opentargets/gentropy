@@ -10,7 +10,7 @@ from src.utils.spark import get_spark_testing_conf
 
 
 @pytest.fixture(scope="session", autouse=True)
-def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
+def spark(doctest_namespace: dict[str, Any], tmp_path_factory: Any) -> SparkSession:
     """Local spark session for testing purposes.
 
     It returns a session and make it available to doctests through

@@ -21,8 +21,6 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
-
 
 @dataclass
 class StudyIndex(Dataset):
@@ -31,21 +29,10 @@ class StudyIndex(Dataset):
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
 
-    _schema: StructType = parse_spark_schema("studies.json")
-
     @classmethod
-    def from_parquet(cls: type[StudyIndex], session: Session, path: str) -> StudyIndex:
-        """Initialise StudyIndex from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            StudyIndex: Study index dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
+    def get_schema(cls: type[StudyIndex]) -> StructType:
+        """Provides the schema for the StudyIndex dataset."""
+        return parse_spark_schema("studies.json")
 
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.
@@ -93,6 +80,17 @@ class StudyIndexGWASCatalog(StudyIndex):
         return f.transform(gwas_catalog_ancestry, lambda x: map_expr[x])
 
     @classmethod
+    def get_schema(cls: type[StudyIndexGWASCatalog]) -> StructType:
+        """Provides the schema for the StudyIndexGWASCatalog dataset.
+
+        This method is a duplication from the parent class, but by definition, the use of abstract methods require that every child class implements them.
+
+        Returns:
+            StructType: Spark schema for the StudyIndexGWASCatalog dataset.
+        """
+        return parse_spark_schema("studies.json")
+
+    @classmethod
     def _parse_study_table(
         cls: type[StudyIndexGWASCatalog], catalog_studies: DataFrame
     ) -> StudyIndexGWASCatalog:
@@ -124,7 +122,8 @@ class StudyIndexGWASCatalog(StudyIndex):
                 parse_efos(f.col("MAPPED BACKGROUND TRAIT URI")).alias(
                     "backgroundTraitFromSourceMappedIds"
                 ),
-            )
+            ),
+            _schema=cls.get_schema(),
         )
 
     @classmethod
@@ -445,6 +444,17 @@ class StudyIndexFinnGen(StudyIndex):
     """
 
     @classmethod
+    def get_schema(cls: type[StudyIndexFinnGen]) -> StructType:
+        """Provides the schema for the StudyIndexFinnGen dataset.
+
+        This method is a duplication from the parent class, but by definition, the use of abstract methods require that every child class implements them.
+
+        Returns:
+            StructType: Spark schema for the StudyIndexFinnGen dataset.
+        """
+        return parse_spark_schema("studies.json")
+
+    @classmethod
     def from_source(
         cls: type[StudyIndexFinnGen],
         finngen_studies: DataFrame,
@@ -464,34 +474,30 @@ class StudyIndexFinnGen(StudyIndex):
             StudyIndexFinnGen: Parsed and annotated FinnGen study table.
         """
         return cls(
-            _df=(
-                # Read FinnGen raw data.
-                finngen_studies.select(
-                    # Select the desired columns.
-                    f.concat(
-                        f.lit(finngen_release_prefix + "_"), f.col("phenocode")
-                    ).alias("studyId"),
-                    f.col("phenostring").alias("traitFromSource"),
-                    f.col("num_cases").alias("nCases"),
-                    f.col("num_controls").alias("nControls"),
-                    # Set constant value columns.
-                    f.lit(finngen_release_prefix).alias("projectId"),
-                    f.lit("gwas").alias("studyType"),
-                    f.lit(True).alias("hasSumstats"),
-                    f.lit("377,277 (210,870 females and 166,407 males)").alias(
-                        "initialSampleSize"
-                    ),
-                )
-                .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
-                .withColumn(
-                    "summarystatsLocation",
-                    f.concat(
-                        f.lit(finngen_sumstat_url_prefix),
-                        f.col("studyId"),
-                        f.lit(finngen_sumstat_url_suffix),
-                    ),
-                )
+            _df=finngen_studies.select(
+                f.concat(f.lit(f"{finngen_release_prefix}_"), f.col("phenocode")).alias(
+                    "studyId"
+                ),
+                f.col("phenostring").alias("traitFromSource"),
+                f.col("num_cases").alias("nCases"),
+                f.col("num_controls").alias("nControls"),
+                f.lit(finngen_release_prefix).alias("projectId"),
+                f.lit("gwas").alias("studyType"),
+                f.lit(True).alias("hasSumstats"),
+                f.lit("377,277 (210,870 females and 166,407 males)").alias(
+                    "initialSampleSize"
+                ),
             )
+            .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
+            .withColumn(
+                "summarystatsLocation",
+                f.concat(
+                    f.lit(finngen_sumstat_url_prefix),
+                    f.col("studyId"),
+                    f.lit(finngen_sumstat_url_suffix),
+                ),
+            ),
+            _schema=cls.get_schema(),
         )
 
 
@@ -516,6 +522,17 @@ class StudyIndexUKBiobank(StudyIndex):
 
     Some fields are populated as constants, such as projectID, studyType, and initial sample size.
     """
+
+    @classmethod
+    def get_schema(cls: type[StudyIndexUKBiobank]) -> StructType:
+        """Provides the schema for the StudyIndexFinnGen dataset.
+
+        This method is a duplication from the parent class, but by definition, the use of abstract methods require that every child class implements them.
+
+        Returns:
+            StructType: Spark schema for the StudyIndexUKBiobank dataset.
+        """
+        return parse_spark_schema("studies.json")
 
     @classmethod
     def from_source(
@@ -585,5 +602,6 @@ class StudyIndexUKBiobank(StudyIndex):
                         ),
                     ).otherwise(f.col("traitFromSource")),
                 )
-            )
+            ),
+            _schema=cls.get_schema(),
         )

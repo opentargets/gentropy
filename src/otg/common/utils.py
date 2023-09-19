@@ -256,7 +256,20 @@ def split_pvalue(pvalue: float) -> tuple[float, int]:
 
     Returns:
         tuple[float, int]: Tuple with mantissa and exponent
+
+    Examples:
+        >>> split_pvalue(0.00001234)
+        (1.234, -5)
+
+        >>> split_pvalue(1)
+        (1.0, 0)
+
+        >>> split_pvalue(0.123)
+        (1.23, -1)
     """
+    if pvalue < 0.0 or pvalue > 1.0:
+        raise ValueError("P-value must be between 0 and 1")
+
     exponent = floor(log10(pvalue)) if pvalue != 0 else 0
     mantissa = round(pvalue / 10**exponent, 3)
     return (mantissa, exponent)
@@ -287,28 +300,3 @@ def parse_efos(efo_uri: Column) -> Column:
     """
     colname = efo_uri._jc.toString()  # type: ignore
     return f.array_sort(f.expr(f"regexp_extract_all(`{colname}`, '([A-Z]+_[0-9]+)')"))
-
-
-def get_study_locus_id(study_id_col_name: str, variant_id_col_name: str) -> Column:
-    """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
-
-    Args:
-        study_id_col_name (str): column name with a study ID
-        variant_id_col_name (str): column name with a variant ID
-
-    Returns:
-        Column: column with a study locus ID
-
-    Examples:
-        >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-        >>> df.withColumn("study_locus_id", get_study_locus_id(*["variantId", "studyId"])).show()
-        +----------+----------+--------------------+
-        |   studyId| variantId|      study_locus_id|
-        +----------+----------+--------------------+
-        |GCST000001|1_1000_A_C| 7437284926964690765|
-        |GCST000002|1_1000_A_C|-7653912547667845377|
-        +----------+----------+--------------------+
-        <BLANKLINE>
-
-    """
-    return f.xxhash64(*[study_id_col_name, variant_id_col_name]).alias("studyLocusId")
