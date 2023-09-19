@@ -57,7 +57,7 @@ def test_study_locus_overlap_from_associations(
             ],
             # expected - output DataFrame with overlapping signals
             [
-                {"left_studyLocusId": 1, "right_studyLocusId": 2, "chromosome": "1"},
+                {"leftStudyLocusId": 1, "rightStudyLocusId": 2, "chromosome": "1"},
             ],
         ),
     ],
@@ -74,8 +74,8 @@ def test_overlapping_peaks(spark: SparkSession, observed: list, expected: list) 
     )
     expected_schema = t.StructType(
         [
-            t.StructField("left_studyLocusId", t.LongType()),
-            t.StructField("right_studyLocusId", t.LongType()),
+            t.StructField("leftStudyLocusId", t.LongType()),
+            t.StructField("rightStudyLocusId", t.LongType()),
             t.StructField("chromosome", t.StringType()),
         ]
     )
