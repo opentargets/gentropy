@@ -1,15 +1,12 @@
 """Test configuration within src dir (doctests)."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pytest
+from pyspark.sql import SparkSession
 
-from otg.common.session import Session
 from src.utils.spark import get_spark_testing_conf
-
-if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -25,9 +22,11 @@ def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
     Returns:
         SparkSession: local spark session
     """
-    spark = Session(
-        spark_uri="local[1]", app_name="test", extended_conf=get_spark_testing_conf()
-    ).spark
-
+    spark = (
+        SparkSession.builder.config(conf=get_spark_testing_conf())
+        .master("local[1]")
+        .appName("test")
+        .getOrCreate()
+    )
     doctest_namespace["spark"] = spark
     return spark
