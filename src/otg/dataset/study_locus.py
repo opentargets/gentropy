@@ -91,7 +91,7 @@ class StudyLocus(Dataset):
             credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
 
         Returns:
-            DataFrame: containing `left_studyLocusId`, `right_studyLocusId` and `chromosome` columns.
+            DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
         """
         # Reduce columns to the minimum to reduce the size of the dataframe
         credset_to_overlap = credset_to_overlap.select(
@@ -112,8 +112,8 @@ class StudyLocus(Dataset):
                 how="inner",
             )
             .select(
-                f.col("left.studyLocusId").alias("left_studyLocusId"),
-                f.col("right.studyLocusId").alias("right_studyLocusId"),
+                f.col("left.studyLocusId").alias("leftStudyLocusId"),
+                f.col("right.studyLocusId").alias("rightStudyLocusId"),
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
@@ -145,31 +145,31 @@ class StudyLocus(Dataset):
         overlapping_left = loci_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
-            f.col("studyLocusId").alias("left_studyLocusId"),
+            f.col("studyLocusId").alias("leftStudyLocusId"),
             *[f.col(col).alias(f"left_{col}") for col in stats_cols],
-        ).join(peak_overlaps, on=["chromosome", "left_studyLocusId"], how="inner")
+        ).join(peak_overlaps, on=["chromosome", "leftStudyLocusId"], how="inner")
 
         # Complete information about all tags in the right study-locus of the overlap
         overlapping_right = loci_to_overlap.select(
             f.col("chromosome"),
             f.col("tagVariantId"),
-            f.col("studyLocusId").alias("right_studyLocusId"),
+            f.col("studyLocusId").alias("rightStudyLocusId"),
             *[f.col(col).alias(f"right_{col}") for col in stats_cols],
-        ).join(peak_overlaps, on=["chromosome", "right_studyLocusId"], how="inner")
+        ).join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
 
         # Include information about all tag variants in both study-locus aligned by tag variant id
         overlaps = overlapping_left.join(
             overlapping_right,
             on=[
                 "chromosome",
-                "right_studyLocusId",
-                "left_studyLocusId",
+                "rightStudyLocusId",
+                "leftStudyLocusId",
                 "tagVariantId",
             ],
             how="outer",
         ).select(
-            "left_studyLocusId",
-            "right_studyLocusId",
+            "leftStudyLocusId",
+            "rightStudyLocusId",
             "chromosome",
             f.col("tagVariantId").alias("commonVariantId"),
             f.struct(
