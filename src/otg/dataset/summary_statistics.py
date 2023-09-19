@@ -126,44 +126,42 @@ class SummaryStatistics(Dataset):
     def window_based_clumping_with_locus(
         self: SummaryStatistics,
         distance: int,
-        gwas_signiciance: float = 5e-8,
+        gwas_significance: float = 5e-8,
         baseline_significance: float = 0.05,
     ) -> StudyLocus:
         """Generate study-locus from summary statistics by distance based clumping + collect locus.
 
         Args:
-            self (SummaryStatistics): _description_
-            distance (int): _description_
-            gwas_signiciance (float, optional): _description_. Defaults to 5e-8.
-            baseline_significance (float, optional): _description_. Defaults to 0.05.
+            distance (int): Distance in base pairs to be used for clumping.
+            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
+            baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.
 
         Returns:
-            StudyLocus: _description_
+            StudyLocus: Clumped study-locus containing variants based on window.
         """
         # Calculate distance-based clumping:
         return WindowBasedClumping.clump_with_locus(
             self,
             window_length=distance,
-            p_value_significance=gwas_signiciance,
+            p_value_significance=gwas_significance,
             p_value_baseline=baseline_significance,
         )
 
     def window_based_clumping(
-        self: SummaryStatistics, distance: int, gwas_signiciance: float = 5e-8
+        self: SummaryStatistics, distance: int, gwas_significance: float = 5e-8
     ) -> StudyLocus:
-        """Generate study-locus from summary statistics by distance based clumping + collect locus.
+        """Generate study-locus from summary statistics by distance based clumping.
 
         Args:
-            self (SummaryStatistics): _description_
-            distance (int): _description_
-            gwas_signiciance (float, optional): _description_. Defaults to 5e-8.
+            distance (int): Distance in base pairs to be used for clumping.
+            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
 
         Returns:
-            StudyLocus: _description_
+            StudyLocus: Clumped study-locus containing variants based on window.
         """
         # Calculate distance-based clumping:
         return WindowBasedClumping.clump(
-            self, window_length=distance, p_value_significance=gwas_signiciance
+            self, window_length=distance, p_value_significance=gwas_significance
         )
 
     def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
