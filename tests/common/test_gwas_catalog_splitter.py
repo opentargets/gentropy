@@ -10,7 +10,7 @@ def test_gwas_catalog_splitter_split(
     mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
     mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
-    """Test v2g creation with mock data."""
+    """Test StudyIndexGWASCatalog, StudyLocusGWASCatalog creation with mock data."""
     d1, d2 = GWASCatalogSplitter.split(
         mock_study_index_gwas_catalog, mock_study_locus_gwas_catalog
     )

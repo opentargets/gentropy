@@ -8,6 +8,8 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
+from otg.common.utils import split_pvalue
+
 if TYPE_CHECKING:
     from pyspark.sql import Row
 
@@ -94,32 +96,30 @@ class PICS:
         return neglog_p * r2 if r2 >= 0.5 else None
 
     @staticmethod
-    def _finemap(
-        credible_set: list[Row], lead_neglog_p: float, k: float
-    ) -> list | None:
+    def _finemap(ld_set: list[Row], lead_neglog_p: float, k: float) -> list | None:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
         It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
-        The function iterates over every SNP in the `credibleSet` array, and it returns an updated credibleSet with
+        The function iterates over every SNP in the `ldSet` array, and it returns an updated locus with
         its association signal and causality probability as of PICS.
 
         Args:
-            credible_set (list): list of tagging variants after expanding the locus
+            ld_set (list): list of tagging variants after expanding the locus
             lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
             List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
         """
-        if credible_set is None:
+        if ld_set is None:
             return None
-        elif not credible_set:
+        elif not ld_set:
             return []
 
         tmp_credible_set = []
         new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
-        for tag_struct in credible_set:
+        for tag_struct in ld_set:
             tag_dict = (
                 tag_struct.asDict()
             )  # tag_struct is of type pyspark.Row, we'll represent it as a dict
@@ -140,8 +140,10 @@ class PICS:
                 posterior_probability = PICS._pics_relative_posterior_probability(
                     lead_neglog_p, pics_snp_mu, pics_snp_std
                 )
-                tag_dict["tagPValue"] = 10**-pics_snp_mu
-                tag_dict["tagStandardError"] = 10**-pics_snp_std
+                mantissa, exponent = split_pvalue(10**-pics_snp_mu)
+                tag_dict["pValueMantissa"] = mantissa
+                tag_dict["pValueExponent"] = exponent
+                tag_dict["standardError"] = 10**-pics_snp_std
                 tag_dict["relativePosteriorProbability"] = posterior_probability
 
                 tmp_credible_set.append(tag_dict)
@@ -178,9 +180,9 @@ class PICS:
         Returns:
             StudyLocus: Study locus with PICS results
         """
-        # Register UDF by defining the structure of the output credibleSet array of structs
+        # Register UDF by defining the structure of the output locus array of structs
         credset_schema = t.ArrayType(
-            [field.dataType.elementType for field in associations.schema if field.name == "credibleSet"][0]  # type: ignore
+            [field.dataType.elementType for field in associations.schema if field.name == "locus"][0]  # type: ignore
         )
         _finemap_udf = f.udf(
             lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
@@ -190,10 +192,10 @@ class PICS:
         associations.df = (
             associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
             .withColumn(
-                "credibleSet",
+                "locus",
                 f.when(
-                    f.col("credibleSet").isNotNull(),
-                    _finemap_udf(f.col("credibleSet"), f.col("neglog_pvalue")),
+                    f.col("ldSet").isNotNull(),
+                    _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
                 ),
             )
             .drop("neglog_pvalue")

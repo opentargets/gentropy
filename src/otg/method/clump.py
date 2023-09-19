@@ -23,7 +23,7 @@ class LDclumping:
         variant_id: Column,
         p_value_exponent: Column,
         p_value_mantissa: Column,
-        credible_set: Column,
+        ld_set: Column,
     ) -> Column:
         """Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.
 
@@ -32,7 +32,7 @@ class LDclumping:
             variant_id (Column): Lead variant id
             p_value_exponent (Column): p-value exponent
             p_value_mantissa (Column): p-value mantissa
-            credible_set (Column): Credible set <array of structs>
+            locus (Column): Credible set <array of structs>
 
         Returns:
             Column: Boolean in which True indicates that the lead is linked to another tag in the same dataset.
@@ -40,9 +40,9 @@ class LDclumping:
         leads_in_study = f.collect_set(variant_id).over(Window.partitionBy(study_id))
         tags_in_studylocus = f.array_union(
             # Get all tag variants from the credible set per studyLocusId
-            f.transform(credible_set, lambda x: x.tagVariantId),
+            f.transform(ld_set, lambda x: x.tagVariantId),
             # And append the lead variant so that the intersection is the same for all studyLocusIds in a study
-            f.array(f.col("variantId")),
+            f.array(variant_id),
         )
         intersect_lead_tags = f.array_sort(
             f.array_intersect(leads_in_study, tags_in_studylocus)
@@ -70,6 +70,6 @@ class LDclumping:
             associations (StudyLocus): StudyLocus dataset
 
         Returns:
-            StudyLocus: including flag and removing credibleSet information for LD clumped loci.
+            StudyLocus: including flag and removing locus information for LD clumped loci.
         """
         return associations.clump()

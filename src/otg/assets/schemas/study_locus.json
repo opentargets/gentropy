@@ -152,7 +152,33 @@
     },
     {
       "metadata": {},
-      "name": "credibleSet",
+      "name": "ldSet",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "tagVariantId",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "r2Overall",
+              "nullable": true,
+              "type": "double"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "locus",
       "nullable": true,
       "type": {
         "containsNull": true,
@@ -184,43 +210,55 @@
             },
             {
               "metadata": {},
-              "name": "tagVariantId",
+              "name": "variantId",
               "nullable": true,
               "type": "string"
             },
             {
               "metadata": {},
-              "name": "tagPValue",
+              "name": "pValueMantissa",
+              "nullable": true,
+              "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "pValueExponent",
+              "nullable": true,
+              "type": "integer"
+            },
+            {
+              "metadata": {},
+              "name": "pValueMantissaConditioned",
+              "nullable": true,
+              "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "pValueExponentConditioned",
+              "nullable": true,
+              "type": "integer"
+            },
+            {
+              "metadata": {},
+              "name": "beta",
               "nullable": true,
               "type": "double"
             },
             {
               "metadata": {},
-              "name": "tagPValueConditioned",
+              "name": "standardError",
               "nullable": true,
               "type": "double"
             },
             {
               "metadata": {},
-              "name": "tagBeta",
+              "name": "betaConditioned",
               "nullable": true,
               "type": "double"
             },
             {
               "metadata": {},
-              "name": "tagStandardError",
-              "nullable": true,
-              "type": "double"
-            },
-            {
-              "metadata": {},
-              "name": "tagBetaConditioned",
-              "nullable": true,
-              "type": "double"
-            },
-            {
-              "metadata": {},
-              "name": "tagStandardErrorConditioned",
+              "name": "standardErrorConditioned",
               "nullable": true,
               "type": "double"
             },

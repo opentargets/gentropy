@@ -49,6 +49,8 @@ function main() {
     gsutil cp ${PACKAGE} .
     PACKAGENAME=$(basename ${PACKAGE})
 
+    echo "Uninstalling previous version if it exists"
+    pip uninstall -y otgenetics
     echo "Install package..."
     run_with_retry pip install --upgrade ${PACKAGENAME}
 

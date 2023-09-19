@@ -8,6 +8,7 @@ import hail as hl
 from otg.common.gwas_catalog_splitter import GWASCatalogSplitter
 from otg.common.session import Session
 from otg.config import GWASCatalogStepConfig
+from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocusGWASCatalog
 from otg.dataset.variant_annotation import VariantAnnotation
@@ -42,6 +43,8 @@ class GWASCatalogStep(GWASCatalogStepConfig):
         catalog_associations = self.session.spark.read.csv(
             self.catalog_associations_file, sep="\t", header=True
         )
+        # LD index dataset
+        ld_index = LDIndex.from_parquet(self.session, self.ld_index_path)
 
         # Transform:
         # GWAS Catalog study index and study-locus splitted
@@ -52,20 +55,11 @@ class GWASCatalogStep(GWASCatalogStepConfig):
             StudyLocusGWASCatalog.from_source(catalog_associations, va),
         )
 
-        # Annotate LD information
-        study_locus = study_locus.annotate_ld(
-            self.session,
-            study_index,
-            self.ld_populations,
-            self.ld_index_template,
-            self.ld_matrix_template,
-            self.min_r2,
-        )
+        # Annotate LD information and clump associations dataset
+        study_locus = study_locus.annotate_ld(study_index, ld_index).clump()
 
         # Fine-mapping LD-clumped study-locus using PICS
-        finemapped_study_locus = (
-            PICS.finemap(study_locus).annotate_credible_sets().clump()
-        )
+        finemapped_study_locus = PICS.finemap(study_locus).annotate_credible_sets()
 
         # Write:
         study_index.df.write.mode(self.session.write_mode).parquet(
