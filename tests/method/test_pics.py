@@ -86,7 +86,6 @@ class TestFinemap:
         )
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         # since PICS can't be run, it returns the same content
-        print("TEST_FINEMAP_EMPTY_R2", observed_df.show(truncate=False))
         assert observed_df.collect()[0] == mock_study_locus.df.collect()[0]
 
 
