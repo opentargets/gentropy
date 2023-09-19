@@ -47,9 +47,9 @@ def test_schema(schema_json: str) -> None:
 def is_camelcase(identifier: str) -> bool:
     """Use a regular expression to check if the identifier is in camelCase.
 
-    CamelCase starts with a lowercase letter and has uppercase letters in between.
+    CamelCase starts with a lowercase letter and has uppercase letters in between. A lowercase letter can also be followed by a number.
     """
-    return re.match(r"^[a-z]+(?:[A-Z][a-z]*)*$", identifier) is not None
+    return re.match(r"^[a-z]+(?:[A-Z0-9][a-z0-9]*)*$", identifier) is not None
 
 
 def test_schema_columns_camelcase(schema_json: str) -> None:
