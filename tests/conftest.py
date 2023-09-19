@@ -225,7 +225,7 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocus(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog.get_schema(),
+        _schema=StudyLocus.get_schema(),
     )
 
 

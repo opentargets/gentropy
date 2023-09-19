@@ -336,46 +336,46 @@ class StudyLocus(Dataset):
             distance_from_lead
         )._get_loci_to_overlap(distance_between_leads)
 
-        # Find common variants in the "left_locus" and "right_locus" arrays
+        # Find common variants in the "leftLocus" and "rightLocus" arrays
         overlaps = (
             loci_to_overlap.withColumn(
                 "common_variants_in_locus",
                 f.array_intersect(
-                    f.col("left_locus.variantId"), f.col("right_locus.variantId")
+                    f.col("leftLocus.variantId"), f.col("rightLocus.variantId")
                 ),
             )
             # Filter pairs without any common variants
             .filter(f.size(f.col("common_variants_in_locus")) > 0)
             # Filter each locus to only contain info about the common variants
             .withColumn(
-                "left_locus",
+                "leftLocus",
                 f.filter(
-                    f.col("left_locus"),
+                    f.col("leftLocus"),
                     lambda x: f.array_contains(
                         f.col("common_variants_in_locus"), x["variantId"]
                     ),
                 ),
             )
             .withColumn(
-                "right_locus",
+                "rightLocus",
                 f.filter(
-                    f.col("right_locus"),
+                    f.col("rightLocus"),
                     lambda x: f.array_contains(
                         f.col("common_variants_in_locus"), x["variantId"]
                     ),
                 ),
             )
             .withColumn(
-                "left_locus", order_array_of_structs_by_field("left_locus", "variantId")
+                "leftLocus", order_array_of_structs_by_field("leftLocus", "variantId")
             )
             .withColumn(
-                "right_locus",
-                order_array_of_structs_by_field("right_locus", "variantId"),
+                "rightLocus",
+                order_array_of_structs_by_field("rightLocus", "variantId"),
             )
             .drop("common_variants_in_locus")
         )
 
-        return StudyLocusOverlap(_df=overlaps)
+        return StudyLocusOverlap(_df=overlaps, _schema=StudyLocusOverlap.get_schema())
 
     def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
         """All unique lead and tag variants contained in the `StudyLocus` dataframe.

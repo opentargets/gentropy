@@ -20,7 +20,7 @@
     },
     {
       "metadata": {},
-      "name": "left_locus",
+      "name": "leftLocus",
       "nullable": true,
       "type": {
         "containsNull": true,
@@ -58,7 +58,7 @@
     },
     {
       "metadata": {},
-      "name": "right_locus",
+      "name": "rightLocus",
       "nullable": true,
       "type": {
         "containsNull": true,

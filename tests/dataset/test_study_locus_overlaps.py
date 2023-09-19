@@ -157,8 +157,8 @@ class TestFindOverlapsInLocus:
         observed_df = self.mock_sl.find_overlaps_in_locus(
             distance_between_leads, distance_from_lead
         ).df.select(
-            f.col("left_locus.variantId").alias("left_variants"),
-            f.col("right_locus.variantId").alias("right_variants"),
+            f.col("leftLocus.variantId").alias("left_variants"),
+            f.col("rightLocus.variantId").alias("right_variants"),
         )
         # Assert that the left and right variants are the same
         assert (
@@ -289,5 +289,6 @@ class TestFindOverlapsInLocus:
             ],
         )
         self.mock_sl = StudyLocus(
-            _df=spark.createDataFrame(mock_sl_data, mock_sl_schema)
+            _df=spark.createDataFrame(mock_sl_data, mock_sl_schema),
+            _schema=StudyLocus.get_schema(),
         )
