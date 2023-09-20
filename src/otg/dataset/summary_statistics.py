@@ -123,10 +123,11 @@ class SummaryStatistics(Dataset):
         )
         return SummaryStatistics(_df=df, _schema=self._schema)
 
-    def window_based_clumping_with_locus(
+    def window_based_clumping(
         self: SummaryStatistics,
         distance: int,
         gwas_significance: float = 5e-8,
+        with_locus: bool = False,
         baseline_significance: float = 0.05,
     ) -> StudyLocus:
         """Generate study-locus from summary statistics by distance based clumping + collect locus.
@@ -139,30 +140,20 @@ class SummaryStatistics(Dataset):
         Returns:
             StudyLocus: Clumped study-locus containing variants based on window.
         """
-        # Calculate distance-based clumping:
-        return WindowBasedClumping.clump_with_locus(
-            self,
-            window_length=distance,
-            p_value_significance=gwas_significance,
-            p_value_baseline=baseline_significance,
-        )
+        # Based on if we want to get the locus different clumping function is called:
+        if with_locus:
+            clumped_df = WindowBasedClumping.clump_with_locus(
+                self,
+                window_length=distance,
+                p_value_significance=gwas_significance,
+                p_value_baseline=baseline_significance,
+            )
+        else:
+            clumped_df = WindowBasedClumping.clump(
+                self, window_length=distance, p_value_significance=gwas_significance
+            )
 
-    def window_based_clumping(
-        self: SummaryStatistics, distance: int, gwas_significance: float = 5e-8
-    ) -> StudyLocus:
-        """Generate study-locus from summary statistics by distance based clumping.
-
-        Args:
-            distance (int): Distance in base pairs to be used for clumping.
-            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
-
-        Returns:
-            StudyLocus: Clumped study-locus containing variants based on window.
-        """
-        # Calculate distance-based clumping:
-        return WindowBasedClumping.clump(
-            self, window_length=distance, p_value_significance=gwas_significance
-        )
+        return clumped_df
 
     def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
         """Exclude a region from the summary stats dataset.
