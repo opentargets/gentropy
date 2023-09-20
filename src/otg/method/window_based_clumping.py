@@ -284,14 +284,13 @@ class WindowBasedClumping:
         """Clump significant associations while collecting locus around them.
 
         Args:
-            cls (type[WindowBasedClumping]): _description_
             summary_stats (SummaryStatistics): Input summary statistics dataset
             window_length (int): Window size in  bp, used for distance based clumping and collecting locus
             p_value_significance (float, optional): GWAS significance threshold used to filter peaks. Defaults to 5e-8.
             p_value_baseline (float, optional): Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.
 
         Returns:
-            StudyLocus: _description_
+            StudyLocus: StudyLocus after clumping with information about the `locus`
         """
         # Exclude problematic regions from clumping:
         filtered_summary_stats = reduce(
@@ -313,14 +312,15 @@ class WindowBasedClumping:
         # Dropping variants not meeting the baseline criteria:
         sumstats_baseline = filtered_summary_stats.pvalue_filter(p_value_baseline).df
 
-        sumstats_baseline_renamed = (
+        sumstats_baseline_renamed = sumstats_baseline.selectExpr(*[f"{col} as tag_{col}" for col in sumstats_baseline.columns])
+
             # Renaming columns
             reduce(
                 lambda df, column: df.withColumnRenamed(column, f"tag_{column}"),
                 columns,
                 sumstats_baseline,
             )
-            # Drop associatinos above the baseline:
+            # Drop associations above the baseline:
             .alias("sumstat")
         )
 
