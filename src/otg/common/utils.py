@@ -39,7 +39,7 @@ def parse_region(region: str) -> Tuple[str, int, int]:
         >>> parse_region('6:28510120')
         Traceback (most recent call last):
             ...
-        ValueError: Genomic region should follow the chr##:####-#### format.
+        ValueError: Genomic region should follow the chr##:####-#### or ##:####-#### format.
         >>> parse_region('6:28510120-foo')
         Traceback (most recent call last):
             ...
@@ -50,7 +50,7 @@ def parse_region(region: str) -> Tuple[str, int, int]:
         (chromosome, start_position, end_position) = region.split("-")
     except ValueError as err:
         raise ValueError(
-            "Genomic region should follow the chr##:####-#### format."
+            "Genomic region should follow the chr##:####-#### or ##:####-#### format."
         ) from err
 
     try:

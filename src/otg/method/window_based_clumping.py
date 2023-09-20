@@ -114,7 +114,6 @@ class WindowBasedClumping:
         ).otherwise(cluster_id)
 
     @staticmethod
-    @f.udf(VectorUDT())
     def _prune_peak(position: ndarray, window_size: int) -> DenseVector:
         """Establish lead snps based on their positions listed by p-value.
 
@@ -129,37 +128,9 @@ class WindowBasedClumping:
 
         Examples:
             >>> from pyspark.ml import functions as fml
-            >>> data = [
-            ...     ('c', 3, 4.0, True),
-            ...     ('c', 4, 2.0, False),
-            ...     ('c', 6, 1.0, True),
-            ...     ('c', 8, 2.5, False),
-            ...     ('c', 9, 3.0, True)
-            ... ]
-            >>> (
-            ...     spark.createDataFrame(data, ['cluster', 'position', 'negLogPValue', 'isSemiIndex'])
-            ...     .withColumn(
-            ...        'collected_positions',
-            ...         f.collect_list(
-            ...             f.col('position'))
-            ...         .over(
-            ...             Window.partitionBy('cluster')
-            ...             .orderBy(f.col('negLogPValue').desc())
-            ...             .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
-            ...         )
-            ...     )
-            ...     .withColumn('isLeadList', WindowBasedClumping._prune_peak(fml.array_to_vector(f.col('collected_positions')), f.lit(2)))
-            ...     .show(truncate=False)
-            ... )
-            +-------+--------+------------+-----------+-------------------+---------------------+
-            |cluster|position|negLogPValue|isSemiIndex|collected_positions|isLeadList           |
-            +-------+--------+------------+-----------+-------------------+---------------------+
-            |c      |3       |4.0         |true       |[3, 9, 8, 4, 6]    |[1.0,1.0,0.0,0.0,1.0]|
-            |c      |9       |3.0         |true       |[3, 9, 8, 4, 6]    |[1.0,1.0,0.0,0.0,1.0]|
-            |c      |8       |2.5         |false      |[3, 9, 8, 4, 6]    |[1.0,1.0,0.0,0.0,1.0]|
-            |c      |4       |2.0         |false      |[3, 9, 8, 4, 6]    |[1.0,1.0,0.0,0.0,1.0]|
-            |c      |6       |1.0         |true       |[3, 9, 8, 4, 6]    |[1.0,1.0,0.0,0.0,1.0]|
-            +-------+--------+------------+-----------+-------------------+---------------------+
+            >>> from pyspark.ml.linalg import DenseVector
+            >>> _prune_peak(np.array((3, 9, 8, 4, 6)), 2)
+            >>> array([1., 1., 0., 0., 1.])
             <BLANKLINE>
 
         """
@@ -244,9 +215,12 @@ class WindowBasedClumping:
                     f.when(
                         f.size(f.col("collectedPositions")) > 0,
                         fml.vector_to_array(
-                            WindowBasedClumping._prune_peak(
-                                fml.array_to_vector(f.col("collectedPositions")),
-                                f.lit(window_length),
+                            f.udf(
+                                WindowBasedClumping._prune_peak(
+                                    fml.array_to_vector(f.col("collectedPositions")),
+                                    f.lit(window_length),
+                                ),
+                                VectorUDT(),
                             )
                         ),
                     ),
@@ -312,16 +286,9 @@ class WindowBasedClumping:
         # Dropping variants not meeting the baseline criteria:
         sumstats_baseline = filtered_summary_stats.pvalue_filter(p_value_baseline).df
 
-        sumstats_baseline_renamed = sumstats_baseline.selectExpr(*[f"{col} as tag_{col}" for col in sumstats_baseline.columns])
-
-            # Renaming columns
-            reduce(
-                lambda df, column: df.withColumnRenamed(column, f"tag_{column}"),
-                columns,
-                sumstats_baseline,
-            )
-            # Drop associations above the baseline:
-            .alias("sumstat")
+        # Renaming columns:
+        sumstats_baseline_renamed = sumstats_baseline.selectExpr(
+            *[f"{col} as tag_{col}" for col in sumstats_baseline.columns]
         )
 
         study_locus_df = (
