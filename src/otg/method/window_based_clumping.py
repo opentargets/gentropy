@@ -129,9 +129,8 @@ class WindowBasedClumping:
         Examples:
             >>> from pyspark.ml import functions as fml
             >>> from pyspark.ml.linalg import DenseVector
-            >>> _prune_peak(np.array((3, 9, 8, 4, 6)), 2)
-            >>> array([1., 1., 0., 0., 1.])
-            <BLANKLINE>
+            >>> WindowBasedClumping._prune_peak(np.array((3, 9, 8, 4, 6)), 2)
+            DenseVector([1.0, 1.0, 0.0, 0.0, 1.0])
 
         """
         # Initializing the lead list with zeroes:
