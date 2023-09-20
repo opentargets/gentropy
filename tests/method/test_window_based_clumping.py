@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pyspark.ml import functions as fml
+from pyspark.ml.linalg import VectorUDT
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 
@@ -79,7 +80,7 @@ def test_prune_peak(spark: SparkSession):
         )
         .withColumn(
             "isLeadList",
-            WindowBasedClumping._prune_peak(
+            f.udf(WindowBasedClumping._prune_peak, VectorUDT())(
                 fml.array_to_vector(f.col("collected_positions")), f.lit(2)
             ),
         )

@@ -214,12 +214,9 @@ class WindowBasedClumping:
                     f.when(
                         f.size(f.col("collectedPositions")) > 0,
                         fml.vector_to_array(
-                            f.udf(
-                                WindowBasedClumping._prune_peak(
-                                    fml.array_to_vector(f.col("collectedPositions")),
-                                    f.lit(window_length),
-                                ),
-                                VectorUDT(),
+                            f.udf(WindowBasedClumping._prune_peak, VectorUDT())(
+                                fml.array_to_vector(f.col("collectedPositions")),
+                                f.lit(window_length),
                             )
                         ),
                     ),
@@ -288,7 +285,7 @@ class WindowBasedClumping:
         # Renaming columns:
         sumstats_baseline_renamed = sumstats_baseline.selectExpr(
             *[f"{col} as tag_{col}" for col in sumstats_baseline.columns]
-        )
+        ).alias("sumstat")
 
         study_locus_df = (
             sumstats_baseline_renamed
