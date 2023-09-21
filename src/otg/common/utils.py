@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 from math import floor, log10
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Tuple
 
 import hail as hl
 from pyspark.sql import functions as f
@@ -17,13 +17,55 @@ if TYPE_CHECKING:
     from pyspark.sql import Column
 
 
+def parse_region(region: str) -> Tuple[str, int, int]:
+    """Parse region string to chr:start-end.
+
+    Args:
+        region (str): Genomic region expected to follow chr##:#,###-#,### format or ##:####-#####.
+
+    Raises:
+        ValueError: If the end and start positions cannot be casted to integer or not all
+        three values value error is raised.
+
+    Returns:
+        Tuple[str, int, int]: Chromosome, start position, end position
+
+
+    Examples:
+        >>> parse_region('chr6:28,510,120-33,480,577')
+        ('6', 28510120, 33480577)
+        >>> parse_region('6:28510120-33480577')
+        ('6', 28510120, 33480577)
+        >>> parse_region('6:28510120')
+        Traceback (most recent call last):
+            ...
+        ValueError: Genomic region should follow a ##:####-#### format.
+        >>> parse_region('6:28510120-foo')
+        Traceback (most recent call last):
+            ...
+        ValueError: Start and the end position of the region has to be integer.
+    """
+    region = region.replace(":", "-").replace(",", "")
+    try:
+        (chromosome, start_position, end_position) = region.split("-")
+    except ValueError as err:
+        raise ValueError("Genomic region should follow a ##:####-#### format.") from err
+
+    try:
+        return (chromosome.replace("chr", ""), int(start_position), int(end_position))
+    except ValueError as err:
+        raise ValueError(
+            "Start and the end position of the region has to be integer."
+        ) from err
+
+
 def calculate_confidence_interval(
     pvalue_mantissa: Column,
     pvalue_exponent: Column,
     beta: Column,
     standard_error: Column,
 ) -> tuple:
-    """This function calculates the confidence interval for the effect based on the p-value and the effect size.
+    """Calculate the confidence interval for the effect based on the p-value and the effect size.
 
     If the standard error already available, don't re-calculate from p-value.
 
@@ -166,10 +208,10 @@ def parse_pvalue(pv: Column) -> List[Column]:
 def convert_gnomad_position_to_ensembl(
     position: Column, reference: Column, alternate: Column
 ) -> Column:
-    """Converting GnomAD variant position to Ensembl variant position.
+    """Convert GnomAD variant position to Ensembl variant position.
 
-    For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.
-    More info about the problem: https://www.biostars.org/p/84686/
+    For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs,
+    the position is unchanged. More info about the problem: https://www.biostars.org/p/84686/
 
     Args:
         position (Column): Column
@@ -201,7 +243,7 @@ def convert_gnomad_position_to_ensembl(
 def convert_gnomad_position_to_ensembl_hail(
     position: Int32Expression, reference: StringExpression, alternate: StringExpression
 ) -> Int32Expression:
-    """Converting GnomAD variant position to Ensembl variant position in hail table.
+    """Convert GnomAD variant position to Ensembl variant position in hail table.
 
     For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.
     More info about the problem: https://www.biostars.org/p/84686/
@@ -249,7 +291,7 @@ def _liftover_loci(
 
 
 def split_pvalue(pvalue: float) -> tuple[float, int]:
-    """Function to convert a float to 10 based exponent and mantissa.
+    """Convert a float to 10 based exponent and mantissa.
 
     Args:
         pvalue (float): p-value
