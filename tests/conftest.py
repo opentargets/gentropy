@@ -456,6 +456,15 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_summary_satistics(spark: SparkSession) -> SummaryStatistics:
+    """Sample GWAS raw associations sample data."""
+    return SummaryStatistics(
+        _df=spark.read.parquet("tests/data_samples/GCST005523_chr18.parquet"),
+        _schema=SummaryStatistics.get_schema(),
+    )
+
+
+@pytest.fixture()
 def sample_finngen_studies(spark: SparkSession) -> DataFrame:
     """Sample FinnGen studies."""
     # For reference, the sample file was generated with the following command:
