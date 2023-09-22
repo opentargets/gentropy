@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 def test_study_locus_overlap_creation(
     mock_study_locus_overlap: StudyLocusOverlap,
 ) -> None:
-    """Test colocalisation creation with mock data."""
+    """Test study locus overlaps creation with mock data."""
     assert isinstance(mock_study_locus_overlap, StudyLocusOverlap)
 
 

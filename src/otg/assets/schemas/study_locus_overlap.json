@@ -213,44 +213,6 @@
         },
         "type": "array"
       }
-    },
-    {
-      "metadata": {},
-      "name": "rightLocus",
-      "nullable": true,
-      "type": {
-        "containsNull": true,
-        "elementType": {
-          "fields": [
-            {
-              "metadata": {},
-              "name": "variantId",
-              "nullable": false,
-              "type": "string"
-            },
-            {
-              "metadata": {},
-              "name": "pValueMantissa",
-              "nullable": false,
-              "type": "float"
-            },
-            {
-              "metadata": {},
-              "name": "pValueExponent",
-              "nullable": false,
-              "type": "integer"
-            },
-            {
-              "metadata": {},
-              "name": "beta",
-              "nullable": false,
-              "type": "double"
-            }
-          ],
-          "type": "struct"
-        },
-        "type": "array"
-      }
     }
   ],
   "type": "struct"
