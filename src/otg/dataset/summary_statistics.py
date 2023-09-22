@@ -12,10 +12,8 @@ from otg.common.utils import (
     calculate_confidence_interval,
     convert_odds_ratio_to_beta,
     parse_pvalue,
-    parse_region,
-    split_pvalue,
 )
-from otg.dataset.dataset import Dataset
+from otg.dataset.single_point_association import SinglePointAssociation
 from otg.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
@@ -26,7 +24,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class SummaryStatistics(Dataset):
+class SummaryStatistics(SinglePointAssociation):
     """Summary Statistics dataset.
 
     A summary statistics dataset contains all single point statistics resulting from a GWAS.
@@ -101,28 +99,6 @@ class SummaryStatistics(Dataset):
             _schema=cls.get_schema(),
         )
 
-    def pvalue_filter(self: SummaryStatistics, pvalue: float) -> SummaryStatistics:
-        """Filter summary statistics based on the provided p-value threshold.
-
-        Args:
-            pvalue (float): upper limit of the p-value to be filtered upon.
-
-        Returns:
-            SummaryStatistics: summary statistics object containing single point associations with p-values at least as significant as the provided threshold.
-        """
-        # Converting p-value to mantissa and exponent:
-        (mantissa, exponent) = split_pvalue(pvalue)
-
-        # Applying filter:
-        df = self._df.filter(
-            (f.col("pValueExponent") < exponent)
-            | (
-                (f.col("pValueExponent") == exponent)
-                & (f.col("pValueMantissa") <= mantissa)
-            )
-        )
-        return SummaryStatistics(_df=df, _schema=self._schema)
-
     def window_based_clumping(
         self: SummaryStatistics,
         distance: int,
@@ -154,29 +130,3 @@ class SummaryStatistics(Dataset):
             )
 
         return clumped_df
-
-    def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
-        """Exclude a region from the summary stats dataset.
-
-        Args:
-            region (str): region given in "chr##:#####-####" format
-
-        Returns:
-            SummaryStatistics: filtered summary statistics.
-        """
-        (chromosome, start_position, end_position) = parse_region(region)
-
-        return SummaryStatistics(
-            _df=(
-                self.df.filter(
-                    ~(
-                        (f.col("chromosome") == chromosome)
-                        & (
-                            (f.col("position") >= start_position)
-                            & (f.col("position") <= end_position)
-                        )
-                    )
-                )
-            ),
-            _schema=SummaryStatistics.get_schema(),
-        )

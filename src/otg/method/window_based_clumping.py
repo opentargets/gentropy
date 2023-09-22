@@ -11,6 +11,7 @@ from pyspark.ml import functions as fml
 from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
+from otg.dataset.genomic_region import GenomicRegion
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -182,7 +183,7 @@ class WindowBasedClumping:
             _df=(
                 summary_stats
                 # Dropping snps below significance - all subsequent steps are done on significant variants:
-                .pvalue_filter(p_value_significance)
+                .p_value_filter(p_value_significance)
                 .df
                 # Clustering summary variants for efficient windowing (complexity reduction):
                 .withColumn(
@@ -264,7 +265,9 @@ class WindowBasedClumping:
         """
         # Exclude problematic regions from clumping:
         filtered_summary_stats = reduce(
-            lambda df, region: df.exclude_region(region),
+            lambda df, region: df.filter_by_region(
+                GenomicRegion.from_string(region), exlude_region=True
+            ),
             cls.EXCLUDED_REGIONS,
             summary_stats,
         )
@@ -280,7 +283,7 @@ class WindowBasedClumping:
         columns = filtered_summary_stats.df.columns
 
         # Dropping variants not meeting the baseline criteria:
-        sumstats_baseline = filtered_summary_stats.pvalue_filter(p_value_baseline).df
+        sumstats_baseline = filtered_summary_stats.p_value_filter(p_value_baseline).df
 
         # Renaming columns:
         sumstats_baseline_renamed = sumstats_baseline.selectExpr(

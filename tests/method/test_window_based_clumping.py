@@ -53,10 +53,10 @@ def test_window_based_clump_with_locus__correctness(
     assert clumped.df.count() == 1
 
     # Assert the variant found:
-    assert (clumped.df.filter(f.col("variantId") == "18_12843138_T_C").count()) == 1
+    assert clumped.df.filter(f.col("variantId") == "18_12843138_T_C").count() == 1
 
     # Assert the number of variants in the locus:
-    assert (clumped.df.select(f.explode_outer("locus").alias("loci")).count()) == 132
+    assert clumped.df.select(f.explode_outer("locus").alias("loci")).count() == 132
 
 
 def test_prune_peak(spark: SparkSession):

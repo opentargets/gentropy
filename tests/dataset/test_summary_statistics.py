@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import types as t
 
+from otg.dataset.genomic_region import GenomicRegion
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.summary_statistics import SummaryStatistics
 
@@ -25,7 +26,7 @@ def test_summary_statistics__pval_filter__return_type(
     """Test if the p-value filter indeed returns summary statistics object."""
     pval_threshold = 5e-3
     assert isinstance(
-        mock_summary_statistics.pvalue_filter(pval_threshold), SummaryStatistics
+        mock_summary_statistics.p_value_filter(pval_threshold), SummaryStatistics
     )
 
 
@@ -42,8 +43,12 @@ def test_summary_statistics__exclude_region__return_type(
     mock_summary_statistics: SummaryStatistics,
 ) -> None:
     """Testing if the exclude region method returns the right datatype."""
+    region_sting = "chr12:124-1245"
     assert isinstance(
-        mock_summary_statistics.exclude_region("chr12:124-1245"), SummaryStatistics
+        mock_summary_statistics.filter_by_region(
+            GenomicRegion.from_string(region_sting), exlude_region=True
+        ),
+        SummaryStatistics,
     )
 
 
@@ -84,7 +89,7 @@ def test_summary_statistics__exclude_region__correctness(
     data = spark.createDataFrame(data, schema=schema)
     filtered_sumstas = SummaryStatistics(
         _df=data, _schema=SummaryStatistics.get_schema()
-    ).exclude_region("c1:9-16")
+    ).filter_by_region(GenomicRegion.from_string("c1:9-16"), exlude_region=True)
 
     # Test for the correct number of rows returned:
     assert filtered_sumstas.df.count() == 8
