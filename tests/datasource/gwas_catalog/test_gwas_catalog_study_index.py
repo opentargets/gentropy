@@ -46,7 +46,7 @@ def test_annotate_ancestry(
 
 def test_annotate_sumstats(
     mock_study_index_gwas_catalog: GWASCatalogStudyIndex,
-    sample_gwas_catalog_harmonised_sumstats: DataFrame,
+    sample_gwas_catalog_harmonised_sumstats_list: DataFrame,
 ) -> None:
     """Test annotate sumstats of GWASCatalogStudyIndex."""
     mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
@@ -54,7 +54,7 @@ def test_annotate_sumstats(
     )
     assert isinstance(
         mock_study_index_gwas_catalog._annotate_sumstats_info(
-            sample_gwas_catalog_harmonised_sumstats
+            sample_gwas_catalog_harmonised_sumstats_list
         ),
         GWASCatalogStudyIndex,
     )

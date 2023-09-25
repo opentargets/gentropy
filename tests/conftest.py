@@ -445,6 +445,16 @@ def sample_gwas_catalog_harmonised_sumstats(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_gwas_catalog_harmonised_sumstats_list(spark: SparkSession) -> DataFrame:
+    """Sample GWAS harmonised sumstats sample data."""
+    return spark.read.csv(
+        "tests/data_samples/gwas_catalog_harmonised_list.txt",
+        sep="\t",
+        header=False,
+    )
+
+
+@pytest.fixture()
 def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
     """Sample GWAS raw associations sample data."""
     return spark.read.csv(
