@@ -62,7 +62,7 @@ def test_annotate_sumstats(
 
 def test_study_index_from_source(
     sample_gwas_catalog_studies: DataFrame,
-    sample_gwas_catalog_harmonised_sumstats: DataFrame,
+    sample_gwas_catalog_harmonised_sumstats_list: DataFrame,
     sample_gwas_catalog_ancestries_lut: DataFrame,
 ) -> None:
     """Test study index from source."""
@@ -70,7 +70,7 @@ def test_study_index_from_source(
         GWASCatalogStudyIndex.from_source(
             sample_gwas_catalog_studies,
             sample_gwas_catalog_ancestries_lut,
-            sample_gwas_catalog_harmonised_sumstats,
+            sample_gwas_catalog_harmonised_sumstats_list,
         ),
         GWASCatalogStudyIndex,
     )
