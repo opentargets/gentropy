@@ -8,10 +8,13 @@ from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
 from otg.config import V2GStepConfig
 from otg.dataset.gene_index import GeneIndex
-from otg.dataset.intervals import Intervals
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.intervals.andersson import IntervalsAndersson
+from otg.datasource.intervals.javierre import IntervalsJavierre
+from otg.datasource.intervals.jung import IntervalsJung
+from otg.datasource.intervals.thurman import IntervalsThurman
 
 
 @dataclass
@@ -57,16 +60,16 @@ class V2GStep(V2GStepConfig):
             va_slimmed.get_sift_v2g(gene_index_filtered),
             va_slimmed.get_plof_v2g(gene_index_filtered),
             # intervals
-            Intervals.parse_andersson(
+            IntervalsAndersson.parse(
                 self.session, self.anderson_path, gene_index_filtered, lift
             ).v2g(vi),
-            Intervals.parse_javierre(
+            IntervalsJavierre.parse(
                 self.session, self.javierre_path, gene_index_filtered, lift
             ).v2g(vi),
-            Intervals.parse_jung(
+            IntervalsJung.parse(
                 self.session, self.jung_path, gene_index_filtered, lift
             ).v2g(vi),
-            Intervals.parse_thurman(
+            IntervalsThurman.parse(
                 self.session, self.thurnman_path, gene_index_filtered, lift
             ).v2g(vi),
         ]

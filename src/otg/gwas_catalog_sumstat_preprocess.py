@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from otg.common.session import Session
 from otg.config import GWASCatalogSumstatsPreprocessConfig
-from otg.dataset.summary_statistics import SummaryStatistics
+from otg.datasource.gwas_catalog.summary_statistics import GWASCatalogSummaryStatistics
 
 
 @dataclass
@@ -30,7 +30,7 @@ class GWASCatalogSumstatsPreprocessStep(GWASCatalogSumstatsPreprocessConfig):
         )
 
         # Processing dataset:
-        SummaryStatistics.from_gwas_harmonized_summary_stats(
+        GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
             raw_dataset, self.study_id
         ).df.write.mode(self.session.write_mode).parquet(self.out_sumstats_path)
         self.session.logger.info("Processing dataset successfully completed.")

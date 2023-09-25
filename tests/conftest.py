@@ -9,18 +9,17 @@ from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import (
-    StudyIndex,
-    StudyIndexFinnGen,
-    StudyIndexGWASCatalog,
-    StudyIndexUKBiobank,
-)
-from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
+from otg.dataset.study_index import StudyIndex
+from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
+from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
+from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -139,29 +138,29 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
 
 
 @pytest.fixture()
-def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
-    """Mock StudyIndexGWASCatalog dataset."""
-    return StudyIndexGWASCatalog(
+def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
+    """Mock GWASCatalogStudyIndex dataset."""
+    return GWASCatalogStudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexGWASCatalog.get_schema(),
+        _schema=StudyIndex.get_schema(),
     )
 
 
 @pytest.fixture()
-def mock_study_index_finngen(spark: SparkSession) -> StudyIndexFinnGen:
+def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
     """Mock StudyIndexFinnGen dataset."""
-    return StudyIndexFinnGen(
+    return FinnGenStudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexFinnGen.get_schema(),
+        _schema=StudyIndex.get_schema(),
     )
 
 
 @pytest.fixture()
-def mock_study_index_ukbiobank(spark: SparkSession) -> StudyIndexUKBiobank:
+def mock_study_index_ukbiobank(spark: SparkSession) -> UKBiobankStudyIndex:
     """Mock StudyIndexUKBiobank dataset."""
-    return StudyIndexUKBiobank(
+    return UKBiobankStudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexUKBiobank.get_schema(),
+        _schema=UKBiobankStudyIndex.get_schema(),
     )
 
 
@@ -225,16 +224,16 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocus(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog.get_schema(),
+        _schema=StudyLocus.get_schema(),
     )
 
 
 @pytest.fixture()
 def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
-    return StudyLocusGWASCatalog(
+    return GWASCatalogAssociations(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog.get_schema(),
+        _schema=GWASCatalogAssociations.get_schema(),
     )
 
 
@@ -439,9 +438,9 @@ def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
 def sample_gwas_catalog_harmonised_sumstats(spark: SparkSession) -> DataFrame:
     """Sample GWAS harmonised sumstats sample data."""
     return spark.read.csv(
-        "tests/data_samples/gwas_catalog_harmonised_list.txt",
+        "tests/data_samples/gwas_summary_stats_sample.tsv.gz",
         sep="\t",
-        header=False,
+        header=True,
     )
 
 
