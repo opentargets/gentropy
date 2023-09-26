@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.request import urlopen
@@ -124,3 +125,7 @@ def ingest_finngen(
 
     # Write the output.
     finngen_studies.df.write.mode(spark_write_mode).parquet(finngen_study_index_out)
+
+
+if __name__ == "__main__":
+    ingest_finngen(*sys.argv[1:])
