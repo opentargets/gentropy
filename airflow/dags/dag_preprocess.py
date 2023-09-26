@@ -2,114 +2,34 @@
 
 from __future__ import annotations
 
-import pendulum
+from functools import partial
+
 from airflow.decorators import dag
-from airflow.providers.google.cloud.operators.dataproc import (
-    ClusterGenerator,
-    DataprocCreateClusterOperator,
-    DataprocDeleteClusterOperator,
-    DataprocSubmitJobOperator,
+from common import (
+    default_dag_args,
+    generate_create_cluster_task,
+    generate_delete_cluster_task,
+    generate_pyspark_job,
+    outputs,
+    spark_write_mode,
 )
-from airflow.utils.trigger_rule import TriggerRule
 
-# Cloud configuration.
-project_id = "open-targets-genetics-dev"
-region = "europe-west1"
-zone = "europe-west1-d"
-image_version = "2.1"
+# Workflow specific configuration.
 cluster_name = "otg-preprocess"
-
-# Executable configuration.
-otg_version = "0.2.0+tskir"
-initialisation_base_path = (
-    f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
-)
-python_cli = f"{initialisation_base_path}/cli.py"
-config_tar = f"{initialisation_base_path}/config.tar.gz"
-package_wheel = f"{initialisation_base_path}/otgenetics-{otg_version}-py3-none-any.whl"
-initialisation_executable_file = [
-    f"{initialisation_base_path}/install_dependencies_on_cluster.sh"
-]
-
-# File path configuration.
-version = "XX.XX"
-inputs = "gs://genetics_etl_python_playground/input"
-outputs = f"gs://genetics_etl_python_playground/output/python_etl/parquet/{version}"
-spark_write_mode = "overwrite"
-
-# Dataproc cluster configuration.
-cluster_generator_config = ClusterGenerator(
-    project_id=project_id,
-    zone=zone,
-    master_machine_type="n1-standard-2",
-    master_disk_size=100,
-    worker_machine_type="n1-standard-16",
-    worker_disk_size=200,
-    num_workers=2,
-    image_version=image_version,
-    enable_component_gateway=True,
-    init_actions_uris=initialisation_executable_file,
-    metadata={
-        "CONFIGTAR": config_tar,
-        "PACKAGE": package_wheel,
-    },
-).make()
-
-
-def generate_pyspark_job(step: str, **kwargs) -> DataprocSubmitJobOperator:
-    """Generates a PySpark Dataproc job given step name and its parameters."""
-    return DataprocSubmitJobOperator(
-        task_id=f"job-{step}",
-        region=region,
-        project_id=project_id,
-        job={
-            "job_uuid": f"airflow-{step}",
-            "reference": {"project_id": project_id},
-            "placement": {"cluster_name": cluster_name},
-            "pyspark_job": {
-                "main_python_file_uri": f"{initialisation_base_path}/preprocess/{step}.py",
-                "args": list(map(str, kwargs.values())),
-                "properties": {
-                    "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
-                    "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
-                    "spark.executor.extraClassPath": "./hail-all-spark.jar",
-                    "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
-                    "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
-                },
-            },
-        },
-    )
-
-
-default_args = {
-    "owner": "Open Targets Data Team",
-    # Tell Airflow to start one day ago, so that it runs as soon as you upload it.
-    "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
-    "schedule_interval": "@once",
-    "project_id": project_id,
-    "catchup": False,
-    "retries": 0,
-}
+generate_pyspark_job_partial = partial(generate_pyspark_job, cluster_name)
 
 
 @dag(
-    dag_id="preprocess",
-    default_args=default_args,
-    description="Open Targets Genetics ETL workflow",
+    dag_id="otg-preprocess",
+    default_args=default_dag_args,
+    description="Open Targets Genetics - Preprocess Workflow",
     tags=["genetics_etl", "experimental"],
 )
 def create_dag() -> None:
     """Preprocess DAG definition."""
-    create_cluster = DataprocCreateClusterOperator(
-        task_id="create_cluster",
-        project_id=project_id,
-        cluster_config=cluster_generator_config,
-        region=region,
-        cluster_name=cluster_name,
-        trigger_rule=TriggerRule.ALL_SUCCESS,
-    )
+    create_cluster = generate_create_cluster_task(cluster_name)
 
-    task_ingest_finngen = generate_pyspark_job(
+    ingest_finngen = generate_pyspark_job_partial(
         "ingest_finngen",
         finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
         finngen_release_prefix="FINNGEN_R9",
@@ -119,16 +39,9 @@ def create_dag() -> None:
         spark_write_mode=spark_write_mode,
     )
 
-    delete_cluster = DataprocDeleteClusterOperator(
-        task_id="delete_cluster",
-        project_id=project_id,
-        cluster_name=cluster_name,
-        region="europe-west1",
-        trigger_rule=TriggerRule.ALL_DONE,
-        deferrable=True,
-    )
+    delete_cluster = generate_delete_cluster_task(cluster_name)
 
-    create_cluster >> [task_ingest_finngen] >> delete_cluster
+    create_cluster >> [ingest_finngen] >> delete_cluster
 
 
 dag = create_dag()
