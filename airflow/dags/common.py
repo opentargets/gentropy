@@ -43,7 +43,7 @@ def generate_create_cluster_task(cluster_name):
     cluster_generator_config = ClusterGenerator(
         project_id=project_id,
         zone=zone,
-        master_machine_type="n1-standard-16",
+        master_machine_type="n1-standard-96",
         master_disk_size=200,
         num_workers=0,
         num_local_ssds=1,

@@ -105,11 +105,8 @@ class SummaryStatisticsFinnGen(SummaryStatistics):
         """Summary statistics ingestion for one FinnGen study."""
         processed_summary_stats_df = (
             summary_stats_df
-            # Repartition for higher performance.
-            .repartition(200)
             # Drop rows which don't have proper position.
-            .filter(f.col("pos").cast(t.IntegerType()).isNotNull())
-            .select(
+            .filter(f.col("pos").cast(t.IntegerType()).isNotNull()).select(
                 # Add study idenfitier.
                 f.lit(study_id).cast(t.StringType()).alias("studyId"),
                 # Add variant information.
@@ -139,7 +136,6 @@ class SummaryStatisticsFinnGen(SummaryStatistics):
                     f.col("standardError"),
                 ),
             )
-            .sortWithinPartitions("chromosome", "position")
         )
 
         # Initializing summary statistics object:
@@ -193,19 +189,29 @@ def ingest_finngen(
     )
 
     # Process the summary statistics for each study in the study index.
-    for row in finngen_study_index.df.select(
-        "studyId", "summarystatsLocation"
-    ).collect():
+    for i, row in enumerate(
+        finngen_study_index.df.select("studyId", "summarystatsLocation").collect(), 1
+    ):
         logging.info(
-            f"Processing {row.studyId} with summary statistics in {row.summarystatsLocation}"
+            f"Processing #{i} {row.studyId} with summary statistics in {row.summarystatsLocation}"
         )
-        summary_stats_df = spark.read.option("delimiter", "\t").csv(
-            row.summarystatsLocation, header=True
+        summary_stats_df = (
+            spark.read.option("delimiter", "\t")
+            .csv(row.summarystatsLocation, header=True)
+            .repartition(400)
         )
         out_filename = f"{finngen_summary_stats_out}/{row.studyId}"
         SummaryStatisticsFinnGen.from_finngen_harmonized_summary_stats(
             summary_stats_df, row.studyId
-        ).df.write.mode(spark_write_mode).parquet(out_filename)
+        ).df.sortWithinPartitions("chromosome", "position").write.partitionBy(
+            "chromosome"
+        ).mode(
+            spark_write_mode
+        ).parquet(
+            out_filename
+        )
+        if i == 10:
+            break
 
 
 if __name__ == "__main__":
