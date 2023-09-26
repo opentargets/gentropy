@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "otgenetics"
-version = "1.0.0"
+version = "0.2.0+tskir"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache License v2"

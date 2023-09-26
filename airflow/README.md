@@ -67,7 +67,7 @@ Now open the Airflow UI and:
 * Click on "Add new record".
 * Set "Connection type" to `Google Cloud``.
 * Set "Connection ID" to `google_cloud_default`.
-* Set "Keyfile Path" to `/opt/airflow/config/application_default_credentials.json`.
+* Set "Credential Configuration File" to `/opt/airflow/config/application_default_credentials.json`.
 * Click on "Save".
 
 ## Run a workflow
