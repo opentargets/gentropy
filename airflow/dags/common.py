@@ -39,14 +39,14 @@ spark_write_mode = "overwrite"
 
 
 def generate_create_cluster_task(cluster_name):
-    """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parametes can be specified as needed."""
+    """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed."""
     cluster_generator_config = ClusterGenerator(
         project_id=project_id,
         zone=zone,
         master_machine_type="n1-standard-2",
         master_disk_size=100,
         worker_machine_type="n1-standard-16",
-        worker_disk_size=200,
+        worker_disk_size=100,
         num_workers=2,
         image_version=image_version,
         enable_component_gateway=True,
@@ -71,7 +71,7 @@ def generate_pyspark_job(
 ) -> DataprocSubmitJobOperator:
     """Generates a PySpark Dataproc job given step name and its parameters."""
     return DataprocSubmitJobOperator(
-        task_id=f"job-{step}",
+        task_id=step,
         region=region,
         project_id=project_id,
         job={
@@ -81,20 +81,13 @@ def generate_pyspark_job(
             "pyspark_job": {
                 "main_python_file_uri": f"{initialisation_base_path}/preprocess/{step}.py",
                 "args": list(map(str, kwargs.values())),
-                "properties": {
-                    "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
-                    "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
-                    "spark.executor.extraClassPath": "./hail-all-spark.jar",
-                    "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
-                    "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
-                },
             },
         },
     )
 
 
 def generate_delete_cluster_task(cluster_name):
-    """Generate an Airflow task to delete a Dataproc cluster. Common parameters are reused, and varying parametes can be specified as needed."""
+    """Generate an Airflow task to delete a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed."""
     return DataprocDeleteClusterOperator(
         task_id="delete_cluster",
         project_id=project_id,
