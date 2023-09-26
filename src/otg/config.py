@@ -264,26 +264,6 @@ class GWASCatalogSumstatsPreprocessConfig:
 
 
 @dataclass
-class FinnGenStepConfig:
-    """FinnGen study table ingestion step requirements.
-
-    Attributes:
-        finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
-        finngen_release_prefix (str): Release prefix pattern.
-        finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
-        finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
-        finngen_study_index_out (str): Output path for the FinnGen study index dataset.
-    """
-
-    _target_: str = "otg.finngen.FinnGenStep"
-    finngen_phenotype_table_url: str = MISSING
-    finngen_release_prefix: str = MISSING
-    finngen_sumstat_url_prefix: str = MISSING
-    finngen_sumstat_url_suffix: str = MISSING
-    finngen_study_index_out: str = MISSING
-
-
-@dataclass
 class UKBiobankStepConfig:
     """UKBiobank study table ingestion step requirements.
 
@@ -310,7 +290,6 @@ def register_configs() -> None:
     cs.store(name="v2g", group="step", node=V2GStepConfig)
     cs.store(name="colocalisation", group="step", node=ColocalisationStepConfig)
     cs.store(name="gwas_catalog", group="step", node=GWASCatalogStepConfig)
-    cs.store(name="finngen", group="step", node=FinnGenStepConfig)
     cs.store(name="ukbiobank", group="step", node=UKBiobankStepConfig)
     cs.store(
         name="gwas_catalog_sumstats_preprocess",
