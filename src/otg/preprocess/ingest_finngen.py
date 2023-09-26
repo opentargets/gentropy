@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.request import urlopen
 
-import pyspark
 import pyspark.sql.functions as f
+from pyspark.sql import SparkSession
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.study_index import StudyIndex
@@ -108,7 +108,7 @@ def ingest_finngen(
         finngen_study_index_out (str): Output path for the FinnGen study index dataset.
         spark_write_mode (str): Dataframe write mode.
     """
-    spark = pyspark.SparkContext()
+    spark = SparkSession.builder.appName("ingest_finngen").getOrCreate()
 
     # Read the JSON data from the URL.
     json_data = urlopen(finngen_phenotype_table_url).read().decode("utf-8")

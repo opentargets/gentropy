@@ -35,7 +35,7 @@ def create_dag() -> None:
         finngen_release_prefix="FINNGEN_R9",
         finngen_sumstat_url_prefix="https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_",
         finngen_sumstat_url_suffix=".gz",
-        finngen_study_index_out=f"{outputs}/finngen_study_index",
+        finngen_study_index_out=f"{outputs}/preprocess/finngen/study_index",
         spark_write_mode=spark_write_mode,
     )
 
