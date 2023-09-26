@@ -109,28 +109,6 @@ def create_dag() -> None:
         trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
-    install_dependencies = DataprocSubmitJobOperator(
-        task_id="install_dependencies",
-        region=region,
-        project_id=project_id,
-        job={
-            "job_uuid": "airflow-install-dependencies",
-            "reference": {"project_id": project_id},
-            "placement": {"cluster_name": cluster_name},
-            "pig_job": {
-                "jar_file_uris": [
-                    f"gs://genetics_etl_python_playground/initialisation/{otg_version}/install_dependencies_on_cluster.sh"
-                ],
-                "query_list": {
-                    "queries": [
-                        "sh chmod 750 ${PWD}/install_dependencies_on_cluster.sh",
-                        "sh ${PWD}/install_dependencies_on_cluster.sh",
-                    ]
-                },
-            },
-        },
-    )
-
     task_ingest_finngen = generate_pyspark_job(
         "ingest_finngen",
         finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
@@ -150,7 +128,7 @@ def create_dag() -> None:
         deferrable=True,
     )
 
-    create_cluster >> install_dependencies >> [task_ingest_finngen] >> delete_cluster
+    create_cluster >> [task_ingest_finngen] >> delete_cluster
 
 
 dag = create_dag()
