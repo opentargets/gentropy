@@ -48,21 +48,21 @@ logging "Diseases were mapped to ${EFO} EFO release."
 RELEASE_URL=${BASE_URL}/releases/${YEAR}/${MONTH}/${DAY}
 logging "Datafiles are fetching from ${RELEASE_URL}"
 
-# # Fetching files while assigning properly dated and annotated names:
-# wget -q ${RELEASE_URL}/gwas-catalog-associations_ontology-annotated.tsv \
-    #     -O gwas_catalog_v1.0.2-associations_e${ENSEMBL}_r${YEAR}-${MONTH}-${DAY}.tsv
-# logging "File gwas_catalog_v1.0.2-associations_e${ENSEMBL}_r${YEAR}-${MONTH}-${DAY}.tsv saved."
+# Fetching files while assigning properly dated and annotated names:
+wget -q ${RELEASE_URL}/gwas-catalog-associations_ontology-annotated.tsv \
+    -O gwas_catalog_v1.0.2-associations_e${ENSEMBL}_r${YEAR}-${MONTH}-${DAY}.tsv
+logging "File gwas_catalog_v1.0.2-associations_e${ENSEMBL}_r${YEAR}-${MONTH}-${DAY}.tsv saved."
 
-# wget -q ${RELEASE_URL}/gwas-catalog-download-studies-v1.0.3.txt \
-    #     -O gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv
-# logging "File gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv saved."
+wget -q ${RELEASE_URL}/gwas-catalog-download-studies-v1.0.3.txt \
+    -O gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv
+logging "File gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv saved."
 
-# wget -q ${RELEASE_URL}/gwas-catalog-download-ancestries-v1.0.3.txt \
-    #     -O gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv
-# logging "File gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv saved."
+wget -q ${RELEASE_URL}/gwas-catalog-download-ancestries-v1.0.3.txt \
+    -O gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv
+logging "File gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv saved."
 
-# wget -q ${BASE_URL}/summary_statistics/harmonised_list.txt -O harmonised_list-r${YEAR}-${MONTH}-${DAY}.txt
-# logging "File harmonised_list-r${YEAR}-${MONTH}-${DAY}.txt saved."
+wget -q ${BASE_URL}/summary_statistics/harmonised_list.txt -O harmonised_list-r${YEAR}-${MONTH}-${DAY}.txt
+logging "File harmonised_list-r${YEAR}-${MONTH}-${DAY}.txt saved."
 
 logging "Copying files to GCP..."
 gsutil  -q cp file://$(pwd)/gwas_catalog_v1.0.2-associations_e${ENSEMBL}_r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
