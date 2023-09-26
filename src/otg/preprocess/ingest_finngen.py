@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
 
 @dataclass
@@ -105,6 +105,8 @@ class SummaryStatisticsFinnGen(SummaryStatistics):
         """Summary statistics ingestion for one FinnGen study."""
         processed_summary_stats_df = (
             summary_stats_df
+            # Repartition for higher performance.
+            .repartition(200)
             # Drop rows which don't have proper position.
             .filter(f.col("pos").cast(t.IntegerType()).isNotNull())
             .select(
@@ -137,7 +139,6 @@ class SummaryStatisticsFinnGen(SummaryStatistics):
                     f.col("standardError"),
                 ),
             )
-            .repartition(1)
             .sortWithinPartitions("chromosome", "position")
         )
 
@@ -201,7 +202,7 @@ def ingest_finngen(
         summary_stats_df = spark.read.option("delimiter", "\t").csv(
             row.summarystatsLocation, header=True
         )
-        out_filename = f"{finngen_summary_stats_out}/{row.studyId}.parquet"
+        out_filename = f"{finngen_summary_stats_out}/{row.studyId}"
         SummaryStatisticsFinnGen.from_finngen_harmonized_summary_stats(
             summary_stats_df, row.studyId
         ).df.write.mode(spark_write_mode).parquet(out_filename)
