@@ -8,12 +8,10 @@ get_most_recent(){
 
 # Function to return the path the to the most recent release:
 get_release_url(){
-    curl -s --list-only ${BASE_URL}/releases/ | get_most_recent | while read YEAR; do
-        curl -s --list-only ${BASE_URL}/releases/${YEAR}/  | get_most_recent | while read MONTH; do
-            DAY=$(curl -s --list-only ${BASE_URL}/releases/${YEAR}/${MONTH}/  | get_most_recent)
-            echo $YEAR $MONTH $DAY
-        done
-    done
+    YEAR=$(curl -s --list-only ${BASE_URL}/releases/ | get_most_recent)
+    MONTH=$(curl -s --list-only ${BASE_URL}/releases/${YEAR}/  | get_most_recent)
+    DAY=$(curl -s --list-only ${BASE_URL}/releases/${YEAR}/${MONTH}/  | get_most_recent)
+    echo $YEAR $MONTH $DAY
 }
 
 # Function to get the Ensembl and EFO version which used to ground GWAS data:
