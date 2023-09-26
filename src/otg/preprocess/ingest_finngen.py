@@ -194,7 +194,9 @@ def ingest_finngen(
         logging.info(
             f"Processing {row.studyId} with summary statistics in {row.summarystatsLocation}"
         )
-        summary_stats_df = spark.read.csv(row.summarystatsLocation, header=True)
+        summary_stats_df = spark.read.option("delimiter", "\t").csv(
+            row.summarystatsLocation, header=True
+        )
         out_filename = f"{finngen_summary_stats_out}/{row.studyId}.parquet"
         SummaryStatisticsFinnGen.from_finngen_harmonized_summary_stats(
             summary_stats_df, row.studyId
