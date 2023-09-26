@@ -25,6 +25,7 @@ initialisation_base_path = (
     f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
 )
 python_cli = f"{initialisation_base_path}/cli.py"
+config_tar = f"{initialisation_base_path}/config.tar.gz"
 package_wheel = f"{initialisation_base_path}/otgenetics-{otg_version}-py3-none-any.whl"
 initialisation_executable_file = [
     f"{initialisation_base_path}/install_dependencies_on_cluster.sh"
@@ -49,6 +50,7 @@ cluster_generator_config = ClusterGenerator(
     enable_component_gateway=True,
     init_actions_uris=initialisation_executable_file,
     metadata={
+        "CONFIGTAR": config_tar,
         "PACKAGE": package_wheel,
     },
 ).make()
