@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from airflow.decorators import task
+import pendulum
+from airflow.decorators import dag
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
+    DataprocDeleteClusterOperator,
     DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
@@ -34,7 +36,7 @@ inputs = "gs://genetics_etl_python_playground/input"
 outputs = f"gs://genetics_etl_python_playground/output/python_etl/parquet/{version}"
 spark_write_mode = "overwrite"
 
-# Setting up Dataproc cluster.
+# Dataproc cluster configuration.
 cluster_generator_config = ClusterGenerator(
     project_id=project_id,
     zone=zone,
@@ -50,14 +52,6 @@ cluster_generator_config = ClusterGenerator(
         "PACKAGE": package_wheel,
     },
 ).make()
-create_cluster = DataprocCreateClusterOperator(
-    task_id="create_cluster",
-    project_id=project_id,
-    cluster_config=cluster_generator_config,
-    region=region,
-    cluster_name=cluster_name,
-    trigger_rule=TriggerRule.ALL_SUCCESS,
-)
 
 
 def generate_pyspark_job(step: str, **kwargs) -> DataprocSubmitJobOperator:
@@ -85,10 +79,57 @@ def generate_pyspark_job(step: str, **kwargs) -> DataprocSubmitJobOperator:
     )
 
 
-@task
-def task_ingest_finngen():
-    """Airflow task to ingest FinnGen."""
-    return generate_pyspark_job(
+default_args = {
+    "owner": "Open Targets Data Team",
+    # Tell airflow to start one day ago, so that it runs as soon as you upload it.
+    "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
+    "schedule_interval": "@once",
+    "project_id": project_id,
+    "catchup": False,
+    "retries": 1,
+}
+
+
+@dag(
+    dag_id="preprocess",
+    default_args=default_args,
+    description="Open Targets Genetics ETL workflow",
+    tags=["genetics_etl", "experimental"],
+)
+def create_dag() -> None:
+    """Preprocess DAG definition."""
+    create_cluster = DataprocCreateClusterOperator(
+        task_id="create_cluster",
+        project_id=project_id,
+        cluster_config=cluster_generator_config,
+        region=region,
+        cluster_name=cluster_name,
+        trigger_rule=TriggerRule.ALL_SUCCESS,
+    )
+
+    install_dependencies = DataprocSubmitJobOperator(
+        task_id="install_dependencies",
+        region=region,
+        project_id=project_id,
+        job={
+            "job_uuid": "airflow-install-dependencies",
+            "reference": {"project_id": project_id},
+            "placement": {"cluster_name": cluster_name},
+            "pig_job": {
+                "jar_file_uris": [
+                    f"gs://genetics_etl_python_playground/initialisation/{otg_version}/install_dependencies_on_cluster.sh"
+                ],
+                "query_list": {
+                    "queries": [
+                        "sh chmod 750 ${PWD}/install_dependencies_on_cluster.sh",
+                        "sh ${PWD}/install_dependencies_on_cluster.sh",
+                    ]
+                },
+            },
+        },
+    )
+
+    task_ingest_finngen = generate_pyspark_job(
         ingest_finngen,
         finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
         finngen_release_prefix="FINNGEN_R9",
@@ -97,3 +138,17 @@ def task_ingest_finngen():
         finngen_study_index_out=f"{outputs}/finngen_study_index",
         spark_write_mode=spark_write_mode,
     )
+
+    delete_cluster = DataprocDeleteClusterOperator(
+        task_id="delete_cluster",
+        project_id=project_id,
+        cluster_name=cluster_name,
+        region="europe-west1",
+        trigger_rule=TriggerRule.ALL_DONE,
+        deferrable=True,
+    )
+
+    create_cluster >> install_dependencies >> [task_ingest_finngen] >> delete_cluster
+
+
+create_dag()
