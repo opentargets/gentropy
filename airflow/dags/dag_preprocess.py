@@ -33,7 +33,7 @@ def create_dag() -> None:
         "ingest_finngen",
         finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
         finngen_release_prefix="FINNGEN_R9",
-        finngen_summary_stats_url_prefix="https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_",
+        finngen_summary_stats_url_prefix="gs://finngen-public-data-r9/summary_stats/finngen_R9_",
         finngen_summary_stats_url_suffix=".gz",
         finngen_study_index_out=f"{outputs}/preprocess/finngen/study_index",
         finngen_summary_stats_out=f"{outputs}/preprocess/finngen/summary_stats",
