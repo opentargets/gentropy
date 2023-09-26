@@ -66,7 +66,7 @@ class PICS:
             None
         """
         return (
-            abs(((1 - (abs(r2) ** 0.5) ** k) ** 0.5) * (neglog_p**0.5) / 2)
+            abs(((1 - (r2**0.5) ** k) ** 0.5) * (neglog_p**0.5) / 2)
             if r2 >= 0.5
             else None
         )
