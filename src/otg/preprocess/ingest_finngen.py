@@ -68,21 +68,18 @@ class StudyIndexFinnGen(StudyIndex):
                 f.col("phenostring").alias("traitFromSource"),
                 f.col("num_cases").alias("nCases"),
                 f.col("num_controls").alias("nControls"),
+                (f.col("num_cases") + f.col("num_controls")).alias("nSamples"),
                 f.lit(finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
                 f.lit("377,277 (210,870 females and 166,407 males)").alias(
                     "initialSampleSize"
                 ),
-            )
-            .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
-            .withColumn(
-                "summarystatsLocation",
                 f.concat(
                     f.lit(finngen_summary_stats_url_prefix),
-                    f.col("studyId"),
+                    f.col("phenocode"),
                     f.lit(finngen_summary_stats_url_suffix),
-                ),
+                ).alias("summarystatsLocation"),
             ),
             _schema=cls.get_schema(),
         )
