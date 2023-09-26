@@ -12,8 +12,6 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 
-from otg.preprocess.ingest_finngen import ingest_finngen
-
 # Cloud configuration.
 project_id = "open-targets-genetics-dev"
 region = "europe-west1"
@@ -22,13 +20,15 @@ image_version = "2.1"
 cluster_name = "otg-preprocess"
 
 # Executable configuration.
-otg_version = "0.1.4"
+otg_version = "0.2.0+tskir"
 initialisation_base_path = (
     f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
 )
 python_cli = f"{initialisation_base_path}/cli.py"
 package_wheel = f"{initialisation_base_path}/otgenetics-{otg_version}-py3-none-any.whl"
-initialisation_executable_file = [f"{initialisation_base_path}/initialise_cluster.sh"]
+initialisation_executable_file = [
+    f"{initialisation_base_path}/install_dependencies_on_cluster.sh"
+]
 
 # File path configuration.
 version = "XX.XX"
@@ -44,7 +44,7 @@ cluster_generator_config = ClusterGenerator(
     master_disk_size=100,
     worker_machine_type="n1-standard-16",
     worker_disk_size=200,
-    num_workers=1,
+    num_workers=2,
     image_version=image_version,
     enable_component_gateway=True,
     init_actions_uris=initialisation_executable_file,
@@ -81,12 +81,12 @@ def generate_pyspark_job(step: str, **kwargs) -> DataprocSubmitJobOperator:
 
 default_args = {
     "owner": "Open Targets Data Team",
-    # Tell airflow to start one day ago, so that it runs as soon as you upload it.
+    # Tell Airflow to start one day ago, so that it runs as soon as you upload it.
     "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
     "schedule_interval": "@once",
     "project_id": project_id,
     "catchup": False,
-    "retries": 1,
+    "retries": 0,
 }
 
 
@@ -130,7 +130,7 @@ def create_dag() -> None:
     )
 
     task_ingest_finngen = generate_pyspark_job(
-        ingest_finngen,
+        "ingest_finngen",
         finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
         finngen_release_prefix="FINNGEN_R9",
         finngen_sumstat_url_prefix="https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_",
@@ -151,4 +151,4 @@ def create_dag() -> None:
     create_cluster >> install_dependencies >> [task_ingest_finngen] >> delete_cluster
 
 
-create_dag()
+dag = create_dag()
