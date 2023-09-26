@@ -119,7 +119,7 @@ class SummaryStatisticsFinnGen(SummaryStatistics):
                 f.col("#chrom").alias("chromosome"),
                 f.col("pos").cast(t.IntegerType()).alias("position"),
                 # Parse p-value into mantissa and exponent.
-                *parse_pvalue(f.col("p_value")),
+                *parse_pvalue(f.col("pval")),
                 # Add beta, standard error, and allele frequency information.
                 f.col("beta"),
                 f.col("sebeta").alias("standardError"),
