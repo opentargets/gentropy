@@ -100,18 +100,18 @@ def test__finemap() -> None:
         {
             "variantId": "var1",
             "r2Overall": 0.8,
-            "pValueExponent": -8,
             "pValueMantissa": 1.0,
-            "standardError": 0.8294246485510745,
-            "posteriorProbability": 7.068873779583866e-134,
+            "pValueExponent": -8,
+            "standardError": 0.07420896512708416,
+            "posteriorProbability": 0.07116959886882368,
         },
         {
             "variantId": "var2",
             "r2Overall": 1,
-            "pValueExponent": -10,
             "pValueMantissa": 1.0,
+            "pValueExponent": -10,
             "standardError": 0.9977000638225533,
-            "posteriorProbability": 1.0,
+            "posteriorProbability": 0.9288304011311763,
         },
     ]
     for idx, tag in enumerate(result):  # type: ignore
