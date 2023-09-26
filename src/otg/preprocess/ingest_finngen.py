@@ -121,9 +121,9 @@ class SummaryStatisticsFinnGen(SummaryStatistics):
                 # Parse p-value into mantissa and exponent.
                 *parse_pvalue(f.col("pval")),
                 # Add beta, standard error, and allele frequency information.
-                f.col("beta"),
-                f.col("sebeta").alias("standardError"),
-                f.col("af_alt").alias("effectAlleleFrequencyFromSource"),
+                f.col("beta").cast("double"),
+                f.col("sebeta").cast("double").alias("standardError"),
+                f.col("af_alt").cast("float").alias("effectAlleleFrequencyFromSource"),
             )
             # Calculating the confidence intervals.
             .select(
