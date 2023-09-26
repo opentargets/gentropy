@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from pyspark.sql import SparkSession
 
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.study_index import StudyIndex
+from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -48,16 +50,16 @@ class StudyIndexFinnGen(StudyIndex):
         cls: type[StudyIndexFinnGen],
         finngen_studies: DataFrame,
         finngen_release_prefix: str,
-        finngen_sumstat_url_prefix: str,
-        finngen_sumstat_url_suffix: str,
+        finngen_summary_stats_url_prefix: str,
+        finngen_summary_stats_url_suffix: str,
     ) -> StudyIndexFinnGen:
         """This function ingests study level metadata from FinnGen.
 
         Args:
             finngen_studies (DataFrame): FinnGen raw study table
             finngen_release_prefix (str): Release prefix pattern.
-            finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
-            finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+            finngen_summary_stats_df_url_prefix (str): URL prefix for summary statistics location.
+            finngen_summary_stats_df_url_suffix (str): URL prefix suffix for summary statistics location.
 
         Returns:
             StudyIndexFinnGen: Parsed and annotated FinnGen study table.
@@ -81,21 +83,36 @@ class StudyIndexFinnGen(StudyIndex):
             .withColumn(
                 "summarystatsLocation",
                 f.concat(
-                    f.lit(finngen_sumstat_url_prefix),
+                    f.lit(finngen_summary_stats_url_prefix),
                     f.col("studyId"),
-                    f.lit(finngen_sumstat_url_suffix),
+                    f.lit(finngen_summary_stats_url_suffix),
                 ),
             ),
             _schema=cls.get_schema(),
         )
 
 
+@dataclass
+class SummaryStatisticsFinnGen(SummaryStatistics):
+    """Summary statistics dataset for FinnGen."""
+
+    @classmethod
+    def from_finngen_harmonized_summary_stats(
+        cls: type[SummaryStatistics],
+        summary_stats_df: DataFrame,
+        study_id: str,
+    ) -> SummaryStatistics:
+        """Ingests FinnGen summary statistics for one study."""
+        raise NotImplementedError
+
+
 def ingest_finngen(
     finngen_phenotype_table_url,
     finngen_release_prefix,
-    finngen_sumstat_url_prefix,
-    finngen_sumstat_url_suffix,
+    finngen_summary_stats_url_prefix,
+    finngen_summary_stats_url_suffix,
     finngen_study_index_out,
+    finngen_summary_stats_out,
     spark_write_mode,
 ):
     """Datasource ingestion: FinnGen.
@@ -103,9 +120,10 @@ def ingest_finngen(
     Args:
         finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
         finngen_release_prefix (str): Release prefix pattern.
-        finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
-        finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+        finngen_summary_stats_url_prefix (str): URL prefix for summary statistics location.
+        finngen_summary_stats_url_suffix (str): URL prefix suffix for summary statistics location.
         finngen_study_index_out (str): Output path for the FinnGen study index dataset.
+        finngen_summary_stats_out (str): Output path for the FinnGen summary statistics dataset.
         spark_write_mode (str): Dataframe write mode.
     """
     spark = SparkSession.builder.appName("ingest_finngen").getOrCreate()
@@ -116,15 +134,27 @@ def ingest_finngen(
     df = spark.read.json(rdd)
 
     # Parse the study index data.
-    finngen_studies = StudyIndexFinnGen.from_source(
+    finngen_study_index = StudyIndexFinnGen.from_source(
         df,
         finngen_release_prefix,
-        finngen_sumstat_url_prefix,
-        finngen_sumstat_url_suffix,
+        finngen_summary_stats_url_prefix,
+        finngen_summary_stats_url_suffix,
     )
 
-    # Write the output.
-    finngen_studies.df.write.mode(spark_write_mode).parquet(finngen_study_index_out)
+    # Write the study index output.
+    finngen_study_index.df.write.mode(spark_write_mode).parquet(finngen_study_index_out)
+    logging.info(f"Number of studies in the study index: {finngen_study_index.count()}")
+
+    # Process the summary statistics for each study in the study index.
+    for row in finngen_study_index.select("studyId", "summarystatsLocation").collect():
+        logging.info(
+            f"Processing {row.studyId} with summary statistics in {row.summarystatsLocation}"
+        )
+        summary_stats_df = spark.read.csv(row.summarystatsLocation, header=True)
+        out_filename = f"{finngen_summary_stats_out}/{row.studyId}.parquet"
+        SummaryStatistics.from_finngen_harmonized_summary_stats(
+            summary_stats_df, row.studyId
+        ).df.write.mode(spark_write_mode).parquet(out_filename)
 
 
 if __name__ == "__main__":
