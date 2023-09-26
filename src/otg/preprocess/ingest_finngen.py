@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
+logging.basicConfig(level=logging.INFO)
+
 
 @dataclass
 class StudyIndexFinnGen(StudyIndex):
@@ -166,7 +168,9 @@ def ingest_finngen(
         finngen_summary_stats_out (str): Output path for the FinnGen summary statistics dataset.
         spark_write_mode (str): Dataframe write mode.
     """
-    spark = SparkSession.builder.appName("ingest_finngen").getOrCreate()
+    spark = (
+        SparkSession.builder.master("local[*]").appName("ingest_finngen").getOrCreate()
+    )
 
     # Read the JSON data from the URL.
     json_data = urlopen(finngen_phenotype_table_url).read().decode("utf-8")
