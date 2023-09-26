@@ -1,4 +1,4 @@
-"""Variant index dataset."""
+"""Gene index dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,8 +13,6 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
-
 
 @dataclass
 class GeneIndex(Dataset):
@@ -22,8 +20,6 @@ class GeneIndex(Dataset):
 
     Gene-based annotation.
     """
-
-    _schema: StructType = parse_spark_schema("targets.json")
 
     @staticmethod
     def _get_gene_tss(strand_col: Column, start_col: Column, end_col: Column) -> Column:
@@ -52,6 +48,11 @@ class GeneIndex(Dataset):
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 
     @classmethod
+    def get_schema(cls: type[GeneIndex]) -> StructType:
+        """Provides the schema for the GeneIndex dataset."""
+        return parse_spark_schema("targets.json")
+
+    @classmethod
     def from_source(cls: type[GeneIndex], target_index: DataFrame) -> GeneIndex:
         """Initialise GeneIndex from source dataset.
 
@@ -75,22 +76,9 @@ class GeneIndex(Dataset):
                 "biotype",
                 "approvedSymbol",
                 "obsoleteSymbols",
-            )
+            ),
+            _schema=cls.get_schema(),
         )
-
-    @classmethod
-    def from_parquet(cls: type[GeneIndex], session: Session, path: str) -> GeneIndex:
-        """Initialise GeneIndex from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            GeneIndex: Gene index dataset
-        """
-        df = session.read_parquet(path=path, schema=cls._schema)
-        return cls(_df=df, _schema=cls._schema)
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> GeneIndex:
         """Filter by approved biotypes.

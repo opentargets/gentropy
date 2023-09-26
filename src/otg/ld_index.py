@@ -12,16 +12,19 @@ from otg.dataset.ld_index import LDIndex
 
 @dataclass
 class LDIndexStep(LDIndexStepConfig):
-    """LD index step."""
+    """LD index step.
+
+    !!! warning "This step is resource intensive"
+        Suggested params: high memory machine, 5TB of boot disk, no SSDs.
+
+    """
 
     session: Session = Session()
 
     def run(self: LDIndexStep) -> None:
         """Run LD index dump step."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
-
         ld_index = LDIndex.from_gnomad(
-            self.session,
             self.ld_populations,
             self.ld_matrix_template,
             self.ld_index_raw_template,
@@ -30,7 +33,7 @@ class LDIndexStep(LDIndexStepConfig):
         )
         self.session.logger.info(f"Writing LD index to: {self.ld_index_out}")
         (
-            ld_index.df.write.mode(self.session.write_mode).parquet(
-                f"{self.ld_index_out}"
-            )
+            ld_index.df.write.partitionBy("chromosome")
+            .mode(self.session.write_mode)
+            .parquet(f"{self.ld_index_out}")
         )

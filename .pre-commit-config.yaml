@@ -26,33 +26,16 @@ repos:
       - id: python-use-type-annotations
       - id: python-check-blanket-noqa
 
-  - repo: https://github.com/asottile/yesqa
-    rev: v1.5.0
-    hooks:
-      - id: yesqa
-        additional_dependencies: &flake8_deps
-          - flake8-annotations
-          - flake8-broken-line
-          - flake8-bugbear
-          - flake8-comprehensions
-          - flake8-eradicate
-          - flake8-quotes
-          - flake8-simplify
-          - flake8-tidy-imports
-          - flake8-type-checking
-          - flake8-typing-imports
-          - flake8-use-fstring
-          - flake8-class-attributes-order
-          - flake8-docstrings
-          - flake8-pytest-style
-          - pep8-naming
-          - darglint
-
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.1.5
+    rev: v2.2.2
     hooks:
       - id: pycln
         args: [--all]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.290
+    hooks:
+      - id: ruff
 
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
@@ -62,15 +45,9 @@ repos:
 
 
   - repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 23.9.1
     hooks:
       - id: black
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
-        additional_dependencies: *flake8_deps
 
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.5.0
@@ -80,7 +57,7 @@ repos:
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.4.1'
+    rev: 'v1.5.1'
     hooks:
       - id: mypy
 

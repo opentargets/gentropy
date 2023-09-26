@@ -74,7 +74,9 @@ def test_study_locus_overlaps(
     mock_study_locus: StudyLocus, mock_study_index: StudyIndex
 ) -> None:
     """Test study locus overlaps."""
-    assert isinstance(mock_study_locus.overlaps(mock_study_index), StudyLocusOverlap)
+    assert isinstance(
+        mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap
+    )
 
 
 def test_credible_set(mock_study_locus: StudyLocus) -> None:
@@ -172,7 +174,7 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     1,
                     "traitA",
                     "leadB",
-                    [{"tagVariantId": "tagVariantA", "posteriorProbability": 1.0}],
+                    [{"variantId": "tagVariantA", "posteriorProbability": 1.0}],
                 ),
             ],
             [
@@ -183,7 +185,7 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     "leadB",
                     [
                         {
-                            "tagVariantId": "tagVariantA",
+                            "variantId": "tagVariantA",
                             "posteriorProbability": 1.0,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
@@ -201,11 +203,11 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     "traitA",
                     "leadA",
                     [
-                        {"tagVariantId": "tagVariantA", "posteriorProbability": 0.44},
-                        {"tagVariantId": "tagVariantB", "posteriorProbability": 0.01},
-                        {"tagVariantId": "tagVariantC", "posteriorProbability": 0.04},
-                        {"tagVariantId": "tagVariantD", "posteriorProbability": 0.01},
-                        {"tagVariantId": "tagVariantE", "posteriorProbability": 0.5},
+                        {"variantId": "tagVariantA", "posteriorProbability": 0.44},
+                        {"variantId": "tagVariantB", "posteriorProbability": 0.01},
+                        {"variantId": "tagVariantC", "posteriorProbability": 0.04},
+                        {"variantId": "tagVariantD", "posteriorProbability": 0.01},
+                        {"variantId": "tagVariantE", "posteriorProbability": 0.5},
                     ],
                 )
             ],
@@ -217,19 +219,19 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                     "leadA",
                     [
                         {
-                            "tagVariantId": "tagVariantE",
+                            "variantId": "tagVariantE",
                             "posteriorProbability": 0.5,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
                         },
                         {
-                            "tagVariantId": "tagVariantA",
+                            "variantId": "tagVariantA",
                             "posteriorProbability": 0.44,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
                         },
                         {
-                            "tagVariantId": "tagVariantC",
+                            "variantId": "tagVariantC",
                             "posteriorProbability": 0.04,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
@@ -292,11 +294,11 @@ def test_annotate_credible_sets(
             StructField("studyId", StringType(), True),
             StructField("variantId", StringType(), True),
             StructField(
-                "credibleSet",
+                "locus",
                 ArrayType(
                     StructType(
                         [
-                            StructField("tagVariantId", StringType(), True),
+                            StructField("variantId", StringType(), True),
                             StructField("posteriorProbability", DoubleType(), True),
                             StructField("is95CredibleSet", BooleanType(), True),
                             StructField("is99CredibleSet", BooleanType(), True),
@@ -308,7 +310,9 @@ def test_annotate_credible_sets(
         ]
     )
     data_sl = StudyLocus(
-        _df=spark.createDataFrame(observed, schema)
+        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
     ).annotate_credible_sets()
-    expected_sl = StudyLocus(_df=spark.createDataFrame(expected, schema))
+    expected_sl = StudyLocus(
+        _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
+    )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()

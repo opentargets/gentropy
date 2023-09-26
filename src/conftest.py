@@ -8,7 +8,7 @@ from pyspark.sql import SparkSession
 
 
 @pytest.fixture(scope="session", autouse=True)
-def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
+def spark(doctest_namespace: dict[str, Any], tmp_path_factory: Any) -> SparkSession:
     """Local spark session for testing purposes.
 
     It returns a session and make it available to doctests through
@@ -23,6 +23,9 @@ def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
     # init spark session
     spark = (
         SparkSession.builder.master("local[1]")
+        .config("spark.driver.bindAddress", "127.0.0.1")
+        .config("spark.executor.cores", "1")
+        .config("spark.executor.instances", "1")
         # no shuffling
         .config("spark.sql.shuffle.partitions", "1")
         # ui settings
@@ -37,6 +40,11 @@ def spark(doctest_namespace: dict[str, Any]) -> SparkSession:
         .config("spark.worker.ui.retainedDrivers", "1")
         # fixed memory
         .config("spark.driver.memory", "2g")
+        .config("spark.sql.warehouse.dir", tmp_path_factory.mktemp("warehouse"))
+        .config(
+            "spark.driver.extraJavaOptions",
+            "-Dderby.system.home={tmp_path_factory.mktemp('derby')}",
+        )
         .appName("test")
         .getOrCreate()
     )

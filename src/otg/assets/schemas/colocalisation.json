@@ -2,13 +2,13 @@
   "type": "struct",
   "fields": [
     {
-      "name": "left_studyLocusId",
+      "name": "leftStudyLocusId",
       "nullable": false,
       "type": "long",
       "metadata": {}
     },
     {
-      "name": "right_studyLocusId",
+      "name": "rightStudyLocusId",
       "nullable": false,
       "type": "long",
       "metadata": {}
@@ -26,43 +26,43 @@
       "metadata": {}
     },
     {
-      "name": "coloc_n_vars",
+      "name": "numberColocalisingVariants",
       "type": "long",
       "nullable": false,
       "metadata": {}
     },
     {
-      "name": "coloc_h0",
+      "name": "h0",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "coloc_h1",
+      "name": "h1",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "coloc_h2",
+      "name": "h2",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "coloc_h3",
+      "name": "h3",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "coloc_h4",
+      "name": "h4",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "coloc_log2_h4_h3",
+      "name": "log2h4h3",
       "type": "double",
       "nullable": true,
       "metadata": {}

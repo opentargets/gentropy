@@ -71,17 +71,18 @@ class ECaviar:
                 overlapping_signals.df.withColumn(
                     "clpp",
                     ECaviar._get_clpp(
-                        f.col("left_posteriorProbability"),
-                        f.col("right_posteriorProbability"),
+                        f.col("statistics.left_posteriorProbability"),
+                        f.col("statistics.right_posteriorProbability"),
                     ),
                 )
-                .groupBy("left_studyLocusId", "right_studyLocusId", "chromosome")
+                .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
                 .agg(
-                    f.count("*").alias("coloc_n_vars"),
+                    f.count("*").alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
                 )
                 .withColumn("colocalisationMethod", f.lit("eCAVIAR"))
-            )
+            ),
+            _schema=Colocalisation.get_schema(),
         )
 
 
@@ -170,19 +171,22 @@ class Coloc:
             _df=(
                 overlapping_signals.df
                 # Before summing log_abf columns nulls need to be filled with 0:
-                .fillna(0, subset=["left_logABF", "right_logABF"])
+                .fillna(0, subset=["statistics.left_logABF", "statistics.right_logABF"])
                 # Sum of log_abfs for each pair of signals
-                .withColumn("sum_log_abf", f.col("left_logABF") + f.col("right_logABF"))
+                .withColumn(
+                    "sum_log_abf",
+                    f.col("statistics.left_logABF") + f.col("statistics.right_logABF"),
+                )
                 # Group by overlapping peak and generating dense vectors of log_abf:
-                .groupBy("chromosome", "left_studyLocusId", "right_studyLocusId")
+                .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId")
                 .agg(
-                    f.count("*").alias("coloc_n_vars"),
-                    fml.array_to_vector(f.collect_list(f.col("left_logABF"))).alias(
-                        "left_logABF"
-                    ),
-                    fml.array_to_vector(f.collect_list(f.col("right_logABF"))).alias(
-                        "right_logABF"
-                    ),
+                    f.count("*").alias("numberColocalisingVariants"),
+                    fml.array_to_vector(
+                        f.collect_list(f.col("statistics.left_logABF"))
+                    ).alias("left_logABF"),
+                    fml.array_to_vector(
+                        f.collect_list(f.col("statistics.right_logABF"))
+                    ).alias("right_logABF"),
                     fml.array_to_vector(f.collect_list(f.col("sum_log_abf"))).alias(
                         "sum_log_abf"
                     ),
@@ -246,18 +250,18 @@ class Coloc:
                 .withColumn(
                     "posteriors", fml.vector_to_array(posteriors(f.col("allABF")))
                 )
-                .withColumn("coloc_h0", f.col("posteriors").getItem(0))
-                .withColumn("coloc_h1", f.col("posteriors").getItem(1))
-                .withColumn("coloc_h2", f.col("posteriors").getItem(2))
-                .withColumn("coloc_h3", f.col("posteriors").getItem(3))
-                .withColumn("coloc_h4", f.col("posteriors").getItem(4))
-                .withColumn("coloc_h4_h3", f.col("coloc_h4") / f.col("coloc_h3"))
-                .withColumn("coloc_log2_h4_h3", f.log2(f.col("coloc_h4_h3")))
+                .withColumn("h0", f.col("posteriors").getItem(0))
+                .withColumn("h1", f.col("posteriors").getItem(1))
+                .withColumn("h2", f.col("posteriors").getItem(2))
+                .withColumn("h3", f.col("posteriors").getItem(3))
+                .withColumn("h4", f.col("posteriors").getItem(4))
+                .withColumn("h4h3", f.col("h4") / f.col("h3"))
+                .withColumn("log2h4h3", f.log2(f.col("h4h3")))
                 # clean up
                 .drop(
                     "posteriors",
                     "allABF",
-                    "coloc_h4_h3",
+                    "h4h3",
                     "lH0abf",
                     "lH1abf",
                     "lH2abf",
@@ -265,5 +269,6 @@ class Coloc:
                     "lH4abf",
                 )
                 .withColumn("colocalisationMethod", f.lit("COLOC"))
-            )
+            ),
+            _schema=Colocalisation.get_schema(),
         )
