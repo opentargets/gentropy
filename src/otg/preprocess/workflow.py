@@ -6,6 +6,7 @@ from airflow.decorators import task
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
+    DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
 
@@ -33,7 +34,6 @@ inputs = "gs://genetics_etl_python_playground/input"
 outputs = f"gs://genetics_etl_python_playground/output/python_etl/parquet/{version}"
 spark_write_mode = "overwrite"
 
-
 # Setting up Dataproc cluster.
 cluster_generator_config = ClusterGenerator(
     project_id=project_id,
@@ -60,10 +60,36 @@ create_cluster = DataprocCreateClusterOperator(
 )
 
 
+def generate_pyspark_job(step: str, **kwargs) -> DataprocSubmitJobOperator:
+    """Generates a PySpark Dataproc job given step name and its parameters."""
+    return DataprocSubmitJobOperator(
+        task_id=f"job-{step}",
+        region=region,
+        project_id=project_id,
+        job={
+            "job_uuid": f"airflow-{step}",
+            "reference": {"project_id": project_id},
+            "placement": {"cluster_name": cluster_name},
+            "pyspark_job": {
+                "main_python_file_uri": f"{initialisation_base_path}/preprocess/{step}.py",
+                "args": list(map(str, kwargs.values())),
+                "properties": {
+                    "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                    "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                    "spark.executor.extraClassPath": "./hail-all-spark.jar",
+                    "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+                    "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
+                },
+            },
+        },
+    )
+
+
 @task
 def task_ingest_finngen():
     """Airflow task to ingest FinnGen."""
-    ingest_finngen(
+    return generate_pyspark_job(
+        ingest_finngen,
         finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
         finngen_release_prefix="FINNGEN_R9",
         finngen_sumstat_url_prefix="https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_",
