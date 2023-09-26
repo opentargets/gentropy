@@ -111,12 +111,12 @@ class SummaryStatisticsFinnGen(SummaryStatistics):
                 # Add variant information.
                 f.concat_ws(
                     "_",
-                    f.col("chrom"),
+                    f.col("#chrom"),
                     f.col("pos"),
                     f.col("ref"),
                     f.col("alt"),
                 ).alias("variantId"),
-                f.col("chrom").alias("chromosome"),
+                f.col("#chrom").alias("chromosome"),
                 f.col("pos").cast(t.IntegerType()).alias("position"),
                 # Parse p-value into mantissa and exponent.
                 *parse_pvalue(f.col("p_value")),
