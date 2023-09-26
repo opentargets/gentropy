@@ -1,4 +1,11 @@
 {
+  "black-formatter.args": [
+    "--line-length",
+    "9999"
+  ],
+  "flake8.args": [
+    "--max-line-length=9999"
+  ],
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnPaste": false,
