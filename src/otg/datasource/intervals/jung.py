@@ -9,59 +9,64 @@ import pyspark.sql.types as t
 from otg.dataset.intervals import Intervals
 
 if TYPE_CHECKING:
+    from pyspark.sql import DataFrame, SparkSession
+
     from otg.common.Liftover import LiftOverSpark
-    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
 
 
 class IntervalsJung(Intervals):
     """Interval dataset from Jung et al. 2019."""
 
+    @staticmethod
+    def read_jung(spark: SparkSession, path: str):
+        """Read jung dataset.
+
+        Args:
+            spark (SparkSession): Spark session
+            path (str): Path to dataset
+
+        Returns:
+            DataFrame: DataFrame with raw jung data
+        """
+        return spark.read.csv(path, sep=",", header=True)
+
     @classmethod
     def parse(
         cls: type[IntervalsJung],
-        session: Session,
-        path: str,
+        jung_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
     ) -> Intervals:
         """Parse the Jung et al. 2019 dataset.
 
         Args:
-            session (Session): session
-            path (str): path to the Jung et al. 2019 dataset
+            jung_raw (DataFrame): raw Jung et al. 2019 dataset
             gene_index (GeneIndex): gene index
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            Intervals: _description_
+            Intervals: Interval dataset containing Jung et al. 2019 data
         """
-        dataset_name = "javierre2016"
+        dataset_name = "jung2019"
         experiment_type = "pchic"
-        pmid = "27863249"
-
-        session.logger.info("Parsing Jung 2019 data...")
-        session.logger.info(f"Reading data from {path}")
-
-        # Read Jung data:
-        jung_raw = (
-            session.spark.read.csv(path, sep=",", header=True)
-            .withColumn("interval", f.split(f.col("Interacting_fragment"), r"\."))
-            .select(
-                # Parsing intervals:
-                f.regexp_replace(f.col("interval")[0], "chr", "").alias("chrom"),
-                f.col("interval")[1].cast(t.IntegerType()).alias("start"),
-                f.col("interval")[2].cast(t.IntegerType()).alias("end"),
-                # Extract other columns:
-                f.col("Promoter").alias("gene_name"),
-                f.col("Tissue_type").alias("tissue"),
-            )
-        )
+        pmid = "31501517"
 
         # Lifting over the coordinates:
         return cls(
             _df=(
-                jung_raw
+                jung_raw.withColumn(
+                    "interval", f.split(f.col("Interacting_fragment"), r"\.")
+                )
+                .select(
+                    # Parsing intervals:
+                    f.regexp_replace(f.col("interval")[0], "chr", "").alias("chrom"),
+                    f.col("interval")[1].cast(t.IntegerType()).alias("start"),
+                    f.col("interval")[2].cast(t.IntegerType()).alias("end"),
+                    # Extract other columns:
+                    f.col("Promoter").alias("gene_name"),
+                    f.col("Tissue_type").alias("tissue"),
+                )
                 # Lifting over to GRCh38 interval 1:
                 .transform(
                     lambda df: lift.convert_intervals(df, "chrom", "start", "end")
@@ -83,8 +88,8 @@ class IntervalsJung(Intervals):
                 # Finalize dataset:
                 .select(
                     "chromosome",
-                    "start",
-                    "end",
+                    f.col("intervals.start").alias("start"),
+                    f.col("intervals.end").alias("end"),
                     "geneId",
                     f.col("tissue").alias("biofeature"),
                     f.lit(1.0).alias("score"),

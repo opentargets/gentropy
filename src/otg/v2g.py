@@ -14,7 +14,7 @@ from otg.dataset.variant_index import VariantIndex
 from otg.datasource.intervals.andersson import IntervalsAndersson
 from otg.datasource.intervals.javierre import IntervalsJavierre
 from otg.datasource.intervals.jung import IntervalsJung
-from otg.datasource.intervals.thurman import IntervalsThurman
+from otg.datasource.intervals.thurnman import IntervalsThurnman
 
 
 @dataclass
@@ -52,6 +52,7 @@ class V2GStep(V2GStepConfig):
             self.liftover_chain_file_path, self.liftover_max_length_difference
         )
 
+        # Expected andersson et al. schema:
         v2g_datasets = [
             va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
             # variant effects
@@ -61,16 +62,24 @@ class V2GStep(V2GStepConfig):
             va_slimmed.get_plof_v2g(gene_index_filtered),
             # intervals
             IntervalsAndersson.parse(
-                self.session, self.anderson_path, gene_index_filtered, lift
+                IntervalsAndersson.read_andersson(self.session, self.anderson_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
             IntervalsJavierre.parse(
-                self.session, self.javierre_path, gene_index_filtered, lift
+                IntervalsJavierre.read_javierre(self.session, self.javierre_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
             IntervalsJung.parse(
-                self.session, self.jung_path, gene_index_filtered, lift
+                IntervalsJung.read_jung(self.session, self.jung_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
-            IntervalsThurman.parse(
-                self.session, self.thurnman_path, gene_index_filtered, lift
+            IntervalsThurnman.parse(
+                IntervalsThurnman.read_thurnman(self.session, self.thurnman_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
         ]
 

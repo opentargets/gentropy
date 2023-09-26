@@ -9,19 +9,32 @@ import pyspark.sql.types as t
 from otg.dataset.intervals import Intervals
 
 if TYPE_CHECKING:
+    from pyspark.sql import DataFrame, SparkSession
+
     from otg.common.Liftover import LiftOverSpark
-    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
 
 
 class IntervalsJavierre(Intervals):
     """Interval dataset from Javierre et al. 2016."""
 
+    @staticmethod
+    def read_javierre(spark: SparkSession, path: str):
+        """Read Javierre dataset.
+
+        Args:
+            spark (SparkSession): Spark session
+            path (str): Path to dataset
+
+        Returns:
+            DataFrame: DataFrame with raw Javierre data
+        """
+        return spark.read.parquet(path)
+
     @classmethod
     def parse(
         cls: type[IntervalsJavierre],
-        session: Session,
-        path: str,
+        javierre_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
     ) -> Intervals:
@@ -42,12 +55,9 @@ class IntervalsJavierre(Intervals):
         pmid = "27863249"
         twosided_threshold = 2.45e6
 
-        session.logger.info("Parsing Javierre 2016 data...")
-        session.logger.info(f"Reading data from {path}")
-
         # Read Javierre data:
-        javierre_raw = (
-            session.spark.read.parquet(path)
+        javierre_parsed = (
+            javierre_raw
             # Splitting name column into chromosome, start, end, and score:
             .withColumn("name_split", f.split(f.col("name"), r":|-|,"))
             .withColumn(
@@ -77,7 +87,7 @@ class IntervalsJavierre(Intervals):
 
         # Lifting over intervals:
         javierre_remapped = (
-            javierre_raw
+            javierre_parsed
             # Lifting over to GRCh38 interval 1:
             .transform(lambda df: lift.convert_intervals(df, "chrom", "start", "end"))
             .drop("start", "end")
@@ -98,30 +108,35 @@ class IntervalsJavierre(Intervals):
 
         # Once the intervals are lifted, extracting the unique intervals:
         unique_intervals_with_genes = (
-            javierre_remapped.alias("intervals")
-            .select(
+            javierre_remapped.select(
                 f.col("chrom"),
                 f.col("start").cast(t.IntegerType()),
                 f.col("end").cast(t.IntegerType()),
             )
             .distinct()
+            .alias("intervals")
             .join(
                 gene_index.locations_lut().alias("genes"),
-                on=[f.col("intervals.chrom") == f.col("genes.chromosome")],
+                on=[
+                    f.col("intervals.chrom") == f.col("genes.chromosome"),
+                    (
+                        (f.col("intervals.start") >= f.col("genes.start"))
+                        & (f.col("intervals.start") <= f.col("genes.end"))
+                    )
+                    | (
+                        (f.col("intervals.end") >= f.col("genes.start"))
+                        & (f.col("intervals.end") <= f.col("genes.end"))
+                    ),
+                ],
                 how="left",
             )
-            # TODO: add filter as part of the join condition
-            .filter(
-                (
-                    (f.col("start") >= f.col("genomicLocation.start"))
-                    & (f.col("start") <= f.col("genomicLocation.end"))
-                )
-                | (
-                    (f.col("end") >= f.col("genomicLocation.start"))
-                    & (f.col("end") <= f.col("genomicLocation.end"))
-                )
+            .select(
+                f.col("intervals.chrom").alias("chrom"),
+                f.col("intervals.start").alias("start"),
+                f.col("intervals.end").alias("end"),
+                f.col("genes.geneId").alias("geneId"),
+                f.col("genes.tss").alias("tss"),
             )
-            .select("chrom", "start", "end", "geneId", "tss")
         )
 
         # Joining back the data:
@@ -138,17 +153,15 @@ class IntervalsJavierre(Intervals):
                     <= twosided_threshold
                 )
                 # For each gene, keep only the highest scoring interval:
-                .groupBy(
-                    "name_chr", "name_start", "name_end", "genes.geneId", "bio_feature"
-                )
+                .groupBy("name_chr", "name_start", "name_end", "geneId", "bio_feature")
                 .agg(f.max(f.col("name_score")).alias("resourceScore"))
                 # Create the output:
                 .select(
                     f.col("name_chr").alias("chromosome"),
                     f.col("name_start").alias("start"),
                     f.col("name_end").alias("end"),
-                    f.col("resourceScore"),
-                    f.col("genes.geneId").alias("geneId"),
+                    f.col("resourceScore").cast(t.DoubleType()),
+                    f.col("geneId"),
                     f.col("bio_feature").alias("biofeature"),
                     f.lit(dataset_name).alias("datasourceId"),
                     f.lit(experiment_type).alias("datatypeId"),

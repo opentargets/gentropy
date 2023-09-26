@@ -12,19 +12,35 @@ from otg.assets import schemas
 from otg.dataset.intervals import Intervals
 
 if TYPE_CHECKING:
+    from pyspark.sql import DataFrame, SparkSession
+
     from otg.common.Liftover import LiftOverSpark
-    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
 
 
 class IntervalsAndersson(Intervals):
     """Interval dataset from Andersson et al. 2014."""
 
+    @staticmethod
+    def read_andersson(spark: SparkSession, path: str):
+        """Read andersson2014 dataset."""
+        input_schema = t.StructType.fromJson(
+            json.loads(
+                pkg_resources.read_text(schemas, "andersson2014.json", encoding="utf-8")
+            )
+        )
+        return (
+            spark.read.option("delimiter", "\t")
+            .option("mode", "DROPMALFORMED")
+            .option("header", "true")
+            .schema(input_schema)
+            .csv(path)
+        )
+
     @classmethod
     def parse(
         cls: type[IntervalsAndersson],
-        session: Session,
-        path: str,
+        raw_anderson_df: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
     ) -> Intervals:
@@ -46,22 +62,9 @@ class IntervalsAndersson(Intervals):
         bio_feature = "aggregate"
         twosided_threshold = 2.45e6  # <-  this needs to phased out. Filter by percentile instead of absolute value.
 
-        session.logger.info("Parsing Andersson 2014 data...")
-        session.logger.info(f"Reading data from {path}")
-
-        # Expected andersson et al. schema:
-        input_schema = t.StructType.fromJson(
-            json.loads(
-                pkg_resources.read_text(schemas, "andersson2014.json", encoding="utf-8")
-            )
-        )
-
         # Read the anderson file:
         parsed_anderson_df = (
-            session.spark.read.option("delimiter", "\t")
-            .option("header", "true")
-            .schema(input_schema)
-            .csv(path)
+            raw_anderson_df
             # Parsing score column and casting as float:
             .withColumn("score", f.col("score").cast("float") / f.lit(1000))
             # Parsing the 'name' column:
@@ -102,23 +105,22 @@ class IntervalsAndersson(Intervals):
                 .alias("intervals")
                 .join(
                     gene_index.symbols_lut().alias("genes"),
-                    on=[f.col("intervals.gene_symbol") == f.col("genes.geneSymbol")],
+                    on=[
+                        f.col("intervals.gene_symbol") == f.col("genes.geneSymbol"),
+                        # Drop rows where the TSS is far from the start of the region
+                        f.abs(
+                            (f.col("intervals.start") + f.col("intervals.end")) / 2
+                            - f.col("tss")
+                        )
+                        <= twosided_threshold,
+                    ],
                     how="left",
-                )
-                .filter(
-                    # Drop rows where the gene is not on the same chromosome
-                    (f.col("chrom") == f.col("chromosome"))
-                    # Drop rows where the TSS is far from the start of the region
-                    & (
-                        f.abs((f.col("start") + f.col("end")) / 2 - f.col("tss"))
-                        <= twosided_threshold
-                    )
                 )
                 # Select relevant columns:
                 .select(
-                    "chromosome",
-                    "start",
-                    "end",
+                    f.col("chrom").alias("chromosome"),
+                    f.col("intervals.start").alias("start"),
+                    f.col("intervals.end").alias("end"),
                     "geneId",
                     "resourceScore",
                     f.lit(dataset_name).alias("datasourceId"),

@@ -24,7 +24,7 @@ class GeneIndex(Dataset):
     @classmethod
     def get_schema(cls: type[GeneIndex]) -> StructType:
         """Provides the schema for the GeneIndex dataset."""
-        return parse_spark_schema("targets.json")
+        return parse_spark_schema("gene_index.json")
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> GeneIndex:
         """Filter by approved biotypes.
@@ -47,6 +47,9 @@ class GeneIndex(Dataset):
         return self.df.select(
             "geneId",
             "chromosome",
+            "start",
+            "end",
+            "strand",
             "tss",
         )
 
@@ -60,8 +63,8 @@ class GeneIndex(Dataset):
             DataFrame: Gene LUT for symbol mapping containing `geneId` and `geneSymbol` columns.
         """
         return self.df.select(
-            "geneId",
             f.explode(
                 f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
             ).alias("geneSymbol"),
+            "*",
         )

@@ -57,9 +57,9 @@ class OpenTargetsTarget:
                     f.col("genomicLocation.start"),
                     f.col("genomicLocation.end"),
                 ).alias("tss"),
-                "biotype",
-                "approvedSymbol",
-                "obsoleteSymbols",
+                f.col("genomicLocation.start").alias("start"),
+                f.col("genomicLocation.end").alias("end"),
+                f.col("genomicLocation.strand").alias("strand"),
             ),
             _schema=GeneIndex.get_schema(),
         )

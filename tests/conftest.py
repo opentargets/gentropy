@@ -5,6 +5,7 @@ import dbldatagen as dg
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
+from otg.common.Liftover import LiftOverSpark
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
@@ -521,6 +522,15 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
         .withColumnSpec("biotype", percentNulls=0.1)
         .withColumnSpec("approvedName", percentNulls=0.1)
         .withColumnSpec("tss", percentNulls=0.1)
+        .withColumnSpec("start", percentNulls=0.1)
+        .withColumnSpec("end", percentNulls=0.1)
+        .withColumnSpec("strand", percentNulls=0.1)
     )
 
     return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
+
+
+@pytest.fixture()
+def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
+    """Sample liftover chain file."""
+    return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")
