@@ -103,16 +103,14 @@ def ingest_finngen_summary_stats(
     summary_stats_df = (
         spark.read.option("delimiter", "\t")
         .csv(finngen_summary_stats_location, header=True)
-        .repartition(400)
+        .repartition("#chrom")
     )
 
     # Process and output the data.
     out_filename = f"{finngen_summary_stats_out}/{finngen_study_id}"
     SummaryStatisticsFinnGen.from_finngen_harmonized_summary_stats(
         summary_stats_df, finngen_study_id
-    ).df.sortWithinPartitions("chromosome", "position").write.partitionBy(
-        "chromosome"
-    ).mode(
+    ).df.sortWithinPartitions("position").write.partitionBy("chromosome").mode(
         spark_write_mode
     ).parquet(
         out_filename

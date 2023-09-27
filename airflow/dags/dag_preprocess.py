@@ -98,7 +98,7 @@ def create_dag() -> None:
                     },
                 }
                 job_list.append(d)
-            return job_list[:4]
+            return job_list[:16]
 
         expandable_operator = DataprocSubmitJobOperator.partial(
             task_id="finngen_sumstats",
