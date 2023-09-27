@@ -102,9 +102,7 @@ def ingest_finngen_study_index(
         finngen_study_index_out (str): Output path for the FinnGen study index dataset.
         spark_write_mode (str): Dataframe write mode.
     """
-    spark = (
-        SparkSession.builder.master("local[*]").appName("ingest_finngen").getOrCreate()
-    )
+    spark = SparkSession.builder.master("yarn").appName("ingest_finngen").getOrCreate()
 
     # Read the JSON data from the URL.
     json_data = urlopen(finngen_phenotype_table_url).read().decode("utf-8")

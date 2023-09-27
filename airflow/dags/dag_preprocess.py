@@ -9,6 +9,7 @@ from airflow.decorators import dag, task, task_group
 from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
 from common import (
     generate_create_cluster_task,
+    generate_delete_cluster_task,
     generate_pyspark_job,
     outputs,
     read_parquet_from_path,
@@ -46,7 +47,7 @@ def create_dag() -> None:
     """Preprocess DAG definition."""
     # Common operations.
     create_cluster = generate_create_cluster_task(cluster_name)
-    # # delete_cluster = generate_delete_cluster_task(cluster_name)
+    delete_cluster = generate_delete_cluster_task(cluster_name)
 
     # FinnGen ingestion.
     finngen_study_index = f"{outputs}/preprocess/finngen/study_index"
@@ -97,7 +98,7 @@ def create_dag() -> None:
                     },
                 }
                 job_list.append(d)
-            return job_list[:2]
+            return job_list[:4]
 
         expandable_operator = DataprocSubmitJobOperator.partial(
             task_id="finngen_sumstats",
@@ -130,7 +131,12 @@ def create_dag() -> None:
     # create_cluster >> all_summary_stats_operators
 
     #
-    create_cluster >> ingest_finngen_study_index >> ingest_finngen_summary_stats()
+    (
+        create_cluster
+        >> ingest_finngen_study_index
+        >> ingest_finngen_summary_stats()
+        >> delete_cluster
+    )
 
 
 create_dag()

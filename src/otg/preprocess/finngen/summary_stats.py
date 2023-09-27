@@ -94,9 +94,7 @@ def ingest_finngen_summary_stats(
         finngen_summary_stats_out (str): Output path for the FinnGen summary statistics dataset.
         spark_write_mode (str): Dataframe write mode.
     """
-    spark = (
-        SparkSession.builder.master("local[*]").appName("ingest_finngen").getOrCreate()
-    )
+    spark = SparkSession.builder.master("yarn").appName("ingest_finngen").getOrCreate()
 
     # Ingest the data.
     logging.info(
