@@ -5,20 +5,15 @@ from __future__ import annotations
 import os
 from functools import partial
 
-import pandas as pd
 from airflow.decorators import dag, task
 from common import (
     default_dag_args,
     generate_create_cluster_task,
     generate_pyspark_job,
-    google_application_credentials,
     outputs,
-    project_id,
+    read_parquet_from_path,
     spark_write_mode,
 )
-
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_application_credentials
-os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 
 # Workflow specific configuration.
 cluster_name = "otg-preprocess"
@@ -56,7 +51,7 @@ def create_dag() -> None:
         print(">>>>>>>>>>>> THIS IS THE NEW VERSION")
         print(os.environ["GOOGLE_APPLICATION_CREDENTIALS"])
         print(finngen_study_index)
-        df = pd.read_parquet(finngen_study_index)
+        df = read_parquet_from_path(finngen_study_index)
         # with gcsfs.GCSFileSystem(project=project_id).open(finngen_study_index) as f:
         #     df = pd.read_parquet(f)
         selected_columns = df[["studyId", "summarystatsLocation"]]

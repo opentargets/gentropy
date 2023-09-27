@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
+import gcsfs
+import pandas as pd
 import pendulum
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
@@ -11,11 +15,6 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 
-# Location of Google Application Credentials inside Docker — this is fixed and needs to be set explicitly.
-google_application_credentials = (
-    "/opt/airflow/config/application_default_credentials.json"
-)
-
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
 otg_version = "0.2.0+tskir"
 
@@ -24,6 +23,12 @@ project_id = "open-targets-genetics-dev"
 region = "europe-west1"
 zone = "europe-west1-d"
 image_version = "2.1"
+google_application_credentials = (
+    "/opt/airflow/config/application_default_credentials.json"
+)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_application_credentials
+os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+
 
 # Executable configuration.
 initialisation_base_path = (
@@ -112,3 +117,15 @@ default_dag_args = {
     "catchup": False,
     "retries": 0,
 }
+
+
+# Utilities for working with Google Cloud Storage.
+
+
+def read_parquet_from_path(path):
+    """Recursively reads all parquet files from a Google Storage path and combines them into a single Pandas dataframe."""
+    all_parquet_files = [
+        f"gs://{f}" for f in gcsfs.GCSFileSystem().ls(path) if f.endswith(".parquet")
+    ]
+    full_df = pd.concat(pd.read_parquet(filename) for filename in all_parquet_files)
+    return full_df
