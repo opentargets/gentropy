@@ -13,7 +13,7 @@ otg = "otg.cli:main"
 
 [tool.poetry.dependencies]
 python = "3.10.8"
-pyspark = "3.3.0"
+pyspark = "3.3.2"
 scipy = "^1.6.1"
 hydra-core = "^1.2.0"
 pyliftover = "^0.4"

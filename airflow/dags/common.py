@@ -52,9 +52,9 @@ def generate_create_cluster_task(cluster_name):
     cluster_generator_config = ClusterGenerator(
         project_id=project_id,
         zone=zone,
-        master_machine_type="n1-standard-4",
+        master_machine_type="n1-highmem-32",
         worker_machine_type="n1-standard-16",
-        master_disk_size=200,
+        master_disk_size=1000,
         worker_disk_size=500,
         num_workers=16,
         num_local_ssds=1,

@@ -42,8 +42,8 @@ initialisation_executable_file = [
     start_date=pendulum.now(tz="Europe/London").subtract(days=1),
     schedule_interval="@once",
     catchup=False,
-    max_active_tasks=32,  # didn't help
-    concurrency=32,  # didn't help
+    max_active_tasks=16,  # didn't help
+    concurrency=16,  # didn't help
     max_active_runs=1,  # ???
 )
 def create_dag() -> None:
@@ -101,7 +101,7 @@ def create_dag() -> None:
                     },
                 }
                 job_list.append(d)
-            return job_list[:32]
+            return job_list[:64]
 
         expandable_operator = DataprocSubmitJobOperator.partial(
             task_id="finngen_sumstats",
