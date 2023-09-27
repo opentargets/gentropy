@@ -5,23 +5,19 @@ from __future__ import annotations
 from functools import partial
 
 import pendulum
-from airflow.decorators import dag
+from airflow.decorators import dag, task, task_group
 from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
 from common import (
     generate_create_cluster_task,
     generate_pyspark_job,
     outputs,
     read_parquet_from_path,
+    spark_write_mode,
 )
 
 # Workflow specific configuration.
 cluster_name = "otg-preprocess"
 generate_pyspark_job_partial = partial(generate_pyspark_job, cluster_name)
-
-
-expandable_operator = DataprocSubmitJobOperator.partial(
-    task_id="sumstats", region="europe-west1", project_id="open-targets-genetics-dev"
-)
 
 
 # Temporary duplicated
@@ -55,15 +51,16 @@ def create_dag() -> None:
     # FinnGen ingestion.
     finngen_study_index = f"{outputs}/preprocess/finngen/study_index"
 
-    # ingest_finngen_study_index = generate_pyspark_job_partial(
-    #     "finngen/study_index",
-    #     finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
-    #     finngen_release_prefix="FINNGEN_R9",
-    #     finngen_summary_stats_url_prefix="gs://finngen-public-data-r9/summary_stats/finngen_R9_",
-    #     finngen_summary_stats_url_suffix=".gz",
-    #     finngen_study_index_out=finngen_study_index,
-    #     spark_write_mode=spark_write_mode,
-    # )
+    ingest_finngen_study_index = generate_pyspark_job_partial(
+        "ingest_study_index",
+        "finngen/study_index.py",
+        finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
+        finngen_release_prefix="FINNGEN_R9",
+        finngen_summary_stats_url_prefix="gs://finngen-public-data-r9/summary_stats/finngen_R9_",
+        finngen_summary_stats_url_suffix=".gz",
+        finngen_study_index_out=finngen_study_index,
+        spark_write_mode=spark_write_mode,
+    )
 
     # @task
     # def list_studies_for_summary_stats_ingestion():
@@ -73,43 +70,41 @@ def create_dag() -> None:
     #     result_list = [list(x) for x in selected_columns.to_records(index=False)]
     #     return result_list[:2]
 
-    def job_list_studies_for_summary_stats_ingestion():
-        """Returns pairs of (studyId, summarystatsLocation) fields for all studies to be ingested."""
-        df = read_parquet_from_path(finngen_study_index)
-        selected_columns = df[["studyId", "summarystatsLocation"]]
-        result_list = [list(x) for x in selected_columns.to_records(index=False)]
-        job_list = []
-        for study_id, summary_stats_location in result_list:
-            d = {
-                "job_uuid": f"airflow-ingest-{study_id}",
-                "reference": {"project_id": "open-targets-genetics-dev"},
-                "placement": {"cluster_name": "otg-preprocess"},
-                "pyspark_job": {
-                    "main_python_file_uri": f"{initialisation_base_path}/preprocess/finngen/summary_stats.py",
-                    "args": [
-                        study_id,
-                        summary_stats_location,
-                        f"{outputs}/preprocess/finngen/summary_stats/{study_id}",
-                        "overwrite",
-                    ],
-                },
-            }
-            job_list.append(d)
+    @task_group(group_id="finngen_summary_stats")
+    def ingest_finngen_summary_stats():
+        """Summary stats ingestion for FinnGen. Defined as a task group because we must wait for the study index ingestion first."""
 
-        return job_list[:2]
+        @task
+        def job_list_studies_for_summary_stats_ingestion():
+            """Returns pairs of (studyId, summarystatsLocation) fields for all studies to be ingested."""
+            df = read_parquet_from_path(finngen_study_index)
+            selected_columns = df[["studyId", "summarystatsLocation"]]
+            result_list = [list(x) for x in selected_columns.to_records(index=False)]
+            job_list = []
+            for study_id, summary_stats_location in result_list:
+                d = {
+                    "job_uuid": f"airflow-ingest-{study_id}",
+                    "reference": {"project_id": "open-targets-genetics-dev"},
+                    "placement": {"cluster_name": "otg-preprocess"},
+                    "pyspark_job": {
+                        "main_python_file_uri": f"{initialisation_base_path}/preprocess/finngen/summary_stats.py",
+                        "args": [
+                            study_id,
+                            summary_stats_location,
+                            f"{outputs}/preprocess/finngen/summary_stats/{study_id}",
+                            "overwrite",
+                        ],
+                    },
+                }
+                job_list.append(d)
+            return job_list[:2]
 
-    # @task
-    # def ingest_finngen_summary_stats(arg):
-    #     """Submits a PySpark job to ingest summary stats for a single designated FinnGen study."""
-    #     print("NE44455555")
-    #     finngen_study_id, finngen_summary_stats_location = arg
-    #     return generate_pyspark_job_partial(
-    #         "finngen/summary_stats",
-    #         finngen_study_id=finngen_study_id,
-    #         finngen_summary_stats_location=finngen_summary_stats_location,
-    #         finngen_summary_stats_out=f"{outputs}/preprocess/finngen/summary_stats/{finngen_study_id}",
-    #         spark_write_mode=spark_write_mode,
-    #     )
+        expandable_operator = DataprocSubmitJobOperator.partial(
+            task_id="finngen_sumstats",
+            region="europe-west1",
+            project_id="open-targets-genetics-dev",
+        )
+        expandable_operator.expand(job=job_list_studies_for_summary_stats_ingestion())
 
     # This assumes that the study index is already ingested
     # all_summary_stats_operators = []
@@ -135,9 +130,7 @@ def create_dag() -> None:
     # create_cluster >> all_summary_stats_operators
 
     #
-    create_cluster >> expandable_operator.expand(
-        job=job_list_studies_for_summary_stats_ingestion()
-    )
+    create_cluster >> ingest_finngen_study_index >> ingest_finngen_summary_stats()
 
 
 create_dag()
