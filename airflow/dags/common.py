@@ -6,7 +6,6 @@ import os
 
 import gcsfs
 import pandas as pd
-import pendulum
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -76,20 +75,19 @@ def generate_create_cluster_task(cluster_name):
 
 
 def generate_pyspark_job(
-    cluster_name, python_module_basename: str, **kwargs
+    cluster_name, job_id, python_module: str, **kwargs
 ) -> DataprocSubmitJobOperator:
     """Generates a PySpark Dataproc job given step name and its parameters."""
-    step = python_module_basename.replace("/", "_")
     return DataprocSubmitJobOperator(
-        task_id=step,
+        task_id=job_id,
         region=region,
         project_id=project_id,
         job={
-            "job_uuid": f"airflow-{step}",
+            "job_uuid": f"airflow-{job_id}",
             "reference": {"project_id": project_id},
             "placement": {"cluster_name": cluster_name},
             "pyspark_job": {
-                "main_python_file_uri": f"{initialisation_base_path}/preprocess/{python_module_basename}.py",
+                "main_python_file_uri": f"{initialisation_base_path}/preprocess/{python_module}",
                 "args": list(map(str, kwargs.values())),
             },
         },
@@ -110,11 +108,7 @@ def generate_delete_cluster_task(cluster_name):
 
 default_dag_args = {
     "owner": "Open Targets Data Team",
-    # Tell Airflow to start one day ago, so that it runs as soon as you upload it.
-    "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
-    "schedule_interval": "@once",
     "project_id": project_id,
-    "catchup": False,
     "retries": 0,
 }
 
