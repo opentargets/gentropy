@@ -35,8 +35,9 @@ curl -sLfO 'https://airflow.apache.org/docs/apache-airflow/stable/docker-compose
 mkdir -p ./dags ./logs ./plugins
 echo -e "AIRFLOW_UID=$(id -u)" > .env
 
-# Initialize the database
-docker-compose up airflow-init
+# Construct the modified Docker image with additional PIP dependencies
+docker build . --tag opentargets-airflow:2.7.1
+echo "AIRFLOW_IMAGE_NAME=opentargets-airflow:2.7.1." >> .env
 ```
 
 ## Start Airflow
