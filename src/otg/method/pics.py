@@ -9,11 +9,10 @@ import pyspark.sql.types as t
 from scipy.stats import norm
 
 from otg.common.utils import split_pvalue
+from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
-
-    from otg.dataset.study_locus import StudyLocus
 
 
 class PICS:
