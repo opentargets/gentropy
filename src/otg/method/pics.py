@@ -188,16 +188,19 @@ class PICS:
             lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
             credset_schema,
         )
-
-        associations.df = (
-            associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
-            .withColumn(
-                "locus",
-                f.when(
-                    f.col("ldSet").isNotNull(),
-                    _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
-                ),
-            )
-            .drop("neglog_pvalue")
+        return StudyLocus(
+            _df=(
+                associations.df.withColumn(
+                    "neglog_pvalue", associations.neglog_pvalue()
+                )
+                .withColumn(
+                    "locus",
+                    f.when(
+                        f.col("ldSet").isNotNull(),
+                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
+                    ),
+                )
+                .drop("neglog_pvalue")
+            ),
+            _schema=StudyLocus.get_schema(),
         )
-        return associations
