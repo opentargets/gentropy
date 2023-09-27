@@ -52,11 +52,11 @@ def generate_create_cluster_task(cluster_name):
     cluster_generator_config = ClusterGenerator(
         project_id=project_id,
         zone=zone,
-        master_machine_type="n1-highmem-32",
+        master_machine_type="n1-highmem-64",
         worker_machine_type="n1-standard-16",
         master_disk_size=1000,
         worker_disk_size=500,
-        num_workers=16,
+        num_workers=32,
         num_local_ssds=1,
         image_version=image_version,
         enable_component_gateway=True,
@@ -65,6 +65,7 @@ def generate_create_cluster_task(cluster_name):
             "CONFIGTAR": config_tar,
             "PACKAGE": package_wheel,
         },
+        idle_delete_ttl=300,
     ).make()
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
