@@ -28,16 +28,20 @@ newgrp docker
 Based on instructions from https://airflow.apache.org/docs/apache-airflow/stable/tutorial/pipeline.html. Make sure to run all commands from the `airflow` directory, where this README file is located.
 
 ```bash
-# Download the docker-compose.yaml file
+# Download the docker-compose.yaml file.
 curl -sLfO 'https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml'
 
-# Make expected directories and set an expected environment variable
+# Make expected directories.
 mkdir -p ./dags ./logs ./plugins
-echo -e "AIRFLOW_UID=$(id -u)" > .env
 
-# Construct the modified Docker image with additional PIP dependencies
+
+# Construct the modified Docker image with additional PIP dependencies.
 docker build . --tag opentargets-airflow:2.7.1
+
+# Set environment variables.
+echo -e "AIRFLOW_UID=$(id -u)" > .env
 echo "AIRFLOW_IMAGE_NAME=opentargets-airflow:2.7.1." >> .env
+echo "GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/config/application_default_credentials.json" >> .env
 ```
 
 ## Start Airflow

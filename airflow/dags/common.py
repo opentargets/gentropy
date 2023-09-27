@@ -11,6 +11,11 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils.trigger_rule import TriggerRule
 
+# Location of Google Application Credentials inside Docker — this is fixed and needs to be set explicitly.
+google_application_credentials = (
+    "/opt/airflow/config/application_default_credentials.json"
+)
+
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
 otg_version = "0.2.0+tskir"
 
