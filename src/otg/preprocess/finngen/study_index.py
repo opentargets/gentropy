@@ -1,4 +1,4 @@
-"""Datasource ingestion: FinnGen."""
+"""FinnGen ingestion: study index."""
 
 from __future__ import annotations
 
@@ -9,13 +9,10 @@ from typing import TYPE_CHECKING
 from urllib.request import urlopen
 
 import pyspark.sql.functions as f
-import pyspark.sql.types as t
 from pyspark.sql import SparkSession
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.utils import calculate_confidence_interval, parse_pvalue
 from otg.dataset.study_index import StudyIndex
-from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -87,71 +84,12 @@ class StudyIndexFinnGen(StudyIndex):
         )
 
 
-@dataclass
-class SummaryStatisticsFinnGen(SummaryStatistics):
-    """Summary statistics dataset for FinnGen."""
-
-    @classmethod
-    def get_schema(cls: type[SummaryStatistics]) -> StructType:
-        """Provides the schema for the SummaryStatisticsFinnGen dataset."""
-        return parse_spark_schema("summary_statistics.json")
-
-    @classmethod
-    def from_finngen_harmonized_summary_stats(
-        cls: type[SummaryStatistics],
-        summary_stats_df: DataFrame,
-        study_id: str,
-    ) -> SummaryStatistics:
-        """Summary statistics ingestion for one FinnGen study."""
-        processed_summary_stats_df = (
-            summary_stats_df
-            # Drop rows which don't have proper position.
-            .filter(f.col("pos").cast(t.IntegerType()).isNotNull()).select(
-                # Add study idenfitier.
-                f.lit(study_id).cast(t.StringType()).alias("studyId"),
-                # Add variant information.
-                f.concat_ws(
-                    "_",
-                    f.col("#chrom"),
-                    f.col("pos"),
-                    f.col("ref"),
-                    f.col("alt"),
-                ).alias("variantId"),
-                f.col("#chrom").alias("chromosome"),
-                f.col("pos").cast(t.IntegerType()).alias("position"),
-                # Parse p-value into mantissa and exponent.
-                *parse_pvalue(f.col("pval")),
-                # Add beta, standard error, and allele frequency information.
-                f.col("beta").cast("double"),
-                f.col("sebeta").cast("double").alias("standardError"),
-                f.col("af_alt").cast("float").alias("effectAlleleFrequencyFromSource"),
-            )
-            # Calculating the confidence intervals.
-            .select(
-                "*",
-                *calculate_confidence_interval(
-                    f.col("pValueMantissa"),
-                    f.col("pValueExponent"),
-                    f.col("beta"),
-                    f.col("standardError"),
-                ),
-            )
-        )
-
-        # Initializing summary statistics object:
-        return cls(
-            _df=processed_summary_stats_df,
-            _schema=cls.get_schema(),
-        )
-
-
-def ingest_finngen(
+def ingest_finngen_study_index(
     finngen_phenotype_table_url,
     finngen_release_prefix,
     finngen_summary_stats_url_prefix,
     finngen_summary_stats_url_suffix,
     finngen_study_index_out,
-    finngen_summary_stats_out,
     spark_write_mode,
 ):
     """Datasource ingestion: FinnGen.
@@ -162,7 +100,6 @@ def ingest_finngen(
         finngen_summary_stats_url_prefix (str): URL prefix for summary statistics location.
         finngen_summary_stats_url_suffix (str): URL prefix suffix for summary statistics location.
         finngen_study_index_out (str): Output path for the FinnGen study index dataset.
-        finngen_summary_stats_out (str): Output path for the FinnGen summary statistics dataset.
         spark_write_mode (str): Dataframe write mode.
     """
     spark = (
@@ -188,31 +125,6 @@ def ingest_finngen(
         f"Number of studies in the study index: {finngen_study_index.df.count()}"
     )
 
-    # Process the summary statistics for each study in the study index.
-    for i, row in enumerate(
-        finngen_study_index.df.select("studyId", "summarystatsLocation").collect(), 1
-    ):
-        logging.info(
-            f"Processing #{i} {row.studyId} with summary statistics in {row.summarystatsLocation}"
-        )
-        summary_stats_df = (
-            spark.read.option("delimiter", "\t")
-            .csv(row.summarystatsLocation, header=True)
-            .repartition(400)
-        )
-        out_filename = f"{finngen_summary_stats_out}/{row.studyId}"
-        SummaryStatisticsFinnGen.from_finngen_harmonized_summary_stats(
-            summary_stats_df, row.studyId
-        ).df.sortWithinPartitions("chromosome", "position").write.partitionBy(
-            "chromosome"
-        ).mode(
-            spark_write_mode
-        ).parquet(
-            out_filename
-        )
-        if i == 10:
-            break
-
 
 if __name__ == "__main__":
-    ingest_finngen(*sys.argv[1:])
+    ingest_finngen_study_index(*sys.argv[1:])
