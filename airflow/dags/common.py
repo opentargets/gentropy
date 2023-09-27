@@ -66,9 +66,10 @@ def generate_create_cluster_task(cluster_name):
 
 
 def generate_pyspark_job(
-    cluster_name, step: str, **kwargs
+    cluster_name, python_module_basename: str, **kwargs
 ) -> DataprocSubmitJobOperator:
     """Generates a PySpark Dataproc job given step name and its parameters."""
+    step = python_module_basename.replace("/", "_")
     return DataprocSubmitJobOperator(
         task_id=step,
         region=region,
@@ -78,7 +79,7 @@ def generate_pyspark_job(
             "reference": {"project_id": project_id},
             "placement": {"cluster_name": cluster_name},
             "pyspark_job": {
-                "main_python_file_uri": f"{initialisation_base_path}/preprocess/{step}.py",
+                "main_python_file_uri": f"{initialisation_base_path}/preprocess/{python_module_basename}.py",
                 "args": list(map(str, kwargs.values())),
             },
         },
