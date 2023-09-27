@@ -92,7 +92,7 @@ def ingest_finngen_study_index(
     finngen_study_index_out,
     spark_write_mode,
 ):
-    """Datasource ingestion: FinnGen.
+    """Study index ingestion for FinnGen.
 
     Args:
         finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
