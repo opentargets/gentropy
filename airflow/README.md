@@ -44,6 +44,16 @@ echo "AIRFLOW_IMAGE_NAME=opentargets-airflow:2.7.1." >> .env
 echo "GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/config/application_default_credentials.json" >> .env
 ```
 
+## Temporary
+Here are the variables to try to increase concurrency:
+```
+    AIRFLOW__CELERY__WORKER_CONCURRENCY: 256
+    AIRFLOW__CORE__PARALLELISM: 256
+    AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: 256
+    AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 256
+    AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY: 256
+```
+
 ## Start Airflow
 
 ```bash

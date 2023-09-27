@@ -107,7 +107,7 @@ def ingest_finngen_summary_stats(
     )
 
     # Process and output the data.
-    out_filename = f"{finngen_summary_stats_out}/{finngen_study_id}"
+    out_filename = f"{finngen_summary_stats_out}"
     SummaryStatisticsFinnGen.from_finngen_harmonized_summary_stats(
         summary_stats_df, finngen_study_id
     ).df.sortWithinPartitions("position").write.partitionBy("chromosome").mode(
