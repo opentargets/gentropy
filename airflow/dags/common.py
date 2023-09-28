@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import binascii
 import os
 
 import gcsfs
@@ -16,6 +17,7 @@ from airflow.utils.trigger_rule import TriggerRule
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
 otg_version = "0.2.0+tskir"
+
 
 # Cloud configuration.
 project_id = "open-targets-genetics-dev"
@@ -40,11 +42,15 @@ initialisation_executable_file = [
     f"{initialisation_base_path}/install_dependencies_on_cluster.sh"
 ]
 
+
 # Input/output file configuration.
 version = "XX.XX"
 inputs = "gs://genetics_etl_python_playground/input"
 outputs = f"gs://genetics_etl_python_playground/output/python_etl/parquet/{version}"
 spark_write_mode = "overwrite"
+
+
+# Common cluster operations.
 
 
 def generate_create_cluster_task(cluster_name):
@@ -77,26 +83,6 @@ def generate_create_cluster_task(cluster_name):
     )
 
 
-def generate_pyspark_job(
-    cluster_name, job_id, python_module: str, **kwargs
-) -> DataprocSubmitJobOperator:
-    """Generates a PySpark Dataproc job given step name and its parameters."""
-    return DataprocSubmitJobOperator(
-        task_id=job_id,
-        region=region,
-        project_id=project_id,
-        job={
-            "job_uuid": f"airflow-{job_id}",
-            "reference": {"project_id": project_id},
-            "placement": {"cluster_name": cluster_name},
-            "pyspark_job": {
-                "main_python_file_uri": f"{initialisation_base_path}/preprocess/{python_module}",
-                "args": list(map(str, kwargs.values())),
-            },
-        },
-    )
-
-
 def generate_delete_cluster_task(cluster_name):
     """Generate an Airflow task to delete a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed."""
     return DataprocDeleteClusterOperator(
@@ -109,11 +95,29 @@ def generate_delete_cluster_task(cluster_name):
     )
 
 
-default_dag_args = {
-    "owner": "Open Targets Data Team",
-    "project_id": project_id,
-    "retries": 0,
-}
+# Partials and common functions for Dataproc operations.
+
+
+dataproc_submit_job_operator_partial = DataprocSubmitJobOperator.partial(
+    region=region, project_id=project_id
+)
+
+
+def generate_pyspark_job(
+    cluster_name, python_module: str, **kwargs
+) -> DataprocSubmitJobOperator:
+    """Generates a PySpark Dataproc job object to be passed to the Airflow operator."""
+    return {
+        # Job ID is random because it's tracked by Airflow/Dataproc internally.
+        # Example: airflow-5a4dcc9558b3dc65ed911e8ed58b4f.
+        "job_uuid": f"airflow-{binascii.b2a_hex(os.urandom(15)).decode()}",
+        "reference": {"project_id": project_id},
+        "placement": {"cluster_name": cluster_name},
+        "pyspark_job": {
+            "main_python_file_uri": f"{initialisation_base_path}/preprocess/{python_module}",
+            "args": list(map(str, kwargs.values())),
+        },
+    }
 
 
 # Utilities for working with Google Cloud Storage.
