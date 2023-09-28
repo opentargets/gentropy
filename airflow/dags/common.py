@@ -56,7 +56,7 @@ def generate_create_cluster_task(cluster_name):
         worker_machine_type="n1-standard-16",
         master_disk_size=1000,
         worker_disk_size=500,
-        num_workers=32,
+        num_workers=64,
         num_local_ssds=1,
         image_version=image_version,
         enable_component_gateway=True,
