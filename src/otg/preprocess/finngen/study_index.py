@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
 
 @dataclass
-class StudyIndexFinnGen(StudyIndex):
+class FinnGenStudyIndex(StudyIndex):
     """Study index dataset from FinnGen.
 
     The following information is aggregated/extracted:
@@ -36,18 +36,18 @@ class StudyIndexFinnGen(StudyIndex):
     """
 
     @classmethod
-    def get_schema(cls: type[StudyIndexFinnGen]) -> StructType:
-        """Provides the schema for the StudyIndexFinnGen dataset."""
+    def get_schema(cls: type[FinnGenStudyIndex]) -> StructType:
+        """Provides the schema for the FinnGenStudyIndex dataset."""
         return parse_spark_schema("studies.json")
 
     @classmethod
     def from_source(
-        cls: type[StudyIndexFinnGen],
+        cls: type[FinnGenStudyIndex],
         finngen_studies: DataFrame,
         finngen_release_prefix: str,
         finngen_summary_stats_url_prefix: str,
         finngen_summary_stats_url_suffix: str,
-    ) -> StudyIndexFinnGen:
+    ) -> FinnGenStudyIndex:
         """This function ingests study level metadata from FinnGen.
 
         Args:
@@ -57,7 +57,7 @@ class StudyIndexFinnGen(StudyIndex):
             finngen_summary_stats_df_url_suffix (str): URL prefix suffix for summary statistics location.
 
         Returns:
-            StudyIndexFinnGen: Parsed and annotated FinnGen study table.
+            FinnGenStudyIndex: Parsed and annotated FinnGen study table.
         """
         return cls(
             _df=finngen_studies.select(
@@ -110,7 +110,7 @@ def ingest_finngen_study_index(
     df = spark.read.json(rdd)
 
     # Parse the study index data.
-    finngen_study_index = StudyIndexFinnGen.from_source(
+    finngen_study_index = FinnGenStudyIndex.from_source(
         df,
         finngen_release_prefix,
         finngen_summary_stats_url_prefix,

@@ -7,10 +7,10 @@ from functools import partial
 import pendulum
 from airflow.decorators import dag, task, task_group
 from common import (
-    dataproc_submit_job_operator_partial,
     generate_create_cluster_task,
+    generate_dataproc_submit_job_operator,
     generate_delete_cluster_task,
-    generate_pyspark_job,
+    generate_pyspark_job_params,
     outputs,
     read_parquet_from_path,
     spark_write_mode,
@@ -18,7 +18,7 @@ from common import (
 
 # Workflow specific configuration.
 cluster_name = "otg-preprocess"
-generate_pyspark_job_partial = partial(generate_pyspark_job, cluster_name)
+generate_pyspark_job_params_partial = partial(generate_pyspark_job_params, cluster_name)
 
 
 @dag(
@@ -47,9 +47,9 @@ def create_dag() -> None:
     # FinnGen ingestion.
     finngen_study_index = f"{outputs}/preprocess/finngen/study_index"
 
-    ingest_finngen_study_index = dataproc_submit_job_operator_partial(
+    ingest_finngen_study_index = generate_dataproc_submit_job_operator(
         task_id="ingest_study_index",
-        job=generate_pyspark_job_partial(
+        job=generate_pyspark_job_params_partial(
             "finngen/study_index.py",
             finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
             finngen_release_prefix="FINNGEN_R9",
@@ -71,7 +71,7 @@ def create_dag() -> None:
             selected_columns = df[["studyId", "summarystatsLocation"]]
             result_list = [list(x) for x in selected_columns.to_records(index=False)]
             job_list = [
-                generate_pyspark_job_partial(
+                generate_pyspark_job_params_partial(
                     "finngen/summary_stats.py",
                     finngen_study_id=study_id,
                     finngen_summary_stats_location=summary_stats_location,
@@ -83,9 +83,9 @@ def create_dag() -> None:
             return job_list
 
         # Run FinnGen summary statistics ingestion on all studies.
-        dataproc_submit_job_operator_partial.partial(
-            task_id="finngen_sumstats",
-        ).expand(job=job_list_studies_for_summary_stats_ingestion())
+        generate_dataproc_submit_job_operator(task_id="finngen_sumstats").expand(
+            job=job_list_studies_for_summary_stats_ingestion()
+        )
 
     (
         create_cluster

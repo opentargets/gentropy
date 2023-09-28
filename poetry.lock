@@ -1993,6 +1993,41 @@ files = [
 ]
 
 [[package]]
+name = "fsspec"
+version = "2023.9.2"
+description = "File-system specification"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "fsspec-2023.9.2-py3-none-any.whl", hash = "sha256:603dbc52c75b84da501b9b2ec8c11e1f61c25984c4a0dda1f129ef391fbfc9b4"},
+    {file = "fsspec-2023.9.2.tar.gz", hash = "sha256:80bfb8c70cc27b2178cc62a935ecf242fc6e8c3fb801f9c571fc01b1e715ba7d"},
+]
+
+[package.extras]
+abfs = ["adlfs"]
+adl = ["adlfs"]
+arrow = ["pyarrow (>=1)"]
+dask = ["dask", "distributed"]
+devel = ["pytest", "pytest-cov"]
+dropbox = ["dropbox", "dropboxdrivefs", "requests"]
+full = ["adlfs", "aiohttp (!=4.0.0a0,!=4.0.0a1)", "dask", "distributed", "dropbox", "dropboxdrivefs", "fusepy", "gcsfs", "libarchive-c", "ocifs", "panel", "paramiko", "pyarrow (>=1)", "pygit2", "requests", "s3fs", "smbprotocol", "tqdm"]
+fuse = ["fusepy"]
+gcs = ["gcsfs"]
+git = ["pygit2"]
+github = ["requests"]
+gs = ["gcsfs"]
+gui = ["panel"]
+hdfs = ["pyarrow (>=1)"]
+http = ["aiohttp (!=4.0.0a0,!=4.0.0a1)", "requests"]
+libarchive = ["libarchive-c"]
+oci = ["ocifs"]
+s3 = ["s3fs"]
+sftp = ["paramiko"]
+smb = ["smbprotocol"]
+ssh = ["paramiko"]
+tqdm = ["tqdm"]
+
+[[package]]
 name = "gcloud-aio-auth"
 version = "4.2.3"
 description = "Python Client for Google Cloud Auth"
@@ -2043,6 +2078,30 @@ gcloud-aio-auth = ">=3.6.0,<5.0.0"
 pyasn1-modules = ">=0.2.1,<0.3.0"
 rsa = ">=3.1.4,<5.0.0"
 setuptools = ">=66.0.0,<67.0.0"
+
+[[package]]
+name = "gcsfs"
+version = "2023.9.2"
+description = "Convenient Filesystem interface over GCS"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "gcsfs-2023.9.2-py2.py3-none-any.whl", hash = "sha256:b3e61d07b0ecf3e04627b0cc0df30ee728bc49e31d42de180815601041e62c1b"},
+    {file = "gcsfs-2023.9.2.tar.gz", hash = "sha256:7ca430816fa99b3df428506b557f08dbafab563a048393747507d0809fa4576b"},
+]
+
+[package.dependencies]
+aiohttp = "<4.0.0a0 || >4.0.0a0,<4.0.0a1 || >4.0.0a1"
+decorator = ">4.1.2"
+fsspec = "2023.9.2"
+google-auth = ">=1.2"
+google-auth-oauthlib = "*"
+google-cloud-storage = "*"
+requests = "*"
+
+[package.extras]
+crc = ["crcmod"]
+gcsfuse = ["fusepy"]
 
 [[package]]
 name = "ghp-import"
@@ -7577,4 +7636,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "1bc98e16c1f739d09340c03a572654f3329e3c8a63d38043369316fa3355d7eb"
+content-hash = "b2b94243a0b322559d65d5ed1b4c2629448cc9505b745b651fad7cea55d77713"

@@ -1,1 +1,1 @@
-::: otg.datasource.finngen.study_index.FinnGenStudyIndex
+::: src.otg.preprocess.finngen.study_index.FinnGenStudyIndex

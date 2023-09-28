@@ -23,12 +23,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
 
 @dataclass
-class SummaryStatisticsFinnGen(SummaryStatistics):
+class FinnGenSummaryStats(SummaryStatistics):
     """Summary statistics dataset for FinnGen."""
 
     @classmethod
     def get_schema(cls: type[SummaryStatistics]) -> StructType:
-        """Provides the schema for the SummaryStatisticsFinnGen dataset."""
+        """Provides the schema for the FinnGenSummaryStats dataset."""
         return parse_spark_schema("summary_statistics.json")
 
     @classmethod
@@ -108,7 +108,7 @@ def ingest_finngen_summary_stats(
 
     # Process and output the data.
     out_filename = f"{finngen_summary_stats_out}"
-    SummaryStatisticsFinnGen.from_finngen_harmonized_summary_stats(
+    FinnGenSummaryStats.from_finngen_harmonized_summary_stats(
         summary_stats_df, finngen_study_id
     ).df.sortWithinPartitions("position").write.partitionBy("chromosome").mode(
         spark_write_mode

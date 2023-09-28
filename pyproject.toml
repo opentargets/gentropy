@@ -19,6 +19,7 @@ hydra-core = "^1.2.0"
 pyliftover = "^0.4"
 numpy = "^1.23.2"
 hail = "^0.2.98"
+gcsfs = "^2023.9.2"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^2.15.0"

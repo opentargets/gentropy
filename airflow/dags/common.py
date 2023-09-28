@@ -98,14 +98,7 @@ def generate_delete_cluster_task(cluster_name):
 # Partials and common functions for Dataproc operations.
 
 
-dataproc_submit_job_operator_partial = DataprocSubmitJobOperator.partial(
-    region=region, project_id=project_id
-)
-
-
-def generate_pyspark_job(
-    cluster_name, python_module: str, **kwargs
-) -> DataprocSubmitJobOperator:
+def generate_pyspark_job_params(cluster_name, python_module: str, **kwargs) -> dict:
     """Generates a PySpark Dataproc job object to be passed to the Airflow operator."""
     return {
         # Job ID is random because it's tracked by Airflow/Dataproc internally.
@@ -118,6 +111,15 @@ def generate_pyspark_job(
             "args": list(map(str, kwargs.values())),
         },
     }
+
+
+def generate_dataproc_submit_job_operator(task_id, job=None):
+    """Generates an Airflow operator for submitting a Dataproc job. If job is not provided, returns a partial instead."""
+    kwargs = {"task_id": task_id, "region": region, "project_id": project_id}
+    if job:
+        return DataprocSubmitJobOperator(**kwargs, job=job)
+    else:
+        return DataprocSubmitJobOperator.partial(**kwargs)
 
 
 # Utilities for working with Google Cloud Storage.
