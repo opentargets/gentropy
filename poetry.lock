@@ -5913,12 +5913,12 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyspark"
-version = "3.3.2"
+version = "3.3.0"
 description = "Apache Spark Python API"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyspark-3.3.2.tar.gz", hash = "sha256:0dfd5db4300c1f6cc9c16d8dbdfb82d881b4b172984da71344ede1a9d4893da8"},
+    {file = "pyspark-3.3.0.tar.gz", hash = "sha256:7ebe8e9505647b4d124d5a82fca60dfd3891021cf8ad6c5ec88777eeece92cf7"},
 ]
 
 [package.dependencies]
@@ -7577,4 +7577,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "15cbc3dea31288a97064beacc6b576b3d999e87d4740600dd3d7b99cf741ec50"
+content-hash = "1bc98e16c1f739d09340c03a572654f3329e3c8a63d38043369316fa3355d7eb"
