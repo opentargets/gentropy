@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from otg.common.session import Session
 from otg.config import GeneIndexStepConfig
-from otg.dataset.gene_index import GeneIndex
+from otg.datasource.open_targets.target import OpenTargetsTarget
 
 
 @dataclass
@@ -22,6 +22,6 @@ class GeneIndexStep(GeneIndexStepConfig):
         # Extract
         platform_target = self.session.spark.read.parquet(self.target_path)
         # Transform
-        gene_index = GeneIndex.from_source(platform_target)
+        gene_index = OpenTargetsTarget.as_gene_index(platform_target)
         # Load
         gene_index.df.write.mode(self.session.write_mode).parquet(self.gene_index_path)

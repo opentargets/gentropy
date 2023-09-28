@@ -7,7 +7,7 @@ import hail as hl
 
 from otg.common.session import Session
 from otg.config import LDIndexStepConfig
-from otg.dataset.ld_index import LDIndex
+from otg.datasource.gnomad.ld import GnomADLDMatrix
 
 
 @dataclass
@@ -24,7 +24,7 @@ class LDIndexStep(LDIndexStepConfig):
     def run(self: LDIndexStep) -> None:
         """Run LD index dump step."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
-        ld_index = LDIndex.from_gnomad(
+        ld_index = GnomADLDMatrix.as_ld_index(
             self.ld_populations,
             self.ld_matrix_template,
             self.ld_index_raw_template,

@@ -7,7 +7,7 @@ from urllib.request import urlopen
 
 from otg.common.session import Session
 from otg.config import FinnGenStepConfig
-from otg.dataset.study_index import StudyIndexFinnGen
+from otg.datasource.finngen.study_index import FinnGenStudyIndex
 
 
 @dataclass
@@ -24,7 +24,7 @@ class FinnGenStep(FinnGenStepConfig):
         df = self.session.spark.read.json(rdd)
 
         # Parse the study index data.
-        finngen_studies = StudyIndexFinnGen.from_source(
+        finngen_studies = FinnGenStudyIndex.from_source(
             df,
             self.finngen_release_prefix,
             self.finngen_sumstat_url_prefix,
