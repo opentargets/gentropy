@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pyspark.sql.functions as f
 from pyspark.sql import Row
 
 from otg.dataset.study_locus import StudyLocus
 from otg.method.pics import PICS
-
-if TYPE_CHECKING:
-    pass
 
 
 class TestFinemap:
