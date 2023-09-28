@@ -7,7 +7,7 @@ import hail as hl
 
 from otg.common.session import Session
 from otg.config import VariantAnnotationStepConfig
-from otg.dataset.variant_annotation import VariantAnnotation
+from otg.datasource.gnomad.variants import GnomADVariants
 
 
 @dataclass
@@ -25,7 +25,7 @@ class VariantAnnotationStep(VariantAnnotationStepConfig):
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
 
         """Run variant annotation step."""
-        variant_annotation = VariantAnnotation.from_gnomad(
+        variant_annotation = GnomADVariants.as_variant_annotation(
             self.gnomad_genomes,
             self.chain_38_to_37,
             self.populations,

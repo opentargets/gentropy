@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class VariantIndex(Dataset):
     """Variant index dataset.
 
-    Variant index dataset is the result of intersecting the variant annotation (gnomad) dataset with the variants with V2D available information.
+    Variant index dataset is the result of intersecting the variant annotation dataset with the variants with V2D available information.
     """
 
     @classmethod

@@ -62,6 +62,24 @@
       "type": "long",
       "nullable": true,
       "metadata": {}
+    },
+    {
+      "metadata": {},
+      "name": "start",
+      "nullable": true,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "end",
+      "nullable": true,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "strand",
+      "nullable": true,
+      "type": "integer"
     }
   ]
 }

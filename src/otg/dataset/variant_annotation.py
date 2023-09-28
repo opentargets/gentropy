@@ -4,12 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-import hail as hl
 import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import get_record_with_maximum_value, normalise_column
-from otg.common.utils import convert_gnomad_position_to_ensembl_hail
 from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
 
@@ -22,123 +20,12 @@ if TYPE_CHECKING:
 
 @dataclass
 class VariantAnnotation(Dataset):
-    """Dataset with variant-level annotations derived from GnomAD."""
+    """Dataset with variant-level annotations."""
 
     @classmethod
     def get_schema(cls: type[VariantAnnotation]) -> StructType:
         """Provides the schema for the VariantAnnotation dataset."""
         return parse_spark_schema("variant_annotation.json")
-
-    @classmethod
-    def from_gnomad(
-        cls: type[VariantAnnotation],
-        gnomad_file: str,
-        grch38_to_grch37_chain: str,
-        populations: list,
-    ) -> VariantAnnotation:
-        """Generate variant annotation dataset from gnomAD.
-
-        Some relevant modifications to the original dataset are:
-
-        1. The transcript consequences features provided by VEP are filtered to only refer to the Ensembl canonical transcript.
-        2. Genome coordinates are liftovered from GRCh38 to GRCh37 to keep as annotation.
-        3. Field names are converted to camel case to follow the convention.
-
-        Args:
-            gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset
-            grch38_to_grch37_chain (str): Path to chain file for liftover
-            populations (list): List of populations to include in the dataset
-
-        Returns:
-            VariantAnnotation: Variant annotation dataset
-        """
-        # Load variants dataset
-        ht = hl.read_table(
-            gnomad_file,
-            _load_refs=False,
-        )
-
-        # Liftover
-        grch37 = hl.get_reference("GRCh37")
-        grch38 = hl.get_reference("GRCh38")
-        grch38.add_liftover(grch38_to_grch37_chain, grch37)
-
-        # Drop non biallelic variants
-        ht = ht.filter(ht.alleles.length() == 2)
-        # Liftover
-        ht = ht.annotate(locus_GRCh37=hl.liftover(ht.locus, "GRCh37"))
-        # Select relevant fields and nested records to create class
-        return cls(
-            _df=(
-                ht.select(
-                    gnomad3VariantId=hl.str("-").join(
-                        [
-                            ht.locus.contig.replace("chr", ""),
-                            hl.str(ht.locus.position),
-                            ht.alleles[0],
-                            ht.alleles[1],
-                        ]
-                    ),
-                    chromosome=ht.locus.contig.replace("chr", ""),
-                    position=convert_gnomad_position_to_ensembl_hail(
-                        ht.locus.position, ht.alleles[0], ht.alleles[1]
-                    ),
-                    variantId=hl.str("_").join(
-                        [
-                            ht.locus.contig.replace("chr", ""),
-                            hl.str(
-                                convert_gnomad_position_to_ensembl_hail(
-                                    ht.locus.position, ht.alleles[0], ht.alleles[1]
-                                )
-                            ),
-                            ht.alleles[0],
-                            ht.alleles[1],
-                        ]
-                    ),
-                    chromosomeB37=ht.locus_GRCh37.contig.replace("chr", ""),
-                    positionB37=ht.locus_GRCh37.position,
-                    referenceAllele=ht.alleles[0],
-                    alternateAllele=ht.alleles[1],
-                    rsIds=ht.rsid,
-                    alleleType=ht.allele_info.allele_type,
-                    cadd=hl.struct(
-                        phred=ht.cadd.phred,
-                        raw=ht.cadd.raw_score,
-                    ),
-                    alleleFrequencies=hl.set([f"{pop}-adj" for pop in populations]).map(
-                        lambda p: hl.struct(
-                            populationName=p,
-                            alleleFrequency=ht.freq[ht.globals.freq_index_dict[p]].AF,
-                        )
-                    ),
-                    vep=hl.struct(
-                        mostSevereConsequence=ht.vep.most_severe_consequence,
-                        transcriptConsequences=hl.map(
-                            lambda x: hl.struct(
-                                aminoAcids=x.amino_acids,
-                                consequenceTerms=x.consequence_terms,
-                                geneId=x.gene_id,
-                                lof=x.lof,
-                                polyphenScore=x.polyphen_score,
-                                polyphenPrediction=x.polyphen_prediction,
-                                siftScore=x.sift_score,
-                                siftPrediction=x.sift_prediction,
-                            ),
-                            # Only keeping canonical transcripts
-                            ht.vep.transcript_consequences.filter(
-                                lambda x: (x.canonical == 1)
-                                & (x.gene_symbol_source == "HGNC")
-                            ),
-                        ),
-                    ),
-                )
-                .key_by("chromosome", "position")
-                .drop("locus", "alleles")
-                .select_globals()
-                .to_spark(flatten=False)
-            ),
-            _schema=cls.get_schema(),
-        )
 
     def max_maf(self: VariantAnnotation) -> Column:
         """Maximum minor allele frequency accross all populations.

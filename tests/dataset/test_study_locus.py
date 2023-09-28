@@ -1,9 +1,6 @@
 """Test study locus dataset."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-import pyspark.sql.functions as f
 import pytest
 from pyspark.sql import Column, DataFrame, SparkSession
 from pyspark.sql.types import (
@@ -16,58 +13,13 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from otg.dataset.study_locus import (
-    CredibleInterval,
-    StudyLocus,
-    StudyLocusGWASCatalog,
-    StudyLocusOverlap,
-)
-
-if TYPE_CHECKING:
-    from otg.dataset.ld_index import LDIndex
-    from otg.dataset.study_index import StudyIndex, StudyIndexGWASCatalog
-    from otg.dataset.variant_annotation import VariantAnnotation
+from otg.dataset.study_index import StudyIndex
+from otg.dataset.study_locus import CredibleInterval, StudyLocus, StudyLocusOverlap
 
 
 def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
     """Test study locus creation with mock data."""
     assert isinstance(mock_study_locus, StudyLocus)
-
-
-def test_study_locus_gwas_catalog_from_source(
-    mock_variant_annotation: VariantAnnotation,
-    sample_gwas_catalog_associations: DataFrame,
-) -> None:
-    """Test study locus from gwas catalog mock data."""
-    assert isinstance(
-        StudyLocusGWASCatalog.from_source(
-            sample_gwas_catalog_associations, mock_variant_annotation
-        ),
-        StudyLocusGWASCatalog,
-    )
-
-
-def test__map_to_variant_annotation_variants(
-    sample_gwas_catalog_associations: DataFrame,
-    mock_variant_annotation: VariantAnnotation,
-) -> None:
-    """Test mapping to variant annotation variants."""
-    assert isinstance(
-        StudyLocusGWASCatalog._map_to_variant_annotation_variants(
-            sample_gwas_catalog_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
-            ),
-            mock_variant_annotation,
-        ),
-        DataFrame,
-    )
-
-
-def test_study_locus_gwas_catalog_creation(
-    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
-) -> None:
-    """Test study locus creation with mock data."""
-    assert isinstance(mock_study_locus_gwas_catalog, StudyLocusGWASCatalog)
 
 
 def test_study_locus_overlaps(
@@ -94,73 +46,9 @@ def test_neglog_pvalue(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus.neglog_pvalue(), Column)
 
 
-def test_annotate_ld(
-    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
-    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
-    mock_ld_index: LDIndex,
-) -> None:
-    """Test LD annotation."""
-    # Drop ldSet column to avoid duplicated columns
-    mock_study_locus_gwas_catalog.df = mock_study_locus_gwas_catalog.df.drop("ldSet")
-    assert isinstance(
-        mock_study_locus_gwas_catalog.annotate_ld(
-            mock_study_index_gwas_catalog, mock_ld_index
-        ),
-        StudyLocus,
-    )
-
-
 def test_clump(mock_study_locus: StudyLocus) -> None:
     """Test clump."""
     assert isinstance(mock_study_locus.clump(), StudyLocus)
-
-
-def test_qc_ambiguous_study(
-    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
-) -> None:
-    """Test qc ambiguous."""
-    assert isinstance(
-        mock_study_locus_gwas_catalog._qc_ambiguous_study(), StudyLocusGWASCatalog
-    )
-
-
-def test_qc_unresolved_ld(mock_study_locus_gwas_catalog: StudyLocusGWASCatalog) -> None:
-    """Test qc unresolved LD by making sure the flag is added when ldSet is null."""
-    mock_study_locus_gwas_catalog.df = mock_study_locus_gwas_catalog.df.filter(
-        f.col("ldSet").isNull()
-    )
-    observed_df = (
-        mock_study_locus_gwas_catalog._qc_unresolved_ld()
-        .df.limit(1)
-        .select(
-            f.array_contains(
-                f.col("qualityControls"), "Variant not found in LD reference"
-            )
-        )
-    )
-    expected = True
-    assert observed_df.collect()[0][0] is expected
-
-
-def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
-    """Test qc all with some hard-coded values."""
-    assert isinstance(
-        sample_gwas_catalog_associations.withColumn(
-            # Perform all quality control checks:
-            "qualityControls",
-            StudyLocusGWASCatalog._qc_all(
-                f.array().alias("qualityControls"),
-                f.col("CHR_ID"),
-                f.col("CHR_POS"),
-                f.lit("A").alias("referenceAllele"),
-                f.lit("T").alias("referenceAllele"),
-                f.col("STRONGEST SNP-RISK ALLELE"),
-                *StudyLocusGWASCatalog._parse_pvalue(f.col("P-VALUE")),
-                5e-8,
-            ),
-        ),
-        DataFrame,
-    )
 
 
 @pytest.mark.parametrize(

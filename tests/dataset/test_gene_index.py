@@ -6,11 +6,6 @@ from pyspark.sql import DataFrame
 from otg.dataset.gene_index import GeneIndex
 
 
-def test_gene_index_fromsource(sample_target_index: DataFrame) -> None:
-    """Test gene index from source."""
-    assert isinstance(GeneIndex.from_source(sample_target_index), GeneIndex)
-
-
 def test_gene_index_creation(mock_gene_index: GeneIndex) -> None:
     """Test gene index creation with mock gene index."""
     assert isinstance(mock_gene_index, GeneIndex)
