@@ -1,4 +1,6 @@
-<!doctype html><html lang=en class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><link href=../summary_statistics/ rel=prev><link href=../variant_index/ rel=next><link rel=icon href=../../../assets/favicon.png><meta name=generator content="mkdocs-1.4.2, mkdocs-material-9.1.6"><title>Variant annotation - Genetics Portal Pipeline</title><link rel=stylesheet href=../../../assets/stylesheets/main.ded33207.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.a0c5b2b5.min.css><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback"><style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style><link rel=stylesheet href=../../../css/timeago.css><link rel=stylesheet href=../../../assets/_mkdocstrings.css><link rel=stylesheet href=../../../assets/stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=blue-grey data-md-color-accent=light-blue> <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#otg.dataset.variant_annotation.VariantAnnotation class=md-skip> Skip to content </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=Header> <a href=../../.. title="Genetics Portal Pipeline" class="md-header__button md-logo" aria-label="Genetics Portal Pipeline" data-md-component=logo> <img src=../../../assets/otlogo.png alt=logo> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> Genetics Portal Pipeline </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Variant annotation </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=blue-grey data-md-color-accent=light-blue aria-label="Switch to dark mode" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="Switch to dark mode" for=__palette_2 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=blue-grey data-md-color-accent=light-blue aria-label="Switch to light mode" type=radio name=__palette id=__palette_2> <label class="md-header__button md-icon" title="Switch to light mode" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg> </label> </form> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=Search placeholder=Search autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg> </label> <nav class=md-search__options aria-label=Search> <button type=reset class="md-search__icon md-icon" title=Clear aria-label=Clear tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> Initializing search </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/opentargets/genetics_etl_python title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg> </div> <div class=md-source__repository> opentargets/genetics_etl_python </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=Navigation data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title="Genetics Portal Pipeline" class="md-nav__button md-logo" aria-label="Genetics Portal Pipeline" data-md-component=logo> <img src=../../../assets/otlogo.png alt=logo> </a> Genetics Portal Pipeline </label> <div class=md-nav__source> <a href=https://github.com/opentargets/genetics_etl_python title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg> </div> <div class=md-source__repository> opentargets/genetics_etl_python </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> Home </a> </li> <li class=md-nav__item> <a href=../../../contributing/ class=md-nav__link> Environment configuration and contributing changes </a> </li> <li class=md-nav__item> <a href=../../../roadmap/ class=md-nav__link> Roadmap </a> </li> <li class=md-nav__item> <a href=../../../troubleshooting/ class=md-nav__link> Troubleshooting </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5 checked> <label class=md-nav__link for=__nav_5 id=__nav_5_label tabindex=0> Components <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_5_label aria-expanded=true> <label class=md-nav__title for=__nav_5> <span class="md-nav__icon md-icon"></span> Components </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_1 checked> <div class="md-nav__link md-nav__link--index "> <a href=../_dataset/ >Dataset</a> <label for=__nav_5_1> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_1_label aria-expanded=true> <label class=md-nav__title for=__nav_5_1> <span class="md-nav__icon md-icon"></span> Dataset </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../colocalisation/ class=md-nav__link> Colocalisation </a> </li> <li class=md-nav__item> <a href=../gene_index/ class=md-nav__link> Gene index </a> </li> <li class=md-nav__item> <a href=../intervals/ class=md-nav__link> Intervals </a> </li> <li class=md-nav__item> <a href=../ld_index/ class=md-nav__link> LD index </a> </li> <li class=md-nav__item> <a href=../study_locus_overlap/ class=md-nav__link> Study Locus Overlap </a> </li> <li class=md-nav__item> <a href=../summary_statistics/ class=md-nav__link> Summary statistics </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> Variant annotation <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> Variant annotation </a> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation class=md-nav__link> otg.dataset.variant_annotation.VariantAnnotation </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class=md-nav__link> filter_by_variant_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.from_gnomad class=md-nav__link> from_gnomad() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class=md-nav__link> get_distance_to_tss() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class=md-nav__link> get_most_severe_vep_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class=md-nav__link> get_plof_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class=md-nav__link> get_polyphen_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_schema class=md-nav__link> get_schema() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class=md-nav__link> get_sift_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class=md-nav__link> get_transcript_consequence_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.max_maf class=md-nav__link> max_maf() </a> </li> <li class=md-nav__item> <a href=#schema class=md-nav__link> Schema </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../variant_index/ class=md-nav__link> Variant index </a> </li> <li class=md-nav__item> <a href=../variant_to_gene/ class=md-nav__link> Variant to gene </a> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_1_10> <div class="md-nav__link md-nav__link--index "> <a href=../study_index/_study_index/ >Study index</a> <label for=__nav_5_1_10> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_1_10_label aria-expanded=false> <label class=md-nav__title for=__nav_5_1_10> <span class="md-nav__icon md-icon"></span> Study index </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../study_index/study_index_finngen/ class=md-nav__link> Study index finngen </a> </li> <li class=md-nav__item> <a href=../study_index/study_index_gwas_catalog/ class=md-nav__link> Study index gwas catalog </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_1_11> <div class="md-nav__link md-nav__link--index "> <a href=../study_locus/_study_locus/ >Study locus</a> <label for=__nav_5_1_11> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_1_11_label aria-expanded=false> <label class=md-nav__title for=__nav_5_1_11> <span class="md-nav__icon md-icon"></span> Study locus </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../study_locus/study_locus_gwas_catalog/ class=md-nav__link> Study locus gwas catalog </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2> <div class="md-nav__link md-nav__link--index "> <a href=../../method/_method/ >Method</a> <label for=__nav_5_2> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_2_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2> <span class="md-nav__icon md-icon"></span> Method </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../method/clumping/ class=md-nav__link> Clumping </a> </li> <li class=md-nav__item> <a href=../../method/coloc/ class=md-nav__link> coloc </a> </li> <li class=md-nav__item> <a href=../../method/ecaviar/ class=md-nav__link> eCAVIAR </a> </li> <li class=md-nav__item> <a href=../../method/ld_annotator/ class=md-nav__link> LD annotator </a> </li> <li class=md-nav__item> <a href=../../method/pics/ class=md-nav__link> PICS </a> </li> <li class=md-nav__item> <a href=../../method/window_based_clumping/ class=md-nav__link> Window-based clumping </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_3> <div class="md-nav__link md-nav__link--index "> <a href=../../step/_step/ >Step</a> <label for=__nav_5_3> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_3_label aria-expanded=false> <label class=md-nav__title for=__nav_5_3> <span class="md-nav__icon md-icon"></span> Step </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../step/colocalisation/ class=md-nav__link> Colocalisation </a> </li> <li class=md-nav__item> <a href=../../step/finngen/ class=md-nav__link> FinnGen </a> </li> <li class=md-nav__item> <a href=../../step/gene_index/ class=md-nav__link> Gene index </a> </li> <li class=md-nav__item> <a href=../../step/gwas_catalog/ class=md-nav__link> GWAS Catalog </a> </li> <li class=md-nav__item> <a href=../../step/gwas_catalog_sumstat_preprocess/ class=md-nav__link> GWAS Catalog sumstat preprocess </a> </li> <li class=md-nav__item> <a href=../../step/ld_index/ class=md-nav__link> LD index </a> </li> <li class=md-nav__item> <a href=../../step/ukbiobank/ class=md-nav__link> UKBiobank </a> </li> <li class=md-nav__item> <a href=../../step/variant_annotation_step/ class=md-nav__link> Variant annotation </a> </li> <li class=md-nav__item> <a href=../../step/variant_index_step/ class=md-nav__link> Variant index </a> </li> <li class=md-nav__item> <a href=../../step/variant_to_gene_step/ class=md-nav__link> V2G </a> </li> </ul> </nav> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation class=md-nav__link> otg.dataset.variant_annotation.VariantAnnotation </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class=md-nav__link> filter_by_variant_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.from_gnomad class=md-nav__link> from_gnomad() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class=md-nav__link> get_distance_to_tss() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class=md-nav__link> get_most_severe_vep_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class=md-nav__link> get_plof_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class=md-nav__link> get_polyphen_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_schema class=md-nav__link> get_schema() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class=md-nav__link> get_sift_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class=md-nav__link> get_transcript_consequence_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.max_maf class=md-nav__link> max_maf() </a> </li> <li class=md-nav__item> <a href=#schema class=md-nav__link> Schema </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <h1>Variant annotation</h1> <div class="doc doc-object doc-class"> <a id=otg.dataset.variant_annotation.VariantAnnotation></a> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.dataset.Dataset" href="../_dataset/#otg.dataset.dataset.Dataset">Dataset</a></code></p> <p>Dataset with variant-level annotations derived from GnomAD.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 23</span>
+<!doctype html><html lang=en class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><link href=../summary_statistics/ rel=prev><link href=../variant_index/ rel=next><link rel=icon href=../../../assets/favicon.png><meta name=generator content="mkdocs-1.4.2, mkdocs-material-9.1.6"><title>Variant annotation - Genetics Portal Pipeline</title><link rel=stylesheet href=../../../assets/stylesheets/main.ded33207.min.css><link rel=stylesheet href=../../../assets/stylesheets/palette.a0c5b2b5.min.css><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback"><style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style><link rel=stylesheet href=../../../css/timeago.css><link rel=stylesheet href=../../../assets/_mkdocstrings.css><link rel=stylesheet href=../../../assets/stylesheets/extra.css><script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=default data-md-color-primary=blue-grey data-md-color-accent=light-blue> <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#otg.dataset.variant_annotation.VariantAnnotation class=md-skip> Skip to content </a> </div> <div data-md-component=announce> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=Header> <a href=../../.. title="Genetics Portal Pipeline" class="md-header__button md-logo" aria-label="Genetics Portal Pipeline" data-md-component=logo> <img src=../../../assets/otlogo.png alt=logo> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> Genetics Portal Pipeline </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> Variant annotation </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=blue-grey data-md-color-accent=light-blue aria-label="Switch to dark mode" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="Switch to dark mode" for=__palette_2 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=blue-grey data-md-color-accent=light-blue aria-label="Switch to light mode" type=radio name=__palette id=__palette_2> <label class="md-header__button md-icon" title="Switch to light mode" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg> </label> </form> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=Search placeholder=Search autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg> </label> <nav class=md-search__options aria-label=Search> <button type=reset class="md-search__icon md-icon" title=Clear aria-label=Clear tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg> </button> </nav> <div class=md-search__suggest data-md-component=search-suggest></div> </form> <div class=md-search__output> <div class=md-search__scrollwrap data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> Initializing search </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/opentargets/genetics_etl_python title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg> </div> <div class=md-source__repository> opentargets/genetics_etl_python </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=Navigation data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../.. title="Genetics Portal Pipeline" class="md-nav__button md-logo" aria-label="Genetics Portal Pipeline" data-md-component=logo> <img src=../../../assets/otlogo.png alt=logo> </a> Genetics Portal Pipeline </label> <div class=md-nav__source> <a href=https://github.com/opentargets/genetics_etl_python title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg> </div> <div class=md-source__repository> opentargets/genetics_etl_python </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../.. class=md-nav__link> Home </a> </li> <li class=md-nav__item> <a href=../../../contributing/ class=md-nav__link> Environment configuration and contributing changes </a> </li> <li class=md-nav__item> <a href=../../../roadmap/ class=md-nav__link> Roadmap </a> </li> <li class=md-nav__item> <a href=../../../troubleshooting/ class=md-nav__link> Troubleshooting </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5 checked> <label class=md-nav__link for=__nav_5 id=__nav_5_label tabindex=0> Components <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_5_label aria-expanded=true> <label class=md-nav__title for=__nav_5> <span class="md-nav__icon md-icon"></span> Components </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_1 checked> <div class="md-nav__link md-nav__link--index "> <a href=../_dataset/ >Dataset</a> <label for=__nav_5_1> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_1_label aria-expanded=true> <label class=md-nav__title for=__nav_5_1> <span class="md-nav__icon md-icon"></span> Dataset </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../colocalisation/ class=md-nav__link> Colocalisation </a> </li> <li class=md-nav__item> <a href=../gene_index/ class=md-nav__link> Gene index </a> </li> <li class=md-nav__item> <a href=../intervals/ class=md-nav__link> Intervals </a> </li> <li class=md-nav__item> <a href=../ld_index/ class=md-nav__link> LD index </a> </li> <li class=md-nav__item> <a href=../study_index/ class=md-nav__link> Study index </a> </li> <li class=md-nav__item> <a href=../study_locus/ class=md-nav__link> Study-locus </a> </li> <li class=md-nav__item> <a href=../study_locus_overlap/ class=md-nav__link> Study Locus Overlap </a> </li> <li class=md-nav__item> <a href=../summary_statistics/ class=md-nav__link> Summary statistics </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> Variant annotation <span class="md-nav__icon md-icon"></span> </label> <a href=./ class="md-nav__link md-nav__link--active"> Variant annotation </a> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation class=md-nav__link> otg.dataset.variant_annotation.VariantAnnotation </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class=md-nav__link> filter_by_variant_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class=md-nav__link> get_distance_to_tss() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class=md-nav__link> get_most_severe_vep_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class=md-nav__link> get_plof_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class=md-nav__link> get_polyphen_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_schema class=md-nav__link> get_schema() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class=md-nav__link> get_sift_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class=md-nav__link> get_transcript_consequence_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.max_maf class=md-nav__link> max_maf() </a> </li> <li class=md-nav__item> <a href=#schema class=md-nav__link> Schema </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../variant_index/ class=md-nav__link> Variant index </a> </li> <li class=md-nav__item> <a href=../variant_to_gene/ class=md-nav__link> Variant to gene </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2> <label class=md-nav__link for=__nav_5_2 id=__nav_5_2_label tabindex=0> Datasource <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_2_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2> <span class="md-nav__icon md-icon"></span> Datasource </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2_1> <div class="md-nav__link md-nav__link--index "> <a href=../../datasource/finngen/_finngen/ >Finngen</a> <label for=__nav_5_2_1> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_2_1_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2_1> <span class="md-nav__icon md-icon"></span> Finngen </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../datasource/finngen/study_index/ class=md-nav__link> Study index </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2_2> <div class="md-nav__link md-nav__link--index "> <a href=../../datasource/gnomad/_gnomad/ >Gnomad</a> <label for=__nav_5_2_2> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_2_2_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2_2> <span class="md-nav__icon md-icon"></span> Gnomad </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../datasource/gnomad/gnomad_ld/ class=md-nav__link> Gnomad ld </a> </li> <li class=md-nav__item> <a href=../../datasource/gnomad/gnomad_variants/ class=md-nav__link> Gnomad variants </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2_3> <div class="md-nav__link md-nav__link--index "> <a href=../../datasource/gwas_catalog/_gwas_catalog/ >Gwas catalog</a> <label for=__nav_5_2_3> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_2_3_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2_3> <span class="md-nav__icon md-icon"></span> Gwas catalog </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../datasource/gwas_catalog/associations/ class=md-nav__link> Associations </a> </li> <li class=md-nav__item> <a href=../../datasource/gwas_catalog/study_index/ class=md-nav__link> Study index </a> </li> <li class=md-nav__item> <a href=../../datasource/gwas_catalog/study_splitter/ class=md-nav__link> Study splitter </a> </li> <li class=md-nav__item> <a href=../../datasource/gwas_catalog/summary_statistics/ class=md-nav__link> Summary statistics </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2_4> <div class="md-nav__link md-nav__link--index "> <a href=../../datasource/intervals/_intervals/ >Intervals</a> <label for=__nav_5_2_4> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_2_4_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2_4> <span class="md-nav__icon md-icon"></span> Intervals </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../datasource/intervals/andersson/ class=md-nav__link> Andersson </a> </li> <li class=md-nav__item> <a href=../../datasource/intervals/javierre/ class=md-nav__link> Javierre </a> </li> <li class=md-nav__item> <a href=../../datasource/intervals/jung/ class=md-nav__link> Jung </a> </li> <li class=md-nav__item> <a href=../../datasource/intervals/thurnman/ class=md-nav__link> Thurnman </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2_5> <div class="md-nav__link md-nav__link--index "> <a href=../../datasource/open_targets/_open_targets/ >Open targets</a> <label for=__nav_5_2_5> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_2_5_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2_5> <span class="md-nav__icon md-icon"></span> Open targets </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../datasource/open_targets/target/ class=md-nav__link> Target </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_2_6> <div class="md-nav__link md-nav__link--index "> <a href=../../datasource/ukbiobank/_ukbiobank/ >Ukbiobank</a> <label for=__nav_5_2_6> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_5_2_6_label aria-expanded=false> <label class=md-nav__title for=__nav_5_2_6> <span class="md-nav__icon md-icon"></span> Ukbiobank </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../datasource/ukbiobank/study_index/ class=md-nav__link> Study index </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_3> <div class="md-nav__link md-nav__link--index "> <a href=../../method/_method/ >Method</a> <label for=__nav_5_3> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_3_label aria-expanded=false> <label class=md-nav__title for=__nav_5_3> <span class="md-nav__icon md-icon"></span> Method </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../method/clumping/ class=md-nav__link> Clumping </a> </li> <li class=md-nav__item> <a href=../../method/coloc/ class=md-nav__link> coloc </a> </li> <li class=md-nav__item> <a href=../../method/ecaviar/ class=md-nav__link> eCAVIAR </a> </li> <li class=md-nav__item> <a href=../../method/ld_annotator/ class=md-nav__link> LD annotator </a> </li> <li class=md-nav__item> <a href=../../method/pics/ class=md-nav__link> PICS </a> </li> <li class=md-nav__item> <a href=../../method/window_based_clumping/ class=md-nav__link> Window-based clumping </a> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_5_4> <div class="md-nav__link md-nav__link--index "> <a href=../../step/_step/ >Step</a> <label for=__nav_5_4> <span class="md-nav__icon md-icon"></span> </label> </div> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_5_4_label aria-expanded=false> <label class=md-nav__title for=__nav_5_4> <span class="md-nav__icon md-icon"></span> Step </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../step/colocalisation/ class=md-nav__link> Colocalisation </a> </li> <li class=md-nav__item> <a href=../../step/finngen/ class=md-nav__link> FinnGen </a> </li> <li class=md-nav__item> <a href=../../step/gene_index/ class=md-nav__link> Gene index </a> </li> <li class=md-nav__item> <a href=../../step/gwas_catalog/ class=md-nav__link> GWAS Catalog </a> </li> <li class=md-nav__item> <a href=../../step/gwas_catalog_sumstat_preprocess/ class=md-nav__link> GWAS Catalog sumstat preprocess </a> </li> <li class=md-nav__item> <a href=../../step/ld_index/ class=md-nav__link> LD index </a> </li> <li class=md-nav__item> <a href=../../step/ukbiobank/ class=md-nav__link> UKBiobank </a> </li> <li class=md-nav__item> <a href=../../step/variant_annotation_step/ class=md-nav__link> Variant annotation </a> </li> <li class=md-nav__item> <a href=../../step/variant_index_step/ class=md-nav__link> Variant index </a> </li> <li class=md-nav__item> <a href=../../step/variant_to_gene_step/ class=md-nav__link> V2G </a> </li> </ul> </nav> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation class=md-nav__link> otg.dataset.variant_annotation.VariantAnnotation </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class=md-nav__link> filter_by_variant_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class=md-nav__link> get_distance_to_tss() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class=md-nav__link> get_most_severe_vep_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class=md-nav__link> get_plof_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class=md-nav__link> get_polyphen_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_schema class=md-nav__link> get_schema() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class=md-nav__link> get_sift_v2g() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class=md-nav__link> get_transcript_consequence_df() </a> </li> <li class=md-nav__item> <a href=#otg.dataset.variant_annotation.VariantAnnotation.max_maf class=md-nav__link> max_maf() </a> </li> <li class=md-nav__item> <a href=#schema class=md-nav__link> Schema </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <article class="md-content__inner md-typeset"> <h1>Variant annotation</h1> <div class="doc doc-object doc-class"> <a id=otg.dataset.variant_annotation.VariantAnnotation></a> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.dataset.Dataset" href="../_dataset/#otg.dataset.dataset.Dataset">Dataset</a></code></p> <p>Dataset with variant-level annotations.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 21</span>
+<span class=normal> 22</span>
+<span class=normal> 23</span>
 <span class=normal> 24</span>
 <span class=normal> 25</span>
 <span class=normal> 26</span>
@@ -258,238 +260,14 @@
 <span class=normal>280</span>
 <span class=normal>281</span>
 <span class=normal>282</span>
-<span class=normal>283</span>
-<span class=normal>284</span>
-<span class=normal>285</span>
-<span class=normal>286</span>
-<span class=normal>287</span>
-<span class=normal>288</span>
-<span class=normal>289</span>
-<span class=normal>290</span>
-<span class=normal>291</span>
-<span class=normal>292</span>
-<span class=normal>293</span>
-<span class=normal>294</span>
-<span class=normal>295</span>
-<span class=normal>296</span>
-<span class=normal>297</span>
-<span class=normal>298</span>
-<span class=normal>299</span>
-<span class=normal>300</span>
-<span class=normal>301</span>
-<span class=normal>302</span>
-<span class=normal>303</span>
-<span class=normal>304</span>
-<span class=normal>305</span>
-<span class=normal>306</span>
-<span class=normal>307</span>
-<span class=normal>308</span>
-<span class=normal>309</span>
-<span class=normal>310</span>
-<span class=normal>311</span>
-<span class=normal>312</span>
-<span class=normal>313</span>
-<span class=normal>314</span>
-<span class=normal>315</span>
-<span class=normal>316</span>
-<span class=normal>317</span>
-<span class=normal>318</span>
-<span class=normal>319</span>
-<span class=normal>320</span>
-<span class=normal>321</span>
-<span class=normal>322</span>
-<span class=normal>323</span>
-<span class=normal>324</span>
-<span class=normal>325</span>
-<span class=normal>326</span>
-<span class=normal>327</span>
-<span class=normal>328</span>
-<span class=normal>329</span>
-<span class=normal>330</span>
-<span class=normal>331</span>
-<span class=normal>332</span>
-<span class=normal>333</span>
-<span class=normal>334</span>
-<span class=normal>335</span>
-<span class=normal>336</span>
-<span class=normal>337</span>
-<span class=normal>338</span>
-<span class=normal>339</span>
-<span class=normal>340</span>
-<span class=normal>341</span>
-<span class=normal>342</span>
-<span class=normal>343</span>
-<span class=normal>344</span>
-<span class=normal>345</span>
-<span class=normal>346</span>
-<span class=normal>347</span>
-<span class=normal>348</span>
-<span class=normal>349</span>
-<span class=normal>350</span>
-<span class=normal>351</span>
-<span class=normal>352</span>
-<span class=normal>353</span>
-<span class=normal>354</span>
-<span class=normal>355</span>
-<span class=normal>356</span>
-<span class=normal>357</span>
-<span class=normal>358</span>
-<span class=normal>359</span>
-<span class=normal>360</span>
-<span class=normal>361</span>
-<span class=normal>362</span>
-<span class=normal>363</span>
-<span class=normal>364</span>
-<span class=normal>365</span>
-<span class=normal>366</span>
-<span class=normal>367</span>
-<span class=normal>368</span>
-<span class=normal>369</span>
-<span class=normal>370</span>
-<span class=normal>371</span>
-<span class=normal>372</span>
-<span class=normal>373</span>
-<span class=normal>374</span>
-<span class=normal>375</span>
-<span class=normal>376</span>
-<span class=normal>377</span>
-<span class=normal>378</span>
-<span class=normal>379</span>
-<span class=normal>380</span>
-<span class=normal>381</span>
-<span class=normal>382</span>
-<span class=normal>383</span>
-<span class=normal>384</span>
-<span class=normal>385</span>
-<span class=normal>386</span>
-<span class=normal>387</span>
-<span class=normal>388</span>
-<span class=normal>389</span>
-<span class=normal>390</span>
-<span class=normal>391</span>
-<span class=normal>392</span>
-<span class=normal>393</span>
-<span class=normal>394</span>
-<span class=normal>395</span>
-<span class=normal>396</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>283</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>VariantAnnotation</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Dataset with variant-level annotations derived from GnomAD.&quot;&quot;&quot;</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Dataset with variant-level annotations.&quot;&quot;&quot;</span>
 
     <span class=nd>@classmethod</span>
     <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantAnnotation</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Provides the schema for the VariantAnnotation dataset.&quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=n>parse_spark_schema</span><span class=p>(</span><span class=s2>&quot;variant_annotation.json&quot;</span><span class=p>)</span>
-
-    <span class=nd>@classmethod</span>
-    <span class=k>def</span> <span class=nf>from_gnomad</span><span class=p>(</span>
-        <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantAnnotation</span><span class=p>],</span>
-        <span class=n>gnomad_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-        <span class=n>grch38_to_grch37_chain</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-        <span class=n>populations</span><span class=p>:</span> <span class=nb>list</span><span class=p>,</span>
-    <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VariantAnnotation</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Generate variant annotation dataset from gnomAD.</span>
-
-<span class=sd>        Some relevant modifications to the original dataset are:</span>
-
-<span class=sd>        1. The transcript consequences features provided by VEP are filtered to only refer to the Ensembl canonical transcript.</span>
-<span class=sd>        2. Genome coordinates are liftovered from GRCh38 to GRCh37 to keep as annotation.</span>
-<span class=sd>        3. Field names are converted to camel case to follow the convention.</span>
-
-<span class=sd>        Args:</span>
-<span class=sd>            gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset</span>
-<span class=sd>            grch38_to_grch37_chain (str): Path to chain file for liftover</span>
-<span class=sd>            populations (list): List of populations to include in the dataset</span>
-
-<span class=sd>        Returns:</span>
-<span class=sd>            VariantAnnotation: Variant annotation dataset</span>
-<span class=sd>        &quot;&quot;&quot;</span>
-        <span class=c1># Load variants dataset</span>
-        <span class=n>ht</span> <span class=o>=</span> <span class=n>hl</span><span class=o>.</span><span class=n>read_table</span><span class=p>(</span>
-            <span class=n>gnomad_file</span><span class=p>,</span>
-            <span class=n>_load_refs</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
-        <span class=p>)</span>
-
-        <span class=c1># Liftover</span>
-        <span class=n>grch37</span> <span class=o>=</span> <span class=n>hl</span><span class=o>.</span><span class=n>get_reference</span><span class=p>(</span><span class=s2>&quot;GRCh37&quot;</span><span class=p>)</span>
-        <span class=n>grch38</span> <span class=o>=</span> <span class=n>hl</span><span class=o>.</span><span class=n>get_reference</span><span class=p>(</span><span class=s2>&quot;GRCh38&quot;</span><span class=p>)</span>
-        <span class=n>grch38</span><span class=o>.</span><span class=n>add_liftover</span><span class=p>(</span><span class=n>grch38_to_grch37_chain</span><span class=p>,</span> <span class=n>grch37</span><span class=p>)</span>
-
-        <span class=c1># Drop non biallelic variants</span>
-        <span class=n>ht</span> <span class=o>=</span> <span class=n>ht</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=o>.</span><span class=n>length</span><span class=p>()</span> <span class=o>==</span> <span class=mi>2</span><span class=p>)</span>
-        <span class=c1># Liftover</span>
-        <span class=n>ht</span> <span class=o>=</span> <span class=n>ht</span><span class=o>.</span><span class=n>annotate</span><span class=p>(</span><span class=n>locus_GRCh37</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>liftover</span><span class=p>(</span><span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=p>,</span> <span class=s2>&quot;GRCh37&quot;</span><span class=p>))</span>
-        <span class=c1># Select relevant fields and nested records to create class</span>
-        <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
-            <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-                <span class=n>ht</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                    <span class=n>gnomad3VariantId</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span><span class=s2>&quot;-&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                        <span class=p>[</span>
-                            <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                            <span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span><span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>position</span><span class=p>),</span>
-                            <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
-                            <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span>
-                        <span class=p>]</span>
-                    <span class=p>),</span>
-                    <span class=n>chromosome</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                    <span class=n>position</span><span class=o>=</span><span class=n>convert_gnomad_position_to_ensembl_hail</span><span class=p>(</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>position</span><span class=p>,</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
-                    <span class=p>),</span>
-                    <span class=n>variantId</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span><span class=s2>&quot;_&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                        <span class=p>[</span>
-                            <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                            <span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span>
-                                <span class=n>convert_gnomad_position_to_ensembl_hail</span><span class=p>(</span>
-                                    <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>position</span><span class=p>,</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
-                                <span class=p>)</span>
-                            <span class=p>),</span>
-                            <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
-                            <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span>
-                        <span class=p>]</span>
-                    <span class=p>),</span>
-                    <span class=n>chromosomeB37</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>locus_GRCh37</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                    <span class=n>positionB37</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>locus_GRCh37</span><span class=o>.</span><span class=n>position</span><span class=p>,</span>
-                    <span class=n>referenceAllele</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
-                    <span class=n>alternateAllele</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span>
-                    <span class=n>rsIds</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>rsid</span><span class=p>,</span>
-                    <span class=n>alleleType</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>allele_info</span><span class=o>.</span><span class=n>allele_type</span><span class=p>,</span>
-                    <span class=n>cadd</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                        <span class=n>phred</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>cadd</span><span class=o>.</span><span class=n>phred</span><span class=p>,</span>
-                        <span class=n>raw</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>cadd</span><span class=o>.</span><span class=n>raw_score</span><span class=p>,</span>
-                    <span class=p>),</span>
-                    <span class=n>alleleFrequencies</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>set</span><span class=p>([</span><span class=sa>f</span><span class=s2>&quot;</span><span class=si>{</span><span class=n>pop</span><span class=si>}</span><span class=s2>-adj&quot;</span> <span class=k>for</span> <span class=n>pop</span> <span class=ow>in</span> <span class=n>populations</span><span class=p>])</span><span class=o>.</span><span class=n>map</span><span class=p>(</span>
-                        <span class=k>lambda</span> <span class=n>p</span><span class=p>:</span> <span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                            <span class=n>populationName</span><span class=o>=</span><span class=n>p</span><span class=p>,</span>
-                            <span class=n>alleleFrequency</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>freq</span><span class=p>[</span><span class=n>ht</span><span class=o>.</span><span class=n>globals</span><span class=o>.</span><span class=n>freq_index_dict</span><span class=p>[</span><span class=n>p</span><span class=p>]]</span><span class=o>.</span><span class=n>AF</span><span class=p>,</span>
-                        <span class=p>)</span>
-                    <span class=p>),</span>
-                    <span class=n>vep</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                        <span class=n>mostSevereConsequence</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>vep</span><span class=o>.</span><span class=n>most_severe_consequence</span><span class=p>,</span>
-                        <span class=n>transcriptConsequences</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>map</span><span class=p>(</span>
-                            <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                                <span class=n>aminoAcids</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>amino_acids</span><span class=p>,</span>
-                                <span class=n>consequenceTerms</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>consequence_terms</span><span class=p>,</span>
-                                <span class=n>geneId</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>gene_id</span><span class=p>,</span>
-                                <span class=n>lof</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>lof</span><span class=p>,</span>
-                                <span class=n>polyphenScore</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>polyphen_score</span><span class=p>,</span>
-                                <span class=n>polyphenPrediction</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>polyphen_prediction</span><span class=p>,</span>
-                                <span class=n>siftScore</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>sift_score</span><span class=p>,</span>
-                                <span class=n>siftPrediction</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>sift_prediction</span><span class=p>,</span>
-                            <span class=p>),</span>
-                            <span class=c1># Only keeping canonical transcripts</span>
-                            <span class=n>ht</span><span class=o>.</span><span class=n>vep</span><span class=o>.</span><span class=n>transcript_consequences</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span>
-                                <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>canonical</span> <span class=o>==</span> <span class=mi>1</span><span class=p>)</span>
-                                <span class=o>&amp;</span> <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>gene_symbol_source</span> <span class=o>==</span> <span class=s2>&quot;HGNC&quot;</span><span class=p>)</span>
-                            <span class=p>),</span>
-                        <span class=p>),</span>
-                    <span class=p>),</span>
-                <span class=p>)</span>
-                <span class=o>.</span><span class=n>key_by</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>)</span>
-                <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=s2>&quot;alleles&quot;</span><span class=p>)</span>
-                <span class=o>.</span><span class=n>select_globals</span><span class=p>()</span>
-                <span class=o>.</span><span class=n>to_spark</span><span class=p>(</span><span class=n>flatten</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
-            <span class=p>),</span>
-            <span class=n>_schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
-        <span class=p>)</span>
 
     <span class=k>def</span> <span class=nf>max_maf</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Column</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Maximum minor allele frequency accross all populations.</span>
@@ -745,20 +523,20 @@
             <span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>filter_by_variant_df</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>cols</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Filter variant annotation dataset by a variant dataframe.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe of variants</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>cols</code></td> <td> <code>List[str]</code> </td> <td><p>A list of columns to join on</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>VariantAnnotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td><p>A filtered variant annotation dataset</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>158</span>
-<span class=normal>159</span>
-<span class=normal>160</span>
-<span class=normal>161</span>
-<span class=normal>162</span>
-<span class=normal>163</span>
-<span class=normal>164</span>
-<span class=normal>165</span>
-<span class=normal>166</span>
-<span class=normal>167</span>
-<span class=normal>168</span>
-<span class=normal>169</span>
-<span class=normal>170</span>
-<span class=normal>171</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>filter_by_variant_df</span><span class=p>(</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>filter_by_variant_df</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>cols</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Filter variant annotation dataset by a variant dataframe.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe of variants</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>cols</code></td> <td> <code>List[str]</code> </td> <td><p>A list of columns to join on</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>VariantAnnotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td><p>A filtered variant annotation dataset</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>45</span>
+<span class=normal>46</span>
+<span class=normal>47</span>
+<span class=normal>48</span>
+<span class=normal>49</span>
+<span class=normal>50</span>
+<span class=normal>51</span>
+<span class=normal>52</span>
+<span class=normal>53</span>
+<span class=normal>54</span>
+<span class=normal>55</span>
+<span class=normal>56</span>
+<span class=normal>57</span>
+<span class=normal>58</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>filter_by_variant_df</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VariantAnnotation</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Filter variant annotation dataset by a variant dataframe.</span>
@@ -772,65 +550,92 @@
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>cols</span><span class=p>)),</span> <span class=n>on</span><span class=o>=</span><span class=n>cols</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
     <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.from_gnomad class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_gnomad</span><span class=p>(</span><span class=n>gnomad_file</span><span class=p>,</span> <span class=n>grch38_to_grch37_chain</span><span class=p>,</span> <span class=n>populations</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Generate variant annotation dataset from gnomAD.</p> <p>Some relevant modifications to the original dataset are:</p> <ol> <li>The transcript consequences features provided by VEP are filtered to only refer to the Ensembl canonical transcript.</li> <li>Genome coordinates are liftovered from GRCh38 to GRCh37 to keep as annotation.</li> <li>Field names are converted to camel case to follow the convention.</li> </ol> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gnomad_file</code></td> <td> <code>str</code> </td> <td><p>Path to <code>gnomad.genomes.vX.X.X.sites.ht</code> gnomAD dataset</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>grch38_to_grch37_chain</code></td> <td> <code>str</code> </td> <td><p>Path to chain file for liftover</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>populations</code></td> <td> <code>list</code> </td> <td><p>List of populations to include in the dataset</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>VariantAnnotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td><p>Variant annotation dataset</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 32</span>
-<span class=normal> 33</span>
-<span class=normal> 34</span>
-<span class=normal> 35</span>
-<span class=normal> 36</span>
-<span class=normal> 37</span>
-<span class=normal> 38</span>
-<span class=normal> 39</span>
-<span class=normal> 40</span>
-<span class=normal> 41</span>
-<span class=normal> 42</span>
-<span class=normal> 43</span>
-<span class=normal> 44</span>
-<span class=normal> 45</span>
-<span class=normal> 46</span>
-<span class=normal> 47</span>
-<span class=normal> 48</span>
-<span class=normal> 49</span>
-<span class=normal> 50</span>
-<span class=normal> 51</span>
-<span class=normal> 52</span>
-<span class=normal> 53</span>
-<span class=normal> 54</span>
-<span class=normal> 55</span>
-<span class=normal> 56</span>
-<span class=normal> 57</span>
-<span class=normal> 58</span>
-<span class=normal> 59</span>
-<span class=normal> 60</span>
-<span class=normal> 61</span>
-<span class=normal> 62</span>
-<span class=normal> 63</span>
-<span class=normal> 64</span>
-<span class=normal> 65</span>
-<span class=normal> 66</span>
-<span class=normal> 67</span>
-<span class=normal> 68</span>
-<span class=normal> 69</span>
-<span class=normal> 70</span>
-<span class=normal> 71</span>
-<span class=normal> 72</span>
-<span class=normal> 73</span>
-<span class=normal> 74</span>
-<span class=normal> 75</span>
-<span class=normal> 76</span>
-<span class=normal> 77</span>
-<span class=normal> 78</span>
-<span class=normal> 79</span>
-<span class=normal> 80</span>
-<span class=normal> 81</span>
-<span class=normal> 82</span>
-<span class=normal> 83</span>
-<span class=normal> 84</span>
-<span class=normal> 85</span>
-<span class=normal> 86</span>
-<span class=normal> 87</span>
-<span class=normal> 88</span>
-<span class=normal> 89</span>
-<span class=normal> 90</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_distance_to_tss</span><span class=p>(</span><span class=n>filter_by</span><span class=p>,</span> <span class=n>max_distance</span><span class=o>=</span><span class=mi>500000</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Extracts variant to gene assignments for variants falling within a window of a gene's TSS.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by.</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_distance</code></td> <td> <code>int</code> </td> <td><p>The maximum distance from the TSS to consider. Defaults to 500_000.</p></td> <td> <code>500000</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments with their distance to the TSS</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>241</span>
+<span class=normal>242</span>
+<span class=normal>243</span>
+<span class=normal>244</span>
+<span class=normal>245</span>
+<span class=normal>246</span>
+<span class=normal>247</span>
+<span class=normal>248</span>
+<span class=normal>249</span>
+<span class=normal>250</span>
+<span class=normal>251</span>
+<span class=normal>252</span>
+<span class=normal>253</span>
+<span class=normal>254</span>
+<span class=normal>255</span>
+<span class=normal>256</span>
+<span class=normal>257</span>
+<span class=normal>258</span>
+<span class=normal>259</span>
+<span class=normal>260</span>
+<span class=normal>261</span>
+<span class=normal>262</span>
+<span class=normal>263</span>
+<span class=normal>264</span>
+<span class=normal>265</span>
+<span class=normal>266</span>
+<span class=normal>267</span>
+<span class=normal>268</span>
+<span class=normal>269</span>
+<span class=normal>270</span>
+<span class=normal>271</span>
+<span class=normal>272</span>
+<span class=normal>273</span>
+<span class=normal>274</span>
+<span class=normal>275</span>
+<span class=normal>276</span>
+<span class=normal>277</span>
+<span class=normal>278</span>
+<span class=normal>279</span>
+<span class=normal>280</span>
+<span class=normal>281</span>
+<span class=normal>282</span>
+<span class=normal>283</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_distance_to_tss</span><span class=p>(</span>
+    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
+    <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
+    <span class=n>max_distance</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>500_000</span><span class=p>,</span>
+<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Extracts variant to gene assignments for variants falling within a window of a gene&#39;s TSS.</span>
+
+<span class=sd>    Args:</span>
+<span class=sd>        filter_by (GeneIndex): A gene index to filter by.</span>
+<span class=sd>        max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        V2G: variant to gene assignments with their distance to the TSS</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
+        <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;variant&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>join</span><span class=p>(</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>filter_by</span><span class=o>.</span><span class=n>locations_lut</span><span class=p>())</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;gene&quot;</span><span class=p>),</span>
+                <span class=n>on</span><span class=o>=</span><span class=p>[</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.chromosome&quot;</span><span class=p>),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>))</span>
+                    <span class=o>&lt;=</span> <span class=n>max_distance</span><span class=p>,</span>
+                <span class=p>],</span>
+                <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
+            <span class=p>)</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+                <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span>
+                <span class=n>max_distance</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>)),</span>
+            <span class=p>)</span>
+            <span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>normalise_column</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span> <span class=s2>&quot;score&quot;</span><span class=p>))</span>
+            <span class=o>.</span><span class=n>select</span><span class=p>(</span>
+                <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
+                <span class=s2>&quot;position&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;score&quot;</span><span class=p>,</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;distance&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;canonical_tss&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
+            <span class=p>)</span>
+        <span class=p>),</span>
+        <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
+    <span class=p>)</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_most_severe_vep_v2g</span><span class=p>(</span><span class=n>vep_consequences</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>vep_consequences</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe of VEP consequences</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by. Defaults to None.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>High and medium severity variant to gene assignments</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 90</span>
 <span class=normal> 91</span>
 <span class=normal> 92</span>
 <span class=normal> 93</span>
@@ -877,253 +682,7 @@
 <span class=normal>134</span>
 <span class=normal>135</span>
 <span class=normal>136</span>
-<span class=normal>137</span>
-<span class=normal>138</span>
-<span class=normal>139</span>
-<span class=normal>140</span>
-<span class=normal>141</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
-<span class=k>def</span> <span class=nf>from_gnomad</span><span class=p>(</span>
-    <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantAnnotation</span><span class=p>],</span>
-    <span class=n>gnomad_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-    <span class=n>grch38_to_grch37_chain</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
-    <span class=n>populations</span><span class=p>:</span> <span class=nb>list</span><span class=p>,</span>
-<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VariantAnnotation</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Generate variant annotation dataset from gnomAD.</span>
-
-<span class=sd>    Some relevant modifications to the original dataset are:</span>
-
-<span class=sd>    1. The transcript consequences features provided by VEP are filtered to only refer to the Ensembl canonical transcript.</span>
-<span class=sd>    2. Genome coordinates are liftovered from GRCh38 to GRCh37 to keep as annotation.</span>
-<span class=sd>    3. Field names are converted to camel case to follow the convention.</span>
-
-<span class=sd>    Args:</span>
-<span class=sd>        gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset</span>
-<span class=sd>        grch38_to_grch37_chain (str): Path to chain file for liftover</span>
-<span class=sd>        populations (list): List of populations to include in the dataset</span>
-
-<span class=sd>    Returns:</span>
-<span class=sd>        VariantAnnotation: Variant annotation dataset</span>
-<span class=sd>    &quot;&quot;&quot;</span>
-    <span class=c1># Load variants dataset</span>
-    <span class=n>ht</span> <span class=o>=</span> <span class=n>hl</span><span class=o>.</span><span class=n>read_table</span><span class=p>(</span>
-        <span class=n>gnomad_file</span><span class=p>,</span>
-        <span class=n>_load_refs</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
-    <span class=p>)</span>
-
-    <span class=c1># Liftover</span>
-    <span class=n>grch37</span> <span class=o>=</span> <span class=n>hl</span><span class=o>.</span><span class=n>get_reference</span><span class=p>(</span><span class=s2>&quot;GRCh37&quot;</span><span class=p>)</span>
-    <span class=n>grch38</span> <span class=o>=</span> <span class=n>hl</span><span class=o>.</span><span class=n>get_reference</span><span class=p>(</span><span class=s2>&quot;GRCh38&quot;</span><span class=p>)</span>
-    <span class=n>grch38</span><span class=o>.</span><span class=n>add_liftover</span><span class=p>(</span><span class=n>grch38_to_grch37_chain</span><span class=p>,</span> <span class=n>grch37</span><span class=p>)</span>
-
-    <span class=c1># Drop non biallelic variants</span>
-    <span class=n>ht</span> <span class=o>=</span> <span class=n>ht</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=o>.</span><span class=n>length</span><span class=p>()</span> <span class=o>==</span> <span class=mi>2</span><span class=p>)</span>
-    <span class=c1># Liftover</span>
-    <span class=n>ht</span> <span class=o>=</span> <span class=n>ht</span><span class=o>.</span><span class=n>annotate</span><span class=p>(</span><span class=n>locus_GRCh37</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>liftover</span><span class=p>(</span><span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=p>,</span> <span class=s2>&quot;GRCh37&quot;</span><span class=p>))</span>
-    <span class=c1># Select relevant fields and nested records to create class</span>
-    <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
-        <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-            <span class=n>ht</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                <span class=n>gnomad3VariantId</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span><span class=s2>&quot;-&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                    <span class=p>[</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                        <span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span><span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>position</span><span class=p>),</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span>
-                    <span class=p>]</span>
-                <span class=p>),</span>
-                <span class=n>chromosome</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                <span class=n>position</span><span class=o>=</span><span class=n>convert_gnomad_position_to_ensembl_hail</span><span class=p>(</span>
-                    <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>position</span><span class=p>,</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
-                <span class=p>),</span>
-                <span class=n>variantId</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span><span class=s2>&quot;_&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                    <span class=p>[</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                        <span class=n>hl</span><span class=o>.</span><span class=n>str</span><span class=p>(</span>
-                            <span class=n>convert_gnomad_position_to_ensembl_hail</span><span class=p>(</span>
-                                <span class=n>ht</span><span class=o>.</span><span class=n>locus</span><span class=o>.</span><span class=n>position</span><span class=p>,</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
-                            <span class=p>)</span>
-                        <span class=p>),</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span>
-                    <span class=p>]</span>
-                <span class=p>),</span>
-                <span class=n>chromosomeB37</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>locus_GRCh37</span><span class=o>.</span><span class=n>contig</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;chr&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>),</span>
-                <span class=n>positionB37</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>locus_GRCh37</span><span class=o>.</span><span class=n>position</span><span class=p>,</span>
-                <span class=n>referenceAllele</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
-                <span class=n>alternateAllele</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>alleles</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span>
-                <span class=n>rsIds</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>rsid</span><span class=p>,</span>
-                <span class=n>alleleType</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>allele_info</span><span class=o>.</span><span class=n>allele_type</span><span class=p>,</span>
-                <span class=n>cadd</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                    <span class=n>phred</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>cadd</span><span class=o>.</span><span class=n>phred</span><span class=p>,</span>
-                    <span class=n>raw</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>cadd</span><span class=o>.</span><span class=n>raw_score</span><span class=p>,</span>
-                <span class=p>),</span>
-                <span class=n>alleleFrequencies</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>set</span><span class=p>([</span><span class=sa>f</span><span class=s2>&quot;</span><span class=si>{</span><span class=n>pop</span><span class=si>}</span><span class=s2>-adj&quot;</span> <span class=k>for</span> <span class=n>pop</span> <span class=ow>in</span> <span class=n>populations</span><span class=p>])</span><span class=o>.</span><span class=n>map</span><span class=p>(</span>
-                    <span class=k>lambda</span> <span class=n>p</span><span class=p>:</span> <span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                        <span class=n>populationName</span><span class=o>=</span><span class=n>p</span><span class=p>,</span>
-                        <span class=n>alleleFrequency</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>freq</span><span class=p>[</span><span class=n>ht</span><span class=o>.</span><span class=n>globals</span><span class=o>.</span><span class=n>freq_index_dict</span><span class=p>[</span><span class=n>p</span><span class=p>]]</span><span class=o>.</span><span class=n>AF</span><span class=p>,</span>
-                    <span class=p>)</span>
-                <span class=p>),</span>
-                <span class=n>vep</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                    <span class=n>mostSevereConsequence</span><span class=o>=</span><span class=n>ht</span><span class=o>.</span><span class=n>vep</span><span class=o>.</span><span class=n>most_severe_consequence</span><span class=p>,</span>
-                    <span class=n>transcriptConsequences</span><span class=o>=</span><span class=n>hl</span><span class=o>.</span><span class=n>map</span><span class=p>(</span>
-                        <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>hl</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
-                            <span class=n>aminoAcids</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>amino_acids</span><span class=p>,</span>
-                            <span class=n>consequenceTerms</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>consequence_terms</span><span class=p>,</span>
-                            <span class=n>geneId</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>gene_id</span><span class=p>,</span>
-                            <span class=n>lof</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>lof</span><span class=p>,</span>
-                            <span class=n>polyphenScore</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>polyphen_score</span><span class=p>,</span>
-                            <span class=n>polyphenPrediction</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>polyphen_prediction</span><span class=p>,</span>
-                            <span class=n>siftScore</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>sift_score</span><span class=p>,</span>
-                            <span class=n>siftPrediction</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>sift_prediction</span><span class=p>,</span>
-                        <span class=p>),</span>
-                        <span class=c1># Only keeping canonical transcripts</span>
-                        <span class=n>ht</span><span class=o>.</span><span class=n>vep</span><span class=o>.</span><span class=n>transcript_consequences</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span>
-                            <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>canonical</span> <span class=o>==</span> <span class=mi>1</span><span class=p>)</span>
-                            <span class=o>&amp;</span> <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>gene_symbol_source</span> <span class=o>==</span> <span class=s2>&quot;HGNC&quot;</span><span class=p>)</span>
-                        <span class=p>),</span>
-                    <span class=p>),</span>
-                <span class=p>),</span>
-            <span class=p>)</span>
-            <span class=o>.</span><span class=n>key_by</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;position&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>,</span> <span class=s2>&quot;alleles&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>select_globals</span><span class=p>()</span>
-            <span class=o>.</span><span class=n>to_spark</span><span class=p>(</span><span class=n>flatten</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
-        <span class=p>),</span>
-        <span class=n>_schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
-    <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_distance_to_tss</span><span class=p>(</span><span class=n>filter_by</span><span class=p>,</span> <span class=n>max_distance</span><span class=o>=</span><span class=mi>500000</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Extracts variant to gene assignments for variants falling within a window of a gene's TSS.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by.</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_distance</code></td> <td> <code>int</code> </td> <td><p>The maximum distance from the TSS to consider. Defaults to 500_000.</p></td> <td> <code>500000</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments with their distance to the TSS</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>354</span>
-<span class=normal>355</span>
-<span class=normal>356</span>
-<span class=normal>357</span>
-<span class=normal>358</span>
-<span class=normal>359</span>
-<span class=normal>360</span>
-<span class=normal>361</span>
-<span class=normal>362</span>
-<span class=normal>363</span>
-<span class=normal>364</span>
-<span class=normal>365</span>
-<span class=normal>366</span>
-<span class=normal>367</span>
-<span class=normal>368</span>
-<span class=normal>369</span>
-<span class=normal>370</span>
-<span class=normal>371</span>
-<span class=normal>372</span>
-<span class=normal>373</span>
-<span class=normal>374</span>
-<span class=normal>375</span>
-<span class=normal>376</span>
-<span class=normal>377</span>
-<span class=normal>378</span>
-<span class=normal>379</span>
-<span class=normal>380</span>
-<span class=normal>381</span>
-<span class=normal>382</span>
-<span class=normal>383</span>
-<span class=normal>384</span>
-<span class=normal>385</span>
-<span class=normal>386</span>
-<span class=normal>387</span>
-<span class=normal>388</span>
-<span class=normal>389</span>
-<span class=normal>390</span>
-<span class=normal>391</span>
-<span class=normal>392</span>
-<span class=normal>393</span>
-<span class=normal>394</span>
-<span class=normal>395</span>
-<span class=normal>396</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_distance_to_tss</span><span class=p>(</span>
-    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
-    <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
-    <span class=n>max_distance</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>500_000</span><span class=p>,</span>
-<span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Extracts variant to gene assignments for variants falling within a window of a gene&#39;s TSS.</span>
-
-<span class=sd>    Args:</span>
-<span class=sd>        filter_by (GeneIndex): A gene index to filter by.</span>
-<span class=sd>        max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.</span>
-
-<span class=sd>    Returns:</span>
-<span class=sd>        V2G: variant to gene assignments with their distance to the TSS</span>
-<span class=sd>    &quot;&quot;&quot;</span>
-    <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
-        <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-            <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;variant&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>filter_by</span><span class=o>.</span><span class=n>locations_lut</span><span class=p>())</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;gene&quot;</span><span class=p>),</span>
-                <span class=n>on</span><span class=o>=</span><span class=p>[</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.chromosome&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>))</span>
-                    <span class=o>&lt;=</span> <span class=n>max_distance</span><span class=p>,</span>
-                <span class=p>],</span>
-                <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
-            <span class=p>)</span>
-            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span>
-                <span class=n>max_distance</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>)),</span>
-            <span class=p>)</span>
-            <span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>normalise_column</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span> <span class=s2>&quot;score&quot;</span><span class=p>))</span>
-            <span class=o>.</span><span class=n>select</span><span class=p>(</span>
-                <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
-                <span class=s2>&quot;position&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;score&quot;</span><span class=p>,</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;distance&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;canonical_tss&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
-            <span class=p>)</span>
-        <span class=p>),</span>
-        <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
-    <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_most_severe_vep_v2g</span><span class=p>(</span><span class=n>vep_consequences</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>vep_consequences</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe of VEP consequences</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by. Defaults to None.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>High and medium severity variant to gene assignments</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>203</span>
-<span class=normal>204</span>
-<span class=normal>205</span>
-<span class=normal>206</span>
-<span class=normal>207</span>
-<span class=normal>208</span>
-<span class=normal>209</span>
-<span class=normal>210</span>
-<span class=normal>211</span>
-<span class=normal>212</span>
-<span class=normal>213</span>
-<span class=normal>214</span>
-<span class=normal>215</span>
-<span class=normal>216</span>
-<span class=normal>217</span>
-<span class=normal>218</span>
-<span class=normal>219</span>
-<span class=normal>220</span>
-<span class=normal>221</span>
-<span class=normal>222</span>
-<span class=normal>223</span>
-<span class=normal>224</span>
-<span class=normal>225</span>
-<span class=normal>226</span>
-<span class=normal>227</span>
-<span class=normal>228</span>
-<span class=normal>229</span>
-<span class=normal>230</span>
-<span class=normal>231</span>
-<span class=normal>232</span>
-<span class=normal>233</span>
-<span class=normal>234</span>
-<span class=normal>235</span>
-<span class=normal>236</span>
-<span class=normal>237</span>
-<span class=normal>238</span>
-<span class=normal>239</span>
-<span class=normal>240</span>
-<span class=normal>241</span>
-<span class=normal>242</span>
-<span class=normal>243</span>
-<span class=normal>244</span>
-<span class=normal>245</span>
-<span class=normal>246</span>
-<span class=normal>247</span>
-<span class=normal>248</span>
-<span class=normal>249</span>
-<span class=normal>250</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_most_severe_vep_v2g</span><span class=p>(</span>
+<span class=normal>137</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_most_severe_vep_v2g</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
     <span class=n>vep_consequences</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
     <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
@@ -1171,46 +730,46 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_plof_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments from the LOFTEE algorithm</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>313</span>
-<span class=normal>314</span>
-<span class=normal>315</span>
-<span class=normal>316</span>
-<span class=normal>317</span>
-<span class=normal>318</span>
-<span class=normal>319</span>
-<span class=normal>320</span>
-<span class=normal>321</span>
-<span class=normal>322</span>
-<span class=normal>323</span>
-<span class=normal>324</span>
-<span class=normal>325</span>
-<span class=normal>326</span>
-<span class=normal>327</span>
-<span class=normal>328</span>
-<span class=normal>329</span>
-<span class=normal>330</span>
-<span class=normal>331</span>
-<span class=normal>332</span>
-<span class=normal>333</span>
-<span class=normal>334</span>
-<span class=normal>335</span>
-<span class=normal>336</span>
-<span class=normal>337</span>
-<span class=normal>338</span>
-<span class=normal>339</span>
-<span class=normal>340</span>
-<span class=normal>341</span>
-<span class=normal>342</span>
-<span class=normal>343</span>
-<span class=normal>344</span>
-<span class=normal>345</span>
-<span class=normal>346</span>
-<span class=normal>347</span>
-<span class=normal>348</span>
-<span class=normal>349</span>
-<span class=normal>350</span>
-<span class=normal>351</span>
-<span class=normal>352</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_plof_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_plof_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments from the LOFTEE algorithm</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>200</span>
+<span class=normal>201</span>
+<span class=normal>202</span>
+<span class=normal>203</span>
+<span class=normal>204</span>
+<span class=normal>205</span>
+<span class=normal>206</span>
+<span class=normal>207</span>
+<span class=normal>208</span>
+<span class=normal>209</span>
+<span class=normal>210</span>
+<span class=normal>211</span>
+<span class=normal>212</span>
+<span class=normal>213</span>
+<span class=normal>214</span>
+<span class=normal>215</span>
+<span class=normal>216</span>
+<span class=normal>217</span>
+<span class=normal>218</span>
+<span class=normal>219</span>
+<span class=normal>220</span>
+<span class=normal>221</span>
+<span class=normal>222</span>
+<span class=normal>223</span>
+<span class=normal>224</span>
+<span class=normal>225</span>
+<span class=normal>226</span>
+<span class=normal>227</span>
+<span class=normal>228</span>
+<span class=normal>229</span>
+<span class=normal>230</span>
+<span class=normal>231</span>
+<span class=normal>232</span>
+<span class=normal>233</span>
+<span class=normal>234</span>
+<span class=normal>235</span>
+<span class=normal>236</span>
+<span class=normal>237</span>
+<span class=normal>238</span>
+<span class=normal>239</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_plof_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</span>
 
 <span class=sd>    Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
@@ -1250,36 +809,36 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_polyphen_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.</p> <p>Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by. Defaults to None.</p></td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments with their polyphen scores</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>252</span>
-<span class=normal>253</span>
-<span class=normal>254</span>
-<span class=normal>255</span>
-<span class=normal>256</span>
-<span class=normal>257</span>
-<span class=normal>258</span>
-<span class=normal>259</span>
-<span class=normal>260</span>
-<span class=normal>261</span>
-<span class=normal>262</span>
-<span class=normal>263</span>
-<span class=normal>264</span>
-<span class=normal>265</span>
-<span class=normal>266</span>
-<span class=normal>267</span>
-<span class=normal>268</span>
-<span class=normal>269</span>
-<span class=normal>270</span>
-<span class=normal>271</span>
-<span class=normal>272</span>
-<span class=normal>273</span>
-<span class=normal>274</span>
-<span class=normal>275</span>
-<span class=normal>276</span>
-<span class=normal>277</span>
-<span class=normal>278</span>
-<span class=normal>279</span>
-<span class=normal>280</span>
-<span class=normal>281</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_polyphen_v2g</span><span class=p>(</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_polyphen_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.</p> <p>Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by. Defaults to None.</p></td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments with their polyphen scores</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>139</span>
+<span class=normal>140</span>
+<span class=normal>141</span>
+<span class=normal>142</span>
+<span class=normal>143</span>
+<span class=normal>144</span>
+<span class=normal>145</span>
+<span class=normal>146</span>
+<span class=normal>147</span>
+<span class=normal>148</span>
+<span class=normal>149</span>
+<span class=normal>150</span>
+<span class=normal>151</span>
+<span class=normal>152</span>
+<span class=normal>153</span>
+<span class=normal>154</span>
+<span class=normal>155</span>
+<span class=normal>156</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span>
+<span class=normal>161</span>
+<span class=normal>162</span>
+<span class=normal>163</span>
+<span class=normal>164</span>
+<span class=normal>165</span>
+<span class=normal>166</span>
+<span class=normal>167</span>
+<span class=normal>168</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_polyphen_v2g</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a PolyPhen&#39;s predicted score on the transcript.</span>
@@ -1309,42 +868,42 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Provides the schema for the VariantAnnotation dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>27</span>
-<span class=normal>28</span>
-<span class=normal>29</span>
-<span class=normal>30</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Provides the schema for the VariantAnnotation dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>25</span>
+<span class=normal>26</span>
+<span class=normal>27</span>
+<span class=normal>28</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantAnnotation</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Provides the schema for the VariantAnnotation dataset.&quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>parse_spark_schema</span><span class=p>(</span><span class=s2>&quot;variant_annotation.json&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_sift_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.</p> <p>SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious. Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments with their SIFT scores</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>283</span>
-<span class=normal>284</span>
-<span class=normal>285</span>
-<span class=normal>286</span>
-<span class=normal>287</span>
-<span class=normal>288</span>
-<span class=normal>289</span>
-<span class=normal>290</span>
-<span class=normal>291</span>
-<span class=normal>292</span>
-<span class=normal>293</span>
-<span class=normal>294</span>
-<span class=normal>295</span>
-<span class=normal>296</span>
-<span class=normal>297</span>
-<span class=normal>298</span>
-<span class=normal>299</span>
-<span class=normal>300</span>
-<span class=normal>301</span>
-<span class=normal>302</span>
-<span class=normal>303</span>
-<span class=normal>304</span>
-<span class=normal>305</span>
-<span class=normal>306</span>
-<span class=normal>307</span>
-<span class=normal>308</span>
-<span class=normal>309</span>
-<span class=normal>310</span>
-<span class=normal>311</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_sift_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_sift_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.</p> <p>SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious. Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index to filter by.</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td><p>variant to gene assignments with their SIFT scores</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>170</span>
+<span class=normal>171</span>
+<span class=normal>172</span>
+<span class=normal>173</span>
+<span class=normal>174</span>
+<span class=normal>175</span>
+<span class=normal>176</span>
+<span class=normal>177</span>
+<span class=normal>178</span>
+<span class=normal>179</span>
+<span class=normal>180</span>
+<span class=normal>181</span>
+<span class=normal>182</span>
+<span class=normal>183</span>
+<span class=normal>184</span>
+<span class=normal>185</span>
+<span class=normal>186</span>
+<span class=normal>187</span>
+<span class=normal>188</span>
+<span class=normal>189</span>
+<span class=normal>190</span>
+<span class=normal>191</span>
+<span class=normal>192</span>
+<span class=normal>193</span>
+<span class=normal>194</span>
+<span class=normal>195</span>
+<span class=normal>196</span>
+<span class=normal>197</span>
+<span class=normal>198</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_sift_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a SIFT&#39;s predicted score on the transcript.</span>
 
 <span class=sd>    SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.</span>
@@ -1373,35 +932,35 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Dataframe of exploded transcript consequences.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index. Defaults to None.</p></td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>173</span>
-<span class=normal>174</span>
-<span class=normal>175</span>
-<span class=normal>176</span>
-<span class=normal>177</span>
-<span class=normal>178</span>
-<span class=normal>179</span>
-<span class=normal>180</span>
-<span class=normal>181</span>
-<span class=normal>182</span>
-<span class=normal>183</span>
-<span class=normal>184</span>
-<span class=normal>185</span>
-<span class=normal>186</span>
-<span class=normal>187</span>
-<span class=normal>188</span>
-<span class=normal>189</span>
-<span class=normal>190</span>
-<span class=normal>191</span>
-<span class=normal>192</span>
-<span class=normal>193</span>
-<span class=normal>194</span>
-<span class=normal>195</span>
-<span class=normal>196</span>
-<span class=normal>197</span>
-<span class=normal>198</span>
-<span class=normal>199</span>
-<span class=normal>200</span>
-<span class=normal>201</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_transcript_consequence_df</span><span class=p>(</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Dataframe of exploded transcript consequences.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td><p>A gene index. Defaults to None.</p></td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>60</span>
+<span class=normal>61</span>
+<span class=normal>62</span>
+<span class=normal>63</span>
+<span class=normal>64</span>
+<span class=normal>65</span>
+<span class=normal>66</span>
+<span class=normal>67</span>
+<span class=normal>68</span>
+<span class=normal>69</span>
+<span class=normal>70</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span>
+<span class=normal>75</span>
+<span class=normal>76</span>
+<span class=normal>77</span>
+<span class=normal>78</span>
+<span class=normal>79</span>
+<span class=normal>80</span>
+<span class=normal>81</span>
+<span class=normal>82</span>
+<span class=normal>83</span>
+<span class=normal>84</span>
+<span class=normal>85</span>
+<span class=normal>86</span>
+<span class=normal>87</span>
+<span class=normal>88</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_transcript_consequence_df</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Dataframe of exploded transcript consequences.</span>
@@ -1430,20 +989,20 @@
             <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>],</span>
         <span class=p>)</span>
     <span class=k>return</span> <span class=n>transript_consequences</span><span class=o>.</span><span class=n>persist</span><span class=p>()</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.max_maf class="doc doc-heading"> <code class="highlight language-python"><span class=n>max_maf</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Maximum minor allele frequency accross all populations.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Column</code></td> <td> <code><span title="pyspark.sql.Column">Column</span></code> </td> <td><p>Maximum minor allele frequency accross all populations.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>143</span>
-<span class=normal>144</span>
-<span class=normal>145</span>
-<span class=normal>146</span>
-<span class=normal>147</span>
-<span class=normal>148</span>
-<span class=normal>149</span>
-<span class=normal>150</span>
-<span class=normal>151</span>
-<span class=normal>152</span>
-<span class=normal>153</span>
-<span class=normal>154</span>
-<span class=normal>155</span>
-<span class=normal>156</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>max_maf</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Column</span><span class=p>:</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.max_maf class="doc doc-heading"> <code class="highlight language-python"><span class=n>max_maf</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Maximum minor allele frequency accross all populations.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Column</code></td> <td> <code><span title="pyspark.sql.Column">Column</span></code> </td> <td><p>Maximum minor allele frequency accross all populations.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>30</span>
+<span class=normal>31</span>
+<span class=normal>32</span>
+<span class=normal>33</span>
+<span class=normal>34</span>
+<span class=normal>35</span>
+<span class=normal>36</span>
+<span class=normal>37</span>
+<span class=normal>38</span>
+<span class=normal>39</span>
+<span class=normal>40</span>
+<span class=normal>41</span>
+<span class=normal>42</span>
+<span class=normal>43</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>max_maf</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Column</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Maximum minor allele frequency accross all populations.</span>
 
 <span class=sd>    Returns:</span>
