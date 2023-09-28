@@ -4,7 +4,7 @@ This documentation section is currently under development. Once finished, it wil
 
 ## Set up Docker
 
-We will be running a local Airflow setup using Docker Compose. First, make sure it is installed. On Ubuntu it can be done with:
+We will be running a local Airflow setup using Docker Compose. First, make sure it is installed (this and subsequent commands are tested on Ubuntu):
 
 ```bash
 sudo apt install docker-compose
@@ -16,7 +16,7 @@ Next, verify that you can run Docker. This should say "Hello from Docker":
 docker run hello-world
 ```
 
-If the command above raises a permission error, do these steps:
+If the command above raises a permission error, fix it and reboot:
 
 ```bash
 sudo usermod -a -G docker $USER
@@ -25,33 +25,33 @@ newgrp docker
 
 ## Set up Airflow
 
-Based on instructions from https://airflow.apache.org/docs/apache-airflow/stable/tutorial/pipeline.html. Make sure to run all commands from the `airflow` directory, where this README file is located.
+This section is adapted from instructions from https://airflow.apache.org/docs/apache-airflow/stable/tutorial/pipeline.html. When you run the commands, make sure your current working directory is `airflow` directory (the one where this README file is located).
 
 ```bash
-# Download the docker-compose.yaml file.
-curl -sLfO 'https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml'
+# Download the latest docker-compose.yaml file.
+curl -sLfO https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml
 
 # Make expected directories.
-mkdir -p ./dags ./logs ./plugins
-
+mkdir -p ./config ./dags ./logs ./plugins
 
 # Construct the modified Docker image with additional PIP dependencies.
 docker build . --tag opentargets-airflow:2.7.1
 
 # Set environment variables.
-echo -e "AIRFLOW_UID=$(id -u)" > .env
-echo "AIRFLOW_IMAGE_NAME=opentargets-airflow:2.7.1." >> .env
-echo "GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/config/application_default_credentials.json" >> .env
+cat << EOF > .env
+AIRFLOW_UID=$(id -u)
+AIRFLOW_IMAGE_NAME=opentargets-airflow:2.7.1
+EOF
 ```
 
-## Temporary
-Here are the variables to try to increase concurrency:
+Now modify `docker-compose.yaml` and add the following to the x-airflow-common → environment section:
 ```
-    AIRFLOW__CELERY__WORKER_CONCURRENCY: 256
-    AIRFLOW__CORE__PARALLELISM: 256
-    AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: 256
-    AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 256
-    AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY: 256
+GOOGLE_APPLICATION_CREDENTIALS: '/opt/airflow/config/application_default_credentials.json'
+AIRFLOW__CELERY__WORKER_CONCURRENCY: 64
+AIRFLOW__CORE__PARALLELISM: 64
+AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: 64
+AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY: 16
+AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 1
 ```
 
 ## Start Airflow
@@ -70,7 +70,7 @@ In order to be able to access Google Cloud and do work with Dataproc, Airflow wi
 gcloud auth application-default login
 ```
 
-Next, copy the file into the `config/` subdirectory:
+Next, copy the file into the `config/` subdirectory which we created above:
 
 ```bash
 cp ~/.config/gcloud/application_default_credentials.json config/
@@ -90,3 +90,9 @@ Now open the Airflow UI and:
 Workflows, which must be placed under the `dags/` directory, will appear in the "DAGs" section of the UI, which is also the main page. They can be triggered manually by opening a workflow and clicking on the "Play" button in the upper right corner.
 
 In order to restart a failed task, click on it and then click on "Clear task".
+
+## Troubleshooting
+
+Note that when you a a new workflow under `dags/`, Airflow will not pick that up immediately. By default the filesystem is only scanned for new DAGs every 300s. However, once the DAG is added, updates are applied nearly instantaneously.
+
+Also, if you edit the DAG while an instance of it is running, it might cause problems with the run, as Airflow will try to update the tasks and their properties in DAG according to the file changes.
