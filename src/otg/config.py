@@ -241,8 +241,10 @@ class GeneIndexStepConfig:
     """
 
     _target_: str = "otg.gene_index.GeneIndexStep"
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
+    target_path: str = (
+        "gs://genetics_etl_python_playground/input/v2g_input/targets_correct_tss"
+    )
+    gene_index_path: str = "gene_index/gene_index"
 
 
 @dataclass

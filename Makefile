@@ -19,7 +19,7 @@ clean: ## Clean up prior to building
 setup-dev: SHELL:=/bin/bash
 setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
-
+	@poetry run python utils/install_gcs_connector.py
 check: ## Lint and format code
 	@echo "Linting..."
 	@poetry run ruff src/otg .
