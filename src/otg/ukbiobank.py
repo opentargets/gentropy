@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from otg.common.session import Session
 from otg.config import UKBiobankStepConfig
-from otg.dataset.study_index import StudyIndexUKBiobank
+from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 
 
 @dataclass
@@ -23,7 +23,7 @@ class UKBiobankStep(UKBiobankStepConfig):
         )
 
         # Parse the study index data.
-        ukbiobank_study_index = StudyIndexUKBiobank.from_source(df)
+        ukbiobank_study_index = UKBiobankStudyIndex.from_source(df)
 
         # Write the output.
         ukbiobank_study_index.df.write.mode(self.session.write_mode).parquet(

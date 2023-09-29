@@ -8,10 +8,13 @@ from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
 from otg.config import V2GStepConfig
 from otg.dataset.gene_index import GeneIndex
-from otg.dataset.intervals import Intervals
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.intervals.andersson import IntervalsAndersson
+from otg.datasource.intervals.javierre import IntervalsJavierre
+from otg.datasource.intervals.jung import IntervalsJung
+from otg.datasource.intervals.thurnman import IntervalsThurnman
 
 
 @dataclass
@@ -49,6 +52,7 @@ class V2GStep(V2GStepConfig):
             self.liftover_chain_file_path, self.liftover_max_length_difference
         )
 
+        # Expected andersson et al. schema:
         v2g_datasets = [
             va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
             # variant effects
@@ -57,17 +61,25 @@ class V2GStep(V2GStepConfig):
             va_slimmed.get_sift_v2g(gene_index_filtered),
             va_slimmed.get_plof_v2g(gene_index_filtered),
             # intervals
-            Intervals.parse_andersson(
-                self.session, self.anderson_path, gene_index_filtered, lift
+            IntervalsAndersson.parse(
+                IntervalsAndersson.read_andersson(self.session, self.anderson_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
-            Intervals.parse_javierre(
-                self.session, self.javierre_path, gene_index_filtered, lift
+            IntervalsJavierre.parse(
+                IntervalsJavierre.read_javierre(self.session, self.javierre_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
-            Intervals.parse_jung(
-                self.session, self.jung_path, gene_index_filtered, lift
+            IntervalsJung.parse(
+                IntervalsJung.read_jung(self.session, self.jung_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
-            Intervals.parse_thurman(
-                self.session, self.thurnman_path, gene_index_filtered, lift
+            IntervalsThurnman.parse(
+                IntervalsThurnman.read_thurnman(self.session, self.thurnman_path),
+                gene_index_filtered,
+                lift,
             ).v2g(vi),
         ]
 

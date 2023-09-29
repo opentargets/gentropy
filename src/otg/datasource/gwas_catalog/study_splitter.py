@@ -10,11 +10,11 @@ from pyspark.sql.window import Window
 if TYPE_CHECKING:
     from pyspark.sql import Column
 
-    from otg.dataset.study_index import StudyIndexGWASCatalog
-    from otg.dataset.study_locus import StudyLocusGWASCatalog
+    from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
+    from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 
 
-class GWASCatalogSplitter:
+class GWASCatalogStudySplitter:
     """Splitting multi-trait GWAS Catalog studies."""
 
     @staticmethod
@@ -81,17 +81,17 @@ class GWASCatalogSplitter:
 
     @classmethod
     def split(
-        cls: type[GWASCatalogSplitter],
-        studies: StudyIndexGWASCatalog,
-        associations: StudyLocusGWASCatalog,
-    ) -> Tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]:
+        cls: type[GWASCatalogStudySplitter],
+        studies: GWASCatalogStudyIndex,
+        associations: GWASCatalogAssociations,
+    ) -> Tuple[GWASCatalogStudyIndex, GWASCatalogAssociations]:
         """Splitting multi-trait GWAS Catalog studies.
 
         If assigned disease of the study and the association don't agree, we assume the study needs to be split.
         Then disease EFOs, trait names and study ID are consolidated
 
         Args:
-            studies (StudyIndexGWASCatalog): GWAS Catalog studies.
+            studies (GWASCatalogStudyIndex): GWAS Catalog studies.
             associations (StudyLocusGWASCatalog): GWAS Catalog associations.
 
         Returns:
