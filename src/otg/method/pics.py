@@ -180,10 +180,21 @@ class PICS:
         """
         # Register UDF by defining the structure of the output locus array of structs
         # it also renames tagVariantId to variantId
-        picsed_locus_schema = t.ArrayType(
+
+        picsed_ldset_schema = t.ArrayType(
             t.StructType(
                 [
-                    t.StructField("variantId", t.StringType(), False),
+                    t.StructField("tagVariantId", t.StringType(), True),
+                    t.StructField("r2Overall", t.DoubleType(), True),
+                    t.StructField("posteriorProbability", t.DoubleType(), True),
+                    t.StructField("standardError", t.DoubleType(), True),
+                ]
+            )
+        )
+        picsed_study_locus_schema = t.ArrayType(
+            t.StructType(
+                [
+                    t.StructField("variantId", t.StringType(), True),
                     t.StructField("r2Overall", t.DoubleType(), True),
                     t.StructField("posteriorProbability", t.DoubleType(), True),
                     t.StructField("standardError", t.DoubleType(), True),
@@ -192,21 +203,27 @@ class PICS:
         )
         _finemap_udf = f.udf(
             lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
-            picsed_locus_schema,
+            picsed_ldset_schema,
         )
         return StudyLocus(
             _df=(
-                associations.df.withColumn(
-                    "neglog_pvalue", associations.neglog_pvalue()
-                )
-                # This will replace previous locus with the new one :S
+                associations.df
+                # Old locus column will be dropped if available
+                .select(*[col for col in associations.df.columns if col != "locus"])
+                # Estimate neglog_pvalue for the lead variant
+                .withColumn("neglog_pvalue", associations.neglog_pvalue())
+                # New locus containing the PICS results
                 .withColumn(
                     "locus",
                     f.when(
                         f.col("ldSet").isNotNull(),
-                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
+                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")).cast(
+                            picsed_study_locus_schema
+                        ),
                     ),
-                ).drop("neglog_pvalue")
+                )
+                # Rename tagVariantId to variantId
+                .drop("neglog_pvalue")
             ),
             _schema=StudyLocus.get_schema(),
         )
