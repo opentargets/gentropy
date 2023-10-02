@@ -17,10 +17,10 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
-from otg.datasource.finngen.study_index import FinnGenStudyIndex
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
+from otg.preprocess.finngen.study_index import FinnGenStudyIndex
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -149,7 +149,7 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
 
 @pytest.fixture()
 def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
-    """Mock StudyIndexFinnGen dataset."""
+    """Mock FinnGenStudyIndex dataset."""
     return FinnGenStudyIndex(
         _df=mock_study_index_data(spark),
         _schema=StudyIndex.get_schema(),
