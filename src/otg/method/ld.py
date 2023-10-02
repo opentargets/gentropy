@@ -8,7 +8,7 @@ from pyspark.sql import functions as f
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import Column
 
     from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex
@@ -66,21 +66,6 @@ class LDAnnotator:
                 ).alias("rValues"),
             ),
         )
-
-    @classmethod
-    def annotate_variants_with_ld(
-        cls: type[LDAnnotator], variants_df: DataFrame, ld_index: LDIndex
-    ) -> DataFrame:
-        """Annotate linkage disequilibrium (LD) information to a set of variants.
-
-        Args:
-            variants_df (DataFrame): Input DataFrame with a `variantId` column containing variant IDs (hg38)
-            ld_index (LDIndex): LD index
-
-        Returns:
-            DataFrame: DataFrame with LD annotations
-        """
-        return variants_df.join(ld_index.df, on=["variantId", "chromosome"], how="left")
 
     @classmethod
     def ld_annotate(
