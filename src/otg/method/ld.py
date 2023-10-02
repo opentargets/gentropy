@@ -107,8 +107,11 @@ class LDAnnotator:
         """
         return StudyLocus(
             _df=(
+                associations.df
+                # Drop ldSet column if already available
+                .select(*[col for col in associations.df.columns if col != "ldSet"])
                 # Annotate study locus with population structure from study index
-                associations.df.join(
+                .join(
                     studies.df.select("studyId", "ldPopulationStructure"),
                     on="studyId",
                     how="left",

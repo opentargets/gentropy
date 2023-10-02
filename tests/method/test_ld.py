@@ -9,10 +9,14 @@ import pyspark.sql.types as t
 import pytest
 from pyspark.sql import Row
 
+from otg.dataset.study_locus import StudyLocus
 from otg.method.ld import LDAnnotator
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
+
+    from otg.dataset.ld_index import LDIndex
+    from otg.dataset.study_index import StudyIndex
 
 
 class TestLDAnnotator:
@@ -124,4 +128,16 @@ class TestLDAnnotator:
         ]
         self.observed_df = spark.createDataFrame(
             observed_data, self.association_w_ld_set_schema
+        )
+
+    def test_ldannotate(
+        self: TestLDAnnotator,
+        mock_study_locus: StudyLocus,
+        mock_study_index: StudyIndex,
+        mock_ld_index: LDIndex,
+    ) -> None:
+        """Test LD annotator."""
+        assert isinstance(
+            LDAnnotator.ld_annotate(mock_study_locus, mock_study_index, mock_ld_index),
+            StudyLocus,
         )
