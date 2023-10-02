@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
     from otg.dataset.ld_index import LDIndex
+    from otg.dataset.study_index import StudyIndex
 
 
 class LDAnnotator:
@@ -85,17 +86,20 @@ class LDAnnotator:
     def ld_annotate(
         cls: type[LDAnnotator],
         associations: StudyLocus,
+        studies: StudyIndex,
         ld_index: LDIndex,
     ) -> StudyLocus:
         """Annotate linkage disequilibrium (LD) information to a set of studyLocus.
 
         This function:
-            1. Joins the LD index to the StudyLocus
-            2. Adds the population size of the study to each rValues entry in the ldSet
-            3. Calculates the overall R weighted by the ancestry proportions in every given study.
+            1. Annotates study locus with population structure information from the study index
+            2. Joins the LD index to the StudyLocus
+            3. Adds the population size of the study to each rValues entry in the ldSet
+            4. Calculates the overall R weighted by the ancestry proportions in every given study.
 
         Args:
             associations (StudyLocus): Dataset to be LD annotated
+            studies (StudyIndex): Dataset with study information
             ld_index (LDIndex): Dataset with LD information for every variant present in LD matrix
 
         Returns:
@@ -103,8 +107,14 @@ class LDAnnotator:
         """
         return StudyLocus(
             _df=(
-                # Bring LD information
+                # Annotate study locus with population structure from study index
                 associations.df.join(
+                    studies.df.select("studyId", "ldPopulationStructure"),
+                    on="studyId",
+                    how="left",
+                )
+                # Bring LD information from LD Index
+                .join(
                     ld_index.df,
                     on=["variantId", "chromosome"],
                     how="left",
@@ -123,4 +133,4 @@ class LDAnnotator:
                 ).drop("ldPopulationStructure")
             ),
             _schema=StudyLocus.get_schema(),
-        )
+        )._qc_unresolved_ld()
