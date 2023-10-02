@@ -1163,7 +1163,9 @@
 <span class=normal>1195</span>
 <span class=normal>1196</span>
 <span class=normal>1197</span>
-<span class=normal>1198</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>1198</span>
+<span class=normal>1199</span>
+<span class=normal>1200</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>GWASCatalogAssociations</span><span class=p>(</span><span class=n>StudyLocus</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study-locus dataset derived from GWAS Catalog.&quot;&quot;&quot;</span>
 
@@ -2286,7 +2288,9 @@
 <span class=sd>            StudyLocus: Study-locus with an annotated credible set.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>associations_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-            <span class=n>studies</span><span class=o>.</span><span class=n>get_gnomad_population_structure</span><span class=p>(),</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span>
+            <span class=n>studies</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>),</span>
+            <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span>
+            <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>,</span>
         <span class=p>)</span>
 
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=n>LDAnnotator</span><span class=o>.</span><span class=n>annotate_associations_with_ld</span><span class=p>(</span><span class=n>associations_df</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span>
@@ -2346,7 +2350,9 @@
 <span class=normal>1157</span>
 <span class=normal>1158</span>
 <span class=normal>1159</span>
-<span class=normal>1160</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_ld</span><span class=p>(</span>
+<span class=normal>1160</span>
+<span class=normal>1161</span>
+<span class=normal>1162</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_ld</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>GWASCatalogAssociations</span><span class=p>,</span> <span class=n>studies</span><span class=p>:</span> <span class=n>GWASCatalogStudyIndex</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>:</span> <span class=n>LDIndex</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Annotate LD set for every studyLocus using gnomAD.</span>
@@ -2359,7 +2365,9 @@
 <span class=sd>        StudyLocus: Study-locus with an annotated credible set.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=n>associations_df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-        <span class=n>studies</span><span class=o>.</span><span class=n>get_gnomad_population_structure</span><span class=p>(),</span> <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span>
+        <span class=n>studies</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>),</span>
+        <span class=n>on</span><span class=o>=</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span>
+        <span class=n>how</span><span class=o>=</span><span class=s2>&quot;left&quot;</span><span class=p>,</span>
     <span class=p>)</span>
 
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=n>LDAnnotator</span><span class=o>.</span><span class=n>annotate_associations_with_ld</span><span class=p>(</span><span class=n>associations_df</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span>

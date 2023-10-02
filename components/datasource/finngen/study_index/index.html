@@ -55,7 +55,17 @@
 <span class=normal>68</span>
 <span class=normal>69</span>
 <span class=normal>70</span>
-<span class=normal>71</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>FinnGenStudyIndex</span><span class=p>(</span><span class=n>StudyIndex</span><span class=p>):</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span>
+<span class=normal>75</span>
+<span class=normal>76</span>
+<span class=normal>77</span>
+<span class=normal>78</span>
+<span class=normal>79</span>
+<span class=normal>80</span>
+<span class=normal>81</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>FinnGenStudyIndex</span><span class=p>(</span><span class=n>StudyIndex</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study index dataset from FinnGen.</span>
 
 <span class=sd>    The following information is aggregated/extracted:</span>
@@ -101,6 +111,12 @@
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;377,277 (210,870 females and 166,407 males)&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span>
                     <span class=s2>&quot;initialSampleSize&quot;</span>
                 <span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>(</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
+                        <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>377277</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=s2>&quot;long&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;sampleSize&quot;</span><span class=p>),</span>
+                        <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;Finnish&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;ancestry&quot;</span><span class=p>),</span>
+                    <span class=p>)</span>
+                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;discoverySamples&quot;</span><span class=p>),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;nSamples&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;nCases&quot;</span><span class=p>)</span> <span class=o>+</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;nControls&quot;</span><span class=p>))</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
@@ -110,6 +126,10 @@
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=n>finngen_sumstat_url_suffix</span><span class=p>),</span>
                 <span class=p>),</span>
+            <span class=p>)</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+                <span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>,</span>
+                <span class=bp>cls</span><span class=o>.</span><span class=n>aggregate_and_map_ancestries</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;discoverySamples&quot;</span><span class=p>)),</span>
             <span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>FinnGenStudyIndex</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
@@ -157,7 +177,17 @@
 <span class=normal>68</span>
 <span class=normal>69</span>
 <span class=normal>70</span>
-<span class=normal>71</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span>
+<span class=normal>75</span>
+<span class=normal>76</span>
+<span class=normal>77</span>
+<span class=normal>78</span>
+<span class=normal>79</span>
+<span class=normal>80</span>
+<span class=normal>81</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>from_source</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>FinnGenStudyIndex</span><span class=p>],</span>
     <span class=n>finngen_studies</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
@@ -190,6 +220,12 @@
             <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;377,277 (210,870 females and 166,407 males)&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span>
                 <span class=s2>&quot;initialSampleSize&quot;</span>
             <span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>(</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mi>377277</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=s2>&quot;long&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;sampleSize&quot;</span><span class=p>),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;Finnish&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;ancestry&quot;</span><span class=p>),</span>
+                <span class=p>)</span>
+            <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;discoverySamples&quot;</span><span class=p>),</span>
         <span class=p>)</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span><span class=s2>&quot;nSamples&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;nCases&quot;</span><span class=p>)</span> <span class=o>+</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;nControls&quot;</span><span class=p>))</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
@@ -199,6 +235,10 @@
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=n>finngen_sumstat_url_suffix</span><span class=p>),</span>
             <span class=p>),</span>
+        <span class=p>)</span>
+        <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+            <span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>,</span>
+            <span class=bp>cls</span><span class=o>.</span><span class=n>aggregate_and_map_ancestries</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;discoverySamples&quot;</span><span class=p>)),</span>
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>FinnGenStudyIndex</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>

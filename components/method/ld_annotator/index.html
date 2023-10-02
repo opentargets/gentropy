@@ -99,7 +99,9 @@
 <span class=normal>112</span>
 <span class=normal>113</span>
 <span class=normal>114</span>
-<span class=normal>115</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>LDAnnotator</span><span class=p>:</span>
+<span class=normal>115</span>
+<span class=normal>116</span>
+<span class=normal>117</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>LDAnnotator</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Class to annotate linkage disequilibrium (LD) operations from GnomAD.&quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
@@ -134,7 +136,7 @@
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=c1># Create a population to relativeSampleSize map from the struct</span>
         <span class=n>populations_map</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>map_from_arrays</span><span class=p>(</span>
-            <span class=n>study_populations</span><span class=p>[</span><span class=s2>&quot;population&quot;</span><span class=p>],</span>
+            <span class=n>study_populations</span><span class=p>[</span><span class=s2>&quot;ldPopulation&quot;</span><span class=p>],</span>
             <span class=n>study_populations</span><span class=p>[</span><span class=s2>&quot;relativeSampleSize&quot;</span><span class=p>],</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=n>f</span><span class=o>.</span><span class=n>transform</span><span class=p>(</span>
@@ -179,7 +181,7 @@
 <span class=sd>        Finally, we aggregate the weighted R information using ancestry proportions.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            associations_df (DataFrame): Study locus DataFrame with a `populationsStructure` column containing population structure information</span>
+<span class=sd>            associations_df (DataFrame): Study locus DataFrame with a `ldPopulationsStructure` column containing population structure information</span>
 <span class=sd>            ld_index (LDIndex): Dataset with LD information for every variant present in gnomAD LD matrix</span>
 
 <span class=sd>        Returns:</span>
@@ -193,15 +195,17 @@
             <span class=c1># Add population size to each rValues entry in the ldSet</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;ldSet&quot;</span><span class=p>,</span>
-                <span class=bp>cls</span><span class=o>.</span><span class=n>_add_population_size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;populationsStructure&quot;</span><span class=p>)),</span>
+                <span class=bp>cls</span><span class=o>.</span><span class=n>_add_population_size</span><span class=p>(</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>)</span>
+                <span class=p>),</span>
             <span class=p>)</span>
             <span class=c1># Aggregate weighted R information using ancestry proportions</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;ldSet&quot;</span><span class=p>,</span>
                 <span class=bp>cls</span><span class=o>.</span><span class=n>_calculate_weighted_r_overall</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)),</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;populationsStructure&quot;</span><span class=p>)</span>
+            <span class=p>)</span><span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>)</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.ld.LDAnnotator.annotate_associations_with_ld class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_associations_with_ld</span><span class=p>(</span><span class=n>associations_df</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Annotate linkage disequilibrium (LD) information to a set of associations.</p> <p>We first join the associations dataframe with the LD index. Then, we add the population size of the study to each rValues entry in the ldSet to calculate the relative r between lead/tag for that study. Finally, we aggregate the weighted R information using ancestry proportions.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>associations_df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Study locus DataFrame with a <code>populationsStructure</code> column containing population structure information</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.ld_index.LDIndex" href="../../dataset/ld_index/#otg.dataset.ld_index.LDIndex">LDIndex</a></code> </td> <td><p>Dataset with LD information for every variant present in gnomAD LD matrix</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Following the same schema as the input DataFrame, but with LD annotations (<code>ldSet</code> column)</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/ld.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 82</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.ld.LDAnnotator.annotate_associations_with_ld class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_associations_with_ld</span><span class=p>(</span><span class=n>associations_df</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Annotate linkage disequilibrium (LD) information to a set of associations.</p> <p>We first join the associations dataframe with the LD index. Then, we add the population size of the study to each rValues entry in the ldSet to calculate the relative r between lead/tag for that study. Finally, we aggregate the weighted R information using ancestry proportions.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>associations_df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Study locus DataFrame with a <code>ldPopulationsStructure</code> column containing population structure information</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.ld_index.LDIndex" href="../../dataset/ld_index/#otg.dataset.ld_index.LDIndex">LDIndex</a></code> </td> <td><p>Dataset with LD information for every variant present in gnomAD LD matrix</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Following the same schema as the input DataFrame, but with LD annotations (<code>ldSet</code> column)</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/ld.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 82</span>
 <span class=normal> 83</span>
 <span class=normal> 84</span>
 <span class=normal> 85</span>
@@ -234,7 +238,9 @@
 <span class=normal>112</span>
 <span class=normal>113</span>
 <span class=normal>114</span>
-<span class=normal>115</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>115</span>
+<span class=normal>116</span>
+<span class=normal>117</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>annotate_associations_with_ld</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>LDAnnotator</span><span class=p>],</span>
     <span class=n>associations_df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
@@ -246,7 +252,7 @@
 <span class=sd>    Finally, we aggregate the weighted R information using ancestry proportions.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        associations_df (DataFrame): Study locus DataFrame with a `populationsStructure` column containing population structure information</span>
+<span class=sd>        associations_df (DataFrame): Study locus DataFrame with a `ldPopulationsStructure` column containing population structure information</span>
 <span class=sd>        ld_index (LDIndex): Dataset with LD information for every variant present in gnomAD LD matrix</span>
 
 <span class=sd>    Returns:</span>
@@ -260,13 +266,15 @@
         <span class=c1># Add population size to each rValues entry in the ldSet</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=s2>&quot;ldSet&quot;</span><span class=p>,</span>
-            <span class=bp>cls</span><span class=o>.</span><span class=n>_add_population_size</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;populationsStructure&quot;</span><span class=p>)),</span>
+            <span class=bp>cls</span><span class=o>.</span><span class=n>_add_population_size</span><span class=p>(</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>)</span>
+            <span class=p>),</span>
         <span class=p>)</span>
         <span class=c1># Aggregate weighted R information using ancestry proportions</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=s2>&quot;ldSet&quot;</span><span class=p>,</span>
             <span class=bp>cls</span><span class=o>.</span><span class=n>_calculate_weighted_r_overall</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)),</span>
-        <span class=p>)</span><span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;populationsStructure&quot;</span><span class=p>)</span>
+        <span class=p>)</span><span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;ldPopulationStructure&quot;</span><span class=p>)</span>
     <span class=p>)</span>
 </code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.method.ld.LDAnnotator.annotate_variants_with_ld class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_variants_with_ld</span><span class=p>(</span><span class=n>variants_df</span><span class=p>,</span> <span class=n>ld_index</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Annotate linkage disequilibrium (LD) information to a set of variants.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>variants_df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>Input DataFrame with a <code>variantId</code> column containing variant IDs (hg38)</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.ld_index.LDIndex" href="../../dataset/ld_index/#otg.dataset.ld_index.LDIndex">LDIndex</a></code> </td> <td><p>LD index</p></td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td><p>DataFrame with LD annotations</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/ld.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>67</span>
 <span class=normal>68</span>
