@@ -9,11 +9,10 @@ import pyspark.sql.types as t
 from scipy.stats import norm
 
 from otg.common.utils import split_pvalue
+from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
-
-    from otg.dataset.study_locus import StudyLocus
 
 
 class PICS:
@@ -115,7 +114,6 @@ class PICS:
             return None
         elif not ld_set:
             return []
-
         tmp_credible_set = []
         new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
@@ -181,23 +179,34 @@ class PICS:
             StudyLocus: Study locus with PICS results
         """
         # Register UDF by defining the structure of the output locus array of structs
-        credset_schema = t.ArrayType(
-            [field.dataType.elementType for field in associations.schema if field.name == "locus"][0]  # type: ignore
+        # it also renames tagVariantId to variantId
+        picsed_locus_schema = t.ArrayType(
+            t.StructType(
+                [
+                    t.StructField("variantId", t.StringType(), False),
+                    t.StructField("r2Overall", t.DoubleType(), True),
+                    t.StructField("posteriorProbability", t.DoubleType(), True),
+                    t.StructField("standardError", t.DoubleType(), True),
+                ]
+            )
         )
         _finemap_udf = f.udf(
-            lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
-            credset_schema,
+            lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
+            picsed_locus_schema,
         )
-
-        associations.df = (
-            associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
-            .withColumn(
-                "locus",
-                f.when(
-                    f.col("ldSet").isNotNull(),
-                    _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
-                ),
-            )
-            .drop("neglog_pvalue")
+        return StudyLocus(
+            _df=(
+                associations.df.withColumn(
+                    "neglog_pvalue", associations.neglog_pvalue()
+                )
+                # This will replace previous locus with the new one :S
+                .withColumn(
+                    "locus",
+                    f.when(
+                        f.col("ldSet").isNotNull(),
+                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
+                    ),
+                ).drop("neglog_pvalue")
+            ),
+            _schema=StudyLocus.get_schema(),
         )
-        return associations

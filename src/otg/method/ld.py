@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 
+from otg.dataset.study_locus import StudyLocus
+
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
@@ -80,36 +82,45 @@ class LDAnnotator:
         return variants_df.join(ld_index.df, on=["variantId", "chromosome"], how="left")
 
     @classmethod
-    def annotate_associations_with_ld(
+    def ld_annotate(
         cls: type[LDAnnotator],
-        associations_df: DataFrame,
+        associations: StudyLocus,
         ld_index: LDIndex,
-    ) -> DataFrame:
-        """Annotate linkage disequilibrium (LD) information to a set of associations.
+    ) -> StudyLocus:
+        """Annotate linkage disequilibrium (LD) information to a set of studyLocus.
 
-        We first join the associations dataframe with the LD index. Then, we add the population size of the study to each rValues entry in the ldSet to calculate the relative r between lead/tag for that study.
-        Finally, we aggregate the weighted R information using ancestry proportions.
+        This function:
+            1. Joins the LD index to the StudyLocus
+            2. Adds the population size of the study to each rValues entry in the ldSet
+            3. Calculates the overall R weighted by the ancestry proportions in every given study.
 
         Args:
-            associations_df (DataFrame): Study locus DataFrame with a `populationsStructure` column containing population structure information
-            ld_index (LDIndex): Dataset with LD information for every variant present in gnomAD LD matrix
+            associations (StudyLocus): Dataset to be LD annotated
+            ld_index (LDIndex): Dataset with LD information for every variant present in LD matrix
 
         Returns:
-            DataFrame: Following the same schema as the input DataFrame, but with LD annotations (`ldSet` column)
+            StudyLocus: including additional column with LD information.
         """
-        return (
-            # Bring LD information
-            associations_df.join(
-                ld_index.df, on=["variantId", "chromosome"], how="left"
-            )
-            # Add population size to each rValues entry in the ldSet
-            .withColumn(
-                "ldSet",
-                cls._add_population_size(f.col("ldSet"), f.col("populationsStructure")),
-            )
-            # Aggregate weighted R information using ancestry proportions
-            .withColumn(
-                "ldSet",
-                cls._calculate_weighted_r_overall(f.col("ldSet")),
-            ).drop("populationsStructure")
+        return StudyLocus(
+            _df=(
+                # Bring LD information
+                associations.df.join(
+                    ld_index.df,
+                    on=["variantId", "chromosome"],
+                    how="left",
+                )
+                # Add population size to each rValues entry in the ldSet
+                .withColumn(
+                    "ldSet",
+                    cls._add_population_size(
+                        f.col("ldSet"), f.col("populationsStructure")
+                    ),
+                )
+                # Aggregate weighted R information using ancestry proportions
+                .withColumn(
+                    "ldSet",
+                    cls._calculate_weighted_r_overall(f.col("ldSet")),
+                ).drop("populationsStructure")
+            ),
+            _schema=StudyLocus.get_schema(),
         )
