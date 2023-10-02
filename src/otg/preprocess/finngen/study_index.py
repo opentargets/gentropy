@@ -38,7 +38,7 @@ class FinnGenStudyIndex(StudyIndex):
     @classmethod
     def get_schema(cls: type[FinnGenStudyIndex]) -> StructType:
         """Provides the schema for the FinnGenStudyIndex dataset."""
-        return parse_spark_schema("studies.json")
+        return parse_spark_schema("study_index.json")
 
     @classmethod
     def from_source(
