@@ -100,6 +100,32 @@
       "metadata": {}
     },
     {
+      "name": "ldPopulationStructure",
+      "type": {
+        "type": "array",
+        "elementType": {
+          "type": "struct",
+          "fields": [
+            {
+              "name": "ldPopulation",
+              "type": "string",
+              "nullable": true,
+              "metadata": {}
+            },
+            {
+              "name": "relativeSampleSize",
+              "type": "double",
+              "nullable": true,
+              "metadata": {}
+            }
+          ]
+        },
+        "containsNull": false
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "discoverySamples",
       "type": {
         "type": "array",
@@ -108,7 +134,7 @@
           "fields": [
             {
               "name": "sampleSize",
-              "type": "string",
+              "type": "long",
               "nullable": true,
               "metadata": {}
             },
@@ -134,7 +160,7 @@
           "fields": [
             {
               "name": "sampleSize",
-              "type": "string",
+              "type": "long",
               "nullable": true,
               "metadata": {}
             },

@@ -79,7 +79,7 @@ class UKBiobankStudyIndex(StudyIndex):
                     f.col("n_cases").cast("long").alias("nCases"),
                     f.array(
                         f.struct(
-                            f.col("n_total").cast("string").alias("sampleSize"),
+                            f.col("n_total").cast("long").alias("sampleSize"),
                             f.concat(f.lit("European="), f.col("n_total")).alias(
                                 "ancestry"
                             ),
@@ -87,7 +87,8 @@ class UKBiobankStudyIndex(StudyIndex):
                     ).alias("discoverySamples"),
                     f.col("in_path").alias("summarystatsLocation"),
                     f.lit(True).alias("hasSumstats"),
-                ).withColumn(
+                )
+                .withColumn(
                     "traitFromSource",
                     f.when(
                         f.col("traitFromSource").contains(":"),
@@ -99,6 +100,10 @@ class UKBiobankStudyIndex(StudyIndex):
                             f.lower(f.split(f.col("traitFromSource"), ": ").getItem(0)),
                         ),
                     ).otherwise(f.col("traitFromSource")),
+                )
+                .withColumn(
+                    "ldPopulationStructure",
+                    cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
                 )
             ),
             _schema=StudyIndex.get_schema(),

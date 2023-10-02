@@ -48,7 +48,7 @@ class LDAnnotator:
         """
         # Create a population to relativeSampleSize map from the struct
         populations_map = f.map_from_arrays(
-            study_populations["population"],
+            study_populations["ldPopulation"],
             study_populations["relativeSampleSize"],
         )
         return f.transform(
@@ -113,14 +113,14 @@ class LDAnnotator:
                 .withColumn(
                     "ldSet",
                     cls._add_population_size(
-                        f.col("ldSet"), f.col("populationsStructure")
+                        f.col("ldSet"), f.col("ldPopulationStructure")
                     ),
                 )
                 # Aggregate weighted R information using ancestry proportions
                 .withColumn(
                     "ldSet",
                     cls._calculate_weighted_r_overall(f.col("ldSet")),
-                ).drop("populationsStructure")
+                ).drop("ldPopulationStructure")
             ),
             _schema=StudyLocus.get_schema(),
         )
