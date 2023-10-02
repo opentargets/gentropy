@@ -15,11 +15,13 @@ from otg.common.spark_helpers import (
 from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
+from otg.method.ld import LDAnnotator
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex
 
 
@@ -409,5 +411,44 @@ class StudyLocus(Dataset):
                 ),
             )
             .drop("is_lead_linked")
+        )
+        return self
+
+    def annotate_ld(
+        self: StudyLocus, studies: StudyIndex, ld_index: LDIndex
+    ) -> StudyLocus:
+        """Annotate LD set for every studyLocus using gnomAD.
+
+        Args:
+            studies (StudyLocus): Study index containing ancestry information
+            ld_index (LDIndex): LD index
+
+        Returns:
+            StudyLocus: Study-locus with an annotated credible set.
+        """
+        associations_df = self.df.join(
+            studies.df.select("studyId", "ldPopulationStructure"),
+            on="studyId",
+            how="left",
+        )
+
+        self.df = LDAnnotator.annotate_associations_with_ld(associations_df, ld_index)
+        return self._qc_unresolved_ld()
+
+    def _qc_unresolved_ld(
+        self: StudyLocus,
+    ) -> StudyLocus:
+        """Flag associations with variants that are not found in the LD reference.
+
+        Returns:
+            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
+        """
+        self.df = self.df.withColumn(
+            "qualityControls",
+            self._update_quality_flag(
+                f.col("qualityControls"),
+                f.col("ldSet").isNull(),
+                StudyLocusQualityCheck.UNRESOLVED_LD,
+            ),
         )
         return self
