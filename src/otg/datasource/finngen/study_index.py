@@ -57,6 +57,12 @@ class FinnGenStudyIndex(StudyIndex):
                 f.lit("377,277 (210,870 females and 166,407 males)").alias(
                     "initialSampleSize"
                 ),
+                f.array(
+                    f.struct(
+                        f.lit(377277).cast("long").alias("sampleSize"),
+                        f.lit("Finnish").alias("ancestry"),
+                    )
+                ).alias("discoverySamples"),
             )
             .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
             .withColumn(
@@ -66,6 +72,10 @@ class FinnGenStudyIndex(StudyIndex):
                     f.col("studyId"),
                     f.lit(finngen_sumstat_url_suffix),
                 ),
+            )
+            .withColumn(
+                "ldPopulationStructure",
+                cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
             ),
             _schema=FinnGenStudyIndex.get_schema(),
         )

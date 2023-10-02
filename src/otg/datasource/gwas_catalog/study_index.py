@@ -1,17 +1,12 @@
 """Study Index for GWAS Catalog data source."""
 from __future__ import annotations
 
-import importlib.resources as pkg_resources
-import json
 from dataclasses import dataclass
-from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.sql import Column, Window
 
-from otg.assets import data
 from otg.common.spark_helpers import column2camel_case
 from otg.common.utils import parse_efos
 from otg.dataset.study_index import StudyIndex
@@ -35,26 +30,6 @@ class GWASCatalogStudyIndex(StudyIndex):
     - The number of samples with European ancestry extracted.
 
     """
-
-    @staticmethod
-    def _gwas_ancestry_to_gnomad(gwas_catalog_ancestry: Column) -> Column:
-        """Normalised ancestry column from GWAS Catalog into Gnomad ancestry.
-
-        Args:
-            gwas_catalog_ancestry (Column): GWAS Catalog ancestry
-
-        Returns:
-            Column: mapped Gnomad ancestry using LUT
-        """
-        # GWAS Catalog to p-value mapping
-        json_dict = json.loads(
-            pkg_resources.read_text(
-                data, "gwascat_2_gnomad_superpopulation_map.json", encoding="utf-8"
-            )
-        )
-        map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
-
-        return f.transform(gwas_catalog_ancestry, lambda x: map_expr[x])
 
     @classmethod
     def _parse_study_table(
@@ -99,7 +74,7 @@ class GWASCatalogStudyIndex(StudyIndex):
         ancestry_file: DataFrame,
         sumstats_lut: DataFrame,
     ) -> StudyIndex:
-        """This function ingests study level metadata from the GWAS Catalog.
+        """Ingests study level metadata from the GWAS Catalog.
 
         Args:
             catalog_studies (DataFrame): GWAS Catalog raw study table
@@ -115,53 +90,6 @@ class GWASCatalogStudyIndex(StudyIndex):
             ._annotate_ancestries(ancestry_file)
             ._annotate_sumstats_info(sumstats_lut)
             ._annotate_discovery_sample_sizes()
-        )
-
-    def get_gnomad_population_structure(self: GWASCatalogStudyIndex) -> DataFrame:
-        """Get the population structure (ancestry normalised to gnomAD and population sizes) for every study.
-
-        Returns:
-            DataFrame: containing `studyId` and `populationsStructure`, where each element of the array represents a population
-        """
-        # Study ancestries
-        w_study = Window.partitionBy("studyId")
-        return (
-            self.df
-            # Excluding studies where no sample discription is provided:
-            .filter(f.col("discoverySamples").isNotNull())
-            # Exploding sample description and study identifier:
-            .withColumn("discoverySample", f.explode(f.col("discoverySamples")))
-            # Splitting sample descriptions further:
-            .withColumn(
-                "ancestries",
-                f.split(f.col("discoverySample.ancestry"), r",\s(?![^()]*\))"),
-            )
-            # Dividing sample sizes assuming even distribution
-            .withColumn(
-                "adjustedSampleSize",
-                f.col("discoverySample.sampleSize") / f.size(f.col("ancestries")),
-            )
-            # mapped to gnomAD superpopulation and exploded
-            .withColumn(
-                "population",
-                f.explode(
-                    GWASCatalogStudyIndex._gwas_ancestry_to_gnomad(f.col("ancestries"))
-                ),
-            )
-            # Group by studies and aggregate for major population:
-            .groupBy("studyId", "population")
-            .agg(f.sum(f.col("adjustedSampleSize")).alias("sampleSize"))
-            # Calculate proportions for each study
-            .withColumn(
-                "relativeSampleSize",
-                f.col("sampleSize") / f.sum("sampleSize").over(w_study),
-            )
-            .withColumn(
-                "populationStructure",
-                f.struct("population", "relativeSampleSize"),
-            )
-            .groupBy("studyId")
-            .agg(f.collect_set("populationStructure").alias("populationsStructure"))
         )
 
     def update_study_id(
@@ -241,13 +169,20 @@ class GWASCatalogStudyIndex(StudyIndex):
             .agg(
                 f.collect_set(
                     f.struct(
-                        f.col("numberOfIndividuals").alias("sampleSize"),
                         f.col("broadAncestralCategory").alias("ancestry"),
+                        f.col("numberOfIndividuals")
+                        .cast(t.LongType())
+                        .alias("sampleSize"),
                     )
                 )
             )
             .withColumnRenamed("initial", "discoverySamples")
             .withColumnRenamed("replication", "replicationSamples")
+            # Mapping discovery stage ancestries to LD reference:
+            .withColumn(
+                "ldPopulationStructure",
+                self.aggregate_and_map_ancestries(f.col("discoverySamples")),
+            )
             .persist()
         )
 

@@ -24,7 +24,7 @@ class TestLDAnnotator:
         """Test _add_population_size."""
         result_df = self.observed_df.select(
             LDAnnotator._add_population_size(
-                f.col("ldSet"), f.col("populationsStructure")
+                f.col("ldSet"), f.col("ldPopulationStructure")
             ).alias("ldSet")
         )
         expected = [0.8, None]
@@ -40,7 +40,7 @@ class TestLDAnnotator:
         result_df = self.observed_df.withColumn(
             "ldSet",
             LDAnnotator._add_population_size(
-                f.col("ldSet"), f.col("populationsStructure")
+                f.col("ldSet"), f.col("ldPopulationStructure")
             ),
         ).withColumn("ldSet", LDAnnotator._calculate_weighted_r_overall(f.col("ldSet")))
         expected = 0.2
@@ -83,11 +83,11 @@ class TestLDAnnotator:
                 ),
                 t.StructField("studyId", t.StringType(), True),
                 t.StructField(
-                    "populationsStructure",
+                    "ldPopulationStructure",
                     t.ArrayType(
                         t.StructType(
                             [
-                                t.StructField("population", t.StringType(), True),
+                                t.StructField("ldPopulation", t.StringType(), True),
                                 t.StructField(
                                     "relativeSampleSize", t.DoubleType(), True
                                 ),
@@ -110,13 +110,13 @@ class TestLDAnnotator:
                     }
                 ],
                 studyId="study1",
-                populationsStructure=[
+                ldPopulationStructure=[
                     {
-                        "population": "pop1",
+                        "ldPopulation": "pop1",
                         "relativeSampleSize": 0.8,
                     },
                     {
-                        "population": "pop3",
+                        "ldPopulation": "pop3",
                         "relativeSampleSize": 0.2,
                     },
                 ],
