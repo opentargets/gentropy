@@ -39,7 +39,7 @@ class TestFinemap:
         assert observed_df.collect()[0]["locus"] is None
 
 
-def test__finemap() -> None:
+def test__finemap_udf() -> None:
     """Test the _finemap UDF with a simple case."""
     ld_set = [
         Row(variantId="var1", r2Overall=0.8),
@@ -67,3 +67,8 @@ def test__finemap() -> None:
     for idx, tag in enumerate(result):  # type: ignore
         # assert both dictionaries have the same content regardless of its order
         assert tag == expected[idx]
+
+
+def test_finemap(mock_study_locus: StudyLocus) -> None:
+    """Test finemap function returns study-locus."""
+    assert isinstance(PICS.finemap(mock_study_locus), StudyLocus)
