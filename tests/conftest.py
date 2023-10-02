@@ -21,6 +21,7 @@ from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 from otg.preprocess.finngen.study_index import FinnGenStudyIndex
+from otg.preprocess.finngen.summary_stats import FinnGenSummaryStats
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -153,6 +154,15 @@ def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
     return FinnGenStudyIndex(
         _df=mock_study_index_data(spark),
         _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
+    """Mock FinnGenSummaryStats dataset."""
+    return FinnGenSummaryStats(
+        _df=mock_summary_statistics(spark),
+        _schema=SummaryStatistics.get_schema(),
     )
 
 
@@ -483,6 +493,19 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
         json_data = finngen_studies.read()
         rdd = spark.sparkContext.parallelize([json_data])
         return spark.read.json(rdd)
+
+
+@pytest.fixture()
+def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
+    """Sample FinnGen summary stats."""
+    # For reference, the sample file was generated with the following command:
+    # gsutil cat gs://finngen-public-data-r9/summary_stats/finngen_R9_AB1_ACTINOMYCOSIS.gz | gzip -cd | head -n11 > tests/data_samples/finngen_summary_stats_sample.tsv
+    with open(
+        "tests/data_samples/finngen_summary_stats_sample.tsv"
+    ) as finngen_summary_stats:
+        tsv_data = finngen_summary_stats.read()
+        rdd = spark.sparkContext.parallelize([tsv_data])
+        return spark.read.option("delimiter", "\t").csv(rdd, header=True)
 
 
 @pytest.fixture()
