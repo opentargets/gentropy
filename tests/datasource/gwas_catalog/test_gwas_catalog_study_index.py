@@ -28,22 +28,6 @@ def test_parse_study_table(sample_gwas_catalog_studies: DataFrame) -> None:
     )
 
 
-def test_annotate_ancestry(
-    mock_study_index_gwas_catalog: GWASCatalogStudyIndex,
-    sample_gwas_catalog_ancestries_lut: DataFrame,
-) -> None:
-    """Test annotate ancestry of GWASCatalogStudyIndex."""
-    mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
-        "discoverySamples", "replicationSamples"
-    )
-    assert isinstance(
-        mock_study_index_gwas_catalog._annotate_ancestries(
-            sample_gwas_catalog_ancestries_lut
-        ),
-        GWASCatalogStudyIndex,
-    )
-
-
 def test_annotate_sumstats(
     mock_study_index_gwas_catalog: GWASCatalogStudyIndex,
     sample_gwas_catalog_harmonised_sumstats_list: DataFrame,

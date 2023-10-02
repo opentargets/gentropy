@@ -46,7 +46,7 @@ class LDAnnotator:
         """
         # Create a population to relativeSampleSize map from the struct
         populations_map = f.map_from_arrays(
-            study_populations["population"],
+            study_populations["ldPopulation"],
             study_populations["relativeSampleSize"],
         )
         return f.transform(
@@ -91,7 +91,7 @@ class LDAnnotator:
         Finally, we aggregate the weighted R information using ancestry proportions.
 
         Args:
-            associations_df (DataFrame): Study locus DataFrame with a `populationsStructure` column containing population structure information
+            associations_df (DataFrame): Study locus DataFrame with a `ldPopulationsStructure` column containing population structure information
             ld_index (LDIndex): Dataset with LD information for every variant present in gnomAD LD matrix
 
         Returns:
@@ -105,11 +105,13 @@ class LDAnnotator:
             # Add population size to each rValues entry in the ldSet
             .withColumn(
                 "ldSet",
-                cls._add_population_size(f.col("ldSet"), f.col("populationsStructure")),
+                cls._add_population_size(
+                    f.col("ldSet"), f.col("ldPopulationStructure")
+                ),
             )
             # Aggregate weighted R information using ancestry proportions
             .withColumn(
                 "ldSet",
                 cls._calculate_weighted_r_overall(f.col("ldSet")),
-            ).drop("populationsStructure")
+            ).drop("ldPopulationStructure")
         )

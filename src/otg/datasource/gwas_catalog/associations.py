@@ -1153,7 +1153,9 @@ class GWASCatalogAssociations(StudyLocus):
             StudyLocus: Study-locus with an annotated credible set.
         """
         associations_df = self.df.join(
-            studies.get_gnomad_population_structure(), on="studyId", how="left"
+            studies.df.select("studyId", "ldPopulationStructure"),
+            on="studyId",
+            how="left",
         )
 
         self.df = LDAnnotator.annotate_associations_with_ld(associations_df, ld_index)
