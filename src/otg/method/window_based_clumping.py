@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from functools import reduce
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -22,9 +21,6 @@ if TYPE_CHECKING:
 
 class WindowBasedClumping:
     """Get semi-lead snps from summary statistics using a window based function."""
-
-    # Excluded regions:
-    EXCLUDED_REGIONS = ["6:28,510,120-33,480,577"]
 
     @staticmethod
     def _cluster_peaks(
@@ -273,25 +269,18 @@ class WindowBasedClumping:
         if locus_window_length is None:
             locus_window_length = window_length
 
-        # Exclude problematic regions from clumping:
-        filtered_summary_stats = reduce(
-            lambda df, region: df.exclude_region(region),
-            cls.EXCLUDED_REGIONS,
-            summary_stats,
-        )
-
         # Run distance based clumping on the summary stats:
         clumped_dataframe = WindowBasedClumping.clump(
-            filtered_summary_stats,
+            summary_stats,
             window_length=window_length,
             p_value_significance=p_value_significance,
         ).df.alias("clumped")
 
-        # Extract column names:
-        columns = filtered_summary_stats.df.columns
+        # Get list of columns from clumped dataset for further propagation:
+        clumped_columns = clumped_dataframe.df.columns
 
         # Dropping variants not meeting the baseline criteria:
-        sumstats_baseline = filtered_summary_stats.pvalue_filter(p_value_baseline).df
+        sumstats_baseline = summary_stats.pvalue_filter(p_value_baseline).df
 
         # Renaming columns:
         sumstats_baseline_renamed = sumstats_baseline.selectExpr(
@@ -317,8 +306,6 @@ class WindowBasedClumping:
                 ],
                 how="right",
             )
-            # Filter empty sumstats rows:
-            .filter(f.col("tag_studyId").isNotNull())
             .withColumn(
                 "locus",
                 f.struct(
@@ -329,8 +316,11 @@ class WindowBasedClumping:
                     f.col("tag_standardError").alias("standardError"),
                 ),
             )
-            .groupby(*columns, "studyLocusId")
-            .agg(f.collect_list(f.col("locus")).alias("locus"))
+            .groupby("studyLocusId")
+            .agg(
+                *[f.first(col) for col in clumped_columns if col != "studyLocusId"],
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
         )
 
         return StudyLocus(
