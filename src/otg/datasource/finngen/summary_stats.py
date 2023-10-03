@@ -9,13 +9,11 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from otg.common.schemas import parse_spark_schema
 from otg.common.utils import calculate_confidence_interval, parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
-    from pyspark.sql.types import StructType
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
@@ -25,16 +23,11 @@ class FinnGenSummaryStats(SummaryStatistics):
     """Summary statistics dataset for FinnGen."""
 
     @classmethod
-    def get_schema(cls: type[SummaryStatistics]) -> StructType:
-        """Provides the schema for the FinnGenSummaryStats dataset."""
-        return parse_spark_schema("summary_statistics.json")
-
-    @classmethod
     def from_finngen_harmonized_summary_stats(
-        cls: type[SummaryStatistics],
+        cls: type[FinnGenSummaryStats],
         summary_stats_df: DataFrame,
         study_id: str,
-    ) -> SummaryStatistics:
+    ) -> FinnGenSummaryStats:
         """Summary statistics ingestion for one FinnGen study."""
         processed_summary_stats_df = (
             summary_stats_df
