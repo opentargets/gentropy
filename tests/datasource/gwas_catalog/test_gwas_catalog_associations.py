@@ -6,26 +6,8 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.types import LongType
 
-from otg.dataset.ld_index import LDIndex
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
-
-
-def test_annotate_ld(
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
-    mock_study_index_gwas_catalog: GWASCatalogStudyIndex,
-    mock_ld_index: LDIndex,
-) -> None:
-    """Test LD annotation."""
-    # Drop ldSet column to avoid duplicated columns
-    mock_study_locus_gwas_catalog.df = mock_study_locus_gwas_catalog.df.drop("ldSet")
-    assert isinstance(
-        mock_study_locus_gwas_catalog.annotate_ld(
-            mock_study_index_gwas_catalog, mock_ld_index
-        ),
-        GWASCatalogAssociations,
-    )
 
 
 def test_study_locus_gwas_catalog_creation(

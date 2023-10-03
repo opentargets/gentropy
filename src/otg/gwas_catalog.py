@@ -12,6 +12,7 @@ from otg.dataset.variant_annotation import VariantAnnotation
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
+from otg.method.ld import LDAnnotator
 from otg.method.pics import PICS
 
 
@@ -56,10 +57,10 @@ class GWASCatalogStep(GWASCatalogStepConfig):
         )
 
         # Annotate LD information and clump associations dataset
-        study_locus = study_locus.annotate_ld(study_index, ld_index).clump()
+        study_locus_ld = LDAnnotator.ld_annotate(study_locus, study_index, ld_index)
 
         # Fine-mapping LD-clumped study-locus using PICS
-        finemapped_study_locus = PICS.finemap(study_locus).annotate_credible_sets()
+        finemapped_study_locus = PICS.finemap(study_locus_ld).annotate_credible_sets()
 
         # Write:
         study_index.df.write.mode(self.session.write_mode).parquet(
