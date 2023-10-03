@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 from pyspark.ml import functions as fml
 from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
@@ -235,10 +236,9 @@ class WindowBasedClumping:
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id("studyId", "variantId"),
                 )
-                # Adding QC column:
+                # Initialize QC column as array of strings:
                 .withColumn(
-                    "qualityControls",
-                    f.array(),
+                    "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
                 )
             ),
             _schema=StudyLocus.get_schema(),
