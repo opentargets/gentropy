@@ -29,8 +29,8 @@ class FinnGenStudyIndex(StudyIndex):
         cls: type[FinnGenStudyIndex],
         finngen_studies: DataFrame,
         finngen_release_prefix: str,
-        finngen_sumstat_url_prefix: str,
-        finngen_sumstat_url_suffix: str,
+        finngen_summary_stats_url_prefix: str,
+        finngen_summary_stats_url_suffix: str,
     ) -> FinnGenStudyIndex:
         """This function ingests study level metadata from FinnGen.
 
@@ -51,6 +51,7 @@ class FinnGenStudyIndex(StudyIndex):
                 f.col("phenostring").alias("traitFromSource"),
                 f.col("num_cases").alias("nCases"),
                 f.col("num_controls").alias("nControls"),
+                (f.col("num_cases") + f.col("num_controls")).alias("nSamples"),
                 f.lit(finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
@@ -63,19 +64,14 @@ class FinnGenStudyIndex(StudyIndex):
                         f.lit("Finnish").alias("ancestry"),
                     )
                 ).alias("discoverySamples"),
-            )
-            .withColumn("nSamples", f.col("nCases") + f.col("nControls"))
-            .withColumn(
-                "summarystatsLocation",
                 f.concat(
-                    f.lit(finngen_sumstat_url_prefix),
-                    f.col("studyId"),
-                    f.lit(finngen_sumstat_url_suffix),
-                ),
-            )
-            .withColumn(
+                    f.lit(finngen_summary_stats_url_prefix),
+                    f.col("phenocode"),
+                    f.lit(finngen_summary_stats_url_suffix),
+                ).alias("summarystatsLocation"),
+            ).withColumn(
                 "ldPopulationStructure",
                 cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
             ),
-            _schema=FinnGenStudyIndex.get_schema(),
+            _schema=cls.get_schema(),
         )
