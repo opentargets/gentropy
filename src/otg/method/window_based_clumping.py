@@ -239,6 +239,11 @@ class WindowBasedClumping:
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id("studyId", "variantId"),
                 )
+                # Adding QC column:
+                .withColumn(
+                    "qualityControls",
+                    f.array(),
+                )
             ),
             _schema=StudyLocus.get_schema(),
         )
@@ -327,7 +332,6 @@ class WindowBasedClumping:
             .groupby(*columns, "studyLocusId")
             .agg(f.collect_list(f.col("locus")).alias("locus"))
         )
-        study_locus_df.show(1, False, True)
 
         return StudyLocus(
             _df=study_locus_df,
