@@ -308,17 +308,8 @@
 <span class=normal>330</span>
 <span class=normal>331</span>
 <span class=normal>332</span>
-<span class=normal>333</span>
-<span class=normal>334</span>
-<span class=normal>335</span>
-<span class=normal>336</span>
-<span class=normal>337</span>
-<span class=normal>338</span>
-<span class=normal>339</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>WindowBasedClumping</span><span class=p>:</span>
+<span class=normal>333</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>WindowBasedClumping</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Get semi-lead snps from summary statistics using a window based function.&quot;&quot;&quot;</span>
-
-    <span class=c1># Excluded regions:</span>
-    <span class=n>EXCLUDED_REGIONS</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&quot;6:28,510,120-33,480,577&quot;</span><span class=p>]</span>
 
     <span class=nd>@staticmethod</span>
     <span class=k>def</span> <span class=nf>_cluster_peaks</span><span class=p>(</span>
@@ -533,10 +524,9 @@
                     <span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span>
                     <span class=n>StudyLocus</span><span class=o>.</span><span class=n>assign_study_locus_id</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>),</span>
                 <span class=p>)</span>
-                <span class=c1># Adding QC column:</span>
+                <span class=c1># Initialize QC column as array of strings:</span>
                 <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                    <span class=s2>&quot;qualityControls&quot;</span><span class=p>,</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>(),</span>
+                    <span class=s2>&quot;qualityControls&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>()</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>ArrayType</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>StringType</span><span class=p>()))</span>
                 <span class=p>)</span>
             <span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>StudyLocus</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
@@ -567,25 +557,18 @@
         <span class=k>if</span> <span class=n>locus_window_length</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
             <span class=n>locus_window_length</span> <span class=o>=</span> <span class=n>window_length</span>
 
-        <span class=c1># Exclude problematic regions from clumping:</span>
-        <span class=n>filtered_summary_stats</span> <span class=o>=</span> <span class=n>reduce</span><span class=p>(</span>
-            <span class=k>lambda</span> <span class=n>df</span><span class=p>,</span> <span class=n>region</span><span class=p>:</span> <span class=n>df</span><span class=o>.</span><span class=n>exclude_region</span><span class=p>(</span><span class=n>region</span><span class=p>),</span>
-            <span class=bp>cls</span><span class=o>.</span><span class=n>EXCLUDED_REGIONS</span><span class=p>,</span>
-            <span class=n>summary_stats</span><span class=p>,</span>
-        <span class=p>)</span>
-
         <span class=c1># Run distance based clumping on the summary stats:</span>
         <span class=n>clumped_dataframe</span> <span class=o>=</span> <span class=n>WindowBasedClumping</span><span class=o>.</span><span class=n>clump</span><span class=p>(</span>
-            <span class=n>filtered_summary_stats</span><span class=p>,</span>
+            <span class=n>summary_stats</span><span class=p>,</span>
             <span class=n>window_length</span><span class=o>=</span><span class=n>window_length</span><span class=p>,</span>
             <span class=n>p_value_significance</span><span class=o>=</span><span class=n>p_value_significance</span><span class=p>,</span>
         <span class=p>)</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;clumped&quot;</span><span class=p>)</span>
 
-        <span class=c1># Extract column names:</span>
-        <span class=n>columns</span> <span class=o>=</span> <span class=n>filtered_summary_stats</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>columns</span>
+        <span class=c1># Get list of columns from clumped dataset for further propagation:</span>
+        <span class=n>clumped_columns</span> <span class=o>=</span> <span class=n>clumped_dataframe</span><span class=o>.</span><span class=n>columns</span>
 
         <span class=c1># Dropping variants not meeting the baseline criteria:</span>
-        <span class=n>sumstats_baseline</span> <span class=o>=</span> <span class=n>filtered_summary_stats</span><span class=o>.</span><span class=n>pvalue_filter</span><span class=p>(</span><span class=n>p_value_baseline</span><span class=p>)</span><span class=o>.</span><span class=n>df</span>
+        <span class=n>sumstats_baseline</span> <span class=o>=</span> <span class=n>summary_stats</span><span class=o>.</span><span class=n>pvalue_filter</span><span class=p>(</span><span class=n>p_value_baseline</span><span class=p>)</span><span class=o>.</span><span class=n>df</span>
 
         <span class=c1># Renaming columns:</span>
         <span class=n>sumstats_baseline_renamed</span> <span class=o>=</span> <span class=n>sumstats_baseline</span><span class=o>.</span><span class=n>selectExpr</span><span class=p>(</span>
@@ -611,8 +594,6 @@
                 <span class=p>],</span>
                 <span class=n>how</span><span class=o>=</span><span class=s2>&quot;right&quot;</span><span class=p>,</span>
             <span class=p>)</span>
-            <span class=c1># Filter empty sumstats rows:</span>
-            <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tag_studyId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>())</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
@@ -623,15 +604,25 @@
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tag_standardError&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;standardError&quot;</span><span class=p>),</span>
                 <span class=p>),</span>
             <span class=p>)</span>
-            <span class=o>.</span><span class=n>groupby</span><span class=p>(</span><span class=o>*</span><span class=n>columns</span><span class=p>,</span> <span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span>
-            <span class=o>.</span><span class=n>agg</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>collect_list</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span>
+            <span class=o>.</span><span class=n>groupby</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
+                <span class=o>*</span><span class=p>[</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>first</span><span class=p>(</span><span class=n>col</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=n>col</span><span class=p>)</span>
+                    <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>clumped_columns</span>
+                    <span class=k>if</span> <span class=n>col</span> <span class=o>!=</span> <span class=s2>&quot;studyLocusId&quot;</span>
+                <span class=p>],</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>collect_list</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>),</span>
+            <span class=p>)</span>
         <span class=p>)</span>
 
         <span class=k>return</span> <span class=n>StudyLocus</span><span class=p>(</span>
             <span class=n>_df</span><span class=o>=</span><span class=n>study_locus_df</span><span class=p>,</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>StudyLocus</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.window_based_clumping.WindowBasedClumping.clump class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump</span><span class=p>(</span><span class=n>summary_stats</span><span class=p>,</span> <span class=n>window_length</span><span class=p>,</span> <span class=n>p_value_significance</span><span class=o>=</span><span class=mf>5e-08</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Clump summary statistics by distance.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>summary_stats</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.summary_statistics.SummaryStatistics" href="../../dataset/summary_statistics/#otg.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code> </td> <td><p>summary statistics to clump</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>window_length</code></td> <td> <code>int</code> </td> <td><p>window length in basepair</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>p_value_significance</code></td> <td> <code>float</code> </td> <td><p>only more significant variants are considered</p></td> <td> <code>5e-08</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>clumped summary statistics</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/window_based_clumping.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>157</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.method.window_based_clumping.WindowBasedClumping.clump class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump</span><span class=p>(</span><span class=n>summary_stats</span><span class=p>,</span> <span class=n>window_length</span><span class=p>,</span> <span class=n>p_value_significance</span><span class=o>=</span><span class=mf>5e-08</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Clump summary statistics by distance.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>summary_stats</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.summary_statistics.SummaryStatistics" href="../../dataset/summary_statistics/#otg.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code> </td> <td><p>summary statistics to clump</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>window_length</code></td> <td> <code>int</code> </td> <td><p>window length in basepair</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>p_value_significance</code></td> <td> <code>float</code> </td> <td><p>only more significant variants are considered</p></td> <td> <code>5e-08</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>clumped summary statistics</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/window_based_clumping.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>154</span>
+<span class=normal>155</span>
+<span class=normal>156</span>
+<span class=normal>157</span>
 <span class=normal>158</span>
 <span class=normal>159</span>
 <span class=normal>160</span>
@@ -719,11 +710,7 @@
 <span class=normal>242</span>
 <span class=normal>243</span>
 <span class=normal>244</span>
-<span class=normal>245</span>
-<span class=normal>246</span>
-<span class=normal>247</span>
-<span class=normal>248</span>
-<span class=normal>249</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>245</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>clump</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>WindowBasedClumping</span><span class=p>],</span>
     <span class=n>summary_stats</span><span class=p>:</span> <span class=n>SummaryStatistics</span><span class=p>,</span>
@@ -808,15 +795,18 @@
                 <span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span>
                 <span class=n>StudyLocus</span><span class=o>.</span><span class=n>assign_study_locus_id</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId&quot;</span><span class=p>),</span>
             <span class=p>)</span>
-            <span class=c1># Adding QC column:</span>
+            <span class=c1># Initialize QC column as array of strings:</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
-                <span class=s2>&quot;qualityControls&quot;</span><span class=p>,</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>(),</span>
+                <span class=s2>&quot;qualityControls&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>array</span><span class=p>()</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>ArrayType</span><span class=p>(</span><span class=n>t</span><span class=o>.</span><span class=n>StringType</span><span class=p>()))</span>
             <span class=p>)</span>
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>StudyLocus</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.method.window_based_clumping.WindowBasedClumping.clump_with_locus class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump_with_locus</span><span class=p>(</span><span class=n>summary_stats</span><span class=p>,</span> <span class=n>window_length</span><span class=p>,</span> <span class=n>p_value_significance</span><span class=o>=</span><span class=mf>5e-08</span><span class=p>,</span> <span class=n>p_value_baseline</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span> <span class=n>locus_window_length</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Clump significant associations while collecting locus around them.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>summary_stats</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.summary_statistics.SummaryStatistics" href="../../dataset/summary_statistics/#otg.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code> </td> <td><p>Input summary statistics dataset</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>window_length</code></td> <td> <code>int</code> </td> <td><p>Window size in bp, used for distance based clumping.</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>p_value_significance</code></td> <td> <code>float</code> </td> <td><p>GWAS significance threshold used to filter peaks. Defaults to 5e-8.</p></td> <td> <code>5e-08</code> </td> </tr> <tr> <td><code>p_value_baseline</code></td> <td> <code>float</code> </td> <td><p>Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.</p></td> <td> <code>0.05</code> </td> </tr> <tr> <td><code>locus_window_length</code></td> <td> <code>int</code> </td> <td><p>The distance for collecting locus around the semi indices.</p></td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>StudyLocus after clumping with information about the <code>locus</code></p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/window_based_clumping.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>251</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.method.window_based_clumping.WindowBasedClumping.clump_with_locus class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump_with_locus</span><span class=p>(</span><span class=n>summary_stats</span><span class=p>,</span> <span class=n>window_length</span><span class=p>,</span> <span class=n>p_value_significance</span><span class=o>=</span><span class=mf>5e-08</span><span class=p>,</span> <span class=n>p_value_baseline</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span> <span class=n>locus_window_length</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> </h2> <div class="doc doc-contents "> <p>Clump significant associations while collecting locus around them.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>summary_stats</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.summary_statistics.SummaryStatistics" href="../../dataset/summary_statistics/#otg.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code> </td> <td><p>Input summary statistics dataset</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>window_length</code></td> <td> <code>int</code> </td> <td><p>Window size in bp, used for distance based clumping.</p></td> <td> <em>required</em> </td> </tr> <tr> <td><code>p_value_significance</code></td> <td> <code>float</code> </td> <td><p>GWAS significance threshold used to filter peaks. Defaults to 5e-8.</p></td> <td> <code>5e-08</code> </td> </tr> <tr> <td><code>p_value_baseline</code></td> <td> <code>float</code> </td> <td><p>Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.</p></td> <td> <code>0.05</code> </td> </tr> <tr> <td><code>locus_window_length</code></td> <td> <code>int</code> </td> <td><p>The distance for collecting locus around the semi indices.</p></td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../dataset/study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>StudyLocus after clumping with information about the <code>locus</code></p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/window_based_clumping.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>247</span>
+<span class=normal>248</span>
+<span class=normal>249</span>
+<span class=normal>250</span>
+<span class=normal>251</span>
 <span class=normal>252</span>
 <span class=normal>253</span>
 <span class=normal>254</span>
@@ -898,13 +888,7 @@
 <span class=normal>330</span>
 <span class=normal>331</span>
 <span class=normal>332</span>
-<span class=normal>333</span>
-<span class=normal>334</span>
-<span class=normal>335</span>
-<span class=normal>336</span>
-<span class=normal>337</span>
-<span class=normal>338</span>
-<span class=normal>339</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>333</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>clump_with_locus</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>WindowBasedClumping</span><span class=p>],</span>
     <span class=n>summary_stats</span><span class=p>:</span> <span class=n>SummaryStatistics</span><span class=p>,</span>
@@ -929,25 +913,18 @@
     <span class=k>if</span> <span class=n>locus_window_length</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
         <span class=n>locus_window_length</span> <span class=o>=</span> <span class=n>window_length</span>
 
-    <span class=c1># Exclude problematic regions from clumping:</span>
-    <span class=n>filtered_summary_stats</span> <span class=o>=</span> <span class=n>reduce</span><span class=p>(</span>
-        <span class=k>lambda</span> <span class=n>df</span><span class=p>,</span> <span class=n>region</span><span class=p>:</span> <span class=n>df</span><span class=o>.</span><span class=n>exclude_region</span><span class=p>(</span><span class=n>region</span><span class=p>),</span>
-        <span class=bp>cls</span><span class=o>.</span><span class=n>EXCLUDED_REGIONS</span><span class=p>,</span>
-        <span class=n>summary_stats</span><span class=p>,</span>
-    <span class=p>)</span>
-
     <span class=c1># Run distance based clumping on the summary stats:</span>
     <span class=n>clumped_dataframe</span> <span class=o>=</span> <span class=n>WindowBasedClumping</span><span class=o>.</span><span class=n>clump</span><span class=p>(</span>
-        <span class=n>filtered_summary_stats</span><span class=p>,</span>
+        <span class=n>summary_stats</span><span class=p>,</span>
         <span class=n>window_length</span><span class=o>=</span><span class=n>window_length</span><span class=p>,</span>
         <span class=n>p_value_significance</span><span class=o>=</span><span class=n>p_value_significance</span><span class=p>,</span>
     <span class=p>)</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;clumped&quot;</span><span class=p>)</span>
 
-    <span class=c1># Extract column names:</span>
-    <span class=n>columns</span> <span class=o>=</span> <span class=n>filtered_summary_stats</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>columns</span>
+    <span class=c1># Get list of columns from clumped dataset for further propagation:</span>
+    <span class=n>clumped_columns</span> <span class=o>=</span> <span class=n>clumped_dataframe</span><span class=o>.</span><span class=n>columns</span>
 
     <span class=c1># Dropping variants not meeting the baseline criteria:</span>
-    <span class=n>sumstats_baseline</span> <span class=o>=</span> <span class=n>filtered_summary_stats</span><span class=o>.</span><span class=n>pvalue_filter</span><span class=p>(</span><span class=n>p_value_baseline</span><span class=p>)</span><span class=o>.</span><span class=n>df</span>
+    <span class=n>sumstats_baseline</span> <span class=o>=</span> <span class=n>summary_stats</span><span class=o>.</span><span class=n>pvalue_filter</span><span class=p>(</span><span class=n>p_value_baseline</span><span class=p>)</span><span class=o>.</span><span class=n>df</span>
 
     <span class=c1># Renaming columns:</span>
     <span class=n>sumstats_baseline_renamed</span> <span class=o>=</span> <span class=n>sumstats_baseline</span><span class=o>.</span><span class=n>selectExpr</span><span class=p>(</span>
@@ -973,8 +950,6 @@
             <span class=p>],</span>
             <span class=n>how</span><span class=o>=</span><span class=s2>&quot;right&quot;</span><span class=p>,</span>
         <span class=p>)</span>
-        <span class=c1># Filter empty sumstats rows:</span>
-        <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tag_studyId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>())</span>
         <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
             <span class=s2>&quot;locus&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>struct</span><span class=p>(</span>
@@ -985,8 +960,15 @@
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;tag_standardError&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;standardError&quot;</span><span class=p>),</span>
             <span class=p>),</span>
         <span class=p>)</span>
-        <span class=o>.</span><span class=n>groupby</span><span class=p>(</span><span class=o>*</span><span class=n>columns</span><span class=p>,</span> <span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span>
-        <span class=o>.</span><span class=n>agg</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>collect_list</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span>
+        <span class=o>.</span><span class=n>groupby</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
+            <span class=o>*</span><span class=p>[</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>first</span><span class=p>(</span><span class=n>col</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=n>col</span><span class=p>)</span>
+                <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>clumped_columns</span>
+                <span class=k>if</span> <span class=n>col</span> <span class=o>!=</span> <span class=s2>&quot;studyLocusId&quot;</span>
+            <span class=p>],</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>collect_list</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>))</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;locus&quot;</span><span class=p>),</span>
+        <span class=p>)</span>
     <span class=p>)</span>
 
     <span class=k>return</span> <span class=n>StudyLocus</span><span class=p>(</span>
