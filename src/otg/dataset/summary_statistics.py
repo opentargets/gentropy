@@ -79,7 +79,7 @@ class SummaryStatistics(Dataset):
                 window_length=distance,
                 p_value_significance=gwas_significance,
                 p_value_baseline=baseline_significance,
-                locus_window_lenght=locus_collect_distance,
+                locus_window_length=locus_collect_distance,
             )
         else:
             clumped_df = WindowBasedClumping.clump(
