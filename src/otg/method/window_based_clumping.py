@@ -277,7 +277,7 @@ class WindowBasedClumping:
         ).df.alias("clumped")
 
         # Get list of columns from clumped dataset for further propagation:
-        clumped_columns = clumped_dataframe.df.columns
+        clumped_columns = clumped_dataframe.columns
 
         # Dropping variants not meeting the baseline criteria:
         sumstats_baseline = summary_stats.pvalue_filter(p_value_baseline).df
@@ -318,7 +318,11 @@ class WindowBasedClumping:
             )
             .groupby("studyLocusId")
             .agg(
-                *[f.first(col) for col in clumped_columns if col != "studyLocusId"],
+                *[
+                    f.first(col).alias(col)
+                    for col in clumped_columns
+                    if col != "studyLocusId"
+                ],
                 f.collect_list(f.col("locus")).alias("locus"),
             )
         )
