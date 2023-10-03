@@ -38,6 +38,7 @@ ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.outputs}/catalog_study_index
 catalog_study_locus: ${datasets.outputs}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
+finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
 
 # Constants
