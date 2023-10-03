@@ -239,6 +239,11 @@ class WindowBasedClumping:
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id("studyId", "variantId"),
                 )
+                # Adding QC column:
+                .withColumn(
+                    "qualityControls",
+                    f.array(),
+                )
             ),
             _schema=StudyLocus.get_schema(),
         )
@@ -250,18 +255,24 @@ class WindowBasedClumping:
         window_length: int,
         p_value_significance: float = 5e-8,
         p_value_baseline: float = 0.05,
+        locus_window_length: int | None = None,
     ) -> StudyLocus:
         """Clump significant associations while collecting locus around them.
 
         Args:
             summary_stats (SummaryStatistics): Input summary statistics dataset
-            window_length (int): Window size in  bp, used for distance based clumping and collecting locus
+            window_length (int): Window size in  bp, used for distance based clumping.
             p_value_significance (float, optional): GWAS significance threshold used to filter peaks. Defaults to 5e-8.
             p_value_baseline (float, optional): Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.
+            locus_window_length (int, optional): The distance for collecting locus around the semi indices.
 
         Returns:
             StudyLocus: StudyLocus after clumping with information about the `locus`
         """
+        # If no locus window provided, using the same value:
+        if locus_window_length is None:
+            locus_window_length = window_length
+
         # Exclude problematic regions from clumping:
         filtered_summary_stats = reduce(
             lambda df, region: df.exclude_region(region),
@@ -297,11 +308,11 @@ class WindowBasedClumping:
                     & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
                     & (
                         f.col("sumstat.tag_position")
-                        >= f.col("clumped.position") - window_length
+                        >= (f.col("clumped.position") - locus_window_length)
                     )
                     & (
                         f.col("sumstat.tag_position")
-                        <= f.col("clumped.position") + window_length
+                        <= (f.col("clumped.position") + locus_window_length)
                     )
                 ],
                 how="right",
@@ -321,7 +332,6 @@ class WindowBasedClumping:
             .groupby(*columns, "studyLocusId")
             .agg(f.collect_list(f.col("locus")).alias("locus"))
         )
-        study_locus_df.show(1, False, True)
 
         return StudyLocus(
             _df=study_locus_df,
