@@ -345,7 +345,25 @@
 <span class=normal>410</span>
 <span class=normal>411</span>
 <span class=normal>412</span>
-<span class=normal>413</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>413</span>
+<span class=normal>414</span>
+<span class=normal>415</span>
+<span class=normal>416</span>
+<span class=normal>417</span>
+<span class=normal>418</span>
+<span class=normal>419</span>
+<span class=normal>420</span>
+<span class=normal>421</span>
+<span class=normal>422</span>
+<span class=normal>423</span>
+<span class=normal>424</span>
+<span class=normal>425</span>
+<span class=normal>426</span>
+<span class=normal>427</span>
+<span class=normal>428</span>
+<span class=normal>429</span>
+<span class=normal>430</span>
+<span class=normal>431</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>StudyLocus</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study-Locus dataset.</span>
 
@@ -691,6 +709,24 @@
                 <span class=p>),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;is_lead_linked&quot;</span><span class=p>)</span>
+        <span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span>
+
+    <span class=k>def</span> <span class=nf>_qc_unresolved_ld</span><span class=p>(</span>
+        <span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>,</span>
+    <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Flag associations with variants that are not found in the LD reference.</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            StudyLocusGWASCatalog | StudyLocus: Updated study locus.</span>
+<span class=sd>        &quot;&quot;&quot;</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+            <span class=s2>&quot;qualityControls&quot;</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_update_quality_flag</span><span class=p>(</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;qualityControls&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;ldSet&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNull</span><span class=p>(),</span>
+                <span class=n>StudyLocusQualityCheck</span><span class=o>.</span><span class=n>UNRESOLVED_LD</span><span class=p>,</span>
+            <span class=p>),</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
 </code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.annotate_credible_sets class="doc doc-heading"> <code class="highlight language-python"><span class=n>annotate_credible_sets</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Annotate study-locus dataset with credible set flags.</p> <p>Sorts the array in the <code>locus</code> column elements by their <code>posteriorProbability</code> values in descending order and adds <code>is95CredibleSet</code> and <code>is99CredibleSet</code> fields to the elements, indicating which are the tagging variants whose cumulative sum of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respectively.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>including annotation on <code>is95CredibleSet</code> and <code>is99CredibleSet</code>.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>329</span>
