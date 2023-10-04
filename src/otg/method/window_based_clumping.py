@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from functools import reduce
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 from pyspark.ml import functions as fml
 from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
@@ -22,9 +22,6 @@ if TYPE_CHECKING:
 
 class WindowBasedClumping:
     """Get semi-lead snps from summary statistics using a window based function."""
-
-    # Excluded regions:
-    EXCLUDED_REGIONS = ["6:28,510,120-33,480,577"]
 
     @staticmethod
     def _cluster_peaks(
@@ -239,6 +236,10 @@ class WindowBasedClumping:
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id("studyId", "variantId"),
                 )
+                # Initialize QC column as array of strings:
+                .withColumn(
+                    "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
+                )
             ),
             _schema=StudyLocus.get_schema(),
         )
@@ -250,37 +251,36 @@ class WindowBasedClumping:
         window_length: int,
         p_value_significance: float = 5e-8,
         p_value_baseline: float = 0.05,
+        locus_window_length: int | None = None,
     ) -> StudyLocus:
         """Clump significant associations while collecting locus around them.
 
         Args:
             summary_stats (SummaryStatistics): Input summary statistics dataset
-            window_length (int): Window size in  bp, used for distance based clumping and collecting locus
+            window_length (int): Window size in  bp, used for distance based clumping.
             p_value_significance (float, optional): GWAS significance threshold used to filter peaks. Defaults to 5e-8.
             p_value_baseline (float, optional): Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.
+            locus_window_length (int, optional): The distance for collecting locus around the semi indices.
 
         Returns:
             StudyLocus: StudyLocus after clumping with information about the `locus`
         """
-        # Exclude problematic regions from clumping:
-        filtered_summary_stats = reduce(
-            lambda df, region: df.exclude_region(region),
-            cls.EXCLUDED_REGIONS,
-            summary_stats,
-        )
+        # If no locus window provided, using the same value:
+        if locus_window_length is None:
+            locus_window_length = window_length
 
         # Run distance based clumping on the summary stats:
         clumped_dataframe = WindowBasedClumping.clump(
-            filtered_summary_stats,
+            summary_stats,
             window_length=window_length,
             p_value_significance=p_value_significance,
         ).df.alias("clumped")
 
-        # Extract column names:
-        columns = filtered_summary_stats.df.columns
+        # Get list of columns from clumped dataset for further propagation:
+        clumped_columns = clumped_dataframe.columns
 
         # Dropping variants not meeting the baseline criteria:
-        sumstats_baseline = filtered_summary_stats.pvalue_filter(p_value_baseline).df
+        sumstats_baseline = summary_stats.pvalue_filter(p_value_baseline).df
 
         # Renaming columns:
         sumstats_baseline_renamed = sumstats_baseline.selectExpr(
@@ -297,17 +297,15 @@ class WindowBasedClumping:
                     & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
                     & (
                         f.col("sumstat.tag_position")
-                        >= f.col("clumped.position") - window_length
+                        >= (f.col("clumped.position") - locus_window_length)
                     )
                     & (
                         f.col("sumstat.tag_position")
-                        <= f.col("clumped.position") + window_length
+                        <= (f.col("clumped.position") + locus_window_length)
                     )
                 ],
                 how="right",
             )
-            # Filter empty sumstats rows:
-            .filter(f.col("tag_studyId").isNotNull())
             .withColumn(
                 "locus",
                 f.struct(
@@ -318,10 +316,16 @@ class WindowBasedClumping:
                     f.col("tag_standardError").alias("standardError"),
                 ),
             )
-            .groupby(*columns, "studyLocusId")
-            .agg(f.collect_list(f.col("locus")).alias("locus"))
+            .groupby("studyLocusId")
+            .agg(
+                *[
+                    f.first(col).alias(col)
+                    for col in clumped_columns
+                    if col != "studyLocusId"
+                ],
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
         )
-        study_locus_df.show(1, False, True)
 
         return StudyLocus(
             _df=study_locus_df,

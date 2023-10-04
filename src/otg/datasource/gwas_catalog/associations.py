@@ -20,13 +20,10 @@ from otg.common.spark_helpers import (
 )
 from otg.common.utils import parse_efos
 from otg.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
-from otg.method.ld import LDAnnotator
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
-    from otg.dataset.ld_index import LDIndex
     from otg.dataset.variant_annotation import VariantAnnotation
 
 
@@ -1140,27 +1137,6 @@ class GWASCatalogAssociations(StudyLocus):
         )
         return self
 
-    def annotate_ld(
-        self: GWASCatalogAssociations, studies: GWASCatalogStudyIndex, ld_index: LDIndex
-    ) -> StudyLocus:
-        """Annotate LD set for every studyLocus using gnomAD.
-
-        Args:
-            studies (GWASCatalogStudyIndex): Study index containing ancestry information
-            ld_index (LDIndex): LD index
-
-        Returns:
-            StudyLocus: Study-locus with an annotated credible set.
-        """
-        associations_df = self.df.join(
-            studies.df.select("studyId", "ldPopulationStructure"),
-            on="studyId",
-            how="left",
-        )
-
-        self.df = LDAnnotator.annotate_associations_with_ld(associations_df, ld_index)
-        return self._qc_unresolved_ld()
-
     def _qc_ambiguous_study(self: GWASCatalogAssociations) -> GWASCatalogAssociations:
         """Flag associations with variants that can not be unambiguously associated with one study.
 
@@ -1177,24 +1153,6 @@ class GWASCatalogAssociations(StudyLocus):
                 f.col("qualityControls"),
                 f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
                 StudyLocusQualityCheck.AMBIGUOUS_STUDY,
-            ),
-        )
-        return self
-
-    def _qc_unresolved_ld(
-        self: StudyLocus | GWASCatalogAssociations,
-    ) -> StudyLocus | GWASCatalogAssociations:
-        """Flag associations with variants that are not found in the LD reference.
-
-        Returns:
-            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
-        """
-        self.df = self.df.withColumn(
-            "qualityControls",
-            self._update_quality_flag(
-                f.col("qualityControls"),
-                f.col("ldSet").isNull(),
-                StudyLocusQualityCheck.UNRESOLVED_LD,
             ),
         )
         return self

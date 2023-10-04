@@ -411,3 +411,21 @@ class StudyLocus(Dataset):
             .drop("is_lead_linked")
         )
         return self
+
+    def _qc_unresolved_ld(
+        self: StudyLocus,
+    ) -> StudyLocus:
+        """Flag associations with variants that are not found in the LD reference.
+
+        Returns:
+            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
+        """
+        self.df = self.df.withColumn(
+            "qualityControls",
+            self._update_quality_flag(
+                f.col("qualityControls"),
+                f.col("ldSet").isNull(),
+                StudyLocusQualityCheck.UNRESOLVED_LD,
+            ),
+        )
+        return self
