@@ -8,7 +8,6 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from otg.common.utils import split_pvalue
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -117,7 +116,7 @@ class PICS:
             ...     Row(variantId="var2", r2Overall=1),
             ... ]
             >>> PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
-            [{'variantId': 'var1', 'r2Overall': 0.8, 'pValueMantissa': 1.0, 'pValueExponent': -8, 'standardError': 0.07420896512708416, 'posteriorProbability': 0.07116959886882368}, {'variantId': 'var2', 'r2Overall': 1, 'pValueMantissa': 1.0, 'pValueExponent': -10, 'standardError': 0.9977000638225533, 'posteriorProbability': 0.9288304011311763}]
+            [{'variantId': 'var1', 'r2Overall': 0.8, 'standardError': 0.07420896512708416, 'posteriorProbability': 0.07116959886882368}, {'variantId': 'var2', 'r2Overall': 1, 'standardError': 0.9977000638225533, 'posteriorProbability': 0.9288304011311763}]
             >>> empty_ld_set = []
             >>> PICS._finemap(empty_ld_set, lead_neglog_p=10.0, k=6.4)
             []
@@ -128,6 +127,10 @@ class PICS:
             >>> PICS._finemap(ld_set_with_no_r2, lead_neglog_p=10.0, k=6.4)
             [{'variantId': 'var1', 'r2Overall': None}, {'variantId': 'var2', 'r2Overall': None}]
         """
+        if ld_set is None:
+            return None
+        elif not ld_set:
+            return []
         tmp_credible_set = []
         new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
@@ -152,9 +155,6 @@ class PICS:
                 posterior_probability = PICS._pics_relative_posterior_probability(
                     lead_neglog_p, pics_snp_mu, pics_snp_std
                 )
-                mantissa, exponent = split_pvalue(10**-pics_snp_mu)
-                tag_dict["pValueMantissa"] = mantissa
-                tag_dict["pValueExponent"] = exponent
                 tag_dict["standardError"] = 10**-pics_snp_std
                 tag_dict["relativePosteriorProbability"] = posterior_probability
 
