@@ -360,7 +360,9 @@
 <span class=normal>426</span>
 <span class=normal>427</span>
 <span class=normal>428</span>
-<span class=normal>429</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>429</span>
+<span class=normal>430</span>
+<span class=normal>431</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>StudyLocus</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study-Locus dataset.</span>
 
@@ -644,8 +646,10 @@
                         <span class=p>),</span>
                     <span class=p>),</span>
                     <span class=k>lambda</span> <span class=n>struct_e</span><span class=p>,</span> <span class=n>acc</span><span class=p>:</span> <span class=n>struct_e</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span>
-                        <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.95</span>
-                    <span class=p>)</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span><span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS99</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.99</span><span class=p>),</span>
+                        <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=p>(</span><span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.95</span><span class=p>)</span> <span class=o>&amp;</span> <span class=n>acc</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>()</span>
+                    <span class=p>)</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span>
+                        <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS99</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=p>(</span><span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.99</span><span class=p>)</span> <span class=o>&amp;</span> <span class=n>acc</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>()</span>
+                    <span class=p>),</span>
                 <span class=p>),</span>
             <span class=p>),</span>
         <span class=p>)</span>
@@ -771,7 +775,9 @@
 <span class=normal>353</span>
 <span class=normal>354</span>
 <span class=normal>355</span>
-<span class=normal>356</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_credible_sets</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
+<span class=normal>356</span>
+<span class=normal>357</span>
+<span class=normal>358</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>annotate_credible_sets</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Annotate study-locus dataset with credible set flags.</span>
 
 <span class=sd>    Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds</span>
@@ -814,8 +820,10 @@
                     <span class=p>),</span>
                 <span class=p>),</span>
                 <span class=k>lambda</span> <span class=n>struct_e</span><span class=p>,</span> <span class=n>acc</span><span class=p>:</span> <span class=n>struct_e</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span>
-                    <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.95</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span><span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS99</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.99</span><span class=p>),</span>
+                    <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=p>(</span><span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.95</span><span class=p>)</span> <span class=o>&amp;</span> <span class=n>acc</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>()</span>
+                <span class=p>)</span><span class=o>.</span><span class=n>withField</span><span class=p>(</span>
+                    <span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS99</span><span class=o>.</span><span class=n>value</span><span class=p>,</span> <span class=p>(</span><span class=n>acc</span> <span class=o>&lt;</span> <span class=mf>0.99</span><span class=p>)</span> <span class=o>&amp;</span> <span class=n>acc</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>()</span>
+                <span class=p>),</span>
             <span class=p>),</span>
         <span class=p>),</span>
     <span class=p>)</span>
@@ -873,9 +881,7 @@
 <span class=sd>        &lt;BLANKLINE&gt;</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>f</span><span class=o>.</span><span class=n>xxhash64</span><span class=p>(</span><span class=o>*</span><span class=p>[</span><span class=n>study_id_col</span><span class=p>,</span> <span class=n>variant_id_col</span><span class=p>])</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.clump class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Perform LD clumping of the studyLocus.</p> <p>Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>with empty credible sets for linked variants and QC flag.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>358</span>
-<span class=normal>359</span>
-<span class=normal>360</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.study_locus.StudyLocus.clump class="doc doc-heading"> <code class="highlight language-python"><span class=n>clump</span><span class=p>()</span></code> </h2> <div class="doc doc-contents "> <p>Perform LD clumping of the studyLocus.</p> <p>Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocus</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code> </td> <td><p>with empty credible sets for linked variants and QC flag.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>360</span>
 <span class=normal>361</span>
 <span class=normal>362</span>
 <span class=normal>363</span>
@@ -906,7 +912,9 @@
 <span class=normal>388</span>
 <span class=normal>389</span>
 <span class=normal>390</span>
-<span class=normal>391</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>clump</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
+<span class=normal>391</span>
+<span class=normal>392</span>
+<span class=normal>393</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>clump</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StudyLocus</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Perform LD clumping of the studyLocus.</span>
 
 <span class=sd>    Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</span>
