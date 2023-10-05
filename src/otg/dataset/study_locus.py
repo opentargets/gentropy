@@ -348,8 +348,10 @@ class StudyLocus(Dataset):
                         ),
                     ),
                     lambda struct_e, acc: struct_e.withField(
-                        CredibleInterval.IS95.value, acc < 0.95
-                    ).withField(CredibleInterval.IS99.value, acc < 0.99),
+                        CredibleInterval.IS95.value, (acc < 0.95) & acc.isNotNull()
+                    ).withField(
+                        CredibleInterval.IS99.value, (acc < 0.99) & acc.isNotNull()
+                    ),
                 ),
             ),
         )
