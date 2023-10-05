@@ -98,6 +98,8 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                         {"variantId": "tagVariantC", "posteriorProbability": 0.04},
                         {"variantId": "tagVariantD", "posteriorProbability": 0.005},
                         {"variantId": "tagVariantE", "posteriorProbability": 0.5},
+                        {"variantId": "tagVariantNull", "posteriorProbability": None},
+                        {"variantId": "tagVariantNull", "posteriorProbability": None},
                     ],
                 )
             ],
@@ -135,6 +137,18 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                         {
                             "variantId": "tagVariantD",
                             "posteriorProbability": 0.005,
+                            "is95CredibleSet": False,
+                            "is99CredibleSet": False,
+                        },
+                        {
+                            "variantId": "tagVariantNull",
+                            "posteriorProbability": None,
+                            "is95CredibleSet": False,
+                            "is99CredibleSet": False,
+                        },
+                        {
+                            "variantId": "tagVariantNull",
+                            "posteriorProbability": None,
                             "is95CredibleSet": False,
                             "is99CredibleSet": False,
                         },
