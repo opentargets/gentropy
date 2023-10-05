@@ -218,7 +218,7 @@ class StudyLocus(Dataset):
         """Provides the schema for the StudyLocus dataset."""
         return parse_spark_schema("study_locus.json")
 
-    def credible_set(
+    def filter_credible_set(
         self: StudyLocus,
         credible_interval: CredibleInterval,
     ) -> StudyLocus:
