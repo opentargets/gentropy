@@ -131,7 +131,6 @@ class PICS:
             return None
         elif not ld_set:
             return []
-
         tmp_credible_set = []
         new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability

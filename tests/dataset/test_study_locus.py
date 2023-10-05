@@ -31,9 +31,11 @@ def test_study_locus_overlaps(
     )
 
 
-def test_credible_set(mock_study_locus: StudyLocus) -> None:
-    """Test credible interval."""
-    assert isinstance(mock_study_locus.credible_set(CredibleInterval.IS95), StudyLocus)
+def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
+    """Test credible interval filter."""
+    assert isinstance(
+        mock_study_locus.filter_credible_set(CredibleInterval.IS95), StudyLocus
+    )
 
 
 def test_unique_lead_tag_variants(mock_study_locus: StudyLocus) -> None:
@@ -92,9 +94,9 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     "leadA",
                     [
                         {"variantId": "tagVariantA", "posteriorProbability": 0.44},
-                        {"variantId": "tagVariantB", "posteriorProbability": 0.01},
+                        {"variantId": "tagVariantB", "posteriorProbability": 0.015},
                         {"variantId": "tagVariantC", "posteriorProbability": 0.04},
-                        {"variantId": "tagVariantD", "posteriorProbability": 0.01},
+                        {"variantId": "tagVariantD", "posteriorProbability": 0.005},
                         {"variantId": "tagVariantE", "posteriorProbability": 0.5},
                     ],
                 )
@@ -123,6 +125,18 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                             "posteriorProbability": 0.04,
                             "is95CredibleSet": True,
                             "is99CredibleSet": True,
+                        },
+                        {
+                            "variantId": "tagVariantB",
+                            "posteriorProbability": 0.015,
+                            "is95CredibleSet": False,
+                            "is99CredibleSet": True,
+                        },
+                        {
+                            "variantId": "tagVariantD",
+                            "posteriorProbability": 0.005,
+                            "is95CredibleSet": False,
+                            "is99CredibleSet": False,
                         },
                     ],
                 )
@@ -199,8 +213,13 @@ def test_annotate_credible_sets(
     )
     data_sl = StudyLocus(
         _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
-    ).annotate_credible_sets()
+    )
     expected_sl = StudyLocus(
         _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
     )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
+
+
+def test__qc_no_population(mock_study_locus: StudyLocus) -> None:
+    """Test _qc_no_population."""
+    assert isinstance(mock_study_locus._qc_no_population(), StudyLocus)
