@@ -8,7 +8,6 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from otg.common.utils import split_pvalue
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -128,6 +127,11 @@ class PICS:
             >>> PICS._finemap(ld_set_with_no_r2, lead_neglog_p=10.0, k=6.4)
             [{'variantId': 'var1', 'r2Overall': None}, {'variantId': 'var2', 'r2Overall': None}]
         """
+        if ld_set is None:
+            return None
+        elif not ld_set:
+            return []
+
         tmp_credible_set = []
         new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
@@ -143,6 +147,7 @@ class PICS:
                 # If PICS cannot be calculated, we'll return the original credible set
                 new_credible_set.append(tag_dict)
                 continue
+
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
                 lead_neglog_p, tag_dict["r2Overall"], k
@@ -152,9 +157,6 @@ class PICS:
                 posterior_probability = PICS._pics_relative_posterior_probability(
                     lead_neglog_p, pics_snp_mu, pics_snp_std
                 )
-                mantissa, exponent = split_pvalue(10**-pics_snp_mu)
-                tag_dict["pValueMantissa"] = mantissa
-                tag_dict["pValueExponent"] = exponent
                 tag_dict["standardError"] = 10**-pics_snp_std
                 tag_dict["relativePosteriorProbability"] = posterior_probability
 
