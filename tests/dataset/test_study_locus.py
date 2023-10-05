@@ -218,3 +218,8 @@ def test_annotate_credible_sets(
         _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
     )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
+
+
+def test__qc_no_population(mock_study_locus: StudyLocus) -> None:
+    """Test _qc_no_population."""
+    assert isinstance(mock_study_locus._qc_no_population(), StudyLocus)
