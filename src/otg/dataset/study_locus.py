@@ -190,28 +190,6 @@ class StudyLocus(Dataset):
         ).otherwise(qc)
 
     @staticmethod
-    def _filter_credible_set(credible_set: Column) -> Column:
-        """Filter credible set to only contain variants that belong to the 95% credible set.
-
-        Args:
-            credible_set (Column): Credible set column containing all variants in the LD set.
-
-        Returns:
-            Column: Filtered credible set column.
-
-        Example:
-            >>> df = spark.createDataFrame([([{"variantId": "varA", "is95CredibleSet": True}, {"variantId": "varB", "is95CredibleSet": False}],)], "locus: array<struct<variantId: string, is95CredibleSet: boolean>>")
-            >>> df.select(StudyLocus._filter_credible_set(f.col("locus")).alias("filtered")).show(truncate=False)
-            +--------------+
-            |filtered      |
-            +--------------+
-            |[{varA, true}]|
-            +--------------+
-            <BLANKLINE>
-        """
-        return f.filter(credible_set, lambda x: x["is95CredibleSet"])
-
-    @staticmethod
     def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
         """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
