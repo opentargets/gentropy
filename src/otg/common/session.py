@@ -20,7 +20,7 @@ class Session:
         spark_uri: str = "local[*]",
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
-        hail_home: str = "unspecified",
+        hail_home: str | None = None,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -28,7 +28,7 @@ class Session:
             spark_uri (str): spark uri
             app_name (str): spark application name
             write_mode (str): spark write mode
-            hail_home (str): path to hail installation
+            hail_home (str | None): path to hail installation
         """
         # create executors based on resources
         default_spark_conf = (
@@ -58,7 +58,7 @@ class Session:
                 .set("spark.sql.files.maxPartitionBytes", "50gb")
                 # .set("spark.kryoserializer.buffer", "512m")
             )
-            if hail_home != "unspecified"
+            if hail_home is not None
             else default_spark_conf
         )
         self.spark = (
