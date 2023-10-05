@@ -67,4 +67,3 @@ build: clean ## Build Python package with dependencies
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl ${BUCKET_NAME}
 	@gsutil cp ./dist/config.tar.gz ${BUCKET_NAME}
 	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}
-	@gsutil -m cp -r 'dags/*' ${BUCKET_COMPOSER_DAGS}
