@@ -47,6 +47,7 @@ class StudyLocusQualityCheck(Enum):
     AMBIGUOUS_STUDY = "Association with ambiguous study"
     UNRESOLVED_LD = "Variant not found in LD reference"
     LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
+    NO_POPULATION = "Study does not have population annotation to resolve LD"
 
 
 class CredibleInterval(Enum):
@@ -436,6 +437,26 @@ class StudyLocus(Dataset):
                 f.col("qualityControls"),
                 f.col("ldSet").isNull(),
                 StudyLocusQualityCheck.UNRESOLVED_LD,
+            ),
+        )
+        return self
+
+    def _qc_no_population(self: StudyLocus) -> StudyLocus:
+        """Flag associations where the study doesn't have population information to resolve LD.
+
+        Returns:
+            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
+        """
+        # If the tested column is not present, return self unchanged:
+        if "ldPopulationStructure" not in self.df.columns:
+            return self
+
+        self.df = self.df.withColumn(
+            "qualityControls",
+            self._update_quality_flag(
+                f.col("qualityControls"),
+                f.col("ldPopulationStructure").isNull(),
+                StudyLocusQualityCheck.NO_POPULATION,
             ),
         )
         return self
