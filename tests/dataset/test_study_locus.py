@@ -180,7 +180,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                     1,
                     "traitA",
                     "leadB",
-                    [],
+                    None,
                 )
             ],
         ),
