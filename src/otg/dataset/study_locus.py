@@ -190,6 +190,28 @@ class StudyLocus(Dataset):
         ).otherwise(qc)
 
     @staticmethod
+    def _filter_credible_set(credible_set: Column) -> Column:
+        """Filter credible set to only contain variants that belong to the 95% credible set.
+
+        Args:
+            credible_set (Column): Credible set column containing all variants in the LD set.
+
+        Returns:
+            Column: Filtered credible set column.
+
+        Example:
+            >>> df = spark.createDataFrame([([{"variantId": "varA", "is95CredibleSet": True}, {"variantId": "varB", "is95CredibleSet": False}],)], "locus: array<struct<variantId: string, is95CredibleSet: boolean>>")
+            >>> df.select(StudyLocus._filter_credible_set(f.col("locus")).alias("filtered")).show(truncate=False)
+            +--------------+
+            |filtered      |
+            +--------------+
+            |[{varA, true}]|
+            +--------------+
+            <BLANKLINE>
+        """
+        return f.filter(credible_set, lambda x: x["is95CredibleSet"])
+
+    @staticmethod
     def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
         """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
@@ -213,73 +235,28 @@ class StudyLocus(Dataset):
         """
         return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
 
-    @staticmethod
-    def _annotate_locus_with_credible_intervals(locus: Column) -> Column:
-        """Annotate sorted locus with credible intervals.
-
-        Args:
-            locus (Column): Locus column to annotate sorted by posterior probability in descending order.
-
-        Returns:
-            locus (Column): Locus column annotated with credible intervals.
-        """
-        return f.when(
-            locus.isNotNull() & (f.size(locus) > 0),
-            f.zip_with(
-                locus,
-                f.transform(
-                    f.sequence(f.lit(1), f.size(locus)),
-                    lambda index: f.aggregate(
-                        f.slice(
-                            # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
-                            # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                            f.col("locus.posteriorProbability"),
-                            1,
-                            index - 1,
-                        ),
-                        f.lit(0.0),
-                        lambda acc, el: acc + el,
-                    ),
-                ),
-                lambda struct_e, acc: struct_e.withField(
-                    CredibleInterval.IS95.value, acc < 0.95
-                ).withField(CredibleInterval.IS99.value, acc < 0.99),
-            ),
-        ).when(f.size(locus) == 0, locus)
-
     @classmethod
     def get_schema(cls: type[StudyLocus]) -> StructType:
         """Provides the schema for the StudyLocus dataset."""
         return parse_spark_schema("study_locus.json")
 
-    def _check_locus_available(self: StudyLocus) -> None:
-        """Check if the locus column is present in the dataframe.
+    def credible_set(
+        self: StudyLocus,
+        credible_interval: CredibleInterval,
+    ) -> StudyLocus:
+        """Filter study-locus tag variants based on given credible interval.
 
-        Raises:
-            ValueError: If the locus column is not present in the dataframe.
-        """
-        if "locus" not in self.df.columns:
-            raise ValueError("Locus column not found in the dataset.")
-
-    def _sort_locus_by_posterior_probability_descending(self: StudyLocus) -> StudyLocus:
-        """Sort the locus array by posterior probability in descending order.
+        Args:
+            credible_interval (CredibleInterval): Credible interval to filter for.
 
         Returns:
-            StudyLocus: with locus array sorted by posterior probability.
+            StudyLocus: Filtered study-locus dataset.
         """
-        # error if locus is not available in the dataset
-        self._check_locus_available()
-
-        return StudyLocus(
-            _df=self.df.withColumn(
-                "locus",
-                f.when(
-                    f.col("locus").isNotNull() & (f.size(f.col("locus")) > 0),
-                    order_array_of_structs_by_field("locus", "posteriorProbability"),
-                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
-            ),
-            _schema=StudyLocus.get_schema(),
+        self.df = self._df.withColumn(
+            "locus",
+            f.expr(f"filter(locus, tag -> (tag.{credible_interval.value}))"),
         )
+        return self
 
     def find_overlaps(self: StudyLocus, study_index: StudyIndex) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
@@ -350,24 +327,6 @@ class StudyLocus(Dataset):
             self.df.pValueExponent,
         )
 
-    def filter_credible_set(
-        self: StudyLocus, credible_interval: CredibleInterval
-    ) -> StudyLocus:
-        """Filter locus with posterior probabilities by credible interval.
-
-        Args:
-            credible_interval (CredibleInterval): Credible interval to filter for.
-
-        Returns:
-            StudyLocus: Filtered credible set column.
-        """
-        return StudyLocus(
-            _df=self.df.withColumn(
-                "locus", f.filter(f.col("locus"), lambda x: x[credible_interval.value])
-            ),
-            _schema=StudyLocus.get_schema(),
-        )
-
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
 
@@ -378,15 +337,46 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
-        return StudyLocus(
-            _df=self._sort_locus_by_posterior_probability_descending().df.withColumn(
+        self.df = (
+            self.df.withColumn(
+                # Sort credible set by posterior probability in descending order
+                "locus",
+                f.when(
+                    f.size(f.col("locus")) > 0,
+                    order_array_of_structs_by_field("locus", "posteriorProbability"),
+                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
+            )
+            .withColumn(
                 # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
                 # and zip the cumulative sums array with the credible set array to add the flags
                 "locus",
-                StudyLocus._annotate_locus_with_credible_intervals(f.col("locus")),
-            ),
-            _schema=StudyLocus.get_schema(),
+                f.when(
+                    f.size(f.col("locus")) > 0,
+                    f.zip_with(
+                        f.col("locus"),
+                        f.transform(
+                            f.sequence(f.lit(1), f.size(f.col("locus"))),
+                            lambda index: f.aggregate(
+                                f.slice(
+                                    # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
+                                    # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
+                                    f.col("locus.posteriorProbability"),
+                                    1,
+                                    index - 1,
+                                ),
+                                f.lit(0.0),
+                                lambda acc, el: acc + el,
+                            ),
+                        ),
+                        lambda struct_e, acc: struct_e.withField(
+                            CredibleInterval.IS95.value, acc < 0.95
+                        ).withField(CredibleInterval.IS99.value, acc < 0.99),
+                    ),
+                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
+            )
+            .withColumn("locus", StudyLocus._filter_credible_set(f.col("locus")))
         )
+        return self
 
     def clump(self: StudyLocus) -> StudyLocus:
         """Perform LD clumping of the studyLocus.
