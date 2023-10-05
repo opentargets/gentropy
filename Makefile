@@ -19,6 +19,7 @@ clean: ## Clean up prior to building
 setup-dev: SHELL:=/bin/bash
 setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
+
 check: ## Lint and format code
 	@echo "Linting..."
 	@poetry run ruff src/otg .
