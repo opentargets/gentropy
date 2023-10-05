@@ -90,35 +90,45 @@ class LDAnnotator:
         Returns:
             StudyLocus: including additional column with LD information.
         """
-        return StudyLocus(
-            _df=(
-                associations.df
-                # Drop ldSet column if already available
-                .select(*[col for col in associations.df.columns if col != "ldSet"])
-                # Annotate study locus with population structure from study index
-                .join(
-                    studies.df.select("studyId", "ldPopulationStructure"),
-                    on="studyId",
-                    how="left",
-                )
-                # Bring LD information from LD Index
-                .join(
-                    ld_index.df,
-                    on=["variantId", "chromosome"],
-                    how="left",
-                )
-                # Add population size to each rValues entry in the ldSet
-                .withColumn(
-                    "ldSet",
-                    cls._add_population_size(
-                        f.col("ldSet"), f.col("ldPopulationStructure")
-                    ),
-                )
-                # Aggregate weighted R information using ancestry proportions
-                .withColumn(
-                    "ldSet",
-                    cls._calculate_weighted_r_overall(f.col("ldSet")),
-                ).drop("ldPopulationStructure")
-            ),
-            _schema=StudyLocus.get_schema(),
-        )._qc_unresolved_ld()
+        return (
+            StudyLocus(
+                _df=(
+                    associations.df
+                    # Drop ldSet column if already available
+                    .select(*[col for col in associations.df.columns if col != "ldSet"])
+                    # Annotate study locus with population structure from study index
+                    .join(
+                        studies.df.select("studyId", "ldPopulationStructure"),
+                        on="studyId",
+                        how="left",
+                    )
+                    # Bring LD information from LD Index
+                    .join(
+                        ld_index.df,
+                        on=["variantId", "chromosome"],
+                        how="left",
+                    )
+                    # Add population size to each rValues entry in the ldSet if population structure available:
+                    .withColumn(
+                        "ldSet",
+                        f.when(
+                            f.col("ldPopulationStructure").isNotNull(),
+                            cls._add_population_size(
+                                f.col("ldSet"), f.col("ldPopulationStructure")
+                            ),
+                        ),
+                    )
+                    # Aggregate weighted R information using ancestry proportions
+                    .withColumn(
+                        "ldSet",
+                        f.when(
+                            f.col("ldPopulationStructure").isNotNull(),
+                            cls._calculate_weighted_r_overall(f.col("ldSet")),
+                        ),
+                    ).drop("ldPopulationStructure")
+                ),
+                _schema=StudyLocus.get_schema(),
+            )
+            ._qc_no_population()
+            ._qc_unresolved_ld()
+        )
