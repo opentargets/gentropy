@@ -337,44 +337,40 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
         """
-        self.df = (
-            self.df.withColumn(
-                # Sort credible set by posterior probability in descending order
-                "locus",
-                f.when(
-                    f.size(f.col("locus")) > 0,
-                    order_array_of_structs_by_field("locus", "posteriorProbability"),
-                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
-            )
-            .withColumn(
-                # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
-                # and zip the cumulative sums array with the credible set array to add the flags
-                "locus",
-                f.when(
-                    f.size(f.col("locus")) > 0,
-                    f.zip_with(
-                        f.col("locus"),
-                        f.transform(
-                            f.sequence(f.lit(1), f.size(f.col("locus"))),
-                            lambda index: f.aggregate(
-                                f.slice(
-                                    # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
-                                    # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                                    f.col("locus.posteriorProbability"),
-                                    1,
-                                    index - 1,
-                                ),
-                                f.lit(0.0),
-                                lambda acc, el: acc + el,
+        self.df = self.df.withColumn(
+            # Sort credible set by posterior probability in descending order
+            "locus",
+            f.when(
+                f.size(f.col("locus")) > 0,
+                order_array_of_structs_by_field("locus", "posteriorProbability"),
+            ).when(f.size(f.col("locus")) == 0, f.col("locus")),
+        ).withColumn(
+            # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
+            # and zip the cumulative sums array with the credible set array to add the flags
+            "locus",
+            f.when(
+                f.size(f.col("locus")) > 0,
+                f.zip_with(
+                    f.col("locus"),
+                    f.transform(
+                        f.sequence(f.lit(1), f.size(f.col("locus"))),
+                        lambda index: f.aggregate(
+                            f.slice(
+                                # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
+                                # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
+                                f.col("locus.posteriorProbability"),
+                                1,
+                                index - 1,
                             ),
+                            f.lit(0.0),
+                            lambda acc, el: acc + el,
                         ),
-                        lambda struct_e, acc: struct_e.withField(
-                            CredibleInterval.IS95.value, acc < 0.95
-                        ).withField(CredibleInterval.IS99.value, acc < 0.99),
                     ),
-                ).when(f.size(f.col("locus")) == 0, f.col("locus")),
-            )
-            .withColumn("locus", StudyLocus._filter_credible_set(f.col("locus")))
+                    lambda struct_e, acc: struct_e.withField(
+                        CredibleInterval.IS95.value, acc < 0.95
+                    ).withField(CredibleInterval.IS99.value, acc < 0.99),
+                ),
+            ).when(f.size(f.col("locus")) == 0, f.col("locus")),
         )
         return self
 
