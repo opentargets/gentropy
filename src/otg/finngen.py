@@ -13,12 +13,12 @@ from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 
 @dataclass
 class FinnGenStep(FinnGenStepConfig):
-    """FinnGen study table ingestion step."""
+    """FinnGen ingestion step."""
 
     session: Session = Session()
 
     def run(self: FinnGenStep) -> None:
-        """Run FinnGen study table ingestion step."""
+        """Run FinnGen ingestion step."""
         # Read the JSON data from the URL.
         json_data = urlopen(self.finngen_phenotype_table_url).read().decode("utf-8")
         rdd = self.session.spark.sparkContext.parallelize([json_data])
@@ -37,24 +37,20 @@ class FinnGenStep(FinnGenStepConfig):
             self.finngen_study_index_out
         )
 
-        # Ingest summary statistics
-        # This is a stub: final ingestion to be discussed further and implemented in a subsequent PR.
-        for row in finngen_studies.collect():
-            self.session.logger.info(
-                f"Processing {row.studyId} with summary statistics in {row.summarystatsLocation}"
-            )
-            summary_stats_df = (
-                self.session.spark.read.option("delimiter", "\t")
-                .csv(row.summarystatsLocation, header=True)
-                .repartition("#chrom")
-            )
+        # Prepare list of files for ingestion.
+        input_filenames = [
+            row.summarystatsLocation for row in finngen_studies.collect()
+        ]
+        summary_stats_df = self.session.spark.read.option("delimiter", "\t").csv(
+            input_filenames, header=True
+        )
 
-            # Process and output the data.
-            out_filename = f"{self.finngen_summary_stats_out}/{row.studyId}"
-            FinnGenSummaryStats.from_finngen_harmonized_summary_stats(
-                summary_stats_df, row.finngen_study_id
-            ).df.sortWithinPartitions("position").write.partitionBy("chromosome").mode(
-                self.session.write_mode
-            ).parquet(
-                out_filename
-            )
+        # Specify data processing instructions.
+        summary_stats_df = FinnGenSummaryStats.from_finngen_harmonized_summary_stats(
+            summary_stats_df
+        ).df
+
+        # Sort and partition for output.
+        summary_stats_df.sortWithinPartitions("position").write.partitionBy(
+            "studyId", "chromosome"
+        ).mode(self.session.write_mode).parquet(self.finngen_summary_stats_out)
