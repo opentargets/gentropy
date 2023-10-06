@@ -1,8 +1,7 @@
-"""Datasource ingestion: FinnGen."""
+"""Summary statistics ingestion for FinnGen."""
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -15,8 +14,6 @@ from otg.dataset.summary_statistics import SummaryStatistics
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-
 
 @dataclass
 class FinnGenSummaryStats(SummaryStatistics):
@@ -26,15 +23,16 @@ class FinnGenSummaryStats(SummaryStatistics):
     def from_finngen_harmonized_summary_stats(
         cls: type[FinnGenSummaryStats],
         summary_stats_df: DataFrame,
-        study_id: str,
     ) -> FinnGenSummaryStats:
         """Summary statistics ingestion for one FinnGen study."""
         processed_summary_stats_df = (
             summary_stats_df
             # Drop rows which don't have proper position.
             .filter(f.col("pos").cast(t.IntegerType()).isNotNull()).select(
-                # Add study idenfitier.
-                f.lit(study_id).cast(t.StringType()).alias("studyId"),
+                # From the full path, extracts just the filename, and converts to upper case to get the study ID.
+                f.upper(f.regexp_extract(f.input_file_name(), r"([^/]+)\.gz", 1)).alias(
+                    "studyId"
+                ),
                 # Add variant information.
                 f.concat_ws(
                     "_",
