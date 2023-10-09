@@ -5,7 +5,7 @@ from __future__ import annotations
 from pyspark.sql import DataFrame
 
 from otg.dataset.study_index import StudyIndex
-from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from otg.datasource.finngen import FinnGenStudyIndex
 
 
 def test_finngen_study_index_from_source(
