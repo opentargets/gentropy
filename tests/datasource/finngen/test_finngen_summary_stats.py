@@ -5,7 +5,7 @@ from __future__ import annotations
 from pyspark.sql import DataFrame
 
 from otg.dataset.summary_statistics import SummaryStatistics
-from otg.datasource.finngen import FinnGenSummaryStats
+from otg.preprocess.finngen import FinnGenSummaryStats
 
 
 def test_finngen_summary_stats_from_source(
