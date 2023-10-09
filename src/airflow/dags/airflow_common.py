@@ -82,7 +82,7 @@ def create_cluster(
     )
 
 
-def submit_pyspark_job(cluster_name, task_id, python_module_path, python_module_params):
+def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
     """Generate an Airflow task to run a PySpark job on a Dataproc cluster."""
     return DataprocSubmitJobOperator(
         task_id=task_id,
@@ -94,7 +94,7 @@ def submit_pyspark_job(cluster_name, task_id, python_module_path, python_module_
             "placement": {"cluster_name": cluster_name},
             "pyspark_job": {
                 "main_python_file_uri": f"{initialisation_base_path}/{python_module_path}",
-                "args": python_module_params,
+                "args": args,
                 "properties": {
                     "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
                     "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
