@@ -24,6 +24,7 @@ CLUSTER_CONFIG_DIR = "/config"
     schedule_interval="@once",
     catchup=False,
     default_args={
+        "owner": "Open Targets Data Team",
         "retries": 3,
     },
 )
@@ -75,4 +76,4 @@ def create_dag() -> None:
             start >> thisgroup >> end
 
 
-full_dag = create_dag()
+create_dag()
