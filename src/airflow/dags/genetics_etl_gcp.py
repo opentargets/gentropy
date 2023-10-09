@@ -124,27 +124,6 @@ def create_dag() -> None:
                     cluster_name = (
                         f"workflow-otg-cluster-{step['id'].replace('_', '-')}"
                     )
-                    install_dependencies = DataprocSubmitJobOperator(
-                        task_id=f"install_dependencies_{step['id']}",
-                        region="europe-west1",
-                        project_id=project_id,
-                        job={
-                            "job_uuid": "airflow-install-dependencies",
-                            "reference": {"project_id": project_id},
-                            "placement": {"cluster_name": cluster_name},
-                            "pig_job": {
-                                "jar_file_uris": [
-                                    f"gs://genetics_etl_python_playground/initialisation/{otg_version}/install_dependencies_on_cluster.sh"
-                                ],
-                                "query_list": {
-                                    "queries": [
-                                        "sh chmod 750 ${PWD}/install_dependencies_on_cluster.sh",
-                                        "sh ${PWD}/install_dependencies_on_cluster.sh",
-                                    ]
-                                },
-                            },
-                        },
-                    )
                     task = generate_pyspark_job_from_dict(
                         step,
                         cluster_config_dir=cluster_config_dir,
@@ -154,7 +133,6 @@ def create_dag() -> None:
                     # Chain the steps within the task group.
                     (
                         generate_create_cluster_task(cluster_name)
-                        >> install_dependencies
                         >> task
                         >> generate_delete_cluster_task(cluster_name)
                     )
