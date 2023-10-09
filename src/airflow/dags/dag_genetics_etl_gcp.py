@@ -3,11 +3,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pendulum
 import yaml
-from airflow.decorators import dag, task_group
+from airflow.decorators import task_group
+from airflow.models.dag import DAG
 from airflow.operators.empty import EmptyOperator
-from common_airflow import create_cluster, delete_cluster, submit_pyspark_job
+from common_airflow import (
+    create_cluster,
+    delete_cluster,
+    shared_dag_kwargs,
+    submit_pyspark_job,
+)
 
 SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
 PYTHON_CLI = "cli.py"
@@ -15,21 +20,11 @@ CONFIG_NAME = "my_config"
 CLUSTER_CONFIG_DIR = "/config"
 
 
-@dag(
+with DAG(
     dag_id=Path(__file__).stem,
     description="Open Targets Genetics ETL workflow",
-    tags=["genetics_etl", "experimental"],
-    # Tell Airflow to start one day ago, so that the DAG runs as soon as you upload it.
-    start_date=pendulum.now(tz="Europe/London").subtract(days=1),
-    schedule_interval="@once",
-    catchup=False,
-    default_args={
-        "owner": "Open Targets Data Team",
-        "retries": 3,
-    },
-)
-def create_dag() -> None:
-    """Define the full workflow on Dataproc."""
+    **shared_dag_kwargs,
+):
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end", trigger_rule="all_done")
 
@@ -74,6 +69,3 @@ def create_dag() -> None:
 
             # Add task group to the DAG.
             start >> thisgroup >> end
-
-
-create_dag()
