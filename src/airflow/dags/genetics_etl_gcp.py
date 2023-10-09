@@ -9,57 +9,32 @@ from airflow.decorators import dag, task_group
 from airflow.operators.empty import EmptyOperator
 from airflow_common import create_cluster, delete_cluster, submit_pyspark_job
 
-DAG_ID = "etl_using_external_flat_file"
-
-DAG_DIR = Path(__file__).parent
-CONFIG_DIR = "configs"
-
-SOURCES_FILE_NAME = "dag.yaml"
-SOURCE_CONFIG_FILE_PATH = DAG_DIR / CONFIG_DIR / SOURCES_FILE_NAME
-
-# Managed cluster
-project_id = "open-targets-genetics-dev"
-otg_version = "0.1.4"
-initialisation_base_path = (
-    f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
-)
-python_cli = "cli.py"
-config_name = "my_config"
-config_tar = f"{initialisation_base_path}/config.tar.gz"
-package_wheel = f"{initialisation_base_path}/otgenetics-{otg_version}-py3-none-any.whl"
-initialisation_executable_file = [f"{initialisation_base_path}/initialise_cluster.sh"]
-image_version = "2.1"
-num_local_ssds = 1
-# job
-cluster_config_dir = "/config"
-
-default_args = {
-    "owner": "Open Targets Data Team",
-    # Tell airflow to start one day ago, so that it runs as soon as you upload it
-    "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
-    # "start_date": pendulum.datetime(2020, 1, 1, tz="Europe/London"),
-    "schedule_interval": "@once",
-    "project_id": project_id,
-    "catchup": False,
-    "retries": 3,
-}
+SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
+PYTHON_CLI = "cli.py"
+CONFIG_NAME = "my_config"
+CLUSTER_CONFIG_DIR = "/config"
 
 
 @dag(
     dag_id=Path(__file__).stem,
-    default_args=default_args,
     description="Open Targets Genetics ETL workflow",
     tags=["genetics_etl", "experimental"],
+    # Tell Airflow to start one day ago, so that the DAG runs as soon as you upload it.
+    start_date=pendulum.now(tz="Europe/London").subtract(days=1),
+    schedule_interval="@once",
+    catchup=False,
+    default_args={
+        "retries": 3,
+    },
 )
 def create_dag() -> None:
-    """Submit dataproc workflow."""
-    assert (
-        SOURCE_CONFIG_FILE_PATH.exists()
-    ), f"Config path {SOURCE_CONFIG_FILE_PATH} does not exist."
-
+    """Define the full workflow on Dataproc."""
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end", trigger_rule="all_done")
 
+    assert (
+        SOURCE_CONFIG_FILE_PATH.exists()
+    ), f"Config path {SOURCE_CONFIG_FILE_PATH} does not exist."
     with open(SOURCE_CONFIG_FILE_PATH, "r") as config_file:
         tasks_groups = {}
         steps = yaml.safe_load(config_file)
@@ -76,11 +51,11 @@ def create_dag() -> None:
                 step_pyspark_job = submit_pyspark_job(
                     cluster_name=cluster_name,
                     task_id=f"job-{step_id}",
-                    python_module_path=python_cli,
+                    python_module_path=PYTHON_CLI,
                     args=[
                         f"step={step_id}",
-                        f"--config-dir={cluster_config_dir}",
-                        f"--config-name={config_name}",
+                        f"--config-dir={CLUSTER_CONFIG_DIR}",
+                        f"--config-name={CONFIG_NAME}",
                     ],
                 )
                 # Chain the steps within the task group.
@@ -100,4 +75,4 @@ def create_dag() -> None:
             start >> thisgroup >> end
 
 
-dag = create_dag()
+full_dag = create_dag()
