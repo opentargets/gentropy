@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+import pendulum
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -47,6 +48,15 @@ outputs = f"gs://genetics_etl_python_playground/output/python_etl/parquet/{versi
 spark_write_mode = "overwrite"
 
 
+# Shared DAG construction parameters.
+shared_dag_kwargs = dict(
+    tags=["genetics_etl", "experimental"],
+    start_date=pendulum.now(tz="Europe/London").subtract(days=1),
+    schedule_interval="@once",
+    catchup=False,
+)
+
+
 def create_cluster(
     cluster_name,
     master_machine_type="n1-standard-4",
@@ -84,6 +94,8 @@ def create_cluster(
 
 def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
     """Generate an Airflow task to run a PySpark job on a Dataproc cluster."""
+    if isinstance(args, dict):
+        args = [f"--{arg}={val}" for arg, val in args.items()]
     return DataprocSubmitJobOperator(
         task_id=task_id,
         region=region,
