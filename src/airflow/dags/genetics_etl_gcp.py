@@ -7,12 +7,8 @@ import pendulum
 import yaml
 from airflow.decorators import dag, task_group
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.google.cloud.operators.dataproc import (
-    DataprocDeleteClusterOperator,
-    DataprocSubmitJobOperator,
-)
-from airflow.utils.trigger_rule import TriggerRule
-from airflow_common import generate_create_cluster_task
+from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
+from airflow_common import generate_create_cluster_task, generate_delete_cluster_task
 
 DAG_ID = "etl_using_external_flat_file"
 
@@ -128,7 +124,6 @@ def create_dag() -> None:
                     cluster_name = (
                         f"workflow-otg-cluster-{step['id'].replace('_', '-')}"
                     )
-                    create_cluster = generate_create_cluster_task(cluster_name)
                     install_dependencies = DataprocSubmitJobOperator(
                         task_id=f"install_dependencies_{step['id']}",
                         region="europe-west1",
@@ -156,15 +151,13 @@ def create_dag() -> None:
                         config_name=config_name,
                         cluster_name=cluster_name,
                     )
-                    delete_cluster = DataprocDeleteClusterOperator(
-                        task_id=f"delete_cluster_{step['id']}",
-                        project_id=project_id,
-                        cluster_name=cluster_name,
-                        region="europe-west1",
-                        trigger_rule=TriggerRule.ALL_DONE,
-                        deferrable=True,
+                    # Chain the steps within the task group.
+                    (
+                        generate_create_cluster_task(cluster_name)
+                        >> install_dependencies
+                        >> task
+                        >> generate_delete_cluster_task(cluster_name)
                     )
-                    create_cluster >> install_dependencies >> task >> delete_cluster
 
                 thisgroup = tgroup(step)
                 tasks_groups[step["id"]] = thisgroup

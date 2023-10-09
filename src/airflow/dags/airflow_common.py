@@ -91,10 +91,10 @@ def generate_create_cluster_task(
 def generate_delete_cluster_task(cluster_name):
     """Generate an Airflow task to delete a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed."""
     return DataprocDeleteClusterOperator(
-        task_id="delete_cluster",
+        task_id=f"delete_cluster_{cluster_name}",
         project_id=project_id,
         cluster_name=cluster_name,
-        region="europe-west1",
+        region=region,
         trigger_rule=TriggerRule.ALL_DONE,
         deferrable=True,
     )
