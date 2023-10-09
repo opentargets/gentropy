@@ -53,16 +53,21 @@ spark_write_mode = "overwrite"
 # Common cluster operations.
 
 
-def generate_create_cluster_task(cluster_name):
+def generate_create_cluster_task(
+    cluster_name,
+    master_machine_type="n1-standard-4",
+    worker_machine_type="n1-standard-16",
+    num_workers=0,
+):
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed."""
     cluster_generator_config = ClusterGenerator(
         project_id=project_id,
         zone=zone,
-        master_machine_type="n1-highmem-32",
-        worker_machine_type="n1-standard-32",
+        master_machine_type=master_machine_type,
+        worker_machine_type=worker_machine_type,
         master_disk_size=1000,
         worker_disk_size=500,
-        num_workers=16,
+        num_workers=num_workers,
         num_local_ssds=1,
         image_version=image_version,
         enable_component_gateway=True,
@@ -74,7 +79,7 @@ def generate_create_cluster_task(cluster_name):
         idle_delete_ttl=300,
     ).make()
     return DataprocCreateClusterOperator(
-        task_id="create_cluster",
+        task_id=f"create_cluster_{cluster_name}",
         project_id=project_id,
         cluster_config=cluster_generator_config,
         region=region,

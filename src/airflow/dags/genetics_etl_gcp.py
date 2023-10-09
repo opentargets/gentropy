@@ -8,12 +8,11 @@ import yaml
 from airflow.decorators import dag, task_group
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.google.cloud.operators.dataproc import (
-    ClusterGenerator,
-    DataprocCreateClusterOperator,
     DataprocDeleteClusterOperator,
     DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
+from airflow_common import generate_create_cluster_task
 
 DAG_ID = "etl_using_external_flat_file"
 
@@ -49,22 +48,6 @@ default_args = {
     "catchup": False,
     "retries": 3,
 }
-
-cluster_generator_config = ClusterGenerator(
-    project_id=project_id,
-    zone="europe-west1-d",
-    master_machine_type="n1-standard-4",
-    num_workers=0,
-    init_actions_uris=initialisation_executable_file,
-    # init_action_timeout="600s",
-    enable_component_gateway=True,
-    num_local_ssds=1,
-    image_version=image_version,
-    metadata={
-        "CONFIGTAR": config_tar,
-        "PACKAGE": package_wheel,
-    },
-).make()
 
 
 def generate_pyspark_job_from_dict(
@@ -145,14 +128,7 @@ def create_dag() -> None:
                     cluster_name = (
                         f"workflow-otg-cluster-{step['id'].replace('_', '-')}"
                     )
-                    create_cluster = DataprocCreateClusterOperator(
-                        task_id=f"create_cluster_{step['id']}",
-                        project_id=project_id,
-                        cluster_config=cluster_generator_config,
-                        region="europe-west1",
-                        cluster_name=cluster_name,
-                        trigger_rule=TriggerRule.ALL_SUCCESS,
-                    )
+                    create_cluster = generate_create_cluster_task(cluster_name)
                     install_dependencies = DataprocSubmitJobOperator(
                         task_id=f"install_dependencies_{step['id']}",
                         region="europe-west1",
