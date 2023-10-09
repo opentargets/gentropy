@@ -11,8 +11,11 @@ from pyspark.sql.types import ArrayType, StructType
 
 from otg.assets import schemas
 
+if TYPE_CHECKING:
+    from pandas import DataFrame as PandasDataFrame
 
-def parse_spark_schema(schema_json: str) -> t.StructType:
+
+def parse_spark_schema(schema_json: str) -> StructType:
     """Parse Spark schema from JSON.
 
     Args:
@@ -61,7 +64,6 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
         else:
             fields.append(Field(name, dtype))
     return fields
-
 
 def _get_spark_schema_from_pandas_df(pdf: PandasDataFrame) -> t.StructType:
     """Returns the Spark schema based on a Pandas DataFrame."""

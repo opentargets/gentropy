@@ -533,7 +533,6 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 
     return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
 
-
 @pytest.fixture()
 def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
     """Sample liftover chain file."""
@@ -543,7 +542,7 @@ def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
 @pytest.fixture()
 def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     """Mock l2g feature matrix dataset."""
-    schema = parse_spark_schema("l2g_feature_matrix.json")
+    schema = L2GFeatureMatrix.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -575,7 +574,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
 @pytest.fixture()
 def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
     """Mock l2g gold standard dataset."""
-    schema = parse_spark_schema("l2g_gold_standard.json")
+    schema = L2GGoldStandard.get_schema()
     data_spec = dg.DataGenerator(
         spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
     ).withSchema(schema)
@@ -586,9 +585,15 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
 @pytest.fixture()
 def mock_l2g_predictions(spark: SparkSession) -> L2GPredictions:
     """Mock l2g predictions dataset."""
-    schema = parse_spark_schema("l2g_predictions.json")
+    schema = L2GPredictions.get_schema()
     data_spec = dg.DataGenerator(
         spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
     ).withSchema(schema)
 
     return L2GPredictions(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
+    """Sample liftover chain file."""
+    return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")

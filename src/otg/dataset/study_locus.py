@@ -214,19 +214,22 @@ class StudyLocus(Dataset):
 
     def filter_credible_set(
         self: StudyLocus,
-        credible_interval: str,
+        credible_interval: CredibleInterval,
     ) -> StudyLocus:
         """Filter study-locus tag variants based on given credible interval.
 
         Args:
-            credible_interval (str): Credible interval to filter for.
+            credible_interval (CredibleInterval): Credible interval to filter for.
 
         Returns:
             StudyLocus: Filtered study-locus dataset.
         """
         self.df = self._df.withColumn(
             "locus",
-            f.expr(f"filter(locus, tag -> (tag.{credible_interval.value}))"),
+            f.filter(
+                f.col("locus"),
+                lambda tag: (tag[credible_interval.value]),
+            ),
         )
         return self
 

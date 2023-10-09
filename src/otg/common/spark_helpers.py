@@ -293,7 +293,6 @@ def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column
         """
     )
 
-
 def pivot_df(
     df: DataFrame,
     pivot_col: str,

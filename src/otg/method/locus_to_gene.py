@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, List, Optional, Type
 
+import wandb
 from pyspark.ml import Pipeline, PipelineModel
 from pyspark.ml.evaluation import (
     BinaryClassificationEvaluator,
@@ -14,7 +15,6 @@ from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 from wandb.wandb_run import Run
 
-import wandb
 from otg.method.l2g_utils.evaluator import WandbEvaluator
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     features_list: List[str]
-    _estimator: Any = None
+    estimator: Any = None
     pipeline: Pipeline = Pipeline(stages=[])
     model: Optional[PipelineModel] = None
 
@@ -57,7 +57,7 @@ class LocusToGeneModel:
     @property
     def classifier(self: LocusToGeneModel) -> Any:
         """Return the model."""
-        return self._estimator
+        return self.estimator
 
     @staticmethod
     def features_vector_assembler(features_cols: List[str]) -> VectorAssembler:
@@ -114,14 +114,14 @@ class LocusToGeneModel:
     @classifier.setter  # type: ignore
     def classifier(self: LocusToGeneModel, new_estimator: Any) -> None:
         """Set the model."""
-        self._estimator = new_estimator
+        self.estimator = new_estimator
 
     def get_param_grid(self: LocusToGeneModel) -> list:
         """Return the parameter grid for the model."""
         return (
             ParamGridBuilder()
-            .addGrid(self._estimator.max_depth, [3, 5, 7])
-            .addGrid(self._estimator.learning_rate, [0.01, 0.1, 1.0])
+            .addGrid(self.estimator.max_depth, [3, 5, 7])
+            .addGrid(self.estimator.learning_rate, [0.01, 0.1, 1.0])
             .build()
         )
 
@@ -235,6 +235,7 @@ class LocusToGeneTrainer:
         cls: type[LocusToGeneTrainer],
         data: L2GFeatureMatrix,
         l2g_model: LocusToGeneModel,
+        features_list: List[str],
         wandb_run_name: Optional[str] = None,
         model_path: Optional[str] = None,
         **hyperparams: dict,
@@ -244,6 +245,8 @@ class LocusToGeneTrainer:
         Args:
             l2g_model (LocusToGeneModel): Model to fit to the data on
             data (L2GFeatureMatrix): Feature matrix containing the data
+            l2g_model (LocusToGeneModel): Model to fit to the data on
+            features_list (List[str]): List of features to use for the model
             wandb_run_name (str): Descriptive name for the run to be tracked with W&B
             model_path (str): Path to save the model to
             hyperparams (dict): Hyperparameters to use for the model
@@ -251,9 +254,9 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Trained model
         """
-        train, test = data.train_test_split(fraction=0.8)
+        train, test = data.select_features(features_list).train_test_split(fraction=0.8)
 
-        model = l2g_model.add_pipeline_stage(l2g_model._estimator).fit(train.df)
+        model = l2g_model.add_pipeline_stage(l2g_model.estimator).fit(train.df)
 
         l2g_model.evaluate(
             results=model.predict(test.df),
@@ -290,7 +293,7 @@ class LocusToGeneTrainer:
         params_grid = param_grid or l2g_model.get_param_grid()
         cv = CrossValidator(
             numFolds=num_folds,
-            estimator=l2g_model._estimator,
+            estimator=l2g_model.estimator,
             estimatorParamMaps=params_grid,
             evaluator=evaluator,
             parallelism=2,

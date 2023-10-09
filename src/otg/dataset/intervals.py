@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
-from otg.dataset import schemas
 from otg.dataset.dataset import Dataset
 from otg.dataset.v2g import V2G
 

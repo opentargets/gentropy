@@ -1,0 +1,21 @@
+# Default config
+defaults:
+  - l2g
+# Additional config
+run_mode: ???
+wandb_run_name: null
+perform_cross_validation: ???
+model_path: ${datasets.l2g_model}
+predictions_path: ${datasets.l2g_predictions}
+study_locus_path: ${datasets.study_locus}
+variant_gene_path: ${datasets.v2g}
+colocalisation_path: ${datasets.colocalisation}
+study_index_path: ${datasets.catalog_studies}
+study_locus_overlap_path: ${datasets.study_locus_overlap}
+gold_standard_curation_path: ${datasets.l2g_gold_standard_curation}
+gold_standard_processed_path: ???
+gene_interactions_path: ${datasets.gene_interactions}
+feature_matrix_path: ${datasets.l2g_feature_matrix}
+hyperparameters:
+  max_depth: 5
+  loss_function: binary:logistic

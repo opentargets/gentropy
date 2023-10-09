@@ -26,8 +26,27 @@ files = [
 ]
 
 [[package]]
+name = "aiodns"
+version = "2.0.0"
+description = "Simple DNS resolver for asyncio"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pycares = ">=3.0.0"
+
+[[package]]
+name = "aiofiles"
+version = "23.2.1"
+description = "File support for asyncio."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[[package]]
 name = "aiohttp"
-version = "3.8.4"
+version = "3.8.6"
 description = "Async http client/server framework (asyncio)"
 optional = false
 python-versions = ">=3.6"

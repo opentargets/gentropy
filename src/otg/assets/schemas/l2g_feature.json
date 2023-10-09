@@ -3,7 +3,7 @@
   "fields": [
     {
       "name": "studyLocusId",
-      "type": "string",
+      "type": "long",
       "nullable": false,
       "metadata": {}
     },
@@ -14,8 +14,14 @@
       "metadata": {}
     },
     {
-      "name": "label",
-      "type": "integer",
+      "name": "feature_name",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "feature_value",
+      "type": "float",
       "nullable": false,
       "metadata": {}
     }

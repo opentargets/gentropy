@@ -8,16 +8,15 @@ import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import get_record_with_maximum_value
-from otg.common.utils import get_study_locus_id
 from otg.dataset.dataset import Dataset
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
-from otg.dataset.v2g import V2G
+from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
+    from otg.dataset.study_locus_overlap import StudyLocusOverlap
+    from otg.dataset.v2g import V2G
 
 
 @dataclass
@@ -29,15 +28,11 @@ class L2GGoldStandard(Dataset):
     - Gold Standard Negative (GSN): Variant is not within 500kb of gene
     """
 
-    _schema: StructType = parse_spark_schema("l2g_feature.json")  # TODO: define schema
-
     @staticmethod
-    def process_gene_interactions(
-        session: Session, interactions_path: str
-    ) -> DataFrame:
+    def process_gene_interactions(interactions: DataFrame) -> DataFrame:
         """Extract top scoring gene-gene interaction from the interactions dataset of the Platform."""
         return get_record_with_maximum_value(
-            session.spark.read.parquet(interactions_path),
+            interactions,
             ["targetA", "targetB"],
             "scoring",
         ).selectExpr(
@@ -49,23 +44,18 @@ class L2GGoldStandard(Dataset):
     @classmethod
     def from_curation(
         cls: Type[L2GGoldStandard],
-        session: Session,
-        gold_standard_curation: str,
-        v2g_path: str,
-        study_locus_path: str,
-        study_locus_overlap_path: str,
-        interactions_path: str,
+        gold_standard_curation: DataFrame,
+        v2g: V2G,
+        study_locus_overlap: StudyLocusOverlap,
+        interactions: DataFrame,
     ) -> L2GGoldStandard:
         """Process gold standard curation to use as training data."""
-        overlaps_df = StudyLocusOverlap.from_parquet(
-            session, study_locus_overlap_path
-        )._df.select("left_studyLocusId", "right_studyLocusId")
-        interactions_df = L2GGoldStandard.process_gene_interactions(
-            session, interactions_path
+        overlaps_df = study_locus_overlap._df.select(
+            "left_studyLocusId", "right_studyLocusId"
         )
+        interactions_df = L2GGoldStandard.process_gene_interactions(interactions)
         return cls(
-            _df=session.spark.read.json(gold_standard_curation)
-            .select(
+            _df=gold_standard_curation.select(
                 f.col("association_info.otg_id").alias("studyId"),
                 f.col("gold_standard_info.gene_id").alias("geneId"),
                 f.concat_ws(
@@ -76,15 +66,15 @@ class L2GGoldStandard(Dataset):
                     f.col("sentinel_variant.alleles.alternative"),
                 ).alias("variantId"),
             )
-            .withColumn("studyLocusId", get_study_locus_id("studyId", "variantId"))
+            .withColumn(
+                "studyLocusId", StudyLocus.assign_study_locus_id("studyId", "variantId")
+            )
             .filter(
                 f.col("gold_standard_info.highest_confidence").isin(["High", "Medium"])
             )
             # Assign Positive or Negative Status based on confidence
             .join(
-                V2G.from_parquet(session, v2g_path).df.select(
-                    "variantId", "geneId", "distance"
-                ),
+                v2g.df.select("variantId", "geneId", "distance"),
                 on=["variantId", "geneId"],
                 how="inner",
             )
@@ -125,3 +115,8 @@ class L2GGoldStandard(Dataset):
             .select("studyLocusId", "geneId", "gold_standard_set")
             # TODO: comment from Daniel: include source of GS
         )
+
+    @classmethod
+    def get_schema(cls: type[L2GGoldStandard]) -> StructType:
+        """Provides the schema for the L2GGoldStandard dataset."""
+        return parse_spark_schema("l2g_gold_standard.json")

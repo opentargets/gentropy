@@ -3,7 +3,7 @@
   "fields": [
     {
       "name": "studyLocusId",
-      "type": "string",
+      "type": "long",
       "nullable": false,
       "metadata": {}
     },
@@ -14,8 +14,8 @@
       "metadata": {}
     },
     {
-      "name": "score",
-      "type": "float",
+      "name": "gold_standard_set",
+      "type": "string",
       "nullable": false,
       "metadata": {}
     }

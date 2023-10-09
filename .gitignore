@@ -12,3 +12,5 @@ site/
 mock_data/
 notebooks/wandb/
 src/wandb/
+src/airflow/logs/
+site/
