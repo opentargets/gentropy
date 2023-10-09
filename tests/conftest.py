@@ -17,6 +17,8 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
@@ -143,6 +145,24 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
     return GWASCatalogStudyIndex(
         _df=mock_study_index_data(spark),
         _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
+    """Mock FinnGenStudyIndex dataset."""
+    return FinnGenStudyIndex(
+        _df=mock_study_index_data(spark),
+        _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
+    """Mock FinnGenSummaryStats dataset."""
+    return FinnGenSummaryStats(
+        _df=mock_summary_statistics(spark),
+        _schema=SummaryStatistics.get_schema(),
     )
 
 
