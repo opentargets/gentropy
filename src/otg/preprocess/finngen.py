@@ -95,6 +95,34 @@ def ingest_finngen_summary_stats(summary_stats_df: DataFrame) -> SummaryStatisti
     return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
 
 
+@click.command()
+@click.option(
+    "--finngen_phenotype_table_url",
+    help="URL to ingest FinnGen phenotype table JSON data from",
+)
+@click.option(
+    "--finngen_release_prefix", help="Prefix which will be added to all study IDs"
+)
+@click.option(
+    "--finngen_summary_stats_url_prefix",
+    help="Prefix for each summary stats file URL",
+)
+@click.option(
+    "--finngen_summary_stats_url_suffix",
+    help="Suffix for each summary stats file URL",
+)
+@click.option(
+    "--finngen_study_index_out",
+    help="Output URL in Google Storage to save the study index",
+)
+@click.option(
+    "--finngen_summary_stats_out",
+    help="Output URL in Google Storage to save the summary stats",
+)
+@click.option(
+    "--spark_write_mode",
+    help="Spark write mode which is applied to both study index and summary stats",
+)
 def main(
     finngen_phenotype_table_url,
     finngen_release_prefix,
@@ -138,38 +166,5 @@ def main(
     )
 
 
-@click.command()
-@click.option(
-    "--finngen_phenotype_table_url",
-    help="URL to ingest FinnGen phenotype table JSON data from",
-)
-@click.option(
-    "--finngen_release_prefix", help="Prefix which will be added to all study IDs"
-)
-@click.option(
-    "--finngen_summary_stats_url_prefix",
-    help="Prefix for each summary stats file URL",
-)
-@click.option(
-    "--finngen_summary_stats_url_suffix",
-    help="Suffix for each summary stats file URL",
-)
-@click.option(
-    "--finngen_study_index_out",
-    help="Output URL in Google Storage to save the study index",
-)
-@click.option(
-    "--finngen_summary_stats_out",
-    help="Output URL in Google Storage to save the summary stats",
-)
-@click.option(
-    "--spark_write_mode",
-    help="Spark write mode which is applied to both study index and summary stats",
-)
-def main_cli(*args, **kwargs) -> None:
-    """Wrapped CLI version of the main function."""
-    main(*args, **kwargs)
-
-
 if __name__ == "__main__":
-    main_cli()
+    main()
