@@ -7,7 +7,7 @@ import pendulum
 import yaml
 from airflow.decorators import dag, task_group
 from airflow.operators.empty import EmptyOperator
-from airflow_common import create_cluster, delete_cluster, submit_pyspark_job
+from common_airflow import create_cluster, delete_cluster, submit_pyspark_job
 
 SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
 PYTHON_CLI = "cli.py"
