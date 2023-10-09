@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import binascii
 import os
 
-import gcsfs
-import pandas as pd
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -50,10 +47,7 @@ outputs = f"gs://genetics_etl_python_playground/output/python_etl/parquet/{versi
 spark_write_mode = "overwrite"
 
 
-# Common cluster operations.
-
-
-def generate_create_cluster_task(
+def create_cluster(
     cluster_name,
     master_machine_type="n1-standard-4",
     worker_machine_type="n1-standard-16",
@@ -88,8 +82,33 @@ def generate_create_cluster_task(
     )
 
 
-def generate_delete_cluster_task(cluster_name):
-    """Generate an Airflow task to delete a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed."""
+def submit_pyspark_job(cluster_name, task_id, python_module_path, python_module_params):
+    """Generate an Airflow task to run a PySpark job on a Dataproc cluster."""
+    return DataprocSubmitJobOperator(
+        task_id=task_id,
+        region=region,
+        project_id=project_id,
+        job={
+            "job_uuid": f"airflow-{task_id}",
+            "reference": {"project_id": project_id},
+            "placement": {"cluster_name": cluster_name},
+            "pyspark_job": {
+                "main_python_file_uri": f"{initialisation_base_path}/{python_module_path}",
+                "args": python_module_params,
+                "properties": {
+                    "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                    "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                    "spark.executor.extraClassPath": "./hail-all-spark.jar",
+                    "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+                    "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
+                },
+            },
+        },
+    )
+
+
+def delete_cluster(cluster_name):
+    """Generate an Airflow task to delete a Dataproc cluster."""
     return DataprocDeleteClusterOperator(
         task_id=f"delete_cluster_{cluster_name}",
         project_id=project_id,
@@ -98,42 +117,3 @@ def generate_delete_cluster_task(cluster_name):
         trigger_rule=TriggerRule.ALL_DONE,
         deferrable=True,
     )
-
-
-# Partials and common functions for Dataproc operations.
-
-
-def generate_pyspark_job_params(cluster_name, python_module: str, **kwargs) -> dict:
-    """Generates a PySpark Dataproc job object to be passed to the Airflow operator."""
-    return {
-        # Job ID is random because it's tracked by Airflow/Dataproc internally.
-        # Example: airflow-5a4dcc9558b3dc65ed911e8ed58b4f.
-        "job_uuid": f"airflow-{binascii.b2a_hex(os.urandom(15)).decode()}",
-        "reference": {"project_id": project_id},
-        "placement": {"cluster_name": cluster_name},
-        "pyspark_job": {
-            "main_python_file_uri": f"{initialisation_base_path}/preprocess/{python_module}",
-            "args": list(map(str, kwargs.values())),
-        },
-    }
-
-
-def generate_dataproc_submit_job_operator(task_id, job=None):
-    """Generates an Airflow operator for submitting a Dataproc job. If job is not provided, returns a partial instead."""
-    kwargs = {"task_id": task_id, "region": region, "project_id": project_id}
-    if job:
-        return DataprocSubmitJobOperator(**kwargs, job=job)
-    else:
-        return DataprocSubmitJobOperator.partial(**kwargs)
-
-
-# Utilities for working with Google Cloud Storage.
-
-
-def read_parquet_from_path(path):
-    """Recursively reads all parquet files from a Google Storage path and combines them into a single Pandas dataframe."""
-    all_parquet_files = [
-        f"gs://{f}" for f in gcsfs.GCSFileSystem().ls(path) if f.endswith(".parquet")
-    ]
-    full_df = pd.concat(pd.read_parquet(filename) for filename in all_parquet_files)
-    return full_df
