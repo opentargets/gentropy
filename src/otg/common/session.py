@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
@@ -15,14 +15,12 @@ if TYPE_CHECKING:
 class Session:
     """Spark session class."""
 
-    spark_config = SparkConf()
-
     def __init__(
         self: Session,
         spark_uri: str = "local[*]",
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
-        spark_config: SparkConf = spark_config,
+        hail_home: str | None = None,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -30,9 +28,39 @@ class Session:
             spark_uri (str): spark uri
             app_name (str): spark application name
             write_mode (str): spark write mode
-            spark_config (SparkConf): spark configuration. Defaults to spark_config.
+            hail_home (str | None): path to hail installation
         """
-        # create session and retrieve Spark logger object
+        # create executors based on resources
+        default_spark_conf = (
+            SparkConf()
+            # Dynamic allocation
+            .set("spark.dynamicAllocation.enabled", "true")
+            .set("spark.dynamicAllocation.minExecutors", "2")
+            .set("spark.dynamicAllocation.initialExecutors", "2")
+            .set(
+                "spark.shuffle.service.enabled", "true"
+            )  # required for dynamic allocation
+        )
+        spark_config = (
+            (
+                default_spark_conf.set(
+                    "spark.jars",
+                    f"{hail_home}/backend/hail-all-spark.jar",
+                )
+                .set(
+                    "spark.driver.extraClassPath",
+                    f"{hail_home}/backend/hail-all-spark.jar",
+                )
+                .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
+                .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+                .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
+                .set("spark.sql.files.openCostInBytes", "50gb")
+                .set("spark.sql.files.maxPartitionBytes", "50gb")
+                # .set("spark.kryoserializer.buffer", "512m")
+            )
+            if hail_home is not None
+            else default_spark_conf
+        )
         self.spark = (
             SparkSession.builder.config(conf=spark_config)
             .master(spark_uri)
@@ -42,17 +70,20 @@ class Session:
         self.logger = Log4j(self.spark)
         self.write_mode = write_mode
 
-    def read_parquet(self: Session, path: str, schema: StructType) -> DataFrame:
+    def read_parquet(
+        self: Session, path: str, schema: StructType, **kwargs: Dict[str, Any]
+    ) -> DataFrame:
         """Reads parquet dataset with a provided schema.
 
         Args:
             path (str): parquet dataset path
             schema (StructType): Spark schema
+            **kwargs: Additional arguments to pass to spark.read.parquet
 
         Returns:
             DataFrame: Dataframe with provided schema
         """
-        return self.spark.read.schema(schema).format("parquet").load(path)
+        return self.spark.read.schema(schema).parquet(path, **kwargs, inferSchema=False)  # type: ignore
 
 
 class Log4j:

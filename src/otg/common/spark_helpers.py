@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import re
+import sys
 from typing import TYPE_CHECKING, Iterable, Optional
 
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import MinMaxScaler, VectorAssembler
 from pyspark.ml.functions import vector_to_array
 from pyspark.sql import Window
+from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame, WindowSpec
@@ -87,6 +90,42 @@ def _convert_from_long_to_wide(
     <BLANKLINE>
     """
     return df.groupBy(id_vars).pivot(var_name).agg(f.first(value_name))
+
+
+def pvalue_to_zscore(pval_col: Column) -> Column:
+    """Convert p-value column to z-score column.
+
+    Args:
+        pval_col (Column): pvalues to be casted to floats.
+
+    Returns:
+        Column: p-values transformed to z-scores
+
+    Examples:
+        >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
+        >>> df = spark.createDataFrame(d)
+        >>> df.withColumn("zscore", pvalue_to_zscore(f.col("pval"))).show()
+        +---+-------+----------+
+        | id|   pval|    zscore|
+        +---+-------+----------+
+        | t1|      1|       0.0|
+        | t2|    0.9|0.12566137|
+        | t3|   0.05|  1.959964|
+        | t4| 1e-300| 37.537838|
+        | t5|1e-1000| 37.537838|
+        | t6|     NA|      null|
+        +---+-------+----------+
+        <BLANKLINE>
+
+    """
+    pvalue_float = pval_col.cast(t.FloatType())
+    pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
+        pvalue_float
+    )
+    return f.udf(
+        lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
+        t.FloatType(),
+    )(pvalue_nozero)
 
 
 def nullify_empty_array(column: Column) -> Column:
@@ -264,3 +303,20 @@ def column2camel_case(col_name: str) -> str:
         '`hello_world` as helloWorld'
     """
     return f"`{col_name}` as {string2camelcase(col_name)}"
+
+
+def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column:
+    """Sort a column of array of structs by a field in descending order, nulls last."""
+    return f.expr(
+        f"""
+        array_sort(
+        {column_name},
+        (left, right) -> case
+                        when left.{field_name} is null then 1
+                        when right.{field_name} is null then -1
+                        when left.{field_name} < right.{field_name} then 1
+                        when left.{field_name} > right.{field_name} then -1
+                        else 0
+                end)
+        """
+    )

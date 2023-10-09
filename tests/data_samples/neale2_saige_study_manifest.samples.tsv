@@ -1,0 +1,11 @@
+in_path	code	trait	n_total	n_cases	trait_category
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/PheCode_244_SAIGE_Nov2017_MACge20.GRCh38.tsv.split*.gz	SAIGE_244	Hypothyroidism	406300	14871	endocrine/metabolic
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/PheCode_008.5_SAIGE_Nov2017_MACge20.GRCh38.tsv.split*.gz	SAIGE_008_5	Bacterial enteritis	402707	2737	infectious diseases
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/PheCode_153.2_SAIGE_Nov2017_MACge20.GRCh38.tsv.split*.gz	SAIGE_153_2	Colon cancer	385807	3051	neoplasms
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/PheCode_290.16_SAIGE_Nov2017_MACge20.GRCh38.tsv.split*.gz	SAIGE_290_16	Vascular dementia	402572	189	mental disorders
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/PheCode_288.3_SAIGE_Nov2017_MACge20.GRCh38.tsv.split*.gz	SAIGE_288_3	Eosinophilia	401446	71	hematopoietic
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/100920_2102.neale2.gwas.imputed_v3.both_sexes.GRCh38.tsv.split*.gz	NEALE2_100920_2102	Type milk consumed: semiskimmed	51427	19497
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/1031.neale2.gwas.imputed_v3.both_sexes.GRCh38.tsv.split*.gz	NEALE2_1031	Frequency of friend/family visits	358821
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/1428_1.neale2.gwas.imputed_v3.both_sexes.GRCh38.tsv.split*.gz	NEALE2_1428_1	Spread type: Butter/spreadable butter	360291	131190
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/1428_1.neale2.gwas.imputed_v3.both_sexes.GRCh38.tsv.split*.gz	NEALE2_1428_1	Spread type: Butter/spreadable butter	360291	131190
+gs://genetics-portal-raw/uk_biobank_sumstats/harmonised_split_190318/2976_raw.neale2.gwas.imputed_v3.both_sexes.GRCh38.tsv.split*.gz	NEALE2_2976_raw	Age diabetes diagnosed	16166

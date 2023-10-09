@@ -7,29 +7,45 @@ outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${dataset
 # Input datasets
 gnomad_gnomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
 chain_hail_38_37: gs://hail-common/references/grch38_to_grch37.over.chain.gz
+chain_hail_37_38: gs://hail-common/references/grch37_to_grch38.over.chain.gz
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
-gene_index: ${datasets.inputs}/v2g_input/targets_correct_tss
+target_index: ${datasets.inputs}/v2g_input/targets_correct_tss
 vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
 anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
 javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
 jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
 thrunman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-catalog_associations: ${dataset.inputs}/v2d/gwas_catalog_v1.0.2-associations_e107_r2022-11-29.tsv
-catalog_studies: ${dataset.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2022-11-29.tsv
-catalog_ancestries: ${dataset.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2022-11-29.tsv
-catalog_sumstats_lut: ${dataset.inputs}/v2d/harmonised_list.txt
-# templates
+catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e110_r2023-09-11.tsv
+catalog_studies: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2023-09-11.tsv
+catalog_ancestries: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2023-09-11.tsv
+catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-09-11.txt
+finngen_phenotype_table_url: https://r9.finngen.fi/api/phenos
+ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study_manifest.190430.tsv
+l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
+gene_interactions: gs://open-targets-data-releases/23.06/output/etl/parquet/interaction
+
+# Templates
 ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
 ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
 
-#Output datasets
+# Output datasets
+gene_index: ${datasets.outputs}/gene_index/gene_index
 variant_annotation: ${datasets.outputs}/variant_annotation
 variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
+study_locus_overlap: ${datasets.outputs}/study_locus_overlap
 colocalisation: ${datasets.outputs}/colocalisation
 v2g: ${datasets.outputs}/v2g
 ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.outputs}/catalog_study_index
 catalog_study_locus: ${datasets.outputs}/catalog_study_locus
-#templates
-ld_index_template: ${datasets.outputs}/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet
+finngen_study_index: ${datasets.outputs}/finngen_study_index
+ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
+l2g_model: ${datasets.outputs}/l2g_model
+l2g_feature_matrix: ${datasets.outputs}/l2g_feature_matrix
+l2g_predictions: ${datasets.outputs}/l2g_predictions
+
+# Constants
+finngen_release_prefix: FINNGEN_R9
+finngen_sumstat_url_prefix: https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_
+finngen_sumstat_url_suffix: .gz

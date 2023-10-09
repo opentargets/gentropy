@@ -28,8 +28,6 @@ class L2GPredictions(Dataset):
     confidence of the prediction that a gene is causal to an association.
     """
 
-    _schema: StructType = parse_spark_schema("l2g_predictions.json")
-
     @classmethod
     def from_parquet(
         cls: Type[L2GPredictions], session: Session, path: str
@@ -90,3 +88,8 @@ class L2GPredictions(Dataset):
                 vector_to_array("probability")[1].alias("score"),
             )
         )
+
+    @classmethod
+    def get_schema(cls: type[L2GPredictions]) -> StructType:
+        """Provides the schema for the L2GPredictions dataset."""
+        return parse_spark_schema("l2g_predictions.json")

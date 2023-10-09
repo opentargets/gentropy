@@ -1,0 +1,212 @@
+[
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_ACTINOMYCOSIS.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 0.95659,
+      "0.01": 0.97328,
+      "0.1": 0.84074,
+      "0.5": 0.48072
+    },
+    "num_cases": 93,
+    "num_cases_prev": 87,
+    "num_controls": 332343,
+    "num_controls_prev": 303314,
+    "num_gw_significant": 0,
+    "num_gw_significant_prev": 0,
+    "phenocode": "AB1_ACTINOMYCOSIS",
+    "phenostring": "Actinomycosis"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_AMOEBIASIS.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 0.96504,
+      "0.01": 0.98154,
+      "0.1": 0.88697,
+      "0.5": 0.60005
+    },
+    "num_cases": 149,
+    "num_cases_prev": 136,
+    "num_controls": 336396,
+    "num_controls_prev": 305879,
+    "num_gw_significant": 0,
+    "num_gw_significant_prev": 2,
+    "phenocode": "AB1_AMOEBIASIS",
+    "phenostring": "Amoebiasis"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_ANOGENITAL_HERPES_SIMPLEX.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 1.0064,
+      "0.01": 0.98809,
+      "0.1": 0.96277,
+      "0.5": 1.0215
+    },
+    "num_cases": 1812,
+    "num_cases_prev": 1613,
+    "num_controls": 366340,
+    "num_controls_prev": 332788,
+    "num_gw_significant": 0,
+    "num_gw_significant_prev": 0,
+    "phenocode": "AB1_ANOGENITAL_HERPES_SIMPLEX",
+    "phenostring": "Anogenital herpesviral [herpes simplex] infection"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_ASPERGILLOSIS.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 0.98319,
+      "0.01": 0.98926,
+      "0.1": 0.91198,
+      "0.5": 0.6823
+    },
+    "num_cases": 194,
+    "num_cases_prev": 177,
+    "num_controls": 369098,
+    "num_controls_prev": 335444,
+    "num_gw_significant": 0,
+    "num_gw_significant_prev": 0,
+    "phenocode": "AB1_ASPERGILLOSIS",
+    "phenostring": "Aspergillosis"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_ATYPICAL_CNS_VIRUS.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 0.97397,
+      "0.01": 0.98375,
+      "0.1": 0.91187,
+      "0.5": 0.73702
+    },
+    "num_cases": 260,
+    "num_cases_prev": 238,
+    "num_controls": 375157,
+    "num_controls_prev": 340582,
+    "num_gw_significant": 2,
+    "num_gw_significant_prev": 1,
+    "phenocode": "AB1_ATYPICAL_CNS_VIRUS",
+    "phenostring": "Atypical virus infections of central nervous system"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_BACTINF_NOS.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 1.0229,
+      "0.01": 0.99941,
+      "0.1": 1.0176,
+      "0.5": 1.0292
+    },
+    "num_cases": 18576,
+    "num_cases_prev": 16018,
+    "num_controls": 332343,
+    "num_controls_prev": 303314,
+    "num_gw_significant": 1,
+    "num_gw_significant_prev": 1,
+    "phenocode": "AB1_BACTINF_NOS",
+    "phenostring": "Bacterial infection, other or unspecified"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_BACT_BIR_OTHER_INF_AGENTS.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 1.0053,
+      "0.01": 0.98369,
+      "0.1": 0.96289,
+      "0.5": 1.0155
+    },
+    "num_cases": 2591,
+    "num_cases_prev": 2307,
+    "num_controls": 374686,
+    "num_controls_prev": 340192,
+    "num_gw_significant": 0,
+    "num_gw_significant_prev": 0,
+    "phenocode": "AB1_BACT_BIR_OTHER_INF_AGENTS",
+    "phenostring": "Bacterial, viral and other infectious agents"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_BACT_INTEST_OTH.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 1.0267,
+      "0.01": 0.98919,
+      "0.1": 0.98714,
+      "0.5": 1.0187
+    },
+    "num_cases": 5631,
+    "num_cases_prev": 5016,
+    "num_controls": 336396,
+    "num_controls_prev": 305879,
+    "num_gw_significant": 1,
+    "num_gw_significant_prev": 1,
+    "phenocode": "AB1_BACT_INTEST_OTH",
+    "phenostring": "Other bacterial intestinal infections"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_CANDIDIASIS.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 1.0093,
+      "0.01": 0.99043,
+      "0.1": 0.98666,
+      "0.5": 1.026
+    },
+    "num_cases": 3974,
+    "num_cases_prev": 3475,
+    "num_controls": 369098,
+    "num_controls_prev": 335444,
+    "num_gw_significant": 0,
+    "num_gw_significant_prev": 0,
+    "phenocode": "AB1_CANDIDIASIS",
+    "phenostring": "Candidiasis"
+  },
+  {
+    "assoc_files": [
+      "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_CHLAMYDIA_OTHER.gz"
+    ],
+    "category": "I Certain infectious and parasitic diseases (AB1_)",
+    "category_index": 1,
+    "gc_lambda": {
+      "0.001": 1.0181,
+      "0.01": 0.99507,
+      "0.1": 0.97656,
+      "0.5": 1.0302
+    },
+    "num_cases": 2011,
+    "num_cases_prev": 1777,
+    "num_controls": 366340,
+    "num_controls_prev": 332788,
+    "num_gw_significant": 2,
+    "num_gw_significant_prev": 1,
+    "phenocode": "AB1_CHLAMYDIA_OTHER",
+    "phenostring": "Other sexually transmitted chlamydial diseases"
+  }
+]

@@ -1,0 +1,63 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "variantId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "chromosome",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "ldSet",
+      "nullable": false,
+      "type": {
+        "containsNull": false,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "tagVariantId",
+              "nullable": false,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "rValues",
+              "nullable": false,
+              "type": {
+                "containsNull": false,
+                "elementType": {
+                  "fields": [
+                    {
+                      "metadata": {},
+                      "name": "population",
+                      "nullable": false,
+                      "type": "string"
+                    },
+                    {
+                      "metadata": {},
+                      "name": "r",
+                      "nullable": false,
+                      "type": "double"
+                    }
+                  ],
+                  "type": "struct"
+                },
+                "type": "array"
+              }
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    }
+  ],
+  "type": "struct"
+}

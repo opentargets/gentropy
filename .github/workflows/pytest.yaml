@@ -1,5 +1,5 @@
 name: tests
-on: [pull_request]
+on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,7 +10,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8.15
+          python-version: 3.10.8
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
@@ -25,11 +25,11 @@ jobs:
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --without docs --no-interaction --no-root
+        run: poetry install --no-interaction --no-root
       - name: Install library
-        run: poetry install --no-interaction --without docs
+        run: poetry install --no-interaction
       - name: Run tests
-        run: poetry run pytest --doctest-modules --cov=src/ --cov-report=xml
+        run: poetry run pytest
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

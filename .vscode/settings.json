@@ -1,7 +1,12 @@
 {
   "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnPaste": false,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": false,
+      "source.organizeImports": true
+    }
   },
   "python.terminal.launchArgs": [
     "-m",
@@ -18,18 +23,6 @@
     }
   },
   "json.format.keepLines": true,
-  "python.linting.flake8Enabled": true,
-  "python.linting.flake8CategorySeverity.F": "Information",
-  "python.linting.flake8CategorySeverity.E": "Information",
-  "python.linting.flake8CategorySeverity.W": "Information",
-  "python.formatting.blackArgs": [],
-  "python.linting.mypyEnabled": true,
-  "python.linting.mypyCategorySeverity.error": "Information",
-  "python.linting.pydocstyleEnabled": true,
-  "python.linting.pydocstyleArgs": [
-    "--convention=google"
-  ],
-  "python.formatting.provider": "black",
   "isort.args": [
     "--profile",
     "black"
@@ -42,5 +35,9 @@
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "docwriter.style": "Google"
+  "mypy-type-checker.severity": {
+    "error": "Information"
+  },
+  "ruff.fixAll": false,
+  "ruff.organizeImports": false
 }

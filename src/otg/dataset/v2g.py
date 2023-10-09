@@ -10,7 +10,6 @@ from otg.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
     from otg.dataset.gene_index import GeneIndex
 
 
@@ -21,20 +20,10 @@ class V2G(Dataset):
     A variant-to-gene (V2G) evidence is understood as any piece of evidence that supports the association of a variant with a likely causal gene. The evidence can sometimes be context-specific and refer to specific `biofeatures` (e.g. cell types)
     """
 
-    _schema: StructType = parse_spark_schema("v2g.json")
-
     @classmethod
-    def from_parquet(cls: type[V2G], session: Session, path: str) -> V2G:
-        """Initialise V2G from parquet file.
-
-        Args:
-            session (Session): ETL session
-            path (str): Path to parquet file
-
-        Returns:
-            V2G: V2G dataset
-        """
-        return super().from_parquet(session, path, cls._schema)
+    def get_schema(cls: type[V2G]) -> StructType:
+        """Provides the schema for the V2G dataset."""
+        return parse_spark_schema("v2g.json")
 
     def filter_by_genes(self: V2G, genes: GeneIndex) -> V2G:
         """Filter V2G dataset by genes.

@@ -1,0 +1,77 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "leftStudyLocusId",
+      "nullable": false,
+      "type": "long",
+      "metadata": {}
+    },
+    {
+      "name": "rightStudyLocusId",
+      "nullable": false,
+      "type": "long",
+      "metadata": {}
+    },
+    {
+      "name": "chromosome",
+      "nullable": false,
+      "type": "string",
+      "metadata": {}
+    },
+    {
+      "name": "colocalisationMethod",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "numberColocalisingVariants",
+      "type": "long",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "h0",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "h1",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "h2",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "h3",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "h4",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "log2h4h3",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "clpp",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}
