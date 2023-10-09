@@ -51,7 +51,7 @@ When making changes, and especially when implementing a new module or feature, i
 - [ ] Run `make check`. This will run the linter and formatter to ensure that the code is compliant with the project conventions.
 - [ ] Develop unit tests for your code and run `make test`. This will run all unit tests in the repository, including the examples appended in the docstrings of some methods.
 - [ ] Update the configuration if necessary.
-- [ ] Update the documentation and check it with `run build-documentation`. This will start a local server to browse it (URL will be printed, usually `http://127.0.0.1:8000/`)
+- [ ] Update the documentation and check it with `make build-documentation`. This will start a local server to browse it (URL will be printed, usually `http://127.0.0.1:8000/`)
 
 For more details on each of these steps, see the sections below.
 ### Documentation
