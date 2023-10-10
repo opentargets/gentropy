@@ -22,13 +22,13 @@
       "metadata": {},
       "name": "distanceTssMean",
       "nullable": true,
-      "type": "double"
+      "type": "float"
     },
     {
       "metadata": {},
       "name": "distanceTssMinimum",
       "nullable": true,
-      "type": "double"
+      "type": "float"
     },
     {
       "metadata": {},
