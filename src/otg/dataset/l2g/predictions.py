@@ -71,8 +71,8 @@ class L2GPredictions(Dataset):
         fm = _convert_from_long_to_wide(
             session.spark.read.parquet(feature_matrix_path),
             id_vars=["studyLocusId", "geneId"],
-            var_name="feature",
-            value_name="value",
+            var_name="featureName",
+            value_name="featureValue",
         ).transform(L2GFeatureMatrix.fill_na)
 
         return L2GPredictions(

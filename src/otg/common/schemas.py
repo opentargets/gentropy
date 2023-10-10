@@ -24,7 +24,9 @@ def parse_spark_schema(schema_json: str) -> StructType:
     Returns:
         StructType: Spark schema
     """
-    core_schema = json.loads(pkg_resources.read_text(schemas, schema_json, encoding="utf-8"))
+    core_schema = json.loads(
+        pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
+    )
     return StructType.fromJson(core_schema)
 
 
@@ -65,9 +67,15 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
             fields.append(Field(name, dtype))
     return fields
 
+
 def _get_spark_schema_from_pandas_df(pdf: PandasDataFrame) -> t.StructType:
     """Returns the Spark schema based on a Pandas DataFrame."""
-    return t.StructType([t.StructField(field, _get_spark_type(pdf[field].dtype), True) for field in pdf.columns])
+    return t.StructType(
+        [
+            t.StructField(field, _get_spark_type(pdf[field].dtype), True)
+            for field in pdf.columns
+        ]
+    )
 
 
 def _get_spark_type(pandas_type: str) -> t.DataType:

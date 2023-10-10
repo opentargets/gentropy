@@ -4,6 +4,7 @@ from __future__ import annotations
 import itertools
 from typing import TYPE_CHECKING, Any, Dict
 
+import wandb
 from pyspark import keyword_only
 from pyspark.ml.evaluation import (
     BinaryClassificationEvaluator,
@@ -12,8 +13,6 @@ from pyspark.ml.evaluation import (
     RankingEvaluator,
 )
 from pyspark.ml.param import Param, Params, TypeConverters
-
-import wandb
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame

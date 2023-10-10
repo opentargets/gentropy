@@ -14,7 +14,7 @@
       "metadata": {}
     },
     {
-      "name": "gold_standard_set",
+      "name": "goldStandardSet",
       "type": "string",
       "nullable": false,
       "metadata": {}

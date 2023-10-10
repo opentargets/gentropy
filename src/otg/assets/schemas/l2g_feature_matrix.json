@@ -8,103 +8,97 @@
     },
     {
       "metadata": {},
-      "name": "feature",
-      "nullable": true,
-      "type": "string"
-    },
-    {
-      "metadata": {},
       "name": "geneId",
       "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "gold_standard_set",
+      "name": "goldStandardSet",
       "nullable": true,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "dist_tss_ave",
+      "name": "distanceTssMean",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "dist_tss_min",
+      "name": "distanceTssMinimum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "eqtl_max_coloc_clpp_local",
+      "name": "eqtlColocClppLocalMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "eqtl_max_coloc_clpp_nbh",
+      "name": "eqtlColocClppNeighborhoodMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "eqtl_max_coloc_llr_local",
+      "name": "eqtlColocLlrLocalMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "eqtl_max_coloc_llr_nbh",
+      "name": "eqtlColocLlrNeighborhoodMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "pqtl_max_coloc_clpp_local",
+      "name": "pqtlColocClppLocalMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "pqtl_max_coloc_clpp_nbh",
+      "name": "pqtlColocClppNeighborhoodMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "pqtl_max_coloc_llr_local",
+      "name": "pqtlColocLlrLocalMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "pqtl_max_coloc_llr_nbh",
+      "name": "pqtlColocLlrNeighborhoodMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "sqtl_max_coloc_clpp_local",
+      "name": "sqtlColocClppLocalMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "sqtl_max_coloc_clpp_nbh",
+      "name": "sqtlColocClppNeighborhoodMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "sqtl_max_coloc_llr_local",
+      "name": "sqtlColocLlrLocalMaximum",
       "nullable": true,
       "type": "double"
     },
     {
       "metadata": {},
-      "name": "sqtl_max_coloc_llr_nbh",
+      "name": "sqtlColocLlrNeighborhoodMaximum",
       "nullable": true,
       "type": "double"
     }

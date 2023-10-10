@@ -16,7 +16,6 @@ from otg.dataset.dataset import Dataset
 from otg.dataset.study_locus import CredibleInterval, StudyLocus
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
     from otg.dataset.colocalisation import Colocalisation
@@ -28,10 +27,10 @@ if TYPE_CHECKING:
 class L2GFeature(Dataset):
     """Property of a study locus pair."""
 
-    # TODO: think about moving this to a trait id - so that we can extract the best study for that trait to train on
-
-    _df: DataFrame
-    _schema: StructType = parse_spark_schema("l2g_feature.json")
+    @classmethod
+    def get_schema(cls: type[L2GFeature]) -> StructType:
+        """Provides the schema for the L2GFeature dataset."""
+        return parse_spark_schema("l2g_feature.json")
 
 
 class ColocalisationFactory:
@@ -56,7 +55,7 @@ class ColocalisationFactory:
             L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
         """
         if colocalisation_method == "COLOC":
-            coloc_score_col_name = "coloc_log2_h4_h3"
+            coloc_score_col_name = "log2h4h3"
             coloc_feature_col_template = "max_coloc_llr"
 
         elif colocalisation_method == "eCAVIAR":
@@ -69,8 +68,8 @@ class ColocalisationFactory:
             # annotate studyLoci with overlapping IDs on the left - to just keep GWAS associations
             .join(
                 colocalisation._df.selectExpr(
-                    "left_studyLocusId as studyLocusId",
-                    "right_studyLocusId",
+                    "leftStudyLocusId as studyLocusId",
+                    "rightStudyLocusId",
                     "colocalisationMethod",
                     f"{coloc_score_col_name} as coloc_score",
                 ),
@@ -80,9 +79,9 @@ class ColocalisationFactory:
             # bring study metadata to just keep QTL studies on the right
             .join(
                 study_locus.df.selectExpr(
-                    "studyLocusId as right_studyLocusId", "studyId as right_studyId"
+                    "studyLocusId as rightStudyLocusId", "studyId as right_studyId"
                 ),
-                on="right_studyLocusId",
+                on="rightStudyLocusId",
                 how="inner",
             )
             .join(
@@ -158,9 +157,10 @@ class ColocalisationFactory:
             _df=_convert_from_wide_to_long(
                 wide_dfs,
                 id_vars=("studyLocusId", "geneId"),
-                var_name="feature",
-                value_name="value",
-            )
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=L2GFeature.get_schema(),
         )
 
     @staticmethod
@@ -182,20 +182,22 @@ class ColocalisationFactory:
         )
 
         return L2GFeature(
-            _df=coloc_llr.df.unionByName(coloc_clpp.df, allowMissingColumns=True)
+            _df=coloc_llr.df.unionByName(coloc_clpp.df, allowMissingColumns=True),
+            _schema=L2GFeature.get_schema(),
         )
 
 
 class StudyLocusFactory(StudyLocus):
     """Feature extraction in study locus."""
 
-    @classmethod
+    @staticmethod
     def _get_tss_distance_features(
-        cls: type[StudyLocusFactory], distances: V2G
+        study_locus: StudyLocus, distances: V2G
     ) -> L2GFeature:
         """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
 
         Args:
+            study_locus (StudyLocus): Study locus dataset
             distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
 
         Returns:
@@ -203,11 +205,11 @@ class StudyLocusFactory(StudyLocus):
 
         """
         wide_df = (
-            cls.credible_set(CredibleInterval.IS95.value)
-            .select(
+            study_locus.filter_credible_set(CredibleInterval.IS95)
+            .df.select(
                 "studyLocusId",
                 "variantId",
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
+                f.explode("locus.variantId").alias("tagVariantId"),
             )
             .join(
                 distances.df.selectExpr(
@@ -218,15 +220,17 @@ class StudyLocusFactory(StudyLocus):
             )
             .groupBy("studyLocusId", "variantId", "geneId")
             .agg(
-                f.min("distance").alias("dist_tss_min"),
-                f.mean("distance").alias("dist_tss_ave"),
+                f.min("distance").alias("distanceTssMinimum"),
+                f.mean("distance").alias("distanceTssMean"),
             )
         )
+
         return L2GFeature(
             _df=_convert_from_wide_to_long(
                 wide_df,
                 id_vars=("studyLocusId", "geneId"),
-                var_name="feature",
-                value_name="value",
-            )
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=L2GFeature.get_schema(),
         )

@@ -65,7 +65,11 @@ class StudyIndex(Dataset):
             Column: Struct column with the mapped LD population label and the sample size.
         """
         # Loading ancestry label to LD population label:
-        json_dict = json.loads(pkg_resources.read_text(data, "gwas_population_2_LD_panel_map.json", encoding="utf-8"))
+        json_dict = json.loads(
+            pkg_resources.read_text(
+                data, "gwas_population_2_LD_panel_map.json", encoding="utf-8"
+            )
+        )
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         return f.struct(
@@ -79,7 +83,9 @@ class StudyIndex(Dataset):
         return parse_spark_schema("study_index.json")
 
     @classmethod
-    def aggregate_and_map_ancestries(cls: type[StudyIndex], discovery_samples: Column) -> Column:
+    def aggregate_and_map_ancestries(
+        cls: type[StudyIndex], discovery_samples: Column
+    ) -> Column:
         """Map ancestries to populations in the LD reference and calculate relative sample size.
 
         Args:
@@ -89,7 +95,9 @@ class StudyIndex(Dataset):
             A list of struct with mapped LD population and their relative sample size.
         """
         # Map ancestry categories to population labels of the LD index:
-        mapped_ancestries = f.transform(discovery_samples, cls._map_ancestries_to_ld_population)
+        mapped_ancestries = f.transform(
+            discovery_samples, cls._map_ancestries_to_ld_population
+        )
 
         # Aggregate sample sizes belonging to the same LD population:
         aggregated_counts = f.aggregate(
@@ -97,7 +105,9 @@ class StudyIndex(Dataset):
             f.array_distinct(
                 f.transform(
                     mapped_ancestries,
-                    lambda x: f.struct(x.ancestry.alias("ancestry"), f.lit(0.0).alias("sampleSize")),
+                    lambda x: f.struct(
+                        x.ancestry.alias("ancestry"), f.lit(0.0).alias("sampleSize")
+                    ),
                 )
             ),
             cls._aggregate_samples_by_ancestry,
@@ -112,7 +122,9 @@ class StudyIndex(Dataset):
             aggregated_counts,
             lambda ld_population: f.struct(
                 ld_population.ancestry.alias("ldPopulation"),
-                (ld_population.sampleSize / total_sample_count).alias("relativeSampleSize"),
+                (ld_population.sampleSize / total_sample_count).alias(
+                    "relativeSampleSize"
+                ),
             ),
         )
 

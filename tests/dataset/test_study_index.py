@@ -47,8 +47,14 @@ def test_aggregate_and_map_ancestries__correctness(spark: SparkSession):
     df = (
         spark.createDataFrame(data, columns)
         .groupBy("studyId")
-        .agg(f.collect_list(f.struct("ancestry", "sampleSize")).alias("discoverySamples"))
-        .select(StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")).alias("parsedPopulation"))
+        .agg(
+            f.collect_list(f.struct("ancestry", "sampleSize")).alias("discoverySamples")
+        )
+        .select(
+            StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")).alias(
+                "parsedPopulation"
+            )
+        )
     )
 
     # Asserting that there are three population (both NR and Europeans are grounded to 'nfe'):
@@ -57,7 +63,9 @@ def test_aggregate_and_map_ancestries__correctness(spark: SparkSession):
     # Asserting that the relative count go to 1.0
     assert (
         df.select(
-            f.aggregate("parsedPopulation", f.lit(0.0), lambda y, x: y + x.relativeSampleSize).alias("sum")
+            f.aggregate(
+                "parsedPopulation", f.lit(0.0), lambda y, x: y + x.relativeSampleSize
+            ).alias("sum")
         ).collect()[0]["sum"]
     ) == 1.0
 
@@ -87,14 +95,18 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
     df = (
         spark.createDataFrame(data, columns)
         .groupBy("studyId")
-        .agg(f.collect_list(f.struct("ancestry", "sampleSize")).alias("discoverySamples"))
+        .agg(
+            f.collect_list(f.struct("ancestry", "sampleSize")).alias("discoverySamples")
+        )
         .select(
             f.aggregate(
                 "discoverySamples",
                 f.array_distinct(
                     f.transform(
                         "discoverySamples",
-                        lambda x: f.struct(x.ancestry.alias("ancestry"), f.lit(0.0).alias("sampleSize")),
+                        lambda x: f.struct(
+                            x.ancestry.alias("ancestry"), f.lit(0.0).alias("sampleSize")
+                        ),
                     )
                 ),
                 StudyIndex._aggregate_samples_by_ancestry,
@@ -104,11 +116,17 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
     )
 
     # Asserting the number of aggregated population:
-    assert (df.filter(f.col("studyId") == "s1").select(f.explode("test_output")).count()) == 2
+    assert (
+        df.filter(f.col("studyId") == "s1").select(f.explode("test_output")).count()
+    ) == 2
 
     # Asserting the number of aggregated sample size:
     assert (
         df.filter(f.col("studyId") == "s1")
-        .select(f.aggregate("test_output", f.lit(0.0), lambda y, x: x.sampleSize + y).alias("totalSamples"))
+        .select(
+            f.aggregate("test_output", f.lit(0.0), lambda y, x: x.sampleSize + y).alias(
+                "totalSamples"
+            )
+        )
         .collect()[0]["totalSamples"]
     ) == 300.0

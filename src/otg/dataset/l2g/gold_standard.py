@@ -51,69 +51,75 @@ class L2GGoldStandard(Dataset):
     ) -> L2GGoldStandard:
         """Process gold standard curation to use as training data."""
         overlaps_df = study_locus_overlap._df.select(
-            "left_studyLocusId", "right_studyLocusId"
+            "leftStudyLocusId", "rightStudyLocusId"
         )
         interactions_df = L2GGoldStandard.process_gene_interactions(interactions)
         return cls(
-            _df=gold_standard_curation.select(
-                f.col("association_info.otg_id").alias("studyId"),
-                f.col("gold_standard_info.gene_id").alias("geneId"),
-                f.concat_ws(
-                    "_",
-                    f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                    f.col("sentinel_variant.locus_GRCh38.position"),
-                    f.col("sentinel_variant.alleles.reference"),
-                    f.col("sentinel_variant.alleles.alternative"),
-                ).alias("variantId"),
-            )
-            .withColumn(
-                "studyLocusId", StudyLocus.assign_study_locus_id("studyId", "variantId")
-            )
-            .filter(
-                f.col("gold_standard_info.highest_confidence").isin(["High", "Medium"])
-            )
-            # Assign Positive or Negative Status based on confidence
-            .join(
-                v2g.df.select("variantId", "geneId", "distance"),
-                on=["variantId", "geneId"],
-                how="inner",
-            )
-            .withColumn(
-                "gold_standard_set",
-                f.when(f.col("distance") <= 500_000, f.lit("positive")).otherwise(
-                    f.lit("negative")
-                ),
-            )
-            # Remove redundant loci by testing they are truly independent
-            .alias("left")
-            .join(
-                overlaps_df.alias("right"),
-                (f.col("left.variantId") == f.col("right.left_studyLocusId"))
-                | (f.col("left.variantId") == f.col("right.right_studyLocusId")),
-                how="left",
-            )
-            .distinct()
-            # Remove redundant genes by testing they do not interact with a positive gene
-            .join(
-                interactions_df.alias("interactions"),
-                (f.col("left.geneId") == f.col("interactions.geneIdA"))
-                | (f.col("left.geneId") == f.col("interactions.geneIdB")),
-                how="left",
-            )
-            .withColumn("interacting", (f.col("score") > 0.7))
-            # filter out genes where geneIdA has gold_standard_set negative but geneIdA and gene IdB are interacting
-            .filter(
-                ~(
-                    (f.col("gold_standard_set") == 0)
-                    & (f.col("interacting"))
-                    & (
-                        (f.col("left.geneId") == f.col("interactions.geneIdA"))
-                        | (f.col("left.geneId") == f.col("interactions.geneIdB"))
+            _df=(
+                gold_standard_curation.select(
+                    f.col("association_info.otg_id").alias("studyId"),
+                    f.col("gold_standard_info.gene_id").alias("geneId"),
+                    f.concat_ws(
+                        "_",
+                        f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                        f.col("sentinel_variant.locus_GRCh38.position"),
+                        f.col("sentinel_variant.alleles.reference"),
+                        f.col("sentinel_variant.alleles.alternative"),
+                    ).alias("variantId"),
+                )
+                .withColumn(
+                    "studyLocusId",
+                    StudyLocus.assign_study_locus_id("studyId", "variantId"),
+                )
+                .filter(
+                    f.col("gold_standard_info.highest_confidence").isin(
+                        ["High", "Medium"]
                     )
                 )
-            )
-            .select("studyLocusId", "geneId", "gold_standard_set")
-            # TODO: comment from Daniel: include source of GS
+                # Assign Positive or Negative Status based on confidence
+                .join(
+                    v2g.df.select("variantId", "geneId", "distance"),
+                    on=["variantId", "geneId"],
+                    how="inner",
+                )
+                .withColumn(
+                    "goldStandardSet",
+                    f.when(f.col("distance") <= 500_000, f.lit("positive")).otherwise(
+                        f.lit("negative")
+                    ),
+                )
+                # Remove redundant loci by testing they are truly independent
+                .alias("left")
+                .join(
+                    overlaps_df.alias("right"),
+                    (f.col("left.variantId") == f.col("right.leftStudyLocusId"))
+                    | (f.col("left.variantId") == f.col("right.rightStudyLocusId")),
+                    how="left",
+                )
+                .distinct()
+                # Remove redundant genes by testing they do not interact with a positive gene
+                .join(
+                    interactions_df.alias("interactions"),
+                    (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                    | (f.col("left.geneId") == f.col("interactions.geneIdB")),
+                    how="left",
+                )
+                .withColumn("interacting", (f.col("score") > 0.7))
+                # filter out genes where geneIdA has goldStandardSet negative but geneIdA and gene IdB are interacting
+                .filter(
+                    ~(
+                        (f.col("goldStandardSet") == 0)
+                        & (f.col("interacting"))
+                        & (
+                            (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                            | (f.col("left.geneId") == f.col("interactions.geneIdB"))
+                        )
+                    )
+                )
+                .select("studyLocusId", "geneId", "goldStandardSet")
+                # TODO: comment from Daniel: include source of GS
+            ),
+            _schema=cls.get_schema(),
         )
 
     @classmethod

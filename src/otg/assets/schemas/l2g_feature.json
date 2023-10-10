@@ -14,13 +14,13 @@
       "metadata": {}
     },
     {
-      "name": "feature_name",
+      "name": "featureName",
       "type": "string",
       "nullable": false,
       "metadata": {}
     },
     {
-      "name": "feature_value",
+      "name": "featureValue",
       "type": "float",
       "nullable": false,
       "metadata": {}

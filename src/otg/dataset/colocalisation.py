@@ -1,11 +1,11 @@
-"""Variant index dataset."""
+"""Colocalisation dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.utils import get_record_with_maximum_value, pivot_df
+from otg.common.spark_helpers import get_record_with_maximum_value, pivot_df
 from otg.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -25,7 +25,9 @@ class Colocalisation(Dataset):
         """Provides the schema for the Colocalisation dataset."""
         return parse_spark_schema("colocalisation.json")
 
-    def get_max_llr_per_study_locus(self: Colocalisation, study_locus: StudyLocus, studies: StudyIndex) -> DataFrame:
+    def get_max_llr_per_study_locus(
+        self: Colocalisation, study_locus: StudyLocus, studies: StudyIndex
+    ) -> DataFrame:
         """Get the maximum log likelihood ratio for each pair of overlapping study-locus by aggregating over all QTL datasets to be used in L2G.
 
         Args:
@@ -41,7 +43,7 @@ class Colocalisation(Dataset):
             # q: i need metadata about the sentinels, should i join with study_locus or bring everything from get_sentinels?
             .join(
                 # bring coloc probability
-                self.df.selectExpr("right_studyLocusId as studyLocusId", "coloc_log2_h4_h3"),
+                self.df.selectExpr("rightStudyLocusId as studyLocusId", "log2h4h3"),
                 on="studyLocusId",
                 how="inner",
             )
@@ -55,18 +57,20 @@ class Colocalisation(Dataset):
         local_max = get_record_with_maximum_value(
             sentinel_study_locus,
             ["studyType", "studyLocusId", "geneId"],
-            "coloc_log2_h4_h3",
-        ).transform(lambda df: pivot_df(df, "studyType", "coloc_log2_h4_h3", ["studyLocusId", "geneId"]))
+            "log2h4h3",
+        ).transform(
+            lambda df: pivot_df(df, "studyType", "log2h4h3", ["studyLocusId", "geneId"])
+        )
         neighbourhood_max = (
             get_record_with_maximum_value(
                 sentinel_study_locus,
                 ["studyType", "studyLocusId", "geneId"],
-                "coloc_log2_h4_h3",
+                "log2h4h3",
             )
             .alias("neighbourhood_max")
             .transform(
                 lambda df: (
-                    pivot_df(df, "studyType", "coloc_log2_h4_h3", ["studyLocusId"]).select(
+                    pivot_df(df, "studyType", "log2h4h3", ["studyLocusId"]).select(
                         "studyType",
                         "studyLocusId",
                         "geneId",

@@ -36,7 +36,7 @@ class LocusToGeneModel:
 
     def __post_init__(self: LocusToGeneModel) -> None:
         """Post init that adds the model to the ML pipeline."""
-        label_indexer = StringIndexer(inputCol="gold_standard_set", outputCol="label")
+        label_indexer = StringIndexer(inputCol="goldStandardSet", outputCol="label")
         vector_assembler = LocusToGeneModel.features_vector_assembler(
             self.features_list
         )

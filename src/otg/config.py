@@ -3,24 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
-
-if TYPE_CHECKING:
-    from otg.common.session import Session
 
 
 @dataclass
 class Config:
     """Configuration for otg."""
 
-    defaults: List[Dict[str, str]] = field(default_factory=lambda: [{"step": "???"}, {"session": "session_config"}])
-
-    step: Any = MISSING
-    session: Any = MISSING
+    defaults: List[Dict[str, str]] = field(
+        default_factory=lambda: [{"step": "???"}, {"session": "session_config"}]
+    )
 
     step: Any = MISSING
     session: Any = MISSING
@@ -51,14 +46,12 @@ class LDIndexStepConfig:
     """
 
     _target_: str = "otg.ld_index.LDIndexStep"
-    ld_matrix_template: str = (
-        "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
-    )
-    ld_index_raw_template: str = (
-        "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
-    )
+    ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
+    ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
     min_r2: float = 0.5
-    grch37_to_grch38_chain_path: str = "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
+    grch37_to_grch38_chain_path: str = (
+        "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
+    )
     ld_populations: List[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
@@ -239,6 +232,26 @@ class StudyLocusOverlapStepConfig:
 
 
 @dataclass
+class FinnGenStepConfig:
+    """FinnGen study table ingestion step requirements.
+
+    Attributes:
+        finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
+        finngen_release_prefix (str): Release prefix pattern.
+        finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
+        finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+        finngen_study_index_out (str): Output path for the FinnGen study index dataset.
+    """
+
+    _target_: str = "otg.finngen.FinnGenStep"
+    finngen_phenotype_table_url: str = MISSING
+    finngen_release_prefix: str = MISSING
+    finngen_sumstat_url_prefix: str = MISSING
+    finngen_sumstat_url_suffix: str = MISSING
+    finngen_study_index_out: str = MISSING
+
+
+@dataclass
 class GeneIndexStepConfig:
     """Gene index step requirements.
 
@@ -262,30 +275,72 @@ class GWASCatalogSumstatsPreprocessConfig:
         study_id (str): GWAS Catalog study identifier.
     """
 
-    _target_: str = "otg.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
+    _target_: str = (
+        "otg.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
+    )
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
     study_id: str = MISSING
 
 
 @dataclass
-class FinnGenStepConfig:
-    """FinnGen study table ingestion step requirements.
+class LocusToGeneConfig:
+    """Config for Locus to Gene classifier."""
 
-    Attributes:
-        finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
-        finngen_release_prefix (str): Release prefix pattern.
-        finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
-        finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
-        finngen_study_index_out (str): Output path for the FinnGen study index dataset.
-    """
-
-    _target_: str = "otg.finngen.FinnGenStep"
-    finngen_phenotype_table_url: str = MISSING
-    finngen_release_prefix: str = MISSING
-    finngen_sumstat_url_prefix: str = MISSING
-    finngen_sumstat_url_suffix: str = MISSING
-    finngen_study_index_out: str = MISSING
+    run_mode: str = MISSING
+    wandb_run_name: Optional[str] = None
+    perform_cross_validation: bool = False
+    model_path: Optional[str] = None
+    predictions_path: Optional[str] = None
+    study_locus_path: str = MISSING
+    variant_gene_path: str = MISSING
+    colocalisation_path: str = MISSING
+    study_index_path: str = MISSING
+    study_locus_overlap_path: str = MISSING
+    gold_standard_curation_path: str = MISSING
+    gold_standard_processed_path: str = MISSING
+    gene_interactions_path: str = MISSING
+    feature_matrix_path: str = MISSING
+    features_list: List[str] = field(
+        default_factory=lambda: [
+            # average distance of all tagging variants to gene TSS
+            "distanceTssMean",
+            # # minimum distance of all tagging variants to gene TSS
+            # "distanceTssMinimum",
+            # # max clpp for each (study, locus, gene) aggregating over all eQTLs
+            # "eqtlColocClppLocalMaximum",
+            # # max clpp for each (study, locus) aggregating over all eQTLs
+            # "eqtlColocClppNeighborhoodMaximum",
+            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
+            # "eqtlColocLlrLocalMaximum",
+            # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
+            # "eqtlColocLlrNeighborhoodMaximum",
+            # # max clpp for each (study, locus, gene) aggregating over all pQTLs
+            # "pqtlColocClppLocalMaximum",
+            # # max clpp for each (study, locus) aggregating over all pQTLs
+            # "pqtlColocClppNeighborhoodMaximum",
+            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
+            # "pqtlColocLlrLocalMaximum",
+            # # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
+            # "pqtlColocLlrNeighborhoodMaximum",
+            # # max clpp for each (study, locus, gene) aggregating over all sQTLs
+            # "sqtlColocClppLocalMaximum",
+            # # max clpp for each (study, locus) aggregating over all sQTLs
+            # "sqtlColocClppNeighborhoodMaximum",
+            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
+            # "sqtlColocLlrLocalMaximum",
+            # # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
+            # "sqtlColocLlrNeighborhoodMaximum",
+        ]
+    )
+    hyperparameters: dict = field(
+        default_factory=lambda: {
+            "max_depth": 5,
+            "loss_function": "binary:logistic",
+        }
+    )
+    id: str = "locus_to_gene"
+    _target_: str = "otg.l2g.LocusToGeneStep"
 
 
 @dataclass
@@ -310,6 +365,7 @@ def register_configs() -> None:
     cs.store(name="session_config", group="session", node=SessionConfig)
     cs.store(name="gene_index", group="step", node=GeneIndexStepConfig)
     cs.store(name="ld_index", group="step", node=LDIndexStepConfig)
+    cs.store(name="locus_to_gene", group="step", node=LocusToGeneConfig)
     cs.store(name="variant_index", group="step", node=VariantIndexStepConfig)
     cs.store(name="variant_annotation", group="step", node=VariantAnnotationStepConfig)
     cs.store(name="v2g", group="step", node=V2GStepConfig)
@@ -344,146 +400,3 @@ def register_configs() -> None:
 
 
 # Each of these classes is a config class for a specific step
-
-
-@dataclass
-class GWASCatalogSumstatsPreprocessConfig:
-    """GWAS Catalog Sumstats Preprocessing step requirements.
-
-    Attributes:
-        raw_sumstats_path (str): Input raw GWAS Catalog summary statistics path.
-        out_sumstats_path (str): Output GWAS Catalog summary statistics path.
-        study_id (str): GWAS Catalog study identifier.
-    """
-
-    _target_: str = (
-        "otg.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
-    )
-    raw_sumstats_path: str = MISSING
-    out_sumstats_path: str = MISSING
-    study_id: str = MISSING
-
-
-@dataclass
-class FinnGenStepConfig:
-    """FinnGen study table ingestion step requirements.
-
-    Attributes:
-        finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
-        finngen_release_prefix (str): Release prefix pattern.
-        finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
-        finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
-        finngen_study_index_out (str): Output path for the FinnGen study index dataset.
-    """
-
-    _target_: str = "otg.finngen.FinnGenStep"
-    finngen_phenotype_table_url: str = MISSING
-    finngen_release_prefix: str = MISSING
-    finngen_sumstat_url_prefix: str = MISSING
-    finngen_sumstat_url_suffix: str = MISSING
-    finngen_study_index_out: str = MISSING
-
-
-class LocusToGeneMode(Enum):
-    """Locus to Gene step mode."""
-
-    TRAIN = "train"
-    PREDICT = "predict"
-
-
-@dataclass
-class LocusToGeneConfig:
-    """Config for Locus to Gene classifier."""
-
-    run_mode: str = MISSING
-    wandb_run_name: Optional[str] = None
-    perform_cross_validation: bool = False
-    model_path: Optional[str] = None
-    predictions_path: Optional[str] = None
-    study_locus_path: str = MISSING
-    variant_gene_path: str = MISSING
-    colocalisation_path: str = MISSING
-    study_index_path: str = MISSING
-    study_locus_overlap_path: str = MISSING
-    gold_standard_curation_path: str = MISSING
-    gold_standard_processed_path: str = MISSING
-    gene_interactions_path: str = MISSING
-    feature_matrix_path: str = MISSING
-    features_list: List[str] = field(
-        default_factory=lambda: [
-            # average distance of all tagging variants to gene TSS
-            "dist_tss_ave",
-            # minimum distance of all tagging variants to gene TSS
-            "dist_tss_min",
-            # max clpp for each (study, locus, gene) aggregating over all eQTLs
-            "eqtl_max_coloc_clpp_local",
-            # max clpp for each (study, locus) aggregating over all eQTLs
-            "eqtl_max_coloc_clpp_nbh",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
-            "eqtl_max_coloc_llr_local",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            "eqtl_max_coloc_llr_nbh",
-            # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            "pqtl_max_coloc_clpp_local",
-            # max clpp for each (study, locus) aggregating over all pQTLs
-            "pqtl_max_coloc_clpp_nbh",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
-            "pqtl_max_coloc_llr_local",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            "pqtl_max_coloc_llr_nbh",
-            # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            "sqtl_max_coloc_clpp_local",
-            # max clpp for each (study, locus) aggregating over all sQTLs
-            "sqtl_max_coloc_clpp_nbh",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
-            "sqtl_max_coloc_llr_local",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            "sqtl_max_coloc_llr_nbh",
-        ]
-    )
-    hyperparameters: dict = field(
-        default_factory=lambda: {
-            "max_depth": 5,
-            "loss_function": "binary:logistic",
-        }
-    )
-    id: str = "locus_to_gene"
-    _target_: str = "otg.l2g.LocusToGeneStep"
-
-
-@dataclass
-class UKBiobankStepConfig:
-    """UKBiobank study table ingestion step requirements.
-
-    Attributes:
-        ukbiobank_manifest (str): UKBiobank manifest of studies.
-        ukbiobank_study_index_out (str): Output path for the UKBiobank study index dataset.
-    """
-
-    _target_: str = "otg.ukbiobank.UKBiobankStep"
-    ukbiobank_manifest: str = MISSING
-    ukbiobank_study_index_out: str = MISSING
-
-
-# Register all configs
-def register_configs() -> None:
-    """Register step configs - each config class has all the parameters needed to run a step."""
-    cs = ConfigStore.instance()
-    cs.store(name="config", node=Config)
-    cs.store(name="session_config", group="session", node=SessionConfig)
-    cs.store(name="locus_to_gene", group="step", node=LocusToGeneConfig)
-    cs.store(name="gene_index", group="step", node=GeneIndexStepConfig)
-    cs.store(name="ld_index", group="step", node=LDIndexStepConfig)
-    cs.store(name="variant_index", group="step", node=VariantIndexStepConfig)
-    cs.store(name="variant_annotation", group="step", node=VariantAnnotationStepConfig)
-    cs.store(name="v2g", group="step", node=V2GStepConfig)
-    cs.store(name="colocalisation", group="step", node=ColocalisationStepConfig)
-    cs.store(name="gwas_catalog", group="step", node=GWASCatalogStepConfig)
-    cs.store(name="finngen", group="step", node=FinnGenStepConfig)
-    cs.store(name="ukbiobank", group="step", node=UKBiobankStepConfig)
-    cs.store(
-        name="gwas_catalog_sumstats_preprocess",
-        group="step",
-        node=GWASCatalogSumstatsPreprocessConfig,
-    )
-    cs.store(name="study_locus_overlap", group="step", node=StudyLocusOverlapStepConfig)

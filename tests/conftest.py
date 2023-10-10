@@ -533,6 +533,7 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 
     return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
 
+
 @pytest.fixture()
 def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
     """Sample liftover chain file."""
@@ -552,20 +553,20 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(schema)
-        .withColumnSpec("dist_tss_ave", percentNulls=0.1)
-        .withColumnSpec("dist_tss_min", percentNulls=0.1)
-        .withColumnSpec("eqtl_max_coloc_clpp_local", percentNulls=0.1)
-        .withColumnSpec("eqtl_max_coloc_clpp_nbh", percentNulls=0.1)
-        .withColumnSpec("eqtl_max_coloc_llr_local", percentNulls=0.1)
-        .withColumnSpec("eqtl_max_coloc_llr_nbh", percentNulls=0.1)
-        .withColumnSpec("pqtl_max_coloc_clpp_local", percentNulls=0.1)
-        .withColumnSpec("pqtl_max_coloc_clpp_nbh", percentNulls=0.1)
-        .withColumnSpec("pqtl_max_coloc_llr_local", percentNulls=0.1)
-        .withColumnSpec("pqtl_max_coloc_llr_nbh", percentNulls=0.1)
-        .withColumnSpec("sqtl_max_coloc_clpp_local", percentNulls=0.1)
-        .withColumnSpec("sqtl_max_coloc_clpp_nbh", percentNulls=0.1)
-        .withColumnSpec("sqtl_max_coloc_llr_local", percentNulls=0.1)
-        .withColumnSpec("sqtl_max_coloc_llr_nbh", percentNulls=0.1)
+        .withColumnSpec("distanceTssMean", percentNulls=0.1)
+        .withColumnSpec("distanceTssMinimum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
     )
 
     return L2GFeatureMatrix(_df=data_spec.build(), _schema=schema)
@@ -591,9 +592,3 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPredictions:
     ).withSchema(schema)
 
     return L2GPredictions(_df=data_spec.build(), _schema=schema)
-
-
-@pytest.fixture()
-def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
-    """Sample liftover chain file."""
-    return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")

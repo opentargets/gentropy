@@ -1,4 +1,4 @@
-"""Variant index dataset."""
+"""Study locus dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -85,7 +85,9 @@ class StudyLocus(Dataset):
             DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
         """
         # Reduce columns to the minimum to reduce the size of the dataframe
-        credset_to_overlap = credset_to_overlap.select("studyLocusId", "studyType", "chromosome", "tagVariantId")
+        credset_to_overlap = credset_to_overlap.select(
+            "studyLocusId", "studyType", "chromosome", "tagVariantId"
+        )
         return (
             credset_to_overlap.alias("left")
             .filter(f.col("studyType") == "gwas")
@@ -95,7 +97,8 @@ class StudyLocus(Dataset):
                 on=[
                     f.col("left.chromosome") == f.col("right.chromosome"),
                     f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                    (f.col("right.studyType") != "gwas") | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+                    (f.col("right.studyType") != "gwas")
+                    | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
                 ],
                 how="inner",
             )
@@ -110,12 +113,14 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def _align_overlapping_tags(loci_to_overlap: DataFrame, peak_overlaps: DataFrame) -> StudyLocusOverlap:
+    def _align_overlapping_tags(
+        loci_to_overlap: DataFrame, peak_overlaps: DataFrame
+    ) -> StudyLocusOverlap:
         """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
 
         Args:
             loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
-            peak_overlaps (DataFrame): containing `left_studyLocusId`, `right_studyLocusId` and `chromosome` columns.
+            peak_overlaps (DataFrame): containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
@@ -158,7 +163,9 @@ class StudyLocus(Dataset):
             "rightStudyLocusId",
             "chromosome",
             "tagVariantId",
-            f.struct(*[f"left_{e}" for e in stats_cols] + [f"right_{e}" for e in stats_cols]).alias("statistics"),
+            f.struct(
+                *[f"left_{e}" for e in stats_cols] + [f"right_{e}" for e in stats_cols]
+            ).alias("statistics"),
         )
         return StudyLocusOverlap(
             _df=overlaps,
@@ -166,7 +173,9 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def _update_quality_flag(qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck) -> Column:
+    def _update_quality_flag(
+        qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
+    ) -> Column:
         """Update the provided quality control list with a new flag if condition is met.
 
         Args:
@@ -285,7 +294,9 @@ class StudyLocus(Dataset):
         )
         return (
             lead_tags.select("variantId", "chromosome")
-            .union(lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome"))
+            .union(
+                lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome")
+            )
             .distinct()
         )
 
@@ -344,7 +355,9 @@ class StudyLocus(Dataset):
                     ),
                     lambda struct_e, acc: struct_e.withField(
                         CredibleInterval.IS95.value, (acc < 0.95) & acc.isNotNull()
-                    ).withField(CredibleInterval.IS99.value, (acc < 0.99) & acc.isNotNull()),
+                    ).withField(
+                        CredibleInterval.IS99.value, (acc < 0.99) & acc.isNotNull()
+                    ),
                 ),
             ),
         )
@@ -396,20 +409,23 @@ class StudyLocus(Dataset):
             DataFrame: Dataframe with all sentinels and their P values
         """
         return (
-            self.df.selectExpr(
+            self.df.withColumn("locusExploded", f.explode("locus"))
+            .selectExpr(
                 "studyLocusId",
                 "studyId",
                 "variantId as leadVariantId",
-                "explode(credibleSet) as credibleSetExploded",
-                "credibleSetExploded.tagVariantId as tagVariantId",
-                "credibleSetExploded.tagPValueConditioned as tagPValueConditioned",
+                "locusExploded.variantId as tagVariantId",
+                "locusExploded.pValueMantissaConditioned as tagPValueMantissaConditioned",
+                "locusExploded.pValueExponentConditioned as tagPValueExponentConditioned",
             )
             .filter(f.col("leadVariantId") == f.col("tagVariantId"))
-            .drop("credibleSetExploded")
+            .drop("locusExploded")
             .distinct()
         )
 
-    def _get_tss_distance_features(self: StudyLocus, distances: V2G, etl: Session) -> DataFrame:
+    def _get_tss_distance_features(
+        self: StudyLocus, distances: V2G, etl: Session
+    ) -> DataFrame:
         """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
 
         Args:
@@ -420,28 +436,30 @@ class StudyLocus(Dataset):
             DataFrame: Dataframe with the minimum distance among all variants in the credible set and a gene TSS.
         """
         wide_df = (
-            self.credible_set(CredibleInterval.IS95.value)
+            self.filter_credible_set(CredibleInterval.IS95)
             .select(
                 "studyLocusId",
                 "variantId",
                 f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
             )
             .join(
-                distances.df.selectExpr("variantId as tagVariantId", "geneId", "distance"),
+                distances.df.selectExpr(
+                    "variantId as tagVariantId", "geneId", "distance"
+                ),
                 on="tagVariantId",
                 how="inner",
             )
             .groupBy("studyLocusId", "variantId", "geneId")
             .agg(
-                f.min("distance").alias("dist_tss_min"),
-                f.mean("distance").alias("dist_tss_ave"),
+                f.min("distance").alias("distanceTssMinimum"),
+                f.mean("distance").alias("distanceTssMean"),
             )
         )
         return _convert_from_wide_to_long(
             wide_df,
             id_vars=("studyLocusId", "geneId"),
-            var_name="feature",
-            value_name="value",
+            var_name="featureName",
+            value_name="featureValue",
             spark=etl.spark,  # not great, but necessary to go from pandas to spark
         )
 

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from xgboost.spark import SparkXGBClassifier
 
 from otg.common.session import Session
-from otg.common.spark_helpers import _convert_from_long_to_wide
 from otg.config import LocusToGeneConfig
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
@@ -57,21 +56,12 @@ class LocusToGeneStep(LocusToGeneConfig):
                 colocalisation=coloc,
             )
 
-            gold_standards = L2GGoldStandard(
-                _df=self.session.spark.read.parquet(self.gold_standard_processed_path)
-            )
-            fm = _convert_from_long_to_wide(
-                self.session.spark.read.parquet(self.feature_matrix_path),
-                id_vars=["studyLocusId", "geneId"],
-                var_name="feature",
-                value_name="value",
-            )
-
             # Join and fill null values with 0
             data = L2GFeatureMatrix(
-                _df=gold_standards._df.join(
-                    fm, on=["studyLocusId", "geneId"], how="inner"
+                _df=gold_standards.df.join(
+                    fm.df, on=["studyLocusId", "geneId"], how="inner"
                 ).transform(L2GFeatureMatrix.fill_na),
+                _schema=L2GFeatureMatrix.get_schema(),
             )
 
             # Instantiate classifier

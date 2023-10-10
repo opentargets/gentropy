@@ -22,14 +22,20 @@ def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus, StudyLocus)
 
 
-def test_study_locus_overlaps(mock_study_locus: StudyLocus, mock_study_index: StudyIndex) -> None:
+def test_study_locus_overlaps(
+    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
+) -> None:
     """Test study locus overlaps."""
-    assert isinstance(mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap)
+    assert isinstance(
+        mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap
+    )
 
 
 def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     """Test credible interval filter."""
-    assert isinstance(mock_study_locus.filter_credible_set(CredibleInterval.IS95), StudyLocus)
+    assert isinstance(
+        mock_study_locus.filter_credible_set(CredibleInterval.IS95), StudyLocus
+    )
 
 
 def test_unique_lead_tag_variants(mock_study_locus: StudyLocus) -> None:
@@ -194,7 +200,9 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
         ),
     ],
 )
-def test_annotate_credible_sets(spark: SparkSession, observed: list, expected: list) -> None:
+def test_annotate_credible_sets(
+    spark: SparkSession, observed: list, expected: list
+) -> None:
     """Test annotate_credible_sets."""
     schema = StructType(
         [
@@ -217,8 +225,12 @@ def test_annotate_credible_sets(spark: SparkSession, observed: list, expected: l
             ),
         ]
     )
-    data_sl = StudyLocus(_df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema())
-    expected_sl = StudyLocus(_df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema())
+    data_sl = StudyLocus(
+        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
+    )
+    expected_sl = StudyLocus(
+        _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
+    )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
 
 
