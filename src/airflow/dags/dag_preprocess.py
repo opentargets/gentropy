@@ -29,7 +29,7 @@ with DAG(
     # Ingest FinnGen.
     ingest_finngen = submit_pyspark_job_partial(
         task_id="ingest-finngen",
-        python_module_path="finngen.py",
+        python_module_path="preprocess/finngen.py",
         args=dict(
             finngen_phenotype_table_url="https://r9.finngen.fi/api/phenos",
             finngen_release_prefix="FINNGEN_R9",
