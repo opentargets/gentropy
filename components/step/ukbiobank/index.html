@@ -64,9 +64,7 @@
     <span class=n>ukbiobank_study_index</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>write</span><span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>ukbiobank_study_index_out</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.UKBiobankStepConfig></a> <div class="doc doc-contents first"> <p>UKBiobank study table ingestion step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>ukbiobank_manifest</code></td> <td> <code>str</code> </td> <td><p>UKBiobank manifest of studies.</p></td> </tr> <tr> <td><code>ukbiobank_study_index_out</code></td> <td> <code>str</code> </td> <td><p>Output path for the UKBiobank study index dataset.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>286</span>
-<span class=normal>287</span>
-<span class=normal>288</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <a id=otg.config.UKBiobankStepConfig></a> <div class="doc doc-contents first"> <p>UKBiobank study table ingestion step requirements.</p> <p><strong>Attributes:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>ukbiobank_manifest</code></td> <td> <code>str</code> </td> <td><p>UKBiobank manifest of studies.</p></td> </tr> <tr> <td><code>ukbiobank_study_index_out</code></td> <td> <code>str</code> </td> <td><p>Output path for the UKBiobank study index dataset.</p></td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/config.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>288</span>
 <span class=normal>289</span>
 <span class=normal>290</span>
 <span class=normal>291</span>
@@ -75,7 +73,9 @@
 <span class=normal>294</span>
 <span class=normal>295</span>
 <span class=normal>296</span>
-<span class=normal>297</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>297</span>
+<span class=normal>298</span>
+<span class=normal>299</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>UKBiobankStepConfig</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;UKBiobank study table ingestion step requirements.</span>
 
