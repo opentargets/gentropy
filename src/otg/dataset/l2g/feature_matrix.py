@@ -8,10 +8,7 @@ from typing import TYPE_CHECKING, List, Optional, Type
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import _convert_from_long_to_wide
 from otg.dataset.dataset import Dataset
-from otg.method.l2g_utils.feature_factory import (
-    ColocalisationFactory,
-    StudyLocusFactory,
-)
+from otg.method.l2g_utils.feature_factory import StudyLocusFactory
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -45,9 +42,9 @@ class L2GFeatureMatrix(Dataset):
         """Generate features from the OTG datasets."""
         if features_dfs := [
             # Extract features
-            ColocalisationFactory._get_coloc_features_df(
-                study_locus, study_index, colocalisation
-            ).df,
+            # ColocalisationFactory._get_coloc_features_df(
+            #     study_locus, study_index, colocalisation
+            # ).df,
             StudyLocusFactory._get_tss_distance_features(study_locus, variant_gene).df,
         ]:
             fm = reduce(
@@ -93,6 +90,6 @@ class L2GFeatureMatrix(Dataset):
         """
         train, test = self._df.randomSplit([fraction, 1 - fraction], seed=42)
         return (
-            L2GFeatureMatrix(_df=train),  # TODO: .persist(), possible when PR is merged
-            L2GFeatureMatrix(_df=test),  # .persist(),
+            L2GFeatureMatrix(_df=train).persist(),
+            L2GFeatureMatrix(_df=test).persist(),
         )
