@@ -49,6 +49,10 @@ spark_write_mode = "overwrite"
 
 
 # Shared DAG construction parameters.
+shared_dag_args = dict(
+    owner="Open Targets Data Team",
+    retries=3,
+)
 shared_dag_kwargs = dict(
     tags=["genetics_etl", "experimental"],
     start_date=pendulum.now(tz="Europe/London").subtract(days=1),
