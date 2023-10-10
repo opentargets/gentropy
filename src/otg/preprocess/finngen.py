@@ -7,8 +7,8 @@ from urllib.request import urlopen
 
 from pyspark.sql import SparkSession
 
-from otg.dataset.finngen.study_index import FinnGenStudyIndex
-from otg.dataset.finngen.summary_stats import FinnGenSummaryStatistics
+from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from otg.datasource.finngen.summary_stats import FinnGenSummaryStatistics
 
 
 def main(
