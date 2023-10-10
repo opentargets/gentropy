@@ -218,7 +218,7 @@ class StudyLocusFactory(StudyLocus):
                 on="tagVariantId",
                 how="inner",
             )
-            .groupBy("studyLocusId", "variantId", "geneId")
+            .groupBy("studyLocusId", "geneId")
             .agg(
                 f.min("distance").alias("distanceTssMinimum"),
                 f.mean("distance").alias("distanceTssMean"),
