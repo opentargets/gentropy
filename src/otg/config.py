@@ -273,6 +273,7 @@ class FinnGenStepConfig:
         finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
         finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
         finngen_study_index_out (str): Output path for the FinnGen study index dataset.
+        finngen_summary_stats_out (str): Output path for the FinnGen summary statistics.
     """
 
     _target_: str = "otg.finngen.FinnGenStep"
@@ -281,6 +282,7 @@ class FinnGenStepConfig:
     finngen_sumstat_url_prefix: str = MISSING
     finngen_sumstat_url_suffix: str = MISSING
     finngen_study_index_out: str = MISSING
+    finngen_summary_stats_out: str = MISSING
 
 
 @dataclass

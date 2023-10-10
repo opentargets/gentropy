@@ -18,6 +18,7 @@ from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
@@ -149,10 +150,19 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
 
 @pytest.fixture()
 def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
-    """Mock StudyIndexFinnGen dataset."""
+    """Mock FinnGenStudyIndex dataset."""
     return FinnGenStudyIndex(
         _df=mock_study_index_data(spark),
         _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
+    """Mock FinnGenSummaryStats dataset."""
+    return FinnGenSummaryStats(
+        _df=mock_summary_statistics(spark),
+        _schema=SummaryStatistics.get_schema(),
     )
 
 
@@ -483,6 +493,17 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
         json_data = finngen_studies.read()
         rdd = spark.sparkContext.parallelize([json_data])
         return spark.read.json(rdd)
+
+
+@pytest.fixture()
+def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
+    """Sample FinnGen summary stats."""
+    # For reference, the sample file was generated with the following command:
+    # gsutil cat gs://finngen-public-data-r9/summary_stats/finngen_R9_AB1_ACTINOMYCOSIS.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz
+    # It's important for the test file to be named in exactly this way, because FinnGen study ID is populated based on input file name.
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz", header=True
+    )
 
 
 @pytest.fixture()
