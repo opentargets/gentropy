@@ -9,6 +9,7 @@ from common_airflow import (
     create_cluster,
     delete_cluster,
     outputs,
+    shared_dag_args,
     shared_dag_kwargs,
     submit_pyspark_job,
 )
@@ -22,6 +23,7 @@ submit_pyspark_job_partial = partial(submit_pyspark_job, CLUSTER_NAME)
 with DAG(
     dag_id="otg-preprocess",
     description="Open Targets Genetics — Preprocess Workflow",
+    default_args=shared_dag_args,
     **shared_dag_kwargs,
 ):
     # Ingest FinnGen.
