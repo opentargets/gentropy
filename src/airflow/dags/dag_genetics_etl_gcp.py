@@ -10,6 +10,7 @@ from airflow.operators.empty import EmptyOperator
 from common_airflow import (
     create_cluster,
     delete_cluster,
+    shared_dag_args,
     shared_dag_kwargs,
     submit_pyspark_job,
 )
@@ -23,6 +24,7 @@ CLUSTER_CONFIG_DIR = "/config"
 with DAG(
     dag_id=Path(__file__).stem,
     description="Open Targets Genetics ETL workflow",
+    default_args=shared_dag_args,
     **shared_dag_kwargs,
 ):
     start = EmptyOperator(task_id="start")
@@ -61,6 +63,7 @@ with DAG(
                     >> delete_cluster(cluster_name)
                 )
 
+            # Chain prerequisites.
             thisgroup = tgroup(step_id)
             tasks_groups[step_id] = thisgroup
             if "prerequisites" in step:
