@@ -1,0 +1,20 @@
+{
+  "European": "nfe",
+  "African American or Afro-Caribbean": "afr",
+  "Native American": "amr",
+  "Asian unspecified": "eas",
+  "Hispanic or Latin American": "amr",
+  "East Asian": "eas",
+  "Central Asian": "seu",
+  "Oceanian": "eas",
+  "South East Asian": "eas",
+  "Other admixed ancestry": "nfe",
+  "African unspecified": "afr",
+  "Sub-Saharan African": "afr",
+  "Greater Middle Eastern (Middle Eastern, North African or Persian)": "seu",
+  "Aboriginal Australian": "eas",
+  "Other": "nfe",
+  "South Asian": "eas",
+  "NR": "nfe",
+  "Finnish": "fin"
+}

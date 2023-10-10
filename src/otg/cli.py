@@ -21,7 +21,9 @@ def main(cfg: Config) -> None:
     # Instantiate ETL session
     session = instantiate(cfg.session)
     # Initialise and run step
-    step = instantiate(cfg.step, session=session)
+    step = instantiate(
+        cfg.step, session=session
+    )  # cfg.step contains the whole YAML corresponding to the step
     step.run()
 
 
