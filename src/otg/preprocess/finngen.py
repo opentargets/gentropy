@@ -8,7 +8,7 @@ from urllib.request import urlopen
 from pyspark.sql import SparkSession
 
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
-from otg.datasource.finngen.summary_stats import FinnGenSummaryStatistics
+from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 
 
 def main(
@@ -44,7 +44,7 @@ def main(
         input_filenames, header=True
     )
     # Process summary stats.
-    summary_stats = FinnGenSummaryStatistics.from_finngen_harmonized_summary_stats(
+    summary_stats = FinnGenSummaryStats.from_finngen_harmonized_summary_stats(
         summary_stats_raw
     ).df
     # Save summary stats.
