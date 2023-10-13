@@ -55,7 +55,6 @@ class SummaryStatistics(Dataset):
         self: SummaryStatistics,
         distance: int,
         gwas_significance: float = 5e-8,
-        with_locus: bool = False,
         baseline_significance: float = 0.05,
         locus_collect_distance: int | None = None,
     ) -> StudyLocus:
@@ -70,10 +69,8 @@ class SummaryStatistics(Dataset):
         Returns:
             StudyLocus: Clumped study-locus containing variants based on window.
         """
-        if locus_collect_distance is None:
-            locus_collect_distance = distance
-        # Based on if we want to get the locus different clumping function is called:
-        if with_locus:
+        # If locus collect distance is present, collect locus with the provided distance:
+        if locus_collect_distance:
             clumped_df = WindowBasedClumping.clump_with_locus(
                 self,
                 window_length=distance,
