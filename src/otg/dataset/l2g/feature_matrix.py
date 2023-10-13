@@ -90,6 +90,8 @@ class L2GFeatureMatrix(Dataset):
         """
         train, test = self._df.randomSplit([fraction, 1 - fraction], seed=42)
         return (
-            L2GFeatureMatrix(_df=train).persist(),
-            L2GFeatureMatrix(_df=test).persist(),
+            L2GFeatureMatrix(
+                _df=train, _schema=L2GFeatureMatrix.get_schema()
+            ).persist(),
+            L2GFeatureMatrix(_df=test, _schema=L2GFeatureMatrix.get_schema()).persist(),
         )

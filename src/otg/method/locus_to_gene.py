@@ -158,7 +158,7 @@ class LocusToGeneModel:
     ) -> None:
         """Perform evaluation of the model by applying it to a test set and tracking the results with W&B."""
         binary_evaluator = BinaryClassificationEvaluator(
-            rawPredictionCol="prediction", labelCol="label"
+            rawPredictionCol="rawPrediction", labelCol="label"
         )
         multi_evaluator = MulticlassClassificationEvaluator(
             labelCol="label", predictionCol="prediction"
