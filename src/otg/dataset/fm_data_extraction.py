@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-
 from typing import TYPE_CHECKING
+
 from otg.common.session import Session
 from otg.dataset.dataset import Dataset
 
@@ -12,17 +12,15 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+from typing import Tuple
 
 import hail as hl
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col, concat, lit
-from pyspark.sql.functions import array
-from typing import Tuple
-
+from pyspark.sql.functions import array, col, concat, lit
 
 
 @dataclass
@@ -33,14 +31,14 @@ class FMDataExtraction(Dataset):
 
     def get_FM_study_locus(self: FMDataExtraction, sumstats: DataFrame) -> Tuple[DataFrame, list]:
         """Get summary statistics for a locus.
-        
+
         Args:
             sumstats (DataFrame): summary statistics dataframe to select locus from (currently using all UKBB as an example)
 
         Returns:
             lead_SNP_id (str): The lead SNP ID as a string in the format chr1:1234:A:T (needed for hail GRCh38 contigs).
             fm_study_locus (DataFrame): A filtered DataFrame containing summary statistics for a specific locus.
-    
+
         """
         # Getting row with the smallest pValueExponent (getting an example lead SNP)
         smallest_pValue_row = sumstats.orderBy(col("pValueExponent")).first()

@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import hail as hl
-
 from otg.common.session import Session
 from otg.config import FinemappingStepConfig
-from otg.dataset.study_locus import StudyLocus
 from otg.method.finemapping import Finemapping
 
 
