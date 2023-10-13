@@ -1,0 +1,7 @@
+# Default config
+defaults:
+  - fm_data_extraction
+# Additional config
+summary_statistics_path: ${datasets.summary_statistics_path}
+fm_filtered_LDMatrix_out: ${datasets.fm_filtered_LDMatrix}
+fm_filtered_StudyLocus_out: ${datasets.fm_filtered_StudyLocus}
