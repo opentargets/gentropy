@@ -299,6 +299,39 @@ class UKBiobankStepConfig:
     ukbiobank_study_index_out: str = MISSING
 
 
+@dataclass
+class FMDataExtractionStepConfig:
+    """Fine-mapping (FM) data extraction requirements. Extracting LD matrix and study locus filtering for FM.
+
+    Attributes:
+        summary_statistics_path (str): Path for input summary statistics (currently path to UKBB sumstats for testing).
+        fm_filtered_LDMatrix_out (str): Output path for the LD matrix filtered by locus variants.
+        fm_filtered_StudyLocus_out (str): Output path for StudyLocus summary statistics filtered by LD matrix variants.
+    """
+
+    _target_: str = "otg.fm_data_extraction.FMDataExtractionStep"
+    summary_statistics_path: str = MISSING
+    fm_filtered_LDMatrix_out: str = MISSING
+    fm_filtered_StudyLocus_out: str = MISSING
+
+
+@dataclass
+class FinemappingStepConfig:
+    """Fine-mapping step requirements.
+
+    Attributes:
+        fm_filtered_LDMatrix_path (str): Path for extracted and filtered LD matrix for locus.
+        fm_filtered_StudyLocus_path (str): Path for extracted and filtered summary statistics for locus.
+        finemapped_locus_out (str): Output path for fine-mapping results for locus.
+
+    """
+
+    _target_: str = "otg.methods.finemapping.FinemappingStep"
+    fm_filtered_LDMatrix_path: str = MISSING
+    fm_filtered_StudyLocus_path: str = MISSING
+    finemapped_locus_out: str = MISSING
+
+
 # Register all configs
 def register_configs() -> None:
     """Register configs."""
@@ -320,3 +353,5 @@ def register_configs() -> None:
         node=GWASCatalogSumstatsPreprocessConfig,
     )
     cs.store(name="study_locus_overlap", group="step", node=StudyLocusOverlapStepConfig)
+    cs.store(name="fm_data_extraction", group="step", node=FMDataExtractionStepConfig)
+    cs.store(name="finemapping", group="step", node=FinemappingStepConfig)
