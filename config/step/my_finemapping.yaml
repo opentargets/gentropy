@@ -1,0 +1,7 @@
+# Default config
+defaults:
+  - finemapping
+# Additional config
+fm_filtered_LDMatrix_path: ${datasets.fm_filtered_LDMatrix}
+fm_filtered_StudyLocus_path: ${datasets.fm_filtered_StudyLocus}
+finemapping_results_out: ${datasets.finemapping_results}
