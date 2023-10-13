@@ -44,7 +44,9 @@ def test_window_based_clump_with_locus__correctness(
     sample_summary_satistics: SummaryStatistics,
 ) -> None:
     """Test window-based clumping."""
-    clumped = sample_summary_satistics.window_based_clumping(250_000, with_locus=True)
+    clumped = sample_summary_satistics.window_based_clumping(
+        distance=250_000, locus_collect_distance=250_000
+    )
 
     # Asserting the presence of locus key:
     assert "locus" in clumped.df.columns
