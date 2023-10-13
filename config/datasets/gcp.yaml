@@ -25,6 +25,7 @@ ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study
 # Templates
 ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
 ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
+summary_statistics_path: gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/ukbiobank_sumstats/
 
 # Output datasets
 gene_index: ${datasets.outputs}/gene_index/gene_index
@@ -40,6 +41,10 @@ catalog_study_locus: ${datasets.outputs}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
 finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
+unfiltered_LDMatrix: ${datasets.outputs}/unfiltered_LDMatrix
+fm_filtered_LDMatrix: ${datasets.outputs}/fm_filtered_LDMatrix
+fm_filtered_StudyLocus: ${datasets.outputs}/fm_filtered_StudyLocus
+
 
 # Constants
 finngen_release_prefix: FINNGEN_R9
