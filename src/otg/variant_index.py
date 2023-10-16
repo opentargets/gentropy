@@ -26,18 +26,9 @@ class VariantIndexStep(VariantIndexStepConfig):
         study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
 
         # Transform
-        va_slimmed = va.filter_by_variant_df(
-            study_locus.unique_variants_in_locus(), ["id", "chromosome"]
-        )
-        vi = VariantIndex.from_variant_annotation(va_slimmed)
+        vi = VariantIndex.from_variant_annotation(va, study_locus)
 
         # Load
-        # self.etl.logger.info(
-        #     f"Writing invalid variants from the credible set to: {self.variant_invalid}"
-        # )
-        # vi.invalid_variants.write.mode(self.etl.write_mode).parquet(
-        #     self.variant_invalid
-        # )
         self.session.logger.info(f"Writing variant index to: {self.variant_index_path}")
         (
             vi.df.write.partitionBy("chromosome")
