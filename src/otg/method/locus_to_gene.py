@@ -287,6 +287,10 @@ class LocusToGeneTrainer:
         """
         evaluator = MulticlassClassificationEvaluator()
         params_grid = param_grid or l2g_model.get_param_grid()
+        if not param_grid:
+            raise ValueError(
+                "Parameter grid is empty. Cannot perform cross-validation."
+            )
         cv = CrossValidator(
             numFolds=num_folds,
             estimator=l2g_model.estimator,
@@ -297,7 +301,13 @@ class LocusToGeneTrainer:
             seed=42,
         )
 
-        if model := l2g_model.add_pipeline_stage(cv).fit(data):
-            # print("Best model parameters:", model.model.bestModel.extractParamMap())  # type: ignore
-            print("trained")
-        return model
+        l2g_model.add_pipeline_stage(cv)
+
+        # Integrate the best model from the last stage of the pipeline
+        if (full_pipeline_model := l2g_model.fit(data).model) is None or not hasattr(
+            full_pipeline_model, "stages"
+        ):
+            raise ValueError("Unable to retrieve the best model.")
+        l2g_model.model = full_pipeline_model.stages[-1].bestModel
+
+        return l2g_model
