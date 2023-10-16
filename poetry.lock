@@ -3299,15 +3299,15 @@ python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
 
 [[package]]
 name = "mkdocstrings-python"
-version = "0.7.1"
+version = "1.7.3"
 description = "A Python handler for mkdocstrings."
 category = "dev"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 
 [package.dependencies]
-griffe = ">=0.11.1"
-mkdocstrings = ">=0.19"
+griffe = ">=0.35"
+mkdocstrings = ">=0.20"
 
 [[package]]
 name = "msal"
@@ -5078,7 +5078,7 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "1.1"
 python-versions = "3.10.8"
-content-hash = "77d3329e2335008eb9780643553f2fa1ee4c8613c0b4bf9c73e2d7c0a282b636"
+content-hash = "a898c0a5d147edfa3c9a5c196670b01f62d21c70a24ee13b23a778ad44ec23cd"
 
 [metadata.files]
 aiodns = [
@@ -6785,8 +6785,8 @@ mkdocstrings = [
     {file = "mkdocstrings-0.23.0.tar.gz", hash = "sha256:d9c6a37ffbe7c14a7a54ef1258c70b8d394e6a33a1c80832bce40b9567138d1c"},
 ]
 mkdocstrings-python = [
-    {file = "mkdocstrings-python-0.7.1.tar.gz", hash = "sha256:c334b382dca202dfa37071c182418a6df5818356a95d54362a2b24822ca3af71"},
-    {file = "mkdocstrings_python-0.7.1-py3-none-any.whl", hash = "sha256:a22060bfa374697678e9af4e62b020d990dad2711c98f7a9fac5c0345bef93c7"},
+    {file = "mkdocstrings_python-1.7.3-py3-none-any.whl", hash = "sha256:2439d6ad3e34f0bb4c643b845fb3c06ae9233499a1736f9fa273424b75cc5894"},
+    {file = "mkdocstrings_python-1.7.3.tar.gz", hash = "sha256:c20128fa96c24dbc6437b10dfedaf33b0415d4503e51ce9ce5e84b271278268e"},
 ]
 msal = [
     {file = "msal-1.24.1-py2.py3-none-any.whl", hash = "sha256:ce4320688f95c301ee74a4d0e9dbcfe029a63663a8cc61756f40d0d0d36574ad"},
