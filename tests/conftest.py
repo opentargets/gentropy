@@ -11,7 +11,7 @@ from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
 from otg.dataset.l2g.gold_standard import L2GGoldStandard
-from otg.dataset.l2g.predictions import L2GPredictions
+from otg.dataset.l2g.predictions import L2GPrediction
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
@@ -605,11 +605,11 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
 
 
 @pytest.fixture()
-def mock_l2g_predictions(spark: SparkSession) -> L2GPredictions:
+def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
     """Mock l2g predictions dataset."""
-    schema = L2GPredictions.get_schema()
+    schema = L2GPrediction.get_schema()
     data_spec = dg.DataGenerator(
         spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
     ).withSchema(schema)
 
-    return L2GPredictions(_df=data_spec.build(), _schema=schema)
+    return L2GPrediction(_df=data_spec.build(), _schema=schema)

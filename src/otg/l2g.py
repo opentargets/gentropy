@@ -10,7 +10,7 @@ from otg.config import LocusToGeneConfig
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
 from otg.dataset.l2g.gold_standard import L2GGoldStandard
-from otg.dataset.l2g.predictions import L2GPredictions
+from otg.dataset.l2g.predictions import L2GPrediction
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
@@ -95,7 +95,7 @@ class LocusToGeneStep(LocusToGeneConfig):
                 )
 
         if self.run_mode == "predict" and self.model_path and self.predictions_path:
-            predictions = L2GPredictions.from_study_locus(
+            predictions = L2GPrediction.from_study_locus(
                 self.session, self.feature_matrix_path, self.model_path
             )
             predictions.df.write.mode(self.session.write_mode).parquet(

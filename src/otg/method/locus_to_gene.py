@@ -15,14 +15,12 @@ from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 from wandb.wandb_run import Run
 
+from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
 from otg.method.l2g_utils.evaluator import WandbEvaluator
 
 if TYPE_CHECKING:
     from pyspark.ml import Transformer
     from pyspark.sql import DataFrame
-
-    from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
-    from otg.dataset.l2g.predictions import L2GPrediction
 
 
 @dataclass
@@ -201,19 +199,22 @@ class LocusToGeneModel:
         """Plot the feature importance of the model."""
         # xgb_plot_importance(self)  # FIXME: What is the attribute that stores the model?
 
-    def fit(self: LocusToGeneModel, df: DataFrame) -> LocusToGeneModel:
+    def fit(
+        self: LocusToGeneModel,
+        feature_matrix: L2GFeatureMatrix,
+    ) -> LocusToGeneModel:
         """Fit the pipeline to the feature matrix dataframe."""
-        self.model = self.pipeline.fit(df)
+        self.model = self.pipeline.fit(feature_matrix.df)
         return self
 
     def predict(
         self: LocusToGeneModel,
-        df: DataFrame,
-    ) -> L2GPrediction:
+        feature_matrix: L2GFeatureMatrix,
+    ) -> DataFrame:
         """Apply the model to a given feature matrix dataframe. The feature matrix needs to be preprocessed first."""
         if not self.model:
-            raise ValueError("Model not fitted yet. Please call fit() first.")
-        return self.model.transform(df)
+            raise ValueError("Model not fitted yet. `fit()` has to be called first.")
+        return self.model.transform(feature_matrix.df)
 
 
 @dataclass
@@ -256,10 +257,10 @@ class LocusToGeneTrainer:
         """
         train, test = data.select_features(features_list).train_test_split(fraction=0.8)
 
-        model = l2g_model.add_pipeline_stage(l2g_model.estimator).fit(train.df)
+        model = l2g_model.add_pipeline_stage(l2g_model.estimator).fit(train)
 
         l2g_model.evaluate(
-            results=model.predict(test.df),
+            results=model.predict(test),
             hyperparameters=hyperparams,
             wandb_run_name=wandb_run_name,
         )
@@ -301,7 +302,7 @@ class LocusToGeneTrainer:
             seed=42,
         )
 
-        if model := l2g_model.add_pipeline_stage(cv).fit(data.df):
+        if model := l2g_model.add_pipeline_stage(cv).fit(data):
             # print("Best model parameters:", model.model.bestModel.extractParamMap())  # type: ignore
             print("trained")
         return model
