@@ -1,1 +1,0 @@
-# GWAS Catalog
