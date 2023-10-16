@@ -154,7 +154,7 @@ class V2GStepConfig:
         anderson_path (str): Anderson intervals path.
         javierre_path (str): Javierre intervals path.
         jung_path (str): Jung intervals path.
-        thurnman_path (str): Thurnman intervals path.
+        thurman_path (str): Thurman intervals path.
         liftover_max_length_difference (int): Maximum length difference for liftover.
         max_distance (int): Maximum distance to consider.
         output_path (str): Output V2G path.
@@ -169,7 +169,7 @@ class V2GStepConfig:
     anderson_path: str = MISSING
     javierre_path: str = MISSING
     jung_path: str = MISSING
-    thurnman_path: str = MISSING
+    thurman_path: str = MISSING
     liftover_max_length_difference: int = 100
     max_distance: int = 500_000
     v2g_path: str = MISSING

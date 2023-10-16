@@ -37,8 +37,8 @@ class FinnGenStudyIndex(StudyIndex):
         Args:
             finngen_studies (DataFrame): FinnGen raw study table
             finngen_release_prefix (str): Release prefix pattern.
-            finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
-            finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+            finngen_summary_stats_url_prefix (str): URL prefix for summary statistics location.
+            finngen_summary_stats_url_suffix (str): URL prefix suffix for summary statistics location.
 
         Returns:
             FinnGenStudyIndex: Parsed and annotated FinnGen study table.

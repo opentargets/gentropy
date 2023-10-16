@@ -19,7 +19,7 @@ class IntervalsJavierre(Intervals):
     """Interval dataset from Javierre et al. 2016."""
 
     @staticmethod
-    def read_javierre(spark: SparkSession, path: str):
+    def read_javierre(spark: SparkSession, path: str) -> DataFrame:
         """Read Javierre dataset.
 
         Args:
@@ -27,7 +27,7 @@ class IntervalsJavierre(Intervals):
             path (str): Path to dataset
 
         Returns:
-            DataFrame: DataFrame with raw Javierre data
+            DataFrame: Raw Javierre dataset
         """
         return spark.read.parquet(path)
 
@@ -41,8 +41,7 @@ class IntervalsJavierre(Intervals):
         """Parse Javierre et al. 2016 dataset.
 
         Args:
-            session (Session): session
-            path (str): Path to dataset
+            javierre_raw (DataFrame): Raw Javierre data
             gene_index (GeneIndex): Gene index
             lift (LiftOverSpark): LiftOverSpark instance
 
