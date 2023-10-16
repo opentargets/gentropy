@@ -20,29 +20,24 @@ class VariantIndexStep(VariantIndexStepConfig):
     session: Session = Session()
 
     def run(self: VariantIndexStep) -> None:
-        """Run variant index step."""
-        # Variant annotation dataset
+        """Run variant index step to only variants in study-locus sets."""
+        # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
-
-        # Study-locus dataset
         study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
 
-        # Reduce scope of variant annotation dataset to only variants in study-locus sets:
+        # Transform
         va_slimmed = va.filter_by_variant_df(
             study_locus.unique_lead_tag_variants(), ["id", "chromosome"]
         )
-
-        # Generate variant index ussing a subset of the variant annotation dataset
         vi = VariantIndex.from_variant_annotation(va_slimmed)
 
-        # Write data:
+        # Load
         # self.etl.logger.info(
         #     f"Writing invalid variants from the credible set to: {self.variant_invalid}"
         # )
         # vi.invalid_variants.write.mode(self.etl.write_mode).parquet(
         #     self.variant_invalid
         # )
-
         self.session.logger.info(f"Writing variant index to: {self.variant_index_path}")
         (
             vi.df.write.partitionBy("chromosome")
