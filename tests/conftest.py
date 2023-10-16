@@ -36,7 +36,6 @@ def spark(tmp_path_factory) -> SparkSession:
     """
     return (
         SparkSession.builder.master("local[1]")
-        .config("spark.driver.bindAddress", "127.0.0.1")
         .config("spark.executor.cores", "1")
         .config("spark.executor.instances", "1")
         # no shuffling
@@ -569,7 +568,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     data_spec = (
         dg.DataGenerator(
             spark,
-            rows=400,
+            rows=50,
             partitions=4,
             randomSeedMethod="hash_fieldname",
         )
@@ -588,6 +587,9 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
         .withColumnSpec("sqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
         .withColumnSpec("sqtlColocLlrLocalMaximum", percentNulls=0.1)
         .withColumnSpec("sqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec(
+            "goldStandardSet", percentNulls=0.0, values=["positive", "negative"]
+        )
     )
 
     return L2GFeatureMatrix(_df=data_spec.build(), _schema=schema)

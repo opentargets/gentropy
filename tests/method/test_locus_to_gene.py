@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 from pyspark.ml import PipelineModel
-from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.tuning import ParamGridBuilder
+from xgboost.spark import SparkXGBClassifier
 
 from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
 from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
@@ -14,7 +14,12 @@ from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 @pytest.fixture(scope="module")
 def model() -> LocusToGeneModel:
     """Creates an instance of the LocusToGene class."""
-    estimator = LogisticRegression(featuresCol="features", labelCol="label")
+    estimator = SparkXGBClassifier(
+        eval_metric="logloss",
+        features_col="features",
+        label_col="label",
+        max_depth=5,
+    )
     return LocusToGeneModel(estimator=estimator, features_list=["distanceTssMean"])
 
 
@@ -26,27 +31,34 @@ class TestLocusToGeneTrainer:
         mock_l2g_feature_matrix: L2GFeatureMatrix,
         model: LocusToGeneModel,
     ) -> None:
-        """Test the k-fold cross-validation function with a logistic regression model."""
+        """Test the k-fold cross-validation function."""
         param_grid = (
-            ParamGridBuilder().addGrid(model.estimator.regParam, [0.1, 0.01]).build()
+            ParamGridBuilder()
+            .addGrid(model.estimator.learning_rate, [0.1, 0.01])
+            .build()
         )
         best_model = LocusToGeneTrainer.cross_validate(
-            model, mock_l2g_feature_matrix, num_folds=2, param_grid=param_grid
+            model, mock_l2g_feature_matrix.fill_na(), num_folds=2, param_grid=param_grid
         )
-
-        # Check that the best model is trained with the optimal hyperparameters
-        assert best_model.estimator.getMaxIter() == 100
-        assert best_model.estimator.getRegParam() == 0.0
+        assert isinstance(
+            best_model, LocusToGeneModel
+        ), "Unexpected model type returned from cross_validate"
+        # Check that the best model's hyperparameters are among those in the param_grid
+        assert best_model.estimator.getOrDefault("learning_rate") in [
+            0.1,
+            0.01,
+        ], "Unexpected learning rate in the best model"
 
     def test_train(
         self: TestLocusToGeneTrainer,
         mock_l2g_feature_matrix: L2GFeatureMatrix,
         model: LocusToGeneModel,
     ) -> None:
-        """Test the training function with a logistic regression model."""
+        """Test the training function."""
         trained_model = LocusToGeneTrainer.train(
-            mock_l2g_feature_matrix, model, features_list=["distanceTssMean"]
+            mock_l2g_feature_matrix.fill_na(), model, features_list=["distanceTssMean"]
         )
-
         # Check that `model` is a PipelineModel object and not None
-        assert isinstance(trained_model.model, PipelineModel)
+        assert isinstance(
+            trained_model.model, PipelineModel
+        ), "Model is not a PipelineModel object."

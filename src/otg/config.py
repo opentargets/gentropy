@@ -236,6 +236,7 @@ class StudyLocusOverlapStepConfig:
     overlaps_index_out: str = MISSING
 
 
+@dataclass
 class FinnGenStepConfig:
     """FinnGen study table ingestion step requirements.
 
