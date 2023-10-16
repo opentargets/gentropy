@@ -14,7 +14,7 @@ from otg.dataset.variant_index import VariantIndex
 from otg.datasource.intervals.andersson import IntervalsAndersson
 from otg.datasource.intervals.javierre import IntervalsJavierre
 from otg.datasource.intervals.jung import IntervalsJung
-from otg.datasource.intervals.thurnman import IntervalsThurnman
+from otg.datasource.intervals.thurman import IntervalsThurman
 
 
 @dataclass
@@ -76,8 +76,8 @@ class V2GStep(V2GStepConfig):
                 gene_index_filtered,
                 lift,
             ).v2g(vi),
-            IntervalsThurnman.parse(
-                IntervalsThurnman.read_thurnman(self.session, self.thurnman_path),
+            IntervalsThurman.parse(
+                IntervalsThurman.read_thurman(self.session, self.thurman_path),
                 gene_index_filtered,
                 lift,
             ).v2g(vi),

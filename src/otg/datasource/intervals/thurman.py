@@ -15,19 +15,19 @@ if TYPE_CHECKING:
     from otg.dataset.gene_index import GeneIndex
 
 
-class IntervalsThurnman(Intervals):
+class IntervalsThurman(Intervals):
     """Interval dataset from Thurman et al. 2012."""
 
     @staticmethod
-    def read_thurnman(spark: SparkSession, path: str) -> DataFrame:
-        """Read thurnman dataset.
+    def read_thurman(spark: SparkSession, path: str) -> DataFrame:
+        """Read thurman dataset.
 
         Args:
             spark (SparkSession): Spark session
             path (str): Path to dataset
 
         Returns:
-            DataFrame: DataFrame with raw thurnman data
+            DataFrame: DataFrame with raw thurman data
         """
         thurman_schema = t.StructType(
             [
@@ -45,20 +45,20 @@ class IntervalsThurnman(Intervals):
 
     @classmethod
     def parse(
-        cls: type[IntervalsThurnman],
-        thurnman_raw: DataFrame,
+        cls: type[IntervalsThurman],
+        thurman_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
     ) -> Intervals:
         """Parse the Thurman et al. 2012 dataset.
 
         Args:
-            thurnman_raw (DataFrame): raw Thurman et al. 2019 dataset
+            thurman_raw (DataFrame): raw Thurman et al. 2019 dataset
             gene_index (GeneIndex): gene index
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            Intervals: Interval dataset containing Thurnman et al. 2012 data
+            Intervals: Interval dataset containing Thurman et al. 2012 data
         """
         dataset_name = "thurman2012"
         experiment_type = "dhscor"
@@ -66,7 +66,7 @@ class IntervalsThurnman(Intervals):
 
         return cls(
             _df=(
-                thurnman_raw.select(
+                thurman_raw.select(
                     f.regexp_replace(f.col("chrom"), "chr", "").alias("chrom"),
                     "start",
                     "end",
