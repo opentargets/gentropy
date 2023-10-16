@@ -27,7 +27,7 @@ class VariantIndexStep(VariantIndexStepConfig):
 
         # Transform
         va_slimmed = va.filter_by_variant_df(
-            study_locus.unique_lead_tag_variants(), ["id", "chromosome"]
+            study_locus.unique_variants_in_locus(), ["id", "chromosome"]
         )
         vi = VariantIndex.from_variant_annotation(va_slimmed)
 

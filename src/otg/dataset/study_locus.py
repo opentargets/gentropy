@@ -271,25 +271,27 @@ class StudyLocus(Dataset):
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
 
-    def unique_lead_tag_variants(self: StudyLocus) -> DataFrame:
-        """All unique lead and tag variants contained in the `StudyLocus` dataframe.
+    def unique_variants_in_locus(self: StudyLocus) -> DataFrame:
+        """All unique variants collected in a `StudyLocus` dataframe.
 
         Returns:
             DataFrame: A dataframe containing `variantId` and `chromosome` columns.
         """
-        lead_tags = (
+        variants_in_locus = (
             self.df.select(
                 f.col("variantId"),
+                f.explode("locus.variantId").alias("variantInLocusId"),
                 f.col("chromosome"),
-                f.explode("ldSet.tagVariantId").alias("tagVariantId"),
             )
             .repartition("chromosome")
             .persist()
         )
         return (
-            lead_tags.select("variantId", "chromosome")
-            .union(
-                lead_tags.select(f.col("tagVariantId").alias("variantId"), "chromosome")
+            variants_in_locus.select("variantId", "chromosome")
+            .unionByName(
+                variants_in_locus.selectExpr(
+                    "variantInLocusId as variantId", "chromosome"
+                )
             )
             .distinct()
         )
