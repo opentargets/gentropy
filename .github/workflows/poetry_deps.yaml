@@ -12,6 +12,5 @@ jobs:
   update-packages:
     runs-on: ubuntu-latest
     steps:
-      - uses: Apakottur/action-poetry-package-update@v1
-        with:
-          base-branch: main
+      - name: Update Python Poetry package
+        uses: dishapatel010/action-poetry-package-update@V2.0.1
