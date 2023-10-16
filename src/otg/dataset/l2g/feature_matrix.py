@@ -11,7 +11,6 @@ from otg.dataset.dataset import Dataset
 from otg.method.l2g_utils.feature_factory import StudyLocusFactory
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
     from otg.dataset.colocalisation import Colocalisation
@@ -23,13 +22,6 @@ if TYPE_CHECKING:
 @dataclass
 class L2GFeatureMatrix(Dataset):
     """Dataset with features for Locus to Gene prediction."""
-
-    @staticmethod
-    def fill_na(
-        df: DataFrame, value: float = 0.0, subset: Optional[List[str]] = None
-    ) -> DataFrame:
-        """Fill missing values in a column with a given value."""
-        return df.fillna(value, subset=subset)
 
     @classmethod
     def generate_features(
@@ -68,6 +60,13 @@ class L2GFeatureMatrix(Dataset):
     def get_schema(cls: type[L2GFeatureMatrix]) -> StructType:
         """Provides the schema for the L2gFeatureMatrix dataset."""
         return parse_spark_schema("l2g_feature_matrix.json")
+
+    def fill_na(
+        self: L2GFeatureMatrix, value: float = 0.0, subset: Optional[List[str]] = None
+    ) -> L2GFeatureMatrix:
+        """Fill missing values in a column with a given value."""
+        self.df = self._df.fillna(value, subset=subset)
+        return self
 
     def select_features(
         self: L2GFeatureMatrix, features_list: List[str]

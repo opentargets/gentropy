@@ -34,7 +34,9 @@ class LocusToGeneModel:
 
     def __post_init__(self: LocusToGeneModel) -> None:
         """Post init that adds the model to the ML pipeline."""
-        label_indexer = StringIndexer(inputCol="goldStandardSet", outputCol="label")
+        label_indexer = StringIndexer(
+            inputCol="goldStandardSet", outputCol="label", handleInvalid="keep"
+        )
         vector_assembler = LocusToGeneModel.features_vector_assembler(
             self.features_list
         )
@@ -223,13 +225,6 @@ class LocusToGeneTrainer:
 
     _model: LocusToGeneModel
     train_set: L2GFeatureMatrix
-
-    @staticmethod
-    def fill_na(
-        df: DataFrame, value: float = 0.0, subset: Optional[List[str]] = None
-    ) -> DataFrame:
-        """Fill missing values in a column with a given value."""
-        return df.fillna(value, subset=subset)
 
     @classmethod
     def train(

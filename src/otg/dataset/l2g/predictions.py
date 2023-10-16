@@ -45,12 +45,15 @@ class L2GPrediction(Dataset):
         Returns:
             L2GPrediction: Locus to gene predictions
         """
-        fm = _convert_from_long_to_wide(
-            session.spark.read.parquet(feature_matrix_path),
-            id_vars=["studyLocusId", "geneId"],
-            var_name="featureName",
-            value_name="featureValue",
-        ).transform(L2GFeatureMatrix.fill_na)
+        fm = L2GFeatureMatrix(
+            _df=_convert_from_long_to_wide(
+                session.spark.read.parquet(feature_matrix_path),
+                id_vars=["studyLocusId", "geneId"],
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=L2GFeatureMatrix.get_schema(),
+        ).fill_na()
 
         return L2GPrediction(
             # Load and apply fitted model

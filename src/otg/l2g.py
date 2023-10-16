@@ -60,9 +60,9 @@ class LocusToGeneStep(LocusToGeneConfig):
             data = L2GFeatureMatrix(
                 _df=gold_standards.df.join(
                     fm.df, on=["studyLocusId", "geneId"], how="inner"
-                ).transform(L2GFeatureMatrix.fill_na),
+                ),
                 _schema=L2GFeatureMatrix.get_schema(),
-            )
+            ).fill_na()
 
             # Instantiate classifier
             estimator = SparkXGBClassifier(
