@@ -5796,18 +5796,21 @@ files = [
 
 [[package]]
 name = "pymdown-extensions"
-version = "9.11"
+version = "10.3"
 description = "Extension pack for Python Markdown."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "pymdown_extensions-9.11-py3-none-any.whl", hash = "sha256:a499191d8d869f30339de86fcf072a787e86c42b6f16f280f5c2cf174182b7f3"},
-    {file = "pymdown_extensions-9.11.tar.gz", hash = "sha256:f7e86c1d3981f23d9dc43294488ecb54abadd05b0be4bf8f0e15efc90f7853ff"},
+    {file = "pymdown_extensions-10.3-py3-none-any.whl", hash = "sha256:77a82c621c58a83efc49a389159181d570e370fff9f810d3a4766a75fc678b66"},
+    {file = "pymdown_extensions-10.3.tar.gz", hash = "sha256:94a0d8a03246712b64698af223848fd80aaf1ae4c4be29c8c61939b0467b5722"},
 ]
 
 [package.dependencies]
 markdown = ">=3.2"
 pyyaml = "*"
+
+[package.extras]
+extra = ["pygments (>=2.12)"]
 
 [[package]]
 name = "pyopenssl"
@@ -7507,4 +7510,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "0bcb4eea7c9025afe7e9b09880fe444f200641151dd90333006d43430aaf7954"
+content-hash = "046d385a3964a01b598079e016e9cc8feb83282f442048baef2e25d76683773b"
