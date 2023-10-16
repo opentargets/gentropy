@@ -19,7 +19,7 @@ class IntervalsJung(Intervals):
     """Interval dataset from Jung et al. 2019."""
 
     @staticmethod
-    def read_jung(spark: SparkSession, path: str):
+    def read_jung(spark: SparkSession, path: str) -> DataFrame:
         """Read jung dataset.
 
         Args:

@@ -47,8 +47,7 @@ class IntervalsAndersson(Intervals):
         """Parse Andersson et al. 2014 dataset.
 
         Args:
-            session (Session): session
-            path (str): Path to dataset
+            raw_anderson_df (DataFrame): Raw Andersson et al. dataset
             gene_index (GeneIndex): Gene index
             lift (LiftOverSpark): LiftOverSpark instance
 
