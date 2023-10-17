@@ -41,13 +41,6 @@ initialisation_executable_file = [
 ]
 
 
-# Input/output file configuration.
-version = "XX.XX"
-inputs = "gs://genetics_etl_python_playground/input"
-outputs = f"gs://genetics_etl_python_playground/output/python_etl/parquet/{version}"
-spark_write_mode = "overwrite"
-
-
 # Shared DAG construction parameters.
 shared_dag_args = dict(
     owner="Open Targets Data Team",
