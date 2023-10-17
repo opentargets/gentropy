@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from pyspark.sql import DataFrame
 import scipy.linalg
 import scipy.special
+from pyspark.sql import DataFrame
 from scipy.optimize import minimize, minimize_scalar
 
 from otg.common.session import Session
@@ -17,7 +17,7 @@ from otg.common.session import Session
 @dataclass
 class SuSiE:
     """SuSiE fine-mapping of a study locus from fine-mapping-inf package.
-    
+
     Copied untested from fine-mapping-inf package as a placeholder
     https://github.com/FinucaneLab/fine-mapping-inf
     """
