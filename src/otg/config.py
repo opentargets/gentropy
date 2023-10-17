@@ -316,20 +316,34 @@ class FMDataExtractionStepConfig:
 
 
 @dataclass
-class FinemappingStepConfig:
-    """Fine-mapping step requirements.
+class DentistStepConfig:
+    """DENTIST outlier detection step requirements.
 
     Attributes:
-        fm_filtered_LDMatrix_path (str): Path for extracted and filtered LD matrix for locus.
         fm_filtered_StudyLocus_path (str): Path for extracted and filtered summary statistics for locus.
-        finemapped_locus_out (str): Output path for fine-mapping results for locus.
+        fm_filtered_StudyLocus_out (str): Output path for fine-mapping results for locus.
 
     """
 
-    _target_: str = "otg.methods.finemapping.FinemappingStep"
-    fm_filtered_LDMatrix_path: str = MISSING
+    _target_: str = "otg.methods.dentist.DentistStep"
     fm_filtered_StudyLocus_path: str = MISSING
-    finemapped_locus_out: str = MISSING
+    fm_filtered_StudyLocus_out: str = MISSING
+
+
+@dataclass
+class SuSiEStepConfig:
+    """SuSiE fine-mapping step requirements.
+
+    Attributes:
+        fm_filtered_StudyLocus_path (str): Path for extracted and filtered summary statistics for locus.
+        fm_filtered_StudyLocus_path (str): Path for extracted and filtered LD matrix for locus.
+
+    """
+
+    _target_: str = "otg.methods.susie.SuSiEStep"
+    fm_filtered_StudyLocus_path: str = MISSING
+    fm_filtered_LDMatrix_path: str = MISSING
+    n_sample: int = MISSING
 
 
 # Register all configs
@@ -354,4 +368,5 @@ def register_configs() -> None:
     )
     cs.store(name="study_locus_overlap", group="step", node=StudyLocusOverlapStepConfig)
     cs.store(name="fm_data_extraction", group="step", node=FMDataExtractionStepConfig)
-    cs.store(name="finemapping", group="step", node=FinemappingStepConfig)
+    cs.store(name="dentist", group="step", node=DentistStepConfig)
+    cs.store(name="susie", group="step", node=SuSiEStepConfig)

@@ -172,3 +172,30 @@ class FMDataExtraction(Dataset):
         filtered_LDMatrix = filtered_LDMatrix.filter(filtered_LDMatrix['variantIdCol'].cast('string').isin(unique_variant_ids))
         fm_filtered_LDMatrix = filtered_LDMatrix.drop("variantIdCol")
         return fm_filtered_LDMatrix, fm_filtered_StudyLocus
+    
+    def allele_flip_check(
+        self: FMDataExtraction,
+        fm_filtered_StudyLocus: DataFrame,
+        SNP_ids_38: list,
+    ) -> DataFrame:
+        """Check alleles match between LD matrix and summary statistics.
+        
+            Function unused as currently not needed with gnomad data"""
+        df = self.session.createDataFrame(SNP_ids_38, StringType()).toDF("ID")
+
+        # Split the 'ID' column to extract 'ref' and 'alt' columns
+        df = df.withColumn("ref_LD", split(col("ID"), "_")[2])
+        df = df.withColumn("alt_LD", split(col("ID"), "_")[3])
+
+        # Extract alleles using PySpark string functions
+        allele_df = concordance_test.withColumn('allele_parts', F.split('SNP', '[:,_]'))
+        concordance_test = allele_df.withColumn('allele1_LD', allele_df['allele_parts'].getItem(1)).\
+                                    withColumn('allele2_LD', allele_df['allele_parts'].getItem(2))
+
+        # Join sumstat_filtered and concordance_test to align them
+        joint_df = sumstat_filtered.join(concordance_test, 'ID', 'inner')
+
+        # Flip z-scores if alleles are discordant
+        condition = (joint_df['ref'] != joint_df['ref_LD']) | (joint_df['alt'] != joint_df['alt_LD'])
+        sumstat_filtered = joint_df.withColumn('z', F.when(condition, -joint_df['z']).otherwise(joint_df['z']))
+        return fm_filtered_StudyLocus
