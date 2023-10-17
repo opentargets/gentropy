@@ -27,7 +27,7 @@ repos:
       - id: python-check-blanket-noqa
 
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.2.2
+    rev: v2.3.0
     hooks:
       - id: pycln
         args: [--all]
@@ -57,7 +57,7 @@ repos:
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.5.1'
+    rev: 'v1.6.0'
     hooks:
       - id: mypy
 
