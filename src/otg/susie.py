@@ -24,7 +24,7 @@ class SuSiEStep(SuSiEStepConfig):
      untested code"""
 
     session: Session = Session()
- 
+
     def run_susie_finemapping(
         z=z,
         filtered_LDMatrix=filtered_LDMatrix,
