@@ -42,29 +42,41 @@ def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     ("observed", "expected"),
     [
         (
+            # Locus is not null, should return union between variants in locus and lead variant
             [
                 (
                     1,
                     "traitA",
-                    "varA",
+                    "22_varA",
                     [
-                        {"variantId": "varA", "posteriorProbability": 0.44},
-                        {"variantId": "varB", "posteriorProbability": 0.015},
+                        {"variantId": "22_varA", "posteriorProbability": 0.44},
+                        {"variantId": "22_varB", "posteriorProbability": 0.015},
                     ],
-                    "chromX",
                 ),
             ],
             [
                 (
-                    "varA",
-                    "chromX",
+                    "22_varA",
+                    "22",
                 ),
                 (
-                    "varB",
-                    "chromX",
+                    "22_varB",
+                    "22",
                 ),
             ],
-        )
+        ),
+        (
+            # locus is null, should return lead variant
+            [
+                (1, "traitA", "22_varA", None),
+            ],
+            [
+                (
+                    "22_varA",
+                    "22",
+                ),
+            ],
+        ),
     ],
 )
 def test_unique_variants_in_locus(
@@ -88,7 +100,6 @@ def test_unique_variants_in_locus(
                 ),
                 True,
             ),
-            StructField("chromosome", StringType(), True),
         ]
     )
     data_sl = StudyLocus(

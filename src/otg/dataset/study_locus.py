@@ -277,21 +277,19 @@ class StudyLocus(Dataset):
         Returns:
             DataFrame: A dataframe containing `variantId` and `chromosome` columns.
         """
-        variants_in_locus = (
-            self.df.select(
-                f.col("variantId"),
-                f.explode("locus.variantId").alias("variantInLocusId"),
-                f.col("chromosome"),
-            )
-            .repartition("chromosome")
-            .persist()
-        )
         return (
-            variants_in_locus.select("variantId", "chromosome")
-            .unionByName(
-                variants_in_locus.selectExpr(
-                    "variantInLocusId as variantId", "chromosome"
-                )
+            self.df.withColumn(
+                "variantId",
+                # Joint array of variants in that studylocus. Locus can be null
+                f.explode(
+                    f.array_union(
+                        f.array(f.col("variantId")),
+                        f.coalesce(f.col("locus.variantId"), f.array()),
+                    )
+                ),
+            )
+            .select(
+                "variantId", f.split(f.col("variantId"), "_")[0].alias("chromosome")
             )
             .distinct()
         )
