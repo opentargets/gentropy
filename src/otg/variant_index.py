@@ -23,7 +23,9 @@ class VariantIndexStep(VariantIndexStepConfig):
         """Run variant index step to only variants in study-locus sets."""
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
-        study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
+        study_locus = StudyLocus.from_parquet(
+            self.session, self.study_locus_path, recursiveFileLookup=True
+        )
 
         # Transform
         vi = VariantIndex.from_variant_annotation(va, study_locus)
