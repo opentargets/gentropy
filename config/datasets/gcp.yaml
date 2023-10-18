@@ -5,7 +5,7 @@ inputs: gs://genetics_etl_python_playground/input
 outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.version}
 
 # Input datasets
-gnomad_gnomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
+gnomad_genomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
 chain_hail_38_37: gs://hail-common/references/grch38_to_grch37.over.chain.gz
 chain_hail_37_38: gs://hail-common/references/grch37_to_grch38.over.chain.gz
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
