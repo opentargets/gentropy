@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import scipy.linalg
 import scipy.special
-from pyspark.sql import DataFrame
 from scipy.optimize import minimize, minimize_scalar
 
 from otg.common.session import Session
@@ -18,7 +17,7 @@ from otg.common.session import Session
 class SuSiE:
     """SuSiE fine-mapping of a study locus from fine-mapping-inf package.
 
-    Copied untested from fine-mapping-inf package as a placeholder
+    Copied from fine-mapping-inf package as a placeholder
     https://github.com/FinucaneLab/fine-mapping-inf
     """
 
@@ -419,26 +418,30 @@ class SuSiE:
         return cred
 
     def run_susie_finemapping(
-        filtered_LDMatrix: DataFrame,
-        filtered_StudyLocus: DataFrame,
-        n_sample=int,
+        z=z,
+        filtered_LDMatrix=filtered_LDMatrix,
+        n_sample=500000,
     ):
         """Runs the SuSiE fine-mapping."""
-        z = filtered_StudyLocus["z"]
-        LD = np.loadtxt(filtered_LDMatrix)
-        eigenvals, V = scipy.linalg.eigh(LD)
+        eigenvals, V = scipy.linalg.eigh(filtered_LDMatrix)
         pi0 = None
         susie_output = susie(
-            z=filtered_StudyLocus["z"],
-            n_sample,
+            z=z,
+            meansq=1,
+            n=n_sample,
+            L=10,
             LD=filtered_LDMatrix,
-            V=V,
-            Dsq=Dsq,
+            V=None,
+            Dsq=None,
             est_ssq=True,
             ssq=None,
             ssq_range=(0, 1),
-            pi0=pi0,
-            method='MLE' #decided whether to run MoM or MLE function
+            pi0=None,
+            est_sigmasq=True,
+            est_tausq=True,
+            sigmasq=1,
+            tausq=0,
+            method="moments",
             sigmasq_range=None,
             tausq_range=None,
             PIP=None,
@@ -452,14 +455,19 @@ class SuSiE:
             susie_output["PIP"],
             coverage=0.9,
             purity=0.1,
-            LD=None,
+            LD=filtered_LDMatrix,
             V=V,
-            Dsq=Dsq,
+            Dsq=None,
             n=n_sample,
         )
         return susie_output
 
-    def process_output(method_name, output_dict, df, output_prefix):
+    def write_tsv(df, out_file):
+        """Write tsv file of SuSiE results."""
+        df.to_csv(out_file, sep="\t", index=False)
+
+    def process_output(output_dict, df, output_prefix):
+        """Organise SuSiE results as output."""
         df["prob"] = 1 - (1 - output_dict["PIP"]).prod(axis=1)
         L = output_dict["PIP"].shape[1]
         alpha_cols = ["alpha{}".format(i) for i in range(1, L + 1)]
@@ -492,5 +500,4 @@ class SuSiE:
             for i, x in enumerate(output_dict["cred"]):
                 df.loc[x, "cs"] = i + 1
         out_file = output_prefix + ".susieinf.bgz"
-        logging.info("Saving output to %s" % (out_file))
-        write_bgz(df, out_file)
+        write_tsv(df, out_file)
