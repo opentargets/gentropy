@@ -172,14 +172,14 @@ class FMDataExtraction(Dataset):
         filtered_LDMatrix = filtered_LDMatrix.filter(filtered_LDMatrix['variantIdCol'].cast('string').isin(unique_variant_ids))
         fm_filtered_LDMatrix = filtered_LDMatrix.drop("variantIdCol")
         return fm_filtered_LDMatrix, fm_filtered_StudyLocus
-    
+
     def allele_flip_check(
         self: FMDataExtraction,
         fm_filtered_StudyLocus: DataFrame,
         SNP_ids_38: list,
     ) -> DataFrame:
         """Check alleles match between LD matrix and summary statistics.
-        
+
             Function unused as currently not needed with gnomad data"""
         df = self.session.createDataFrame(SNP_ids_38, StringType()).toDF("ID")
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
@@ -14,10 +13,9 @@ import pyspark.sql.functions as f
 import scipy.linalg
 import scipy.special
 
+from otg.common.session import Session
 from otg.config import SuSiEStepConfig
 from otg.method.susie import SuSiE
-
-from otg.common.session import Session
 
 
 @dataclass
