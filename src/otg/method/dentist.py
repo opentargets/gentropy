@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 import math
 
 import pyspark.sql.functions as f
-from pyspark.sql.functions import udf
 from pyspark.sql.types import DoubleType
 
 from otg.common.session import Session
