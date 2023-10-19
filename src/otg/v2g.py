@@ -72,22 +72,24 @@ class V2GStep(V2GStepConfig):
             va_slimmed.get_plof_v2g(gene_index_filtered),
             # intervals
             IntervalsAndersson.parse(
-                IntervalsAndersson.read_andersson(self.session, self.anderson_path),
+                IntervalsAndersson.read_andersson(
+                    self.session.spark, self.anderson_path
+                ),
                 gene_index_filtered,
                 lift,
             ).v2g(vi),
             IntervalsJavierre.parse(
-                IntervalsJavierre.read_javierre(self.session, self.javierre_path),
+                IntervalsJavierre.read_javierre(self.session.spark, self.javierre_path),
                 gene_index_filtered,
                 lift,
             ).v2g(vi),
             IntervalsJung.parse(
-                IntervalsJung.read_jung(self.session, self.jung_path),
+                IntervalsJung.read_jung(self.session.spark, self.jung_path),
                 gene_index_filtered,
                 lift,
             ).v2g(vi),
             IntervalsThurman.parse(
-                IntervalsThurman.read_thurman(self.session, self.thurman_path),
+                IntervalsThurman.read_thurman(self.session.spark, self.thurman_path),
                 gene_index_filtered,
                 lift,
             ).v2g(vi),
