@@ -32,30 +32,14 @@
       "metadata": {}
     },
     {
+      "metadata": {},
       "name": "obsoleteSymbols",
-      "type": {
-        "type": "array",
-        "elementType": {
-          "type": "struct",
-          "fields": [
-            {
-              "name": "label",
-              "type": "string",
-              "nullable": true,
-              "metadata": {}
-            },
-            {
-              "name": "source",
-              "type": "string",
-              "nullable": true,
-              "metadata": {}
-            }
-          ]
-        },
-        "containsNull": true
-      },
       "nullable": true,
-      "metadata": {}
+      "type": {
+        "containsNull": true,
+        "elementType": "string",
+        "type": "array"
+      }
     },
     {
       "name": "tss",

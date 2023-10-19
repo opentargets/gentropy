@@ -52,6 +52,7 @@ class OpenTargetsTarget:
                 "approvedSymbol",
                 "approvedName",
                 "biotype",
+                f.col("obsoleteSymbols.label").alias("obsoleteSymbols"),
                 f.coalesce(f.col("genomicLocation.chromosome"), f.lit("unknown")).alias(
                     "chromosome"
                 ),
