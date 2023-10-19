@@ -36,7 +36,7 @@ class V2GStep(V2GStepConfig):
         # Filter gene index by approved biotypes to define V2G gene universe
         gene_index_filtered = GeneIndex.from_parquet(
             self.session, self.gene_index_path
-        ).filter_by_biotypes(self.approved_biotypes)
+        ).filter_by_biotypes(list(self.approved_biotypes))
 
         vi = VariantIndex.from_parquet(self.session, self.variant_index_path).persist()
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
