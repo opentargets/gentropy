@@ -49,6 +49,10 @@ class OpenTargetsTarget:
         return GeneIndex(
             _df=target_index.select(
                 f.coalesce(f.col("id"), f.lit("unknown")).alias("geneId"),
+                "approvedSymbol",
+                "approvedName",
+                "biotype",
+                f.col("obsoleteSymbols.label").alias("obsoleteSymbols"),
                 f.coalesce(f.col("genomicLocation.chromosome"), f.lit("unknown")).alias(
                     "chromosome"
                 ),

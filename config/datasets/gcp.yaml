@@ -27,7 +27,7 @@ ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.geno
 ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
 
 # Output datasets
-gene_index: ${datasets.outputs}/gene_index/gene_index
+gene_index: ${datasets.outputs}/gene_index
 variant_annotation: ${datasets.outputs}/variant_annotation
 variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
