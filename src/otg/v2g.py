@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import reduce
 
+import pyspark.sql.functions as f
+
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
 from otg.config import V2GStepConfig
@@ -42,6 +44,12 @@ class V2GStep(V2GStepConfig):
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
         vep_consequences = self.session.spark.read.csv(
             self.vep_consequences_path, sep="\t", header=True
+        ).select(
+            f.element_at(f.split("Accession", r"/"), -1).alias(
+                "variantFunctionalConsequenceId"
+            ),
+            f.col("Term").alias("label"),
+            f.col("v2g_score").cast("double").alias("score"),
         )
 
         # Variant annotation reduced to the variant index to define V2G variant universe

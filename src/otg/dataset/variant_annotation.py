@@ -58,7 +58,7 @@ class VariantAnnotation(Dataset):
         return self
 
     def get_transcript_consequence_df(
-        self: VariantAnnotation, filter_by: Optional[GeneIndex] = None
+        self: VariantAnnotation, gene_index: Optional[GeneIndex] = None
     ) -> DataFrame:
         """Dataframe of exploded transcript consequences.
 
@@ -80,9 +80,9 @@ class VariantAnnotation(Dataset):
             "transcriptConsequence",
             f.col("transcriptConsequence.geneId").alias("geneId"),
         )
-        if filter_by:
+        if gene_index:
             transript_consequences = transript_consequences.join(
-                f.broadcast(filter_by.df),
+                f.broadcast(gene_index.df),
                 on=["chromosome", "geneId"],
             )
         return transript_consequences.persist()
@@ -90,9 +90,9 @@ class VariantAnnotation(Dataset):
     def get_most_severe_vep_v2g(
         self: VariantAnnotation,
         vep_consequences: DataFrame,
-        filter_by: GeneIndex,
+        gene_index: GeneIndex,
     ) -> V2G:
-        """Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.
+        """Creates a dataset with variant to gene assignments based on VEP's predicted consequence of the transcript.
 
         Optionally the trancript consequences can be reduced to the universe of a gene index.
 
@@ -103,31 +103,24 @@ class VariantAnnotation(Dataset):
         Returns:
             V2G: High and medium severity variant to gene assignments
         """
-        vep_lut = vep_consequences.select(
-            f.element_at(f.split("Accession", r"/"), -1).alias(
-                "variantFunctionalConsequenceId"
-            ),
-            f.col("Term").alias("label"),
-            f.col("v2g_score").cast("double").alias("score"),
-        )
-
         return V2G(
-            _df=self.get_transcript_consequence_df(filter_by).select(
+            _df=self.get_transcript_consequence_df(gene_index)
+            .select(
                 "variantId",
                 "chromosome",
-                "position",
                 f.col("transcriptConsequence.geneId").alias("geneId"),
                 f.explode("transcriptConsequence.consequenceTerms").alias("label"),
                 f.lit("vep").alias("datatypeId"),
                 f.lit("variantConsequence").alias("datasourceId"),
             )
-            # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
             .join(
-                f.broadcast(vep_lut),
+                f.broadcast(vep_consequences),
                 on="label",
                 how="inner",
             )
+            .drop("label")
             .filter(f.col("score") != 0)
+            # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
             .transform(
                 lambda df: get_record_with_maximum_value(
                     df, ["variantId", "geneId"], "score"
