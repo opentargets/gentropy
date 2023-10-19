@@ -83,7 +83,7 @@ class Session:
         Returns:
             DataFrame: Dataframe with provided schema
         """
-        return self.spark.read.schema(schema).parquet(path, **kwargs, inferSchema=False)  # type: ignore
+        return self.spark.read.schema(schema).parquet(path, **kwargs)
 
 
 class Log4j:

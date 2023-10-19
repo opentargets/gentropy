@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from pyspark.sql import Column, DataFrame, SparkSession
+from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
@@ -38,9 +38,77 @@ def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     )
 
 
-def test_unique_lead_tag_variants(mock_study_locus: StudyLocus) -> None:
-    """Test unique lead tag variants."""
-    assert isinstance(mock_study_locus.unique_lead_tag_variants(), DataFrame)
+@pytest.mark.parametrize(
+    ("observed", "expected"),
+    [
+        (
+            # Locus is not null, should return union between variants in locus and lead variant
+            [
+                (
+                    1,
+                    "traitA",
+                    "22_varA",
+                    [
+                        {"variantId": "22_varA", "posteriorProbability": 0.44},
+                        {"variantId": "22_varB", "posteriorProbability": 0.015},
+                    ],
+                ),
+            ],
+            [
+                (
+                    "22_varA",
+                    "22",
+                ),
+                (
+                    "22_varB",
+                    "22",
+                ),
+            ],
+        ),
+        (
+            # locus is null, should return lead variant
+            [
+                (1, "traitA", "22_varA", None),
+            ],
+            [
+                (
+                    "22_varA",
+                    "22",
+                ),
+            ],
+        ),
+    ],
+)
+def test_unique_variants_in_locus(
+    spark: SparkSession, observed: list, expected: list
+) -> None:
+    """Test unique variants in locus."""
+    # assert isinstance(mock_study_locus.test_unique_variants_in_locus(), DataFrame)
+    schema = StructType(
+        [
+            StructField("studyLocusId", LongType(), True),
+            StructField("studyId", StringType(), True),
+            StructField("variantId", StringType(), True),
+            StructField(
+                "locus",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("variantId", StringType(), True),
+                        ]
+                    )
+                ),
+                True,
+            ),
+        ]
+    )
+    data_sl = StudyLocus(
+        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
+    )
+    expected_df = spark.createDataFrame(
+        expected, schema="variantId: string, chromosome: string"
+    )
+    assert data_sl.unique_variants_in_locus().collect() == expected_df.collect()
 
 
 def test_neglog_pvalue(mock_study_locus: StudyLocus) -> None:
