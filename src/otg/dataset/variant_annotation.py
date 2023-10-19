@@ -130,11 +130,14 @@ class VariantAnnotation(Dataset):
         )
 
     def get_polyphen_v2g(
-        self: VariantAnnotation, filter_by: Optional[GeneIndex] = None
+        self: VariantAnnotation, gene_index: Optional[GeneIndex] = None
     ) -> V2G:
         """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
 
-        Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.
+        Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows:
+            - 0.0 to 0.15 -- Predicted to be benign.
+            - 0.15 to 1.0 -- Possibly damaging.
+            - 0.85 to 1.0 -- Predicted to be damaging.
 
         Args:
             filter_by (GeneIndex): A gene index to filter by. Defaults to None.
@@ -144,7 +147,7 @@ class VariantAnnotation(Dataset):
         """
         return V2G(
             _df=(
-                self.get_transcript_consequence_df(filter_by)
+                self.get_transcript_consequence_df(gene_index)
                 .filter(f.col("transcriptConsequence.polyphenScore").isNotNull())
                 .select(
                     "variantId",
@@ -152,7 +155,6 @@ class VariantAnnotation(Dataset):
                     "position",
                     "geneId",
                     f.col("transcriptConsequence.polyphenScore").alias("score"),
-                    f.col("transcriptConsequence.polyphenPrediction").alias("label"),
                     f.lit("vep").alias("datatypeId"),
                     f.lit("polyphen").alias("datasourceId"),
                 )
