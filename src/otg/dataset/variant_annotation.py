@@ -65,7 +65,7 @@ class VariantAnnotation(Dataset):
         Optionally the trancript consequences can be reduced to the universe of a gene index.
 
         Args:
-            filter_by (GeneIndex): A gene index. Defaults to None.
+            gene_index (GeneIndex): A gene index. Defaults to None.
 
         Returns:
             DataFrame: A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence
@@ -98,7 +98,7 @@ class VariantAnnotation(Dataset):
 
         Args:
             vep_consequences (DataFrame): A dataframe of VEP consequences
-            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+            gene_index (GeneIndex): A gene index to filter by. Defaults to None.
 
         Returns:
             V2G: High and medium severity variant to gene assignments
@@ -140,7 +140,7 @@ class VariantAnnotation(Dataset):
             - 0.85 to 1.0 -- Predicted to be damaging.
 
         Args:
-            filter_by (GeneIndex): A gene index to filter by. Defaults to None.
+            gene_index (GeneIndex): A gene index to filter by. Defaults to None.
 
         Returns:
             V2G: variant to gene assignments with their polyphen scores
@@ -152,7 +152,6 @@ class VariantAnnotation(Dataset):
                 .select(
                     "variantId",
                     "chromosome",
-                    "position",
                     "geneId",
                     f.col("transcriptConsequence.polyphenScore").alias("score"),
                     f.lit("vep").alias("datatypeId"),
@@ -182,7 +181,6 @@ class VariantAnnotation(Dataset):
                 .select(
                     "variantId",
                     "chromosome",
-                    "position",
                     "geneId",
                     f.expr("1 - transcriptConsequence.siftScore").alias("score"),
                     f.lit("vep").alias("datatypeId"),
@@ -192,20 +190,20 @@ class VariantAnnotation(Dataset):
             _schema=V2G.get_schema(),
         )
 
-    def get_plof_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
+    def get_plof_v2g(self: VariantAnnotation, gene_index: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
 
         Optionally the trancript consequences can be reduced to the universe of a gene index.
 
         Args:
-            filter_by (GeneIndex): A gene index to filter by.
+            gene_index (GeneIndex): A gene index to filter by.
 
         Returns:
             V2G: variant to gene assignments from the LOFTEE algorithm
         """
         return V2G(
             _df=(
-                self.get_transcript_consequence_df(filter_by)
+                self.get_transcript_consequence_df(gene_index)
                 .filter(f.col("transcriptConsequence.lof").isNotNull())
                 .withColumn(
                     "isHighQualityPlof",
@@ -222,7 +220,6 @@ class VariantAnnotation(Dataset):
                 .select(
                     "variantId",
                     "chromosome",
-                    "position",
                     "geneId",
                     "isHighQualityPlof",
                     f.col("score"),
