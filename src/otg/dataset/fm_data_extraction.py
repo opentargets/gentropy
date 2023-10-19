@@ -187,7 +187,7 @@ class FMDataExtraction(Dataset):
 
         Returns:
             DataFrame: The function returns the DataFrame fm_filtered_StudyLocus after allele flip check.
-            
+
         Note: This function is currently unused as it's not needed with gnomad data.
         """
         df = self.session.createDataFrame(SNP_ids_38, StringType()).toDF("ID")
