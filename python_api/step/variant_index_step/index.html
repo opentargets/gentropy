@@ -24,19 +24,7 @@
 <span class=normal>36</span>
 <span class=normal>37</span>
 <span class=normal>38</span>
-<span class=normal>39</span>
-<span class=normal>40</span>
-<span class=normal>41</span>
-<span class=normal>42</span>
-<span class=normal>43</span>
-<span class=normal>44</span>
-<span class=normal>45</span>
-<span class=normal>46</span>
-<span class=normal>47</span>
-<span class=normal>48</span>
-<span class=normal>49</span>
-<span class=normal>50</span>
-<span class=normal>51</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>39</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>VariantIndexStep</span><span class=p>(</span><span class=n>VariantIndexStepConfig</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Variant index step.</span>
 
@@ -46,36 +34,24 @@
     <span class=n>session</span><span class=p>:</span> <span class=n>Session</span> <span class=o>=</span> <span class=n>Session</span><span class=p>()</span>
 
     <span class=k>def</span> <span class=nf>run</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantIndexStep</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Run variant index step.&quot;&quot;&quot;</span>
-        <span class=c1># Variant annotation dataset</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Run variant index step to only variants in study-locus sets.&quot;&quot;&quot;</span>
+        <span class=c1># Extract</span>
         <span class=n>va</span> <span class=o>=</span> <span class=n>VariantAnnotation</span><span class=o>.</span><span class=n>from_parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>variant_annotation_path</span><span class=p>)</span>
-
-        <span class=c1># Study-locus dataset</span>
-        <span class=n>study_locus</span> <span class=o>=</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>from_parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>study_locus_path</span><span class=p>)</span>
-
-        <span class=c1># Reduce scope of variant annotation dataset to only variants in study-locus sets:</span>
-        <span class=n>va_slimmed</span> <span class=o>=</span> <span class=n>va</span><span class=o>.</span><span class=n>filter_by_variant_df</span><span class=p>(</span>
-            <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_lead_tag_variants</span><span class=p>(),</span> <span class=p>[</span><span class=s2>&quot;id&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>]</span>
+        <span class=n>study_locus</span> <span class=o>=</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>from_parquet</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>study_locus_path</span><span class=p>,</span> <span class=n>recursiveFileLookup</span><span class=o>=</span><span class=kc>True</span>
         <span class=p>)</span>
 
-        <span class=c1># Generate variant index ussing a subset of the variant annotation dataset</span>
-        <span class=n>vi</span> <span class=o>=</span> <span class=n>VariantIndex</span><span class=o>.</span><span class=n>from_variant_annotation</span><span class=p>(</span><span class=n>va_slimmed</span><span class=p>)</span>
+        <span class=c1># Transform</span>
+        <span class=n>vi</span> <span class=o>=</span> <span class=n>VariantIndex</span><span class=o>.</span><span class=n>from_variant_annotation</span><span class=p>(</span><span class=n>va</span><span class=p>,</span> <span class=n>study_locus</span><span class=p>)</span>
 
-        <span class=c1># Write data:</span>
-        <span class=c1># self.etl.logger.info(</span>
-        <span class=c1>#     f&quot;Writing invalid variants from the credible set to: {self.variant_invalid}&quot;</span>
-        <span class=c1># )</span>
-        <span class=c1># vi.invalid_variants.write.mode(self.etl.write_mode).parquet(</span>
-        <span class=c1>#     self.variant_invalid</span>
-        <span class=c1># )</span>
-
+        <span class=c1># Load</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Writing variant index to: </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>variant_index_path</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
         <span class=p>(</span>
             <span class=n>vi</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>write</span><span class=o>.</span><span class=n>partitionBy</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>write_mode</span><span class=p>)</span>
             <span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>variant_index_path</span><span class=p>)</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.variant_index.VariantIndexStep.run class="doc doc-heading"> <code class="highlight language-python"><span class=n>run</span><span class=p>()</span></code> <a href=#otg.variant_index.VariantIndexStep.run class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Run variant index step.</p> <details class=quote> <summary>Source code in <code>src/otg/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>22</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.variant_index.VariantIndexStep.run class="doc doc-heading"> <code class="highlight language-python"><span class=n>run</span><span class=p>()</span></code> <a href=#otg.variant_index.VariantIndexStep.run class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Run variant index step to only variants in study-locus sets.</p> <details class=quote> <summary>Source code in <code>src/otg/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>22</span>
 <span class=normal>23</span>
 <span class=normal>24</span>
 <span class=normal>25</span>
@@ -92,42 +68,18 @@
 <span class=normal>36</span>
 <span class=normal>37</span>
 <span class=normal>38</span>
-<span class=normal>39</span>
-<span class=normal>40</span>
-<span class=normal>41</span>
-<span class=normal>42</span>
-<span class=normal>43</span>
-<span class=normal>44</span>
-<span class=normal>45</span>
-<span class=normal>46</span>
-<span class=normal>47</span>
-<span class=normal>48</span>
-<span class=normal>49</span>
-<span class=normal>50</span>
-<span class=normal>51</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>run</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantIndexStep</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Run variant index step.&quot;&quot;&quot;</span>
-    <span class=c1># Variant annotation dataset</span>
+<span class=normal>39</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>run</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantIndexStep</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Run variant index step to only variants in study-locus sets.&quot;&quot;&quot;</span>
+    <span class=c1># Extract</span>
     <span class=n>va</span> <span class=o>=</span> <span class=n>VariantAnnotation</span><span class=o>.</span><span class=n>from_parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>variant_annotation_path</span><span class=p>)</span>
-
-    <span class=c1># Study-locus dataset</span>
-    <span class=n>study_locus</span> <span class=o>=</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>from_parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>study_locus_path</span><span class=p>)</span>
-
-    <span class=c1># Reduce scope of variant annotation dataset to only variants in study-locus sets:</span>
-    <span class=n>va_slimmed</span> <span class=o>=</span> <span class=n>va</span><span class=o>.</span><span class=n>filter_by_variant_df</span><span class=p>(</span>
-        <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_lead_tag_variants</span><span class=p>(),</span> <span class=p>[</span><span class=s2>&quot;id&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>]</span>
+    <span class=n>study_locus</span> <span class=o>=</span> <span class=n>StudyLocus</span><span class=o>.</span><span class=n>from_parquet</span><span class=p>(</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>study_locus_path</span><span class=p>,</span> <span class=n>recursiveFileLookup</span><span class=o>=</span><span class=kc>True</span>
     <span class=p>)</span>
 
-    <span class=c1># Generate variant index ussing a subset of the variant annotation dataset</span>
-    <span class=n>vi</span> <span class=o>=</span> <span class=n>VariantIndex</span><span class=o>.</span><span class=n>from_variant_annotation</span><span class=p>(</span><span class=n>va_slimmed</span><span class=p>)</span>
+    <span class=c1># Transform</span>
+    <span class=n>vi</span> <span class=o>=</span> <span class=n>VariantIndex</span><span class=o>.</span><span class=n>from_variant_annotation</span><span class=p>(</span><span class=n>va</span><span class=p>,</span> <span class=n>study_locus</span><span class=p>)</span>
 
-    <span class=c1># Write data:</span>
-    <span class=c1># self.etl.logger.info(</span>
-    <span class=c1>#     f&quot;Writing invalid variants from the credible set to: {self.variant_invalid}&quot;</span>
-    <span class=c1># )</span>
-    <span class=c1># vi.invalid_variants.write.mode(self.etl.write_mode).parquet(</span>
-    <span class=c1>#     self.variant_invalid</span>
-    <span class=c1># )</span>
-
+    <span class=c1># Load</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=o>.</span><span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Writing variant index to: </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>variant_index_path</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
     <span class=p>(</span>
         <span class=n>vi</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>write</span><span class=o>.</span><span class=n>partitionBy</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>)</span>

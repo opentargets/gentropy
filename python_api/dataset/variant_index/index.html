@@ -17,8 +17,7 @@
  |-- mostSevereConsequence: string (nullable = true)
  |-- rsIds: array (nullable = true)
  |    |-- element: string (containsNull = true)
-</code></pre></div> <h2 id=class>Class<a class=headerlink href=#class title="Permanent link">&para;</a></h2> <div class="doc doc-object doc-class"> <a id=otg.dataset.variant_index.VariantIndex></a> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.dataset.Dataset" href="../_dataset/#otg.dataset.dataset.Dataset">Dataset</a></code></p> <p>Variant index dataset.</p> <p>Variant index dataset is the result of intersecting the variant annotation dataset with the variants with V2D available information.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>19</span>
-<span class=normal>20</span>
+</code></pre></div> <h2 id=class>Class<a class=headerlink href=#class title="Permanent link">&para;</a></h2> <div class="doc doc-object doc-class"> <a id=otg.dataset.variant_index.VariantIndex></a> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.dataset.Dataset" href="../_dataset/#otg.dataset.dataset.Dataset">Dataset</a></code></p> <p>Variant index dataset.</p> <p>Variant index dataset is the result of intersecting the variant annotation dataset with the variants with V2D available information.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>20</span>
 <span class=normal>21</span>
 <span class=normal>22</span>
 <span class=normal>23</span>
@@ -59,7 +58,12 @@
 <span class=normal>58</span>
 <span class=normal>59</span>
 <span class=normal>60</span>
-<span class=normal>61</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>61</span>
+<span class=normal>62</span>
+<span class=normal>63</span>
+<span class=normal>64</span>
+<span class=normal>65</span>
+<span class=normal>66</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>VariantIndex</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Variant index dataset.</span>
 
@@ -75,6 +79,7 @@
     <span class=k>def</span> <span class=nf>from_variant_annotation</span><span class=p>(</span>
         <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantIndex</span><span class=p>],</span>
         <span class=n>variant_annotation</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
+        <span class=n>study_locus</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VariantIndex</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Initialise VariantIndex from pre-existing variant annotation dataset.&quot;&quot;&quot;</span>
         <span class=n>unchanged_cols</span> <span class=o>=</span> <span class=p>[</span>
@@ -89,9 +94,12 @@
             <span class=s2>&quot;alleleFrequencies&quot;</span><span class=p>,</span>
             <span class=s2>&quot;cadd&quot;</span><span class=p>,</span>
         <span class=p>]</span>
+        <span class=n>va_slimmed</span> <span class=o>=</span> <span class=n>variant_annotation</span><span class=o>.</span><span class=n>filter_by_variant_df</span><span class=p>(</span>
+            <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_variants_in_locus</span><span class=p>(),</span> <span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>]</span>
+        <span class=p>)</span>
         <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
             <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-                <span class=n>variant_annotation</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
+                <span class=n>va_slimmed</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
                     <span class=o>*</span><span class=n>unchanged_cols</span><span class=p>,</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vep.mostSevereConsequence&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;mostSevereConsequence&quot;</span><span class=p>),</span>
                     <span class=c1># filters/rsid are arrays that can be empty, in this case we convert them to null</span>
@@ -102,8 +110,7 @@
             <span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_index.VariantIndex.from_variant_annotation class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_variant_annotation</span><span class=p>(</span><span class=n>variant_annotation</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.variant_index.VariantIndex.from_variant_annotation class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Initialise VariantIndex from pre-existing variant annotation dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>31</span>
-<span class=normal>32</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_index.VariantIndex.from_variant_annotation class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_variant_annotation</span><span class=p>(</span><span class=n>variant_annotation</span><span class=p>,</span> <span class=n>study_locus</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.variant_index.VariantIndex.from_variant_annotation class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Initialise VariantIndex from pre-existing variant annotation dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>32</span>
 <span class=normal>33</span>
 <span class=normal>34</span>
 <span class=normal>35</span>
@@ -132,10 +139,16 @@
 <span class=normal>58</span>
 <span class=normal>59</span>
 <span class=normal>60</span>
-<span class=normal>61</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>61</span>
+<span class=normal>62</span>
+<span class=normal>63</span>
+<span class=normal>64</span>
+<span class=normal>65</span>
+<span class=normal>66</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>from_variant_annotation</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantIndex</span><span class=p>],</span>
     <span class=n>variant_annotation</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
+    <span class=n>study_locus</span><span class=p>:</span> <span class=n>StudyLocus</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VariantIndex</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Initialise VariantIndex from pre-existing variant annotation dataset.&quot;&quot;&quot;</span>
     <span class=n>unchanged_cols</span> <span class=o>=</span> <span class=p>[</span>
@@ -150,9 +163,12 @@
         <span class=s2>&quot;alleleFrequencies&quot;</span><span class=p>,</span>
         <span class=s2>&quot;cadd&quot;</span><span class=p>,</span>
     <span class=p>]</span>
+    <span class=n>va_slimmed</span> <span class=o>=</span> <span class=n>variant_annotation</span><span class=o>.</span><span class=n>filter_by_variant_df</span><span class=p>(</span>
+        <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_variants_in_locus</span><span class=p>(),</span> <span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>]</span>
+    <span class=p>)</span>
     <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
         <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-            <span class=n>variant_annotation</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
+            <span class=n>va_slimmed</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
                 <span class=o>*</span><span class=n>unchanged_cols</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;vep.mostSevereConsequence&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;mostSevereConsequence&quot;</span><span class=p>),</span>
                 <span class=c1># filters/rsid are arrays that can be empty, in this case we convert them to null</span>
@@ -163,10 +179,10 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_index.VariantIndex.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.variant_index.VariantIndex.get_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Provides the schema for the VariantIndex dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>26</span>
-<span class=normal>27</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_index.VariantIndex.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.variant_index.VariantIndex.get_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Provides the schema for the VariantIndex dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>27</span>
 <span class=normal>28</span>
-<span class=normal>29</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>29</span>
+<span class=normal>30</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantIndex</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Provides the schema for the VariantIndex dataset.&quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>parse_spark_schema</span><span class=p>(</span><span class=s2>&quot;variant_index.json&quot;</span><span class=p>)</span>
