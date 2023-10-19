@@ -1,4 +1,4 @@
-"""Step to run study locus fine-mapping."""
+"""Step to run DENTIST outlier detection."""
 
 from __future__ import annotations
 
@@ -20,9 +20,9 @@ from otg.common.session import Session
 
 @dataclass
 class Dentist:
-    """Dentist outlier detection
+    """Dentist outlier detection.
 
-    untested as it needs study locus with R2 column (LD for all variants with lead SNP)
+    Note: untested as it needs study locus with R2 column (LD for all variants with lead SNP)
     """
 
     session: Session = Session()
@@ -35,7 +35,18 @@ class Dentist:
         lead_snp_ID: str,
         nlog10p_dentist_s_threshold: float,
     ) -> DataFrame:
-        """Performs outlier detection using DENTIST."""
+        """Performs outlier detection using DENTIST.
+
+        Args:
+            filtered_StudyLocus (DataFrame): DataFrame containing filtered study locus summary statistics.
+            n_sample (int): The number of samples in the study.
+            r2_threshold (float): The R-squared threshold for outlier detection.
+            lead_snp_ID (str): The ID of the lead SNP.
+            nlog10p_dentist_s_threshold (float): The threshold for nlog10p_dentist_s.
+
+        Returns:
+            DataFrame: The function returns a DataFrame with DENTIST outlier detection results, including columns for 't_dentist_s', 'nlog10p_dentist_s', and 'dentist_outlier'.
+        """
         # need study locus summary statistics with columns: r2 with lead snp, beta, se, z
         # Calculate 'r'
         # Calculate 'r' using aggregation
@@ -68,6 +79,14 @@ class Dentist:
         )
 
         def calc_nlog10p_dentist_s(t_dentist_s):
+            """Calculate nlog10p_dentist_s based on the input t_dentist_s value.
+
+            Args:
+                t_dentist_s (float): The input value representing t_dentist_s.
+
+            Returns:
+                float: The computed nlog10p_dentist_s value.
+            """
             return math.log(1 - math.exp(-t_dentist_s)) / -math.log(10)
 
         udf_calc_nlog10p_dentist_s = F.udf(calc_nlog10p_dentist_s, DoubleType())

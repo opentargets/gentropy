@@ -1,4 +1,4 @@
-"""Step to run study locus fine-mapping."""
+"""Step to run study locus fine-mapping with SuSiE-inf."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from otg.common.session import Session
 class SuSiE:
     """SuSiE fine-mapping of a study locus from fine-mapping-inf package.
 
-    Copied from fine-mapping-inf package as a placeholder
+    Note: code copied from fine-mapping-inf package as a placeholder
     https://github.com/FinucaneLab/fine-mapping-inf
     """
 

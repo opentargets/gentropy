@@ -178,9 +178,18 @@ class FMDataExtraction(Dataset):
         fm_filtered_StudyLocus: DataFrame,
         SNP_ids_38: list,
     ) -> DataFrame:
-        """Check alleles match between LD matrix and summary statistics.
+        """  Check alleles match between LD matrix and summary statistics.
 
-            Function unused as currently not needed with gnomad data"""
+        Args:
+            self (FMDataExtraction): An instance of the FMDataExtraction class.
+            fm_filtered_StudyLocus (DataFrame): DataFrame containing filtered study locus data.
+            SNP_ids_38 (list): List of SNP IDs.
+
+        Returns:
+            DataFrame: The function returns the DataFrame fm_filtered_StudyLocus after allele flip check.
+            
+        Note: This function is currently unused as it's not needed with gnomad data.
+        """
         df = self.session.createDataFrame(SNP_ids_38, StringType()).toDF("ID")
 
         # Split the 'ID' column to extract 'ref' and 'alt' columns
