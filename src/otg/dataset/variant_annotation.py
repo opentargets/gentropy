@@ -240,7 +240,7 @@ class VariantAnnotation(Dataset):
 
     def get_distance_to_tss(
         self: VariantAnnotation,
-        filter_by: GeneIndex,
+        gene_index: GeneIndex,
         max_distance: int = 500_000,
     ) -> V2G:
         """Extracts variant to gene assignments for variants falling within a window of a gene's TSS.
@@ -256,7 +256,7 @@ class VariantAnnotation(Dataset):
             _df=(
                 self.df.alias("variant")
                 .join(
-                    f.broadcast(filter_by.locations_lut()).alias("gene"),
+                    f.broadcast(gene_index.locations_lut()).alias("gene"),
                     on=[
                         f.col("variant.chromosome") == f.col("gene.chromosome"),
                         f.abs(f.col("variant.position") - f.col("gene.tss"))
@@ -265,14 +265,17 @@ class VariantAnnotation(Dataset):
                     how="inner",
                 )
                 .withColumn(
+                    "distance", f.abs(f.col("variant.position") - f.col("gene.tss"))
+                )
+                .withColumn(
                     "inverse_distance",
-                    max_distance - f.abs(f.col("variant.position") - f.col("gene.tss")),
+                    max_distance - f.col("distance"),
                 )
                 .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
                 .select(
                     "variantId",
                     f.col("variant.chromosome").alias("chromosome"),
-                    "position",
+                    "distance",
                     "geneId",
                     "score",
                     f.lit("distance").alias("datatypeId"),
