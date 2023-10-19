@@ -165,11 +165,12 @@ class VariantAnnotation(Dataset):
     def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
 
-        SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.
-        Optionally the trancript consequences can be reduced to the universe of a gene index.
+        SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:
+            - 0.0 to 0.05 -- Likely to be deleterious.
+            - 0.05 to 1.0 -- Likely to be tolerated.
 
         Args:
-            filter_by (GeneIndex): A gene index to filter by.
+            gene_index (GeneIndex): A gene index to filter by.
 
         Returns:
             V2G: variant to gene assignments with their SIFT scores
@@ -184,7 +185,6 @@ class VariantAnnotation(Dataset):
                     "position",
                     "geneId",
                     f.expr("1 - transcriptConsequence.siftScore").alias("score"),
-                    f.col("transcriptConsequence.siftPrediction").alias("label"),
                     f.lit("vep").alias("datatypeId"),
                     f.lit("sift").alias("datasourceId"),
                 )
