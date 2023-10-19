@@ -64,7 +64,7 @@ class GeneIndex(Dataset):
         """
         return self.df.select(
             f.explode(
-                f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
+                f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols"))
             ).alias("geneSymbol"),
             "*",
         )
