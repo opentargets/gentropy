@@ -53,9 +53,7 @@ class V2GStep(V2GStepConfig):
         )
 
         # Variant annotation reduced to the variant index to define V2G variant universe
-        va_slimmed = va.filter_by_variant_df(
-            vi.df, ["variantId", "chromosome"]
-        ).persist()
+        va_slimmed = va.filter_by_variant_df(vi.df).persist()
 
         # lift over variants to hg38
         lift = LiftOverSpark(

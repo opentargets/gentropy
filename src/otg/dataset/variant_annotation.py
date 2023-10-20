@@ -43,18 +43,21 @@ class VariantAnnotation(Dataset):
         )
 
     def filter_by_variant_df(
-        self: VariantAnnotation, df: DataFrame, cols: list[str]
+        self: VariantAnnotation, df: DataFrame
     ) -> VariantAnnotation:
         """Filter variant annotation dataset by a variant dataframe.
 
         Args:
             df (DataFrame): A dataframe of variants
-            cols (List[str]): A list of columns to join on
 
         Returns:
             VariantAnnotation: A filtered variant annotation dataset
         """
-        self.df = self._df.join(f.broadcast(df.select(cols)), on=cols, how="inner")
+        self.df = self._df.join(
+            f.broadcast(df.select("variantId", "chromosome")),
+            on=["variantId", "chromosome"],
+            how="inner",
+        )
         return self
 
     def get_transcript_consequence_df(
