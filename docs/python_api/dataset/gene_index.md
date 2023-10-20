@@ -2,7 +2,7 @@
 
 ## Schema
 
---8<-- "assets/schemas/targets.md"
+--8<-- "assets/schemas/gene_index.md"
 
 ## Class
 
