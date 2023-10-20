@@ -1,11 +1,12 @@
 """LiftOver support."""
 from __future__ import annotations
 
+import tempfile
 from typing import TYPE_CHECKING
 
-import gcsfs
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from google.cloud import storage
 from pyliftover import LiftOver
 
 if TYPE_CHECKING:
@@ -40,11 +41,16 @@ class LiftOverSpark:
         self.max_difference = max_difference
 
         # Initializing liftover object by opening the chain file - LiftOver only supports local files:
-        if self.chain_file.startswith("gs://"):
-            with gcsfs.GCSFileSystem().open(self.chain_file) as chain_file_object:
-                self.lo = LiftOver(chain_file_object)
+        if chain_file.startswith("gs://"):
+            bucket_name = chain_file.split("/")[2]
+            blob_name = "/".join(chain_file.split("/")[3:])
+            with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+                storage.Client().bucket(bucket_name).blob(
+                    blob_name
+                ).download_to_filename(temp_file.name)
+                self.lo = LiftOver(temp_file.name)
         else:
-            self.lo = LiftOver(self.chain_file)
+            self.lo = LiftOver(chain_file)
 
         # UDF to do map genomic coordinates to liftover coordinates:
         self.liftover_udf = f.udf(
