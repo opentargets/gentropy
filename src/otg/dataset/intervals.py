@@ -50,7 +50,7 @@ class Intervals(Dataset):
                     ],
                     how="inner",
                 )
-                .drop("start", "end", "vi_chromosome")
+                .drop("start", "end", "vi_chromosome", "position")
             ),
             _schema=V2G.get_schema(),
         )
