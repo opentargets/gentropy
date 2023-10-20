@@ -100,8 +100,7 @@ class V2GStep(V2GStepConfig):
             _df=reduce(
                 lambda x, y: x.unionByName(y, allowMissingColumns=True),
                 [dataset.df for dataset in v2g_datasets],
-            ).repartition("chromosome"),
-            _schema=V2G.schema(),
+            ).repartition("chromosome")
         )
         # write V2G dataset
         (
