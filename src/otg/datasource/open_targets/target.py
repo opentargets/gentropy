@@ -8,7 +8,14 @@ from otg.dataset.gene_index import GeneIndex
 
 
 class OpenTargetsTarget:
-    """Parser for OTPlatform target dataset."""
+    """Parser for OTPlatform target dataset.
+
+    Genomic data from Open Targets provides gene identification and genomic coordinates that are integrated into the gene index of our ETL pipeline.
+
+    The EMBL-EBI Ensembl database is used as a source for human targets in the Platform, with the Ensembl gene ID as the primary identifier. The criteria for target inclusion is:
+    - Genes from all biotypes encoded in canonical chromosomes
+    - Genes in alternative assemblies encoding for a reviewed protein product.
+    """
 
     @staticmethod
     def _get_gene_tss(strand_col: Column, start_col: Column, end_col: Column) -> Column:
