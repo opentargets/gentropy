@@ -62,12 +62,6 @@
       "metadata": {}
     },
     {
-      "name": "position",
-      "type": "integer",
-      "nullable": false,
-      "metadata": {}
-    },
-    {
       "name": "variantFunctionalConsequenceId",
       "type": "string",
       "nullable": true,
