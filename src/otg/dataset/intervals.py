@@ -11,10 +11,6 @@ from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.v2g import V2G
-from otg.datasource.intervals.andersson import IntervalsAndersson
-from otg.datasource.intervals.javierre import IntervalsJavierre
-from otg.datasource.intervals.jung import IntervalsJung
-from otg.datasource.intervals.thurman import IntervalsThurman
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -53,6 +49,11 @@ class Intervals(Dataset):
         Returns:
             Intervals: Intervals dataset
         """
+        from otg.datasource.intervals.andersson import IntervalsAndersson
+        from otg.datasource.intervals.javierre import IntervalsJavierre
+        from otg.datasource.intervals.jung import IntervalsJung
+        from otg.datasource.intervals.thurman import IntervalsThurman
+
         source_to_class = {
             "andersson": IntervalsAndersson,
             "javierre": IntervalsJavierre,
