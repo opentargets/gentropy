@@ -2,20 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
-from otg.common.Liftover import LiftOverSpark
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
-from otg.dataset.gene_index import GeneIndex
 from otg.dataset.v2g import V2G
-from otg.datasource.intervals.andersson import IntervalAndersson
-from otg.datasource.intervals.javierre import IntervalJavierre
-from otg.datasource.intervals.jung import IntervalJung
-from otg.datasource.intervals.thurman import IntervalThurman
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
@@ -32,41 +25,22 @@ class Intervals(Dataset):
         """Provides the schema for the Intervals dataset."""
         return parse_spark_schema("intervals.json")
 
-    def collect_interval_data(
-        self: Intervals,
-        anderson: IntervalAndersson,
-        javierre: IntervalJavierre,
-        jung: IntervalJung,
-        thurman: IntervalThurman,
-        gene_index: GeneIndex,
-        lift: LiftOverSpark,
-    ) -> Intervals:
-        """Collect interval data from multiple sources.
+    # def collect_interval_data(
+    #     self: Intervals,
+    #     gene_index: GeneIndex,
+    #     lift: LiftOverSpark,
+    # ) -> Intervals:
+    #     """Collect interval data from multiple sources.
 
-        Args:
-            sources (list[str]): List of interval sources
-            gene_index (GeneIndex): Gene index
-            lift (LiftOverSpark): LiftOverSpark instance to convert coordinats from hg37 to hg38
+    #     Args:
+    #         sources (list[str]): List of interval sources
+    #         gene_index (GeneIndex): Gene index
+    #         lift (LiftOverSpark): LiftOverSpark instance to convert coordinats from hg37 to hg38
 
-        Returns:
-            Intervals: Intervals dataset
-        """
-        intervals = []
-        if anderson:
-            intervals.append(IntervalAndersson.parse(anderson, gene_index, lift))
-        if javierre:
-            intervals.append(IntervalJavierre.parse(javierre, gene_index, lift))
-        if jung:
-            intervals.append(IntervalJung.parse(jung, gene_index, lift))
-        if thurman:
-            intervals.append(IntervalThurman.parse(thurman, gene_index, lift))
-        return Intervals(
-            _df=reduce(
-                lambda x, y: x.unionByName(y, allowMissingColumns=True),
-                [interval.df for interval in intervals],
-            ),
-            _schema=Intervals.get_schema(),
-        )
+    #     Returns:
+    #         Intervals: Intervals dataset
+    #     """
+    #     pass
 
     def v2g(self: Intervals, variant_index: VariantIndex) -> V2G:
         """Convert intervals into V2G by intersecting with a variant index.
@@ -79,7 +53,6 @@ class Intervals(Dataset):
         """
         return V2G(
             _df=(
-                # TODO: We can include the start and end position as part of the `on` clause in the join
                 self.df.alias("interval")
                 .join(
                     variant_index.df.selectExpr(

@@ -49,14 +49,6 @@ class V2GStep(V2GStepConfig):
             f.col("Term").alias("label"),
             f.col("v2g_score").cast("double").alias("score"),
         )
-        anderson = IntervalsAndersson.read_andersson(
-            self.session.spark, self.anderson_path
-        )
-        javierre = IntervalsJavierre.read_javierre(
-            self.session.spark, self.javierre_path
-        )
-        jung = IntervalsJung.read_jung(self.session.spark, self.jung_path)
-        thurman = IntervalsThurman.read_thurman(self.session.spark, self.thurman_path)
 
         # Transform
         lift = LiftOverSpark(
@@ -72,11 +64,31 @@ class V2GStep(V2GStepConfig):
             # Variant annotation reduced to the variant index to define V2G variant universe
             vi.df
         ).persist()
-        intervals_datasets = Intervals.collect_interval_data(
-            anderson, javierre, jung, thurman, gene_index_filtered, lift
-        )
+        for source in self.intervals:
+            source_to_class = {
+                "andersson": IntervalsAndersson,
+                "javierre": IntervalsJavierre,
+                "jung": IntervalsJung,
+                "thurman": IntervalsThurman,
+            }
+            dfs = []
+            for source in self.intervals:
+                if source.name not in source_to_class:
+                    raise ValueError(f"Unknown interval source: {source.name}")
 
-        # Expected andersson et al. schema:
+                interval_class = source_to_class[source.name]
+                data = interval_class.read(self.session.spark, source.path)
+                dfs.append(
+                    # convert data into interval
+                    interval_class.parse(data, gene_index, lift).df
+                )
+            intervals = Intervals(
+                _df=reduce(
+                    lambda x, y: x.unionByName(y, allowMissingColumns=True),
+                    dfs,
+                ),
+                _schema=Intervals.get_schema(),
+            )
         v2g_datasets = [
             va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
             # variant effects
@@ -84,10 +96,8 @@ class V2GStep(V2GStepConfig):
             va_slimmed.get_polyphen_v2g(gene_index_filtered),
             va_slimmed.get_sift_v2g(gene_index_filtered),
             va_slimmed.get_plof_v2g(gene_index_filtered),
-            intervals_datasets.v2g(vi),
+            intervals.v2g(vi),
         ]
-
-        # merge all V2G datasets
         v2g = V2G(
             _df=reduce(
                 lambda x, y: x.unionByName(y, allowMissingColumns=True),
@@ -95,7 +105,8 @@ class V2GStep(V2GStepConfig):
             ).repartition("chromosome"),
             _schema=V2G.get_schema(),
         )
-        # write V2G dataset
+
+        # Load
         (
             v2g.df.write.partitionBy("chromosome")
             .mode(self.session.write_mode)

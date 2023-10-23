@@ -155,6 +155,13 @@ class V2GStepConfig:
         output_path (str): Output V2G path.
     """
 
+    @dataclass
+    class Interval:
+        """Representation of interval data."""
+
+        name: str
+        path: str = MISSING
+
     _target_: str = "otg.v2g.V2GStep"
     variant_index_path: str = MISSING
     variant_annotation_path: str = MISSING
@@ -183,6 +190,14 @@ class V2GStepConfig:
             "non_coding",
             "sense_intronic",
             "sense_overlapping",
+        ]
+    )
+    intervals: List[Interval] = field(
+        default_factory=lambda: [
+            V2GStepConfig.Interval(name="andersson", path="wip"),
+            V2GStepConfig.Interval(name="javierre", path="wip"),
+            V2GStepConfig.Interval(name="jung", path="wip"),
+            V2GStepConfig.Interval(name="thurman", path="wip"),
         ]
     )
 
