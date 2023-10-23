@@ -19,7 +19,7 @@ class IntervalsJavierre(Intervals):
     """Interval dataset from Javierre et al. 2016."""
 
     @staticmethod
-    def read_javierre(spark: SparkSession, path: str) -> DataFrame:
+    def read(spark: SparkSession, path: str) -> DataFrame:
         """Read Javierre dataset.
 
         Args:
