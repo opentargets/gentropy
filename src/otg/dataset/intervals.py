@@ -6,11 +6,18 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
+from otg.common.Liftover import LiftOverSpark
 from otg.common.schemas import parse_spark_schema
 from otg.dataset.dataset import Dataset
+from otg.dataset.gene_index import GeneIndex
 from otg.dataset.v2g import V2G
+from otg.datasource.intervals.andersson import IntervalsAndersson
+from otg.datasource.intervals.javierre import IntervalsJavierre
+from otg.datasource.intervals.jung import IntervalsJung
+from otg.datasource.intervals.thurman import IntervalsThurman
 
 if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
     from pyspark.sql.types import StructType
 
     from otg.dataset.variant_index import VariantIndex
@@ -25,22 +32,40 @@ class Intervals(Dataset):
         """Provides the schema for the Intervals dataset."""
         return parse_spark_schema("intervals.json")
 
-    # def collect_interval_data(
-    #     self: Intervals,
-    #     gene_index: GeneIndex,
-    #     lift: LiftOverSpark,
-    # ) -> Intervals:
-    #     """Collect interval data from multiple sources.
+    @classmethod
+    def from_source(
+        cls: type[Intervals],
+        spark: SparkSession,
+        source_name: str,
+        source_path: str,
+        gene_index: GeneIndex,
+        lift: LiftOverSpark,
+    ) -> Intervals:
+        """Collect interval data for a particular source.
 
-    #     Args:
-    #         sources (list[str]): List of interval sources
-    #         gene_index (GeneIndex): Gene index
-    #         lift (LiftOverSpark): LiftOverSpark instance to convert coordinats from hg37 to hg38
+        Args:
+            spark (SparkSession): Spark session
+            source_name (str): Name of the interval source
+            source_path (str): Path to the interval source file
+            gene_index (GeneIndex): Gene index
+            lift (LiftOverSpark): LiftOverSpark instance to convert coordinats from hg37 to hg38
 
-    #     Returns:
-    #         Intervals: Intervals dataset
-    #     """
-    #     pass
+        Returns:
+            Intervals: Intervals dataset
+        """
+        source_to_class = {
+            "andersson": IntervalsAndersson,
+            "javierre": IntervalsJavierre,
+            "jung": IntervalsJung,
+            "thurman": IntervalsThurman,
+        }
+
+        if source_name not in source_to_class:
+            raise ValueError(f"Unknown interval source: {source_name}")
+
+        source_class = source_to_class[source_name]
+        data = source_class.read(spark, source_path)
+        return source_class.parse(data, gene_index, lift)
 
     def v2g(self: Intervals, variant_index: VariantIndex) -> V2G:
         """Convert intervals into V2G by intersecting with a variant index.
