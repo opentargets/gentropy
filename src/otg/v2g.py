@@ -33,6 +33,7 @@ class V2GStep(V2GStepConfig):
     def run(self: V2GStep) -> None:
         """Run V2G dataset generation."""
         # Read
+        print(self.intervals)
         gene_index = GeneIndex.from_parquet(self.session, self.gene_index_path)
         vi = VariantIndex.from_parquet(self.session, self.variant_index_path).persist()
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
@@ -66,9 +67,9 @@ class V2GStep(V2GStepConfig):
                 # create interval instances by parsing each source
                 [
                     Intervals.from_source(
-                        self.session.spark, source.name, source.path, gene_index, lift
+                        self.session.spark, source_name, source_path, gene_index, lift
                     ).df
-                    for source in self.intervals
+                    for source_name, source_path in self.intervals.items()
                 ],
             ),
             _schema=Intervals.get_schema(),
