@@ -1,6 +1,12 @@
+---
+title: Open Targets Genetics
+hide:
+  - navigation
+  - toc
+---
 
 <p align="center">
-  <img width="460" height="300" src="assets/Open_Targets_Genetics_Portal_Logo_v2_font.svg">
+  <img width="460" height="300" src="assets/imgs/Open_Targets_Genetics_Portal_Logo_v2_font.svg">
 </p>
 <style>
   .md-typeset h1,
@@ -22,6 +28,6 @@
 
 Ingestion and analysis of genetic and functional genomic data for the identification and prioritisation of drug targets.
 
-This project is still in experimental phase. Please refer to the [roadmap section](./roadmap/) for more information.
+This project is still in experimental phase. Please refer to the [roadmap section](roadmap.md) for more information.
 
-For information on how to configure the development environment, run the code, or contribute changes, see the [contributing section](./contributing/). For known technical issues and solutions to them, see the [troubleshooting section](./troubleshooting/).
+For information on how to contribute to the project see the [contributing section](./contributing/_contributing.md).

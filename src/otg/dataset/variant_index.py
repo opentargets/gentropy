@@ -9,6 +9,7 @@ import pyspark.sql.functions as f
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import nullify_empty_array
 from otg.dataset.dataset import Dataset
+from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
@@ -32,6 +33,7 @@ class VariantIndex(Dataset):
     def from_variant_annotation(
         cls: type[VariantIndex],
         variant_annotation: VariantAnnotation,
+        study_locus: StudyLocus,
     ) -> VariantIndex:
         """Initialise VariantIndex from pre-existing variant annotation dataset."""
         unchanged_cols = [
@@ -46,9 +48,12 @@ class VariantIndex(Dataset):
             "alleleFrequencies",
             "cadd",
         ]
+        va_slimmed = variant_annotation.filter_by_variant_df(
+            study_locus.unique_variants_in_locus(), ["variantId", "chromosome"]
+        )
         return cls(
             _df=(
-                variant_annotation.df.select(
+                va_slimmed.df.select(
                     *unchanged_cols,
                     f.col("vep.mostSevereConsequence").alias("mostSevereConsequence"),
                     # filters/rsid are arrays that can be empty, in this case we convert them to null
