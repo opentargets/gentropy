@@ -4,9 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
-from airflow.decorators import task_group
 from airflow.models.dag import DAG
-from airflow.operators.empty import EmptyOperator
 from common_airflow import (
     create_cluster,
     delete_cluster,
@@ -19,6 +17,7 @@ SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
 PYTHON_CLI = "cli.py"
 CONFIG_NAME = "my_config"
 CLUSTER_CONFIG_DIR = "/config"
+CLUSTER_NAME = "workflow-otg-cluster"
 
 
 with DAG(
@@ -27,48 +26,34 @@ with DAG(
     default_args=shared_dag_args,
     **shared_dag_kwargs,
 ):
-    start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end", trigger_rule="all_done")
-
     assert (
         SOURCE_CONFIG_FILE_PATH.exists()
     ), f"Config path {SOURCE_CONFIG_FILE_PATH} does not exist."
     with open(SOURCE_CONFIG_FILE_PATH, "r") as config_file:
-        tasks_groups = {}
+        # Parse and define all steps and their prerequisites.
+        tasks = {}
         steps = yaml.safe_load(config_file)
         for step in steps:
+            # Define task for the current step.
             step_id = step["id"]
-
-            @task_group(
-                group_id=step_id,
-                prefix_group_id=True,
+            this_task = submit_pyspark_job(
+                cluster_name=CLUSTER_NAME,
+                task_id=f"job-{step_id}",
+                python_module_path=PYTHON_CLI,
+                args=[
+                    f"step={step_id}",
+                    f"--config-dir={CLUSTER_CONFIG_DIR}",
+                    f"--config-name={CONFIG_NAME}",
+                ],
             )
-            def tgroup(step_id: str) -> None:
-                """Self-sufficient task group for one task."""
-                cluster_name = f"workflow-otg-cluster-{step_id.replace('_', '-')}"
-                step_pyspark_job = submit_pyspark_job(
-                    cluster_name=cluster_name,
-                    task_id=f"job-{step_id}",
-                    python_module_path=PYTHON_CLI,
-                    args=[
-                        f"step={step_id}",
-                        f"--config-dir={CLUSTER_CONFIG_DIR}",
-                        f"--config-name={CONFIG_NAME}",
-                    ],
-                )
-                # Chain the steps within the task group.
-                (
-                    create_cluster(cluster_name)
-                    >> step_pyspark_job
-                    >> delete_cluster(cluster_name)
-                )
-
             # Chain prerequisites.
-            thisgroup = tgroup(step_id)
-            tasks_groups[step_id] = thisgroup
-            if "prerequisites" in step:
-                for prerequisite in step["prerequisites"]:
-                    thisgroup.set_upstream(tasks_groups[prerequisite])
+            tasks[step_id] = this_task
+            for prerequisite in step.get("prerequisites", []):
+                this_task.set_upstream(tasks[prerequisite])
 
-            # Add task group to the DAG.
-            start >> thisgroup >> end
+        # Construct the DAG with all tasks.
+        (
+            create_cluster(CLUSTER_NAME)
+            >> list(tasks.values())
+            >> delete_cluster(CLUSTER_NAME)
+        )
