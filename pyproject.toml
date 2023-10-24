@@ -59,7 +59,7 @@ ipython = "^8.5.0"
 ipykernel = "^6.19.0"
 google-cloud-dataproc = "^5.4.1"
 apache-airflow = "^2.7.0"
-apache-airflow-providers-google = "^10.10.0"
+apache-airflow-providers-google = "^10.10.1"
 
 [tool.semantic_release]
 branch = "main"
