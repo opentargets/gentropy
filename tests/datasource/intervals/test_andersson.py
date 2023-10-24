@@ -12,13 +12,11 @@ from otg.datasource.intervals.andersson import IntervalsAndersson
 @pytest.fixture(scope="module")
 def sample_intervals_andersson(spark: SparkSession) -> DataFrame:
     """Sample Andersson intervals."""
-    return IntervalsAndersson.read_andersson(
-        spark, "tests/data_samples/andersson_sample.bed"
-    )
+    return IntervalsAndersson.read(spark, "tests/data_samples/andersson_sample.bed")
 
 
 def test_read_andersson(sample_intervals_andersson: DataFrame) -> None:
-    """Test read_andersson."""
+    """Test read Andersson data."""
     assert isinstance(sample_intervals_andersson, DataFrame)
 
 
@@ -27,7 +25,7 @@ def test_andersson_intervals_from_source(
     mock_gene_index: GeneIndex,
     liftover_chain_37_to_38: LiftOverSpark,
 ) -> None:
-    """Test JavierreIntervals creation with mock data."""
+    """Test AnderssonIntervals creation with mock data."""
     assert isinstance(
         IntervalsAndersson.parse(
             sample_intervals_andersson, mock_gene_index, liftover_chain_37_to_38
