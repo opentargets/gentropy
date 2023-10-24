@@ -56,7 +56,10 @@ class TestLocusToGeneTrainer:
     ) -> None:
         """Test the training function."""
         trained_model = LocusToGeneTrainer.train(
-            mock_l2g_feature_matrix.fill_na(), model, features_list=["distanceTssMean"]
+            mock_l2g_feature_matrix.fill_na(),
+            model,
+            features_list=["distanceTssMean"],
+            evaluate=False,
         )
         # Check that `model` is a PipelineModel object and not None
         assert isinstance(

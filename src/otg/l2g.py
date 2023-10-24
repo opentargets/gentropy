@@ -90,6 +90,7 @@ class LocusToGeneStep(LocusToGeneConfig):
                     l2g_model=l2g_model,
                     features_list=list(self.features_list),
                     model_path=self.model_path,
+                    evaluate=True,
                     wandb_run_name=self.wandb_run_name,
                     **self.hyperparameters,
                 )

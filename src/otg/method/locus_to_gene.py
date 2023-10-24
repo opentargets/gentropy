@@ -232,6 +232,7 @@ class LocusToGeneTrainer:
         data: L2GFeatureMatrix,
         l2g_model: LocusToGeneModel,
         features_list: List[str],
+        evaluate: bool,
         wandb_run_name: Optional[str] = None,
         model_path: Optional[str] = None,
         **hyperparams: dict,
@@ -243,6 +244,7 @@ class LocusToGeneTrainer:
             data (L2GFeatureMatrix): Feature matrix containing the data
             l2g_model (LocusToGeneModel): Model to fit to the data on
             features_list (List[str]): List of features to use for the model
+            evaluate (bool): Whether to evaluate the model on a test set
             wandb_run_name (str): Descriptive name for the run to be tracked with W&B
             model_path (str): Path to save the model to
             hyperparams (dict): Hyperparameters to use for the model
@@ -254,11 +256,12 @@ class LocusToGeneTrainer:
 
         model = l2g_model.add_pipeline_stage(l2g_model.estimator).fit(train)
 
-        l2g_model.evaluate(
-            results=model.predict(test),
-            hyperparameters=hyperparams,
-            wandb_run_name=wandb_run_name,
-        )
+        if evaluate:
+            l2g_model.evaluate(
+                results=model.predict(test),
+                hyperparameters=hyperparams,
+                wandb_run_name=wandb_run_name,
+            )
         if model_path:
             l2g_model.save(model_path)
         return l2g_model
