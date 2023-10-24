@@ -4,17 +4,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import reduce
 
+import pyspark.sql.functions as f
+
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
 from otg.config import V2GStepConfig
 from otg.dataset.gene_index import GeneIndex
+from otg.dataset.intervals import Intervals
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
-from otg.datasource.intervals.andersson import IntervalsAndersson
-from otg.datasource.intervals.javierre import IntervalsJavierre
-from otg.datasource.intervals.jung import IntervalsJung
-from otg.datasource.intervals.thurman import IntervalsThurman
 
 
 @dataclass
@@ -33,64 +32,64 @@ class V2GStep(V2GStepConfig):
 
     def run(self: V2GStep) -> None:
         """Run V2G dataset generation."""
-        # Filter gene index by approved biotypes to define V2G gene universe
-        gene_index_filtered = GeneIndex.from_parquet(
-            self.session, self.gene_index_path
-        ).filter_by_biotypes(self.approved_biotypes)
-
+        # Read
+        gene_index = GeneIndex.from_parquet(self.session, self.gene_index_path)
         vi = VariantIndex.from_parquet(self.session, self.variant_index_path).persist()
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
         vep_consequences = self.session.spark.read.csv(
             self.vep_consequences_path, sep="\t", header=True
+        ).select(
+            f.element_at(f.split("Accession", r"/"), -1).alias(
+                "variantFunctionalConsequenceId"
+            ),
+            f.col("Term").alias("label"),
+            f.col("v2g_score").cast("double").alias("score"),
         )
 
-        # Variant annotation reduced to the variant index to define V2G variant universe
-        va_slimmed = va.filter_by_variant_df(vi.df, ["id", "chromosome"]).persist()
-
-        # lift over variants to hg38
+        # Transform
         lift = LiftOverSpark(
-            self.liftover_chain_file_path, self.liftover_max_length_difference
+            # lift over variants to hg38
+            self.liftover_chain_file_path,
+            self.liftover_max_length_difference,
         )
-
-        # Expected andersson et al. schema:
+        gene_index_filtered = gene_index.filter_by_biotypes(
+            # Filter gene index by approved biotypes to define V2G gene universe
+            list(self.approved_biotypes)
+        )
+        va_slimmed = va.filter_by_variant_df(
+            # Variant annotation reduced to the variant index to define V2G variant universe
+            vi.df
+        ).persist()
+        intervals = Intervals(
+            _df=reduce(
+                lambda x, y: x.unionByName(y, allowMissingColumns=True),
+                # create interval instances by parsing each source
+                [
+                    Intervals.from_source(
+                        self.session.spark, source_name, source_path, gene_index, lift
+                    ).df
+                    for source_name, source_path in self.intervals.items()
+                ],
+            ),
+            _schema=Intervals.get_schema(),
+        )
         v2g_datasets = [
             va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
-            # variant effects
             va_slimmed.get_most_severe_vep_v2g(vep_consequences, gene_index_filtered),
             va_slimmed.get_polyphen_v2g(gene_index_filtered),
             va_slimmed.get_sift_v2g(gene_index_filtered),
             va_slimmed.get_plof_v2g(gene_index_filtered),
-            # intervals
-            IntervalsAndersson.parse(
-                IntervalsAndersson.read_andersson(self.session, self.anderson_path),
-                gene_index_filtered,
-                lift,
-            ).v2g(vi),
-            IntervalsJavierre.parse(
-                IntervalsJavierre.read_javierre(self.session, self.javierre_path),
-                gene_index_filtered,
-                lift,
-            ).v2g(vi),
-            IntervalsJung.parse(
-                IntervalsJung.read_jung(self.session, self.jung_path),
-                gene_index_filtered,
-                lift,
-            ).v2g(vi),
-            IntervalsThurman.parse(
-                IntervalsThurman.read_thurman(self.session, self.thurman_path),
-                gene_index_filtered,
-                lift,
-            ).v2g(vi),
+            intervals.v2g(vi),
         ]
-
-        # merge all V2G datasets
         v2g = V2G(
             _df=reduce(
                 lambda x, y: x.unionByName(y, allowMissingColumns=True),
                 [dataset.df for dataset in v2g_datasets],
-            ).repartition("chromosome")
+            ).repartition("chromosome"),
+            _schema=V2G.get_schema(),
         )
-        # write V2G dataset
+
+        # Load
         (
             v2g.df.write.partitionBy("chromosome")
             .mode(self.session.write_mode)

@@ -22,7 +22,7 @@ class IntervalsAndersson(Intervals):
     """Interval dataset from Andersson et al. 2014."""
 
     @staticmethod
-    def read_andersson(spark: SparkSession, path: str):
+    def read(spark: SparkSession, path: str):
         """Read andersson2014 dataset."""
         input_schema = t.StructType.fromJson(
             json.loads(
