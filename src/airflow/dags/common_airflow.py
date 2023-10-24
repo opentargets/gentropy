@@ -89,10 +89,8 @@ def create_cluster(
     )
 
 
-def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
-    """Generate an Airflow task to run a PySpark job on a Dataproc cluster."""
-    if isinstance(args, dict):
-        args = [f"--{arg}={val}" for arg, val in args.items()]
+def _submit_job(cluster_name, task_id, job_type, job_specification):
+    """Submit an arbitrary job to a Dataproc cluster."""
     return DataprocSubmitJobOperator(
         task_id=task_id,
         region=region,
@@ -101,16 +99,48 @@ def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
             "job_uuid": f"airflow-{task_id}",
             "reference": {"project_id": project_id},
             "placement": {"cluster_name": cluster_name},
-            "pyspark_job": {
-                "main_python_file_uri": f"{initialisation_base_path}/{python_module_path}",
-                "args": args,
-                "properties": {
-                    "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
-                    "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
-                    "spark.executor.extraClassPath": "./hail-all-spark.jar",
-                    "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
-                    "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
-                },
+            job_type: job_specification,
+        },
+    )
+
+
+def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
+    """Submit a PySpark job to a Dataproc cluster."""
+    if isinstance(args, dict):
+        args = [f"--{arg}={val}" for arg, val in args.items()]
+    return _submit_job(
+        cluster_name=cluster_name,
+        task_id=task_id,
+        job_type="pyspark_job",
+        job_specification={
+            "main_python_file_uri": f"{initialisation_base_path}/{python_module_path}",
+            "args": args,
+            "properties": {
+                "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                "spark.executor.extraClassPath": "./hail-all-spark.jar",
+                "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+                "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
+            },
+        },
+    )
+
+
+def submit_pig_job(cluster_name, task_id):
+    """Submit a Pig job to a Dataproc cluster."""
+    return _submit_job(
+        cluster_name=cluster_name,
+        task_id=task_id,
+        job_type="pig_job",
+        job_specification={
+            "jar_file_uris": [
+                f"gs://genetics_etl_python_playground/initialisation/{otg_version}/install_dependencies_on_cluster.sh"
+            ],
+            "query_list": {
+                "queries": [
+                    "sh chmod 750 ${PWD}/install_dependencies_on_cluster.sh",
+                    "sh ${PWD}/install_dependencies_on_cluster.sh",
+                ]
             },
         },
     )
