@@ -452,13 +452,13 @@ openlineage = ["apache-airflow-providers-openlineage"]
 
 [[package]]
 name = "apache-airflow-providers-google"
-version = "10.10.0"
+version = "10.10.1"
 description = "Provider for Apache Airflow. Implements apache-airflow-providers-google package"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "apache-airflow-providers-google-10.10.0.tar.gz", hash = "sha256:9d8cf5e2d6256bfd75ef9f969c4420520025a147c7b8178697d4470cba0e6466"},
-    {file = "apache_airflow_providers_google-10.10.0-py3-none-any.whl", hash = "sha256:91db24c65fed5e513b27226bf6c2a4ff1a11e5387d405eb72cb423ac7783692f"},
+    {file = "apache-airflow-providers-google-10.10.1.tar.gz", hash = "sha256:17eb532839b0a0f21a75f594ef1387f42efa93fd04f7da392a9b13994d83a7df"},
+    {file = "apache_airflow_providers_google-10.10.1-py3-none-any.whl", hash = "sha256:41f697ffff45311c9be4f5b13b5e5d6aba22060621176a1becbd1d77db78cb36"},
 ]
 
 [package.dependencies]
@@ -8084,4 +8084,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "6dbfdfc716b7402dc9f7a191930dddb2ae2f383fd15dbf36e49fb70bb7da14fb"
+content-hash = "f32227bbe61b41287b9c356f2632806effe598c4026fa88b9bdd7d0ad519059d"
