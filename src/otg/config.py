@@ -149,15 +149,12 @@ class V2GStepConfig:
         variant_annotation_path (str): Input variant annotation path.
         gene_index_path (str): Input gene index path.
         vep_consequences_path (str): Input VEP consequences path.
-        lift_over_chain_file_path (str): Path to GRCh37 to GRCh38 chain file.
-        approved_biotypes (list[str]): List of approved biotypes.
-        anderson_path (str): Anderson intervals path.
-        javierre_path (str): Javierre intervals path.
-        jung_path (str): Jung intervals path.
-        thurman_path (str): Thurman intervals path.
-        liftover_max_length_difference (int): Maximum length difference for liftover.
+        liftover_chain_file_path (str): Path to GRCh37 to GRCh38 chain file.
+        liftover_max_length_difference: Maximum length difference for liftover.
         max_distance (int): Maximum distance to consider.
-        output_path (str): Output V2G path.
+        approved_biotypes (list[str]): List of approved biotypes.
+        intervals (dict): Dictionary of interval sources.
+        v2g_path (str): Output V2G path.
     """
 
     _target_: str = "otg.v2g.V2GStep"
@@ -166,13 +163,8 @@ class V2GStepConfig:
     gene_index_path: str = MISSING
     vep_consequences_path: str = MISSING
     liftover_chain_file_path: str = MISSING
-    anderson_path: str = MISSING
-    javierre_path: str = MISSING
-    jung_path: str = MISSING
-    thurman_path: str = MISSING
     liftover_max_length_difference: int = 100
     max_distance: int = 500_000
-    v2g_path: str = MISSING
     approved_biotypes: List[str] = field(
         default_factory=lambda: [
             "protein_coding",
@@ -190,6 +182,8 @@ class V2GStepConfig:
             "sense_overlapping",
         ]
     )
+    intervals: Dict[str, str] = field(default_factory=dict)
+    v2g_path: str = MISSING
 
 
 @dataclass

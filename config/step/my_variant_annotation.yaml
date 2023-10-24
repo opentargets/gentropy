@@ -2,6 +2,6 @@
 defaults:
   - variant_annotation
 # Additional config
-gnomad_genomes: ${datasets.gnomad_gnomes}
+gnomad_genomes: ${datasets.gnomad_genomes}
 chain_38_to_37: ${datasets.chain_hail_38_37}
 variant_annotation_path: ${datasets.variant_annotation}

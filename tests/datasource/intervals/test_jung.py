@@ -11,12 +11,12 @@ from otg.datasource.intervals.jung import IntervalsJung
 
 @pytest.fixture(scope="module")
 def sample_intervals_jung(spark: SparkSession) -> DataFrame:
-    """Sample Andersson intervals."""
-    return IntervalsJung.read_jung(spark, "tests/data_samples/jung_sample.bed")
+    """Sample Jung intervals."""
+    return IntervalsJung.read(spark, "tests/data_samples/jung_sample.bed")
 
 
 def test_read_jung(sample_intervals_jung: DataFrame) -> None:
-    """Test read_jung."""
+    """Test read Jung data."""
     assert isinstance(sample_intervals_jung, DataFrame)
 
 

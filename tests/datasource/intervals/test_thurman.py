@@ -11,14 +11,12 @@ from otg.datasource.intervals.thurman import IntervalsThurman
 
 @pytest.fixture(scope="module")
 def sample_intervals_thurman(spark: SparkSession) -> DataFrame:
-    """Sample Andersson intervals."""
-    return IntervalsThurman.read_thurman(
-        spark, "tests/data_samples/thurman_sample.bed8"
-    )
+    """Sample Thurman intervals."""
+    return IntervalsThurman.read(spark, "tests/data_samples/thurman_sample.bed8")
 
 
 def test_read_thurman(sample_intervals_thurman: DataFrame) -> None:
-    """Test read_jung."""
+    """Test read Thurman data."""
     assert isinstance(sample_intervals_thurman, DataFrame)
 
 

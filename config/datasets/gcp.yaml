@@ -5,7 +5,7 @@ inputs: gs://genetics_etl_python_playground/input
 outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.version}
 
 # Input datasets
-gnomad_gnomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
+gnomad_genomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
 chain_hail_38_37: gs://hail-common/references/grch38_to_grch37.over.chain.gz
 chain_hail_37_38: gs://hail-common/references/grch37_to_grch38.over.chain.gz
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
@@ -14,7 +14,7 @@ vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
 anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
 javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
 jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
-thrunman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
+thurman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
 catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e110_r2023-09-11.tsv
 catalog_studies: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2023-09-11.tsv
 catalog_ancestries: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2023-09-11.tsv
@@ -29,7 +29,7 @@ ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.geno
 ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
 
 # Output datasets
-gene_index: ${datasets.outputs}/gene_index/gene_index
+gene_index: ${datasets.outputs}/gene_index
 variant_annotation: ${datasets.outputs}/variant_annotation
 variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
@@ -38,7 +38,7 @@ colocalisation: ${datasets.outputs}/colocalisation
 v2g: ${datasets.outputs}/v2g
 ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.outputs}/catalog_study_index
-catalog_study_locus: ${datasets.outputs}/catalog_study_locus
+catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
 finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index

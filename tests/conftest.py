@@ -291,7 +291,7 @@ def mock_v2g(spark: SparkSession) -> V2G:
         .withColumnSpec("score", percentNulls=0.1)
         .withColumnSpec("pmid", percentNulls=0.1)
         .withColumnSpec("biofeature", percentNulls=0.1)
-        .withColumnSpec("label", percentNulls=0.1)
+        .withColumnSpec("score", percentNulls=0.1)
         .withColumnSpec("variantFunctionalConsequenceId", percentNulls=0.1)
         .withColumnSpec("isHighQualityPlof", percentNulls=0.1)
     )

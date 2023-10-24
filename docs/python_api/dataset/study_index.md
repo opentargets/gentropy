@@ -2,7 +2,7 @@
 
 ## Schema
 
---8<-- "assets/schemas/studies.md"
+--8<-- "assets/schemas/study_index.md"
 
 ## Class
 
