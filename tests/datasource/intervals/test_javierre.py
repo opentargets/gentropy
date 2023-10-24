@@ -12,13 +12,11 @@ from otg.datasource.intervals.javierre import IntervalsJavierre
 @pytest.fixture(scope="module")
 def sample_intervals_javierre(spark: SparkSession) -> DataFrame:
     """Sample Javierre intervals."""
-    return IntervalsJavierre.read_javierre(
-        spark, "tests/data_samples/javierre_sample.parquet"
-    )
+    return IntervalsJavierre.read(spark, "tests/data_samples/javierre_sample.parquet")
 
 
 def test_read_javierre(sample_intervals_javierre: DataFrame) -> None:
-    """Test read_jung."""
+    """Test read javierre data."""
     assert isinstance(sample_intervals_javierre, DataFrame)
 
 

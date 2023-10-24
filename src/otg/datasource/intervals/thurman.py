@@ -19,7 +19,7 @@ class IntervalsThurman(Intervals):
     """Interval dataset from Thurman et al. 2012."""
 
     @staticmethod
-    def read_thurman(spark: SparkSession, path: str) -> DataFrame:
+    def read(spark: SparkSession, path: str) -> DataFrame:
         """Read thurman dataset.
 
         Args:

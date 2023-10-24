@@ -49,7 +49,7 @@ class VariantIndex(Dataset):
             "cadd",
         ]
         va_slimmed = variant_annotation.filter_by_variant_df(
-            study_locus.unique_variants_in_locus(), ["variantId", "chromosome"]
+            study_locus.unique_variants_in_locus()
         )
         return cls(
             _df=(
