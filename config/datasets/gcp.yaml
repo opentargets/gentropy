@@ -22,7 +22,7 @@ catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-09-11.txt
 finngen_phenotype_table_url: https://r9.finngen.fi/api/phenos
 ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study_manifest.190430.tsv
 l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
-gene_interactions: gs://genetics_etl_python_playground/input/l2g/interaction # 23.09 data
+gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 
 # Templates
 ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht

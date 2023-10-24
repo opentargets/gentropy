@@ -560,6 +560,22 @@ def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_l2g_gold_standard(spark: SparkSession) -> DataFrame:
+    """Sample L2G gold standard curation."""
+    return spark.read.json(
+        "tests/data_samples/l2g_gold_standard_curation_sample.json.gz",
+    )
+
+
+@pytest.fixture()
+def sample_otp_interactions(spark: SparkSession) -> DataFrame:
+    """Sample OTP gene-gene interactions dataset."""
+    return spark.read.parquet(
+        "tests/data_samples/otp_interactions_sample.parquet",
+    )
+
+
+@pytest.fixture()
 def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     """Mock l2g feature matrix dataset."""
     schema = L2GFeatureMatrix.get_schema()
