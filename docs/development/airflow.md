@@ -25,7 +25,7 @@ newgrp docker
 
 ## Set up Airflow
 
-This section is adapted from instructions from https://airflow.apache.org/docs/apache-airflow/stable/tutorial/pipeline.html. When you run the commands, make sure your current working directory is `airflow` directory (the one where this README file is located).
+This section is adapted from instructions from https://airflow.apache.org/docs/apache-airflow/stable/tutorial/pipeline.html. When you run the commands, make sure your current working directory is `src/airflow`.
 
 ```bash
 # Download the latest docker-compose.yaml file.
