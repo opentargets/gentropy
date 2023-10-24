@@ -38,7 +38,7 @@ with DAG(
             step_id = step["id"]
             this_task = submit_pyspark_job(
                 cluster_name=CLUSTER_NAME,
-                task_id=f"job-{step_id}",
+                task_id=step_id.replace("my_", ""),
                 python_module_path=PYTHON_CLI,
                 args=[
                     f"step={step_id}",

@@ -80,7 +80,7 @@ def create_cluster(
         idle_delete_ttl=300,
     ).make()
     return DataprocCreateClusterOperator(
-        task_id=f"create_cluster_{cluster_name}",
+        task_id="create_cluster",
         project_id=project_id,
         cluster_config=cluster_generator_config,
         region=region,
@@ -119,7 +119,7 @@ def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
 def delete_cluster(cluster_name):
     """Generate an Airflow task to delete a Dataproc cluster."""
     return DataprocDeleteClusterOperator(
-        task_id=f"delete_cluster_{cluster_name}",
+        task_id="delete_cluster",
         project_id=project_id,
         cluster_name=cluster_name,
         region=region,
