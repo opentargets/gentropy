@@ -42,7 +42,7 @@ class LocusToGeneStep(LocusToGeneConfig):
             gs_curation = self.session.spark.read.json(self.gold_standard_curation_path)
             interactions = self.session.spark.read.parquet(self.gene_interactions_path)
 
-            gold_standards = L2GGoldStandard.from_curation(
+            gold_standards = L2GGoldStandard.from_otg_curation(
                 gold_standard_curation=gs_curation,
                 v2g=v2g,
                 study_locus_overlap=study_locus_overlap,
