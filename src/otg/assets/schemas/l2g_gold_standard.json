@@ -18,6 +18,16 @@
       "type": "string",
       "nullable": false,
       "metadata": {}
+    },
+    {
+      "metadata": {},
+      "name": "sources",
+      "nullable": false,
+      "type": {
+        "containsNull": true,
+        "elementType": "string",
+        "type": "array"
+      }
     }
   ]
 }

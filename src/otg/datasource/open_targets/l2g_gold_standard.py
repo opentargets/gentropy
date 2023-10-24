@@ -54,10 +54,15 @@ class OpenTargetsL2GGoldStandard:
         overlaps_df = study_locus_overlap._df.select(
             "leftStudyLocusId", "rightStudyLocusId"
         )
-        interactions_df = L2GGoldStandard.process_gene_interactions(interactions)
+        interactions_df = cls.process_gene_interactions(interactions)
         return L2GGoldStandard(
             _df=(
-                gold_standard_curation.select(
+                gold_standard_curation.filter(
+                    f.col("gold_standard_info.highest_confidence").isin(
+                        ["High", "Medium"]
+                    )
+                )
+                .select(
                     f.col("association_info.otg_id").alias("studyId"),
                     f.col("gold_standard_info.gene_id").alias("geneId"),
                     f.concat_ws(
@@ -67,19 +72,21 @@ class OpenTargetsL2GGoldStandard:
                         f.col("sentinel_variant.alleles.reference"),
                         f.col("sentinel_variant.alleles.alternative"),
                     ).alias("variantId"),
+                    f.col("metadata.set_label").alias("source"),
                 )
                 .withColumn(
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id("studyId", "variantId"),
                 )
-                .filter(
-                    f.col("gold_standard_info.highest_confidence").isin(
-                        ["High", "Medium"]
-                    )
+                .groupBy("studyLocusId", "studyId", "variantId", "geneId")
+                .agg(
+                    f.collect_set("source").alias("sources"),
                 )
                 # Assign Positive or Negative Status based on confidence
                 .join(
-                    v2g.df.select("variantId", "geneId", "distance"),
+                    v2g.df.filter(f.col("distance").isNotNull()).select(
+                        "variantId", "geneId", "distance"
+                    ),
                     on=["variantId", "geneId"],
                     how="inner",
                 )
@@ -117,8 +124,7 @@ class OpenTargetsL2GGoldStandard:
                         )
                     )
                 )
-                .select("studyLocusId", "geneId", "goldStandardSet")
-                # TODO: comment from Daniel: include source of GS
+                .select("studyLocusId", "geneId", "goldStandardSet", "sources")
             ),
             _schema=L2GGoldStandard.get_schema(),
         )
