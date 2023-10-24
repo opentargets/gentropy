@@ -290,9 +290,7 @@
 <span class=normal>278</span>
 <span class=normal>279</span>
 <span class=normal>280</span>
-<span class=normal>281</span>
-<span class=normal>282</span>
-<span class=normal>283</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>281</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>VariantAnnotation</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Dataset with variant-level annotations.&quot;&quot;&quot;</span>
 
@@ -317,29 +315,32 @@
         <span class=p>)</span>
 
     <span class=k>def</span> <span class=nf>filter_by_variant_df</span><span class=p>(</span>
-        <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span>
+        <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VariantAnnotation</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Filter variant annotation dataset by a variant dataframe.</span>
 
 <span class=sd>        Args:</span>
 <span class=sd>            df (DataFrame): A dataframe of variants</span>
-<span class=sd>            cols (List[str]): A list of columns to join on</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            VariantAnnotation: A filtered variant annotation dataset</span>
 <span class=sd>        &quot;&quot;&quot;</span>
-        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>cols</span><span class=p>)),</span> <span class=n>on</span><span class=o>=</span><span class=n>cols</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)),</span>
+            <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>],</span>
+            <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
+        <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
 
     <span class=k>def</span> <span class=nf>get_transcript_consequence_df</span><span class=p>(</span>
-        <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Dataframe of exploded transcript consequences.</span>
 
 <span class=sd>        Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            filter_by (GeneIndex): A gene index. Defaults to None.</span>
+<span class=sd>            gene_index (GeneIndex): A gene index. Defaults to None.</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            DataFrame: A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence</span>
@@ -354,9 +355,9 @@
             <span class=s2>&quot;transcriptConsequence&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.geneId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;geneId&quot;</span><span class=p>),</span>
         <span class=p>)</span>
-        <span class=k>if</span> <span class=n>filter_by</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>gene_index</span><span class=p>:</span>
             <span class=n>transript_consequences</span> <span class=o>=</span> <span class=n>transript_consequences</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>filter_by</span><span class=o>.</span><span class=n>df</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>gene_index</span><span class=o>.</span><span class=n>df</span><span class=p>),</span>
                 <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>],</span>
             <span class=p>)</span>
         <span class=k>return</span> <span class=n>transript_consequences</span><span class=o>.</span><span class=n>persist</span><span class=p>()</span>
@@ -364,44 +365,37 @@
     <span class=k>def</span> <span class=nf>get_most_severe_vep_v2g</span><span class=p>(</span>
         <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
         <span class=n>vep_consequences</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
-        <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
+        <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments based on VEP&#39;s predicted consequence on the transcript.</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments based on VEP&#39;s predicted consequence of the transcript.</span>
 
 <span class=sd>        Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
 
 <span class=sd>        Args:</span>
 <span class=sd>            vep_consequences (DataFrame): A dataframe of VEP consequences</span>
-<span class=sd>            filter_by (GeneIndex): A gene index to filter by. Defaults to None.</span>
+<span class=sd>            gene_index (GeneIndex): A gene index to filter by. Defaults to None.</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            V2G: High and medium severity variant to gene assignments</span>
 <span class=sd>        &quot;&quot;&quot;</span>
-        <span class=n>vep_lut</span> <span class=o>=</span> <span class=n>vep_consequences</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>element_at</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&quot;Accession&quot;</span><span class=p>,</span> <span class=sa>r</span><span class=s2>&quot;/&quot;</span><span class=p>),</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span>
-                <span class=s2>&quot;variantFunctionalConsequenceId&quot;</span>
-            <span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;Term&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;v2g_score&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=s2>&quot;double&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
-        <span class=p>)</span>
-
         <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
-            <span class=n>_df</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
+            <span class=n>_df</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>gene_index</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                 <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.geneId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;geneId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>explode</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.consequenceTerms&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;vep&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;variantConsequence&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
             <span class=p>)</span>
-            <span class=c1># A variant can have multiple predicted consequences on a transcript, the most severe one is selected</span>
             <span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>vep_lut</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>vep_consequences</span><span class=p>),</span>
                 <span class=n>on</span><span class=o>=</span><span class=s2>&quot;label&quot;</span><span class=p>,</span>
                 <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
             <span class=p>)</span>
+            <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>)</span>
+            <span class=c1># A variant can have multiple predicted consequences on a transcript, the most severe one is selected</span>
             <span class=o>.</span><span class=n>transform</span><span class=p>(</span>
                 <span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>get_record_with_maximum_value</span><span class=p>(</span>
                     <span class=n>df</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>],</span> <span class=s2>&quot;score&quot;</span>
@@ -411,29 +405,30 @@
         <span class=p>)</span>
 
     <span class=k>def</span> <span class=nf>get_polyphen_v2g</span><span class=p>(</span>
-        <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a PolyPhen&#39;s predicted score on the transcript.</span>
 
-<span class=sd>        Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
+<span class=sd>        Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows:</span>
+<span class=sd>            - 0.0 to 0.15 -- Predicted to be benign.</span>
+<span class=sd>            - 0.15 to 1.0 -- Possibly damaging.</span>
+<span class=sd>            - 0.85 to 1.0 -- Predicted to be damaging.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            filter_by (GeneIndex): A gene index to filter by. Defaults to None.</span>
+<span class=sd>            gene_index (GeneIndex): A gene index to filter by. Defaults to None.</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            V2G: variant to gene assignments with their polyphen scores</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
             <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-                <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>gene_index</span><span class=p>)</span>
                 <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.polyphenScore&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>())</span>
                 <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                     <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                    <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.polyphenScore&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.polyphenPrediction&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;vep&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;polyphen&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
                 <span class=p>)</span>
@@ -444,11 +439,12 @@
     <span class=k>def</span> <span class=nf>get_sift_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a SIFT&#39;s predicted score on the transcript.</span>
 
-<span class=sd>        SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.</span>
-<span class=sd>        Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
+<span class=sd>        SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:</span>
+<span class=sd>            - 0.0 to 0.05 -- Likely to be deleterious.</span>
+<span class=sd>            - 0.05 to 1.0 -- Likely to be tolerated.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            filter_by (GeneIndex): A gene index to filter by.</span>
+<span class=sd>            gene_index (GeneIndex): A gene index to filter by.</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            V2G: variant to gene assignments with their SIFT scores</span>
@@ -460,10 +456,8 @@
                 <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                     <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                    <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>expr</span><span class=p>(</span><span class=s2>&quot;1 - transcriptConsequence.siftScore&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.siftPrediction&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;vep&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;sift&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
                 <span class=p>)</span>
@@ -471,20 +465,20 @@
             <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
 
-    <span class=k>def</span> <span class=nf>get_plof_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>get_plof_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</span>
 
 <span class=sd>        Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            filter_by (GeneIndex): A gene index to filter by.</span>
+<span class=sd>            gene_index (GeneIndex): A gene index to filter by.</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            V2G: variant to gene assignments from the LOFTEE algorithm</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
             <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-                <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>gene_index</span><span class=p>)</span>
                 <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.lof&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>())</span>
                 <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                     <span class=s2>&quot;isHighQualityPlof&quot;</span><span class=p>,</span>
@@ -501,7 +495,6 @@
                 <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                     <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                    <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;isHighQualityPlof&quot;</span><span class=p>,</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
@@ -514,7 +507,7 @@
 
     <span class=k>def</span> <span class=nf>get_distance_to_tss</span><span class=p>(</span>
         <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
-        <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
+        <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
         <span class=n>max_distance</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>500_000</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Extracts variant to gene assignments for variants falling within a window of a gene&#39;s TSS.</span>
@@ -530,7 +523,7 @@
             <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
                 <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;variant&quot;</span><span class=p>)</span>
                 <span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>filter_by</span><span class=o>.</span><span class=n>locations_lut</span><span class=p>())</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;gene&quot;</span><span class=p>),</span>
+                    <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>gene_index</span><span class=o>.</span><span class=n>locations_lut</span><span class=p>())</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;gene&quot;</span><span class=p>),</span>
                     <span class=n>on</span><span class=o>=</span><span class=p>[</span>
                         <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.chromosome&quot;</span><span class=p>),</span>
                         <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>))</span>
@@ -539,14 +532,17 @@
                     <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
                 <span class=p>)</span>
                 <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+                    <span class=s2>&quot;distance&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>))</span>
+                <span class=p>)</span>
+                <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                     <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span>
-                    <span class=n>max_distance</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>)),</span>
+                    <span class=n>max_distance</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;distance&quot;</span><span class=p>),</span>
                 <span class=p>)</span>
                 <span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>normalise_column</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span> <span class=s2>&quot;score&quot;</span><span class=p>))</span>
                 <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                     <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
-                    <span class=s2>&quot;position&quot;</span><span class=p>,</span>
+                    <span class=s2>&quot;distance&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;score&quot;</span><span class=p>,</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;distance&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
@@ -555,7 +551,7 @@
             <span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>filter_by_variant_df</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=n>cols</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Filter variant annotation dataset by a variant dataframe.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>A dataframe of variants</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>cols</code></td> <td> <code>List[str]</code> </td> <td> <div class=doc-md-description> <p>A list of columns to join on</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>VariantAnnotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td> <div class=doc-md-description> <p>A filtered variant annotation dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>45</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>filter_by_variant_df</span><span class=p>(</span><span class=n>df</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.filter_by_variant_df class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Filter variant annotation dataset by a variant dataframe.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>A dataframe of variants</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>VariantAnnotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td> <div class=doc-md-description> <p>A filtered variant annotation dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>45</span>
 <span class=normal>46</span>
 <span class=normal>47</span>
 <span class=normal>48</span>
@@ -568,21 +564,32 @@
 <span class=normal>55</span>
 <span class=normal>56</span>
 <span class=normal>57</span>
-<span class=normal>58</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>filter_by_variant_df</span><span class=p>(</span>
-    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span>
+<span class=normal>58</span>
+<span class=normal>59</span>
+<span class=normal>60</span>
+<span class=normal>61</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>filter_by_variant_df</span><span class=p>(</span>
+    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>VariantAnnotation</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Filter variant annotation dataset by a variant dataframe.</span>
 
 <span class=sd>    Args:</span>
 <span class=sd>        df (DataFrame): A dataframe of variants</span>
-<span class=sd>        cols (List[str]): A list of columns to join on</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        VariantAnnotation: A filtered variant annotation dataset</span>
 <span class=sd>    &quot;&quot;&quot;</span>
-    <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>cols</span><span class=p>)),</span> <span class=n>on</span><span class=o>=</span><span class=n>cols</span><span class=p>,</span> <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>)</span>
+    <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+        <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>df</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>)),</span>
+        <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>],</span>
+        <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
+    <span class=p>)</span>
     <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_distance_to_tss</span><span class=p>(</span><span class=n>filter_by</span><span class=p>,</span> <span class=n>max_distance</span><span class=o>=</span><span class=mi>500000</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Extracts variant to gene assignments for variants falling within a window of a gene's TSS.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_distance</code></td> <td> <code>int</code> </td> <td> <div class=doc-md-description> <p>The maximum distance from the TSS to consider. Defaults to 500_000.</p> </div> </td> <td> <code>500000</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments with their distance to the TSS</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>241</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_distance_to_tss</span><span class=p>(</span><span class=n>gene_index</span><span class=p>,</span> <span class=n>max_distance</span><span class=o>=</span><span class=mi>500000</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_distance_to_tss class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Extracts variant to gene assignments for variants falling within a window of a gene's TSS.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>max_distance</code></td> <td> <code>int</code> </td> <td> <div class=doc-md-description> <p>The maximum distance from the TSS to consider. Defaults to 500_000.</p> </div> </td> <td> <code>500000</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments with their distance to the TSS</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>236</span>
+<span class=normal>237</span>
+<span class=normal>238</span>
+<span class=normal>239</span>
+<span class=normal>240</span>
+<span class=normal>241</span>
 <span class=normal>242</span>
 <span class=normal>243</span>
 <span class=normal>244</span>
@@ -622,11 +629,9 @@
 <span class=normal>278</span>
 <span class=normal>279</span>
 <span class=normal>280</span>
-<span class=normal>281</span>
-<span class=normal>282</span>
-<span class=normal>283</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_distance_to_tss</span><span class=p>(</span>
+<span class=normal>281</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_distance_to_tss</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
-    <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
+    <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
     <span class=n>max_distance</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>500_000</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Extracts variant to gene assignments for variants falling within a window of a gene&#39;s TSS.</span>
@@ -642,7 +647,7 @@
         <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;variant&quot;</span><span class=p>)</span>
             <span class=o>.</span><span class=n>join</span><span class=p>(</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>filter_by</span><span class=o>.</span><span class=n>locations_lut</span><span class=p>())</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;gene&quot;</span><span class=p>),</span>
+                <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>gene_index</span><span class=o>.</span><span class=n>locations_lut</span><span class=p>())</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;gene&quot;</span><span class=p>),</span>
                 <span class=n>on</span><span class=o>=</span><span class=p>[</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.chromosome&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>))</span>
@@ -651,14 +656,17 @@
                 <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
+                <span class=s2>&quot;distance&quot;</span><span class=p>,</span> <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>))</span>
+            <span class=p>)</span>
+            <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span>
-                <span class=n>max_distance</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.position&quot;</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;gene.tss&quot;</span><span class=p>)),</span>
+                <span class=n>max_distance</span> <span class=o>-</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;distance&quot;</span><span class=p>),</span>
             <span class=p>)</span>
             <span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>normalise_column</span><span class=p>(</span><span class=n>df</span><span class=p>,</span> <span class=s2>&quot;inverse_distance&quot;</span><span class=p>,</span> <span class=s2>&quot;score&quot;</span><span class=p>))</span>
             <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                 <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variant.chromosome&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;chromosome&quot;</span><span class=p>),</span>
-                <span class=s2>&quot;position&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;distance&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;score&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;distance&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
@@ -667,10 +675,7 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_most_severe_vep_v2g</span><span class=p>(</span><span class=n>vep_consequences</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments based on VEP's predicted consequence on the transcript.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>vep_consequences</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>A dataframe of VEP consequences</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by. Defaults to None.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>High and medium severity variant to gene assignments</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 90</span>
-<span class=normal> 91</span>
-<span class=normal> 92</span>
-<span class=normal> 93</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_most_severe_vep_v2g</span><span class=p>(</span><span class=n>vep_consequences</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_most_severe_vep_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments based on VEP's predicted consequence of the transcript.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>vep_consequences</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>A dataframe of VEP consequences</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>gene_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by. Defaults to None.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>High and medium severity variant to gene assignments</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 93</span>
 <span class=normal> 94</span>
 <span class=normal> 95</span>
 <span class=normal> 96</span>
@@ -710,51 +715,40 @@
 <span class=normal>130</span>
 <span class=normal>131</span>
 <span class=normal>132</span>
-<span class=normal>133</span>
-<span class=normal>134</span>
-<span class=normal>135</span>
-<span class=normal>136</span>
-<span class=normal>137</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_most_severe_vep_v2g</span><span class=p>(</span>
+<span class=normal>133</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_most_severe_vep_v2g</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span>
     <span class=n>vep_consequences</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
-    <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
+    <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments based on VEP&#39;s predicted consequence on the transcript.</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments based on VEP&#39;s predicted consequence of the transcript.</span>
 
 <span class=sd>    Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
 
 <span class=sd>    Args:</span>
 <span class=sd>        vep_consequences (DataFrame): A dataframe of VEP consequences</span>
-<span class=sd>        filter_by (GeneIndex): A gene index to filter by. Defaults to None.</span>
+<span class=sd>        gene_index (GeneIndex): A gene index to filter by. Defaults to None.</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        V2G: High and medium severity variant to gene assignments</span>
 <span class=sd>    &quot;&quot;&quot;</span>
-    <span class=n>vep_lut</span> <span class=o>=</span> <span class=n>vep_consequences</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
-        <span class=n>f</span><span class=o>.</span><span class=n>element_at</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&quot;Accession&quot;</span><span class=p>,</span> <span class=sa>r</span><span class=s2>&quot;/&quot;</span><span class=p>),</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span>
-            <span class=s2>&quot;variantFunctionalConsequenceId&quot;</span>
-        <span class=p>),</span>
-        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;Term&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
-        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;v2g_score&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>cast</span><span class=p>(</span><span class=s2>&quot;double&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
-    <span class=p>)</span>
-
     <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
-        <span class=n>_df</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
+        <span class=n>_df</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>gene_index</span><span class=p>)</span>
+        <span class=o>.</span><span class=n>select</span><span class=p>(</span>
             <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
             <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-            <span class=s2>&quot;position&quot;</span><span class=p>,</span>
             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.geneId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;geneId&quot;</span><span class=p>),</span>
             <span class=n>f</span><span class=o>.</span><span class=n>explode</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.consequenceTerms&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
             <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;vep&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
             <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;variantConsequence&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
         <span class=p>)</span>
-        <span class=c1># A variant can have multiple predicted consequences on a transcript, the most severe one is selected</span>
         <span class=o>.</span><span class=n>join</span><span class=p>(</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>vep_lut</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>vep_consequences</span><span class=p>),</span>
             <span class=n>on</span><span class=o>=</span><span class=s2>&quot;label&quot;</span><span class=p>,</span>
             <span class=n>how</span><span class=o>=</span><span class=s2>&quot;inner&quot;</span><span class=p>,</span>
         <span class=p>)</span>
+        <span class=o>.</span><span class=n>drop</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>)</span>
         <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>)</span>
+        <span class=c1># A variant can have multiple predicted consequences on a transcript, the most severe one is selected</span>
         <span class=o>.</span><span class=n>transform</span><span class=p>(</span>
             <span class=k>lambda</span> <span class=n>df</span><span class=p>:</span> <span class=n>get_record_with_maximum_value</span><span class=p>(</span>
                 <span class=n>df</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>],</span> <span class=s2>&quot;score&quot;</span>
@@ -762,7 +756,11 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_plof_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments from the LOFTEE algorithm</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>200</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_plof_v2g</span><span class=p>(</span><span class=n>gene_index</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_plof_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gene_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments from the LOFTEE algorithm</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>196</span>
+<span class=normal>197</span>
+<span class=normal>198</span>
+<span class=normal>199</span>
+<span class=normal>200</span>
 <span class=normal>201</span>
 <span class=normal>202</span>
 <span class=normal>203</span>
@@ -796,25 +794,20 @@
 <span class=normal>231</span>
 <span class=normal>232</span>
 <span class=normal>233</span>
-<span class=normal>234</span>
-<span class=normal>235</span>
-<span class=normal>236</span>
-<span class=normal>237</span>
-<span class=normal>238</span>
-<span class=normal>239</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_plof_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
+<span class=normal>234</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_plof_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</span>
 
 <span class=sd>    Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        filter_by (GeneIndex): A gene index to filter by.</span>
+<span class=sd>        gene_index (GeneIndex): A gene index to filter by.</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        V2G: variant to gene assignments from the LOFTEE algorithm</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
         <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-            <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>gene_index</span><span class=p>)</span>
             <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.lof&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>())</span>
             <span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
                 <span class=s2>&quot;isHighQualityPlof&quot;</span><span class=p>,</span>
@@ -831,7 +824,6 @@
             <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                 <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;isHighQualityPlof&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
@@ -841,7 +833,11 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_polyphen_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.</p> <p>Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by. Defaults to None.</p> </div> </td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments with their polyphen scores</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>139</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_polyphen_v2g</span><span class=p>(</span><span class=n>gene_index</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.</p> <p>Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows: - 0.0 to 0.15 -- Predicted to be benign. - 0.15 to 1.0 -- Possibly damaging. - 0.85 to 1.0 -- Predicted to be damaging.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gene_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by. Defaults to None.</p> </div> </td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments with their polyphen scores</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>135</span>
+<span class=normal>136</span>
+<span class=normal>137</span>
+<span class=normal>138</span>
+<span class=normal>139</span>
 <span class=normal>140</span>
 <span class=normal>141</span>
 <span class=normal>142</span>
@@ -867,33 +863,31 @@
 <span class=normal>162</span>
 <span class=normal>163</span>
 <span class=normal>164</span>
-<span class=normal>165</span>
-<span class=normal>166</span>
-<span class=normal>167</span>
-<span class=normal>168</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_polyphen_v2g</span><span class=p>(</span>
-    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+<span class=normal>165</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_polyphen_v2g</span><span class=p>(</span>
+    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a PolyPhen&#39;s predicted score on the transcript.</span>
 
-<span class=sd>    Polyphen informs about the probability that a substitution is damaging. Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
+<span class=sd>    Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows:</span>
+<span class=sd>        - 0.0 to 0.15 -- Predicted to be benign.</span>
+<span class=sd>        - 0.15 to 1.0 -- Possibly damaging.</span>
+<span class=sd>        - 0.85 to 1.0 -- Predicted to be damaging.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        filter_by (GeneIndex): A gene index to filter by. Defaults to None.</span>
+<span class=sd>        gene_index (GeneIndex): A gene index to filter by. Defaults to None.</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        V2G: variant to gene assignments with their polyphen scores</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>V2G</span><span class=p>(</span>
         <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
-            <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>gene_index</span><span class=p>)</span>
             <span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.polyphenScore&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isNotNull</span><span class=p>())</span>
             <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                 <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.polyphenScore&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.polyphenPrediction&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;vep&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;polyphen&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
             <span class=p>)</span>
@@ -907,7 +901,10 @@
 <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>VariantAnnotation</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Provides the schema for the VariantAnnotation dataset.&quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>parse_spark_schema</span><span class=p>(</span><span class=s2>&quot;variant_annotation.json&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_sift_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.</p> <p>SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious. Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments with their SIFT scores</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>170</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_sift_v2g</span><span class=p>(</span><span class=n>filter_by</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.</p> <p>SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows: - 0.0 to 0.05 -- Likely to be deleterious. - 0.05 to 1.0 -- Likely to be tolerated.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gene_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index to filter by.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>V2G</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code> </td> <td> <div class=doc-md-description> <p>variant to gene assignments with their SIFT scores</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>167</span>
+<span class=normal>168</span>
+<span class=normal>169</span>
+<span class=normal>170</span>
 <span class=normal>171</span>
 <span class=normal>172</span>
 <span class=normal>173</span>
@@ -931,18 +928,15 @@
 <span class=normal>191</span>
 <span class=normal>192</span>
 <span class=normal>193</span>
-<span class=normal>194</span>
-<span class=normal>195</span>
-<span class=normal>196</span>
-<span class=normal>197</span>
-<span class=normal>198</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_sift_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
+<span class=normal>194</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_sift_v2g</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>V2G</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a SIFT&#39;s predicted score on the transcript.</span>
 
-<span class=sd>    SIFT informs about the probability that a substitution is tolerated so scores nearer zero are more likely to be deleterious.</span>
-<span class=sd>    Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
+<span class=sd>    SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:</span>
+<span class=sd>        - 0.0 to 0.05 -- Likely to be deleterious.</span>
+<span class=sd>        - 0.05 to 1.0 -- Likely to be tolerated.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        filter_by (GeneIndex): A gene index to filter by.</span>
+<span class=sd>        gene_index (GeneIndex): A gene index to filter by.</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        V2G: variant to gene assignments with their SIFT scores</span>
@@ -954,20 +948,15 @@
             <span class=o>.</span><span class=n>select</span><span class=p>(</span>
                 <span class=s2>&quot;variantId&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;chromosome&quot;</span><span class=p>,</span>
-                <span class=s2>&quot;position&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;geneId&quot;</span><span class=p>,</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>expr</span><span class=p>(</span><span class=s2>&quot;1 - transcriptConsequence.siftScore&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;score&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.siftPrediction&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;label&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;vep&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datatypeId&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=s2>&quot;sift&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;datasourceId&quot;</span><span class=p>),</span>
             <span class=p>)</span>
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>V2G</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>filter_by</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Dataframe of exploded transcript consequences.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>filter_by</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index. Defaults to None.</p> </div> </td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>60</span>
-<span class=normal>61</span>
-<span class=normal>62</span>
-<span class=normal>63</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_transcript_consequence_df</span><span class=p>(</span><span class=n>gene_index</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></code> <a href=#otg.dataset.variant_annotation.VariantAnnotation.get_transcript_consequence_df class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Dataframe of exploded transcript consequences.</p> <p>Optionally the trancript consequences can be reduced to the universe of a gene index.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gene_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>A gene index. Defaults to None.</p> </div> </td> <td> <code>None</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>63</span>
 <span class=normal>64</span>
 <span class=normal>65</span>
 <span class=normal>66</span>
@@ -992,15 +981,18 @@
 <span class=normal>85</span>
 <span class=normal>86</span>
 <span class=normal>87</span>
-<span class=normal>88</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_transcript_consequence_df</span><span class=p>(</span>
-    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>filter_by</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+<span class=normal>88</span>
+<span class=normal>89</span>
+<span class=normal>90</span>
+<span class=normal>91</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_transcript_consequence_df</span><span class=p>(</span>
+    <span class=bp>self</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>Optional</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Dataframe of exploded transcript consequences.</span>
 
 <span class=sd>    Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        filter_by (GeneIndex): A gene index. Defaults to None.</span>
+<span class=sd>        gene_index (GeneIndex): A gene index. Defaults to None.</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        DataFrame: A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence</span>
@@ -1015,9 +1007,9 @@
         <span class=s2>&quot;transcriptConsequence&quot;</span><span class=p>,</span>
         <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;transcriptConsequence.geneId&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;geneId&quot;</span><span class=p>),</span>
     <span class=p>)</span>
-    <span class=k>if</span> <span class=n>filter_by</span><span class=p>:</span>
+    <span class=k>if</span> <span class=n>gene_index</span><span class=p>:</span>
         <span class=n>transript_consequences</span> <span class=o>=</span> <span class=n>transript_consequences</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
-            <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>filter_by</span><span class=o>.</span><span class=n>df</span><span class=p>),</span>
+            <span class=n>f</span><span class=o>.</span><span class=n>broadcast</span><span class=p>(</span><span class=n>gene_index</span><span class=o>.</span><span class=n>df</span><span class=p>),</span>
             <span class=n>on</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;chromosome&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>],</span>
         <span class=p>)</span>
     <span class=k>return</span> <span class=n>transript_consequences</span><span class=o>.</span><span class=n>persist</span><span class=p>()</span>

@@ -95,7 +95,7 @@
             <span class=s2>&quot;cadd&quot;</span><span class=p>,</span>
         <span class=p>]</span>
         <span class=n>va_slimmed</span> <span class=o>=</span> <span class=n>variant_annotation</span><span class=o>.</span><span class=n>filter_by_variant_df</span><span class=p>(</span>
-            <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_variants_in_locus</span><span class=p>(),</span> <span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>]</span>
+            <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_variants_in_locus</span><span class=p>()</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
             <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
@@ -164,7 +164,7 @@
         <span class=s2>&quot;cadd&quot;</span><span class=p>,</span>
     <span class=p>]</span>
     <span class=n>va_slimmed</span> <span class=o>=</span> <span class=n>variant_annotation</span><span class=o>.</span><span class=n>filter_by_variant_df</span><span class=p>(</span>
-        <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_variants_in_locus</span><span class=p>(),</span> <span class=p>[</span><span class=s2>&quot;variantId&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span><span class=p>]</span>
+        <span class=n>study_locus</span><span class=o>.</span><span class=n>unique_variants_in_locus</span><span class=p>()</span>
     <span class=p>)</span>
     <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
         <span class=n>_df</span><span class=o>=</span><span class=p>(</span>
