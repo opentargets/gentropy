@@ -56,7 +56,7 @@ with DAG(
         # Construct the DAG with all tasks.
         (
             create_cluster(CLUSTER_NAME)
-            >> install_dependencies
+            >> install_dependencies()
             >> list(tasks.values())
             >> delete_cluster(CLUSTER_NAME)
         )
