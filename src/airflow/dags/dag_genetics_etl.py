@@ -8,6 +8,7 @@ from airflow.models.dag import DAG
 from common_airflow import (
     create_cluster,
     delete_cluster,
+    install_dependencies,
     shared_dag_args,
     shared_dag_kwargs,
     submit_pyspark_job,
@@ -29,6 +30,7 @@ with DAG(
     assert (
         SOURCE_CONFIG_FILE_PATH.exists()
     ), f"Config path {SOURCE_CONFIG_FILE_PATH} does not exist."
+
     with open(SOURCE_CONFIG_FILE_PATH, "r") as config_file:
         # Parse and define all steps and their prerequisites.
         tasks = {}
@@ -54,6 +56,7 @@ with DAG(
         # Construct the DAG with all tasks.
         (
             create_cluster(CLUSTER_NAME)
+            >> install_dependencies
             >> list(tasks.values())
             >> delete_cluster(CLUSTER_NAME)
         )

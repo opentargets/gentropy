@@ -89,7 +89,7 @@ def create_cluster(
     )
 
 
-def _submit_job(cluster_name, task_id, job_type, job_specification):
+def submit_job(cluster_name, task_id, job_type, job_specification):
     """Submit an arbitrary job to a Dataproc cluster."""
     return DataprocSubmitJobOperator(
         task_id=task_id,
@@ -108,7 +108,7 @@ def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
     """Submit a PySpark job to a Dataproc cluster."""
     if isinstance(args, dict):
         args = [f"--{arg}={val}" for arg, val in args.items()]
-    return _submit_job(
+    return submit_job(
         cluster_name=cluster_name,
         task_id=task_id,
         job_type="pyspark_job",
@@ -126,11 +126,11 @@ def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
     )
 
 
-def submit_pig_job(cluster_name, task_id):
-    """Submit a Pig job to a Dataproc cluster."""
-    return _submit_job(
+def install_dependencies(cluster_name):
+    """Install dependencies on a Dataproc cluster."""
+    return submit_job(
         cluster_name=cluster_name,
-        task_id=task_id,
+        task_id="install_dependencies",
         job_type="pig_job",
         job_specification={
             "jar_file_uris": [
