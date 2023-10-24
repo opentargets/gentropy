@@ -1,4 +1,10 @@
-site_name: Genetics Portal Pipeline
+site_name: Open Targets Genetics
+
+nav:
+  - installation.md
+  - usage.md
+  - ... | contributing/**
+  - ... | python_api/**
 
 plugins:
   - search
@@ -32,6 +38,10 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.snippets:
       base_path: "docs"
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
 
 hooks:
   - src/scripts/schemadocs.py
@@ -41,17 +51,18 @@ repo_url: https://github.com/opentargets/genetics_etl_python
 
 theme:
   name: "material"
-  favicon: assets/favicon.png
-  logo: assets/otlogo.png
+  favicon: assets/imgs/favicon.png
+  logo: assets/imgs/otlogo.png
   custom_dir: docs/assets/overrides
 
   features:
     - navigation.instant
     - navigation.top
+    - navigation.tabs
+    - navigation.tabs.sticky
     - content.code.annotate
     - search.suggest
     - search.highlight
-
   palette:
     # Light mode
     - media: "(prefers-color-scheme: light)"

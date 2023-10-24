@@ -5,22 +5,23 @@ import dbldatagen as dg
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
+from otg.common.Liftover import LiftOverSpark
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import (
-    StudyIndex,
-    StudyIndexFinnGen,
-    StudyIndexGWASCatalog,
-    StudyIndexUKBiobank,
-)
-from otg.dataset.study_locus import StudyLocus, StudyLocusGWASCatalog
+from otg.dataset.study_index import StudyIndex
+from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
+from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
+from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
+from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 from src.utils.spark import get_spark_testing_conf
 
 
@@ -52,12 +53,12 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(coloc_schema)
-        .withColumnSpec("coloc_h0", percentNulls=0.1)
-        .withColumnSpec("coloc_h1", percentNulls=0.1)
-        .withColumnSpec("coloc_h2", percentNulls=0.1)
-        .withColumnSpec("coloc_h3", percentNulls=0.1)
-        .withColumnSpec("coloc_h4", percentNulls=0.1)
-        .withColumnSpec("coloc_log2_h4_h3", percentNulls=0.1)
+        .withColumnSpec("h0", percentNulls=0.1)
+        .withColumnSpec("h1", percentNulls=0.1)
+        .withColumnSpec("h2", percentNulls=0.1)
+        .withColumnSpec("h3", percentNulls=0.1)
+        .withColumnSpec("h4", percentNulls=0.1)
+        .withColumnSpec("log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
     )
     return Colocalisation(_df=data_spec.build(), _schema=coloc_schema)
@@ -119,29 +120,38 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
 
 
 @pytest.fixture()
-def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
-    """Mock StudyIndexGWASCatalog dataset."""
-    return StudyIndexGWASCatalog(
+def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
+    """Mock GWASCatalogStudyIndex dataset."""
+    return GWASCatalogStudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexGWASCatalog.get_schema(),
+        _schema=StudyIndex.get_schema(),
     )
 
 
 @pytest.fixture()
-def mock_study_index_finngen(spark: SparkSession) -> StudyIndexFinnGen:
-    """Mock StudyIndexFinnGen dataset."""
-    return StudyIndexFinnGen(
+def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
+    """Mock FinnGenStudyIndex dataset."""
+    return FinnGenStudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexFinnGen.get_schema(),
+        _schema=StudyIndex.get_schema(),
     )
 
 
 @pytest.fixture()
-def mock_study_index_ukbiobank(spark: SparkSession) -> StudyIndexUKBiobank:
+def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
+    """Mock FinnGenSummaryStats dataset."""
+    return FinnGenSummaryStats(
+        _df=mock_summary_statistics(spark),
+        _schema=SummaryStatistics.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_ukbiobank(spark: SparkSession) -> UKBiobankStudyIndex:
     """Mock StudyIndexUKBiobank dataset."""
-    return StudyIndexUKBiobank(
+    return UKBiobankStudyIndex(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndexUKBiobank.get_schema(),
+        _schema=UKBiobankStudyIndex.get_schema(),
     )
 
 
@@ -205,16 +215,16 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
     return StudyLocus(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog.get_schema(),
+        _schema=StudyLocus.get_schema(),
     )
 
 
 @pytest.fixture()
 def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
     """Mock study_locus dataset."""
-    return StudyLocusGWASCatalog(
+    return GWASCatalogAssociations(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog.get_schema(),
+        _schema=GWASCatalogAssociations.get_schema(),
     )
 
 
@@ -258,7 +268,6 @@ def mock_v2g(spark: SparkSession) -> V2G:
         .withColumnSpec("pmid", percentNulls=0.1)
         .withColumnSpec("biofeature", percentNulls=0.1)
         .withColumnSpec("score", percentNulls=0.1)
-        .withColumnSpec("label", percentNulls=0.1)
         .withColumnSpec("variantFunctionalConsequenceId", percentNulls=0.1)
         .withColumnSpec("isHighQualityPlof", percentNulls=0.1)
     )
@@ -419,6 +428,16 @@ def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
 def sample_gwas_catalog_harmonised_sumstats(spark: SparkSession) -> DataFrame:
     """Sample GWAS harmonised sumstats sample data."""
     return spark.read.csv(
+        "tests/data_samples/gwas_summary_stats_sample.tsv.gz",
+        sep="\t",
+        header=True,
+    )
+
+
+@pytest.fixture()
+def sample_gwas_catalog_harmonised_sumstats_list(spark: SparkSession) -> DataFrame:
+    """Sample GWAS harmonised sumstats sample data."""
+    return spark.read.csv(
         "tests/data_samples/gwas_catalog_harmonised_list.txt",
         sep="\t",
         header=False,
@@ -436,6 +455,15 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_summary_satistics(spark: SparkSession) -> SummaryStatistics:
+    """Sample GWAS raw associations sample data."""
+    return SummaryStatistics(
+        _df=spark.read.parquet("tests/data_samples/GCST005523_chr18.parquet"),
+        _schema=SummaryStatistics.get_schema(),
+    )
+
+
+@pytest.fixture()
 def sample_finngen_studies(spark: SparkSession) -> DataFrame:
     """Sample FinnGen studies."""
     # For reference, the sample file was generated with the following command:
@@ -444,6 +472,17 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
         json_data = finngen_studies.read()
         rdd = spark.sparkContext.parallelize([json_data])
         return spark.read.json(rdd)
+
+
+@pytest.fixture()
+def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
+    """Sample FinnGen summary stats."""
+    # For reference, the sample file was generated with the following command:
+    # gsutil cat gs://finngen-public-data-r9/summary_stats/finngen_R9_AB1_ACTINOMYCOSIS.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz
+    # It's important for the test file to be named in exactly this way, because FinnGen study ID is populated based on input file name.
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz", header=True
+    )
 
 
 @pytest.fixture()
@@ -483,6 +522,15 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
         .withColumnSpec("biotype", percentNulls=0.1)
         .withColumnSpec("approvedName", percentNulls=0.1)
         .withColumnSpec("tss", percentNulls=0.1)
+        .withColumnSpec("start", percentNulls=0.1)
+        .withColumnSpec("end", percentNulls=0.1)
+        .withColumnSpec("strand", percentNulls=0.1)
     )
 
     return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
+
+
+@pytest.fixture()
+def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
+    """Sample liftover chain file."""
+    return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")

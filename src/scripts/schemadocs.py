@@ -61,4 +61,4 @@ def on_pre_build(config: MkdocsConfig, **kwargs) -> None:
         assets_dir=assets_dir,
         schema_dir="src/otg/assets/schemas",
     )
-    print(f"Schema assests generated for {config['site_name']}")
+    print(f"Schema assets generated for {config['site_name']}")

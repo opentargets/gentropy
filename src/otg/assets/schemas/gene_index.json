@@ -1,0 +1,69 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "geneId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "chromosome",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "approvedSymbol",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "biotype",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "approvedName",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "metadata": {},
+      "name": "obsoleteSymbols",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": "string",
+        "type": "array"
+      }
+    },
+    {
+      "name": "tss",
+      "type": "long",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "metadata": {},
+      "name": "start",
+      "nullable": true,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "end",
+      "nullable": true,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "strand",
+      "nullable": true,
+      "type": "integer"
+    }
+  ]
+}

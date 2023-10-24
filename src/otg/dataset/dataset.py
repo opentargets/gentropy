@@ -36,7 +36,7 @@ class Dataset(ABC):
     @df.setter
     def df(self: Dataset, new_df: DataFrame) -> None:  # noqa: CCE001
         """Dataframe setter."""
-        self._df = new_df
+        self._df: DataFrame = new_df
         self.validate_schema()
 
     @property

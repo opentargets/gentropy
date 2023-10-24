@@ -8,12 +8,10 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from otg.common.utils import split_pvalue
+from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
-
-    from otg.dataset.study_locus import StudyLocus
 
 
 class PICS:
@@ -61,12 +59,12 @@ class PICS:
             >>> PICS._pics_standard_deviation(neglog_p=1.0, r2=1.0, k=6.4)
             0.0
             >>> round(PICS._pics_standard_deviation(neglog_p=10.0, r2=0.5, k=6.4), 3)
-            0.143
+            1.493
             >>> print(PICS._pics_standard_deviation(neglog_p=1.0, r2=0.0, k=6.4))
             None
         """
         return (
-            (1 - abs(r2) ** 0.5**k) ** 0.5 * (neglog_p) ** 0.5 / 2
+            abs(((1 - (r2**0.5) ** k) ** 0.5) * (neglog_p**0.5) / 2)
             if r2 >= 0.5
             else None
         )
@@ -110,12 +108,29 @@ class PICS:
 
         Returns:
             List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
+
+        Examples:
+            >>> from pyspark.sql import Row
+            >>> ld_set = [
+            ...     Row(variantId="var1", r2Overall=0.8),
+            ...     Row(variantId="var2", r2Overall=1),
+            ... ]
+            >>> PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
+            [{'variantId': 'var1', 'r2Overall': 0.8, 'standardError': 0.07420896512708416, 'posteriorProbability': 0.07116959886882368}, {'variantId': 'var2', 'r2Overall': 1, 'standardError': 0.9977000638225533, 'posteriorProbability': 0.9288304011311763}]
+            >>> empty_ld_set = []
+            >>> PICS._finemap(empty_ld_set, lead_neglog_p=10.0, k=6.4)
+            []
+            >>> ld_set_with_no_r2 = [
+            ...     Row(variantId="var1", r2Overall=None),
+            ...     Row(variantId="var2", r2Overall=None),
+            ... ]
+            >>> PICS._finemap(ld_set_with_no_r2, lead_neglog_p=10.0, k=6.4)
+            [{'variantId': 'var1', 'r2Overall': None}, {'variantId': 'var2', 'r2Overall': None}]
         """
         if ld_set is None:
             return None
         elif not ld_set:
             return []
-
         tmp_credible_set = []
         new_credible_set = []
         # First iteration: calculation of mu, standard deviation, and the relative posterior probability
@@ -131,6 +146,7 @@ class PICS:
                 # If PICS cannot be calculated, we'll return the original credible set
                 new_credible_set.append(tag_dict)
                 continue
+
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
                 lead_neglog_p, tag_dict["r2Overall"], k
@@ -140,9 +156,6 @@ class PICS:
                 posterior_probability = PICS._pics_relative_posterior_probability(
                     lead_neglog_p, pics_snp_mu, pics_snp_std
                 )
-                mantissa, exponent = split_pvalue(10**-pics_snp_mu)
-                tag_dict["pValueMantissa"] = mantissa
-                tag_dict["pValueExponent"] = exponent
                 tag_dict["standardError"] = 10**-pics_snp_std
                 tag_dict["relativePosteriorProbability"] = posterior_probability
 
@@ -181,23 +194,51 @@ class PICS:
             StudyLocus: Study locus with PICS results
         """
         # Register UDF by defining the structure of the output locus array of structs
-        credset_schema = t.ArrayType(
-            [field.dataType.elementType for field in associations.schema if field.name == "locus"][0]  # type: ignore
+        # it also renames tagVariantId to variantId
+
+        picsed_ldset_schema = t.ArrayType(
+            t.StructType(
+                [
+                    t.StructField("tagVariantId", t.StringType(), True),
+                    t.StructField("r2Overall", t.DoubleType(), True),
+                    t.StructField("posteriorProbability", t.DoubleType(), True),
+                    t.StructField("standardError", t.DoubleType(), True),
+                ]
+            )
+        )
+        picsed_study_locus_schema = t.ArrayType(
+            t.StructType(
+                [
+                    t.StructField("variantId", t.StringType(), True),
+                    t.StructField("r2Overall", t.DoubleType(), True),
+                    t.StructField("posteriorProbability", t.DoubleType(), True),
+                    t.StructField("standardError", t.DoubleType(), True),
+                ]
+            )
         )
         _finemap_udf = f.udf(
-            lambda credible_set, neglog_p: PICS._finemap(credible_set, neglog_p, k),
-            credset_schema,
+            lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
+            picsed_ldset_schema,
         )
-
-        associations.df = (
-            associations.df.withColumn("neglog_pvalue", associations.neglog_pvalue())
-            .withColumn(
-                "locus",
-                f.when(
-                    f.col("ldSet").isNotNull(),
-                    _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
-                ),
-            )
-            .drop("neglog_pvalue")
+        return StudyLocus(
+            _df=(
+                associations.df
+                # Old locus column will be dropped if available
+                .select(*[col for col in associations.df.columns if col != "locus"])
+                # Estimate neglog_pvalue for the lead variant
+                .withColumn("neglog_pvalue", associations.neglog_pvalue())
+                # New locus containing the PICS results
+                .withColumn(
+                    "locus",
+                    f.when(
+                        f.col("ldSet").isNotNull(),
+                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")).cast(
+                            picsed_study_locus_schema
+                        ),
+                    ),
+                )
+                # Rename tagVariantId to variantId
+                .drop("neglog_pvalue")
+            ),
+            _schema=StudyLocus.get_schema(),
         )
-        return associations

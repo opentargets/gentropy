@@ -20,7 +20,7 @@ class Session:
         spark_uri: str = "local[*]",
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
-        hail_home: str = "unspecified",
+        hail_home: str | None = None,
         extended_conf: SparkConf = None,
     ) -> None:
         """Initialises spark session and logger.
@@ -29,7 +29,7 @@ class Session:
             spark_uri (str): spark uri
             app_name (str): spark application name
             write_mode (str): spark write mode
-            hail_home (str): path to hail installation
+            hail_home (str | None): path to hail installation
             extended_conf (SparkConf): extended spark configuration
         """
         merged_conf = self._create_merged_config(hail_home, extended_conf)
@@ -56,9 +56,9 @@ class Session:
             )  # required for dynamic allocation
         )
 
-    def _hail_config(self: Session, hail_home: str) -> SparkConf:
+    def _hail_config(self: Session, hail_home: str | None) -> SparkConf:
         """Returns the Hail specific Spark configuration."""
-        if hail_home == "unspecified":
+        if hail_home is None:
             return SparkConf()
         return (
             SparkConf()
@@ -74,7 +74,7 @@ class Session:
         )
 
     def _create_merged_config(
-        self: Session, hail_home: str, extended_conf: SparkConf
+        self: Session, hail_home: str | None, extended_conf: SparkConf
     ) -> SparkConf:
         """Merges the default, and optionally the Hail and extended configurations if provided."""
         all_settings = (
@@ -101,7 +101,7 @@ class Session:
         Returns:
             DataFrame: Dataframe with provided schema
         """
-        return self.spark.read.schema(schema).parquet(path, **kwargs, inferSchema=False)  # type: ignore
+        return self.spark.read.schema(schema).parquet(path, **kwargs)
 
 
 class Log4j:

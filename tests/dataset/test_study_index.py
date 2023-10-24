@@ -1,14 +1,10 @@
 """Test study index dataset."""
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import functions as f
 
-from otg.dataset.study_index import (
-    StudyIndex,
-    StudyIndexFinnGen,
-    StudyIndexGWASCatalog,
-    StudyIndexUKBiobank,
-)
+from otg.dataset.study_index import StudyIndex
 
 
 def test_study_index_creation(mock_study_index: StudyIndex) -> None:
@@ -16,123 +12,121 @@ def test_study_index_creation(mock_study_index: StudyIndex) -> None:
     assert isinstance(mock_study_index, StudyIndex)
 
 
-def test_study_index_gwas_catalog_creation(
-    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
-) -> None:
-    """Test study index creation with mock data."""
-    assert isinstance(mock_study_index_gwas_catalog, StudyIndexGWASCatalog)
-
-
-def test_study_index_finngen_creation(
-    mock_study_index_finngen: StudyIndexFinnGen,
-) -> None:
-    """Test study index creation with mock data."""
-    assert isinstance(mock_study_index_finngen, StudyIndexFinnGen)
-
-
-def test_study_index_ukbiobank_creation(
-    mock_study_index_ukbiobank: StudyIndexUKBiobank,
-) -> None:
-    """Test study index creation with mock data."""
-    assert isinstance(mock_study_index_ukbiobank, StudyIndexUKBiobank)
-
-
 def test_study_index_type_lut(mock_study_index: StudyIndex) -> None:
     """Test study index type lut."""
     assert isinstance(mock_study_index.study_type_lut(), DataFrame)
 
 
-def test_annotate_discovery_sample_sizes(
-    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
-) -> None:
-    """Test annotate discovery sample sizes."""
-    mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
-        "nCases", "nControls", "nSamples"
-    )
-    assert isinstance(
-        mock_study_index_gwas_catalog._annotate_discovery_sample_sizes(),
-        StudyIndexGWASCatalog,
-    )
-
-
-def test_parse_study_table(sample_gwas_catalog_studies: DataFrame) -> None:
-    """Test parse study table."""
-    assert isinstance(
-        StudyIndexGWASCatalog._parse_study_table(sample_gwas_catalog_studies),
-        StudyIndexGWASCatalog,
-    )
-
-
-def test_annotate_ancestry(
-    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
-    sample_gwas_catalog_ancestries_lut: DataFrame,
-) -> None:
-    """Test annotate ancestry of StudyIndexGWASCatalog."""
-    mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
-        "discoverySamples", "replicationSamples"
-    )
-    assert isinstance(
-        mock_study_index_gwas_catalog._annotate_ancestries(
-            sample_gwas_catalog_ancestries_lut
+def test_aggregate_and_map_ancestries__correctness(spark: SparkSession):
+    """Test if population are mapped and relative sample sizes are calculated."""
+    data = [
+        (
+            "s1",
+            "East Asian",
+            100,
         ),
-        StudyIndexGWASCatalog,
-    )
-
-
-def test_annotate_sumstats(
-    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
-    sample_gwas_catalog_harmonised_sumstats: DataFrame,
-) -> None:
-    """Test annotate sumstats of StudyIndexGWASCatalog."""
-    mock_study_index_gwas_catalog.df = mock_study_index_gwas_catalog.df.drop(
-        "summarystatsLocation"
-    )
-    assert isinstance(
-        mock_study_index_gwas_catalog._annotate_sumstats_info(
-            sample_gwas_catalog_harmonised_sumstats
+        (
+            "s1",
+            "Finnish",
+            100,
         ),
-        StudyIndexGWASCatalog,
-    )
-
-
-def test_study_index_from_source(
-    sample_gwas_catalog_studies: DataFrame,
-    sample_gwas_catalog_harmonised_sumstats: DataFrame,
-    sample_gwas_catalog_ancestries_lut: DataFrame,
-) -> None:
-    """Test study index from source."""
-    assert isinstance(
-        StudyIndexGWASCatalog.from_source(
-            sample_gwas_catalog_studies,
-            sample_gwas_catalog_ancestries_lut,
-            sample_gwas_catalog_harmonised_sumstats,
+        (
+            "s1",
+            "NR",
+            100,
         ),
-        StudyIndexGWASCatalog,
-    )
-
-
-def test_finngen_study_index_from_source(
-    sample_finngen_studies: DataFrame,
-) -> None:
-    """Test study index from source."""
-    assert isinstance(
-        StudyIndexFinnGen.from_source(
-            sample_finngen_studies,
-            "FINNGEN_R9_",
-            "https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_",
-            ".gz",
+        (
+            "s1",
+            "European",
+            100,
         ),
-        StudyIndexFinnGen,
+    ]
+
+    columns = ["studyId", "ancestry", "sampleSize"]
+
+    df = (
+        spark.createDataFrame(data, columns)
+        .groupBy("studyId")
+        .agg(
+            f.collect_list(f.struct("ancestry", "sampleSize")).alias("discoverySamples")
+        )
+        .select(
+            StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")).alias(
+                "parsedPopulation"
+            )
+        )
     )
 
+    # Asserting that there are three population (both NR and Europeans are grounded to 'nfe'):
+    assert (df.select(f.explode("parsedPopulation")).count()) == 3
 
-def test_ukbiobank_study_index_from_source(
-    sample_ukbiobank_studies: DataFrame,
-) -> None:
-    """Test study index from source."""
-    assert isinstance(
-        StudyIndexUKBiobank.from_source(
-            sample_ukbiobank_studies,
+    # Asserting that the relative count go to 1.0
+    assert (
+        df.select(
+            f.aggregate(
+                "parsedPopulation", f.lit(0.0), lambda y, x: y + x.relativeSampleSize
+            ).alias("sum")
+        ).collect()[0]["sum"]
+    ) == 1.0
+
+
+def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None:
+    """Test correctness of the ancestry aggregator function."""
+    data = [
+        (
+            "s1",
+            "a1",
+            100,
         ),
-        StudyIndexUKBiobank,
+        (
+            "s1",
+            "a1",
+            100,
+        ),
+        (
+            "s1",
+            "a2",
+            100,
+        ),
+    ]
+
+    columns = ["studyId", "ancestry", "sampleSize"]
+
+    df = (
+        spark.createDataFrame(data, columns)
+        .groupBy("studyId")
+        .agg(
+            f.collect_list(f.struct("ancestry", "sampleSize")).alias("discoverySamples")
+        )
+        .select(
+            f.aggregate(
+                "discoverySamples",
+                f.array_distinct(
+                    f.transform(
+                        "discoverySamples",
+                        lambda x: f.struct(
+                            x.ancestry.alias("ancestry"), f.lit(0.0).alias("sampleSize")
+                        ),
+                    )
+                ),
+                StudyIndex._aggregate_samples_by_ancestry,
+            ).alias("test_output")
+        )
+        .persist()
     )
+
+    # Asserting the number of aggregated population:
+    assert (
+        df.filter(f.col("studyId") == "s1").select(f.explode("test_output")).count()
+    ) == 2
+
+    # Asserting the number of aggregated sample size:
+    assert (
+        df.filter(f.col("studyId") == "s1")
+        .select(
+            f.aggregate("test_output", f.lit(0.0), lambda y, x: x.sampleSize + y).alias(
+                "totalSamples"
+            )
+        )
+        .collect()[0]["totalSamples"]
+    ) == 300.0
