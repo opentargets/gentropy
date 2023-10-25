@@ -129,6 +129,7 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("nControls", percentNulls=0.1)
         .withColumnSpec("nSamples", percentNulls=0.1)
         .withColumnSpec("summarystatsLocation", percentNulls=0.1)
+        .withColumnSpec("studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl"])
     )
     return data_spec.build()
 

@@ -10,14 +10,13 @@ from pyspark.ml.tuning import ParamGridBuilder
 from xgboost.spark import SparkXGBClassifier
 
 from otg.dataset.l2g.feature import L2GFeatureMatrix
-from otg.method.l2g_utils.feature_factory import L2GFeature
+from otg.method.l2g_utils.feature_factory import ColocalisationFactory, L2GFeature
 from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 
 if TYPE_CHECKING:
     from otg.dataset.colocalisation import Colocalisation
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.study_locus import StudyLocus
-    from otg.method.l2g_utils.feature_factory import ColocalisationFactory
 
 
 @pytest.fixture(scope="module")
@@ -89,17 +88,31 @@ class TestColocalisationFactory:
     def test_get_max_coloc_per_study_locus(
         self: TestColocalisationFactory,
         mock_study_locus: StudyLocus,
-        mock_studies: StudyIndex,
+        mock_study_index: StudyIndex,
         mock_colocalisation: Colocalisation,
         colocalisation_method: str,
     ) -> None:
         """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus."""
         coloc_llr = ColocalisationFactory._get_max_coloc_per_study_locus(
             mock_study_locus,
-            mock_studies,
+            mock_study_index,
             mock_colocalisation,
             colocalisation_method,
         )
         assert isinstance(
             coloc_llr, L2GFeature
         ), "Unexpected model type returned from _get_max_coloc_per_study_locus"
+
+    def test_get_coloc_features(
+        self: TestColocalisationFactory,
+        mock_study_locus: StudyLocus,
+        mock_study_index: StudyIndex,
+        mock_colocalisation: Colocalisation,
+    ) -> None:
+        """Test the function that calls all the methods to produce colocalisation features."""
+        coloc_features = ColocalisationFactory._get_coloc_features(
+            mock_study_locus, mock_study_index, mock_colocalisation
+        )
+        assert isinstance(
+            coloc_features, L2GFeature
+        ), "Unexpected model type returned from _get_coloc_features"

@@ -67,7 +67,7 @@ class ColocalisationFactory:
             coloc_feature_col_template = "max_coloc_clpp"
 
         colocalising_study_locus = (
-            study_locus.select("studyLocusId", "studyId")
+            study_locus.df.select("studyLocusId", "studyId")
             # annotate studyLoci with overlapping IDs on the left - to just keep GWAS associations
             .join(
                 colocalisation._df.selectExpr(
@@ -154,6 +154,7 @@ class ColocalisationFactory:
         wide_dfs = reduce(
             lambda x, y: x.unionByName(y, allowMissingColumns=True),
             local_dfs + nbh_dfs,
+            colocalising_study_locus.limit(0),
         )
 
         return L2GFeature(
