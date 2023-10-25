@@ -69,23 +69,36 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
 
 
 def _get_spark_schema_from_pandas_df(pdf: PandasDataFrame) -> t.StructType:
-    """Returns the Spark schema based on a Pandas DataFrame."""
+    """Returns the Spark schema based on a Pandas DataFrame.
+
+    Args:
+        pdf (PandasDataFrame): Pandas DataFrame
+
+    Returns:
+        StructType: Spark schema
+
+    Examples:
+        >>> import pandas as pd
+        >>> pdf = pd.DataFrame({"col1": [1, 2], "col2": [3.0, 4.0]})
+        >>> _get_spark_schema_from_pandas_df(pdf)
+        StructType([StructField('col1', IntegerType(), True), StructField('col2', FloatType(), True)])
+    """
+
+    def _get_spark_type(pandas_type: str) -> t.DataType:
+        """Returns the Spark type based on the Pandas type."""
+        try:
+            if pandas_type == "object":
+                return t.StringType()
+            elif pandas_type == "int64":
+                return t.IntegerType()
+            elif pandas_type == "float64":
+                return t.FloatType()
+        except Exception as e:
+            raise ValueError(f"Unsupported type: {pandas_type}") from e
+
     return t.StructType(
         [
             t.StructField(field, _get_spark_type(pdf[field].dtype), True)
             for field in pdf.columns
         ]
     )
-
-
-def _get_spark_type(pandas_type: str) -> t.DataType:
-    """Returns the Spark type based on the Pandas type."""
-    try:
-        if pandas_type == "object":
-            return t.StringType()
-        elif pandas_type == "int64":
-            return t.IntegerType()
-        elif pandas_type == "float64":
-            return t.FloatType()
-    except Exception as e:
-        raise ValueError(f"Unsupported type: {pandas_type}") from e
