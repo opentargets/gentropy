@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 from pyspark.ml import PipelineModel
 from pyspark.ml.tuning import ParamGridBuilder
 from xgboost.spark import SparkXGBClassifier
 
 from otg.dataset.l2g.feature import L2GFeatureMatrix
+from otg.method.l2g_utils.feature_factory import L2GFeature
 from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
+
+if TYPE_CHECKING:
+    from otg.dataset.colocalisation import Colocalisation
+    from otg.dataset.study_index import StudyIndex
+    from otg.dataset.study_locus import StudyLocus
+    from otg.method.l2g_utils.feature_factory import ColocalisationFactory
 
 
 @pytest.fixture(scope="module")
@@ -65,3 +74,32 @@ class TestLocusToGeneTrainer:
         assert isinstance(
             trained_model.model, PipelineModel
         ), "Model is not a PipelineModel object."
+
+
+class TestColocalisationFactory:
+    """Test the ColocalisationFactory methods."""
+
+    @pytest.mark.parametrize(
+        "colocalisation_method",
+        [
+            "COLOC",
+            "eCAVIAR",
+        ],
+    )
+    def test_get_max_coloc_per_study_locus(
+        self: TestColocalisationFactory,
+        mock_study_locus: StudyLocus,
+        mock_studies: StudyIndex,
+        mock_colocalisation: Colocalisation,
+        colocalisation_method: str,
+    ) -> None:
+        """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus."""
+        coloc_llr = ColocalisationFactory._get_max_coloc_per_study_locus(
+            mock_study_locus,
+            mock_studies,
+            mock_colocalisation,
+            colocalisation_method,
+        )
+        assert isinstance(
+            coloc_llr, L2GFeature
+        ), "Unexpected model type returned from _get_max_coloc_per_study_locus"

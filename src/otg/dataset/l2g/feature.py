@@ -20,16 +20,6 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class L2GFeature(Dataset):
-    """Property of a study locus pair."""
-
-    @classmethod
-    def get_schema(cls: type[L2GFeature]) -> StructType:
-        """Provides the schema for the L2GFeature dataset."""
-        return parse_spark_schema("l2g_feature.json")
-
-
-@dataclass
 class L2GFeatureMatrix(Dataset):
     """Dataset with features for Locus to Gene prediction."""
 
