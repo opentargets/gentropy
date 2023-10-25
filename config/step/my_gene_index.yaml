@@ -1,6 +1,2 @@
-# Default config
-defaults:
-  - gene_index
-# Additional config
 target_path: ${datasets.target_index}
 gene_index_path: ${datasets.gene_index}

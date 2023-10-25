@@ -1,7 +1,3 @@
-# Default config
-defaults:
-  - variant_index
-# Additional config
 variant_annotation_path: ${datasets.variant_annotation}
 study_locus_path: ${datasets.study_locus}
 variant_index_path: ${datasets.variant_index}
