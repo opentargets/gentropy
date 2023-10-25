@@ -20,6 +20,16 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class L2GFeature(Dataset):
+    """Property of a study locus pair."""
+
+    @classmethod
+    def get_schema(cls: type[L2GFeature]) -> StructType:
+        """Provides the schema for the L2GFeature dataset."""
+        return parse_spark_schema("l2g_feature.json")
+
+
+@dataclass
 class L2GFeatureMatrix(Dataset):
     """Dataset with features for Locus to Gene prediction."""
 
@@ -34,7 +44,7 @@ class L2GFeatureMatrix(Dataset):
         """Generate features from the OTG datasets."""
         if features_dfs := [
             # Extract features
-            # ColocalisationFactory._get_coloc_features_df(
+            # ColocalisationFactory._get_coloc_features(
             #     study_locus, study_index, colocalisation
             # ).df,
             StudyLocusFactory._get_tss_distance_features(study_locus, variant_gene).df,
