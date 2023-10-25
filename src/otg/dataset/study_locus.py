@@ -9,7 +9,6 @@ import pyspark.sql.functions as f
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
-    _convert_from_wide_to_long,
     calculate_neglog_pvalue,
     order_array_of_structs_by_field,
 )
@@ -21,9 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from otg.common.session import Session
     from otg.dataset.study_index import StudyIndex
-    from otg.dataset.v2g import V2G
 
 
 class StudyLocusQualityCheck(Enum):
@@ -397,71 +394,6 @@ class StudyLocus(Dataset):
             .drop("is_lead_linked")
         )
         return self
-
-    def get_sentinels(self: StudyLocus) -> DataFrame:
-        """Returns a dataframe containing the sentinel variant per study and its P value.
-
-        A sentinel variant will be the tagging variant with the highest probability after conditioning.
-        This tagging variant will practically always match the lead variant, therefore sentinels can be
-        effectively extracted by getting the signal where lead and tag coincide among all lead/tagging pairs
-
-        Returns:
-            DataFrame: Dataframe with all sentinels and their P values
-        """
-        return (
-            self.df.withColumn("locusExploded", f.explode("locus"))
-            .selectExpr(
-                "studyLocusId",
-                "studyId",
-                "variantId as leadVariantId",
-                "locusExploded.variantId as tagVariantId",
-                "locusExploded.pValueMantissaConditioned as tagPValueMantissaConditioned",
-                "locusExploded.pValueExponentConditioned as tagPValueExponentConditioned",
-            )
-            .filter(f.col("leadVariantId") == f.col("tagVariantId"))
-            .drop("locusExploded")
-            .distinct()
-        )
-
-    def _get_tss_distance_features(
-        self: StudyLocus, distances: V2G, etl: Session
-    ) -> DataFrame:
-        """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
-
-        Args:
-            distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
-            etl (ETLSession): ETL session
-
-        Returns:
-            DataFrame: Dataframe with the minimum distance among all variants in the credible set and a gene TSS.
-        """
-        wide_df = (
-            self.filter_credible_set(CredibleInterval.IS95)
-            .select(
-                "studyLocusId",
-                "variantId",
-                f.explode("credibleSet.tagVariantId").alias("tagVariantId"),
-            )
-            .join(
-                distances.df.selectExpr(
-                    "variantId as tagVariantId", "geneId", "distance"
-                ),
-                on="tagVariantId",
-                how="inner",
-            )
-            .groupBy("studyLocusId", "variantId", "geneId")
-            .agg(
-                f.min("distance").alias("distanceTssMinimum"),
-                f.mean("distance").alias("distanceTssMean"),
-            )
-        )
-        return _convert_from_wide_to_long(
-            wide_df,
-            id_vars=("studyLocusId", "geneId"),
-            var_name="featureName",
-            value_name="featureValue",
-            spark=etl.spark,  # not great, but necessary to go from pandas to spark
-        )
 
     def _qc_unresolved_ld(
         self: StudyLocus,
