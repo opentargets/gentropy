@@ -3,7 +3,7 @@ site_name: Open Targets Genetics
 nav:
   - installation.md
   - usage.md
-  - ... | contributing/**
+  - ... | development/**
   - ... | python_api/**
 
 plugins:
