@@ -80,11 +80,7 @@ class Session:
         all_settings = (
             self._default_config().getAll()
             + self._hail_config(hail_home).getAll()
-            + (
-                extended_conf.getAll()
-                if extended_conf
-                else self._default_config().getAll()
-            )
+            + extended_conf.getAll() if extended_conf else []
         )
         return SparkConf().setAll(all_settings)
 
