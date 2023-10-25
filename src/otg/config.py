@@ -299,18 +299,3 @@ def register_configs() -> None:
     cs = ConfigStore.instance()
     cs.store(name="config", node=Config)
     cs.store(name="session_config", group="session", node=SessionConfig)
-    cs.store(name="gene_index", group="step", node=GeneIndexStepConfig)
-    cs.store(name="ld_index", group="step", node=LDIndexStepConfig)
-    cs.store(name="variant_index", group="step", node=VariantIndexStepConfig)
-    cs.store(name="variant_annotation", group="step", node=VariantAnnotationStepConfig)
-    cs.store(name="v2g", group="step", node=V2GStepConfig)
-    cs.store(name="colocalisation", group="step", node=ColocalisationStepConfig)
-    cs.store(name="gwas_catalog", group="step", node=GWASCatalogStepConfig)
-    cs.store(name="finngen", group="step", node=FinnGenStepConfig)
-    cs.store(name="ukbiobank", group="step", node=UKBiobankStepConfig)
-    cs.store(
-        name="gwas_catalog_sumstats_preprocess",
-        group="step",
-        node=GWASCatalogSumstatsPreprocessConfig,
-    )
-    cs.store(name="study_locus_overlap", group="step", node=StudyLocusOverlapStepConfig)
