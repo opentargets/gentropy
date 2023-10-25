@@ -10,7 +10,7 @@ from otg.common.spark_helpers import (
     _convert_from_wide_to_long,
     get_record_with_maximum_value,
 )
-from otg.dataset.l2g.feature_matrix import L2GFeature
+from otg.dataset.l2g.feature import L2GFeature
 from otg.dataset.study_locus import CredibleInterval, StudyLocus
 
 if TYPE_CHECKING:

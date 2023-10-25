@@ -15,7 +15,7 @@ from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 from wandb.wandb_run import Run
 
-from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g.feature import L2GFeatureMatrix
 from otg.method.l2g_utils.evaluator import WandbEvaluator
 
 if TYPE_CHECKING:

@@ -7,7 +7,7 @@ from pyspark.ml import PipelineModel
 from pyspark.ml.tuning import ParamGridBuilder
 from xgboost.spark import SparkXGBClassifier
 
-from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g.feature import L2GFeatureMatrix
 from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 
 

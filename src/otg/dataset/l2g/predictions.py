@@ -10,7 +10,7 @@ from pyspark.ml.functions import vector_to_array
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import _convert_from_long_to_wide
 from otg.dataset.dataset import Dataset
-from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g.feature import L2GFeatureMatrix
 from otg.method.locus_to_gene import LocusToGeneModel
 
 if TYPE_CHECKING:

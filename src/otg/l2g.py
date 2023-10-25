@@ -8,7 +8,7 @@ from xgboost.spark import SparkXGBClassifier
 from otg.common.session import Session
 from otg.config import LocusToGeneConfig
 from otg.dataset.colocalisation import Colocalisation
-from otg.dataset.l2g.feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g.feature import L2GFeatureMatrix
 from otg.dataset.l2g.gold_standard import L2GGoldStandard
 from otg.dataset.l2g.predictions import L2GPrediction
 from otg.dataset.study_index import StudyIndex
