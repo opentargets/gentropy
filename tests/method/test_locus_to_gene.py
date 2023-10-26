@@ -10,13 +10,18 @@ from pyspark.ml.tuning import ParamGridBuilder
 from xgboost.spark import SparkXGBClassifier
 
 from otg.dataset.l2g.feature import L2GFeatureMatrix
-from otg.method.l2g_utils.feature_factory import ColocalisationFactory, L2GFeature
+from otg.method.l2g_utils.feature_factory import (
+    ColocalisationFactory,
+    L2GFeature,
+    StudyLocusFactory,
+)
 from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 
 if TYPE_CHECKING:
     from otg.dataset.colocalisation import Colocalisation
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.study_locus import StudyLocus
+    from otg.dataset.v2g import V2G
 
 
 @pytest.fixture(scope="module")
@@ -116,3 +121,18 @@ class TestColocalisationFactory:
         assert isinstance(
             coloc_features, L2GFeature
         ), "Unexpected model type returned from _get_coloc_features"
+
+
+class TestStudyLocusFactory:
+    """Test the StudyLocusFactory methods."""
+
+    def test_get_tss_distance_features(
+        self: TestStudyLocusFactory, mock_study_locus: StudyLocus, mock_v2g: V2G
+    ) -> None:
+        """Test the function that extracts the distance to the TSS."""
+        tss_distance = StudyLocusFactory._get_tss_distance_features(
+            mock_study_locus, mock_v2g
+        )
+        assert isinstance(
+            tss_distance, L2GFeature
+        ), "Unexpected model type returned from _get_tss_distance_features"

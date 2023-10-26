@@ -87,7 +87,7 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
 
 
 def mock_study_index_data(spark: SparkSession) -> DataFrame:
-    """Mock v2g dataset."""
+    """Mock study index dataset."""
     si_schema = StudyIndex.get_schema()
 
     data_spec = (
