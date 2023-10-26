@@ -35,7 +35,7 @@ class FinnGenStep:
     finngen_summary_stats_out: str = MISSING
 
     def __post_init__(self: FinnGenStep) -> None:
-        """Run FinnGen ingestion step."""
+        """Run step."""
         # Read the JSON data from the URL.
         json_data = urlopen(self.finngen_phenotype_table_url).read().decode("utf-8")
         rdd = self.session.spark.sparkContext.parallelize([json_data])

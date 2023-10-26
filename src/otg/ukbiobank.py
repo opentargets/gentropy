@@ -25,7 +25,7 @@ class UKBiobankStep:
     ukbiobank_study_index_out: str = MISSING
 
     def __post_init__(self: UKBiobankStep) -> None:
-        """Run UKBiobank study table ingestion step."""
+        """Run step."""
         # Read in the UKBiobank manifest tsv file.
         df = self.session.spark.read.csv(
             self.ukbiobank_manifest, sep="\t", header=True, inferSchema=True

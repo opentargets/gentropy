@@ -18,7 +18,7 @@ from otg.method.pics import PICS
 
 @dataclass
 class GWASCatalogStep:
-    """GWAS Catalog step.
+    """GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables.
 
     Attributes:
         catalog_studies_file (str): Raw GWAS catalog studies file.
@@ -45,7 +45,7 @@ class GWASCatalogStep:
     catalog_associations_out: str = MISSING
 
     def __post_init__(self: GWASCatalogStep) -> None:
-        """Run GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables."""
+        """Run step."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
         # All inputs:
         # Variant annotation dataset

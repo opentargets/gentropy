@@ -45,17 +45,16 @@ class VariantAnnotationStep:
     )
 
     def __post_init__(self: VariantAnnotationStep) -> None:
-        """Run variant annotation step."""
-        # init hail session
+        """Run step."""
+        # Initialise hail session.
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
-
-        """Run variant annotation step."""
+        # Run variant annotation.
         variant_annotation = GnomADVariants.as_variant_annotation(
             self.gnomad_genomes,
             self.chain_38_to_37,
             self.populations,
         )
-        # Writing data partitioned by chromosome and position:
+        # Write data partitioned by chromosome and position.
         (
             variant_annotation.df.repartition(400, "chromosome")
             .sortWithinPartitions("chromosome", "position")

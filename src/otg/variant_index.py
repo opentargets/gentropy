@@ -13,7 +13,7 @@ from otg.dataset.variant_index import VariantIndex
 
 @dataclass
 class VariantIndexStep:
-    """Variant index step.
+    """Run variant index step to only variants in study-locus sets.
 
     Using a `VariantAnnotation` dataset as a reference, this step creates and writes a dataset of the type `VariantIndex` that includes only variants that have disease-association data with a reduced set of annotations.
 
@@ -30,7 +30,7 @@ class VariantIndexStep:
     variant_index_path: str = MISSING
 
     def __post_init__(self: VariantIndexStep) -> None:
-        """Run variant index step to only variants in study-locus sets."""
+        """Run step."""
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
         study_locus = StudyLocus.from_parquet(

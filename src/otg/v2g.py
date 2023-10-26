@@ -70,7 +70,7 @@ class V2GStep:
     v2g_path: str = MISSING
 
     def __post_init__(self: V2GStep) -> None:
-        """Run V2G dataset generation."""
+        """Run step."""
         # Read
         gene_index = GeneIndex.from_parquet(self.session, self.gene_index_path)
         vi = VariantIndex.from_parquet(self.session, self.variant_index_path).persist()
