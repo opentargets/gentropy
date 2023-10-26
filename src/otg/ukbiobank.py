@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from omegaconf import MISSING
+
 from otg.common.session import Session
 from otg.config import UKBiobankStepConfig
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
@@ -11,9 +13,17 @@ from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 
 @dataclass
 class UKBiobankStep(UKBiobankStepConfig):
-    """UKBiobank study table ingestion step."""
+    """UKBiobank study table ingestion step.
+
+    Attributes:
+        ukbiobank_manifest (str): UKBiobank manifest of studies.
+        ukbiobank_study_index_out (str): Output path for the UKBiobank study index dataset.
+    """
 
     session: Session = Session()
+
+    ukbiobank_manifest: str = MISSING
+    ukbiobank_study_index_out: str = MISSING
 
     def run(self: UKBiobankStep) -> None:
         """Run UKBiobank study table ingestion step."""

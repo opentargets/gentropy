@@ -125,20 +125,6 @@ class V2GStepConfig:
     v2g_path: str = MISSING
 
 
-@dataclass
-class UKBiobankStepConfig:
-    """UKBiobank study table ingestion step requirements.
-
-    Attributes:
-        ukbiobank_manifest (str): UKBiobank manifest of studies.
-        ukbiobank_study_index_out (str): Output path for the UKBiobank study index dataset.
-    """
-
-    _target_: str = "otg.ukbiobank.UKBiobankStep"
-    ukbiobank_manifest: str = MISSING
-    ukbiobank_study_index_out: str = MISSING
-
-
 # Register all configs
 def register_configs() -> None:
     """Register configs."""
