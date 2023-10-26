@@ -18,8 +18,7 @@ def spark_connect() -> SparkSession:
     Returns:
         SparkSession: SparkSession object.
     """
-    spark = SparkSession.builder.master("local[1]").appName("schemas").getOrCreate()
-    return spark
+    return SparkSession.builder.master("local[1]").appName("schemas").getOrCreate()
 
 
 def generate_schema_assets(

@@ -164,7 +164,7 @@ class VariantAnnotation(Dataset):
             _schema=V2G.get_schema(),
         )
 
-    def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
+    def get_sift_v2g(self: VariantAnnotation, gene_index: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
 
         SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:
@@ -179,7 +179,7 @@ class VariantAnnotation(Dataset):
         """
         return V2G(
             _df=(
-                self.get_transcript_consequence_df(filter_by)
+                self.get_transcript_consequence_df(gene_index)
                 .filter(f.col("transcriptConsequence.siftScore").isNotNull())
                 .select(
                     "variantId",
@@ -241,7 +241,7 @@ class VariantAnnotation(Dataset):
         """Extracts variant to gene assignments for variants falling within a window of a gene's TSS.
 
         Args:
-            filter_by (GeneIndex): A gene index to filter by.
+            gene_index (GeneIndex): A gene index to filter by.
             max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.
 
         Returns:

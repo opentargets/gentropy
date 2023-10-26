@@ -25,6 +25,7 @@ from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
+from src.utils.spark import get_spark_testing_conf
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -35,28 +36,8 @@ def spark(tmp_path_factory) -> SparkSession:
         SparkSession: local spark session
     """
     return (
-        SparkSession.builder.master("local[1]")
-        .config("spark.executor.cores", "1")
-        .config("spark.executor.instances", "1")
-        # no shuffling
-        .config("spark.sql.shuffle.partitions", "1")
-        # ui settings
-        .config("spark.ui.showConsoleProgress", "false")
-        .config("spark.ui.enabled", "false")
-        .config("spark.ui.dagGraph.retainedRootRDDs", "1")
-        .config("spark.ui.retainedJobs", "1")
-        .config("spark.ui.retainedStages", "1")
-        .config("spark.ui.retainedTasks", "1")
-        .config("spark.sql.ui.retainedExecutions", "1")
-        .config("spark.worker.ui.retainedExecutors", "1")
-        .config("spark.worker.ui.retainedDrivers", "1")
-        # fixed memory
-        .config("spark.driver.memory", "2g")
-        .config("spark.sql.warehouse.dir", tmp_path_factory.mktemp("warehouse"))
-        .config(
-            "spark.driver.extraJavaOptions",
-            "-Dderby.system.home={tmp_path_factory.mktemp('derby')}",
-        )
+        SparkSession.builder.config(conf=get_spark_testing_conf())
+        .master("local[1]")
         .appName("test")
         .getOrCreate()
     )

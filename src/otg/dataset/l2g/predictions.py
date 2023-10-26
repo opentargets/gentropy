@@ -44,16 +44,7 @@ class L2GPrediction(Dataset):
         v2g: V2G,
         # coloc: Colocalisation,
     ) -> L2GPrediction:
-        """Initialise L2G from feature matrix.
-
-        Args:
-            session (Session): ETL session
-            model_path (str): Locus to gene model
-
-
-        Returns:
-            L2GPrediction: Locus to gene predictions
-        """
+        """Initialise L2G from feature matrix."""
         fm = L2GFeatureMatrix.generate_features(
             study_locus=study_locus,
             study_index=StudyIndex,
