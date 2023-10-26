@@ -5,15 +5,32 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.request import urlopen
 
+from omegaconf import MISSING
+
 from otg.common.session import Session
-from otg.config import FinnGenStepConfig
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
 from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 
 
 @dataclass
-class FinnGenStep(FinnGenStepConfig):
-    """FinnGen ingestion step."""
+class FinnGenStep:
+    """FinnGen ingestion step.
+
+    Attributes:
+        finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
+        finngen_release_prefix (str): Release prefix pattern.
+        finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.
+        finngen_sumstat_url_suffix (str): URL prefix suffix for summary statistics location.
+        finngen_study_index_out (str): Output path for the FinnGen study index dataset.
+        finngen_summary_stats_out (str): Output path for the FinnGen summary statistics.
+    """
+
+    finngen_phenotype_table_url: str = MISSING
+    finngen_release_prefix: str = MISSING
+    finngen_sumstat_url_prefix: str = MISSING
+    finngen_sumstat_url_suffix: str = MISSING
+    finngen_study_index_out: str = MISSING
+    finngen_summary_stats_out: str = MISSING
 
     session: Session = Session()
 
