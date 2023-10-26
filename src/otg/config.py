@@ -177,24 +177,6 @@ class StudyLocusOverlapStepConfig:
 
 
 @dataclass
-class GWASCatalogSumstatsPreprocessConfig:
-    """GWAS Catalog Sumstats Preprocessing step requirements.
-
-    Attributes:
-        raw_sumstats_path (str): Input raw GWAS Catalog summary statistics path.
-        out_sumstats_path (str): Output GWAS Catalog summary statistics path.
-        study_id (str): GWAS Catalog study identifier.
-    """
-
-    _target_: str = (
-        "otg.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
-    )
-    raw_sumstats_path: str = MISSING
-    out_sumstats_path: str = MISSING
-    study_id: str = MISSING
-
-
-@dataclass
 class UKBiobankStepConfig:
     """UKBiobank study table ingestion step requirements.
 
