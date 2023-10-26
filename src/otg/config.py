@@ -48,37 +48,6 @@ class VariantIndexStepConfig:
     variant_index_path: str = MISSING
 
 
-@dataclass
-class VariantAnnotationStepConfig:
-    """Variant annotation step requirements.
-
-    Attributes:
-        gnomad_genomes (str): Path to gnomAD genomes hail table.
-        chain_38_to_37 (str): Path to GRCh38 to GRCh37 chain file.
-        variant_annotation_path (str): Output variant annotation path.
-        populations (List[str]): List of populations to include.
-    """
-
-    _target_: str = "otg.variant_annotation.VariantAnnotationStep"
-    gnomad_genomes: str = MISSING
-    chain_38_to_37: str = MISSING
-    variant_annotation_path: str = MISSING
-    populations: List[str] = field(
-        default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "ami",  # Amish ancestry
-            "asj",  # Ashkenazi Jewish
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-            "mid",  # Middle Eastern
-            "sas",  # South Asian
-            "oth",  # Other
-        ]
-    )
-
-
 # Register all configs
 def register_configs() -> None:
     """Register configs."""
