@@ -84,27 +84,6 @@ class VariantIndexStepConfig:
 
 
 @dataclass
-class ColocalisationStepConfig:
-    """Colocalisation step requirements.
-
-    Attributes:
-        study_locus_path (DictConfig): Input Study-locus path.
-        coloc_path (DictConfig): Output Colocalisation path.
-        priorc1 (float): Prior on variant being causal for trait 1.
-        priorc2 (float): Prior on variant being causal for trait 2.
-        priorc12 (float): Prior on variant being causal for traits 1 and 2.
-    """
-
-    _target_: str = "otg.colocalisation.ColocalisationStep"
-    study_locus_path: str = MISSING
-    study_index_path: str = MISSING
-    coloc_path: str = MISSING
-    priorc1: float = 1e-4
-    priorc2: float = 1e-4
-    priorc12: float = 1e-5
-
-
-@dataclass
 class VariantAnnotationStepConfig:
     """Variant annotation step requirements.
 
