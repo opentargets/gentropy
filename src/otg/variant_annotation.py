@@ -44,7 +44,7 @@ class VariantAnnotationStep:
         ]
     )
 
-    def run(self: VariantAnnotationStep) -> None:
+    def __post_init__(self: VariantAnnotationStep) -> None:
         """Run variant annotation step."""
         # init hail session
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")

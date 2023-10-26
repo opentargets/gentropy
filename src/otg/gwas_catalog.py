@@ -44,7 +44,7 @@ class GWASCatalogStep:
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
 
-    def run(self: GWASCatalogStep) -> None:
+    def __post_init__(self: GWASCatalogStep) -> None:
         """Run GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
         # All inputs:

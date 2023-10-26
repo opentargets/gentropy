@@ -49,7 +49,7 @@ class LDIndexStep:
     )
     ld_index_out: str = MISSING
 
-    def run(self: LDIndexStep) -> None:
+    def __post_init__(self: LDIndexStep) -> None:
         """Run LD index dump step."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
         ld_index = GnomADLDMatrix.as_ld_index(

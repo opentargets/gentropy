@@ -25,7 +25,7 @@ class GWASCatalogSumstatsPreprocessStep:
     out_sumstats_path: str = MISSING
     study_id: str = MISSING
 
-    def run(self: GWASCatalogSumstatsPreprocessStep) -> None:
+    def __post_init__(self: GWASCatalogSumstatsPreprocessStep) -> None:
         """Run Step."""
         # Extract
         self.session.logger.info(self.raw_sumstats_path)

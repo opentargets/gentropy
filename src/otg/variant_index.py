@@ -29,7 +29,7 @@ class VariantIndexStep:
     study_locus_path: str = MISSING
     variant_index_path: str = MISSING
 
-    def run(self: VariantIndexStep) -> None:
+    def __post_init__(self: VariantIndexStep) -> None:
         """Run variant index step to only variants in study-locus sets."""
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)

@@ -29,7 +29,7 @@ class OverlapsIndexStep:
     study_index_path: str = MISSING
     overlaps_index_out: str = MISSING
 
-    def run(self: OverlapsIndexStep) -> None:
+    def __post_init__(self: OverlapsIndexStep) -> None:
         """Run Overlaps index step.
 
         !!! note

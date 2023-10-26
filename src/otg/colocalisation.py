@@ -34,7 +34,7 @@ class ColocalisationStep:
     priorc2: float = 1e-4
     priorc12: float = 1e-5
 
-    def run(self: ColocalisationStep) -> None:
+    def __post_init__(self: ColocalisationStep) -> None:
         """Run colocalisation step."""
         # Study-locus information
         sl = StudyLocus.from_parquet(self.session, self.study_locus_path)

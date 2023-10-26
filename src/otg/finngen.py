@@ -34,7 +34,7 @@ class FinnGenStep:
     finngen_study_index_out: str = MISSING
     finngen_summary_stats_out: str = MISSING
 
-    def run(self: FinnGenStep) -> None:
+    def __post_init__(self: FinnGenStep) -> None:
         """Run FinnGen ingestion step."""
         # Read the JSON data from the URL.
         json_data = urlopen(self.finngen_phenotype_table_url).read().decode("utf-8")
