@@ -14,7 +14,6 @@ study_index_path: ${datasets.catalog_studies}
 study_locus_overlap_path: ${datasets.study_locus_overlap}
 gold_standard_curation_path: ${datasets.l2g_gold_standard_curation}
 gene_interactions_path: ${datasets.gene_interactions}
-feature_matrix_path: ${datasets.l2g_feature_matrix}
 hyperparameters:
   max_depth: 5
   loss_function: binary:logistic

@@ -300,7 +300,6 @@ class LocusToGeneConfig:
     study_locus_overlap_path: str = MISSING
     gold_standard_curation_path: str = MISSING
     gene_interactions_path: str = MISSING
-    feature_matrix_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
             # average distance of all tagging variants to gene TSS

@@ -43,7 +43,6 @@ finngen_study_index: ${datasets.outputs}/finngen_study_index
 finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
 l2g_model: ${datasets.outputs}/l2g_model
-l2g_feature_matrix: ${datasets.outputs}/l2g_feature_matrix
 l2g_predictions: ${datasets.outputs}/l2g_predictions
 
 # Constants

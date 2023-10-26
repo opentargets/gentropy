@@ -8,15 +8,16 @@ from typing import TYPE_CHECKING, Type
 from pyspark.ml.functions import vector_to_array
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import _convert_from_long_to_wide
+from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.dataset import Dataset
 from otg.dataset.l2g.feature import L2GFeatureMatrix
+from otg.dataset.study_index import StudyIndex
+from otg.dataset.study_locus import StudyLocus
+from otg.dataset.v2g import V2G
 from otg.method.locus_to_gene import LocusToGeneModel
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
-
-    from otg.common.session import Session
 
 
 @dataclass
@@ -31,28 +32,27 @@ class L2GPrediction(Dataset):
     @classmethod
     def from_study_locus(
         cls: Type[L2GPrediction],
-        session: Session,
-        feature_matrix_path: str,
         model_path: str,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
+        v2g: V2G,
+        coloc: Colocalisation,
     ) -> L2GPrediction:
         """Initialise L2G from feature matrix.
 
         Args:
             session (Session): ETL session
-            feature_matrix_path (str): Feature matrix
             model_path (str): Locus to gene model
+
 
         Returns:
             L2GPrediction: Locus to gene predictions
         """
-        fm = L2GFeatureMatrix(
-            _df=_convert_from_long_to_wide(
-                session.spark.read.parquet(feature_matrix_path),
-                id_vars=["studyLocusId", "geneId"],
-                var_name="featureName",
-                value_name="featureValue",
-            ),
-            _schema=L2GFeatureMatrix.get_schema(),
+        fm = L2GFeatureMatrix.generate_features(
+            study_locus=study_locus,
+            study_index=StudyIndex,
+            variant_gene=v2g,
+            # colocalisation=coloc,
         ).fill_na()
 
         return L2GPrediction(

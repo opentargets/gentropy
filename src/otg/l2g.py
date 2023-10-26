@@ -97,10 +97,21 @@ class LocusToGeneStep(LocusToGeneConfig):
                     **self.hyperparameters,
                 )
                 model.save(self.model_path)
+                self.session.logger.info(
+                    f"Finished {self.id} step. L2G model saved to {self.model_path}"
+                )
 
-        if self.run_mode == "predict" and self.model_path and self.predictions_path:
+        if self.run_mode == "predict":
+            if not self.model_path or not self.predictions_path:
+                raise ValueError(
+                    "model_path and predictions_path must be set for predict mode."
+                )
             predictions = L2GPrediction.from_study_locus(
-                self.session, self.feature_matrix_path, self.model_path
+                self.model_path,
+                study_locus,
+                studies,
+                v2g,
+                # coloc
             )
             predictions.df.write.mode(self.session.write_mode).parquet(
                 self.predictions_path
