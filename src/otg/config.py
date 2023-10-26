@@ -161,34 +161,6 @@ class V2GStepConfig:
 
 
 @dataclass
-class GWASCatalogStepConfig:
-    """GWAS Catalog step requirements.
-
-    Attributes:
-        catalog_studies_file (str): Raw GWAS catalog studies file.
-        catalog_ancestry_file (str): Ancestry annotations file from GWAS Catalog.
-        catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
-        catalog_associations_file (str): Raw GWAS catalog associations file.
-        variant_annotation_path (str): Input variant annotation path.
-        ld_populations (list): List of populations to include.
-        min_r2 (float): Minimum r2 to consider when considering variants within a window.
-        catalog_studies_out (str): Output GWAS catalog studies path.
-        catalog_associations_out (str): Output GWAS catalog associations path.
-    """
-
-    _target_: str = "otg.gwas_catalog.GWASCatalogStep"
-    catalog_studies_file: str = MISSING
-    catalog_ancestry_file: str = MISSING
-    catalog_sumstats_lut: str = MISSING
-    catalog_associations_file: str = MISSING
-    variant_annotation_path: str = MISSING
-    ld_index_path: str = MISSING
-    min_r2: float = 0.5
-    catalog_studies_out: str = MISSING
-    catalog_associations_out: str = MISSING
-
-
-@dataclass
 class StudyLocusOverlapStepConfig:
     """StudyLocus overlaps index step requirements.
 
