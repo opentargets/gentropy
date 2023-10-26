@@ -15,7 +15,7 @@
     },
     {
       "name": "score",
-      "type": "float",
+      "type": "double",
       "nullable": false,
       "metadata": {}
     }

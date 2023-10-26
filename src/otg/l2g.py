@@ -29,19 +29,19 @@ class LocusToGeneStep(LocusToGeneConfig):
         """Run Locus to Gene step."""
         self.session.logger.info(f"Executing {self.id} step")
 
+        # Load common inputs
+        study_locus = StudyLocus.from_parquet(
+            self.session, self.study_locus_path, recursiveFileLookup=True
+        )
+        studies = StudyIndex.from_parquet(self.session, self.study_index_path)
+        v2g = V2G.from_parquet(self.session, self.variant_gene_path)
+        # coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step
+
         if self.run_mode == "train":
             # Process gold standard and L2G features
-
-            # Load data
-            study_locus = StudyLocus.from_parquet(
-                self.session, self.study_locus_path, recursiveFileLookup=True
-            )
             study_locus_overlap = StudyLocusOverlap.from_parquet(
                 self.session, self.study_locus_overlap_path
             )
-            studies = StudyIndex.from_parquet(self.session, self.study_index_path)
-            v2g = V2G.from_parquet(self.session, self.variant_gene_path)
-            # coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step
             gs_curation = self.session.spark.read.json(self.gold_standard_curation_path)
             interactions = self.session.spark.read.parquet(self.gene_interactions_path)
 
@@ -116,7 +116,6 @@ class LocusToGeneStep(LocusToGeneConfig):
             predictions.df.write.mode(self.session.write_mode).parquet(
                 self.predictions_path
             )
-
             self.session.logger.info(
                 f"Finished {self.id} step. L2G predictions saved to {self.predictions_path}"
             )
