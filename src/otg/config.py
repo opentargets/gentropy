@@ -205,20 +205,6 @@ class StudyLocusOverlapStepConfig:
 
 
 @dataclass
-class GeneIndexStepConfig:
-    """Gene index step requirements.
-
-    Attributes:
-        target_path (str): Open targets Platform target dataset path.
-        gene_index_path (str): Output gene index path.
-    """
-
-    _target_: str = "otg.gene_index.GeneIndexStep"
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
-
-
-@dataclass
 class GWASCatalogSumstatsPreprocessConfig:
     """GWAS Catalog Sumstats Preprocessing step requirements.
 

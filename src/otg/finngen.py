@@ -25,14 +25,14 @@ class FinnGenStep:
         finngen_summary_stats_out (str): Output path for the FinnGen summary statistics.
     """
 
+    session: Session = Session()
+
     finngen_phenotype_table_url: str = MISSING
     finngen_release_prefix: str = MISSING
     finngen_sumstat_url_prefix: str = MISSING
     finngen_sumstat_url_suffix: str = MISSING
     finngen_study_index_out: str = MISSING
     finngen_summary_stats_out: str = MISSING
-
-    session: Session = Session()
 
     def run(self: FinnGenStep) -> None:
         """Run FinnGen ingestion step."""
