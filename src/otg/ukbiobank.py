@@ -7,12 +7,11 @@ from dataclasses import dataclass
 from omegaconf import MISSING
 
 from otg.common.session import Session
-from otg.config import UKBiobankStepConfig
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 
 
 @dataclass
-class UKBiobankStep(UKBiobankStepConfig):
+class UKBiobankStep:
     """UKBiobank study table ingestion step.
 
     Attributes:

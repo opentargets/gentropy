@@ -10,7 +10,6 @@ from omegaconf import MISSING
 
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
-from otg.config import V2GStepConfig
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.dataset.v2g import V2G
@@ -19,7 +18,7 @@ from otg.dataset.variant_index import VariantIndex
 
 
 @dataclass
-class V2GStep(V2GStepConfig):
+class V2GStep:
     """Variant-to-gene (V2G) step.
 
     This step aims to generate a dataset that contains multiple pieces of evidence supporting the functional association of specific variants with genes. Some of the evidence types include:

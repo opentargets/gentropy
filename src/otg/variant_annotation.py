@@ -8,12 +8,11 @@ import hail as hl
 from omegaconf import MISSING
 
 from otg.common.session import Session
-from otg.config import VariantAnnotationStepConfig
 from otg.datasource.gnomad.variants import GnomADVariants
 
 
 @dataclass
-class VariantAnnotationStep(VariantAnnotationStepConfig):
+class VariantAnnotationStep:
     """Variant annotation step.
 
     Variant annotation step produces a dataset of the type `VariantAnnotation` derived from gnomADs `gnomad.genomes.vX.X.X.sites.ht` Hail's table. This dataset is used to validate variants and as a source of annotation.
