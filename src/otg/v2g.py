@@ -1,10 +1,12 @@
 """Step to generate variant annotation dataset."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
+from typing import Dict, List
 
 import pyspark.sql.functions as f
+from omegaconf import MISSING
 
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
@@ -26,9 +28,47 @@ class V2GStep(V2GStepConfig):
     2. In silico functional predictions, e.g. Variant Effect Predictor (VEP) from Ensembl.
     3. Distance between the variant and each gene's canonical transcription start site (TSS).
 
+    Attributes:
+        variant_index_path (str): Input variant index path.
+        variant_annotation_path (str): Input variant annotation path.
+        gene_index_path (str): Input gene index path.
+        vep_consequences_path (str): Input VEP consequences path.
+        liftover_chain_file_path (str): Path to GRCh37 to GRCh38 chain file.
+        liftover_max_length_difference: Maximum length difference for liftover.
+        max_distance (int): Maximum distance to consider.
+        approved_biotypes (list[str]): List of approved biotypes.
+        intervals (dict): Dictionary of interval sources.
+        v2g_path (str): Output V2G path.
     """
 
     session: Session = Session()
+
+    variant_index_path: str = MISSING
+    variant_annotation_path: str = MISSING
+    gene_index_path: str = MISSING
+    vep_consequences_path: str = MISSING
+    liftover_chain_file_path: str = MISSING
+    liftover_max_length_difference: int = 100
+    max_distance: int = 500_000
+    approved_biotypes: List[str] = field(
+        default_factory=lambda: [
+            "protein_coding",
+            "3prime_overlapping_ncRNA",
+            "antisense",
+            "bidirectional_promoter_lncRNA",
+            "IG_C_gene",
+            "IG_D_gene",
+            "IG_J_gene",
+            "IG_V_gene",
+            "lincRNA",
+            "macro_lncRNA",
+            "non_coding",
+            "sense_intronic",
+            "sense_overlapping",
+        ]
+    )
+    intervals: Dict[str, str] = field(default_factory=dict)
+    v2g_path: str = MISSING
 
     def run(self: V2GStep) -> None:
         """Run V2G dataset generation."""
