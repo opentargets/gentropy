@@ -32,22 +32,6 @@ class SessionConfig:
     hail_home: Optional[str] = None
 
 
-@dataclass
-class VariantIndexStepConfig:
-    """Variant index step requirements.
-
-    Attributes:
-        variant_annotation_path (str): Input variant annotation path.
-        study_locus_path (str): Input study-locus path.
-        variant_index_path (str): Output variant index path.
-    """
-
-    _target_: str = "otg.variant_index.VariantIndexStep"
-    variant_annotation_path: str = MISSING
-    study_locus_path: str = MISSING
-    variant_index_path: str = MISSING
-
-
 # Register all configs
 def register_configs() -> None:
     """Register configs."""
