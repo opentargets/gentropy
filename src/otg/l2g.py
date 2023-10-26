@@ -61,7 +61,7 @@ class LocusToGeneStep(LocusToGeneConfig):
 
             # Join and fill null values with 0
             data = L2GFeatureMatrix(
-                _df=gold_standards.df.join(
+                _df=gold_standards.df.drop("sources").join(
                     fm.df, on=["studyLocusId", "geneId"], how="inner"
                 ),
                 _schema=L2GFeatureMatrix.get_schema(),
