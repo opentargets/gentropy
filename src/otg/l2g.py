@@ -7,7 +7,8 @@ from xgboost.spark import SparkXGBClassifier
 
 from otg.common.session import Session
 from otg.config import LocusToGeneConfig
-from otg.dataset.colocalisation import Colocalisation
+
+# from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.l2g.feature import L2GFeatureMatrix
 from otg.dataset.l2g.gold_standard import L2GGoldStandard
 from otg.dataset.l2g.predictions import L2GPrediction
@@ -32,13 +33,15 @@ class LocusToGeneStep(LocusToGeneConfig):
             # Process gold standard and L2G features
 
             # Load data
-            study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
+            study_locus = StudyLocus.from_parquet(
+                self.session, self.study_locus_path, recursiveFileLookup=True
+            )
             study_locus_overlap = StudyLocusOverlap.from_parquet(
                 self.session, self.study_locus_overlap_path
             )
             studies = StudyIndex.from_parquet(self.session, self.study_index_path)
             v2g = V2G.from_parquet(self.session, self.variant_gene_path)
-            coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path)
+            # coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step
             gs_curation = self.session.spark.read.json(self.gold_standard_curation_path)
             interactions = self.session.spark.read.parquet(self.gene_interactions_path)
 
@@ -53,7 +56,7 @@ class LocusToGeneStep(LocusToGeneConfig):
                 study_locus=study_locus,
                 study_index=studies,
                 variant_gene=v2g,
-                colocalisation=coloc,
+                # colocalisation=coloc,
             )
 
             # Join and fill null values with 0
@@ -82,10 +85,9 @@ class LocusToGeneStep(LocusToGeneConfig):
                     data=data,
                     num_folds=cv_folds,
                 )
-                # self.wandb_run_name = f"{self.wandb_run_name}_cv_best_params"
             else:
                 # Train model
-                LocusToGeneTrainer.train(
+                model = LocusToGeneTrainer.train(
                     data=data,
                     l2g_model=l2g_model,
                     features_list=list(self.features_list),
@@ -94,6 +96,7 @@ class LocusToGeneStep(LocusToGeneConfig):
                     wandb_run_name=self.wandb_run_name,
                     **self.hyperparameters,
                 )
+                model.save(self.model_path)
 
         if self.run_mode == "predict" and self.model_path and self.predictions_path:
             predictions = L2GPrediction.from_study_locus(

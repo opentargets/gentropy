@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
@@ -18,7 +18,7 @@ class Config:
     - session: Spark session configuration.
     """
 
-    defaults: List[Dict[str, str]] = field(
+    defaults: list[Dict[str, str]] = field(
         default_factory=lambda: [{"step": "???"}, {"session": "session_config"}]
     )
 
@@ -34,7 +34,7 @@ class SessionConfig:
     app_name: str = "otgenetics"
     spark_uri: str = "local[*]"
     write_mode: str = "overwrite"
-    hail_home: Optional[str] = None
+    hail_home: str | None = None
 
 
 @dataclass
@@ -46,7 +46,7 @@ class LDIndexStepConfig:
         ld_index_raw_template (str): Template path for the variant indices correspondance in the LD Matrix from gnomAD.
         min_r2 (float): Minimum r2 to consider when considering variants within a window.
         grch37_to_grch38_chain_path (str): Path to GRCh37 to GRCh38 chain file.
-        ld_populations (List[str]): List of population-specific LD matrices to process.
+        ld_populations (list[str]): List of population-specific LD matrices to process.
         ld_index_out (str): Output LD index path.
     """
 
@@ -57,7 +57,7 @@ class LDIndexStepConfig:
     grch37_to_grch38_chain_path: str = (
         "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
     )
-    ld_populations: List[str] = field(
+    ld_populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
@@ -117,14 +117,14 @@ class VariantAnnotationStepConfig:
         gnomad_genomes (str): Path to gnomAD genomes hail table.
         chain_38_to_37 (str): Path to GRCh38 to GRCh37 chain file.
         variant_annotation_path (str): Output variant annotation path.
-        populations (List[str]): List of populations to include.
+        populations (list[str]): List of populations to include.
     """
 
     _target_: str = "otg.variant_annotation.VariantAnnotationStep"
     gnomad_genomes: str = MISSING
     chain_38_to_37: str = MISSING
     variant_annotation_path: str = MISSING
-    populations: List[str] = field(
+    populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
@@ -165,7 +165,7 @@ class V2GStepConfig:
     liftover_chain_file_path: str = MISSING
     liftover_max_length_difference: int = 100
     max_distance: int = 500_000
-    approved_biotypes: List[str] = field(
+    approved_biotypes: list[str] = field(
         default_factory=lambda: [
             "protein_coding",
             "3prime_overlapping_ncRNA",
@@ -289,20 +289,19 @@ class LocusToGeneConfig:
     """Config for Locus to Gene classifier."""
 
     run_mode: str = MISSING
-    wandb_run_name: Optional[str] = None
+    wandb_run_name: str | None = None
     perform_cross_validation: bool = False
-    model_path: Optional[str] = None
-    predictions_path: Optional[str] = None
+    model_path: str | None = None
+    predictions_path: str | None = None
     study_locus_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
     study_locus_overlap_path: str = MISSING
     gold_standard_curation_path: str = MISSING
-    gold_standard_processed_path: str = MISSING
     gene_interactions_path: str = MISSING
-    feature_matrix_path: str = MISSING
-    features_list: List[str] = field(
+    feature_matrix_path: str | None = None
+    features_list: list[str] = field(
         default_factory=lambda: [
             # average distance of all tagging variants to gene TSS
             "distanceTssMean",

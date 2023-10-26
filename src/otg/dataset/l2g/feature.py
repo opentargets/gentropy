@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import reduce
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING, Type
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import _convert_from_long_to_wide
@@ -13,7 +13,7 @@ from otg.method.l2g_utils.feature_factory import StudyLocusFactory
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from otg.dataset.colocalisation import Colocalisation
+    # from otg.dataset.colocalisation import Colocalisation
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.study_locus import StudyLocus
     from otg.dataset.v2g import V2G
@@ -29,7 +29,7 @@ class L2GFeatureMatrix(Dataset):
         study_locus: StudyLocus,
         study_index: StudyIndex,
         variant_gene: V2G,
-        colocalisation: Colocalisation,
+        # colocalisation: Colocalisation,
     ) -> L2GFeatureMatrix:
         """Generate features from the OTG datasets."""
         if features_dfs := [
@@ -62,14 +62,14 @@ class L2GFeatureMatrix(Dataset):
         return parse_spark_schema("l2g_feature_matrix.json")
 
     def fill_na(
-        self: L2GFeatureMatrix, value: float = 0.0, subset: Optional[List[str]] = None
+        self: L2GFeatureMatrix, value: float = 0.0, subset: list[str] | None = None
     ) -> L2GFeatureMatrix:
         """Fill missing values in a column with a given value."""
         self.df = self._df.fillna(value, subset=subset)
         return self
 
     def select_features(
-        self: L2GFeatureMatrix, features_list: List[str]
+        self: L2GFeatureMatrix, features_list: list[str]
     ) -> L2GFeatureMatrix:
         """Select a subset of features from the feature matrix."""
         fixed_rows = ["studyLocusId", "geneId", "goldStandardSet"]
