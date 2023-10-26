@@ -22,8 +22,7 @@ def main(cfg: Config) -> None:
     # Instantiate ETL session
     session = instantiate(cfg.session)
     # Initialise and run step
-    step = instantiate(cfg.step, session=session)
-    step.run()
+    instantiate(cfg.step, session=session)
 
 
 if __name__ == "__main__":
