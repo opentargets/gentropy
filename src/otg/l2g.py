@@ -33,7 +33,9 @@ class LocusToGeneStep(LocusToGeneConfig):
         study_locus = StudyLocus.from_parquet(
             self.session, self.study_locus_path, recursiveFileLookup=True
         )
-        studies = StudyIndex.from_parquet(self.session, self.study_index_path)
+        studies = StudyIndex.from_parquet(
+            self.session, self.study_index_path, recursiveFileLookup=True
+        )
         v2g = V2G.from_parquet(self.session, self.variant_gene_path)
         # coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step
 

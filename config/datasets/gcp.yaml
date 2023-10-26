@@ -33,15 +33,16 @@ gene_index: ${datasets.outputs}/gene_index
 variant_annotation: ${datasets.outputs}/variant_annotation
 variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
+study_index: ${datasets.outputs}/study_index
 study_locus_overlap: ${datasets.outputs}/study_locus_overlap
 colocalisation: ${datasets.outputs}/colocalisation
 v2g: ${datasets.outputs}/v2g
 ld_index: ${datasets.outputs}/ld_index
-catalog_study_index: ${datasets.outputs}/catalog_study_index
+catalog_study_index: ${datasets.study_index}/catalog_study_index
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
-finngen_study_index: ${datasets.outputs}/finngen_study_index
+finngen_study_index: ${datasets.study_index}/finngen_study_index
 finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
-ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
+ukbiobank_study_index: ${datasets.study_index}/ukbiobank_study_index
 l2g_model: ${datasets.outputs}/l2g_model
 l2g_predictions: ${datasets.outputs}/l2g_predictions
 
