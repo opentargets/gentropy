@@ -58,14 +58,13 @@ For more details on each of these steps, see the sections below.
 * If during development you had a question which wasn't covered in the documentation, and someone explained it to you, add it to the documentation. The same applies if you encountered any instructions in the documentation which were obsolete or incorrect.
 * Documentation autogeneration expressions start with `:::`. They will automatically generate sections of the documentation based on class and method docstrings. Be sure to update them for:
   + Dataset definitions in `docs/reference/dataset` (example: `docs/reference/dataset/study_index/study_index_finngen.md`)
-  + Step definitions in `docs/reference/step` (example: `docs/reference/step/finngen.md`)
+  + Step definition in `docs/reference/step` (example: `docs/reference/step/finngen.md`)
 
 ### Configuration
 * Input and output paths in `config/datasets/gcp.yaml`
 * Step configuration in `config/step/my_STEP.yaml` (example: `config/step/my_finngen.yaml`)
 
 ### Classes
-* Step configuration class in `src/org/config.py` (example: `FinnGenStepConfig` class in that module)
 * Dataset class in `src/org/dataset/` (example: `src/otg/dataset/study_index.py` → `StudyIndexFinnGen`)
 * Step main running class in `src/org/STEP.py` (example: `src/org/finngen.py`)
 

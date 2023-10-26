@@ -4,9 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import hail as hl
+from omegaconf import MISSING
 
 from otg.common.session import Session
-from otg.config import GWASCatalogStepConfig
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
@@ -17,10 +17,32 @@ from otg.method.pics import PICS
 
 
 @dataclass
-class GWASCatalogStep(GWASCatalogStepConfig):
-    """GWAS Catalog step."""
+class GWASCatalogStep:
+    """GWAS Catalog step.
+
+    Attributes:
+        catalog_studies_file (str): Raw GWAS catalog studies file.
+        catalog_ancestry_file (str): Ancestry annotations file from GWAS Catalog.
+        catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
+        catalog_associations_file (str): Raw GWAS catalog associations file.
+        variant_annotation_path (str): Input variant annotation path.
+        ld_populations (list): List of populations to include.
+        min_r2 (float): Minimum r2 to consider when considering variants within a window.
+        catalog_studies_out (str): Output GWAS catalog studies path.
+        catalog_associations_out (str): Output GWAS catalog associations path.
+    """
 
     session: Session = Session()
+
+    catalog_studies_file: str = MISSING
+    catalog_ancestry_file: str = MISSING
+    catalog_sumstats_lut: str = MISSING
+    catalog_associations_file: str = MISSING
+    variant_annotation_path: str = MISSING
+    ld_index_path: str = MISSING
+    min_r2: float = 0.5
+    catalog_studies_out: str = MISSING
+    catalog_associations_out: str = MISSING
 
     def run(self: GWASCatalogStep) -> None:
         """Run GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables."""

@@ -3,21 +3,36 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from omegaconf import MISSING
+
 from otg.common.session import Session
-from otg.config import ColocalisationStepConfig
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import CredibleInterval, StudyLocus
 from otg.method.colocalisation import Coloc, ECaviar
 
 
 @dataclass
-class ColocalisationStep(ColocalisationStepConfig):
+class ColocalisationStep:
     """Colocalisation step.
 
     This workflow runs colocalization analyses that assess the degree to which independent signals of the association share the same causal variant in a region of the genome, typically limited by linkage disequilibrium (LD).
+
+    Attributes:
+        study_locus_path (DictConfig): Input Study-locus path.
+        coloc_path (DictConfig): Output Colocalisation path.
+        priorc1 (float): Prior on variant being causal for trait 1.
+        priorc2 (float): Prior on variant being causal for trait 2.
+        priorc12 (float): Prior on variant being causal for traits 1 and 2.
     """
 
     session: Session = Session()
+
+    study_locus_path: str = MISSING
+    study_index_path: str = MISSING
+    coloc_path: str = MISSING
+    priorc1: float = 1e-4
+    priorc2: float = 1e-4
+    priorc12: float = 1e-5
 
     def run(self: ColocalisationStep) -> None:
         """Run colocalisation step."""

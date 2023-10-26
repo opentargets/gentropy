@@ -3,16 +3,27 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from omegaconf import MISSING
+
 from otg.common.session import Session
-from otg.config import GWASCatalogSumstatsPreprocessConfig
 from otg.datasource.gwas_catalog.summary_statistics import GWASCatalogSummaryStatistics
 
 
 @dataclass
-class GWASCatalogSumstatsPreprocessStep(GWASCatalogSumstatsPreprocessConfig):
-    """Step to preprocess GWAS Catalog harmonised summary stats."""
+class GWASCatalogSumstatsPreprocessStep:
+    """Step to preprocess GWAS Catalog harmonised summary stats.
+
+    Attributes:
+        raw_sumstats_path (str): Input raw GWAS Catalog summary statistics path.
+        out_sumstats_path (str): Output GWAS Catalog summary statistics path.
+        study_id (str): GWAS Catalog study identifier.
+    """
 
     session: Session = Session()
+
+    raw_sumstats_path: str = MISSING
+    out_sumstats_path: str = MISSING
+    study_id: str = MISSING
 
     def run(self: GWASCatalogSumstatsPreprocessStep) -> None:
         """Run Step."""
