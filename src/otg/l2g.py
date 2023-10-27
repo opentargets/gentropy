@@ -7,7 +7,6 @@ from omegaconf import MISSING
 from xgboost.spark import SparkXGBClassifier
 
 from otg.common.session import Session
-from otg.config import LocusToGeneConfig
 
 # from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.l2g.feature import L2GFeatureMatrix
@@ -21,7 +20,7 @@ from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 
 
 @dataclass
-class LocusToGeneStep(LocusToGeneConfig):
+class LocusToGeneStep:
     """Locus to gene step."""
 
     session: Session = Session()
@@ -76,12 +75,9 @@ class LocusToGeneStep(LocusToGeneConfig):
             "loss_function": "binary:logistic",
         }
     )
-    id: str = "locus_to_gene"
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
-        self.session.logger.info(f"Executing {self.id} step")
-
         for attribute, value in self.__dict__.items():
             print(f"{attribute}: {value}")
 
@@ -154,7 +150,7 @@ class LocusToGeneStep(LocusToGeneConfig):
                 )
                 model.save(self.model_path)
                 self.session.logger.info(
-                    f"Finished {self.id} step. L2G model saved to {self.model_path}"
+                    f"Finished L2G step. L2G model saved to {self.model_path}"
                 )
 
         if self.run_mode == "predict":
@@ -173,5 +169,5 @@ class LocusToGeneStep(LocusToGeneConfig):
                 self.predictions_path
             )
             self.session.logger.info(
-                f"Finished {self.id} step. L2G predictions saved to {self.predictions_path}"
+                f"Finished L2G step. L2G predictions saved to {self.predictions_path}"
             )
