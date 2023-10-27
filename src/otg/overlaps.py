@@ -3,21 +3,31 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from omegaconf import MISSING
+
 from otg.common.session import Session
-from otg.config import StudyLocusOverlapStepConfig
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 
 
 @dataclass
-class OverlapsIndexStep(StudyLocusOverlapStepConfig):
+class OverlapsIndexStep:
     """StudyLocus overlaps step.
 
     This step generates a dataset of overlapping studyLocus associations.
+
+    Attributes:
+        study_locus_path (str): Input study-locus path.
+        study_index_path (str): Input study index path to extract the type of study.
+        overlaps_index_out (str): Output overlaps index path.
     """
 
     session: Session = Session()
+
+    study_locus_path: str = MISSING
+    study_index_path: str = MISSING
+    overlaps_index_out: str = MISSING
 
     def run(self: OverlapsIndexStep) -> None:
         """Run Overlaps index step.

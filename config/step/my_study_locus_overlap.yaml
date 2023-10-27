@@ -1,7 +1,4 @@
-# Default config
-defaults:
-  - study_locus_overlap
-# Additional config
+_target_: otg.overlaps.OverlapsIndexStep
 study_locus_path: ${datasets.outputs}/catalog_study_locus
 study_index_path: ${datasets.outputs}/catalog_study_index
 overlaps_index_out: ${datasets.outputs}/study_locus_overlap

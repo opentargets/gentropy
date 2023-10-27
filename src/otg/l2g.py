@@ -1,8 +1,9 @@
 """Step to run Locus to Gene either for inference or for training."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from omegaconf import MISSING
 from xgboost.spark import SparkXGBClassifier
 
 from otg.common.session import Session
@@ -24,6 +25,58 @@ class LocusToGeneStep(LocusToGeneConfig):
     """Locus to gene step."""
 
     session: Session = Session()
+
+    run_mode: str = MISSING
+    wandb_run_name: str | None = None
+    perform_cross_validation: bool = False
+    model_path: str | None = None
+    predictions_path: str | None = None
+    study_locus_path: str = MISSING
+    variant_gene_path: str = MISSING
+    colocalisation_path: str = MISSING
+    study_index_path: str = MISSING
+    study_locus_overlap_path: str | None = None
+    gold_standard_curation_path: str | None = None
+    gene_interactions_path: str | None = None
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            # average distance of all tagging variants to gene TSS
+            "distanceTssMean",
+            # # minimum distance of all tagging variants to gene TSS
+            # "distanceTssMinimum",
+            # # max clpp for each (study, locus, gene) aggregating over all eQTLs
+            # "eqtlColocClppLocalMaximum",
+            # # max clpp for each (study, locus) aggregating over all eQTLs
+            # "eqtlColocClppNeighborhoodMaximum",
+            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
+            # "eqtlColocLlrLocalMaximum",
+            # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
+            # "eqtlColocLlrNeighborhoodMaximum",
+            # # max clpp for each (study, locus, gene) aggregating over all pQTLs
+            # "pqtlColocClppLocalMaximum",
+            # # max clpp for each (study, locus) aggregating over all pQTLs
+            # "pqtlColocClppNeighborhoodMaximum",
+            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
+            # "pqtlColocLlrLocalMaximum",
+            # # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
+            # "pqtlColocLlrNeighborhoodMaximum",
+            # # max clpp for each (study, locus, gene) aggregating over all sQTLs
+            # "sqtlColocClppLocalMaximum",
+            # # max clpp for each (study, locus) aggregating over all sQTLs
+            # "sqtlColocClppNeighborhoodMaximum",
+            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
+            # "sqtlColocLlrLocalMaximum",
+            # # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
+            # "sqtlColocLlrNeighborhoodMaximum",
+        ]
+    )
+    hyperparameters: dict = field(
+        default_factory=lambda: {
+            "max_depth": 5,
+            "loss_function": "binary:logistic",
+        }
+    )
+    id: str = "locus_to_gene"
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""

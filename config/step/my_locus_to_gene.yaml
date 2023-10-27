@@ -1,7 +1,4 @@
-# Default config
-defaults:
-  - locus_to_gene
-# Additional config
+_target_: otg.l2g.LocusToGeneStep
 run_mode: train
 wandb_run_name: null
 perform_cross_validation: false
