@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 import pendulum
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
@@ -22,11 +20,6 @@ project_id = "open-targets-genetics-dev"
 region = "europe-west1"
 zone = "europe-west1-d"
 image_version = "2.1"
-google_application_credentials = (
-    "/opt/airflow/config/application_default_credentials.json"
-)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_application_credentials
-os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 
 
 # Executable configuration.

@@ -7,5 +7,6 @@ outputs/
 coverage.xml
 docs/assets/schemas/
 .cache/
-src/airflow/logs/
+src/airflow/logs/*
+!src/airflow/logs/.gitkeep
 site/

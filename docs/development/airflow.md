@@ -1,52 +1,95 @@
-# Running Airflow workflows
+# Airflow workflow
 
-Airflow code is located in `src/airflow`. Make sure to execute all of the instructions from that directory, unless stated otherwise.
+The next section describes how to run Airflow workflows locally while performing computation in Google Cloud Platform. This is useful for testing and debugging, but for production use, we recommend running Airflow on a dedicated server.
 
-## Set up Docker
+## Pre-requisites
 
-We will be running a local Airflow setup using Docker Compose. First, make sure it is installed (this and subsequent commands are tested on Ubuntu):
+- [Docker](https://docs.docker.com/get-docker/)
+- [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
 
-```bash
-sudo apt install docker-compose
-```
+!!!warning macOS Docker memory allocation
+    If you are working on a macOS, the default amount of memory available for Docker might not bet enough to get Airflow up and running. You should allocate at least 4GB of memory for the Docker Engine (ideally 8GB). [More info](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#)
 
-Next, verify that you can run Docker. This should say "Hello from Docker":
 
-```bash
-docker run hello-world
-```
+## Configure Airflow access to Google Cloud Platform
 
-If the command above raises a permission error, fix it and reboot:
+Run the next command with the appropriate <PROJECT_ID> to ensure you have Google default application credentials set up:
 
 ```bash
-sudo usermod -a -G docker $USER
-newgrp docker
+gcloud auth application-default login --project=<PROJECT_ID>
 ```
 
-## Set up Airflow
-
-This section is adapted from instructions from https://airflow.apache.org/docs/apache-airflow/stable/tutorial/pipeline.html. When you run the commands, make sure your current working directory is `src/airflow`.
+Next, create the service account key file that will be used by Airflow to access Google Cloud Platform resources. The next command will create a file at `~/.config/gcloud/service_account_credentials.json` using the specified IAM account which needs to have the required priviledges to access the required GCP resources.
 
 ```bash
-# Download the latest docker-compose.yaml file.
-curl -sLfO https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml
-
-# Make expected directories.
-mkdir -p ./config ./dags ./logs ./plugins
-
-# Construct the modified Docker image with additional PIP dependencies.
-docker build . --tag opentargets-airflow:2.7.1
-
-# Set environment variables.
-cat << EOF > .env
-AIRFLOW_UID=$(id -u)
-AIRFLOW_IMAGE_NAME=opentargets-airflow:2.7.1
-EOF
+gcloud iam service-accounts keys create ~/.config/gcloud/service_account_credentials.json --iam-account=open-targets-genetics-dev@appspot.gserviceaccount.com
 ```
 
-Now modify `docker-compose.yaml` and add the following to the x-airflow-common → environment section:
+## Airflow
+
+All subsequent steps are relative to the `src/airflow` folder:
+
+```bash
+cd src/airflow
 ```
-GOOGLE_APPLICATION_CREDENTIALS: '/opt/airflow/config/application_default_credentials.json'
+
+###  Build Docker image
+
+To extend the default airflow image with the required libraries and credentials.
+
+!!!note "Note"
+    The Dockerfile extends the official [Airflow Docker Compose YAML](https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml). We add support for the Google Cloud SDK, Google Airflow operators and access to GCP credentials.
+
+```bash
+# Build the image in the Dockerfile and name it extending_airflow and version it as latest
+docker build . --tag extending_airflow:latest
+```
+
+###  Initialise
+
+Before starting Airflow, we need to initialise the database:
+
+```bash
+docker compose up airflow-init
+```
+
+Now you can start all services:
+
+```bash
+docker compose up -d
+```
+
+Airflow UI will now be available at `http://localhost:8080/`. Default username and password are both `airflow`.
+For additional information on how to use Airflow visit the [official documentation](https://airflow.apache.org/docs/apache-airflow/stable/index.html).
+
+
+### Cleaning up
+
+At any time, you can check the status of your containers with:
+
+```bash
+docker ps
+```
+
+To stop Airflow, run:
+
+```bash
+docker compose down
+```
+
+To cleanup the Airflow database, run:
+
+```bash
+docker compose down --volumes --remove-orphans
+```
+
+### Advanced configuration
+
+More information on running Airflow with Docker Compose can be found in the [official docs](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html).
+
+1. **Increase Airflow concurrency**. Modify the `docker-compose.yaml` and add the following to the x-airflow-common → environment section:
+
+```yaml
 AIRFLOW__CELERY__WORKER_CONCURRENCY: 32
 AIRFLOW__CORE__PARALLELISM: 32
 AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: 32
@@ -54,45 +97,12 @@ AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY: 16
 AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 1
 ```
 
-## Start Airflow
+1. **Additional pip packages**. They can be added to the `requirements.txt` file.
 
-```bash
-docker-compose up
-```
-
-Airflow UI will now be available at http://localhost:8080/home. Default username and password are both `airflow`.
-
-## Configure Google Cloud access
-
-In order to be able to access Google Cloud and do work with Dataproc, Airflow will need to be configured. First, obtain Google default application credentials by running this command and following the instructions:
-
-```bash
-gcloud auth application-default login
-```
-
-Next, copy the file into the `config/` subdirectory which we created above:
-
-```bash
-cp ~/.config/gcloud/application_default_credentials.json config/
-```
-
-Now open the Airflow UI and:
-
-* Navigate to Admin → Connections.
-* Click on "Add new record".
-* Set "Connection type" to `Google Cloud``.
-* Set "Connection ID" to `google_cloud_default`.
-* Set "Credential Configuration File" to `/opt/airflow/config/application_default_credentials.json`.
-* Click on "Save".
-
-## Run a workflow
-
-Workflows, which must be placed under the `dags/` directory, will appear in the "DAGs" section of the UI, which is also the main page. They can be triggered manually by opening a workflow and clicking on the "Play" button in the upper right corner.
-
-In order to restart a failed task, click on it and then click on "Clear task".
 
 ## Troubleshooting
 
 Note that when you a a new workflow under `dags/`, Airflow will not pick that up immediately. By default the filesystem is only scanned for new DAGs every 300s. However, once the DAG is added, updates are applied nearly instantaneously.
 
 Also, if you edit the DAG while an instance of it is running, it might cause problems with the run, as Airflow will try to update the tasks and their properties in DAG according to the file changes.
+We will be running a local Airflow setup using Docker Compose. First, make sure it is installed (this and subsequent commands are tested on Ubuntu).
