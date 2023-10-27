@@ -61,6 +61,10 @@ google-cloud-dataproc = "^5.4.1"
 apache-airflow = "^2.7.0"
 apache-airflow-providers-google = "^10.10.1"
 
+
+[tool.poetry.group.dev-dependencies.dependencies]
+pydoclint = "^0.3.8"
+
 [tool.semantic_release]
 branch = "main"
 version_variable = "src/otg/__init__.py:__version__"
@@ -112,3 +116,8 @@ docstring-quotes = "double"
 
 [tool.ruff.pydocstyle]
 convention = "google"
+
+[tool.pydoclint]
+style = 'google'
+exclude = '\.git|\.venv|__init__.py'
+require-return-section-when-returning-nothing = true
