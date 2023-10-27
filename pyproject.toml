@@ -21,6 +21,8 @@ xgboost = "^1.7.3"
 scikit-learn = "^1.2.1"
 numpy = "^1.26.1"
 hail = "0.2.122"
+pyarrow = "^11.0.0"
+wandb = "^0.13.9"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^2.21.0"
@@ -62,9 +64,7 @@ ipykernel = "^6.19.0"
 google-cloud-dataproc = "^5.4.1"
 apache-airflow = "^2.7.0"
 apache-airflow-providers-google = "^10.10.1"
-xgboost = "^1.7.4"
-pyarrow = "^11.0.0"
-wandb = "^0.13.9"
+
 
 [tool.semantic_release]
 branch = "main"

@@ -78,9 +78,6 @@ class LocusToGeneStep:
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
-        for attribute, value in self.__dict__.items():
-            print(f"{attribute}: {value}")
-
         # Load common inputs
         study_locus = StudyLocus.from_parquet(
             self.session, self.study_locus_path, recursiveFileLookup=True
