@@ -15,6 +15,10 @@ plugins:
           selection:
             filters:
               - "!^_[^_]"
+        python:
+          options:
+            filters: ["!^_", "!__new__"]
+            show_signature_annotations: true
   - section-index
   - git-revision-date-localized:
       type: timeago

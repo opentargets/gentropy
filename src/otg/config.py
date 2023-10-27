@@ -365,7 +365,6 @@ def register_configs() -> None:
     cs.store(name="locus_to_gene", group="step", node=LocusToGeneConfig)
     cs.store(name="gene_index", group="step", node=GeneIndexStepConfig)
     cs.store(name="ld_index", group="step", node=LDIndexStepConfig)
-    cs.store(name="locus_to_gene", group="step", node=LocusToGeneConfig)
     cs.store(name="variant_index", group="step", node=VariantIndexStepConfig)
     cs.store(name="variant_annotation", group="step", node=VariantAnnotationStepConfig)
     cs.store(name="v2g", group="step", node=V2GStepConfig)
@@ -395,8 +394,6 @@ def register_configs() -> None:
     #     name="base_variant_index_credsets",
     #     node=VariantIndexCredsetConfig,
     # )
-    cs.store(name="config", node=Config)
-    cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
 
 
 # Each of these classes is a config class for a specific step
