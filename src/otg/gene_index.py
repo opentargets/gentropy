@@ -25,8 +25,8 @@ class GeneIndexStep:
     target_path: str = MISSING
     gene_index_path: str = MISSING
 
-    def run(self: GeneIndexStep) -> None:
-        """Run Target index step."""
+    def __post_init__(self: GeneIndexStep) -> None:
+        """Run step."""
         # Extract
         platform_target = self.session.spark.read.parquet(self.target_path)
         # Transform

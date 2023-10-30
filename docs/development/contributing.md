@@ -62,7 +62,7 @@ For more details on each of these steps, see the sections below.
 
 ### Configuration
 * Input and output paths in `config/datasets/gcp.yaml`
-* Step configuration in `config/step/my_STEP.yaml` (example: `config/step/my_finngen.yaml`)
+* Step configuration in `config/step/STEP.yaml` (example: `config/step/finngen.yaml`)
 
 ### Classes
 * Dataset class in `src/org/dataset/` (example: `src/otg/dataset/study_index.py` → `StudyIndexFinnGen`)
