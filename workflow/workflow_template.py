@@ -61,7 +61,7 @@ initialisation_base_path = (
     f"gs://genetics_etl_python_playground/initialisation/{code_version}"
 )
 python_cli = f"{initialisation_base_path}/cli.py"
-config_name = "my_config"
+config_name = "config"
 config_tar = f"{initialisation_base_path}/config.tar.gz"
 package_wheel = f"{initialisation_base_path}/otgenetics-{code_version}-py3-none-any.whl"
 initialisation_executable_file = (
