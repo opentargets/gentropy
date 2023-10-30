@@ -16,7 +16,7 @@ from common_airflow import (
 
 SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
 PYTHON_CLI = "cli.py"
-CONFIG_NAME = "my_config"
+CONFIG_NAME = "config"
 CLUSTER_CONFIG_DIR = "/config"
 CLUSTER_NAME = "workflow-otg-cluster"
 
