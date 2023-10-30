@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Type
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import _convert_from_long_to_wide
 from otg.dataset.dataset import Dataset
-from otg.method.l2g_utils.feature_factory import StudyLocusFactory
+from otg.method.l2g.feature_factory import StudyLocusFactory
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType

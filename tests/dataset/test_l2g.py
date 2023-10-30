@@ -1,9 +1,9 @@
 """Tests on LD index."""
 from __future__ import annotations
 
-from otg.dataset.l2g.feature import L2GFeatureMatrix
-from otg.dataset.l2g.gold_standard import L2GGoldStandard
-from otg.dataset.l2g.predictions import L2GPrediction
+from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g_gold_standard import L2GGoldStandard
+from otg.dataset.l2g_prediction import L2GPrediction
 
 
 def test_feature_matrix(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:

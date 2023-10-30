@@ -9,14 +9,15 @@ from xgboost.spark import SparkXGBClassifier
 from otg.common.session import Session
 
 # from otg.dataset.colocalisation import Colocalisation
-from otg.dataset.l2g.feature import L2GFeatureMatrix
-from otg.dataset.l2g.gold_standard import L2GGoldStandard
-from otg.dataset.l2g.predictions import L2GPrediction
+from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g_gold_standard import L2GGoldStandard
+from otg.dataset.l2g_prediction import L2GPrediction
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.v2g import V2G
-from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
+from otg.method.l2g.model import LocusToGeneModel
+from otg.method.l2g.trainer import LocusToGeneTrainer
 
 
 @dataclass
@@ -79,6 +80,10 @@ class LocusToGeneStep:
 
     def __post_init__(self: LocusToGeneStep) -> None:
         """Run step."""
+        if self.run_mode not in ["train", "predict"]:
+            raise ValueError(
+                f"run_mode must be one of 'train' or 'predict', got {self.run_mode}"
+            )
         # Load common inputs
         study_locus = StudyLocus.from_parquet(
             self.session, self.study_locus_path, recursiveFileLookup=True

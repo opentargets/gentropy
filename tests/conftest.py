@@ -9,9 +9,9 @@ from otg.common.Liftover import LiftOverSpark
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
-from otg.dataset.l2g.feature import L2GFeatureMatrix
-from otg.dataset.l2g.gold_standard import L2GGoldStandard
-from otg.dataset.l2g.predictions import L2GPrediction
+from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g_gold_standard import L2GGoldStandard
+from otg.dataset.l2g_prediction import L2GPrediction
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus

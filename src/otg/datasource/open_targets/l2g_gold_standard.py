@@ -5,7 +5,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
 
 from otg.common.spark_helpers import get_record_with_maximum_value
-from otg.dataset.l2g.gold_standard import L2GGoldStandard
+from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.v2g import V2G
@@ -15,8 +15,8 @@ class OpenTargetsL2GGoldStandard:
     """Parser for OTGenetics locus to gene gold standards curation.
 
     The curation is processed to generate a dataset with 2 labels:
-    - Gold Standard Positive (GSP): Variant is within 500kb of gene
-    - Gold Standard Negative (GSN): Variant is not within 500kb of gene
+        - Gold Standard Positive (GSP): Variant is within 500kb of gene
+        - Gold Standard Negative (GSN): Variant is not within 500kb of gene
     """
 
     @staticmethod

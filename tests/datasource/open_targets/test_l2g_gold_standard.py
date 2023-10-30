@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import DataFrame
 
-from otg.dataset.l2g.gold_standard import L2GGoldStandard
+from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.datasource.open_targets.l2g_gold_standard import OpenTargetsL2GGoldStandard
 
 if TYPE_CHECKING:

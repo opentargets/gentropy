@@ -11,11 +11,11 @@ from otg.common.schemas import parse_spark_schema
 
 # from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.dataset import Dataset
-from otg.dataset.l2g.feature import L2GFeatureMatrix
+from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
 from otg.dataset.v2g import V2G
-from otg.method.locus_to_gene import LocusToGeneModel
+from otg.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType

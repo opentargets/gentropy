@@ -9,13 +9,14 @@ from pyspark.ml import PipelineModel
 from pyspark.ml.tuning import ParamGridBuilder
 from xgboost.spark import SparkXGBClassifier
 
-from otg.dataset.l2g.feature import L2GFeatureMatrix
-from otg.method.l2g_utils.feature_factory import (
+from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from otg.method.l2g.feature_factory import (
     ColocalisationFactory,
     L2GFeature,
     StudyLocusFactory,
 )
-from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
+from otg.method.l2g.model import LocusToGeneModel
+from otg.method.l2g.trainer import LocusToGeneTrainer
 
 if TYPE_CHECKING:
     from otg.dataset.colocalisation import Colocalisation
