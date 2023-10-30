@@ -14,5 +14,10 @@ gene_interactions_path: ${datasets.gene_interactions}
 hyperparameters:
   max_depth: 5
   loss_function: binary:logistic
-custom_spark_conf:
-  spark.dynamicAllocation.enabled: false
+
+defaults:
+    - session: session_config
+session:
+  extended_spark_conf:
+    spark.dynamicAllocation.enabled: false
+  hail_home: null

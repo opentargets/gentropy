@@ -18,12 +18,9 @@ class Config:
     - session: Spark session configuration.
     """
 
-    defaults: list[Dict[str, str]] = field(
-        default_factory=lambda: [{"step": "???"}, {"session": "session_config"}]
-    )
+    defaults: list[Dict[str, str]] = field(default_factory=lambda: [{"step": "???"}])
 
     step: Any = MISSING
-    session: Any = MISSING
 
 
 @dataclass
@@ -35,6 +32,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     write_mode: str = "overwrite"
     hail_home: str | None = None
+    extended_spark_conf: dict[str, str] | None = None
 
 
 # Register all configs
@@ -42,4 +40,4 @@ def register_configs() -> None:
     """Register step configs - each config class has all the parameters needed to run a step."""
     cs = ConfigStore.instance()
     cs.store(name="config", node=Config)
-    cs.store(name="session_config", group="session", node=SessionConfig)
+    # cs.store(name="session_config", group="step", node=SessionConfig)

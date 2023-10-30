@@ -23,7 +23,8 @@ from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 class LocusToGeneStep:
     """Locus to gene step."""
 
-    session: Session = Session()
+    session: Session = MISSING
+    extended_spark_conf: dict[str, str] | None = None
 
     run_mode: str = MISSING
     wandb_run_name: str | None = None
@@ -75,15 +76,9 @@ class LocusToGeneStep:
             "loss_function": "binary:logistic",
         }
     )
-    custom_spark_conf: dict = field(
-        default_factory=lambda: {
-            "spark.dynamicAllocation.enabled": False,
-        }
-    )
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
-        # Load common inputs
         study_locus = StudyLocus.from_parquet(
             self.session, self.study_locus_path, recursiveFileLookup=True
         )

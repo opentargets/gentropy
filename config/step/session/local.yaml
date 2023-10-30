@@ -1,0 +1,5 @@
+_target_: otg.common.session.Session
+spark_uri: local[*]
+write_mode: overwrite
+hail_home: ${step.session.hail_home}
+extended_spark_conf: ${step.session.extended_spark_conf} # correctly interpolated
