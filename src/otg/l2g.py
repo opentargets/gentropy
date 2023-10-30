@@ -24,6 +24,7 @@ class LocusToGeneStep:
     """Locus to gene step."""
 
     session: Session = Session()
+    extended_spark_conf: dict[str, str] | None = None
 
     run_mode: str = MISSING
     wandb_run_name: str | None = None

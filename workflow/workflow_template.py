@@ -73,7 +73,6 @@ image_version = "2.1"
 cluster_uuid = "eba42738-2ea3-4b0a-ba1d-38428427e838"
 
 # job
-python_cli = "gs://genetics_etl_python_playground/initialisation/cli.py"
 cluster_config_dir = "/config"
 
 # template
