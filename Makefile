@@ -21,8 +21,10 @@ setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
 
 check: ## Lint and format code
-	@echo "Linting..."
+	@echo "Linting API..."
 	@poetry run ruff src/otg .
+	@echo "Linting docstrings..."
+	@poetry run pydoclint --config=pyproject.toml .
 	@echo "Formatting..."
 	@poetry run black src/otg .
 	@poetry run isort src/otg .
