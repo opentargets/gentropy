@@ -23,7 +23,7 @@ from otg.method.locus_to_gene import LocusToGeneModel, LocusToGeneTrainer
 class LocusToGeneStep:
     """Locus to gene step."""
 
-    session: Session = MISSING
+    session: Session
     extended_spark_conf: dict[str, str] | None = None
 
     run_mode: str = MISSING

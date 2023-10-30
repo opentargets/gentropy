@@ -25,6 +25,7 @@ class VariantAnnotationStep:
     """
 
     session: Session = Session()
+    start_hail: bool = True
 
     gnomad_genomes: str = MISSING
     chain_38_to_37: str = MISSING

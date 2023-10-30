@@ -18,11 +18,9 @@ def main(cfg: Config) -> None:
         cfg (Config): hydra configuration object
     """
     print(OmegaConf.to_yaml(cfg))
-    # Instantiate ETL session
-    session = instantiate(cfg.step.session)
     # Initialise and run step
     step = instantiate(
-        cfg.step, session=session
+        cfg.step
     )  # cfg.step contains the whole YAML corresponding to the step
     step.run()
 

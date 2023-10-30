@@ -29,9 +29,10 @@ class SessionConfig:
 
     _target_: str = "otg.common.session.Session"
     app_name: str = "otgenetics"
-    spark_uri: str = "local[*]"
     write_mode: str = "overwrite"
+    spark_uri: str = "local[*]"
     hail_home: str | None = None
+    start_hail: bool = False
     extended_spark_conf: dict[str, str] | None = None
 
 
@@ -40,4 +41,4 @@ def register_configs() -> None:
     """Register step configs - each config class has all the parameters needed to run a step."""
     cs = ConfigStore.instance()
     cs.store(name="config", node=Config)
-    # cs.store(name="session_config", group="step", node=SessionConfig)
+    cs.store(name="session_config", group="step/session", node=SessionConfig)

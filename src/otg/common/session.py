@@ -21,6 +21,7 @@ class Session:
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
         hail_home: str | None = None,
+        start_hail: bool = False,
         extended_spark_conf: dict | None = None,
     ) -> None:
         """Initialises spark session and logger.
@@ -30,9 +31,12 @@ class Session:
             app_name (str): spark application name
             write_mode (str): spark write mode
             hail_home (str | None): path to hail installation
+            start_hail (bool): whether to start hail
             extended_spark_conf (dict): extended spark configuration
         """
-        merged_conf = self._create_merged_config(hail_home, extended_spark_conf)
+        merged_conf = self._create_merged_config(
+            start_hail, hail_home, extended_spark_conf
+        )
 
         self.spark = (
             SparkSession.builder.config(conf=merged_conf)
@@ -56,9 +60,11 @@ class Session:
             )  # required for dynamic allocation
         )
 
-    def _hail_config(self: Session, hail_home: str | None) -> SparkConf:
+    def _hail_config(
+        self: Session, start_hail: bool, hail_home: str | None
+    ) -> SparkConf:
         """Returns the Hail specific Spark configuration."""
-        if hail_home is None:
+        if not start_hail:
             return SparkConf()
         return (
             SparkConf()
@@ -74,12 +80,15 @@ class Session:
         )
 
     def _create_merged_config(
-        self: Session, hail_home: str | None, extended_spark_conf: SparkConf
+        self: Session,
+        start_hail: bool,
+        hail_home: str | None,
+        extended_spark_conf: SparkConf,
     ) -> SparkConf:
         """Merges the default, and optionally the Hail and extended configurations if provided."""
         all_settings = (
             self._default_config().getAll()
-            + self._hail_config(hail_home).getAll()
+            + self._hail_config(start_hail, hail_home).getAll()
             + list(extended_spark_conf.items())
             if extended_spark_conf
             else []
