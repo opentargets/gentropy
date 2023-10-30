@@ -1,4 +1,7 @@
-FROM apache/airflow:2.7.2
+FROM apache/airflow:2.7.2-python3.10
+
+# Install additional Python requirements.
+# --no-cache-dir is a good practice when installing packages using pip, because it helps to keep the image lightweight.
 COPY requirements.txt /requirements.txt
 RUN pip install --user --upgrade pip
 RUN pip install --no-cache-dir --user -r /requirements.txt # --no-cache-dir good practise when installing packages using pip. It helps to keep the image lightweight
