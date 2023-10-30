@@ -71,7 +71,7 @@ repos:
     rev: 6.3.0
     hooks:
       - id: pydocstyle
-        args: [--convention=google]
+        args: [--convention=google, --add-ignore=D107]
 
   - repo: https://github.com/lovesegfault/beautysh
     rev: v6.2.1
@@ -82,4 +82,4 @@ repos:
     rev: 0.3.8
     hooks:
       - id: pydoclint
-        args: [--style=google, --check-return-types=True]
+        args: [--style=google, --check-return-types=True, --config=pyproject.toml]
