@@ -1,3 +1,7 @@
 _target_: otg.colocalisation.ColocalisationStep
+
+defaults:
+    - session: dataproc
+
 study_locus_path: ${datasets.study_locus}
 coloc_path: ${datasets.colocalisation}

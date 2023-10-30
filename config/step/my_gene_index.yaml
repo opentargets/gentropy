@@ -1,3 +1,7 @@
 _target_: otg.gene_index.GeneIndexStep
+
+defaults:
+    - session: dataproc
+
 target_path: ${datasets.target_index}
 gene_index_path: ${datasets.gene_index}

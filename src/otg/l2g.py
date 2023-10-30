@@ -24,6 +24,7 @@ class LocusToGeneStep:
     """Locus to gene step."""
 
     session: Session = Session()
+    extended_spark_conf: dict[str, str] | None = None
 
     run_mode: str = MISSING
     wandb_run_name: str | None = None
@@ -78,7 +79,6 @@ class LocusToGeneStep:
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
-        # Load common inputs
         study_locus = StudyLocus.from_parquet(
             self.session, self.study_locus_path, recursiveFileLookup=True
         )
