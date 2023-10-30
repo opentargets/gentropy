@@ -258,9 +258,9 @@ class WindowBasedClumping:
         Args:
             summary_stats (SummaryStatistics): Input summary statistics dataset
             window_length (int): Window size in  bp, used for distance based clumping.
-            p_value_significance (float, optional): GWAS significance threshold used to filter peaks. Defaults to 5e-8.
-            p_value_baseline (float, optional): Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.
-            locus_window_length (int, optional): The distance for collecting locus around the semi indices.
+            p_value_significance (float): GWAS significance threshold used to filter peaks. Defaults to 5e-8.
+            p_value_baseline (float): Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.
+            locus_window_length (int | None): The distance for collecting locus around the semi indices. Defaults to None.
 
         Returns:
             StudyLocus: StudyLocus after clumping with information about the `locus`

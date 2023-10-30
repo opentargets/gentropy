@@ -94,7 +94,7 @@ def get_record_with_minimum_value(
 
     Args:
         df (DataFrame): The DataFrame to be processed.
-        grouping_col (str): The column name(s) to group the DataFrame by.
+        grouping_col (Column | str | list[Column | str]): The column(s) to group the DataFrame by.
         sorting_col (str): The column name to sort the DataFrame by.
 
     Returns:
@@ -113,7 +113,7 @@ def get_record_with_maximum_value(
 
     Args:
         df (DataFrame): The DataFrame to be processed.
-        grouping_col (str): The column name(s) to group the DataFrame by.
+        grouping_col (Column | str | list[Column | str]): The column(s) to group the DataFrame by.
         sorting_col (str): The column name to sort the DataFrame by.
 
     Returns:

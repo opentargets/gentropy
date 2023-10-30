@@ -27,9 +27,9 @@ def generate_schema_assets(
     """Generate schema assets for mkdocs documentation.
 
     Args:
-        spark: SparkSession object.
-        assets_dir: Path to assets directory.
-        schema_dir: Path to schema directory.
+        spark (SparkSession): SparkSession object.
+        assets_dir (Path): Path to assets directory.
+        schema_dir (str): Path to schema directory.
     """
     for i in os.listdir(schema_dir):
         if i.endswith(".json"):
@@ -48,7 +48,7 @@ def on_pre_build(config: MkdocsConfig, **kwargs) -> None:
     """Main function.
 
     Args:
-        config: MkdocsConfig object.
+        config (MkdocsConfig): MkdocsConfig object.
         **kwargs: Arbitrary keyword arguments.
     """
     # Create schema dir if not exist:
