@@ -15,6 +15,9 @@ from otg.dataset.study_locus_overlap import StudyLocusOverlap
 class OverlapsIndexStep:
     """StudyLocus overlaps step.
 
+    !!! note
+    This dataset is defined to contain the overlapping signals between studyLocus associations once they have been clumped and fine-mapped.
+
     This step generates a dataset of overlapping studyLocus associations.
 
     Attributes:
@@ -29,12 +32,8 @@ class OverlapsIndexStep:
     study_index_path: str = MISSING
     overlaps_index_out: str = MISSING
 
-    def run(self: OverlapsIndexStep) -> None:
-        """Run Overlaps index step.
-
-        !!! note
-            This dataset is defined to contain the overlapping signals between studyLocus associations once they have been clumped and fine-mapped.
-        """
+    def __post_init__(self: OverlapsIndexStep) -> None:
+        """Run step."""
         # Extract
         study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
         study_index = StudyIndex.from_parquet(self.session, self.study_index_path)

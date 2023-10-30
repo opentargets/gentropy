@@ -11,10 +11,6 @@ plugins:
   - awesome-pages
   - mkdocstrings:
       handlers:
-        crystal:
-          selection:
-            filters:
-              - "!^_[^_]"
         python:
           options:
             filters: ["!^_", "!__new__"]

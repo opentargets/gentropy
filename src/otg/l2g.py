@@ -76,8 +76,8 @@ class LocusToGeneStep:
         }
     )
 
-    def run(self: LocusToGeneStep) -> None:
-        """Run Locus to Gene step."""
+    def __post_init__(self: LocusToGeneStep) -> None:
+        """Run step."""
         # Load common inputs
         study_locus = StudyLocus.from_parquet(
             self.session, self.study_locus_path, recursiveFileLookup=True

@@ -18,13 +18,8 @@ def main(cfg: Config) -> None:
         cfg (Config): hydra configuration object
     """
     print(OmegaConf.to_yaml(cfg))
-    # Instantiate ETL session
-    session = instantiate(cfg.session)
     # Initialise and run step
-    step = instantiate(
-        cfg.step, session=session
-    )  # cfg.step contains the whole YAML corresponding to the step
-    step.run()
+    instantiate(cfg.step)
 
 
 if __name__ == "__main__":

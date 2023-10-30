@@ -26,3 +26,14 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+
+  - package-ecosystem: "docker"
+    directory: "/src/airflow/"
+    schedule:
+      interval: "weekly"
+      time: "09:30"
+      day: "monday"
+      timezone: "Europe/London"
+    commit-message:
+      prefix: "build"
+      include: "scope"
