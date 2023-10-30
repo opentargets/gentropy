@@ -72,7 +72,14 @@ repos:
     hooks:
       - id: pydocstyle
         args: [--convention=google]
+
   - repo: https://github.com/lovesegfault/beautysh
     rev: v6.2.1
     hooks:
       - id: beautysh
+
+  - repo: https://github.com/jsh9/pydoclint
+    rev: 0.3.8
+    hooks:
+      - id: pydoclint
+        args: [--style=google, --check-return-types=True]
