@@ -13,9 +13,8 @@ from omegaconf import MISSING
 class Config:
     """Configuration for OTG ETL.
 
-    Two parameters are required:
+    One parameter is required:
     - step: Step to be run. This is one of the step config classes defined in the config store file.
-    - session: Spark session configuration.
     """
 
     defaults: list[Dict[str, str]] = field(default_factory=lambda: [{"step": "???"}])
@@ -40,5 +39,5 @@ class SessionConfig:
 def register_configs() -> None:
     """Register step configs - each config class has all the parameters needed to run a step."""
     cs = ConfigStore.instance()
-    cs.store(name="config", node=Config)
+    cs.store(name="default_config", node=Config)
     cs.store(name="session_config", group="step/session", node=SessionConfig)
