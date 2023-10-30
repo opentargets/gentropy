@@ -4,6 +4,7 @@ from __future__ import annotations
 import hydra
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
+from pyspark.conf import SparkConf
 
 from otg.config import Config, register_configs
 
@@ -19,7 +20,12 @@ def main(cfg: Config) -> None:
     """
     print(OmegaConf.to_yaml(cfg))
     # Instantiate ETL session
-    session = instantiate(cfg.session)
+    step_spark_conf = (
+        SparkConf().setAll(cfg.step.custom_spark_conf.items())
+        if cfg.step.custom_spark_conf
+        else None
+    )
+    session = instantiate(cfg.session, extended_conf=step_spark_conf)
     # Initialise and run step
     step = instantiate(
         cfg.step, session=session

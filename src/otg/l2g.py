@@ -75,6 +75,11 @@ class LocusToGeneStep:
             "loss_function": "binary:logistic",
         }
     )
+    custom_spark_conf: dict = field(
+        default_factory=lambda: {
+            "spark.dynamicAllocation.enabled": False,
+        }
+    )
 
     def run(self: LocusToGeneStep) -> None:
         """Run Locus to Gene step."""
