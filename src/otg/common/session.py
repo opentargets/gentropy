@@ -21,7 +21,7 @@ class Session:
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
         hail_home: str | None = None,
-        extended_conf: SparkConf = None,
+        extended_spark_conf: dict | None = None,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -30,9 +30,9 @@ class Session:
             app_name (str): spark application name
             write_mode (str): spark write mode
             hail_home (str | None): path to hail installation
-            extended_conf (SparkConf): extended spark configuration
+            extended_spark_conf (dict): extended spark configuration
         """
-        merged_conf = self._create_merged_config(hail_home, extended_conf)
+        merged_conf = self._create_merged_config(hail_home, extended_spark_conf)
 
         self.spark = (
             SparkSession.builder.config(conf=merged_conf)
@@ -74,14 +74,14 @@ class Session:
         )
 
     def _create_merged_config(
-        self: Session, hail_home: str | None, extended_conf: SparkConf
+        self: Session, hail_home: str | None, extended_spark_conf: SparkConf
     ) -> SparkConf:
         """Merges the default, and optionally the Hail and extended configurations if provided."""
         all_settings = (
             self._default_config().getAll()
             + self._hail_config(hail_home).getAll()
-            + extended_conf.getAll()
-            if extended_conf
+            + list(extended_spark_conf.items())
+            if extended_spark_conf
             else []
         )
         return SparkConf().setAll(all_settings)
