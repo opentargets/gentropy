@@ -31,7 +31,7 @@ class GnomADVariants:
             alternate (StringExpression): The alternate allele
 
         Returns:
-            The position of the variant according to Ensembl genome.
+            Int32Expression: The position of the variant according to Ensembl genome.
         """
         return hl.if_else(
             (reference.length() > 1) | (alternate.length() > 1), position + 1, position

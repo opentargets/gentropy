@@ -27,7 +27,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     Pytest hook to parametrise testing
 
     Args:
-        metafunc (Metafunc): _description_
+        metafunc (pytest.Metafunc): pytest metafunc
     """
     if "schema_json" in metafunc.fixturenames:
         schemas = [f for f in os.listdir(SCHEMA_DIR) if f.endswith(".json")]

@@ -32,7 +32,7 @@ class LDclumping:
             variant_id (Column): Lead variant id
             p_value_exponent (Column): p-value exponent
             p_value_mantissa (Column): p-value mantissa
-            locus (Column): Credible set <array of structs>
+            ld_set (Column): Array of variants in LD with the lead variant
 
         Returns:
             Column: Boolean in which True indicates that the lead is linked to another tag in the same dataset.

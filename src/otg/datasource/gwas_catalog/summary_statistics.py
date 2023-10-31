@@ -36,7 +36,7 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             study_id (str): GWAS Catalog study accession.
 
         Returns:
-            SummaryStatistics
+            GWASCatalogSummaryStatistics: Summary statistics object.
         """
         # The effect allele frequency is an optional column, we have to test if it is there:
         allele_frequency_expression = (
