@@ -22,7 +22,26 @@ from otg.method.l2g.trainer import LocusToGeneTrainer
 
 @dataclass
 class LocusToGeneStep:
-    """Locus to gene step."""
+    """Locus to gene step.
+
+    Attributes:
+        session (Session): Session object.
+        extended_spark_conf (dict[str, str] | None): Extended Spark configuration.
+        run_mode (str): One of "train" or "predict".
+        wandb_run_name (str | None): Name of the run to be tracked on W&B.
+        perform_cross_validation (bool): Whether to perform cross validation.
+        model_path (str | None): Path to save the model.
+        predictions_path (str | None): Path to save the predictions.
+        study_locus_path (str): Path to study locus Parquet files.
+        variant_gene_path (str): Path to variant to gene Parquet files.
+        colocalisation_path (str): Path to colocalisation Parquet files.
+        study_index_path (str): Path to study index Parquet files.
+        study_locus_overlap_path (str | None): Path to study locus overlap Parquet files.
+        gold_standard_curation_path (str | None): Path to gold standard curation JSON files.
+        gene_interactions_path (str | None): Path to gene interactions Parquet files.
+        features_list (list[str]): List of features to use.
+        hyperparameters (dict): Hyperparameters for the model.
+    """
 
     session: Session = Session()
     extended_spark_conf: dict[str, str] | None = None
