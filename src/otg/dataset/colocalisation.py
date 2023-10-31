@@ -17,5 +17,9 @@ class Colocalisation(Dataset):
 
     @classmethod
     def get_schema(cls: type[Colocalisation]) -> StructType:
-        """Provides the schema for the Colocalisation dataset."""
+        """Provides the schema for the Colocalisation dataset.
+
+        Returns:
+            StructType: Schema for the Colocalisation dataset
+        """
         return parse_spark_schema("colocalisation.json")

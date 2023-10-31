@@ -26,17 +26,15 @@ class LiftOverSpark:
     - If regions are provided, the mapping is dropped if the new region is reversed (mapped_start > mapped_end).
     - If regions are provided, the mapping is dropped if the difference of the lenght of the mapped region and original is larger than a threshold.
     - When lifting over intervals, only unique coordinates are lifted, they joined back to the original dataframe.
+
+    Args:
+        chain_file (str): Path to the chain file
+        max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 100.
     """
 
-    def __init__(
+    def __init__(  # noqa: D107
         self: LiftOverSpark, chain_file: str, max_difference: int = 100
     ) -> None:
-        """Intialise LiftOverSpark object.
-
-        Args:
-            chain_file (str): Path to the chain file
-            max_difference (int): Maximum difference between the length of the mapped region and the original region. Defaults to 100.
-        """
         self.chain_file = chain_file
         self.max_difference = max_difference
 

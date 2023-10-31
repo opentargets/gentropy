@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 from math import floor, log10
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import hail as hl
 from pyspark.sql import functions as f
@@ -22,13 +22,11 @@ def parse_region(region: str) -> Tuple[str, int, int]:
     Args:
         region (str): Genomic region expected to follow chr##:#,###-#,### format or ##:####-#####.
 
-    Raises:
-        ValueError: If the end and start positions cannot be casted to integer or not all
-        three values value error is raised.
-
     Returns:
         Tuple[str, int, int]: Chromosome, start position, end position
 
+    Raises:
+        ValueError: If the end and start positions cannot be casted to integer or not all three values value error is raised.
 
     Examples:
         >>> parse_region('chr6:28,510,120-33,480,577')
@@ -114,7 +112,7 @@ def calculate_confidence_interval(
 
 def convert_odds_ratio_to_beta(
     beta: Column, odds_ratio: Column, standard_error: Column
-) -> List[Column]:
+) -> list[Column]:
     """Harmonizes effect and standard error to beta.
 
     Args:
@@ -123,7 +121,7 @@ def convert_odds_ratio_to_beta(
         standard_error (Column): Standard error of the effect
 
     Returns:
-        tuple: beta, standard error
+        list[Column]: beta, standard error
 
     Examples:
         >>> df = spark.createDataFrame([{"beta": 0.1, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": None, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": None, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": 1.1, "standardError": None}])
@@ -154,15 +152,14 @@ def convert_odds_ratio_to_beta(
     return [beta, standard_error]
 
 
-def parse_pvalue(pv: Column) -> List[Column]:
+def parse_pvalue(pv: Column) -> list[Column]:
     """This function takes a p-value string and returns two columns mantissa (float), exponent (integer).
 
     Args:
         pv (Column): P-value as string
 
     Returns:
-        Column: p-value mantissa (float)
-        Column: p-value exponent (integer)
+        list[Column]: pValueMantissa (float), pValueExponent (integer)
 
     Examples:
         >>> d = [("0.01",),("4.2E-45",),("43.2E5",),("0",),("1",)]
@@ -213,12 +210,12 @@ def convert_gnomad_position_to_ensembl(
     the position is unchanged. More info about the problem: https://www.biostars.org/p/84686/
 
     Args:
-        position (Column): Column
-        reference (Column): The reference allele.
-        alternate (Column): The alternate allele
+        position (Column): Position of the variant in GnomAD's coordinates system.
+        reference (Column): The reference allele in GnomAD's coordinates system.
+        alternate (Column): The alternate allele in GnomAD's coordinates system.
 
     Returns:
-        The position of the variant in the Ensembl genome.
+        Column: The position of the variant in the Ensembl genome.
 
     Examples:
         >>> d = [(1, "A", "C"), (2, "AA", "C"), (3, "A", "AA")]
@@ -276,6 +273,9 @@ def split_pvalue(pvalue: float) -> tuple[float, int]:
 
     Returns:
         tuple[float, int]: Tuple with mantissa and exponent
+
+    Raises:
+        ValueError: If p-value is not between 0 and 1
 
     Examples:
         >>> split_pvalue(0.00001234)

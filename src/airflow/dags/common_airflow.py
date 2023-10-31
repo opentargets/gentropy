@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import pendulum
 from airflow.providers.google.cloud.operators.dataproc import (
@@ -55,12 +56,22 @@ shared_dag_kwargs = dict(
 
 
 def create_cluster(
-    cluster_name,
-    master_machine_type="n1-standard-4",
-    worker_machine_type="n1-standard-16",
-    num_workers=0,
-):
-    """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed."""
+    cluster_name: str,
+    master_machine_type: str = "n1-standard-4",
+    worker_machine_type: str = "n1-standard-16",
+    num_workers: int = 0,
+) -> DataprocCreateClusterOperator:
+    """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+        master_machine_type (str): Machine type for the master node. Defaults to "n1-standard-4".
+        worker_machine_type (str): Machine type for the worker nodes. Defaults to "n1-standard-16".
+        num_workers (int): Number of worker nodes. Defaults to 0.
+
+    Returns:
+        DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
+    """
     cluster_generator_config = ClusterGenerator(
         project_id=project_id,
         zone=zone,
@@ -89,8 +100,20 @@ def create_cluster(
     )
 
 
-def submit_job(cluster_name, task_id, job_type, job_specification):
-    """Submit an arbitrary job to a Dataproc cluster."""
+def submit_job(
+    cluster_name: str, task_id: str, job_type: str, job_specification: dict[str, Any]
+) -> DataprocSubmitJobOperator:
+    """Submit an arbitrary job to a Dataproc cluster.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+        task_id (str): Name of the task.
+        job_type (str): Type of the job to submit.
+        job_specification (dict[str, Any]): Specification of the job to submit.
+
+    Returns:
+        DataprocSubmitJobOperator: Airflow task to submit an arbitrary job to a Dataproc cluster.
+    """
     return DataprocSubmitJobOperator(
         task_id=task_id,
         region=region,
@@ -104,17 +127,30 @@ def submit_job(cluster_name, task_id, job_type, job_specification):
     )
 
 
-def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
-    """Submit a PySpark job to a Dataproc cluster."""
+def submit_pyspark_job(
+    cluster_name: str, task_id: str, python_module_path: str, args: dict[str, Any]
+) -> DataprocSubmitJobOperator:
+    """Submit a PySpark job to a Dataproc cluster.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+        task_id (str): Name of the task.
+        python_module_path (str): Path to the Python module to run.
+        args (dict[str, Any]): Arguments to pass to the Python module.
+
+    Returns:
+        DataprocSubmitJobOperator: Airflow task to submit a PySpark job to a Dataproc cluster.
+    """
+    formatted_args = []
     if isinstance(args, dict):
-        args = [f"--{arg}={val}" for arg, val in args.items()]
+        formatted_args = [f"--{arg}={val}" for arg, val in args.items()]
     return submit_job(
         cluster_name=cluster_name,
         task_id=task_id,
         job_type="pyspark_job",
         job_specification={
             "main_python_file_uri": f"{initialisation_base_path}/{python_module_path}",
-            "args": args,
+            "args": formatted_args,
             "properties": {
                 "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
                 "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
@@ -126,8 +162,15 @@ def submit_pyspark_job(cluster_name, task_id, python_module_path, args):
     )
 
 
-def install_dependencies(cluster_name):
-    """Install dependencies on a Dataproc cluster."""
+def install_dependencies(cluster_name: str) -> DataprocSubmitJobOperator:
+    """Install dependencies on a Dataproc cluster.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+
+    Returns:
+        DataprocSubmitJobOperator: Airflow task to install dependencies on a Dataproc cluster.
+    """
     return submit_job(
         cluster_name=cluster_name,
         task_id="install_dependencies",
@@ -146,8 +189,15 @@ def install_dependencies(cluster_name):
     )
 
 
-def delete_cluster(cluster_name):
-    """Generate an Airflow task to delete a Dataproc cluster."""
+def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
+    """Generate an Airflow task to delete a Dataproc cluster.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+
+    Returns:
+        DataprocDeleteClusterOperator: Airflow task to delete a Dataproc cluster.
+    """
     return DataprocDeleteClusterOperator(
         task_id="delete_cluster",
         project_id=project_id,

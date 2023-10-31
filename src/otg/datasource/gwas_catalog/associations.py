@@ -147,7 +147,7 @@ class GWASCatalogAssociations(StudyLocus):
             risk_allele (Column): The risk allele for the SNP.
 
         Returns:
-            An array of distinct values.
+            Column: An array of distinct values.
         """
         # The current snp id field is just a number at the moment (stored as a string). Adding 'rs' prefix if looks good.
         snp_id_current = f.when(
@@ -271,7 +271,7 @@ class GWASCatalogAssociations(StudyLocus):
             gwas (Column): rsids from the GWAS Catalog
 
         Returns:
-            A boolean column that is true if the GnomAD rsIDs can be found in the GWAS rsIDs.
+            Column: A boolean column that is true if the GnomAD rsIDs can be found in the GWAS rsIDs.
 
         Examples:
             >>> d = [
@@ -312,7 +312,7 @@ class GWASCatalogAssociations(StudyLocus):
             filter_column (Column): boolean col indicating to keep a mapping
 
         Returns:
-            A column with a boolean value.
+            Column: A column with a boolean value.
 
         Examples:
         >>> d = [
@@ -364,7 +364,7 @@ class GWASCatalogAssociations(StudyLocus):
             alternate_allele (Column): The alternate allele of the variant.
 
         Returns:
-            A boolean column that is True if the risk allele is the same as the reference or alternate allele,
+            Column: A boolean column that is True if the risk allele is the same as the reference or alternate allele,
             or if the reverse complement of the risk allele is the same as the reference or alternate allele.
 
         Examples:
@@ -426,7 +426,7 @@ class GWASCatalogAssociations(StudyLocus):
             allele_col (Column): The column containing the allele to reverse complement.
 
         Returns:
-            A column that is the reverse complement of the allele column.
+            Column: A column that is the reverse complement of the allele column.
 
         Examples:
             >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
@@ -464,7 +464,7 @@ class GWASCatalogAssociations(StudyLocus):
             reference_allele (Column): Effect allele column
 
         Returns:
-            A boolean column indicating if the effect allele needs to be harmonised.
+            Column: A boolean column indicating if the effect allele needs to be harmonised.
 
         Examples:
             >>> d = [{"risk": 'A', "reference": 'A'}, {"risk": 'A', "reference": 'T'}, {"risk": 'AT', "reference": 'TA'}, {"risk": 'AT', "reference": 'AT'}]
@@ -497,7 +497,7 @@ class GWASCatalogAssociations(StudyLocus):
             alternate_allele (Column): Alternate allele column
 
         Returns:
-            A boolean column indicating if the alleles are palindromic.
+            Column: A boolean column indicating if the alleles are palindromic.
 
         Examples:
             >>> d = [{"reference": 'A', "alternate": 'T'}, {"reference": 'AT', "alternate": 'AG'}, {"reference": 'AT', "alternate": 'AT'}, {"reference": 'CATATG', "alternate": 'CATATG'}, {"reference": '-', "alternate": None}]
@@ -543,7 +543,7 @@ class GWASCatalogAssociations(StudyLocus):
             confidence_interval (Column): GWAS Catalog confidence interval column
 
         Returns:
-            A column containing the beta value.
+            Column: A column containing the beta value.
         """
         return (
             f.when(
@@ -593,7 +593,7 @@ class GWASCatalogAssociations(StudyLocus):
             direction (str): This is the direction of the confidence interval. It can be either "upper" or "lower".
 
         Returns:
-            The upper and lower bounds of the confidence interval for the beta coefficient.
+            Column: The upper and lower bounds of the confidence interval for the beta coefficient.
         """
         zscore_95 = f.lit(1.96)
         beta = GWASCatalogAssociations._harmonise_beta(
@@ -628,7 +628,7 @@ class GWASCatalogAssociations(StudyLocus):
             confidence_interval (Column): GWAS Catalog confidence interval column
 
         Returns:
-            A column with the odds ratio, or 1/odds_ratio if harmonization required.
+            Column: A column with the odds ratio, or 1/odds_ratio if harmonization required.
         """
         return (
             f.when(
@@ -672,7 +672,7 @@ class GWASCatalogAssociations(StudyLocus):
             direction (str): This is the direction of the confidence interval. It can be either "upper" or "lower".
 
         Returns:
-            The upper and lower bounds of the 95% confidence interval for the odds ratio.
+            Column: The upper and lower bounds of the 95% confidence interval for the odds ratio.
         """
         zscore_95 = f.lit(1.96)
         odds_ratio = GWASCatalogAssociations._harmonise_odds_ratio(
@@ -705,7 +705,7 @@ class GWASCatalogAssociations(StudyLocus):
             mapped_trait_uri (Column): GWAS Catalog mapped trait URI column
 
         Returns:
-            A column with the substudy description in the shape trait|pvaluetext1_pvaluetext2|EFO1_EFO2.
+            Column: A column with the substudy description in the shape trait|pvaluetext1_pvaluetext2|EFO1_EFO2.
 
         Examples:
         >>> df = spark.createDataFrame([
@@ -997,7 +997,7 @@ class GWASCatalogAssociations(StudyLocus):
             pvalue_threshold (float): P-value threshold for flagging associations
 
         Returns:
-            StudyLocusGWASCatalog: StudyLocusGWASCatalog dataset
+            GWASCatalogAssociations: GWASCatalogAssociations dataset
         """
         return GWASCatalogAssociations(
             _df=gwas_associations.withColumn(
@@ -1123,7 +1123,7 @@ class GWASCatalogAssociations(StudyLocus):
             study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.
+            GWASCatalogAssociations: Updated study locus with new `studyId` and `studyLocusId`.
         """
         self.df = (
             self._df.join(
@@ -1141,7 +1141,7 @@ class GWASCatalogAssociations(StudyLocus):
         """Flag associations with variants that can not be unambiguously associated with one study.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus.
+            GWASCatalogAssociations: Updated study locus.
         """
         assoc_ambiguity_window = Window.partitionBy(
             f.col("studyId"), f.col("variantId")
