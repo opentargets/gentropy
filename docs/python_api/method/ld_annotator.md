@@ -1,3 +1,5 @@
-# LD annotator
+---
+title: LDAnnotator
+---
 
 :::otg.method.ld.LDAnnotator
