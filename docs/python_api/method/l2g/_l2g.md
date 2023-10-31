@@ -1,2 +1,5 @@
-# Locus-to-gene (L2G)
+---
+title: Locus to Gene (L2G) classifier
+---
+
 TBC
