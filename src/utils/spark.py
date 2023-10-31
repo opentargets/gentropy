@@ -5,7 +5,11 @@ from pyspark.conf import SparkConf
 
 
 def get_spark_testing_conf() -> SparkConf:
-    """Get SparkConf for testing purposes."""
+    """Get SparkConf for testing purposes.
+
+    Returns:
+        SparkConf: SparkConf with settings for testing.
+    """
     return (
         SparkConf()
         .set("spark.driver.bindAddress", "127.0.0.1")

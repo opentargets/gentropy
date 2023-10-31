@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
@@ -24,7 +24,11 @@ class VariantAnnotation(Dataset):
 
     @classmethod
     def get_schema(cls: type[VariantAnnotation]) -> StructType:
-        """Provides the schema for the VariantAnnotation dataset."""
+        """Provides the schema for the VariantAnnotation dataset.
+
+        Returns:
+            StructType: Schema for the VariantAnnotation dataset
+        """
         return parse_spark_schema("variant_annotation.json")
 
     def max_maf(self: VariantAnnotation) -> Column:
@@ -61,14 +65,14 @@ class VariantAnnotation(Dataset):
         return self
 
     def get_transcript_consequence_df(
-        self: VariantAnnotation, gene_index: Optional[GeneIndex] = None
+        self: VariantAnnotation, gene_index: GeneIndex | None = None
     ) -> DataFrame:
         """Dataframe of exploded transcript consequences.
 
         Optionally the trancript consequences can be reduced to the universe of a gene index.
 
         Args:
-            gene_index (GeneIndex): A gene index. Defaults to None.
+            gene_index (GeneIndex | None): A gene index. Defaults to None.
 
         Returns:
             DataFrame: A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence
@@ -133,7 +137,7 @@ class VariantAnnotation(Dataset):
         )
 
     def get_polyphen_v2g(
-        self: VariantAnnotation, gene_index: Optional[GeneIndex] = None
+        self: VariantAnnotation, gene_index: GeneIndex | None = None
     ) -> V2G:
         """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
 
@@ -143,7 +147,7 @@ class VariantAnnotation(Dataset):
             - 0.85 to 1.0 -- Predicted to be damaging.
 
         Args:
-            gene_index (GeneIndex): A gene index to filter by. Defaults to None.
+            gene_index (GeneIndex | None): A gene index to filter by. Defaults to None.
 
         Returns:
             V2G: variant to gene assignments with their polyphen scores
@@ -164,7 +168,7 @@ class VariantAnnotation(Dataset):
             _schema=V2G.get_schema(),
         )
 
-    def get_sift_v2g(self: VariantAnnotation, filter_by: GeneIndex) -> V2G:
+    def get_sift_v2g(self: VariantAnnotation, gene_index: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
 
         SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:
@@ -179,7 +183,7 @@ class VariantAnnotation(Dataset):
         """
         return V2G(
             _df=(
-                self.get_transcript_consequence_df(filter_by)
+                self.get_transcript_consequence_df(gene_index)
                 .filter(f.col("transcriptConsequence.siftScore").isNotNull())
                 .select(
                     "variantId",
@@ -241,7 +245,7 @@ class VariantAnnotation(Dataset):
         """Extracts variant to gene assignments for variants falling within a window of a gene's TSS.
 
         Args:
-            filter_by (GeneIndex): A gene index to filter by.
+            gene_index (GeneIndex): A gene index to filter by.
             max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.
 
         Returns:

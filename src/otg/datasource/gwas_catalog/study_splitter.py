@@ -24,8 +24,8 @@ class GWASCatalogStudySplitter:
         """Resolve trait names by consolidating association-level and study-level trait names.
 
         Args:
-            association_trait (Column): Association-level trait name.
             study_trait (Column): Study-level trait name.
+            association_trait (Column): Association-level trait name.
             p_value_text (Column): P-value text.
 
         Returns:
@@ -92,10 +92,10 @@ class GWASCatalogStudySplitter:
 
         Args:
             studies (GWASCatalogStudyIndex): GWAS Catalog studies.
-            associations (StudyLocusGWASCatalog): GWAS Catalog associations.
+            associations (GWASCatalogAssociations): GWAS Catalog associations.
 
         Returns:
-            A tuple of the split associations and studies.
+            Tuple[GWASCatalogStudyIndex, GWASCatalogAssociations]: Split studies and associations.
         """
         # Composite of studies and associations to resolve scattered information
         st_ass = (
