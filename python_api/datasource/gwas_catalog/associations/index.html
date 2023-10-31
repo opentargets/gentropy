@@ -1246,7 +1246,7 @@
 <span class=sd>            risk_allele (Column): The risk allele for the SNP.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            An array of distinct values.</span>
+<span class=sd>            Column: An array of distinct values.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=c1># The current snp id field is just a number at the moment (stored as a string). Adding &#39;rs&#39; prefix if looks good.</span>
         <span class=n>snp_id_current</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
@@ -1370,7 +1370,7 @@
 <span class=sd>            gwas (Column): rsids from the GWAS Catalog</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A boolean column that is true if the GnomAD rsIDs can be found in the GWAS rsIDs.</span>
+<span class=sd>            Column: A boolean column that is true if the GnomAD rsIDs can be found in the GWAS rsIDs.</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; d = [</span>
@@ -1411,7 +1411,7 @@
 <span class=sd>            filter_column (Column): boolean col indicating to keep a mapping</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A column with a boolean value.</span>
+<span class=sd>            Column: A column with a boolean value.</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>        &gt;&gt;&gt; d = [</span>
@@ -1463,7 +1463,7 @@
 <span class=sd>            alternate_allele (Column): The alternate allele of the variant.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A boolean column that is True if the risk allele is the same as the reference or alternate allele,</span>
+<span class=sd>            Column: A boolean column that is True if the risk allele is the same as the reference or alternate allele,</span>
 <span class=sd>            or if the reverse complement of the risk allele is the same as the reference or alternate allele.</span>
 
 <span class=sd>        Examples:</span>
@@ -1525,7 +1525,7 @@
 <span class=sd>            allele_col (Column): The column containing the allele to reverse complement.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A column that is the reverse complement of the allele column.</span>
+<span class=sd>            Column: A column that is the reverse complement of the allele column.</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; d = [{&quot;allele&quot;: &#39;A&#39;}, {&quot;allele&quot;: &#39;T&#39;},{&quot;allele&quot;: &#39;G&#39;}, {&quot;allele&quot;: &#39;C&#39;},{&quot;allele&quot;: &#39;AC&#39;}, {&quot;allele&quot;: &#39;GTaatc&#39;},{&quot;allele&quot;: &#39;?&#39;}, {&quot;allele&quot;: None}]</span>
@@ -1563,7 +1563,7 @@
 <span class=sd>            reference_allele (Column): Effect allele column</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A boolean column indicating if the effect allele needs to be harmonised.</span>
+<span class=sd>            Column: A boolean column indicating if the effect allele needs to be harmonised.</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; d = [{&quot;risk&quot;: &#39;A&#39;, &quot;reference&quot;: &#39;A&#39;}, {&quot;risk&quot;: &#39;A&#39;, &quot;reference&quot;: &#39;T&#39;}, {&quot;risk&quot;: &#39;AT&#39;, &quot;reference&quot;: &#39;TA&#39;}, {&quot;risk&quot;: &#39;AT&#39;, &quot;reference&quot;: &#39;AT&#39;}]</span>
@@ -1596,7 +1596,7 @@
 <span class=sd>            alternate_allele (Column): Alternate allele column</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A boolean column indicating if the alleles are palindromic.</span>
+<span class=sd>            Column: A boolean column indicating if the alleles are palindromic.</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; d = [{&quot;reference&quot;: &#39;A&#39;, &quot;alternate&quot;: &#39;T&#39;}, {&quot;reference&quot;: &#39;AT&#39;, &quot;alternate&quot;: &#39;AG&#39;}, {&quot;reference&quot;: &#39;AT&#39;, &quot;alternate&quot;: &#39;AT&#39;}, {&quot;reference&quot;: &#39;CATATG&#39;, &quot;alternate&quot;: &#39;CATATG&#39;}, {&quot;reference&quot;: &#39;-&#39;, &quot;alternate&quot;: None}]</span>
@@ -1642,7 +1642,7 @@
 <span class=sd>            confidence_interval (Column): GWAS Catalog confidence interval column</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A column containing the beta value.</span>
+<span class=sd>            Column: A column containing the beta value.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
@@ -1692,7 +1692,7 @@
 <span class=sd>            direction (str): This is the direction of the confidence interval. It can be either &quot;upper&quot; or &quot;lower&quot;.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            The upper and lower bounds of the confidence interval for the beta coefficient.</span>
+<span class=sd>            Column: The upper and lower bounds of the confidence interval for the beta coefficient.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>zscore_95</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mf>1.96</span><span class=p>)</span>
         <span class=n>beta</span> <span class=o>=</span> <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_beta</span><span class=p>(</span>
@@ -1727,7 +1727,7 @@
 <span class=sd>            confidence_interval (Column): GWAS Catalog confidence interval column</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A column with the odds ratio, or 1/odds_ratio if harmonization required.</span>
+<span class=sd>            Column: A column with the odds ratio, or 1/odds_ratio if harmonization required.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>when</span><span class=p>(</span>
@@ -1771,7 +1771,7 @@
 <span class=sd>            direction (str): This is the direction of the confidence interval. It can be either &quot;upper&quot; or &quot;lower&quot;.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            The upper and lower bounds of the 95% confidence interval for the odds ratio.</span>
+<span class=sd>            Column: The upper and lower bounds of the 95% confidence interval for the odds ratio.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>zscore_95</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>lit</span><span class=p>(</span><span class=mf>1.96</span><span class=p>)</span>
         <span class=n>odds_ratio</span> <span class=o>=</span> <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_odds_ratio</span><span class=p>(</span>
@@ -1804,7 +1804,7 @@
 <span class=sd>            mapped_trait_uri (Column): GWAS Catalog mapped trait URI column</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A column with the substudy description in the shape trait|pvaluetext1_pvaluetext2|EFO1_EFO2.</span>
+<span class=sd>            Column: A column with the substudy description in the shape trait|pvaluetext1_pvaluetext2|EFO1_EFO2.</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>        &gt;&gt;&gt; df = spark.createDataFrame([</span>
@@ -2096,7 +2096,7 @@
 <span class=sd>            pvalue_threshold (float): P-value threshold for flagging associations</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            StudyLocusGWASCatalog: StudyLocusGWASCatalog dataset</span>
+<span class=sd>            GWASCatalogAssociations: GWASCatalogAssociations dataset</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=n>GWASCatalogAssociations</span><span class=p>(</span>
             <span class=n>_df</span><span class=o>=</span><span class=n>gwas_associations</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
@@ -2222,7 +2222,7 @@
 <span class=sd>            study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.</span>
+<span class=sd>            GWASCatalogAssociations: Updated study locus with new `studyId` and `studyLocusId`.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
             <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
@@ -2240,7 +2240,7 @@
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Flag associations with variants that can not be unambiguously associated with one study.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            StudyLocusGWASCatalog: Updated study locus.</span>
+<span class=sd>            GWASCatalogAssociations: Updated study locus.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>assoc_ambiguity_window</span> <span class=o>=</span> <span class=n>Window</span><span class=o>.</span><span class=n>partitionBy</span><span class=p>(</span>
             <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;studyId&quot;</span><span class=p>),</span> <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;variantId&quot;</span><span class=p>)</span>
@@ -2255,7 +2255,7 @@
             <span class=p>),</span>
         <span class=p>)</span>
         <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.from_source class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_source</span><span class=p>(</span><span class=n>gwas_associations</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>variant_annotation</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>pvalue_threshold</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>5e-08</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GWASCatalogAssociations</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.from_source class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Read GWASCatalog associations.</p> <p>It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and applies some pre-defined filters on the data:</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gwas_associations</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>GWAS Catalog raw associations dataset</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>variant_annotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="../../../dataset/variant_annotation/#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td> <div class=doc-md-description> <p>Variant annotation dataset</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>pvalue_threshold</code></td> <td> <code>float</code> </td> <td> <div class=doc-md-description> <p>P-value threshold for flagging associations</p> </div> </td> <td> <code>5e-08</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocusGWASCatalog</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a></code> </td> <td> <div class=doc-md-description> <p>StudyLocusGWASCatalog dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/associations.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 982</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.from_source class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_source</span><span class=p>(</span><span class=n>gwas_associations</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>variant_annotation</span><span class=p>:</span> <span class=n>VariantAnnotation</span><span class=p>,</span> <span class=n>pvalue_threshold</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>5e-08</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GWASCatalogAssociations</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.from_source class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Read GWASCatalog associations.</p> <p>It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and applies some pre-defined filters on the data:</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>gwas_associations</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>GWAS Catalog raw associations dataset</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>variant_annotation</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.variant_annotation.VariantAnnotation" href="../../../dataset/variant_annotation/#otg.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code> </td> <td> <div class=doc-md-description> <p>Variant annotation dataset</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>pvalue_threshold</code></td> <td> <code>float</code> </td> <td> <div class=doc-md-description> <p>P-value threshold for flagging associations</p> </div> </td> <td> <code>5e-08</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>GWASCatalogAssociations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a></code> </td> <td> <div class=doc-md-description> <p>GWASCatalogAssociations dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/associations.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 982</span>
 <span class=normal> 983</span>
 <span class=normal> 984</span>
 <span class=normal> 985</span>
@@ -2406,7 +2406,7 @@
 <span class=sd>        pvalue_threshold (float): P-value threshold for flagging associations</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        StudyLocusGWASCatalog: StudyLocusGWASCatalog dataset</span>
+<span class=sd>        GWASCatalogAssociations: GWASCatalogAssociations dataset</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>GWASCatalogAssociations</span><span class=p>(</span>
         <span class=n>_df</span><span class=o>=</span><span class=n>gwas_associations</span><span class=o>.</span><span class=n>withColumn</span><span class=p>(</span>
@@ -2522,7 +2522,7 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class="doc doc-heading"> <code class="highlight language-python"><span class=n>update_study_id</span><span class=p>(</span><span class=n>study_annotation</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GWASCatalogAssociations</span></code> <a href=#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Update final studyId and studyLocusId with a dataframe containing study annotation.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_annotation</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe containing <code>updatedStudyId</code> and key columns <code>studyId</code> and <code>subStudyDescription</code>.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StudyLocusGWASCatalog</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a></code> </td> <td> <div class=doc-md-description> <p>Updated study locus with new <code>studyId</code> and <code>studyLocusId</code>.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/associations.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1117</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class="doc doc-heading"> <code class="highlight language-python"><span class=n>update_study_id</span><span class=p>(</span><span class=n>study_annotation</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GWASCatalogAssociations</span></code> <a href=#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Update final studyId and studyLocusId with a dataframe containing study annotation.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_annotation</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe containing <code>updatedStudyId</code> and key columns <code>studyId</code> and <code>subStudyDescription</code>.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>GWASCatalogAssociations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a></code> </td> <td> <div class=doc-md-description> <p>Updated study locus with new <code>studyId</code> and <code>studyLocusId</code>.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/associations.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1117</span>
 <span class=normal>1118</span>
 <span class=normal>1119</span>
 <span class=normal>1120</span>
@@ -2552,7 +2552,7 @@
 <span class=sd>        study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.</span>
+<span class=sd>        GWASCatalogAssociations: Updated study locus with new `studyId` and `studyLocusId`.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=p>(</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>

@@ -237,7 +237,45 @@
 <span class=normal>256</span>
 <span class=normal>257</span>
 <span class=normal>258</span>
-<span class=normal>259</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>GnomADLDMatrix</span><span class=p>:</span>
+<span class=normal>259</span>
+<span class=normal>260</span>
+<span class=normal>261</span>
+<span class=normal>262</span>
+<span class=normal>263</span>
+<span class=normal>264</span>
+<span class=normal>265</span>
+<span class=normal>266</span>
+<span class=normal>267</span>
+<span class=normal>268</span>
+<span class=normal>269</span>
+<span class=normal>270</span>
+<span class=normal>271</span>
+<span class=normal>272</span>
+<span class=normal>273</span>
+<span class=normal>274</span>
+<span class=normal>275</span>
+<span class=normal>276</span>
+<span class=normal>277</span>
+<span class=normal>278</span>
+<span class=normal>279</span>
+<span class=normal>280</span>
+<span class=normal>281</span>
+<span class=normal>282</span>
+<span class=normal>283</span>
+<span class=normal>284</span>
+<span class=normal>285</span>
+<span class=normal>286</span>
+<span class=normal>287</span>
+<span class=normal>288</span>
+<span class=normal>289</span>
+<span class=normal>290</span>
+<span class=normal>291</span>
+<span class=normal>292</span>
+<span class=normal>293</span>
+<span class=normal>294</span>
+<span class=normal>295</span>
+<span class=normal>296</span>
+<span class=normal>297</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>GnomADLDMatrix</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Importer of LD information from GnomAD.</span>
 
 <span class=sd>    The information comes from LD matrices [made available by GnomAD](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium) in Hail&#39;s native format. We aggregate the LD information across 8 ancestries.</span>
@@ -299,7 +337,15 @@
     <span class=k>def</span> <span class=nf>_convert_ld_matrix_to_table</span><span class=p>(</span>
         <span class=n>block_matrix</span><span class=p>:</span> <span class=n>BlockMatrix</span><span class=p>,</span> <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Convert LD matrix to table.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Convert LD matrix to table.</span>
+
+<span class=sd>        Args:</span>
+<span class=sd>            block_matrix (BlockMatrix): LD matrix</span>
+<span class=sd>            min_r2 (float): Minimum r2 value to keep in the table</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            DataFrame: LD matrix as a Spark DataFrame</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>table</span> <span class=o>=</span> <span class=n>block_matrix</span><span class=o>.</span><span class=n>entries</span><span class=p>(</span><span class=n>keyed</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
         <span class=k>return</span> <span class=p>(</span>
             <span class=n>table</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>hl</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>table</span><span class=o>.</span><span class=n>entry</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=n>min_r2</span><span class=o>**</span><span class=mf>0.5</span><span class=p>)</span>
@@ -315,7 +361,18 @@
         <span class=n>grch37_to_grch38_chain_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
         <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Create LDIndex for a specific population.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Create LDIndex for a specific population.</span>
+
+<span class=sd>        Args:</span>
+<span class=sd>            population_id (str): Population ID</span>
+<span class=sd>            ld_matrix_path (str): Path to the LD matrix</span>
+<span class=sd>            ld_index_raw_path (str): Path to the LD index</span>
+<span class=sd>            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates</span>
+<span class=sd>            min_r2 (float): Minimum r2 value to keep in the table</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            DataFrame: LDIndex for a specific population</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=c1># Prepare LD Block matrix</span>
         <span class=n>ld_matrix</span> <span class=o>=</span> <span class=n>GnomADLDMatrix</span><span class=o>.</span><span class=n>_convert_ld_matrix_to_table</span><span class=p>(</span>
             <span class=n>BlockMatrix</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>ld_matrix_path</span><span class=p>),</span> <span class=n>min_r2</span>
@@ -387,7 +444,15 @@
     <span class=k>def</span> <span class=nf>_resolve_variant_indices</span><span class=p>(</span>
         <span class=n>ld_index</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>ld_matrix</span><span class=p>:</span> <span class=n>DataFrame</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38).&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38).</span>
+
+<span class=sd>        Args:</span>
+<span class=sd>            ld_index (DataFrame): Dataframe with resolved variant indices</span>
+<span class=sd>            ld_matrix (DataFrame): Dataframe with the filtered LD matrix</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            DataFrame: Dataframe with variant IDs instead of `i` and `j` indices</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>ld_index_i</span> <span class=o>=</span> <span class=n>ld_index</span><span class=o>.</span><span class=n>selectExpr</span><span class=p>(</span>
             <span class=s2>&quot;idx as i&quot;</span><span class=p>,</span> <span class=s2>&quot;variantId as variantId_i&quot;</span><span class=p>,</span> <span class=s2>&quot;chromosome&quot;</span>
         <span class=p>)</span>
@@ -448,7 +513,18 @@
         <span class=n>grch37_to_grch38_chain_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
         <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>LDIndex</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Create LDIndex dataset aggregating the LD information across a set of populations.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Create LDIndex dataset aggregating the LD information across a set of populations.</span>
+
+<span class=sd>        Args:</span>
+<span class=sd>            ld_populations (list[str]): List of populations to aggregate</span>
+<span class=sd>            ld_matrix_template (str): Template path to the LD matrix</span>
+<span class=sd>            ld_index_raw_template (str): Template path to the LD variants index</span>
+<span class=sd>            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates</span>
+<span class=sd>            min_r2 (float): Minimum r2 value to keep in the table</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            LDIndex: LDIndex dataset</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>ld_indices_unaggregated</span> <span class=o>=</span> <span class=p>[]</span>
         <span class=k>for</span> <span class=n>pop</span> <span class=ow>in</span> <span class=n>ld_populations</span><span class=p>:</span>
             <span class=k>try</span><span class=p>:</span>
@@ -477,34 +553,7 @@
             <span class=n>_df</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>_aggregate_ld_index_across_populations</span><span class=p>(</span><span class=n>ld_index_unaggregated</span><span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>LDIndex</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gnomad.ld.GnomADLDMatrix.as_ld_index class="doc doc-heading"> <code class="highlight language-python"><span class=n>as_ld_index</span><span class=p>(</span><span class=n>ld_populations</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span> <span class=n>ld_matrix_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>ld_index_raw_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>grch37_to_grch38_chain_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>LDIndex</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.gnomad.ld.GnomADLDMatrix.as_ld_index class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Create LDIndex dataset aggregating the LD information across a set of populations.</p> <details class=quote> <summary>Source code in <code>src/otg/datasource/gnomad/ld.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>222</span>
-<span class=normal>223</span>
-<span class=normal>224</span>
-<span class=normal>225</span>
-<span class=normal>226</span>
-<span class=normal>227</span>
-<span class=normal>228</span>
-<span class=normal>229</span>
-<span class=normal>230</span>
-<span class=normal>231</span>
-<span class=normal>232</span>
-<span class=normal>233</span>
-<span class=normal>234</span>
-<span class=normal>235</span>
-<span class=normal>236</span>
-<span class=normal>237</span>
-<span class=normal>238</span>
-<span class=normal>239</span>
-<span class=normal>240</span>
-<span class=normal>241</span>
-<span class=normal>242</span>
-<span class=normal>243</span>
-<span class=normal>244</span>
-<span class=normal>245</span>
-<span class=normal>246</span>
-<span class=normal>247</span>
-<span class=normal>248</span>
-<span class=normal>249</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gnomad.ld.GnomADLDMatrix.as_ld_index class="doc doc-heading"> <code class="highlight language-python"><span class=n>as_ld_index</span><span class=p>(</span><span class=n>ld_populations</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span> <span class=n>ld_matrix_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>ld_index_raw_template</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>grch37_to_grch38_chain_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>LDIndex</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.gnomad.ld.GnomADLDMatrix.as_ld_index class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Create LDIndex dataset aggregating the LD information across a set of populations.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>ld_populations</code></td> <td> <code>list[str]</code> </td> <td> <div class=doc-md-description> <p>List of populations to aggregate</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_matrix_template</code></td> <td> <code>str</code> </td> <td> <div class=doc-md-description> <p>Template path to the LD matrix</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>ld_index_raw_template</code></td> <td> <code>str</code> </td> <td> <div class=doc-md-description> <p>Template path to the LD variants index</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>grch37_to_grch38_chain_path</code></td> <td> <code>str</code> </td> <td> <div class=doc-md-description> <p>Path to the chain file used to lift over the coordinates</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>min_r2</code></td> <td> <code>float</code> </td> <td> <div class=doc-md-description> <p>Minimum r2 value to keep in the table</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>LDIndex</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.ld_index.LDIndex" href="../../../dataset/ld_index/#otg.dataset.ld_index.LDIndex">LDIndex</a></code> </td> <td> <div class=doc-md-description> <p>LDIndex dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gnomad/ld.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>249</span>
 <span class=normal>250</span>
 <span class=normal>251</span>
 <span class=normal>252</span>
@@ -514,7 +563,45 @@
 <span class=normal>256</span>
 <span class=normal>257</span>
 <span class=normal>258</span>
-<span class=normal>259</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>259</span>
+<span class=normal>260</span>
+<span class=normal>261</span>
+<span class=normal>262</span>
+<span class=normal>263</span>
+<span class=normal>264</span>
+<span class=normal>265</span>
+<span class=normal>266</span>
+<span class=normal>267</span>
+<span class=normal>268</span>
+<span class=normal>269</span>
+<span class=normal>270</span>
+<span class=normal>271</span>
+<span class=normal>272</span>
+<span class=normal>273</span>
+<span class=normal>274</span>
+<span class=normal>275</span>
+<span class=normal>276</span>
+<span class=normal>277</span>
+<span class=normal>278</span>
+<span class=normal>279</span>
+<span class=normal>280</span>
+<span class=normal>281</span>
+<span class=normal>282</span>
+<span class=normal>283</span>
+<span class=normal>284</span>
+<span class=normal>285</span>
+<span class=normal>286</span>
+<span class=normal>287</span>
+<span class=normal>288</span>
+<span class=normal>289</span>
+<span class=normal>290</span>
+<span class=normal>291</span>
+<span class=normal>292</span>
+<span class=normal>293</span>
+<span class=normal>294</span>
+<span class=normal>295</span>
+<span class=normal>296</span>
+<span class=normal>297</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>as_ld_index</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>GnomADLDMatrix</span><span class=p>],</span>
     <span class=n>ld_populations</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
@@ -523,7 +610,18 @@
     <span class=n>grch37_to_grch38_chain_path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
     <span class=n>min_r2</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>LDIndex</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Create LDIndex dataset aggregating the LD information across a set of populations.&quot;&quot;&quot;</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Create LDIndex dataset aggregating the LD information across a set of populations.</span>
+
+<span class=sd>    Args:</span>
+<span class=sd>        ld_populations (list[str]): List of populations to aggregate</span>
+<span class=sd>        ld_matrix_template (str): Template path to the LD matrix</span>
+<span class=sd>        ld_index_raw_template (str): Template path to the LD variants index</span>
+<span class=sd>        grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates</span>
+<span class=sd>        min_r2 (float): Minimum r2 value to keep in the table</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        LDIndex: LDIndex dataset</span>
+<span class=sd>    &quot;&quot;&quot;</span>
     <span class=n>ld_indices_unaggregated</span> <span class=o>=</span> <span class=p>[]</span>
     <span class=k>for</span> <span class=n>pop</span> <span class=ow>in</span> <span class=n>ld_populations</span><span class=p>:</span>
         <span class=k>try</span><span class=p>:</span>

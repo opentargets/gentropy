@@ -108,7 +108,40 @@
 <span class=normal>124</span>
 <span class=normal>125</span>
 <span class=normal>126</span>
-<span class=normal>127</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>127</span>
+<span class=normal>128</span>
+<span class=normal>129</span>
+<span class=normal>130</span>
+<span class=normal>131</span>
+<span class=normal>132</span>
+<span class=normal>133</span>
+<span class=normal>134</span>
+<span class=normal>135</span>
+<span class=normal>136</span>
+<span class=normal>137</span>
+<span class=normal>138</span>
+<span class=normal>139</span>
+<span class=normal>140</span>
+<span class=normal>141</span>
+<span class=normal>142</span>
+<span class=normal>143</span>
+<span class=normal>144</span>
+<span class=normal>145</span>
+<span class=normal>146</span>
+<span class=normal>147</span>
+<span class=normal>148</span>
+<span class=normal>149</span>
+<span class=normal>150</span>
+<span class=normal>151</span>
+<span class=normal>152</span>
+<span class=normal>153</span>
+<span class=normal>154</span>
+<span class=normal>155</span>
+<span class=normal>156</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>Dataset</span><span class=p>(</span><span class=n>ABC</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Open Targets Genetics Dataset.</span>
 
@@ -124,31 +157,56 @@
 
     <span class=nd>@property</span>
     <span class=k>def</span> <span class=nf>df</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Dataframe included in the Dataset.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Dataframe included in the Dataset.</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            DataFrame: Dataframe included in the Dataset</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span>
 
     <span class=nd>@df</span><span class=o>.</span><span class=n>setter</span>
     <span class=k>def</span> <span class=nf>df</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>,</span> <span class=n>new_df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># noqa: CCE001</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Dataframe setter.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Dataframe setter.</span>
+
+<span class=sd>        Args:</span>
+<span class=sd>            new_df (DataFrame): New dataframe to be included in the Dataset</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=p>:</span> <span class=n>DataFrame</span> <span class=o>=</span> <span class=n>new_df</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>validate_schema</span><span class=p>()</span>
 
     <span class=nd>@property</span>
     <span class=k>def</span> <span class=nf>schema</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Dataframe expected schema.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Dataframe expected schema.</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            StructType: Dataframe expected schema</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_schema</span>
 
     <span class=nd>@classmethod</span>
     <span class=nd>@abstractmethod</span>
     <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>Dataset</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Abstract method to get the schema. Must be implemented by child classes.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Abstract method to get the schema. Must be implemented by child classes.</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            StructType: Schema for the Dataset</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>pass</span>
 
     <span class=nd>@classmethod</span>
     <span class=k>def</span> <span class=nf>from_parquet</span><span class=p>(</span>
-        <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>Dataset</span><span class=p>],</span> <span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>:</span> <span class=n>Dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span>
+        <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>Dataset</span><span class=p>],</span> <span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Reads a parquet file into a Dataset with a given schema.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Reads a parquet file into a Dataset with a given schema.</span>
+
+<span class=sd>        Args:</span>
+<span class=sd>            session (Session): Spark session</span>
+<span class=sd>            path (str): Path to the parquet file</span>
+<span class=sd>            **kwargs (dict[str, Any]): Additional arguments to pass to spark.read.parquet</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            Dataset: Dataset with the parquet file contents</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>schema</span> <span class=o>=</span> <span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>()</span>
         <span class=n>df</span> <span class=o>=</span> <span class=n>session</span><span class=o>.</span><span class=n>read_parquet</span><span class=p>(</span><span class=n>path</span><span class=o>=</span><span class=n>path</span><span class=p>,</span> <span class=n>schema</span><span class=o>=</span><span class=n>schema</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span>
         <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span><span class=n>_df</span><span class=o>=</span><span class=n>df</span><span class=p>,</span> <span class=n>_schema</span><span class=o>=</span><span class=n>schema</span><span class=p>)</span>
@@ -211,78 +269,103 @@
             <span class=p>)</span>
 
     <span class=k>def</span> <span class=nf>persist</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Persist in memory the DataFrame included in the Dataset.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Persist in memory the DataFrame included in the Dataset.</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            Dataset: Persisted Dataset</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>persist</span><span class=p>()</span>
         <span class=k>return</span> <span class=bp>self</span>
 
     <span class=k>def</span> <span class=nf>unpersist</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Remove the persisted DataFrame from memory.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Remove the persisted DataFrame from memory.</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            Dataset: Unpersisted Dataset</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>unpersist</span><span class=p>()</span>
         <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.df class="doc doc-heading"> <code class="highlight language-python"><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-property"><code>property</code></small> <small class="doc doc-label doc-label-writable"><code>writable</code></small> </span> <a href=#otg.dataset.dataset.Dataset.df class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Dataframe included in the Dataset.</p> </div> </div> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>schema</span><span class=p>:</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-property"><code>property</code></small> </span> <a href=#otg.dataset.dataset.Dataset.schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Dataframe expected schema.</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.from_parquet class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_parquet</span><span class=p>(</span><span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>:</span> <span class=n>Dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>Dataset</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.dataset.Dataset.from_parquet class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Reads a parquet file into a Dataset with a given schema.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>53</span>
-<span class=normal>54</span>
-<span class=normal>55</span>
-<span class=normal>56</span>
-<span class=normal>57</span>
-<span class=normal>58</span>
-<span class=normal>59</span>
-<span class=normal>60</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.df class="doc doc-heading"> <code class="highlight language-python"><span class=n>df</span><span class=p>:</span> <span class=n>DataFrame</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-property"><code>property</code></small> <small class="doc doc-label doc-label-writable"><code>writable</code></small> </span> <a href=#otg.dataset.dataset.Dataset.df class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Dataframe included in the Dataset.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe included in the Dataset</p> </div> </td> </tr> </tbody> </table> </div> </div> <div class="doc doc-object doc-attribute"> <h2 id=otg.dataset.dataset.Dataset.schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>schema</span><span class=p>:</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-property"><code>property</code></small> </span> <a href=#otg.dataset.dataset.Dataset.schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Dataframe expected schema.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StructType</code></td> <td> <code><span title="pyspark.sql.types.StructType">StructType</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe expected schema</p> </div> </td> </tr> </tbody> </table> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.from_parquet class="doc doc-heading"> <code class="highlight language-python"><span class=n>from_parquet</span><span class=p>(</span><span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>Dataset</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.dataset.Dataset.from_parquet class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Reads a parquet file into a Dataset with a given schema.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>session</code></td> <td> <code><span title="otg.common.session.Session">Session</span></code> </td> <td> <div class=doc-md-description> <p>Spark session</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>path</code></td> <td> <code>str</code> </td> <td> <div class=doc-md-description> <p>Path to the parquet file</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>**kwargs</code></td> <td> <code>dict[str, <span title="typing.Any">Any</span>]</code> </td> <td> <div class=doc-md-description> <p>Additional arguments to pass to spark.read.parquet</p> </div> </td> <td> <code>{}</code> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Dataset</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.dataset.Dataset" href="#otg.dataset.dataset.Dataset">Dataset</a></code> </td> <td> <div class=doc-md-description> <p>Dataset with the parquet file contents</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>69</span>
+<span class=normal>70</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span>
+<span class=normal>75</span>
+<span class=normal>76</span>
+<span class=normal>77</span>
+<span class=normal>78</span>
+<span class=normal>79</span>
+<span class=normal>80</span>
+<span class=normal>81</span>
+<span class=normal>82</span>
+<span class=normal>83</span>
+<span class=normal>84</span>
+<span class=normal>85</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>from_parquet</span><span class=p>(</span>
-    <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>Dataset</span><span class=p>],</span> <span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>:</span> <span class=n>Dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span>
+    <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>Dataset</span><span class=p>],</span> <span class=n>session</span><span class=p>:</span> <span class=n>Session</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Reads a parquet file into a Dataset with a given schema.&quot;&quot;&quot;</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Reads a parquet file into a Dataset with a given schema.</span>
+
+<span class=sd>    Args:</span>
+<span class=sd>        session (Session): Spark session</span>
+<span class=sd>        path (str): Path to the parquet file</span>
+<span class=sd>        **kwargs (dict[str, Any]): Additional arguments to pass to spark.read.parquet</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        Dataset: Dataset with the parquet file contents</span>
+<span class=sd>    &quot;&quot;&quot;</span>
     <span class=n>schema</span> <span class=o>=</span> <span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>()</span>
     <span class=n>df</span> <span class=o>=</span> <span class=n>session</span><span class=o>.</span><span class=n>read_parquet</span><span class=p>(</span><span class=n>path</span><span class=o>=</span><span class=n>path</span><span class=p>,</span> <span class=n>schema</span><span class=o>=</span><span class=n>schema</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span>
     <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span><span class=n>_df</span><span class=o>=</span><span class=n>df</span><span class=p>,</span> <span class=n>_schema</span><span class=o>=</span><span class=n>schema</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.dataset.Dataset.get_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Abstract method to get the schema. Must be implemented by child classes.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>47</span>
-<span class=normal>48</span>
-<span class=normal>49</span>
-<span class=normal>50</span>
-<span class=normal>51</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.dataset.Dataset.get_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Abstract method to get the schema. Must be implemented by child classes.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StructType</code></td> <td> <code><span title="pyspark.sql.types.StructType">StructType</span></code> </td> <td> <div class=doc-md-description> <p>Schema for the Dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>59</span>
+<span class=normal>60</span>
+<span class=normal>61</span>
+<span class=normal>62</span>
+<span class=normal>63</span>
+<span class=normal>64</span>
+<span class=normal>65</span>
+<span class=normal>66</span>
+<span class=normal>67</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=nd>@abstractmethod</span>
 <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>Dataset</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Abstract method to get the schema. Must be implemented by child classes.&quot;&quot;&quot;</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Abstract method to get the schema. Must be implemented by child classes.</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        StructType: Schema for the Dataset</span>
+<span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>pass</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.persist class="doc doc-heading"> <code class="highlight language-python"><span class=n>persist</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>Dataset</span></code> <a href=#otg.dataset.dataset.Dataset.persist class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Persist in memory the DataFrame included in the Dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>119</span>
-<span class=normal>120</span>
-<span class=normal>121</span>
-<span class=normal>122</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>persist</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Persist in memory the DataFrame included in the Dataset.&quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.persist class="doc doc-heading"> <code class="highlight language-python"><span class=n>persist</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>Dataset</span></code> <a href=#otg.dataset.dataset.Dataset.persist class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Persist in memory the DataFrame included in the Dataset.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Dataset</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.dataset.Dataset" href="#otg.dataset.dataset.Dataset">Dataset</a></code> </td> <td> <div class=doc-md-description> <p>Persisted Dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>144</span>
+<span class=normal>145</span>
+<span class=normal>146</span>
+<span class=normal>147</span>
+<span class=normal>148</span>
+<span class=normal>149</span>
+<span class=normal>150</span>
+<span class=normal>151</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>persist</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Persist in memory the DataFrame included in the Dataset.</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        Dataset: Persisted Dataset</span>
+<span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>persist</span><span class=p>()</span>
     <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.unpersist class="doc doc-heading"> <code class="highlight language-python"><span class=n>unpersist</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>Dataset</span></code> <a href=#otg.dataset.dataset.Dataset.unpersist class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Remove the persisted DataFrame from memory.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>124</span>
-<span class=normal>125</span>
-<span class=normal>126</span>
-<span class=normal>127</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>unpersist</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Remove the persisted DataFrame from memory.&quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.unpersist class="doc doc-heading"> <code class="highlight language-python"><span class=n>unpersist</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>Dataset</span></code> <a href=#otg.dataset.dataset.Dataset.unpersist class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Remove the persisted DataFrame from memory.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Dataset</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.dataset.Dataset" href="#otg.dataset.dataset.Dataset">Dataset</a></code> </td> <td> <div class=doc-md-description> <p>Unpersisted Dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>153</span>
+<span class=normal>154</span>
+<span class=normal>155</span>
+<span class=normal>156</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>unpersist</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dataset</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Remove the persisted DataFrame from memory.</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        Dataset: Unpersisted Dataset</span>
+<span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>unpersist</span><span class=p>()</span>
     <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.validate_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>validate_schema</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.dataset.dataset.Dataset.validate_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Validate DataFrame schema against expected class schema.</p> <p><strong>Raises:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code>ValueError</code> </td> <td> <div class=doc-md-description> <p>DataFrame schema is not valid</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 62</span>
-<span class=normal> 63</span>
-<span class=normal> 64</span>
-<span class=normal> 65</span>
-<span class=normal> 66</span>
-<span class=normal> 67</span>
-<span class=normal> 68</span>
-<span class=normal> 69</span>
-<span class=normal> 70</span>
-<span class=normal> 71</span>
-<span class=normal> 72</span>
-<span class=normal> 73</span>
-<span class=normal> 74</span>
-<span class=normal> 75</span>
-<span class=normal> 76</span>
-<span class=normal> 77</span>
-<span class=normal> 78</span>
-<span class=normal> 79</span>
-<span class=normal> 80</span>
-<span class=normal> 81</span>
-<span class=normal> 82</span>
-<span class=normal> 83</span>
-<span class=normal> 84</span>
-<span class=normal> 85</span>
-<span class=normal> 86</span>
-<span class=normal> 87</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.dataset.Dataset.validate_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>validate_schema</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.dataset.dataset.Dataset.validate_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Validate DataFrame schema against expected class schema.</p> <p><strong>Raises:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code>ValueError</code> </td> <td> <div class=doc-md-description> <p>DataFrame schema is not valid</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/dataset.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 87</span>
 <span class=normal> 88</span>
 <span class=normal> 89</span>
 <span class=normal> 90</span>
@@ -312,7 +395,32 @@
 <span class=normal>114</span>
 <span class=normal>115</span>
 <span class=normal>116</span>
-<span class=normal>117</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>validate_schema</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># sourcery skip: invert-any-all</span>
+<span class=normal>117</span>
+<span class=normal>118</span>
+<span class=normal>119</span>
+<span class=normal>120</span>
+<span class=normal>121</span>
+<span class=normal>122</span>
+<span class=normal>123</span>
+<span class=normal>124</span>
+<span class=normal>125</span>
+<span class=normal>126</span>
+<span class=normal>127</span>
+<span class=normal>128</span>
+<span class=normal>129</span>
+<span class=normal>130</span>
+<span class=normal>131</span>
+<span class=normal>132</span>
+<span class=normal>133</span>
+<span class=normal>134</span>
+<span class=normal>135</span>
+<span class=normal>136</span>
+<span class=normal>137</span>
+<span class=normal>138</span>
+<span class=normal>139</span>
+<span class=normal>140</span>
+<span class=normal>141</span>
+<span class=normal>142</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>validate_schema</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>Dataset</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># sourcery skip: invert-any-all</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Validate DataFrame schema against expected class schema.</span>
 
 <span class=sd>    Raises:</span>

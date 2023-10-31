@@ -153,7 +153,7 @@
 <span class=sd>            alternate (StringExpression): The alternate allele</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            The position of the variant according to Ensembl genome.</span>
+<span class=sd>            Int32Expression: The position of the variant according to Ensembl genome.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=n>hl</span><span class=o>.</span><span class=n>if_else</span><span class=p>(</span>
             <span class=p>(</span><span class=n>reference</span><span class=o>.</span><span class=n>length</span><span class=p>()</span> <span class=o>&gt;</span> <span class=mi>1</span><span class=p>)</span> <span class=o>|</span> <span class=p>(</span><span class=n>alternate</span><span class=o>.</span><span class=n>length</span><span class=p>()</span> <span class=o>&gt;</span> <span class=mi>1</span><span class=p>),</span> <span class=n>position</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>position</span>

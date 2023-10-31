@@ -242,7 +242,7 @@
 <span class=sd>            pics_snp_std (float): Standard deviation for the P value of the association between a SNP and a trait</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            Relative posterior probability of a SNP being causal in a locus</span>
+<span class=sd>            float: Posterior probability of the association between a SNP and a trait</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; rel_prob = PICS._pics_relative_posterior_probability(neglog_p=10.0, pics_snp_mu=1.0, pics_snp_std=10.0)</span>
@@ -264,7 +264,7 @@
 <span class=sd>            k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            Standard deviation for the P value of the association between a SNP and a trait</span>
+<span class=sd>            float | None: Standard deviation for the P value of the association between a SNP and a trait</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; PICS._pics_standard_deviation(neglog_p=1.0, r2=1.0, k=6.4)</span>
@@ -292,7 +292,7 @@
 <span class=sd>            r2 (float): LD score between a given SNP and the lead variant</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            Mean P value of the association between a SNP and a trait</span>
+<span class=sd>            float | None: Mean P value of the association between a SNP and a trait</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; PICS._pics_mu(neglog_p=1.0, r2=1.0)</span>
@@ -313,12 +313,12 @@
 <span class=sd>        its association signal and causality probability as of PICS.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            ld_set (list): list of tagging variants after expanding the locus</span>
+<span class=sd>            ld_set (list[Row]): list of tagging variants after expanding the locus</span>
 <span class=sd>            lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.</span>
 <span class=sd>            k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.</span>
+<span class=sd>            list | None: List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.</span>
 
 <span class=sd>        Examples:</span>
 <span class=sd>            &gt;&gt;&gt; from pyspark.sql import Row</span>

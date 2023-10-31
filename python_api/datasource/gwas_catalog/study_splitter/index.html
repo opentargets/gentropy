@@ -127,8 +127,8 @@
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Resolve trait names by consolidating association-level and study-level trait names.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            association_trait (Column): Association-level trait name.</span>
 <span class=sd>            study_trait (Column): Study-level trait name.</span>
+<span class=sd>            association_trait (Column): Association-level trait name.</span>
 <span class=sd>            p_value_text (Column): P-value text.</span>
 
 <span class=sd>        Returns:</span>
@@ -195,10 +195,10 @@
 
 <span class=sd>        Args:</span>
 <span class=sd>            studies (GWASCatalogStudyIndex): GWAS Catalog studies.</span>
-<span class=sd>            associations (StudyLocusGWASCatalog): GWAS Catalog associations.</span>
+<span class=sd>            associations (GWASCatalogAssociations): GWAS Catalog associations.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            A tuple of the split associations and studies.</span>
+<span class=sd>            Tuple[GWASCatalogStudyIndex, GWASCatalogAssociations]: Split studies and associations.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=c1># Composite of studies and associations to resolve scattered information</span>
         <span class=n>st_ass</span> <span class=o>=</span> <span class=p>(</span>
@@ -237,7 +237,7 @@
                 <span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span>
             <span class=p>)</span><span class=o>.</span><span class=n>_qc_ambiguous_study</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gwas_catalog.study_splitter.GWASCatalogStudySplitter.split class="doc doc-heading"> <code class="highlight language-python"><span class=n>split</span><span class=p>(</span><span class=n>studies</span><span class=p>:</span> <span class=n>GWASCatalogStudyIndex</span><span class=p>,</span> <span class=n>associations</span><span class=p>:</span> <span class=n>GWASCatalogAssociations</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Tuple</span><span class=p>[</span><span class=n>GWASCatalogStudyIndex</span><span class=p>,</span> <span class=n>GWASCatalogAssociations</span><span class=p>]</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.gwas_catalog.study_splitter.GWASCatalogStudySplitter.split class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Splitting multi-trait GWAS Catalog studies.</p> <p>If assigned disease of the study and the association don't agree, we assume the study needs to be split. Then disease EFOs, trait names and study ID are consolidated</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>studies</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex" href="../study_index/#otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex">GWASCatalogStudyIndex</a></code> </td> <td> <div class=doc-md-description> <p>GWAS Catalog studies.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>associations</code></td> <td> <code>StudyLocusGWASCatalog</code> </td> <td> <div class=doc-md-description> <p>GWAS Catalog associations.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code><span title="typing.Tuple">Tuple</span>[<a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex" href="../study_index/#otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex">GWASCatalogStudyIndex</a>, <a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="../associations/#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a>]</code> </td> <td> <div class=doc-md-description> <p>A tuple of the split associations and studies.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/study_splitter.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 82</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.gwas_catalog.study_splitter.GWASCatalogStudySplitter.split class="doc doc-heading"> <code class="highlight language-python"><span class=n>split</span><span class=p>(</span><span class=n>studies</span><span class=p>:</span> <span class=n>GWASCatalogStudyIndex</span><span class=p>,</span> <span class=n>associations</span><span class=p>:</span> <span class=n>GWASCatalogAssociations</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Tuple</span><span class=p>[</span><span class=n>GWASCatalogStudyIndex</span><span class=p>,</span> <span class=n>GWASCatalogAssociations</span><span class=p>]</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.gwas_catalog.study_splitter.GWASCatalogStudySplitter.split class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Splitting multi-trait GWAS Catalog studies.</p> <p>If assigned disease of the study and the association don't agree, we assume the study needs to be split. Then disease EFOs, trait names and study ID are consolidated</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>studies</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex" href="../study_index/#otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex">GWASCatalogStudyIndex</a></code> </td> <td> <div class=doc-md-description> <p>GWAS Catalog studies.</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>associations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="../associations/#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a></code> </td> <td> <div class=doc-md-description> <p>GWAS Catalog associations.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code><span title="typing.Tuple">Tuple</span>[<a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex" href="../study_index/#otg.datasource.gwas_catalog.study_index.GWASCatalogStudyIndex">GWASCatalogStudyIndex</a>, <a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="../associations/#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a>]</code> </td> <td> <div class=doc-md-description> <p>Tuple[GWASCatalogStudyIndex, GWASCatalogAssociations]: Split studies and associations.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/study_splitter.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 82</span>
 <span class=normal> 83</span>
 <span class=normal> 84</span>
 <span class=normal> 85</span>
@@ -304,10 +304,10 @@
 
 <span class=sd>    Args:</span>
 <span class=sd>        studies (GWASCatalogStudyIndex): GWAS Catalog studies.</span>
-<span class=sd>        associations (StudyLocusGWASCatalog): GWAS Catalog associations.</span>
+<span class=sd>        associations (GWASCatalogAssociations): GWAS Catalog associations.</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        A tuple of the split associations and studies.</span>
+<span class=sd>        Tuple[GWASCatalogStudyIndex, GWASCatalogAssociations]: Split studies and associations.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=c1># Composite of studies and associations to resolve scattered information</span>
     <span class=n>st_ass</span> <span class=o>=</span> <span class=p>(</span>

@@ -63,7 +63,11 @@
 <span class=normal>67</span>
 <span class=normal>68</span>
 <span class=normal>69</span>
-<span class=normal>70</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>70</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>GeneIndex</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Gene index dataset.</span>
 
@@ -72,7 +76,11 @@
 
     <span class=nd>@classmethod</span>
     <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Provides the schema for the GeneIndex dataset.&quot;&quot;&quot;</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Provides the schema for the GeneIndex dataset.</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            StructType: Schema for the GeneIndex dataset</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=n>parse_spark_schema</span><span class=p>(</span><span class=s2>&quot;gene_index.json&quot;</span><span class=p>)</span>
 
     <span class=k>def</span> <span class=nf>filter_by_biotypes</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span> <span class=n>biotypes</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GeneIndex</span><span class=p>:</span>
@@ -117,17 +125,17 @@
             <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;geneSymbol&quot;</span><span class=p>),</span>
             <span class=s2>&quot;*&quot;</span><span class=p>,</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.filter_by_biotypes class="doc doc-heading"> <code class="highlight language-python"><span class=n>filter_by_biotypes</span><span class=p>(</span><span class=n>biotypes</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GeneIndex</span></code> <a href=#otg.dataset.gene_index.GeneIndex.filter_by_biotypes class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Filter by approved biotypes.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>biotypes</code></td> <td> <code>list</code> </td> <td> <div class=doc-md-description> <p>List of Ensembl biotypes to keep.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>GeneIndex</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>Gene index dataset filtered by biotypes.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>29</span>
-<span class=normal>30</span>
-<span class=normal>31</span>
-<span class=normal>32</span>
-<span class=normal>33</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.filter_by_biotypes class="doc doc-heading"> <code class="highlight language-python"><span class=n>filter_by_biotypes</span><span class=p>(</span><span class=n>biotypes</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GeneIndex</span></code> <a href=#otg.dataset.gene_index.GeneIndex.filter_by_biotypes class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Filter by approved biotypes.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>biotypes</code></td> <td> <code>list</code> </td> <td> <div class=doc-md-description> <p>List of Ensembl biotypes to keep.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>GeneIndex</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>Gene index dataset filtered by biotypes.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>33</span>
 <span class=normal>34</span>
 <span class=normal>35</span>
 <span class=normal>36</span>
 <span class=normal>37</span>
 <span class=normal>38</span>
-<span class=normal>39</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>filter_by_biotypes</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span> <span class=n>biotypes</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GeneIndex</span><span class=p>:</span>
+<span class=normal>39</span>
+<span class=normal>40</span>
+<span class=normal>41</span>
+<span class=normal>42</span>
+<span class=normal>43</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>filter_by_biotypes</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span> <span class=n>biotypes</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GeneIndex</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Filter by approved biotypes.</span>
 
 <span class=sd>    Args:</span>
@@ -138,18 +146,22 @@
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>df</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_df</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;biotype&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>isin</span><span class=p>(</span><span class=n>biotypes</span><span class=p>))</span>
     <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.gene_index.GeneIndex.get_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Provides the schema for the GeneIndex dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>24</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.get_schema class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_schema</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>StructType</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.dataset.gene_index.GeneIndex.get_schema class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Provides the schema for the GeneIndex dataset.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>StructType</code></td> <td> <code><span title="pyspark.sql.types.StructType">StructType</span></code> </td> <td> <div class=doc-md-description> <p>Schema for the GeneIndex dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>24</span>
 <span class=normal>25</span>
 <span class=normal>26</span>
-<span class=normal>27</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>27</span>
+<span class=normal>28</span>
+<span class=normal>29</span>
+<span class=normal>30</span>
+<span class=normal>31</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>get_schema</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>GeneIndex</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>StructType</span><span class=p>:</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Provides the schema for the GeneIndex dataset.&quot;&quot;&quot;</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Provides the schema for the GeneIndex dataset.</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        StructType: Schema for the GeneIndex dataset</span>
+<span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=n>parse_spark_schema</span><span class=p>(</span><span class=s2>&quot;gene_index.json&quot;</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.locations_lut class="doc doc-heading"> <code class="highlight language-python"><span class=n>locations_lut</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span></code> <a href=#otg.dataset.gene_index.GeneIndex.locations_lut class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Gene location information.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Gene LUT including genomic location information.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>41</span>
-<span class=normal>42</span>
-<span class=normal>43</span>
-<span class=normal>44</span>
-<span class=normal>45</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.locations_lut class="doc doc-heading"> <code class="highlight language-python"><span class=n>locations_lut</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span></code> <a href=#otg.dataset.gene_index.GeneIndex.locations_lut class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Gene location information.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Gene LUT including genomic location information.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>45</span>
 <span class=normal>46</span>
 <span class=normal>47</span>
 <span class=normal>48</span>
@@ -158,7 +170,11 @@
 <span class=normal>51</span>
 <span class=normal>52</span>
 <span class=normal>53</span>
-<span class=normal>54</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>locations_lut</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>54</span>
+<span class=normal>55</span>
+<span class=normal>56</span>
+<span class=normal>57</span>
+<span class=normal>58</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>locations_lut</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Gene location information.</span>
 
 <span class=sd>    Returns:</span>
@@ -172,11 +188,7 @@
         <span class=s2>&quot;strand&quot;</span><span class=p>,</span>
         <span class=s2>&quot;tss&quot;</span><span class=p>,</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.symbols_lut class="doc doc-heading"> <code class="highlight language-python"><span class=n>symbols_lut</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span></code> <a href=#otg.dataset.gene_index.GeneIndex.symbols_lut class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Gene symbol lookup table.</p> <p>Pre-processess gene/target dataset to create lookup table of gene symbols, including obsoleted gene symbols.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Gene LUT for symbol mapping containing <code>geneId</code> and <code>geneSymbol</code> columns.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>56</span>
-<span class=normal>57</span>
-<span class=normal>58</span>
-<span class=normal>59</span>
-<span class=normal>60</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.dataset.gene_index.GeneIndex.symbols_lut class="doc doc-heading"> <code class="highlight language-python"><span class=n>symbols_lut</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span></code> <a href=#otg.dataset.gene_index.GeneIndex.symbols_lut class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Gene symbol lookup table.</p> <p>Pre-processess gene/target dataset to create lookup table of gene symbols, including obsoleted gene symbols.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Gene LUT for symbol mapping containing <code>geneId</code> and <code>geneSymbol</code> columns.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/dataset/gene_index.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>60</span>
 <span class=normal>61</span>
 <span class=normal>62</span>
 <span class=normal>63</span>
@@ -186,7 +198,11 @@
 <span class=normal>67</span>
 <span class=normal>68</span>
 <span class=normal>69</span>
-<span class=normal>70</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>symbols_lut</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=normal>70</span>
+<span class=normal>71</span>
+<span class=normal>72</span>
+<span class=normal>73</span>
+<span class=normal>74</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>symbols_lut</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Gene symbol lookup table.</span>
 
 <span class=sd>    Pre-processess gene/target dataset to create lookup table of gene symbols, including</span>

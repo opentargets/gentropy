@@ -109,12 +109,28 @@
 <span class=normal>129</span>
 <span class=normal>130</span>
 <span class=normal>131</span>
-<span class=normal>132</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>IntervalsAndersson</span><span class=p>(</span><span class=n>Intervals</span><span class=p>):</span>
+<span class=normal>132</span>
+<span class=normal>133</span>
+<span class=normal>134</span>
+<span class=normal>135</span>
+<span class=normal>136</span>
+<span class=normal>137</span>
+<span class=normal>138</span>
+<span class=normal>139</span>
+<span class=normal>140</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>IntervalsAndersson</span><span class=p>(</span><span class=n>Intervals</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Interval dataset from Andersson et al. 2014.&quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
-    <span class=k>def</span> <span class=nf>read</span><span class=p>(</span><span class=n>spark</span><span class=p>:</span> <span class=n>SparkSession</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
-<span class=w>        </span><span class=sd>&quot;&quot;&quot;Read andersson2014 dataset.&quot;&quot;&quot;</span>
+    <span class=k>def</span> <span class=nf>read</span><span class=p>(</span><span class=n>spark</span><span class=p>:</span> <span class=n>SparkSession</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>&quot;&quot;&quot;Read andersson2014 dataset.</span>
+
+<span class=sd>        Args:</span>
+<span class=sd>            spark (SparkSession): Spark session</span>
+<span class=sd>            path (str): Path to the dataset</span>
+
+<span class=sd>        Returns:</span>
+<span class=sd>            DataFrame: Raw Andersson et al. dataframe</span>
+<span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>input_schema</span> <span class=o>=</span> <span class=n>t</span><span class=o>.</span><span class=n>StructType</span><span class=o>.</span><span class=n>fromJson</span><span class=p>(</span>
             <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span>
                 <span class=n>pkg_resources</span><span class=o>.</span><span class=n>read_text</span><span class=p>(</span><span class=n>schemas</span><span class=p>,</span> <span class=s2>&quot;andersson2014.json&quot;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&quot;utf-8&quot;</span><span class=p>)</span>
@@ -221,15 +237,7 @@
             <span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>Intervals</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.intervals.andersson.IntervalsAndersson.parse class="doc doc-heading"> <code class="highlight language-python"><span class=n>parse</span><span class=p>(</span><span class=n>raw_anderson_df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span> <span class=n>lift</span><span class=p>:</span> <span class=n>LiftOverSpark</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Intervals</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.intervals.andersson.IntervalsAndersson.parse class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Parse Andersson et al. 2014 dataset.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>raw_anderson_df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Raw Andersson et al. dataset</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>gene_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../../../dataset/gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>Gene index</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>lift</code></td> <td> <code><span title="otg.common.Liftover.LiftOverSpark">LiftOverSpark</span></code> </td> <td> <div class=doc-md-description> <p>LiftOverSpark instance</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Intervals</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code> </td> <td> <div class=doc-md-description> <p>Intervals dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/intervals/andersson.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 40</span>
-<span class=normal> 41</span>
-<span class=normal> 42</span>
-<span class=normal> 43</span>
-<span class=normal> 44</span>
-<span class=normal> 45</span>
-<span class=normal> 46</span>
-<span class=normal> 47</span>
-<span class=normal> 48</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.intervals.andersson.IntervalsAndersson.parse class="doc doc-heading"> <code class="highlight language-python"><span class=n>parse</span><span class=p>(</span><span class=n>raw_anderson_df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>gene_index</span><span class=p>:</span> <span class=n>GeneIndex</span><span class=p>,</span> <span class=n>lift</span><span class=p>:</span> <span class=n>LiftOverSpark</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Intervals</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small> </span> <a href=#otg.datasource.intervals.andersson.IntervalsAndersson.parse class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Parse Andersson et al. 2014 dataset.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>raw_anderson_df</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Raw Andersson et al. dataset</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>gene_index</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../../../dataset/gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code> </td> <td> <div class=doc-md-description> <p>Gene index</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>lift</code></td> <td> <code><span title="otg.common.Liftover.LiftOverSpark">LiftOverSpark</span></code> </td> <td> <div class=doc-md-description> <p>LiftOverSpark instance</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Intervals</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code> </td> <td> <div class=doc-md-description> <p>Intervals dataset</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/intervals/andersson.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 48</span>
 <span class=normal> 49</span>
 <span class=normal> 50</span>
 <span class=normal> 51</span>
@@ -313,7 +321,15 @@
 <span class=normal>129</span>
 <span class=normal>130</span>
 <span class=normal>131</span>
-<span class=normal>132</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>132</span>
+<span class=normal>133</span>
+<span class=normal>134</span>
+<span class=normal>135</span>
+<span class=normal>136</span>
+<span class=normal>137</span>
+<span class=normal>138</span>
+<span class=normal>139</span>
+<span class=normal>140</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>parse</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>IntervalsAndersson</span><span class=p>],</span>
     <span class=n>raw_anderson_df</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
@@ -406,7 +422,7 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>Intervals</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.intervals.andersson.IntervalsAndersson.read class="doc doc-heading"> <code class="highlight language-python"><span class=n>read</span><span class=p>(</span><span class=n>spark</span><span class=p>:</span> <span class=n>SparkSession</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small> </span> <a href=#otg.datasource.intervals.andersson.IntervalsAndersson.read class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Read andersson2014 dataset.</p> <details class=quote> <summary>Source code in <code>src/otg/datasource/intervals/andersson.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>24</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=otg.datasource.intervals.andersson.IntervalsAndersson.read class="doc doc-heading"> <code class="highlight language-python"><span class=n>read</span><span class=p>(</span><span class=n>spark</span><span class=p>:</span> <span class=n>SparkSession</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span></code> <span class="doc doc-labels"> <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small> </span> <a href=#otg.datasource.intervals.andersson.IntervalsAndersson.read class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents "> <p>Read andersson2014 dataset.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>spark</code></td> <td> <code><span title="pyspark.sql.SparkSession">SparkSession</span></code> </td> <td> <div class=doc-md-description> <p>Spark session</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>path</code></td> <td> <code>str</code> </td> <td> <div class=doc-md-description> <p>Path to the dataset</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>DataFrame</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Raw Andersson et al. dataframe</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/intervals/andersson.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>24</span>
 <span class=normal>25</span>
 <span class=normal>26</span>
 <span class=normal>27</span>
@@ -420,9 +436,25 @@
 <span class=normal>35</span>
 <span class=normal>36</span>
 <span class=normal>37</span>
-<span class=normal>38</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@staticmethod</span>
-<span class=k>def</span> <span class=nf>read</span><span class=p>(</span><span class=n>spark</span><span class=p>:</span> <span class=n>SparkSession</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
-<span class=w>    </span><span class=sd>&quot;&quot;&quot;Read andersson2014 dataset.&quot;&quot;&quot;</span>
+<span class=normal>38</span>
+<span class=normal>39</span>
+<span class=normal>40</span>
+<span class=normal>41</span>
+<span class=normal>42</span>
+<span class=normal>43</span>
+<span class=normal>44</span>
+<span class=normal>45</span>
+<span class=normal>46</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@staticmethod</span>
+<span class=k>def</span> <span class=nf>read</span><span class=p>(</span><span class=n>spark</span><span class=p>:</span> <span class=n>SparkSession</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DataFrame</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Read andersson2014 dataset.</span>
+
+<span class=sd>    Args:</span>
+<span class=sd>        spark (SparkSession): Spark session</span>
+<span class=sd>        path (str): Path to the dataset</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>        DataFrame: Raw Andersson et al. dataframe</span>
+<span class=sd>    &quot;&quot;&quot;</span>
     <span class=n>input_schema</span> <span class=o>=</span> <span class=n>t</span><span class=o>.</span><span class=n>StructType</span><span class=o>.</span><span class=n>fromJson</span><span class=p>(</span>
         <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span>
             <span class=n>pkg_resources</span><span class=o>.</span><span class=n>read_text</span><span class=p>(</span><span class=n>schemas</span><span class=p>,</span> <span class=s2>&quot;andersson2014.json&quot;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&quot;utf-8&quot;</span><span class=p>)</span>
