@@ -26,7 +26,11 @@ class SummaryStatistics(Dataset):
 
     @classmethod
     def get_schema(cls: type[SummaryStatistics]) -> StructType:
-        """Provides the schema for the SummaryStatistics dataset."""
+        """Provides the schema for the SummaryStatistics dataset.
+
+        Returns:
+            StructType: Schema for the SummaryStatistics dataset
+        """
         return parse_spark_schema("summary_statistics.json")
 
     def pvalue_filter(self: SummaryStatistics, pvalue: float) -> SummaryStatistics:
@@ -64,7 +68,7 @@ class SummaryStatistics(Dataset):
             distance (int): Distance in base pairs to be used for clumping.
             gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
             baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.
-            locus_collect_distance (int, optional): The distance to collect locus around semi-indices. If not provided, defaults to `distance`.
+            locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, defaults to `distance`.
 
         Returns:
             StudyLocus: Clumped study-locus containing variants based on window.

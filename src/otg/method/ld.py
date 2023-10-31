@@ -19,7 +19,14 @@ class LDAnnotator:
 
     @staticmethod
     def _calculate_weighted_r_overall(ld_set: Column) -> Column:
-        """Aggregation of weighted R information using ancestry proportions."""
+        """Aggregation of weighted R information using ancestry proportions.
+
+        Args:
+            ld_set (Column): LD set
+
+        Returns:
+            Column: LD set with added 'r2Overall' field
+        """
         return f.transform(
             ld_set,
             lambda x: f.struct(

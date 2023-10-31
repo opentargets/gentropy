@@ -252,7 +252,7 @@ class GWASCatalogStudyIndex(StudyIndex):
             sumstats_lut (DataFrame): GWAS Catalog summary statistics list.
 
         Returns:
-            GWASCatalogStudyIndex: Parsed and annotated GWAS Catalog study table.
+            StudyIndex: Parsed and annotated GWAS Catalog study table.
         """
         # Read GWAS Catalogue raw data
         return (
