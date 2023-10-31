@@ -121,3 +121,5 @@ convention = "google"
 style = 'google'
 exclude = '\.git|\.venv|__init__.py'
 require-return-section-when-returning-nothing = false
+check-return-types = true
+arg-type-hints-in-docstring = true
