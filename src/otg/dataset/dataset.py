@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from otg.common.schemas import flatten_schema
 
@@ -30,31 +30,56 @@ class Dataset(ABC):
 
     @property
     def df(self: Dataset) -> DataFrame:
-        """Dataframe included in the Dataset."""
+        """Dataframe included in the Dataset.
+
+        Returns:
+            DataFrame: Dataframe included in the Dataset
+        """
         return self._df
 
     @df.setter
     def df(self: Dataset, new_df: DataFrame) -> None:  # noqa: CCE001
-        """Dataframe setter."""
+        """Dataframe setter.
+
+        Args:
+            new_df (DataFrame): New dataframe to be included in the Dataset
+        """
         self._df: DataFrame = new_df
         self.validate_schema()
 
     @property
     def schema(self: Dataset) -> StructType:
-        """Dataframe expected schema."""
+        """Dataframe expected schema.
+
+        Returns:
+            StructType: Dataframe expected schema
+        """
         return self._schema
 
     @classmethod
     @abstractmethod
     def get_schema(cls: type[Dataset]) -> StructType:
-        """Abstract method to get the schema. Must be implemented by child classes."""
+        """Abstract method to get the schema. Must be implemented by child classes.
+
+        Returns:
+            StructType: Schema for the Dataset
+        """
         pass
 
     @classmethod
     def from_parquet(
-        cls: type[Dataset], session: Session, path: str, **kwargs: Dict[str, Any]
+        cls: type[Dataset], session: Session, path: str, **kwargs: dict[str, Any]
     ) -> Dataset:
-        """Reads a parquet file into a Dataset with a given schema."""
+        """Reads a parquet file into a Dataset with a given schema.
+
+        Args:
+            session (Session): Spark session
+            path (str): Path to the parquet file
+            **kwargs (dict[str, Any]): Additional arguments to pass to spark.read.parquet
+
+        Returns:
+            Dataset: Dataset with the parquet file contents
+        """
         schema = cls.get_schema()
         df = session.read_parquet(path=path, schema=schema, **kwargs)
         return cls(_df=df, _schema=schema)
@@ -117,11 +142,19 @@ class Dataset(ABC):
             )
 
     def persist(self: Dataset) -> Dataset:
-        """Persist in memory the DataFrame included in the Dataset."""
+        """Persist in memory the DataFrame included in the Dataset.
+
+        Returns:
+            Dataset: Persisted Dataset
+        """
         self.df = self._df.persist()
         return self
 
     def unpersist(self: Dataset) -> Dataset:
-        """Remove the persisted DataFrame from memory."""
+        """Remove the persisted DataFrame from memory.
+
+        Returns:
+            Dataset: Unpersisted Dataset
+        """
         self.df = self._df.unpersist()
         return self

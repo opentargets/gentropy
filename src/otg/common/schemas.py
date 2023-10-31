@@ -29,8 +29,8 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
     """It takes a Spark schema and returns a list of all fields in the schema once flattened.
 
     Args:
-        schema: The schema of the dataframe
-        prefix: The prefix to prepend to the field names.
+        schema (StructType): The schema of the dataframe
+        prefix (str): The prefix to prepend to the field names. Defaults to "".
 
     Returns:
         list: A list of all the columns in the dataframe.
