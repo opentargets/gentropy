@@ -15,6 +15,7 @@ class UKBiobankStep:
     """UKBiobank study table ingestion step.
 
     Attributes:
+        session (Session): Session object.
         ukbiobank_manifest (str): UKBiobank manifest of studies.
         ukbiobank_study_index_out (str): Output path for the UKBiobank study index dataset.
     """

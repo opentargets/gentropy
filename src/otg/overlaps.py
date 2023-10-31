@@ -21,6 +21,7 @@ class OverlapsIndexStep:
     This step generates a dataset of overlapping studyLocus associations.
 
     Attributes:
+        session (Session): Session object.
         study_locus_path (str): Input study-locus path.
         study_index_path (str): Input study index path to extract the type of study.
         overlaps_index_out (str): Output overlaps index path.

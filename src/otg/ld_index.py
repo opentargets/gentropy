@@ -19,6 +19,8 @@ class LDIndexStep:
         Suggested params: high memory machine, 5TB of boot disk, no SSDs.
 
     Attributes:
+        session (Session): Session object.
+        start_hail (bool): Whether to start Hail. Defaults to True.
         ld_matrix_template (str): Template path for LD matrix from gnomAD.
         ld_index_raw_template (str): Template path for the variant indices correspondance in the LD Matrix from gnomAD.
         min_r2 (float): Minimum r2 to consider when considering variants within a window.

@@ -14,6 +14,7 @@ class GWASCatalogSumstatsPreprocessStep:
     """Step to preprocess GWAS Catalog harmonised summary stats.
 
     Attributes:
+        session (Session): Session object.
         raw_sumstats_path (str): Input raw GWAS Catalog summary statistics path.
         out_sumstats_path (str): Output GWAS Catalog summary statistics path.
         study_id (str): GWAS Catalog study identifier.
