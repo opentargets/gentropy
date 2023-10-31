@@ -11,5 +11,3 @@ title: FinnGen
     display: none;
   }
 </style>
-
-[TOC]
