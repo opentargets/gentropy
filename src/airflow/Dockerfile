@@ -3,9 +3,8 @@ FROM apache/airflow:slim-2.7.2-python3.9
 # Install additional Python requirements.
 # --no-cache-dir is a good practice when installing packages using pip, because it helps to keep the image lightweight.
 COPY requirements.txt /requirements.txt
-RUN pip install --user --upgrade pip
-RUN pip install --no-cache-dir --user -r /requirements.txt # --no-cache-dir good practise when installing packages using pip. It helps to keep the image lightweight
-
+RUN pip install --user --upgrade pip && \
+    pip install --no-cache-dir --user -r /requirements.txt
 
 # Source: https://airflow.apache.org/docs/docker-stack/recipes.html
 # Installing the GCP CLI in the container
@@ -29,3 +28,6 @@ RUN DOWNLOAD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/goo
     --quiet \
     && rm -rf "${TMP_DIR}" \
     && gcloud --version
+
+# Switch back to a non-root user for security purposes
+USER airflow
