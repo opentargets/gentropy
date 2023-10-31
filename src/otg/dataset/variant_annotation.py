@@ -24,7 +24,11 @@ class VariantAnnotation(Dataset):
 
     @classmethod
     def get_schema(cls: type[VariantAnnotation]) -> StructType:
-        """Provides the schema for the VariantAnnotation dataset."""
+        """Provides the schema for the VariantAnnotation dataset.
+
+        Returns:
+            StructType: Schema for the VariantAnnotation dataset
+        """
         return parse_spark_schema("variant_annotation.json")
 
     def max_maf(self: VariantAnnotation) -> Column:

@@ -43,7 +43,11 @@ class Session:
         self.write_mode = write_mode
 
     def _default_config(self: Session) -> SparkConf:
-        """Default spark configuration."""
+        """Default spark configuration.
+
+        Returns:
+            SparkConf: Default spark configuration.
+        """
         return (
             SparkConf()
             # Dynamic allocation
@@ -56,7 +60,14 @@ class Session:
         )
 
     def _hail_config(self: Session, hail_home: str | None) -> SparkConf:
-        """Returns the Hail specific Spark configuration."""
+        """Returns the Hail specific Spark configuration.
+
+        Args:
+            hail_home (str | None): Path to Hail installation. Defaults to None.
+
+        Returns:
+            SparkConf: Hail specific Spark configuration.
+        """
         if hail_home is None:
             return SparkConf()
         return (
@@ -75,7 +86,15 @@ class Session:
     def _create_merged_config(
         self: Session, hail_home: str | None, extended_conf: SparkConf
     ) -> SparkConf:
-        """Merges the default, and optionally the Hail and extended configurations if provided."""
+        """Merges the default, and optionally the Hail and extended configurations if provided.
+
+        Args:
+            hail_home (str | None): Path to Hail installation. Defaults to None.
+            extended_conf (SparkConf): Extended Spark configuration.
+
+        Returns:
+            SparkConf: Merged Spark configuration.
+        """
         all_settings = (
             self._default_config().getAll()
             + self._hail_config(hail_home).getAll()

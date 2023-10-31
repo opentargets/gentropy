@@ -79,7 +79,11 @@ class StudyIndex(Dataset):
 
     @classmethod
     def get_schema(cls: type[StudyIndex]) -> StructType:
-        """Provide the schema for the StudyIndex dataset."""
+        """Provide the schema for the StudyIndex dataset.
+
+        Returns:
+            StructType: The schema of the StudyIndex dataset.
+        """
         return parse_spark_schema("study_index.json")
 
     @classmethod

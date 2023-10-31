@@ -79,7 +79,15 @@ class GnomADLDMatrix:
     def _convert_ld_matrix_to_table(
         block_matrix: BlockMatrix, min_r2: float
     ) -> DataFrame:
-        """Convert LD matrix to table."""
+        """Convert LD matrix to table.
+
+        Args:
+            block_matrix (BlockMatrix): LD matrix
+            min_r2 (float): Minimum r2 value to keep in the table
+
+        Returns:
+            DataFrame: LD matrix as a Spark DataFrame
+        """
         table = block_matrix.entries(keyed=False)
         return (
             table.filter(hl.abs(table.entry) >= min_r2**0.5)
@@ -95,7 +103,18 @@ class GnomADLDMatrix:
         grch37_to_grch38_chain_path: str,
         min_r2: float,
     ) -> DataFrame:
-        """Create LDIndex for a specific population."""
+        """Create LDIndex for a specific population.
+
+        Args:
+            population_id (str): Population ID
+            ld_matrix_path (str): Path to the LD matrix
+            ld_index_raw_path (str): Path to the LD index
+            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates
+            min_r2 (float): Minimum r2 value to keep in the table
+
+        Returns:
+            DataFrame: LDIndex for a specific population
+        """
         # Prepare LD Block matrix
         ld_matrix = GnomADLDMatrix._convert_ld_matrix_to_table(
             BlockMatrix.read(ld_matrix_path), min_r2
@@ -167,7 +186,15 @@ class GnomADLDMatrix:
     def _resolve_variant_indices(
         ld_index: DataFrame, ld_matrix: DataFrame
     ) -> DataFrame:
-        """Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38)."""
+        """Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38).
+
+        Args:
+            ld_index (DataFrame): Dataframe with resolved variant indices
+            ld_matrix (DataFrame): Dataframe with the filtered LD matrix
+
+        Returns:
+            DataFrame: Dataframe with variant IDs instead of `i` and `j` indices
+        """
         ld_index_i = ld_index.selectExpr(
             "idx as i", "variantId as variantId_i", "chromosome"
         )
@@ -228,7 +255,18 @@ class GnomADLDMatrix:
         grch37_to_grch38_chain_path: str,
         min_r2: float,
     ) -> LDIndex:
-        """Create LDIndex dataset aggregating the LD information across a set of populations."""
+        """Create LDIndex dataset aggregating the LD information across a set of populations.
+
+        Args:
+            ld_populations (list[str]): List of populations to aggregate
+            ld_matrix_template (str): Template path to the LD matrix
+            ld_index_raw_template (str): Template path to the LD variants index
+            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates
+            min_r2 (float): Minimum r2 value to keep in the table
+
+        Returns:
+            LDIndex: LDIndex dataset
+        """
         ld_indices_unaggregated = []
         for pop in ld_populations:
             try:

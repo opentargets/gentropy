@@ -25,7 +25,11 @@ class Intervals(Dataset):
 
     @classmethod
     def get_schema(cls: type[Intervals]) -> StructType:
-        """Provides the schema for the Intervals dataset."""
+        """Provides the schema for the Intervals dataset.
+
+        Returns:
+            StructType: Schema for the Intervals dataset
+        """
         return parse_spark_schema("intervals.json")
 
     @classmethod

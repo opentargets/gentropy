@@ -77,7 +77,15 @@ def nullify_empty_array(column: Column) -> Column:
 
 
 def get_top_ranked_in_window(df: DataFrame, w: WindowSpec) -> DataFrame:
-    """Returns the record with the top rank within each group of the window."""
+    """Returns the record with the top rank within each group of the window.
+
+    Args:
+        df (DataFrame): The DataFrame to be processed.
+        w (WindowSpec): The window to be used for ranking.
+
+    Returns:
+        DataFrame: The DataFrame with the record with the top rank within each group of the window.
+    """
     return (
         df.withColumn("row_number", f.row_number().over(w))
         .filter(f.col("row_number") == 1)
@@ -231,7 +239,15 @@ def column2camel_case(col_name: str) -> str:
 
 
 def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column:
-    """Sort a column of array of structs by a field in descending order, nulls last."""
+    """Sort a column of array of structs by a field in descending order, nulls last.
+
+    Args:
+        column_name (str): Column name
+        field_name (str): Field name
+
+    Returns:
+        Column: Sorted column
+    """
     return f.expr(
         f"""
         array_sort(

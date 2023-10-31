@@ -226,7 +226,11 @@ def instantiate_inline_workflow_template(
 
 
 def main(args: argparse.Namespace) -> None:
-    """Submit dataproc workflow."""
+    """Submit dataproc workflow.
+
+    Args:
+        args (argparse.Namespace): Command line arguments.
+    """
     template = dataproc.WorkflowTemplate()
 
     # Initialize request argument(s)

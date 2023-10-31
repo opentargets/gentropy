@@ -215,7 +215,11 @@ class StudyLocus(Dataset):
 
     @classmethod
     def get_schema(cls: type[StudyLocus]) -> StructType:
-        """Provides the schema for the StudyLocus dataset."""
+        """Provides the schema for the StudyLocus dataset.
+
+        Returns:
+            StructType: schema for the StudyLocus dataset.
+        """
         return parse_spark_schema("study_locus.json")
 
     def filter_credible_set(

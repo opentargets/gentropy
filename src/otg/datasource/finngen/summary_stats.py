@@ -24,7 +24,14 @@ class FinnGenSummaryStats(SummaryStatistics):
         cls: type[FinnGenSummaryStats],
         summary_stats_df: DataFrame,
     ) -> FinnGenSummaryStats:
-        """Ingests all summary statst for all FinnGen studies."""
+        """Ingests all summary statst for all FinnGen studies.
+
+        Args:
+            summary_stats_df (DataFrame): Raw summary statistics dataframe
+
+        Returns:
+            FinnGenSummaryStats: Processed summary statistics dataset
+        """
         processed_summary_stats_df = (
             summary_stats_df
             # Drop rows which don't have proper position.
