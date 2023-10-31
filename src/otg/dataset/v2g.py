@@ -24,7 +24,11 @@ class V2G(Dataset):
 
     @classmethod
     def get_schema(cls: type[V2G]) -> StructType:
-        """Provides the schema for the V2G dataset."""
+        """Provides the schema for the V2G dataset.
+
+        Returns:
+            StructType: Schema for the V2G dataset
+        """
         return parse_spark_schema("v2g.json")
 
     def filter_by_genes(self: V2G, genes: GeneIndex) -> V2G:

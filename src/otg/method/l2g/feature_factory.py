@@ -29,7 +29,11 @@ class L2GFeature(Dataset):
 
     @classmethod
     def get_schema(cls: type[L2GFeature]) -> StructType:
-        """Provides the schema for the L2GFeature dataset."""
+        """Provides the schema for the L2GFeature dataset.
+
+        Returns:
+            StructType: Schema for the L2GFeature dataset
+        """
         return parse_spark_schema("l2g_feature.json")
 
 
@@ -53,6 +57,9 @@ class ColocalisationFactory:
 
         Returns:
             L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
+
+        Raises:
+            ValueError: If the colocalisation method is not supported
         """
         if colocalisation_method not in ["COLOC", "eCAVIAR"]:
             raise ValueError(
@@ -171,7 +178,16 @@ class ColocalisationFactory:
     def _get_coloc_features(
         study_locus: StudyLocus, studies: StudyIndex, colocalisation: Colocalisation
     ) -> L2GFeature:
-        """Calls _get_max_coloc_per_study_locus for both methods and concatenates the results."""
+        """Calls _get_max_coloc_per_study_locus for both methods and concatenates the results.
+
+        Args:
+            study_locus (StudyLocus): Study locus dataset
+            studies (StudyIndex): Study index dataset
+            colocalisation (Colocalisation): Colocalisation dataset
+
+        Returns:
+            L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
+        """
         coloc_llr = ColocalisationFactory._get_max_coloc_per_study_locus(
             study_locus,
             studies,

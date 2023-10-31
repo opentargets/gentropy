@@ -31,7 +31,7 @@ class PICS:
             pics_snp_std (float): Standard deviation for the P value of the association between a SNP and a trait
 
         Returns:
-            Relative posterior probability of a SNP being causal in a locus
+            float: Posterior probability of the association between a SNP and a trait
 
         Examples:
             >>> rel_prob = PICS._pics_relative_posterior_probability(neglog_p=10.0, pics_snp_mu=1.0, pics_snp_std=10.0)
@@ -53,7 +53,7 @@ class PICS:
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
-            Standard deviation for the P value of the association between a SNP and a trait
+            float | None: Standard deviation for the P value of the association between a SNP and a trait
 
         Examples:
             >>> PICS._pics_standard_deviation(neglog_p=1.0, r2=1.0, k=6.4)
@@ -81,7 +81,7 @@ class PICS:
             r2 (float): LD score between a given SNP and the lead variant
 
         Returns:
-            Mean P value of the association between a SNP and a trait
+            float | None: Mean P value of the association between a SNP and a trait
 
         Examples:
             >>> PICS._pics_mu(neglog_p=1.0, r2=1.0)
@@ -102,12 +102,12 @@ class PICS:
         its association signal and causality probability as of PICS.
 
         Args:
-            ld_set (list): list of tagging variants after expanding the locus
+            ld_set (list[Row]): list of tagging variants after expanding the locus
             lead_neglog_p (float): P value of the association signal between the lead variant and the study in the form of -log10.
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
-            List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
+            list | None: List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
 
         Examples:
             >>> from pyspark.sql import Row

@@ -23,7 +23,11 @@ class GeneIndex(Dataset):
 
     @classmethod
     def get_schema(cls: type[GeneIndex]) -> StructType:
-        """Provides the schema for the GeneIndex dataset."""
+        """Provides the schema for the GeneIndex dataset.
+
+        Returns:
+            StructType: Schema for the GeneIndex dataset
+        """
         return parse_spark_schema("gene_index.json")
 
     def filter_by_biotypes(self: GeneIndex, biotypes: list) -> GeneIndex:

@@ -1,4 +1,4 @@
-"""Variant index dataset."""
+"""Study index dataset."""
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
@@ -35,7 +35,7 @@ class StudyIndex(Dataset):
                 sample. (a struct)
 
         Returns:
-            the modified "merged" column after aggregating the samples by ancestry.
+            Column: the modified "merged" column after aggregating the samples by ancestry.
         """
         # Iterating over the list of ancestries and adding the sample size if label matches:
         return f.transform(
@@ -79,7 +79,11 @@ class StudyIndex(Dataset):
 
     @classmethod
     def get_schema(cls: type[StudyIndex]) -> StructType:
-        """Provide the schema for the StudyIndex dataset."""
+        """Provide the schema for the StudyIndex dataset.
+
+        Returns:
+            StructType: The schema of the StudyIndex dataset.
+        """
         return parse_spark_schema("study_index.json")
 
     @classmethod
@@ -92,7 +96,7 @@ class StudyIndex(Dataset):
             discovery_samples (Column): A list of struct column. Has an `ancestry` column and a `sampleSize` columns
 
         Returns:
-            A list of struct with mapped LD population and their relative sample size.
+            Column: A list of struct with mapped LD population and their relative sample size.
         """
         # Map ancestry categories to population labels of the LD index:
         mapped_ancestries = f.transform(

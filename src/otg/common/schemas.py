@@ -7,7 +7,6 @@ from collections import namedtuple
 from typing import TYPE_CHECKING
 
 import pyspark.sql.types as t
-from pyspark.sql.types import ArrayType, StructType
 
 from otg.assets import schemas
 
@@ -15,27 +14,27 @@ if TYPE_CHECKING:
     from pandas import DataFrame as PandasDataFrame
 
 
-def parse_spark_schema(schema_json: str) -> StructType:
+def parse_spark_schema(schema_json: str) -> t.StructType:
     """Parse Spark schema from JSON.
 
     Args:
         schema_json (str): JSON filename containing spark schema in the schemas package
 
     Returns:
-        StructType: Spark schema
+        t.StructType: Spark schema
     """
     core_schema = json.loads(
         pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
     )
-    return StructType.fromJson(core_schema)
+    return t.StructType.fromJson(core_schema)
 
 
-def flatten_schema(schema: StructType, prefix: str = "") -> list:
+def flatten_schema(schema: t.StructType, prefix: str = "") -> list:
     """It takes a Spark schema and returns a list of all fields in the schema once flattened.
 
     Args:
-        schema: The schema of the dataframe
-        prefix: The prefix to prepend to the field names.
+        schema (t.StructType): The schema of the dataframe
+        prefix (str): The prefix to prepend to the field names. Defaults to "".
 
     Returns:
         list: A list of all the columns in the dataframe.
@@ -57,11 +56,13 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list:
     for field in schema.fields:
         name = f"{prefix}.{field.name}" if prefix else field.name
         dtype = field.dataType
-        if isinstance(dtype, StructType):
-            fields.append(Field(name, ArrayType(StructType())))
+        if isinstance(dtype, t.StructType):
+            fields.append(Field(name, t.ArrayType(t.StructType())))
             fields += flatten_schema(dtype, prefix=name)
-        elif isinstance(dtype, ArrayType) and isinstance(dtype.elementType, StructType):
-            fields.append(Field(name, ArrayType(StructType())))
+        elif isinstance(dtype, t.ArrayType) and isinstance(
+            dtype.elementType, t.StructType
+        ):
+            fields.append(Field(name, t.ArrayType(t.StructType())))
             fields += flatten_schema(dtype.elementType, prefix=name)
         else:
             fields.append(Field(name, dtype))
@@ -75,7 +76,7 @@ def _get_spark_schema_from_pandas_df(pdf: PandasDataFrame) -> t.StructType:
         pdf (PandasDataFrame): Pandas DataFrame
 
     Returns:
-        StructType: Spark schema
+        t.StructType: Spark schema
 
     Examples:
         >>> import pandas as pd
@@ -85,7 +86,17 @@ def _get_spark_schema_from_pandas_df(pdf: PandasDataFrame) -> t.StructType:
     """
 
     def _get_spark_type(pandas_type: str) -> t.DataType:
-        """Returns the Spark type based on the Pandas type."""
+        """Returns the Spark type based on the Pandas type.
+
+        Args:
+            pandas_type (str): Pandas type
+
+        Returns:
+            t.DataType: Spark type
+
+        Raises:
+            ValueError: If the Pandas type is not supported
+        """
         try:
             if pandas_type == "object":
                 return t.StringType()

@@ -31,7 +31,19 @@ class L2GFeatureMatrix(Dataset):
         variant_gene: V2G,
         # colocalisation: Colocalisation,
     ) -> L2GFeatureMatrix:
-        """Generate features from the OTG datasets."""
+        """Generate features from the OTG datasets.
+
+        Args:
+            study_locus (StudyLocus): Study locus dataset
+            study_index (StudyIndex): Study index dataset
+            variant_gene (V2G): Variant to gene dataset
+
+        Returns:
+            L2GFeatureMatrix: L2G feature matrix dataset
+
+        Raises:
+            ValueError: If the feature matrix is empty
+        """
         if features_dfs := [
             # Extract features
             # ColocalisationFactory._get_coloc_features(
@@ -58,20 +70,39 @@ class L2GFeatureMatrix(Dataset):
 
     @classmethod
     def get_schema(cls: type[L2GFeatureMatrix]) -> StructType:
-        """Provides the schema for the L2gFeatureMatrix dataset."""
+        """Provides the schema for the L2gFeatureMatrix dataset.
+
+        Returns:
+            StructType: Schema for the L2gFeatureMatrix dataset
+        """
         return parse_spark_schema("l2g_feature_matrix.json")
 
     def fill_na(
         self: L2GFeatureMatrix, value: float = 0.0, subset: list[str] | None = None
     ) -> L2GFeatureMatrix:
-        """Fill missing values in a column with a given value."""
+        """Fill missing values in a column with a given value.
+
+        Args:
+            value (float): Value to replace missing values with. Defaults to 0.0.
+            subset (list[str] | None): Subset of columns to consider. Defaults to None.
+
+        Returns:
+            L2GFeatureMatrix: L2G feature matrix dataset
+        """
         self.df = self._df.fillna(value, subset=subset)
         return self
 
     def select_features(
         self: L2GFeatureMatrix, features_list: list[str]
     ) -> L2GFeatureMatrix:
-        """Select a subset of features from the feature matrix."""
+        """Select a subset of features from the feature matrix.
+
+        Args:
+            features_list (list[str]): List of features to select
+
+        Returns:
+            L2GFeatureMatrix: L2G feature matrix dataset
+        """
         fixed_rows = ["studyLocusId", "geneId", "goldStandardSet"]
         self.df = self._df.select(fixed_rows + features_list)
         return self

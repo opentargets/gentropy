@@ -215,7 +215,11 @@ class StudyLocus(Dataset):
 
     @classmethod
     def get_schema(cls: type[StudyLocus]) -> StructType:
-        """Provides the schema for the StudyLocus dataset."""
+        """Provides the schema for the StudyLocus dataset.
+
+        Returns:
+            StructType: schema for the StudyLocus dataset.
+        """
         return parse_spark_schema("study_locus.json")
 
     def filter_credible_set(
@@ -317,6 +321,9 @@ class StudyLocus(Dataset):
 
         Returns:
             StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
+
+        Raises:
+            ValueError: If `locus` column is not available.
         """
         if "locus" not in self.df.columns:
             raise ValueError("Locus column not available.")
@@ -401,7 +408,7 @@ class StudyLocus(Dataset):
         """Flag associations with variants that are not found in the LD reference.
 
         Returns:
-            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
+            StudyLocus: Updated study locus.
         """
         self.df = self.df.withColumn(
             "qualityControls",
@@ -417,7 +424,7 @@ class StudyLocus(Dataset):
         """Flag associations where the study doesn't have population information to resolve LD.
 
         Returns:
-            StudyLocusGWASCatalog | StudyLocus: Updated study locus.
+            StudyLocus: Updated study locus.
         """
         # If the tested column is not present, return self unchanged:
         if "ldPopulationStructure" not in self.df.columns:

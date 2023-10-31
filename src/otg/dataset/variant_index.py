@@ -26,7 +26,11 @@ class VariantIndex(Dataset):
 
     @classmethod
     def get_schema(cls: type[VariantIndex]) -> StructType:
-        """Provides the schema for the VariantIndex dataset."""
+        """Provides the schema for the VariantIndex dataset.
+
+        Returns:
+            StructType: Schema for the VariantIndex dataset
+        """
         return parse_spark_schema("variant_index.json")
 
     @classmethod
@@ -35,7 +39,15 @@ class VariantIndex(Dataset):
         variant_annotation: VariantAnnotation,
         study_locus: StudyLocus,
     ) -> VariantIndex:
-        """Initialise VariantIndex from pre-existing variant annotation dataset."""
+        """Initialise VariantIndex from pre-existing variant annotation dataset.
+
+        Args:
+            variant_annotation (VariantAnnotation): Variant annotation dataset
+            study_locus (StudyLocus): Study locus dataset with the variants to intersect with the variant annotation dataset
+
+        Returns:
+            VariantIndex: Variant index dataset
+        """
         unchanged_cols = [
             "variantId",
             "chromosome",

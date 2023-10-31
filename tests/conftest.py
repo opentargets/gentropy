@@ -29,8 +29,11 @@ from src.utils.spark import get_spark_testing_conf
 
 
 @pytest.fixture(scope="session", autouse=True)
-def spark(tmp_path_factory) -> SparkSession:
+def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
     """Local spark session for testing purposes.
+
+    Args:
+        tmp_path_factory (pytest.TempPathFactory): pytest fixture
 
     Returns:
         SparkSession: local spark session

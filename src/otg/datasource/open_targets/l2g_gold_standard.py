@@ -21,7 +21,14 @@ class OpenTargetsL2GGoldStandard:
 
     @staticmethod
     def process_gene_interactions(interactions: DataFrame) -> DataFrame:
-        """Extract top scoring gene-gene interaction from the interactions dataset of the Platform."""
+        """Extract top scoring gene-gene interaction from the interactions dataset of the Platform.
+
+        Args:
+            interactions (DataFrame): Gene-gene interactions dataset
+
+        Returns:
+            DataFrame: Top scoring gene-gene interaction per pair of genes
+        """
         return get_record_with_maximum_value(
             interactions,
             ["targetA", "targetB"],

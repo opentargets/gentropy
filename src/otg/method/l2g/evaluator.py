@@ -63,10 +63,16 @@ class WandbEvaluator(Evaluator):
         self: WandbEvaluator,
         *,
         label_values: list,
-        wandb_run: wandb.sdk.wandb_run.Run = None,
-        spark_ml_evaluator: Evaluator = None,
+        wandb_run: wandb.sdk.wandb_run.Run | None = None,
+        spark_ml_evaluator: Evaluator | None = None,
     ) -> None:
-        """Initialize a WandbEvaluator."""
+        """Initialize a WandbEvaluator.
+
+        Args:
+            label_values (list): List of label values.
+            wandb_run (wandb.sdk.wandb_run.Run | None): Wandb run object. Defaults to None.
+            spark_ml_evaluator (Evaluator | None): Spark ML evaluator. Defaults to None.
+        """
         if label_values is None:
             label_values = []
         super(Evaluator, self).__init__()
@@ -96,30 +102,62 @@ class WandbEvaluator(Evaluator):
         self._set(**kwargs)
 
     def setspark_ml_evaluator(self: WandbEvaluator, value: Evaluator) -> None:
-        """Set the spark_ml_evaluator parameter."""
+        """Set the spark_ml_evaluator parameter.
+
+        Args:
+            value (Evaluator): Spark ML evaluator.
+        """
         self._set(spark_ml_evaluator=value)
 
     def setlabel_values(self: WandbEvaluator, value: list) -> None:
-        """Set the label_values parameter."""
+        """Set the label_values parameter.
+
+        Args:
+            value (list): List of label values.
+        """
         self._set(label_values=value)
 
     def getspark_ml_evaluator(self: WandbEvaluator) -> Evaluator:
-        """Get the spark_ml_evaluator parameter."""
+        """Get the spark_ml_evaluator parameter.
+
+        Returns:
+            Evaluator: Spark ML evaluator.
+        """
         return self.getOrDefault(self.spark_ml_evaluator)
 
     def getwandb_run(self: WandbEvaluator) -> wandb.sdk.wandb_run.Run:
-        """Get the wandb_run parameter."""
+        """Get the wandb_run parameter.
+
+        Returns:
+            wandb.sdk.wandb_run.Run: Wandb run object.
+        """
         return self.getOrDefault(self.wandb_run)
 
     def getwandb_project_name(self: WandbEvaluator) -> str:
-        """Get the wandb_project_name parameter."""
+        """Get the wandb_project_name parameter.
+
+        Returns:
+            str: Name of the W&B project.
+        """
         return self.getOrDefault(self.wandb_project_name)
 
     def getlabel_values(self: WandbEvaluator) -> list:
-        """Get the label_values parameter."""
+        """Get the label_values parameter.
+
+        Returns:
+            list: List of label values.
+        """
         return self.getOrDefault(self.label_values)
 
     def _evaluate(self: WandbEvaluator, dataset: DataFrame) -> float:
+        """Evaluate the model on the given dataset.
+
+        Args:
+            dataset (DataFrame): Dataset to evaluate the model on.
+
+        Returns:
+            float: Metric value.
+        """
         dataset.persist()
         metric_values = []
         label_values = self.getlabel_values()

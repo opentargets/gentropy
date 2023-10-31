@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
@@ -13,9 +13,9 @@ if TYPE_CHECKING:
 
 
 class Session:
-    """Spark session class."""
+    """This class provides a Spark session and logger."""
 
-    def __init__(
+    def __init__(  # noqa: D107
         self: Session,
         spark_uri: str = "local[*]",
         write_mode: str = "errorifexists",
@@ -27,12 +27,12 @@ class Session:
         """Initialises spark session and logger.
 
         Args:
-            spark_uri (str): spark uri
-            app_name (str): spark application name
-            write_mode (str): spark write mode
-            hail_home (str | None): path to hail installation
-            start_hail (bool): whether to start hail
-            extended_spark_conf (dict): extended spark configuration
+            spark_uri (str): Spark URI. Defaults to "local[*]".
+            write_mode (str): Spark write mode. Defaults to "errorifexists".
+            app_name (str): Spark application name. Defaults to "otgenetics".
+            hail_home (str | None): Path to Hail installation. Defaults to None.
+            start_hail (bool): Whether to start Hail. Defaults to False.
+            extended_spark_conf (dict | None): Extended Spark configuration. Defaults to None.
         """
         merged_conf = self._create_merged_config(
             start_hail, hail_home, extended_spark_conf
@@ -48,7 +48,11 @@ class Session:
         self.write_mode = write_mode
 
     def _default_config(self: Session) -> SparkConf:
-        """Default spark configuration."""
+        """Default spark configuration.
+
+        Returns:
+            SparkConf: Default spark configuration.
+        """
         return (
             SparkConf()
             # Dynamic allocation
@@ -63,7 +67,15 @@ class Session:
     def _hail_config(
         self: Session, start_hail: bool, hail_home: str | None
     ) -> SparkConf:
-        """Returns the Hail specific Spark configuration."""
+        """Returns the Hail specific Spark configuration.
+
+        Args:
+            start_hail (bool): Whether to start Hail.
+            hail_home (str | None): Path to Hail installation.
+
+        Returns:
+            SparkConf: Hail specific Spark configuration.
+        """
         if not start_hail:
             return SparkConf()
         return (
@@ -85,7 +97,16 @@ class Session:
         hail_home: str | None,
         extended_spark_conf: SparkConf,
     ) -> SparkConf:
-        """Merges the default, and optionally the Hail and extended configurations if provided."""
+        """Merges the default, and optionally the Hail and extended configurations if provided.
+
+        Args:
+            start_hail (bool): Whether to start Hail.
+            hail_home (str | None): Path to Hail installation. Defaults to None.
+            extended_spark_conf (SparkConf): Extended Spark configuration.
+
+        Returns:
+            SparkConf: Merged Spark configuration.
+        """
         all_settings = (
             self._default_config().getAll()
             + self._hail_config(start_hail, hail_home).getAll()
@@ -96,14 +117,14 @@ class Session:
         return SparkConf().setAll(all_settings)
 
     def read_parquet(
-        self: Session, path: str, schema: StructType, **kwargs: Dict[str, Any]
+        self: Session, path: str, schema: StructType, **kwargs: dict[str, Any]
     ) -> DataFrame:
         """Reads parquet dataset with a provided schema.
 
         Args:
             path (str): parquet dataset path
             schema (StructType): Spark schema
-            **kwargs: Additional arguments to pass to spark.read.parquet
+            **kwargs (dict[str, Any]): Additional arguments to pass to spark.read.parquet
 
         Returns:
             DataFrame: Dataframe with provided schema
@@ -112,14 +133,15 @@ class Session:
 
 
 class Log4j:
-    """Log4j logger class."""
+    """Log4j logger class.
 
-    def __init__(self: Log4j, spark: SparkSession) -> None:
-        """Initialise logger.
+    This class provides a wrapper around the Log4j logging system.
 
-        Args:
-            spark (SparkSession): Available spark session
-        """
+    Args:
+        spark (SparkSession): The Spark session used to access Spark context and Log4j logging.
+    """
+
+    def __init__(self, spark: SparkSession) -> None:  # noqa: D107
         # get spark app details with which to prefix all messages
         log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore
         self.logger = log4j.Logger.getLogger(__name__)
@@ -132,9 +154,6 @@ class Log4j:
 
         Args:
             message (str): Error message to write to log
-
-        Returns:
-            _type_: None
         """
         self.logger.error(message)
         return None
@@ -144,9 +163,6 @@ class Log4j:
 
         Args:
             message (str): Warning messsage to write to log
-
-        Returns:
-            _type_: None
         """
         self.logger.warn(message)
         return None
@@ -156,9 +172,6 @@ class Log4j:
 
         Args:
             message (str): Information message to write to log
-
-        Returns:
-            _type_: None
         """
         self.logger.info(message)
         return None

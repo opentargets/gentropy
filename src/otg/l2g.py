@@ -79,7 +79,11 @@ class LocusToGeneStep:
     )
 
     def __post_init__(self: LocusToGeneStep) -> None:
-        """Run step."""
+        """Run step.
+
+        Raises:
+            ValueError: if run_mode is not one of "train" or "predict".
+        """
         if self.run_mode not in ["train", "predict"]:
             raise ValueError(
                 f"run_mode must be one of 'train' or 'predict', got {self.run_mode}"

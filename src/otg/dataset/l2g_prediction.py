@@ -32,7 +32,11 @@ class L2GPrediction(Dataset):
 
     @classmethod
     def get_schema(cls: type[L2GPrediction]) -> StructType:
-        """Provides the schema for the L2GPrediction dataset."""
+        """Provides the schema for the L2GPrediction dataset.
+
+        Returns:
+            StructType: Schema for the L2GPrediction dataset
+        """
         return parse_spark_schema("l2g_predictions.json")
 
     @classmethod
@@ -44,7 +48,17 @@ class L2GPrediction(Dataset):
         v2g: V2G,
         # coloc: Colocalisation,
     ) -> L2GPrediction:
-        """Initialise L2G from feature matrix."""
+        """Initialise L2G from feature matrix.
+
+        Args:
+            model_path (str): Path to the fitted model
+            study_locus (StudyLocus): Study locus dataset
+            study_index (StudyIndex): Study index dataset
+            v2g (V2G): Variant to gene dataset
+
+        Returns:
+            L2GPrediction: L2G dataset
+        """
         fm = L2GFeatureMatrix.generate_features(
             study_locus=study_locus,
             study_index=StudyIndex,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.tuning import CrossValidator
@@ -24,23 +24,22 @@ class LocusToGeneTrainer:
         cls: type[LocusToGeneTrainer],
         data: L2GFeatureMatrix,
         l2g_model: LocusToGeneModel,
-        features_list: List[str],
+        features_list: list[str],
         evaluate: bool,
-        wandb_run_name: Optional[str] = None,
-        model_path: Optional[str] = None,
+        wandb_run_name: str | None = None,
+        model_path: str | None = None,
         **hyperparams: dict,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
         Args:
-            l2g_model (LocusToGeneModel): Model to fit to the data on
             data (L2GFeatureMatrix): Feature matrix containing the data
             l2g_model (LocusToGeneModel): Model to fit to the data on
-            features_list (List[str]): List of features to use for the model
+            features_list (list[str]): List of features to use for the model
             evaluate (bool): Whether to evaluate the model on a test set
-            wandb_run_name (str): Descriptive name for the run to be tracked with W&B
-            model_path (str): Path to save the model to
-            hyperparams (dict): Hyperparameters to use for the model
+            wandb_run_name (str | None): Descriptive name for the run to be tracked with W&B
+            model_path (str | None): Path to save the model to
+            **hyperparams (dict): Hyperparameters to use for the model
 
         Returns:
             LocusToGeneModel: Trained model
@@ -80,6 +79,10 @@ class LocusToGeneTrainer:
 
         Returns:
             LocusToGeneModel: Trained model fitted with the best hyperparameters
+
+        Raises:
+            ValueError: Parameter grid is empty. Cannot perform cross-validation.
+            ValueError: Unable to retrieve the best model.
         """
         evaluator = MulticlassClassificationEvaluator()
         params_grid = param_grid or l2g_model.get_param_grid()
