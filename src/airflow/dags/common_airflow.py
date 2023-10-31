@@ -141,6 +141,7 @@ def submit_pyspark_job(
     Returns:
         DataprocSubmitJobOperator: Airflow task to submit a PySpark job to a Dataproc cluster.
     """
+    formatted_args = []
     if isinstance(args, dict):
         formatted_args = [f"--{arg}={val}" for arg, val in args.items()]
     return submit_job(
