@@ -15,6 +15,7 @@ plugins:
           options:
             filters: ["!^_", "!__new__"]
             show_signature_annotations: true
+            show_root_heading: true
   - section-index
   - git-revision-date-localized:
       type: timeago
