@@ -124,3 +124,4 @@ require-return-section-when-returning-nothing = false
 check-return-types = true
 allow-init-docstring = true
 arg-type-hints-in-docstring = true
+skip-checking-short-docstrings = false
