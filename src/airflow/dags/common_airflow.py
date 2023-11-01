@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import pendulum
@@ -23,11 +22,6 @@ project_id = "open-targets-genetics-dev"
 region = "europe-west1"
 zone = "europe-west1-d"
 image_version = "2.1"
-google_application_credentials = (
-    "/opt/airflow/config/application_default_credentials.json"
-)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = google_application_credentials
-os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 
 
 # Executable configuration.
@@ -88,7 +82,7 @@ def create_cluster(
             "CONFIGTAR": config_tar,
             "PACKAGE": package_wheel,
         },
-        idle_delete_ttl=300,
+        idle_delete_ttl=None,
     ).make()
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
