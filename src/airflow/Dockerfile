@@ -1,17 +1,17 @@
-FROM apache/airflow:slim-2.7.2-python3.9
+FROM apache/airflow:slim-2.7.2-python3.10
 
 # Install additional Python requirements.
 # --no-cache-dir is a good practice when installing packages using pip, because it helps to keep the image lightweight.
 COPY requirements.txt /requirements.txt
-RUN pip install --user --upgrade pip && \
-    pip install --no-cache-dir --user -r /requirements.txt
+RUN pip install --quiet --user --no-cache-dir --upgrade pip setuptools && \
+    pip install --quiet --user --no-cache-dir -r /requirements.txt
 
 # Source: https://airflow.apache.org/docs/docker-stack/recipes.html
 # Installing the GCP CLI in the container
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
 
 USER 0
-ARG CLOUD_SDK_VERSION=322.0.0
+ARG CLOUD_SDK_VERSION=452.0.0
 ENV GCLOUD_HOME=/home/google-cloud-sdk
 
 ENV PATH="${GCLOUD_HOME}/bin/:${PATH}"
