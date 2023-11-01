@@ -1,0 +1,23 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "studyLocusId",
+      "type": "long",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "geneId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "score",
+      "type": "double",
+      "nullable": false,
+      "metadata": {}
+    }
+  ]
+}

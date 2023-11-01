@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, Optional
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -11,10 +11,88 @@ from pyspark.ml import Pipeline
 from pyspark.ml.feature import MinMaxScaler, VectorAssembler
 from pyspark.ml.functions import vector_to_array
 from pyspark.sql import Window
+from pyspark.sql.types import FloatType
 from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame, WindowSpec
+
+
+def _convert_from_wide_to_long(
+    df: DataFrame,
+    id_vars: Iterable[str],
+    var_name: str,
+    value_name: str,
+    value_vars: Optional[Iterable[str]] = None,
+) -> DataFrame:
+    """Converts a dataframe from wide to long format.
+
+    Args:
+        df (DataFrame): Dataframe to melt
+        id_vars (Iterable[str]): List of fixed columns to keep
+        var_name (str): Name of the column containing the variable names
+        value_name (str): Name of the column containing the values
+        value_vars (Optional[Iterable[str]]): List of columns to melt. Defaults to None.
+
+    Returns:
+        DataFrame: Melted dataframe
+
+    Examples:
+    >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
+    >>> _convert_from_wide_to_long(df, ["id"], "feature", "value").show()
+    +---+---------+-----+
+    | id|  feature|value|
+    +---+---------+-----+
+    |  a|feature_1|  1.0|
+    |  a|feature_2|  2.0|
+    +---+---------+-----+
+    <BLANKLINE>
+    """
+    if not value_vars:
+        value_vars = [c for c in df.columns if c not in id_vars]
+    _vars_and_vals = f.array(
+        *(
+            f.struct(
+                f.lit(c).alias(var_name), f.col(c).cast(FloatType()).alias(value_name)
+            )
+            for c in value_vars
+        )
+    )
+
+    # Add to the DataFrame and explode to convert into rows
+    _tmp = df.withColumn("_vars_and_vals", f.explode(_vars_and_vals))
+
+    cols = list(id_vars) + [
+        f.col("_vars_and_vals")[x].alias(x) for x in [var_name, value_name]
+    ]
+    return _tmp.select(*cols)
+
+
+def _convert_from_long_to_wide(
+    df: DataFrame, id_vars: list[str], var_name: str, value_name: str
+) -> DataFrame:
+    """Converts a dataframe from long to wide format using Spark pivot built-in function.
+
+    Args:
+        df (DataFrame): Dataframe to pivot
+        id_vars (list[str]): List of fixed columns to keep
+        var_name (str): Name of the column to pivot on
+        value_name (str): Name of the column containing the values
+
+    Returns:
+        DataFrame: Pivoted dataframe
+
+    Examples:
+    >>> df = spark.createDataFrame([("a", "feature_1", 1), ("a", "feature_2", 2)], ["id", "featureName", "featureValue"])
+    >>> _convert_from_long_to_wide(df, ["id"], "featureName", "featureValue").show()
+    +---+---------+---------+
+    | id|feature_1|feature_2|
+    +---+---------+---------+
+    |  a|        1|        2|
+    +---+---------+---------+
+    <BLANKLINE>
+    """
+    return df.groupBy(id_vars).pivot(var_name).agg(f.first(value_name))
 
 
 def pvalue_to_zscore(pval_col: Column) -> Column:
@@ -260,4 +338,38 @@ def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column
                         else 0
                 end)
         """
+    )
+
+
+def pivot_df(
+    df: DataFrame,
+    pivot_col: str,
+    value_col: str,
+    grouping_cols: list,
+) -> DataFrame:
+    """Pivot a dataframe.
+
+    Args:
+        df (DataFrame): Dataframe to pivot
+        pivot_col (str): Column to pivot on
+        value_col (str): Column to pivot
+        grouping_cols (list): Columns to group by
+
+    Returns:
+        DataFrame: Pivoted dataframe
+    """
+    pivot_values = df.select(pivot_col).distinct().rdd.flatMap(lambda x: x).collect()
+    return (
+        df.groupBy(grouping_cols)
+        .pivot(pivot_col)
+        .agg({value_col: "first"})
+        .select(
+            grouping_cols
+            + [
+                f.when(f.col(x).isNull(), None)
+                .otherwise(f.col(x))
+                .alias(f"{x}_{value_col}")
+                for x in pivot_values
+            ],
+        )
     )

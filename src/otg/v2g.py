@@ -28,6 +28,7 @@ class V2GStep:
     3. Distance between the variant and each gene's canonical transcription start site (TSS).
 
     Attributes:
+        session (Session): Session object.
         variant_index_path (str): Input variant index path.
         variant_annotation_path (str): Input variant annotation path.
         gene_index_path (str): Input gene index path.

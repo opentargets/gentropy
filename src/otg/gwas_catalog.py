@@ -21,6 +21,7 @@ class GWASCatalogStep:
     """GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables.
 
     Attributes:
+        session (Session): Session object.
         catalog_studies_file (str): Raw GWAS catalog studies file.
         catalog_ancestry_file (str): Ancestry annotations file from GWAS Catalog.
         catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.

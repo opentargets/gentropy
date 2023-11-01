@@ -18,6 +18,7 @@ class VariantIndexStep:
     Using a `VariantAnnotation` dataset as a reference, this step creates and writes a dataset of the type `VariantIndex` that includes only variants that have disease-association data with a reduced set of annotations.
 
     Attributes:
+        session (Session): Session object.
         variant_annotation_path (str): Input variant annotation path.
         study_locus_path (str): Input study-locus path.
         variant_index_path (str): Output variant index path.

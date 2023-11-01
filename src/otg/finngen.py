@@ -17,6 +17,7 @@ class FinnGenStep:
     """FinnGen ingestion step.
 
     Attributes:
+        session (Session): Session object.
         finngen_phenotype_table_url (str): FinnGen API for fetching the list of studies.
         finngen_release_prefix (str): Release prefix pattern.
         finngen_sumstat_url_prefix (str): URL prefix for summary statistics location.

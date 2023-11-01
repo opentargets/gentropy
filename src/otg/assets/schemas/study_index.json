@@ -36,6 +36,12 @@
       "metadata": {}
     },
     {
+      "name": "geneId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "pubmedId",
       "type": "string",
       "nullable": true,

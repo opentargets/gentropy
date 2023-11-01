@@ -13,15 +13,7 @@ if TYPE_CHECKING:
 
 
 class Session:
-    """This class provides a Spark session and logger.
-
-    Args:
-        spark_uri (str): Spark URI. Defaults to "local[*]".
-        write_mode (str): Spark write mode. Defaults to "errorifexists".
-        app_name (str): Spark application name. Defaults to "otgenetics".
-        hail_home (str | None): Path to Hail installation. Defaults to None.
-        extended_conf (SparkConf | None): Extended Spark configuration. Defaults to None.
-    """
+    """This class provides a Spark session and logger."""
 
     def __init__(  # noqa: D107
         self: Session,
@@ -29,9 +21,22 @@ class Session:
         write_mode: str = "errorifexists",
         app_name: str = "otgenetics",
         hail_home: str | None = None,
-        extended_conf: SparkConf | None = None,
-    ) -> None:  # noqa: D107
-        merged_conf = self._create_merged_config(hail_home, extended_conf)
+        start_hail: bool = False,
+        extended_spark_conf: dict | None = None,
+    ) -> None:
+        """Initialises spark session and logger.
+
+        Args:
+            spark_uri (str): Spark URI. Defaults to "local[*]".
+            write_mode (str): Spark write mode. Defaults to "errorifexists".
+            app_name (str): Spark application name. Defaults to "otgenetics".
+            hail_home (str | None): Path to Hail installation. Defaults to None.
+            start_hail (bool): Whether to start Hail. Defaults to False.
+            extended_spark_conf (dict | None): Extended Spark configuration. Defaults to None.
+        """
+        merged_conf = self._create_merged_config(
+            start_hail, hail_home, extended_spark_conf
+        )
 
         self.spark = (
             SparkSession.builder.config(conf=merged_conf)
@@ -59,16 +64,19 @@ class Session:
             )  # required for dynamic allocation
         )
 
-    def _hail_config(self: Session, hail_home: str | None) -> SparkConf:
+    def _hail_config(
+        self: Session, start_hail: bool, hail_home: str | None
+    ) -> SparkConf:
         """Returns the Hail specific Spark configuration.
 
         Args:
-            hail_home (str | None): Path to Hail installation. Defaults to None.
+            start_hail (bool): Whether to start Hail.
+            hail_home (str | None): Path to Hail installation.
 
         Returns:
             SparkConf: Hail specific Spark configuration.
         """
-        if hail_home is None:
+        if not start_hail:
             return SparkConf()
         return (
             SparkConf()
@@ -84,22 +92,26 @@ class Session:
         )
 
     def _create_merged_config(
-        self: Session, hail_home: str | None, extended_conf: SparkConf
+        self: Session,
+        start_hail: bool,
+        hail_home: str | None,
+        extended_spark_conf: SparkConf,
     ) -> SparkConf:
         """Merges the default, and optionally the Hail and extended configurations if provided.
 
         Args:
+            start_hail (bool): Whether to start Hail.
             hail_home (str | None): Path to Hail installation. Defaults to None.
-            extended_conf (SparkConf): Extended Spark configuration.
+            extended_spark_conf (SparkConf): Extended Spark configuration.
 
         Returns:
             SparkConf: Merged Spark configuration.
         """
         all_settings = (
             self._default_config().getAll()
-            + self._hail_config(hail_home).getAll()
-            + extended_conf.getAll()
-            if extended_conf
+            + self._hail_config(start_hail, hail_home).getAll()
+            + list(extended_spark_conf.items())
+            if extended_spark_conf
             else []
         )
         return SparkConf().setAll(all_settings)

@@ -1,4 +1,4 @@
-"""Variant index dataset."""
+"""Colocalisation dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass

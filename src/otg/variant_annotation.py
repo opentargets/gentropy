@@ -18,6 +18,8 @@ class VariantAnnotationStep:
     Variant annotation step produces a dataset of the type `VariantAnnotation` derived from gnomADs `gnomad.genomes.vX.X.X.sites.ht` Hail's table. This dataset is used to validate variants and as a source of annotation.
 
     Attributes:
+        session (Session): Session object.
+        start_hail (bool): Whether to start a Hail session. Defaults to True.
         gnomad_genomes (str): Path to gnomAD genomes hail table.
         chain_38_to_37 (str): Path to GRCh38 to GRCh37 chain file.
         variant_annotation_path (str): Output variant annotation path.
@@ -25,6 +27,7 @@ class VariantAnnotationStep:
     """
 
     session: Session = Session()
+    start_hail: bool = True
 
     gnomad_genomes: str = MISSING
     chain_38_to_37: str = MISSING
