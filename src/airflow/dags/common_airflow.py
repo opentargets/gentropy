@@ -82,7 +82,7 @@ def create_cluster(
             "CONFIGTAR": config_tar,
             "PACKAGE": package_wheel,
         },
-        idle_delete_ttl=300,
+        idle_delete_ttl=None,
     ).make()
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
