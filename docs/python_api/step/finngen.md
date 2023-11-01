@@ -1,3 +1,4 @@
-# FinnGen
-
+---
+title: FinnGen
+---
 ::: otg.finngen.FinnGenStep
