@@ -38,7 +38,7 @@ cd src/airflow
 To extend the default airflow image with the required libraries and credentials.
 
 !!!note "Note"
-    The Dockerfile extends the official [Airflow Docker Compose YAML](https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml). We add support for the Google Cloud SDK, Google Airflow operators and access to GCP credentials.
+    The Dockerfile extends the official [Airflow Docker Compose YAML](https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml). We add support for the Google Cloud SDK, Google Dataproc operators and access to GCP credentials.
 
 ```bash
 # Build the image in the Dockerfile and name it extending_airflow and version it as latest
