@@ -18,6 +18,7 @@ class ColocalisationStep:
     This workflow runs colocalization analyses that assess the degree to which independent signals of the association share the same causal variant in a region of the genome, typically limited by linkage disequilibrium (LD).
 
     Attributes:
+        session (Session): Session object.
         study_locus_path (DictConfig): Input Study-locus path.
         coloc_path (DictConfig): Output Colocalisation path.
         priorc1 (float): Prior on variant being causal for trait 1.

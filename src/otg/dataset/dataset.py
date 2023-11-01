@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class Dataset(ABC):
     """Open Targets Genetics Dataset.
 
-    `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `json.schemas` module.
+    `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `schemas` module.
     """
 
     _df: DataFrame

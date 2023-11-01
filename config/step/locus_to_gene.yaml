@@ -1,0 +1,23 @@
+_target_: otg.l2g.LocusToGeneStep
+
+defaults:
+    - session: dataproc
+session:
+  extended_spark_conf:
+    spark.dynamicAllocation.enabled: false
+
+run_mode: train
+wandb_run_name: null
+perform_cross_validation: false
+model_path: ${datasets.l2g_model}
+predictions_path: ${datasets.l2g_predictions}
+study_locus_path: ${datasets.study_locus}
+variant_gene_path: ${datasets.v2g}
+colocalisation_path: ${datasets.colocalisation}
+study_index_path: ${datasets.catalog_study_index}
+study_locus_overlap_path: ${datasets.study_locus_overlap}
+gold_standard_curation_path: ${datasets.l2g_gold_standard_curation}
+gene_interactions_path: ${datasets.gene_interactions}
+hyperparameters:
+  max_depth: 5
+  loss_function: binary:logistic

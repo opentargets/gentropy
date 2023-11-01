@@ -49,6 +49,7 @@ create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies f
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/install_dependencies_on_cluster.sh \
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/otgenetics-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
 		--single-node \
+		--optional-components=JUPYTER \
 		--enable-component-gateway
 
 make update-dev-cluster: ## Reinstalls the package on the dev-cluster

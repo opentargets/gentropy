@@ -9,6 +9,9 @@ from otg.common.Liftover import LiftOverSpark
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
+from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from otg.dataset.l2g_gold_standard import L2GGoldStandard
+from otg.dataset.l2g_prediction import L2GPrediction
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
@@ -68,7 +71,7 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
 
 
 def mock_study_index_data(spark: SparkSession) -> DataFrame:
-    """Mock v2g dataset."""
+    """Mock study index dataset."""
     si_schema = StudyIndex.get_schema()
 
     data_spec = (
@@ -99,6 +102,7 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
             expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
             percentNulls=0.1,
         )
+        .withColumnSpec("geneId", percentNulls=0.1)
         .withColumnSpec("pubmedId", percentNulls=0.1)
         .withColumnSpec("publicationFirstAuthor", percentNulls=0.1)
         .withColumnSpec("publicationDate", percentNulls=0.1)
@@ -109,6 +113,7 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("nControls", percentNulls=0.1)
         .withColumnSpec("nSamples", percentNulls=0.1)
         .withColumnSpec("summarystatsLocation", percentNulls=0.1)
+        .withColumnSpec("studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl"])
     )
     return data_spec.build()
 
@@ -268,9 +273,9 @@ def mock_v2g(spark: SparkSession) -> V2G:
         .withSchema(v2g_schema)
         .withColumnSpec("distance", percentNulls=0.1)
         .withColumnSpec("resourceScore", percentNulls=0.1)
+        .withColumnSpec("score", percentNulls=0.1)
         .withColumnSpec("pmid", percentNulls=0.1)
         .withColumnSpec("biofeature", percentNulls=0.1)
-        .withColumnSpec("score", percentNulls=0.1)
         .withColumnSpec("variantFunctionalConsequenceId", percentNulls=0.1)
         .withColumnSpec("isHighQualityPlof", percentNulls=0.1)
     )
@@ -537,3 +542,76 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
     """Sample liftover chain file."""
     return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")
+
+
+@pytest.fixture()
+def sample_l2g_gold_standard(spark: SparkSession) -> DataFrame:
+    """Sample L2G gold standard curation."""
+    return spark.read.json(
+        "tests/data_samples/l2g_gold_standard_curation_sample.json.gz",
+    )
+
+
+@pytest.fixture()
+def sample_otp_interactions(spark: SparkSession) -> DataFrame:
+    """Sample OTP gene-gene interactions dataset."""
+    return spark.read.parquet(
+        "tests/data_samples/otp_interactions_sample.parquet",
+    )
+
+
+@pytest.fixture()
+def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
+    """Mock l2g feature matrix dataset."""
+    schema = L2GFeatureMatrix.get_schema()
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=50,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(schema)
+        .withColumnSpec("distanceTssMean", percentNulls=0.1)
+        .withColumnSpec("distanceTssMinimum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec(
+            "goldStandardSet", percentNulls=0.0, values=["positive", "negative"]
+        )
+    )
+
+    return L2GFeatureMatrix(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
+    """Mock l2g gold standard dataset."""
+    schema = L2GGoldStandard.get_schema()
+    data_spec = dg.DataGenerator(
+        spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
+    ).withSchema(schema)
+
+    return L2GGoldStandard(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
+    """Mock l2g predictions dataset."""
+    schema = L2GPrediction.get_schema()
+    data_spec = dg.DataGenerator(
+        spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
+    ).withSchema(schema)
+
+    return L2GPrediction(_df=data_spec.build(), _schema=schema)

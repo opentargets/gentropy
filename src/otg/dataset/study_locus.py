@@ -1,4 +1,4 @@
-"""Variant index dataset."""
+"""Study locus dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -117,7 +117,7 @@ class StudyLocus(Dataset):
 
         Args:
             loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
-            peak_overlaps (DataFrame): containing `left_studyLocusId`, `right_studyLocusId` and `chromosome` columns.
+            peak_overlaps (DataFrame): containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
@@ -236,7 +236,10 @@ class StudyLocus(Dataset):
         """
         self.df = self._df.withColumn(
             "locus",
-            f.expr(f"filter(locus, tag -> (tag.{credible_interval.value}))"),
+            f.filter(
+                f.col("locus"),
+                lambda tag: (tag[credible_interval.value]),
+            ),
         )
         return self
 

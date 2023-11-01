@@ -82,4 +82,4 @@ repos:
     rev: 0.3.8
     hooks:
       - id: pydoclint
-        args: [--style=google, --check-return-types=True, --config=pyproject.toml src]
+        args: [--style=google, --check-return-types=True, --allow-init-docstring=True, --config=pyproject.toml src]

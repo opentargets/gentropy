@@ -16,6 +16,7 @@ class GeneIndexStep:
     This step generates a gene index dataset from an Open Targets Platform target dataset.
 
     Attributes:
+        session (Session): Session object.
         target_path (str): Open targets Platform target dataset path.
         gene_index_path (str): Output gene index path.
     """

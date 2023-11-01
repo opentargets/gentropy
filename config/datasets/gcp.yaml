@@ -21,6 +21,8 @@ catalog_ancestries: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2023-
 catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-09-11.txt
 finngen_phenotype_table_url: https://r9.finngen.fi/api/phenos
 ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study_manifest.190430.tsv
+l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
+gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 
 # Templates
 ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
@@ -40,6 +42,8 @@ catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
 finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
+l2g_model: ${datasets.outputs}/l2g_model
+l2g_predictions: ${datasets.outputs}/l2g_predictions
 
 # Constants
 finngen_release_prefix: FINNGEN_R9
