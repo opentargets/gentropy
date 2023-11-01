@@ -1,1 +1,7 @@
+---
+title: Method
+---
+
+# Method
+
 TBC
