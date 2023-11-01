@@ -8,7 +8,7 @@ The next section describes how to run Airflow workflows locally while performing
 - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
 
 !!!warning macOS Docker memory allocation
-    If you are working on a macOS, the default amount of memory available for Docker might not bet enough to get Airflow up and running. You should allocate at least 4GB of memory for the Docker Engine (ideally 8GB). [More info](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#)
+    If you are working on a macOS, the default amount of memory available for Docker might not be enough to get Airflow up and running. You should allocate at least 4GB of memory for the Docker Engine (ideally 8GB). [More info](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#)
 
 
 ## Configure Airflow access to Google Cloud Platform
@@ -19,7 +19,7 @@ Run the next command with the appropriate <PROJECT_ID> to ensure you have Google
 gcloud auth application-default login --project=<PROJECT_ID>
 ```
 
-Next, create the service account key file that will be used by Airflow to access Google Cloud Platform resources. The next command will create a file at `~/.config/gcloud/service_account_credentials.json` using the specified IAM account which needs to have the required priviledges to access the required GCP resources.
+Next, create the service account key file that will be used by Airflow to access Google Cloud Platform resources. The next command will create a file at `~/.config/gcloud/service_account_credentials.json` using the specified IAM account which needs to have the required privileges to access the required GCP resources.
 
 ```bash
 gcloud iam service-accounts keys create ~/.config/gcloud/service_account_credentials.json --iam-account=open-targets-genetics-dev@appspot.gserviceaccount.com

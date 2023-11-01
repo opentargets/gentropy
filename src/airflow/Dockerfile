@@ -4,7 +4,8 @@ FROM apache/airflow:2.7.2-python3.10
 # --no-cache-dir is a good practice when installing packages using pip, because it helps to keep the image lightweight.
 COPY requirements.txt /requirements.txt
 RUN pip install --user --upgrade pip
-RUN pip install --no-cache-dir --user -r /requirements.txt # --no-cache-dir good practise when installing packages using pip. It helps to keep the image lightweight
+# --no-cache-dir is good practice when installing packages using pip. It helps to keep the image lightweight.
+RUN pip install --no-cache-dir --user -r /requirements.txt
 
 
 # Source: https://airflow.apache.org/docs/docker-stack/recipes.html
