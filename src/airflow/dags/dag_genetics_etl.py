@@ -1,4 +1,4 @@
-"""Generate jinja2 template for workflow."""
+"""Airflow DAG for the ETL part of the pipeline."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,8 +6,8 @@ from pathlib import Path
 import common_airflow as common
 from airflow.models.dag import DAG
 
-SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
 CLUSTER_NAME = "otg-etl"
+SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
 
 
 with DAG(
