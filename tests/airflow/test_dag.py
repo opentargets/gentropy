@@ -6,16 +6,20 @@ from airflow.models import DagBag
 
 
 @pytest.fixture(params=["./src/airflow/dags"])
-def dag_bag(request):
+def dag_bag(request, monkeypatch: pytest.MonkeyPatch):
     """Return a DAG bag for testing."""
+    # It's important to change directory before importing DAGs, because this is way Airflow works in production: the
+    # dags/ directory serves as a root (and indeed $PYTHONPATH) for all DAGS contained therein.  Using Monkeypatch
+    # ensures that the other tests are not affected.
+    monkeypatch.chdir(request.param)
     return DagBag(dag_folder=request.param, include_examples=False)
 
 
-# def test_no_import_errors(dag_bag):
-#     """Test for import errors."""
-#     assert (
-#         not dag_bag.import_errors
-#     ), f"DAG import failures. Errors: {dag_bag.import_errors}"
+def test_no_import_errors(dag_bag):
+    """Test for import errors."""
+    assert (
+        not dag_bag.import_errors
+    ), f"DAG import failures. Errors: {dag_bag.import_errors}"
 
 
 def test_requires_tags(dag_bag):
