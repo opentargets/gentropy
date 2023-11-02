@@ -23,6 +23,7 @@ GCP_PROJECT = "open-targets-genetics-dev"
 GCP_REGION = "europe-west1"
 GCP_ZONE = "europe-west1-d"
 GCP_DATAPROC_IMAGE = "2.1"
+GCP_AUTOSCALING_POLICY = "otg-etl"
 
 
 # Cluster init configuration.
@@ -89,6 +90,7 @@ def create_cluster(
             "PACKAGE": PACKAGE_WHEEL,
         },
         idle_delete_ttl=None,
+        autoscaling_policy=f"projects/{GCP_PROJECT}/regions/{GCP_REGION}/autoscalingPolicies/{GCP_AUTOSCALING_POLICY}",
     ).make()
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
