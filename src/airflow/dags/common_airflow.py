@@ -46,7 +46,7 @@ PYTHON_CLI = "cli.py"
 # Shared DAG construction parameters.
 shared_dag_args = dict(
     owner="Open Targets Data Team",
-    retries=3,
+    retries=1,
 )
 shared_dag_kwargs = dict(
     tags=["genetics_etl", "experimental"],
