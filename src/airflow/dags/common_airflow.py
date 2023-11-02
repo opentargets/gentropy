@@ -216,3 +216,13 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
         trigger_rule=TriggerRule.ALL_DONE,
         deferrable=True,
     )
+
+
+def generate_dag(cluster_name, tasks):
+    """For a list of tasks, generate a complete DAG."""
+    return (
+        create_cluster(cluster_name)
+        >> install_dependencies(cluster_name)
+        >> tasks
+        >> delete_cluster(cluster_name)
+    )
