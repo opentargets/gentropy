@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pendulum
+import yaml
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -216,6 +217,13 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
         trigger_rule=TriggerRule.ALL_DONE,
         deferrable=True,
     )
+
+
+def read_yaml_config(config_path):
+    """Parse a YAMl config file and do all necessary checks."""
+    assert config_path.exists(), f"YAML config path {config_path} does not exist."
+    with open(config_path, "r") as config_file:
+        return yaml.safe_load(config_file)
 
 
 def generate_dag(cluster_name, tasks):
