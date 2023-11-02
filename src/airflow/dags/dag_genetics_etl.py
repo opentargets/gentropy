@@ -11,7 +11,7 @@ from common_airflow import (
     install_dependencies,
     shared_dag_args,
     shared_dag_kwargs,
-    submit_pyspark_job,
+    submit_step,
 )
 
 SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
@@ -38,15 +38,9 @@ with DAG(
         for step in steps:
             # Define task for the current step.
             step_id = step["id"]
-            this_task = submit_pyspark_job(
+            this_task = submit_step(
                 cluster_name=CLUSTER_NAME,
-                task_id=step_id,
-                python_module_path=PYTHON_CLI,
-                args=[
-                    f"step={step_id}",
-                    f"--config-dir={CLUSTER_CONFIG_DIR}",
-                    f"--config-name={CONFIG_NAME}",
-                ],
+                step_id=step_id,
             )
             # Chain prerequisites.
             tasks[step_id] = this_task
