@@ -60,7 +60,7 @@ def create_cluster(
     cluster_name: str,
     master_machine_type: str = "n1-standard-4",
     worker_machine_type: str = "n1-standard-16",
-    num_workers: int = 0,
+    num_workers: int = 2,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
