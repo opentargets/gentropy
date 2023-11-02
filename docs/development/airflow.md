@@ -65,13 +65,13 @@ mv .env.tmp .env
 Before starting Airflow, initialise the database:
 
 ```bash
-docker compose up airflow-init
+docker-compose up airflow-init
 ```
 
 Now start all services:
 
 ```bash
-docker compose up -d
+docker-compose up -d
 ```
 
 Airflow UI will now be available at `http://localhost:8080/`. Default username and password are both `airflow`.
@@ -90,13 +90,13 @@ docker ps
 To stop Airflow, run:
 
 ```bash
-docker compose down
+docker-compose down
 ```
 
 To cleanup the Airflow database, run:
 
 ```bash
-docker compose down --volumes --remove-orphans
+docker-compose down --volumes --remove-orphans
 ```
 
 ### Advanced configuration
