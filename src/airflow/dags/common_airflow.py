@@ -24,16 +24,21 @@ zone = "europe-west1-d"
 image_version = "2.1"
 
 
-# Executable configuration.
+# Cluster init configuration.
 initialisation_base_path = (
     f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
 )
-python_cli = f"{initialisation_base_path}/cli.py"
 config_tar = f"{initialisation_base_path}/config.tar.gz"
 package_wheel = f"{initialisation_base_path}/otgenetics-{otg_version}-py3-none-any.whl"
 initialisation_executable_file = [
     f"{initialisation_base_path}/install_dependencies_on_cluster.sh"
 ]
+
+
+# CLI configuration.
+cluster_config_dir = "/config"
+config_name = "config"
+python_cli = "cli.py"
 
 
 # Shared DAG construction parameters.
@@ -150,6 +155,20 @@ def submit_pyspark_job(
                 "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
             },
         },
+    )
+
+
+def submit_step(cluster_name, step_id):
+    """Submit a PySpark job to execute a specific CLI step."""
+    return submit_pyspark_job(
+        cluster_name=cluster_name,
+        task_id=step_id,
+        python_module_path=python_cli,
+        args=[
+            f"step={step_id}",
+            f"--config-dir={cluster_config_dir}",
+            f"--config-name={config_name}",
+        ],
     )
 
 
