@@ -51,8 +51,6 @@ docker build . --tag extending_airflow:latest
 !!!note Setting Airflow user ID
     This command allows Airflow running inside Docker to access the credentials file which was generated earlier.
 
-Set the user ID in the `.env` file:
-
 ```bash
 USER_ID=$(id -u)
 sed -Ei "s|^AIRFLOW_UID=.*|AIRFLOW_UID=${USER_ID}|" .env
