@@ -10,6 +10,7 @@ CLUSTER_NAME = "otg-preprocess"
 
 ALL_STEPS = [
     "finngen",
+    "ld_index",
 ]
 
 
