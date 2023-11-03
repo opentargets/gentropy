@@ -122,7 +122,7 @@ def submit_job(
 
 
 def submit_pyspark_job(
-    cluster_name: str, task_id: str, python_module_path: str, args: dict[str, Any]
+    cluster_name: str, task_id: str, python_module_path: str, args: list[str]
 ) -> DataprocSubmitJobOperator:
     """Submit a PySpark job to a Dataproc cluster.
 
@@ -130,21 +130,18 @@ def submit_pyspark_job(
         cluster_name (str): Name of the cluster.
         task_id (str): Name of the task.
         python_module_path (str): Path to the Python module to run.
-        args (dict[str, Any]): Arguments to pass to the Python module.
+        args (list[str]): Arguments to pass to the Python module.
 
     Returns:
         DataprocSubmitJobOperator: Airflow task to submit a PySpark job to a Dataproc cluster.
     """
-    formatted_args = []
-    if isinstance(args, dict):
-        formatted_args = [f"--{arg}={val}" for arg, val in args.items()]
     return submit_job(
         cluster_name=cluster_name,
         task_id=task_id,
         job_type="pyspark_job",
         job_specification={
             "main_python_file_uri": f"{initialisation_base_path}/{python_module_path}",
-            "args": formatted_args,
+            "args": args,
             "properties": {
                 "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
                 "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",

@@ -11,11 +11,11 @@ def dag_bag(request):
     return DagBag(dag_folder=request.param, include_examples=False)
 
 
-# def test_no_import_errors(dag_bag):
-#     """Test for import errors."""
-#     assert (
-#         not dag_bag.import_errors
-#     ), f"DAG import failures. Errors: {dag_bag.import_errors}"
+def test_no_import_errors(dag_bag):
+    """Test for import errors."""
+    assert (
+        not dag_bag.import_errors
+    ), f"DAG import failures. Errors: {dag_bag.import_errors}"
 
 
 def test_requires_tags(dag_bag):
