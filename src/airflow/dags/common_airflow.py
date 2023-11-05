@@ -164,7 +164,7 @@ def submit_step(cluster_name, step_id):
     return submit_pyspark_job(
         cluster_name=cluster_name,
         task_id=step_id,
-        python_module_path=PYTHON_CLI,
+        python_module_path=f"{INITIALISATION_BASE_PATH}/{PYTHON_CLI}",
         args=[
             f"step={step_id}",
             f"--config-dir={CLUSTER_CONFIG_DIR}",
