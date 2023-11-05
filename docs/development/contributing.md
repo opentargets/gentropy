@@ -59,7 +59,7 @@ For more details on each of these steps, see the sections below.
 ### Documentation
 * If during development you had a question which wasn't covered in the documentation, and someone explained it to you, add it to the documentation. The same applies if you encountered any instructions in the documentation which were obsolete or incorrect.
 * Documentation autogeneration expressions start with `:::`. They will automatically generate sections of the documentation based on class and method docstrings. Be sure to update them for:
-  + Dataset definitions in `docs/python_api/datasource/STEP` (example: `docs/python_api/datasource/finngen/study_index/study_index.md`)
+  + Dataset definitions in `docs/python_api/datasource/STEP` (example: `docs/python_api/datasource/finngen/study_index.md`)
   + Step definition in `docs/python_api/step/STEP.md` (example: `docs/python_api/step/finngen.md`)
 
 ### Configuration
