@@ -1,3 +1,3 @@
-"""GWAS Catalog Data Source."""
+"""FinnGen datasource classes."""
 
 from __future__ import annotations
