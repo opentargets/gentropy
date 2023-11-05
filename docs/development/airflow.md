@@ -14,18 +14,18 @@ This section describes how to set up a local Airflow server which will orchestra
 ## Configure Airflow access to Google Cloud Platform
 
 !!!warning Specifying Google Cloud parameters
-    Run the next two command with the appropriate project ID and service account name to ensure the correct Google default application credentials are set up.
+    Run the next two command with the appropriate Google Cloud project ID and service account name to ensure the correct Google default application credentials are set up.
 
 Authenticate to Google Cloud:
 
 ```bash
-gcloud auth application-default login --project=open-targets-eu-dev
+gcloud auth application-default login --project=<PROJECT>
 ```
 
 Create the service account key file that will be used by Airflow to access Google Cloud Platform resources:
 
 ```bash
-gcloud iam service-accounts keys create ~/.config/gcloud/service_account_credentials.json --iam-account=open-targets-genetics-dev@appspot.gserviceaccount.com
+gcloud iam service-accounts keys create ~/.config/gcloud/service_account_credentials.json --iam-account=<PROJECT>@appspot.gserviceaccount.com
 ```
 
 
