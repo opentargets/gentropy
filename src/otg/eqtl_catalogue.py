@@ -20,7 +20,7 @@ class EqtlStep:
         session (Session): Session object.
         eqtl_catalogue_paths_imported (str): eQTL Catalogue input files for the harmonised and imported data.
         eqtl_catalogue_study_index_out (str): Output path for the eQTL Catalogue study index dataset.
-        eqtl_catalogue_summary_stats_out (str): Output path for the eQTL Catalogue summary stats statistics.
+        eqtl_catalogue_summary_stats_out (str): Output path for the eQTL Catalogue summary stats.
     """
 
     session: Session = Session()
