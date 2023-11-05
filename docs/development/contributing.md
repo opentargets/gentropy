@@ -55,19 +55,20 @@ When making changes, and especially when implementing a new module or feature, i
 - [ ] Update the documentation and check it with `make build-documentation`. This will start a local server to browse it (URL will be printed, usually `http://127.0.0.1:8000/`)
 
 For more details on each of these steps, see the sections below.
+
 ### Documentation
 * If during development you had a question which wasn't covered in the documentation, and someone explained it to you, add it to the documentation. The same applies if you encountered any instructions in the documentation which were obsolete or incorrect.
 * Documentation autogeneration expressions start with `:::`. They will automatically generate sections of the documentation based on class and method docstrings. Be sure to update them for:
-  + Dataset definitions in `docs/reference/dataset` (example: `docs/reference/dataset/study_index/study_index_finngen.md`)
-  + Step definition in `docs/reference/step` (example: `docs/reference/step/finngen.md`)
+  + Dataset definitions in `docs/python_api/datasource/STEP` (example: `docs/python_api/datasource/finngen/study_index/study_index.md`)
+  + Step definition in `docs/python_api/step/STEP.md` (example: `docs/python_api/step/finngen.md`)
 
 ### Configuration
 * Input and output paths in `config/datasets/gcp.yaml`
 * Step configuration in `config/step/STEP.yaml` (example: `config/step/finngen.yaml`)
 
 ### Classes
-* Dataset class in `src/org/dataset/` (example: `src/otg/dataset/study_index.py` → `StudyIndexFinnGen`)
-* Step main running class in `src/org/STEP.py` (example: `src/org/finngen.py`)
+* Dataset class in `src/otg/datasource/STEP` (example: `src/otg/datasource/finngen/study_index.py` → `FinnGenStudyIndex`)
+* Step main running class in `src/otg/STEP.py` (example: `src/otg/finngen.py`)
 
 ### Tests
 * Test study fixture in `tests/conftest.py` (example: `mock_study_index_finngen` in that module)
