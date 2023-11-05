@@ -10,6 +10,9 @@ This section describes how to set up a local Airflow server which will orchestra
 !!!warning macOS Docker memory allocation
     On macOS, the default amount of memory available for Docker might not be enough to get Airflow up and running. Allocate at least 4GB of memory for the Docker Engine (ideally 8GB). [More info](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#)
 
+!!!warning Making sure the Docker set up is up to date
+    If you installed Docker a while ago, it is possible that it was done using unofficial packages, like `docker.io` in Debian/Ubuntu. This may cause various errors when trying to run commands below, particularly `docker compose`. The solution in this case is to uninstall Docker and reinstall from the official source. Follow instructions [here](https://docs.docker.com/engine/install/) for your platform.
+
 
 ## Configure Airflow access to Google Cloud Platform
 
