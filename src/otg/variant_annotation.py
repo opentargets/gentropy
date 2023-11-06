@@ -22,10 +22,10 @@ class VariantAnnotationStep:
         gnomad_genomes (str): Path to gnomAD genomes hail table.
         chain_38_to_37 (str): Path to GRCh38 to GRCh37 chain file.
         variant_annotation_path (str): Output variant annotation path.
-        populations (List[str]): List of populations to include.
+        populations (list[str]): List of populations to include.
     """
 
-    session: Session = Session()
+    session: Session
     start_hail: bool = field(
         default=True,
     )
