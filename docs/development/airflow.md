@@ -46,6 +46,20 @@ cd src/airflow
 docker build . --tag extending_airflow:latest
 ```
 
+### Set Airflow user ID
+
+!!!note Setting Airflow user ID
+    These commands allow Airflow running inside Docker to access the credentials file which was generated earlier.
+
+```bash
+# If any user ID is already specified in .env, remove it.
+grep -v "AIRFLOW_UID" .env > .env.tmp
+# Add the correct user ID.
+echo "AIRFLOW_UID=$(id -u)" >> .env.tmp
+# Move the file.
+mv .env.tmp .env
+```
+
 ### Initialise
 
 Before starting Airflow, initialise the database:
