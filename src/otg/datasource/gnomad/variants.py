@@ -1,6 +1,8 @@
 """Import gnomAD variants dataset."""
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import hail as hl
@@ -11,6 +13,7 @@ if TYPE_CHECKING:
     from hail.expr.expressions import Int32Expression, StringExpression
 
 
+@dataclass
 class GnomADVariants:
     """GnomAD variants included in the GnomAD genomes dataset.
 
@@ -21,19 +24,23 @@ class GnomADVariants:
     """
 
     gnomad_genomes: str = "gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht"
-    chain_hail_38_37: str = "gs://hail-common/references/grch38_to_grch37.over.chain.gz"
-    populations: list[str] = [
-        "afr",  # African-American
-        "amr",  # American Admixed/Latino
-        "ami",  # Amish ancestry
-        "asj",  # Ashkenazi Jewish
-        "eas",  # East Asian
-        "fin",  # Finnish
-        "nfe",  # Non-Finnish European
-        "mid",  # Middle Eastern
-        "sas",  # South Asian
-        "oth",  # Other
-    ]
+    chain_hail_38_37: str = str(
+        pkg_resources.path("otg.assets.data", "grch38_to_grch37.over.chain.gz")
+    )
+    populations: list[str] = field(
+        default_factory=lambda: [
+            "afr",  # African-American
+            "amr",  # American Admixed/Latino
+            "ami",  # Amish ancestry
+            "asj",  # Ashkenazi Jewish
+            "eas",  # East Asian
+            "fin",  # Finnish
+            "nfe",  # Non-Finnish European
+            "mid",  # Middle Eastern
+            "sas",  # South Asian
+            "oth",  # Other
+        ]
+    )
 
     @staticmethod
     def _convert_gnomad_position_to_ensembl_hail(
