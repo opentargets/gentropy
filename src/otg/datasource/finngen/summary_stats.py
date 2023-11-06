@@ -20,7 +20,7 @@ class FinnGenSummaryStats(SummaryStatistics):
     """Summary statistics dataset for FinnGen."""
 
     @classmethod
-    def from_finngen_harmonized_summary_stats(
+    def from_source(
         cls: type[FinnGenSummaryStats],
         summary_stats_df: DataFrame,
     ) -> FinnGenSummaryStats:

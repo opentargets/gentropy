@@ -1,8 +1,5 @@
 - id: "gene_index"
-- id: "variant_annotation"
 - id: "gwas_catalog"
-  prerequisites:
-    - "variant_annotation"
 - id: "variant_index"
   prerequisites:
     - "gwas_catalog"

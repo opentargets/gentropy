@@ -1,40 +1,22 @@
 """Collection of methods that extract features from the OTG datasets to be fed in L2G."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
-from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import (
     _convert_from_wide_to_long,
     get_record_with_maximum_value,
 )
-from otg.dataset.dataset import Dataset
+from otg.dataset.l2g_feature import L2GFeature
 from otg.dataset.study_locus import CredibleInterval, StudyLocus
 
 if TYPE_CHECKING:
-    from pyspark.sql.types import StructType
-
     from otg.dataset.colocalisation import Colocalisation
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.v2g import V2G
-
-
-@dataclass
-class L2GFeature(Dataset):
-    """Property of a study locus pair."""
-
-    @classmethod
-    def get_schema(cls: type[L2GFeature]) -> StructType:
-        """Provides the schema for the L2GFeature dataset.
-
-        Returns:
-            StructType: Schema for the L2GFeature dataset
-        """
-        return parse_spark_schema("l2g_feature.json")
 
 
 class ColocalisationFactory:

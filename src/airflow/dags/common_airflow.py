@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pendulum
+import yaml
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -14,32 +15,38 @@ from airflow.providers.google.cloud.operators.dataproc import (
 from airflow.utils.trigger_rule import TriggerRule
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
-otg_version = "1.0.0"
+OTG_VERSION = "1.0.0"
 
 
 # Cloud configuration.
-project_id = "open-targets-genetics-dev"
-region = "europe-west1"
-zone = "europe-west1-d"
-image_version = "2.1"
+GCP_PROJECT = "open-targets-genetics-dev"
+GCP_REGION = "europe-west1"
+GCP_ZONE = "europe-west1-d"
+GCP_DATAPROC_IMAGE = "2.1"
+GCP_AUTOSCALING_POLICY = "otg-etl"
 
 
-# Executable configuration.
-initialisation_base_path = (
-    f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
+# Cluster init configuration.
+INITIALISATION_BASE_PATH = (
+    f"gs://genetics_etl_python_playground/initialisation/{OTG_VERSION}"
 )
-python_cli = f"{initialisation_base_path}/cli.py"
-config_tar = f"{initialisation_base_path}/config.tar.gz"
-package_wheel = f"{initialisation_base_path}/otgenetics-{otg_version}-py3-none-any.whl"
-initialisation_executable_file = [
-    f"{initialisation_base_path}/install_dependencies_on_cluster.sh"
+CONFIG_TAG = f"{INITIALISATION_BASE_PATH}/config.tar.gz"
+PACKAGE_WHEEL = f"{INITIALISATION_BASE_PATH}/otgenetics-{OTG_VERSION}-py3-none-any.whl"
+INITIALISATION_EXECUTABLE_FILE = [
+    f"{INITIALISATION_BASE_PATH}/install_dependencies_on_cluster.sh"
 ]
+
+
+# CLI configuration.
+CLUSTER_CONFIG_DIR = "/config"
+CONFIG_NAME = "config"
+PYTHON_CLI = "cli.py"
 
 
 # Shared DAG construction parameters.
 shared_dag_args = dict(
     owner="Open Targets Data Team",
-    retries=3,
+    retries=1,
 )
 shared_dag_kwargs = dict(
     tags=["genetics_etl", "experimental"],
@@ -53,7 +60,7 @@ def create_cluster(
     cluster_name: str,
     master_machine_type: str = "n1-standard-4",
     worker_machine_type: str = "n1-standard-16",
-    num_workers: int = 0,
+    num_workers: int = 2,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
@@ -67,28 +74,29 @@ def create_cluster(
         DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
     """
     cluster_generator_config = ClusterGenerator(
-        project_id=project_id,
-        zone=zone,
+        project_id=GCP_PROJECT,
+        zone=GCP_ZONE,
         master_machine_type=master_machine_type,
         worker_machine_type=worker_machine_type,
-        master_disk_size=1000,
+        master_disk_size=500,
         worker_disk_size=500,
         num_workers=num_workers,
         num_local_ssds=1,
-        image_version=image_version,
+        image_version=GCP_DATAPROC_IMAGE,
         enable_component_gateway=True,
-        init_actions_uris=initialisation_executable_file,
+        init_actions_uris=INITIALISATION_EXECUTABLE_FILE,
         metadata={
-            "CONFIGTAR": config_tar,
-            "PACKAGE": package_wheel,
+            "CONFIGTAR": CONFIG_TAG,
+            "PACKAGE": PACKAGE_WHEEL,
         },
         idle_delete_ttl=None,
+        autoscaling_policy=f"projects/{GCP_PROJECT}/regions/{GCP_REGION}/autoscalingPolicies/{GCP_AUTOSCALING_POLICY}",
     ).make()
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
-        project_id=project_id,
+        project_id=GCP_PROJECT,
         cluster_config=cluster_generator_config,
-        region=region,
+        region=GCP_REGION,
         cluster_name=cluster_name,
         trigger_rule=TriggerRule.ALL_SUCCESS,
     )
@@ -110,11 +118,11 @@ def submit_job(
     """
     return DataprocSubmitJobOperator(
         task_id=task_id,
-        region=region,
-        project_id=project_id,
+        region=GCP_REGION,
+        project_id=GCP_PROJECT,
         job={
             "job_uuid": f"airflow-{task_id}",
-            "reference": {"project_id": project_id},
+            "reference": {"project_id": GCP_PROJECT},
             "placement": {"cluster_name": cluster_name},
             job_type: job_specification,
         },
@@ -140,7 +148,7 @@ def submit_pyspark_job(
         task_id=task_id,
         job_type="pyspark_job",
         job_specification={
-            "main_python_file_uri": f"{initialisation_base_path}/{python_module_path}",
+            "main_python_file_uri": f"{INITIALISATION_BASE_PATH}/{python_module_path}",
             "args": args,
             "properties": {
                 "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
@@ -150,6 +158,20 @@ def submit_pyspark_job(
                 "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
             },
         },
+    )
+
+
+def submit_step(cluster_name, step_id):
+    """Submit a PySpark job to execute a specific CLI step."""
+    return submit_pyspark_job(
+        cluster_name=cluster_name,
+        task_id=step_id,
+        python_module_path=f"{INITIALISATION_BASE_PATH}/{PYTHON_CLI}",
+        args=[
+            f"step={step_id}",
+            f"--config-dir={CLUSTER_CONFIG_DIR}",
+            f"--config-name={CONFIG_NAME}",
+        ],
     )
 
 
@@ -168,7 +190,7 @@ def install_dependencies(cluster_name: str) -> DataprocSubmitJobOperator:
         job_type="pig_job",
         job_specification={
             "jar_file_uris": [
-                f"gs://genetics_etl_python_playground/initialisation/{otg_version}/install_dependencies_on_cluster.sh"
+                f"gs://genetics_etl_python_playground/initialisation/{OTG_VERSION}/install_dependencies_on_cluster.sh"
             ],
             "query_list": {
                 "queries": [
@@ -191,9 +213,26 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
     """
     return DataprocDeleteClusterOperator(
         task_id="delete_cluster",
-        project_id=project_id,
+        project_id=GCP_PROJECT,
         cluster_name=cluster_name,
-        region=region,
+        region=GCP_REGION,
         trigger_rule=TriggerRule.ALL_DONE,
         deferrable=True,
+    )
+
+
+def read_yaml_config(config_path):
+    """Parse a YAMl config file and do all necessary checks."""
+    assert config_path.exists(), f"YAML config path {config_path} does not exist."
+    with open(config_path, "r") as config_file:
+        return yaml.safe_load(config_file)
+
+
+def generate_dag(cluster_name, tasks):
+    """For a list of tasks, generate a complete DAG."""
+    return (
+        create_cluster(cluster_name)
+        >> install_dependencies(cluster_name)
+        >> tasks
+        >> delete_cluster(cluster_name)
     )

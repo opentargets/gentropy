@@ -8,8 +8,11 @@ title: Contributing guidelines
 The steps in this section only ever need to be done once on any particular system.
 
 Google Cloud configuration:
+
 1. Install Google Cloud SDK: https://cloud.google.com/sdk/docs/install.
+
 1. Log in to your work Google Account: run `gcloud auth login` and follow instructions.
+
 1. Obtain Google application credentials: run `gcloud auth application-default login` and follow instructions.
 
 Check that you have the `make` utility installed, and if not (which is unlikely), install it using your system package manager.
