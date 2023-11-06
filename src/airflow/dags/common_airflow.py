@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pendulum
@@ -161,8 +162,16 @@ def submit_pyspark_job(
     )
 
 
-def submit_step(cluster_name, step_id):
-    """Submit a PySpark job to execute a specific CLI step."""
+def submit_step(cluster_name: str, step_id: str) -> DataprocSubmitJobOperator:
+    """Submit a PySpark job to execute a specific CLI step.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+        step_id (str): Name of the step.
+
+    Returns:
+        DataprocSubmitJobOperator: Airflow task to submit a PySpark job to execute a specific CLI step.
+    """
     return submit_pyspark_job(
         cluster_name=cluster_name,
         task_id=step_id,
@@ -221,15 +230,24 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
     )
 
 
-def read_yaml_config(config_path):
-    """Parse a YAMl config file and do all necessary checks."""
+def read_yaml_config(config_path: Path) -> None:
+    """Parse a YAMl config file and do all necessary checks.
+
+    Args:
+        config_path (Path): Path to the YAML config file.
+    """
     assert config_path.exists(), f"YAML config path {config_path} does not exist."
     with open(config_path, "r") as config_file:
         return yaml.safe_load(config_file)
 
 
-def generate_dag(cluster_name, tasks):
-    """For a list of tasks, generate a complete DAG."""
+def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> None:
+    """For a list of tasks, generate a complete DAG.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+        tasks (list[DataprocSubmitJobOperator]): List of tasks to execute.
+    """
     return (
         create_cluster(cluster_name)
         >> install_dependencies(cluster_name)
