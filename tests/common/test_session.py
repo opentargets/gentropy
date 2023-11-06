@@ -14,6 +14,28 @@ def test_session_creation() -> None:
     assert isinstance(Session(spark_uri="local[1]"), Session)
 
 
+def test_hail_configuration() -> None:
+    """Assert that Hail configuration is set when start_hail is True."""
+    session = Session(
+        hail_home=".venv/lib/python3.10/site-packages/hail", start_hail=True
+    )
+
+    expected_hail_conf = {
+        "spark.jars": ".venv/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+        "spark.driver.extraClassPath": ".venv/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+        "spark.executor.extraClassPath": "./hail-all-spark.jar",
+        "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+        "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
+        "spark.sql.files.openCostInBytes": "50gb",
+        "spark.sql.files.maxPartitionBytes": "50gb",
+    }
+
+    observed_conf = dict(session.spark.sparkContext.getConf().getAll())
+    # sourcery skip: no-loop-in-tests
+    for key, value in expected_hail_conf.items():
+        assert observed_conf.get(key) == value, f"Expected {key} to be set to {value}"
+
+
 def test_log4j_creation(spark: SparkSession) -> None:
     """Test session log4j."""
     assert isinstance(Log4j(spark=spark), Log4j)
