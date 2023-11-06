@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass, field
 from functools import reduce
 from typing import TYPE_CHECKING
 
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
+@dataclass
 class GnomADLDMatrix:
     """Importer of LD information from GnomAD.
 
@@ -27,7 +29,30 @@ class GnomADLDMatrix:
     2. Resolve the matrix indices to variant IDs by lifting over the coordinates to GRCh38.
     3. Aggregate the LD information across populations.
 
+    Attributes:
+        ld_matrix_template (str): Template for the LD matrix path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm".
+        ld_index_raw_template (str): Template for the LD index path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht".
+        grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates. Defaults to "gs://hail-common/references/grch37_to_grch38.over.chain.gz".
+        ld_populations (list[str]): List of populations to use to build the LDIndex. Defaults to ["afr", "amr", "asj", "eas", "fin", "nfe", "nwe", "seu"].
     """
+
+    ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
+    ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
+    grch37_to_grch38_chain_path: str = (
+        "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
+    )
+    ld_populations: list[str] = field(
+        default_factory=lambda: [
+            "afr",  # African-American
+            "amr",  # American Admixed/Latino
+            "asj",  # Ashkenazi Jewish
+            "eas",  # East Asian
+            "fin",  # Finnish
+            "nfe",  # Non-Finnish European
+            "nwe",  # Northwestern European
+            "seu",  # Southeastern European
+        ]
+    )
 
     @staticmethod
     def _aggregate_ld_index_across_populations(
@@ -249,34 +274,26 @@ class GnomADLDMatrix:
     @classmethod
     def as_ld_index(
         cls: type[GnomADLDMatrix],
-        ld_populations: list[str],
-        ld_matrix_template: str,
-        ld_index_raw_template: str,
-        grch37_to_grch38_chain_path: str,
         min_r2: float,
     ) -> LDIndex:
         """Create LDIndex dataset aggregating the LD information across a set of populations.
 
         Args:
-            ld_populations (list[str]): List of populations to aggregate
-            ld_matrix_template (str): Template path to the LD matrix
-            ld_index_raw_template (str): Template path to the LD variants index
-            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates
             min_r2 (float): Minimum r2 value to keep in the table
 
         Returns:
             LDIndex: LDIndex dataset
         """
         ld_indices_unaggregated = []
-        for pop in ld_populations:
+        for pop in cls.ld_populations:
             try:
-                ld_matrix_path = ld_matrix_template.format(POP=pop)
-                ld_index_raw_path = ld_index_raw_template.format(POP=pop)
+                ld_matrix_path = cls.ld_matrix_template.format(POP=pop)
+                ld_index_raw_path = cls.ld_index_raw_template.format(POP=pop)
                 pop_ld_index = cls._create_ldindex_for_population(
                     pop,
                     ld_matrix_path,
                     ld_index_raw_path.format(pop),
-                    grch37_to_grch38_chain_path,
+                    cls.grch37_to_grch38_chain_path,
                     min_r2,
                 )
                 ld_indices_unaggregated.append(pop_ld_index)
