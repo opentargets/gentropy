@@ -3,6 +3,8 @@ _target_: otg.variant_index.VariantIndexStep
 defaults:
     - session: dataproc
 
+session:
+  start_hail: false
 variant_annotation_path: ${datasets.variant_annotation}
 study_locus_path: ${datasets.study_locus}
 variant_index_path: ${datasets.variant_index}

@@ -3,6 +3,8 @@ _target_: otg.finngen.FinnGenStep
 defaults:
     - session: dataproc
 
+session:
+  start_hail: false
 finngen_phenotype_table_url: ${datasets.finngen_phenotype_table_url}
 finngen_release_prefix: ${datasets.finngen_release_prefix}
 finngen_sumstat_url_prefix: ${datasets.finngen_sumstat_url_prefix}
