@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import reduce
 from typing import TYPE_CHECKING
 
@@ -20,14 +20,9 @@ if TYPE_CHECKING:
 
 @dataclass
 class GnomADLDMatrix:
-    """Importer of LD information from GnomAD.
+    """Toolset ot interact with GnomAD LD dataset (version: r2.1.1).
 
-    The information comes from LD matrices [made available by GnomAD](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium) in Hail's native format. We aggregate the LD information across 8 ancestries.
-    The basic steps to generate the LDIndex are:
-
-    1. Convert a LD matrix to a Spark DataFrame.
-    2. Resolve the matrix indices to variant IDs by lifting over the coordinates to GRCh38.
-    3. Aggregate the LD information across populations.
+    Datasets are accessed in Hail's native format, as provided by the [GnomAD consotiums](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium).
 
     Attributes:
         ld_matrix_template (str): Template for the LD matrix path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm".
@@ -41,18 +36,16 @@ class GnomADLDMatrix:
     grch37_to_grch38_chain_path: str = (
         "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
     )
-    ld_populations: list[str] = field(
-        default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "asj",  # Ashkenazi Jewish
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-            "nwe",  # Northwestern European
-            "seu",  # Southeastern European
-        ]
-    )
+    ld_populations: list[str] = [
+        "afr",  # African-American
+        "amr",  # American Admixed/Latino
+        "asj",  # Ashkenazi Jewish
+        "eas",  # East Asian
+        "fin",  # Finnish
+        "nfe",  # Non-Finnish European
+        "nwe",  # Northwestern European
+        "seu",  # Southeastern European
+    ]
 
     @staticmethod
     def _aggregate_ld_index_across_populations(
@@ -271,12 +264,18 @@ class GnomADLDMatrix:
             f.col("variantId_i") != f.col("variantId_j")
         ).unionByName(ld_matrix_transposed)
 
-    @classmethod
+    # @classmethod
     def as_ld_index(
-        cls: type[GnomADLDMatrix],
+        self: GnomADLDMatrix,
         min_r2: float,
     ) -> LDIndex:
         """Create LDIndex dataset aggregating the LD information across a set of populations.
+
+        **The basic steps to generate the LDIndex are:**
+
+        1. Convert LD matrix to a Spark DataFrame.
+        2. Resolve the matrix indices to variant IDs by lifting over the coordinates to GRCh38.
+        3. Aggregate the LD information across populations.
 
         Args:
             min_r2 (float): Minimum r2 value to keep in the table
@@ -285,15 +284,15 @@ class GnomADLDMatrix:
             LDIndex: LDIndex dataset
         """
         ld_indices_unaggregated = []
-        for pop in cls.ld_populations:
+        for pop in self.ld_populations:
             try:
-                ld_matrix_path = cls.ld_matrix_template.format(POP=pop)
-                ld_index_raw_path = cls.ld_index_raw_template.format(POP=pop)
-                pop_ld_index = cls._create_ldindex_for_population(
+                ld_matrix_path = self.ld_matrix_template.format(POP=pop)
+                ld_index_raw_path = self.ld_index_raw_template.format(POP=pop)
+                pop_ld_index = self._create_ldindex_for_population(
                     pop,
                     ld_matrix_path,
                     ld_index_raw_path.format(pop),
-                    cls.grch37_to_grch38_chain_path,
+                    self.grch37_to_grch38_chain_path,
                     min_r2,
                 )
                 ld_indices_unaggregated.append(pop_ld_index)
@@ -309,6 +308,6 @@ class GnomADLDMatrix:
             .withColumnRenamed("variantId_j", "tagVariantId")
         )
         return LDIndex(
-            _df=cls._aggregate_ld_index_across_populations(ld_index_unaggregated),
+            _df=self._aggregate_ld_index_across_populations(ld_index_unaggregated),
             _schema=LDIndex.get_schema(),
         )

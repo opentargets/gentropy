@@ -33,12 +33,11 @@ class LDIndexStep:
     def __post_init__(self: LDIndexStep) -> None:
         """Run step."""
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
-        ld_index = GnomADLDMatrix.as_ld_index(
-            self.min_r2,
-        )
-        self.session.logger.info(f"Writing LD index to: {self.ld_index_out}")
         (
-            ld_index.df.write.partitionBy("chromosome")
+            GnomADLDMatrix()
+            .as_ld_index(self.min_r2)
+            .df.write.partitionBy("chromosome")
             .mode(self.session.write_mode)
-            .parquet(f"{self.ld_index_out}")
+            .parquet(self.ld_index_out)
         )
+        self.session.logger.info(f"LD index written to: {self.ld_index_out}")
