@@ -23,6 +23,7 @@ GCP_PROJECT = "open-targets-genetics-dev"
 GCP_REGION = "europe-west1"
 GCP_ZONE = "europe-west1-d"
 GCP_DATAPROC_IMAGE = "2.1"
+GCP_AUTOSCALING_POLICY = "otg-etl"
 
 
 # Cluster init configuration.
@@ -45,7 +46,7 @@ PYTHON_CLI = "cli.py"
 # Shared DAG construction parameters.
 shared_dag_args = dict(
     owner="Open Targets Data Team",
-    retries=3,
+    retries=1,
 )
 shared_dag_kwargs = dict(
     tags=["genetics_etl", "experimental"],
@@ -59,7 +60,7 @@ def create_cluster(
     cluster_name: str,
     master_machine_type: str = "n1-standard-4",
     worker_machine_type: str = "n1-standard-16",
-    num_workers: int = 0,
+    num_workers: int = 2,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
@@ -89,6 +90,7 @@ def create_cluster(
             "PACKAGE": PACKAGE_WHEEL,
         },
         idle_delete_ttl=None,
+        autoscaling_policy=f"projects/{GCP_PROJECT}/regions/{GCP_REGION}/autoscalingPolicies/{GCP_AUTOSCALING_POLICY}",
     ).make()
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
