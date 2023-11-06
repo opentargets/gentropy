@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
 from typing import TYPE_CHECKING
 
@@ -36,16 +36,18 @@ class GnomADLDMatrix:
     grch37_to_grch38_chain_path: str = (
         "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
     )
-    ld_populations: list[str] = [
-        "afr",  # African-American
-        "amr",  # American Admixed/Latino
-        "asj",  # Ashkenazi Jewish
-        "eas",  # East Asian
-        "fin",  # Finnish
-        "nfe",  # Non-Finnish European
-        "nwe",  # Northwestern European
-        "seu",  # Southeastern European
-    ]
+    ld_populations: list[str] = field(
+        defaultfactory=[
+            "afr",  # African-American
+            "amr",  # American Admixed/Latino
+            "asj",  # Ashkenazi Jewish
+            "eas",  # East Asian
+            "fin",  # Finnish
+            "nfe",  # Non-Finnish European
+            "nwe",  # Northwestern European
+            "seu",  # Southeastern European
+        ]
+    )
 
     @staticmethod
     def _aggregate_ld_index_across_populations(
