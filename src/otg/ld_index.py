@@ -30,7 +30,9 @@ class LDIndexStep:
     """
 
     session: Session = Session()
-    start_hail: bool = True
+    start_hail: bool = field(
+        default=True,
+    )
 
     ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
     ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"

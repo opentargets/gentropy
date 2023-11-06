@@ -31,7 +31,9 @@ class SessionConfig:
     write_mode: str = "overwrite"
     spark_uri: str = "local[*]"
     hail_home: str | None = None
-    start_hail: bool = False
+    start_hail: bool = field(
+        default=False,
+    )
     extended_spark_conf: dict[str, str] | None = None
 
 

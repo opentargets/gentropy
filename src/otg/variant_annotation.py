@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
 
 import hail as hl
 from omegaconf import MISSING
@@ -27,12 +26,14 @@ class VariantAnnotationStep:
     """
 
     session: Session = Session()
-    start_hail: bool = True
+    start_hail: bool = field(
+        default=True,
+    )
 
     gnomad_genomes: str = MISSING
     chain_38_to_37: str = MISSING
     variant_annotation_path: str = MISSING
-    populations: List[str] = field(
+    populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
