@@ -8199,17 +8199,17 @@ email = ["email-validator"]
 
 [[package]]
 name = "xgboost"
-version = "1.7.6"
+version = "2.0.1"
 description = "XGBoost Python Package"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "xgboost-1.7.6-py3-none-macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64.whl", hash = "sha256:4c34675b4d2678c624ddde5d45361e7e16046923e362e4e609b88353e6b87124"},
-    {file = "xgboost-1.7.6-py3-none-macosx_12_0_arm64.whl", hash = "sha256:59b4b366d2cafc7f645e87d897983a5b59be02876194b1d213bd8d8b811d8ce8"},
-    {file = "xgboost-1.7.6-py3-none-manylinux2014_aarch64.whl", hash = "sha256:281c3c6f4fbed2d36bf95cd02a641afa95e72e9abde70064056da5e76233e8df"},
-    {file = "xgboost-1.7.6-py3-none-manylinux2014_x86_64.whl", hash = "sha256:b1d5db49b199152d62bd9217c98760207d3de86d2b9d243260c573ffe638f80a"},
-    {file = "xgboost-1.7.6-py3-none-win_amd64.whl", hash = "sha256:127cf1f5e2ec25cd41429394c6719b87af1456ce583e89f0bffd35d02ad18bcb"},
-    {file = "xgboost-1.7.6.tar.gz", hash = "sha256:1c527554a400445e0c38186039ba1a00425dcdb4e40b37eed0e74cb39a159c47"},
+    {file = "xgboost-2.0.1-py3-none-macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64.whl", hash = "sha256:e5570c7fc2cfb6eb256f443d86709a13302b0da4b67afd2e7c4986024b625543"},
+    {file = "xgboost-2.0.1-py3-none-macosx_12_0_arm64.whl", hash = "sha256:d98810eeb75e785b203c859e630ea43114221ee346d09f2bc46d6188657f8a0e"},
+    {file = "xgboost-2.0.1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:d183a4f712e889f86284d32064f69cf870e5a6a520204a515e460a88713e180d"},
+    {file = "xgboost-2.0.1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:70219cdbd58c8c71156ac27e6a71fd73b19cb813fd35fd72e541004e2fe65fb7"},
+    {file = "xgboost-2.0.1-py3-none-win_amd64.whl", hash = "sha256:ed4c24a11fabb49fb861ba3efa0da402002eaed49d0f5fca27768538906a39da"},
+    {file = "xgboost-2.0.1.tar.gz", hash = "sha256:2cdc75f5896766c0498a37a1f30be7bd12cf16549b1b9cfb9ad3caa2a83548c2"},
 ]
 
 [package.dependencies]
@@ -8340,4 +8340,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "244aaf5a702131342815ec252206636ab4bac3fb65236cf78832a0ce10f69f61"
+content-hash = "729ecef643448ccc2a7b0871e7c2cabb0b6be91c45fbd2c07a317649824a1983"
