@@ -1,4 +1,3 @@
-
 # Input/Output paths
 version: XX.XX
 inputs: gs://genetics_etl_python_playground/input
@@ -7,7 +6,6 @@ outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${dataset
 # Input datasets
 gnomad_genomes: gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht
 chain_hail_38_37: gs://hail-common/references/grch38_to_grch37.over.chain.gz
-chain_hail_37_38: gs://hail-common/references/grch37_to_grch38.over.chain.gz
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
 target_index: ${datasets.inputs}/v2g_input/targets_correct_tss
 vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
@@ -23,10 +21,6 @@ finngen_phenotype_table_url: https://r9.finngen.fi/api/phenos
 ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study_manifest.190430.tsv
 l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
-
-# Templates
-ld_index_raw_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
-ld_matrix_template: gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
 
 # Output datasets
 gene_index: ${datasets.outputs}/gene_index
