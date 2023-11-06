@@ -13,8 +13,6 @@ def test_finngen_summary_stats_from_source(
 ) -> None:
     """Test summary statistics from source."""
     assert isinstance(
-        FinnGenSummaryStats.from_finngen_harmonized_summary_stats(
-            sample_finngen_summary_stats
-        ),
+        FinnGenSummaryStats.from_source(sample_finngen_summary_stats),
         SummaryStatistics,
     )

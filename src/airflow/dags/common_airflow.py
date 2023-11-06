@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pendulum
+import yaml
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -24,16 +25,21 @@ zone = "europe-west1-d"
 image_version = "2.1"
 
 
-# Executable configuration.
+# Cluster init configuration.
 initialisation_base_path = (
     f"gs://genetics_etl_python_playground/initialisation/{otg_version}"
 )
-python_cli = f"{initialisation_base_path}/cli.py"
 config_tar = f"{initialisation_base_path}/config.tar.gz"
 package_wheel = f"{initialisation_base_path}/otgenetics-{otg_version}-py3-none-any.whl"
 initialisation_executable_file = [
     f"{initialisation_base_path}/install_dependencies_on_cluster.sh"
 ]
+
+
+# CLI configuration.
+cluster_config_dir = "/config"
+config_name = "config"
+python_cli = "cli.py"
 
 
 # Shared DAG construction parameters.
@@ -153,6 +159,20 @@ def submit_pyspark_job(
     )
 
 
+def submit_step(cluster_name, step_id):
+    """Submit a PySpark job to execute a specific CLI step."""
+    return submit_pyspark_job(
+        cluster_name=cluster_name,
+        task_id=step_id,
+        python_module_path=python_cli,
+        args=[
+            f"step={step_id}",
+            f"--config-dir={cluster_config_dir}",
+            f"--config-name={config_name}",
+        ],
+    )
+
+
 def install_dependencies(cluster_name: str) -> DataprocSubmitJobOperator:
     """Install dependencies on a Dataproc cluster.
 
@@ -196,4 +216,21 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
         region=region,
         trigger_rule=TriggerRule.ALL_DONE,
         deferrable=True,
+    )
+
+
+def read_yaml_config(config_path):
+    """Parse a YAMl config file and do all necessary checks."""
+    assert config_path.exists(), f"YAML config path {config_path} does not exist."
+    with open(config_path, "r") as config_file:
+        return yaml.safe_load(config_file)
+
+
+def generate_dag(cluster_name, tasks):
+    """For a list of tasks, generate a complete DAG."""
+    return (
+        create_cluster(cluster_name)
+        >> install_dependencies(cluster_name)
+        >> tasks
+        >> delete_cluster(cluster_name)
     )

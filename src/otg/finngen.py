@@ -37,38 +37,33 @@ class FinnGenStep:
 
     def __post_init__(self: FinnGenStep) -> None:
         """Run step."""
-        # Read the JSON data from the URL.
+        # Fetch study index.
         json_data = urlopen(self.finngen_phenotype_table_url).read().decode("utf-8")
         rdd = self.session.spark.sparkContext.parallelize([json_data])
         df = self.session.spark.read.json(rdd)
-
-        # Parse the study index data.
-        finngen_studies = FinnGenStudyIndex.from_source(
+        # Process study index.
+        study_index = FinnGenStudyIndex.from_source(
             df,
             self.finngen_release_prefix,
             self.finngen_sumstat_url_prefix,
             self.finngen_sumstat_url_suffix,
         )
-
-        # Write the study index output.
-        finngen_studies.df.write.mode(self.session.write_mode).parquet(
+        # Write study index.
+        study_index.df.write.mode(self.session.write_mode).parquet(
             self.finngen_study_index_out
         )
 
-        # Prepare list of files for ingestion.
-        input_filenames = [
-            row.summarystatsLocation for row in finngen_studies.collect()
-        ]
+        # Fetch summary stats.
+        input_filenames = [row.summarystatsLocation for row in study_index.collect()]
         summary_stats_df = self.session.spark.read.option("delimiter", "\t").csv(
             input_filenames, header=True
         )
-
-        # Specify data processing instructions.
-        summary_stats_df = FinnGenSummaryStats.from_finngen_harmonized_summary_stats(
-            summary_stats_df
-        ).df
-
-        # Sort and partition for output.
-        summary_stats_df.sortWithinPartitions("position").write.partitionBy(
-            "studyId", "chromosome"
-        ).mode(self.session.write_mode).parquet(self.finngen_summary_stats_out)
+        # Process summary stats.
+        summary_stats_df = FinnGenSummaryStats.from_source(summary_stats_df).df
+        # Write summary stats.
+        (
+            summary_stats_df.sortWithinPartitions("position")
+            .write.partitionBy("studyId", "chromosome")
+            .mode(self.session.write_mode)
+            .parquet(self.finngen_summary_stats_out)
+        )
