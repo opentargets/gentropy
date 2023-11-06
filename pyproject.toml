@@ -20,7 +20,7 @@ pyliftover = "^0.4"
 xgboost = "^1.7.3"
 scikit-learn = "^1.2.1"
 numpy = "^1.26.1"
-hail = "0.2.122"
+hail = "0.2.126"
 pyarrow = "^11.0.0"
 wandb = "^0.13.9"
 

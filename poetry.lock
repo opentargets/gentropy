@@ -3653,12 +3653,12 @@ files = [
 
 [[package]]
 name = "hail"
-version = "0.2.122"
+version = "0.2.126"
 description = "Scalable library for exploring and analyzing genomic data."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "hail-0.2.122-py3-none-any.whl", hash = "sha256:e1607fe60da9ab4a7abe8671ec0d233a6f1497031d4a219f70384f5f1b3cc116"},
+    {file = "hail-0.2.126-py3-none-any.whl", hash = "sha256:97a319bc194d0d0d8e0b5e974b2758802460269a09283275de250963b4f2c7e2"},
 ]
 
 [package.dependencies]
@@ -3678,11 +3678,10 @@ dill = ">=0.3.6,<0.4"
 frozenlist = ">=1.3.1,<2"
 google-auth = ">=2.14.1,<3"
 google-auth-oauthlib = ">=0.5.2,<1"
-google-cloud-storage = ">=1.25.0"
 humanize = ">=1.0.0,<2"
 janus = ">=0.6,<1.1"
 jproperties = ">=2.1.1,<3"
-nest-asyncio = ">=1.5.4,<2"
+nest-asyncio = ">=1.5.8,<2"
 numpy = "<2"
 orjson = ">=3.6.4,<4"
 pandas = ">=2,<3"
@@ -3698,7 +3697,7 @@ scipy = ">1.2,<1.12"
 sortedcontainers = ">=2.4.0,<3"
 tabulate = ">=0.8.9,<1"
 typer = ">=0.9.0,<1"
-uvloop = {version = ">=0.16.0,<1", markers = "sys_platform != \"win32\""}
+uvloop = {version = ">=0.19.0,<1", markers = "sys_platform != \"win32\""}
 
 [[package]]
 name = "htmlmin2"
@@ -8340,4 +8339,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "244aaf5a702131342815ec252206636ab4bac3fb65236cf78832a0ce10f69f61"
+content-hash = "ef10ea53a6e7abab9cba95abb295590ecd3ebe8bebcde30dbfd604f579024a3f"
