@@ -37,7 +37,7 @@ class GnomADLDMatrix:
         "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
     )
     ld_populations: list[str] = field(
-        defaultfactory=[
+        default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
             "asj",  # Ashkenazi Jewish
