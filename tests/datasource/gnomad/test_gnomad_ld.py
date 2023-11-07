@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import hail as hl
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -69,49 +71,61 @@ def test_resolve_variant_indices(
     )
 
 
-def test_ld_matrix_slice(spark: SparkSession) -> None:
-    """Test LD matrix slice."""
-    assert spark.conf.get("spark.jars") is not None
-    hl.init(sc=spark.sparkContext, log="/dev/null")
+@dataclass
+class TestGnomADLDMatrix:
+    """Test GnomAD LD methods."""
 
-    matrix_slice = (
-        GnomADLDMatrix(ld_matrix_template="tests/data_samples/example_{POP}.bm")
-        # Extract a 2 by 2 squary matrix:
-        .get_ld_matrix_slice(
-            gnomad_ancestry="test-pop", start_index=1, end_index=2
-        ).persist()
-    )
+    gnomad_ld_matrix = GnomADLDMatrix
 
-    # Is the returned data is a dataframe?
-    assert isinstance(matrix_slice, DataFrame)
+    @pytest.fixture(scope="class")
+    def _setup(self, spark: SparkSession) -> None:
+        """Initialize GnomADLDMatrix object."""
+        hl.init(sc=spark.sparkContext, log="/dev/null")
 
-    # Is the returned data has the right number of rows?
-    assert matrix_slice.count() == 4
+        self.gnomad_ld_matrix = GnomADLDMatrix(
+            ld_matrix_template="tests/data_samples/example_{POP}.bm"
+        )
 
-    # Has the returned data ones in the diagonal?
-    assert (
-        matrix_slice.filter(f.col("idx_i") == f.col("idx_j"))
-        .select("r")
-        .distinct()
-        .collect()[0]["r"]
-        == 1.0
-    )
+    def test_ld_matrix_slice(self) -> None:
+        """Test LD matrix slice."""
+        matrix_slice = (
+            self.gnomad_ld_matrix
+            # Extract a 2 by 2 squary matrix:
+            .get_ld_matrix_slice(
+                gnomad_ancestry="test-pop", start_index=1, end_index=2
+            ).persist()
+        )
 
-    # Testing square matrix completeness and symmetry:
-    compared = matrix_slice.join(
-        (
-            matrix_slice.select(
-                f.col("idx_i").alias("idx_j"),
-                f.col("idx_j").alias("idx_i"),
-                f.col("r").alias("r_sym"),
-            )
-        ),
-        on=["idx_i", "idx_j"],
-        how="inner",
-    )
+        # Is the returned data is a dataframe?
+        assert isinstance(matrix_slice, DataFrame)
 
-    # Is the matrix complete:
-    assert compared.count() == matrix_slice.count()
+        # Is the returned data has the right number of rows?
+        assert matrix_slice.count() == 4
 
-    # Is the matrix symmetric:
-    assert compared.filter(f.col("r") == f.col("r_sym")).count() == compared.count()
+        # Has the returned data ones in the diagonal?
+        assert (
+            matrix_slice.filter(f.col("idx_i") == f.col("idx_j"))
+            .select("r")
+            .distinct()
+            .collect()[0]["r"]
+            == 1.0
+        )
+
+        # Testing square matrix completeness and symmetry:
+        compared = matrix_slice.join(
+            (
+                matrix_slice.select(
+                    f.col("idx_i").alias("idx_j"),
+                    f.col("idx_j").alias("idx_i"),
+                    f.col("r").alias("r_sym"),
+                )
+            ),
+            on=["idx_i", "idx_j"],
+            how="inner",
+        )
+
+        # Is the matrix complete:
+        assert compared.count() == matrix_slice.count()
+
+        # Is the matrix symmetric:
+        assert compared.filter(f.col("r") == f.col("r_sym")).count() == compared.count()
