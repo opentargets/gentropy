@@ -19,45 +19,21 @@ class VariantAnnotationStep:
     Attributes:
         session (Session): Session object.
         start_hail (bool): Whether to start a Hail session. Defaults to True.
-        gnomad_genomes (str): Path to gnomAD genomes hail table.
-        chain_38_to_37 (str): Path to GRCh38 to GRCh37 chain file.
         variant_annotation_path (str): Output variant annotation path.
-        populations (list[str]): List of populations to include.
     """
 
     session: Session
     start_hail: bool = field(
         default=True,
     )
-
-    gnomad_genomes: str = MISSING
-    chain_38_to_37: str = MISSING
     variant_annotation_path: str = MISSING
-    populations: list[str] = field(
-        default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "ami",  # Amish ancestry
-            "asj",  # Ashkenazi Jewish
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-            "mid",  # Middle Eastern
-            "sas",  # South Asian
-            "oth",  # Other
-        ]
-    )
 
     def __post_init__(self: VariantAnnotationStep) -> None:
         """Run step."""
         # Initialise hail session.
         hl.init(sc=self.session.spark.sparkContext, log="/dev/null")
         # Run variant annotation.
-        variant_annotation = GnomADVariants.as_variant_annotation(
-            self.gnomad_genomes,
-            self.chain_38_to_37,
-            self.populations,
-        )
+        variant_annotation = GnomADVariants().as_variant_annotation()
         # Write data partitioned by chromosome and position.
         (
             variant_annotation.df.repartition(400, "chromosome")
