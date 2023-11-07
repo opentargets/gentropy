@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class GnomADLDMatrix:
     """Toolset ot interact with GnomAD LD dataset (version: r2.1.1).
 
-    Datasets are accessed in Hail's native format, as provided by the [GnomAD consotiums](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium).
+    Datasets are accessed in Hail's native format, as provided by the [GnomAD consortium](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium).
 
     Attributes:
         ld_matrix_template (str): Template for the LD matrix path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm".
