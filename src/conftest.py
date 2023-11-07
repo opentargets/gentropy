@@ -25,6 +25,7 @@ def spark(
     Returns:
         SparkSession: local spark session
     """
+    # Restart new session:
     spark = (
         SparkSession.builder.config(conf=get_spark_testing_conf())
         .master("local[1]")

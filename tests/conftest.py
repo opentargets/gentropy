@@ -38,12 +38,13 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
     Returns:
         SparkSession: local spark session
     """
-    return (
+    spark = (
         SparkSession.builder.config(conf=get_spark_testing_conf())
         .master("local[1]")
         .appName("test")
         .getOrCreate()
     )
+    return spark
 
 
 @pytest.fixture()
