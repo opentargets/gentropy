@@ -14,15 +14,13 @@ def test_session_creation() -> None:
     assert isinstance(Session(spark_uri="local[1]"), Session)
 
 
-def test_hail_configuration() -> None:
+def test_hail_configuration(hail_home: str) -> None:
     """Assert that Hail configuration is set when start_hail is True."""
-    session = Session(
-        hail_home=".venv/lib/python3.10/site-packages/hail", start_hail=True
-    )
+    session = Session(spark_uri="local[1]", hail_home=hail_home, start_hail=True)
 
     expected_hail_conf = {
-        "spark.jars": ".venv/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
-        "spark.driver.extraClassPath": ".venv/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+        "spark.jars": f"{hail_home}/backend/hail-all-spark.jar",
+        "spark.driver.extraClassPath": f"{hail_home}/backend/hail-all-spark.jar",
         "spark.executor.extraClassPath": "./hail-all-spark.jar",
         "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
         "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
