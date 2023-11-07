@@ -1,4 +1,4 @@
-"""Study Index for Finngen data source."""
+"""Study Index for eQTL Catalogue data source."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -22,10 +22,32 @@ class EqtlStudyIndex(StudyIndex):
         """Ingest study level metadata from eQTL Catalogue."""
         return EqtlStudyIndex(
             _df=eqtl_studies.select(
-                # Constant values.
-                f.lit("EQTL_CATALOGUE").alias("projectId"),
+                # Project ID, example: "GTEx_V8".
+                f.col("study").alias("projectId"),
+                # Partial study ID, example: "GTEx_V8_Adipose_Subcutaneous". This ID will be converted to final only
+                # when summary statistics are parsed, because it must also include a gene ID.
+                f.concat(f.col("study"), f.lit("_"), f.col("qtl_group")).alias(
+                    "studyId"
+                ),
+                # Summary stats location.
+                f.col("ftp_path").alias("summarystatsLocation"),
+                # Constant value fields.
                 f.lit("eqtl").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
+                # Human readable tissue label, example: "Adipose - Subcutaneous".
+                f.col("tissue_label").alias("traitFromSource"),
+                # Ontology identifier for the tissue, for example: "UBERON:0001157".
+                f.array(
+                    f.regexp_replace(
+                        f.regexp_replace(
+                            f.col("tissue_ontology_id"),
+                            "UBER_",
+                            "UBERON_",
+                        ),
+                        "_",
+                        ":",
+                    )
+                ).alias("traitFromSourceMappedIds"),
                 # Sample information.
                 f.lit(838).alias("nSamples"),
                 f.lit("838 (281 females and 557 males)").alias("initialSampleSize"),
@@ -55,26 +77,6 @@ class EqtlStudyIndex(StudyIndex):
                 f.lit("GTEx Consortium").alias("publicationFirstAuthor"),
                 f.lit("publicationDate").alias("2020-09-11"),
                 f.lit("Science").alias("publicationJournal"),
-                # Study ID, example: "GTEx_V8_Adipose_Subcutaneous".
-                f.concat(f.col("study"), f.lit("_"), f.col("qtl_group")).alias(
-                    "studyId"
-                ),
-                # Human readable tissue label, example: "Adipose - Subcutaneous".
-                f.col("tissue_label").alias("traitFromSource"),
-                # Ontology identifier for the tissue, for example: "UBERON:0001157".
-                f.array(
-                    f.regexp_replace(
-                        f.regexp_replace(
-                            f.col("tissue_ontology_id"),
-                            "UBER_",
-                            "UBERON_",
-                        ),
-                        "_",
-                        ":",
-                    )
-                ).alias("traitFromSourceMappedIds"),
-                # Summary statistics location.
-                f.col("ftp_path").alias("summarystatsLocation"),
             ).withColumn(
                 "ldPopulationStructure",
                 cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
