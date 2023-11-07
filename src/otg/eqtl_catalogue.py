@@ -65,7 +65,15 @@ class EqtlStep:
             .groupBy("studyId")
             .agg(f.collect_list("fullStudyId").alias("fullStudyIdList"))
         )
-        print(partial_to_full_study_id)
+        study_index_df = (
+            study_index_df.join(partial_to_full_study_id, "studyId", "inner")
+            .select(
+                "*",
+                f.explode("fullStudyIdList").alias("fullStudyId"),
+            )
+            .drop("fullStudyIdList")
+        )
+        print(study_index_df)
 
         # f.regexp_extract(f.col("studyId"), r".*_([\_]+)", 1).alias("geneId"),  # GENEID
 
