@@ -1,4 +1,4 @@
 ---
 title: eQTL Catalogue
 ---
-::: otg.finngen.EqtlCatalogueStep
+::: otg.eqtl_catalogue.EqtlCatalogueStep
