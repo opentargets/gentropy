@@ -1,6 +1,7 @@
 """Spark utilities."""
 from __future__ import annotations
 
+import hail as hl
 from pyspark.conf import SparkConf
 
 
@@ -10,6 +11,7 @@ def get_spark_testing_conf() -> SparkConf:
     Returns:
         SparkConf: SparkConf with settings for testing.
     """
+    hail_home = hl.__file__.replace("/__init__.py", "")
     return (
         SparkConf()
         .set("spark.driver.bindAddress", "127.0.0.1")
@@ -27,4 +29,9 @@ def get_spark_testing_conf() -> SparkConf:
         .set("spark.worker.ui.retainedDrivers", "1")
         # Fixed memory.
         .set("spark.driver.memory", "2g")
+        .set("spark.jars", f"{hail_home}/backend/hail-all-spark.jar")
+        .set("spark.driver.extraClassPath", f"{hail_home}/backend/hail-all-spark.jar")
+        .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
+        .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
     )
