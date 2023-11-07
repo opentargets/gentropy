@@ -19,6 +19,25 @@ if TYPE_CHECKING:
 class EqtlSummaryStats(SummaryStatistics):
     """Summary statistics dataset for eQTL Catalogue."""
 
+    # The following regular expresions are used to construct a full study ID.
+    # Example of a URI which is used for parsing:
+    # "ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz".
+
+    # Regular expession to extract project ID from URI.  Example: "GTEx_V8".
+    _project_id = f.regexp_extract(
+        f.input_file_name(),
+        r"ftp://ftp\.ebi\.ac\.uk/pub/databases/spot/eQTL/imported/([^/]+)/.*",
+        1,
+    )
+    # Regular expression to extract QTL group from URI.  Example: "Adipose_Subcutaneous".
+    _qtl_group = f.regexp_extract(f.input_file_name(), r"([^/]+)\.tsv\.gz", 1)
+    # Extracting gene ID from the column.  Example: "ENSG00000225630".
+    _gene_id = f.col("gene_id")
+
+    # We can now construct the full study ID based on all fields.
+    # Example: "GTEx_V8_Adipose_Subcutaneous_ENSG00000225630".
+    _study_id = f.concat(_project_id, f.lit("_"), _qtl_group, f.lit("_"), _gene_id)
+
     @classmethod
     def from_source(
         cls: type[EqtlSummaryStats],
@@ -29,10 +48,8 @@ class EqtlSummaryStats(SummaryStatistics):
             summary_stats_df
             # Drop rows which don't have proper position.
             .filter(f.col("posision").cast(t.IntegerType()).isNotNull()).select(
-                # From the full path, extracts just the filename, and converts to upper case to get the study ID.
-                f.upper(f.regexp_extract(f.input_file_name(), r"([^/]+)\.gz", 1)).alias(
-                    "studyId"
-                ),
+                # Construct study ID from the appropriate columns.
+                cls._study_id.alias("studyId"),
                 # Add variant information.
                 f.concat_ws(
                     "_",
@@ -48,9 +65,7 @@ class EqtlSummaryStats(SummaryStatistics):
                 # Add beta, standard error, and allele frequency information.
                 f.col("beta").cast("double"),
                 f.col("se").cast("double").alias("standardError"),
-                (f.col("ac") / f.col("an"))
-                .cast("float")
-                .alias("effectAlleleFrequencyFromSource"),
+                f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
             )
             # Calculating the confidence intervals.
             .select(
