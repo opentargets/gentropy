@@ -27,7 +27,7 @@ class OverlapsIndexStep:
         overlaps_index_out (str): Output overlaps index path.
     """
 
-    session: Session = Session()
+    session: Session
 
     study_locus_path: str = MISSING
     study_index_path: str = MISSING

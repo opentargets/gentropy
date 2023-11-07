@@ -21,7 +21,7 @@ class GeneIndexStep:
         gene_index_path (str): Output gene index path.
     """
 
-    session: Session = Session()
+    session: Session
 
     target_path: str = MISSING
     gene_index_path: str = MISSING

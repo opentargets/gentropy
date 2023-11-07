@@ -26,7 +26,7 @@ class ColocalisationStep:
         priorc12 (float): Prior on variant being causal for traits 1 and 2.
     """
 
-    session: Session = Session()
+    session: Session
 
     study_locus_path: str = MISSING
     study_index_path: str = MISSING

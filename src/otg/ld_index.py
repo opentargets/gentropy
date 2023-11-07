@@ -24,7 +24,7 @@ class LDIndexStep:
         ld_index_out (str): Output LD index path.
     """
 
-    session: Session = Session()
+    session: Session
     start_hail: bool = field(
         default=True,
     )

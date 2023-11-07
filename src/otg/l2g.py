@@ -43,7 +43,7 @@ class LocusToGeneStep:
         hyperparameters (dict): Hyperparameters for the model.
     """
 
-    session: Session = Session()
+    session: Session
     extended_spark_conf: dict[str, str] | None = None
 
     run_mode: str = MISSING

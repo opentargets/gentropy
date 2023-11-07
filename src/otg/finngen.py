@@ -26,7 +26,7 @@ class FinnGenStep:
         finngen_summary_stats_out (str): Output path for the FinnGen summary statistics.
     """
 
-    session: Session = Session()
+    session: Session
 
     finngen_phenotype_table_url: str = MISSING
     finngen_release_prefix: str = MISSING
