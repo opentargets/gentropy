@@ -24,10 +24,10 @@ class LDIndexStep:
         ld_index_out (str): Output LD index path.
     """
 
-    session: Session = Session()
     start_hail: bool = True
     min_r2: float = 0.5
 
+    session: Session = MISSING
     ld_index_out: str = MISSING
 
     def __post_init__(self: LDIndexStep) -> None:

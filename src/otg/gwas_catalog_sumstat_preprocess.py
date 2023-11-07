@@ -20,8 +20,7 @@ class GWASCatalogSumstatsPreprocessStep:
         study_id (str): GWAS Catalog study identifier.
     """
 
-    session: Session = Session()
-
+    session: Session = MISSING
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
     study_id: str = MISSING
