@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-class EqtlStudyIndex(StudyIndex):
+class EqtlCatalogueStudyIndex(StudyIndex):
     """Study index dataset from eQTL Catalogue."""
 
     _study_attributes = (
@@ -86,11 +86,11 @@ class EqtlStudyIndex(StudyIndex):
 
     @classmethod
     def from_source(
-        cls: type[EqtlStudyIndex],
+        cls: type[EqtlCatalogueStudyIndex],
         eqtl_studies: DataFrame,
-    ) -> EqtlStudyIndex:
+    ) -> EqtlCatalogueStudyIndex:
         """Ingest study level metadata from eQTL Catalogue."""
-        return EqtlStudyIndex(
+        return EqtlCatalogueStudyIndex(
             _df=eqtl_studies.select(*cls._all_attributes).withColumn(
                 "ldPopulationStructure",
                 cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
@@ -100,10 +100,10 @@ class EqtlStudyIndex(StudyIndex):
 
     @classmethod
     def add_gene_id_column(
-        cls: type[EqtlStudyIndex],
+        cls: type[EqtlCatalogueStudyIndex],
         study_index_df: DataFrame,
         summary_stats_df: DataFrame,
-    ) -> EqtlStudyIndex:
+    ) -> EqtlCatalogueStudyIndex:
         """Add a geneId column to the study index and explode.
 
         While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for
@@ -130,4 +130,4 @@ class EqtlStudyIndex(StudyIndex):
             .withColumn("geneId", f.regexp_extract(f.col("studyId"), r".*_([\_]+)", 1))
             .drop("fullStudyId")
         )
-        return EqtlStudyIndex(_df=study_index_df, _schema=cls.get_schema())
+        return EqtlCatalogueStudyIndex(_df=study_index_df, _schema=cls.get_schema())

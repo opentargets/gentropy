@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class EqtlSummaryStats(SummaryStatistics):
+class EqtlCatalogueSummaryStats(SummaryStatistics):
     """Summary statistics dataset for eQTL Catalogue."""
 
     # The following regular expresions are used to construct a full study ID.
@@ -40,9 +40,9 @@ class EqtlSummaryStats(SummaryStatistics):
 
     @classmethod
     def from_source(
-        cls: type[EqtlSummaryStats],
+        cls: type[EqtlCatalogueSummaryStats],
         summary_stats_df: DataFrame,
-    ) -> EqtlSummaryStats:
+    ) -> EqtlCatalogueSummaryStats:
         """Ingests all summary statst for all eQTL Catalogue studies."""
         processed_summary_stats_df = (
             summary_stats_df

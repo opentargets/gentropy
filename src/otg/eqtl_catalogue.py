@@ -8,8 +8,8 @@ from urllib.request import urlopen
 from omegaconf import MISSING
 
 from otg.common.session import Session
-from otg.datasource.eqtl_catalogue.study_index import EqtlStudyIndex
-from otg.datasource.eqtl_catalogue.summary_stats import EqtlSummaryStats
+from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
+from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
 
 
 @dataclass
@@ -37,7 +37,7 @@ class EqtlStep:
         df = self.session.spark.read.option("delimiter", "\t").csv(rdd)
         # Process partial study index.  At this point, it is not complete because we don't have the gene IDs, which we
         # will only get once the summary stats are ingested.
-        study_index_df = EqtlStudyIndex.from_source(df).df
+        study_index_df = EqtlCatalogueStudyIndex.from_source(df).df
 
         # Fetch summary stats.
         input_filenames = [row.summarystatsLocation for row in study_index_df.collect()]
@@ -45,10 +45,10 @@ class EqtlStep:
             input_filenames, header=True
         )
         # Process summary stats.
-        summary_stats_df = EqtlSummaryStats.from_source(summary_stats_df).df
+        summary_stats_df = EqtlCatalogueSummaryStats.from_source(summary_stats_df).df
 
         # Add geneId column to the study index.
-        study_index_df = EqtlStudyIndex.add_gene_id_column(
+        study_index_df = EqtlCatalogueStudyIndex.add_gene_id_column(
             study_index_df,
             summary_stats_df,
         ).df
