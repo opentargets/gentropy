@@ -96,8 +96,6 @@ class Session:
             .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
             .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
-            .set("spark.sql.files.openCostInBytes", "50gb")
-            .set("spark.sql.files.maxPartitionBytes", "50gb")
         )
 
     def _create_merged_config(

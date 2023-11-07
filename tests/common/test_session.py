@@ -24,8 +24,6 @@ def test_hail_configuration(hail_home: str) -> None:
         "spark.executor.extraClassPath": "./hail-all-spark.jar",
         "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
         "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
-        "spark.sql.files.openCostInBytes": "50gb",
-        "spark.sql.files.maxPartitionBytes": "50gb",
     }
 
     observed_conf = dict(session.spark.sparkContext.getConf().getAll())
