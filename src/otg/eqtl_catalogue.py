@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.request import urlopen
 
-import pyspark.sql.functions as f
 from omegaconf import MISSING
 
 from otg.common.session import Session
@@ -48,30 +47,11 @@ class EqtlStep:
         # Process summary stats.
         summary_stats_df = EqtlSummaryStats.from_source(summary_stats_df).df
 
-        # Explode study index based on the list of genes. While the original list contains one entry per tissue, what we
-        # consider as a single study is one mini-GWAS for an expression of a _particular gene_ in a particular study.
-        # At this stage we have a study index with partial study IDs like "PROJECT_QTLGROUP", and a summary statistics
-        # object with full study IDs like "PROJECT_QTLGROUP_GENEID", so we need to perform a merge and explosion to
-        # obtain our final study index.
-        partial_to_full_study_id = (
-            summary_stats_df.select(f.col("studyId"))
-            .distinct()
-            .select(
-                f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
-                f.regexp_extract(f.col("studyId"), r"(.*)_[\_]+", 1).alias(
-                    "studyId"
-                ),  # PROJECT_QTLGROUP
-            )
-            .groupBy("studyId")
-            .agg(f.collect_list("fullStudyId").alias("fullStudyIdList"))
-        )
-        study_index_df = (
-            study_index_df.join(partial_to_full_study_id, "studyId", "inner")
-            .withColumn(f.explode("fullStudyIdList").alias("fullStudyId"))
-            .drop("fullStudyIdList")
-            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r".*_([\_]+)", 1))
-            .drop("fullStudyId")
-        )
+        # Add geneId column to the study index.
+        study_index_df = EqtlStudyIndex.add_gene_id_column(
+            study_index_df,
+            summary_stats_df,
+        ).df
 
         # Write study index.
         study_index_df.write.mode(self.session.write_mode).parquet(

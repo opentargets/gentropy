@@ -97,3 +97,37 @@ class EqtlStudyIndex(StudyIndex):
             ),
             _schema=cls.get_schema(),
         )
+
+    @classmethod
+    def add_gene_id_column(
+        cls: type[EqtlStudyIndex],
+        study_index_df: DataFrame,
+        summary_stats_df: DataFrame,
+    ) -> EqtlStudyIndex:
+        """Add a geneId column to the study index and explode.
+
+        While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for
+        an expression of a _particular gene_ in a particular study.  At this stage we have a study index with partial
+        study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full study IDs like
+        "PROJECT_QTLGROUP_GENEID", so we need to perform a merge and explosion to obtain our final study index.
+        """
+        partial_to_full_study_id = (
+            summary_stats_df.select(f.col("studyId"))
+            .distinct()
+            .select(
+                f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
+                f.regexp_extract(f.col("studyId"), r"(.*)_[\_]+", 1).alias(
+                    "studyId"
+                ),  # PROJECT_QTLGROUP
+            )
+            .groupBy("studyId")
+            .agg(f.collect_list("fullStudyId").alias("fullStudyIdList"))
+        )
+        study_index_df = (
+            study_index_df.join(partial_to_full_study_id, "studyId", "inner")
+            .withColumn("fullStudyId", f.explode("fullStudyIdList"))
+            .drop("fullStudyIdList")
+            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r".*_([\_]+)", 1))
+            .drop("fullStudyId")
+        )
+        return EqtlStudyIndex(_df=study_index_df, _schema=cls.get_schema())
