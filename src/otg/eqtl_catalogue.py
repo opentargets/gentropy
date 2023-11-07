@@ -13,7 +13,7 @@ from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStat
 
 
 @dataclass
-class EqtlStep:
+class EqtlCatalogueStep:
     """eQTL Catalogue ingestion step.
 
     Attributes:
@@ -29,7 +29,7 @@ class EqtlStep:
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_summary_stats_out: str = MISSING
 
-    def __post_init__(self: EqtlStep) -> None:
+    def __post_init__(self: EqtlCatalogueStep) -> None:
         """Run step."""
         # Fetch study index.
         tsv_data = urlopen(self.eqtl_catalogue_paths_imported).read().decode("utf-8")
