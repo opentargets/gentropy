@@ -1,4 +1,4 @@
-"""Summary statistics ingestion for Eqtl."""
+"""Summary statistics ingestion for eQTL Catalogue."""
 
 from __future__ import annotations
 
