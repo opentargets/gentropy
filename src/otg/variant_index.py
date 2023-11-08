@@ -24,8 +24,7 @@ class VariantIndexStep:
         variant_index_path (str): Output variant index path.
     """
 
-    session: Session = Session()
-
+    session: Session = MISSING
     variant_annotation_path: str = MISSING
     study_locus_path: str = MISSING
     variant_index_path: str = MISSING

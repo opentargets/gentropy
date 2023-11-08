@@ -33,8 +33,7 @@ class GWASCatalogStep:
         catalog_associations_out (str): Output GWAS catalog associations path.
     """
 
-    session: Session
-
+    session: Session = MISSING
     catalog_studies_file: str = MISSING
     catalog_ancestry_file: str = MISSING
     catalog_sumstats_lut: str = MISSING

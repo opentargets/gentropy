@@ -24,15 +24,12 @@ class LDIndexStep:
         ld_index_out (str): Output LD index path.
     """
 
-    session: Session
     start_hail: bool = field(
         default=True,
     )
-
-    ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
-    ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
     min_r2: float = 0.5
 
+    session: Session = MISSING
     ld_index_out: str = MISSING
 
     def __post_init__(self: LDIndexStep) -> None:

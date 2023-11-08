@@ -22,10 +22,11 @@ class VariantAnnotationStep:
         variant_annotation_path (str): Output variant annotation path.
     """
 
-    session: Session
     start_hail: bool = field(
         default=True,
     )
+
+    session: Session = MISSING
     variant_annotation_path: str = MISSING
 
     def __post_init__(self: VariantAnnotationStep) -> None:

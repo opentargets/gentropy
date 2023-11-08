@@ -31,7 +31,6 @@ def get_spark_testing_conf() -> SparkConf:
         .set("spark.worker.ui.retainedDrivers", "1")
         # Fixed memory.
         .set("spark.driver.memory", "2g")
-        # Hail
         .set("spark.jars", f"{hail_home}/backend/hail-all-spark.jar")
         .set("spark.driver.extraClassPath", f"{hail_home}/backend/hail-all-spark.jar")
         .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
