@@ -1,6 +1,8 @@
 """Spark utilities."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import hail as hl
 from pyspark.conf import SparkConf
 
@@ -11,7 +13,8 @@ def get_spark_testing_conf() -> SparkConf:
     Returns:
         SparkConf: SparkConf with settings for testing.
     """
-    hail_home = hl.__file__.replace("/__init__.py", "")
+    hail_home = Path(hl.__file__).parent.as_posix()
+
     return (
         SparkConf()
         .set("spark.driver.bindAddress", "127.0.0.1")

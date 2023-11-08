@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import hail as hl
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -71,37 +69,39 @@ def test_resolve_variant_indices(
     )
 
 
-@dataclass
 class TestGnomADLDMatrix:
     """Test GnomAD LD methods."""
 
-    gnomad_ld_matrix = GnomADLDMatrix
+    gnomad_ld_matrix: GnomADLDMatrix
+    ld_population: str = "test-pop"
+    slice_start_index: int = 1
+    slice_end_index: int = 2
 
-    @pytest.fixture(scope="class")
-    def _setup(self, spark: SparkSession) -> None:
-        """Initialize GnomADLDMatrix object."""
+    @pytest.fixture(autouse=True, scope="class")
+    def _setup(self: TestGnomADLDMatrix, spark: SparkSession) -> None:
+        """Initialize hail for the tests below."""
         hl.init(sc=spark.sparkContext, log="/dev/null")
-
         self.gnomad_ld_matrix = GnomADLDMatrix(
             ld_matrix_template="tests/data_samples/example_{POP}.bm"
         )
 
-    def test_ld_matrix_slice(self) -> None:
+    @pytest.fixture(scope="class")
+    def matrix_slice(self) -> DataFrame:
+        """Return a slice from the LD matrix.
+
+        Returns:
+            DataFrame: Melted LD matrix
+        """
+        return self.gnomad_ld_matrix.get_ld_matrix_slice(
+            gnomad_ancestry=self.ld_population,
+            start_index=self.slice_start_index,
+            end_index=self.slice_end_index,
+        ).persist()
+
+    def test_get_ld_matrix_slice__diagonal(
+        self: TestGnomADLDMatrix, matrix_slice: DataFrame
+    ) -> None:
         """Test LD matrix slice."""
-        matrix_slice = (
-            self.gnomad_ld_matrix
-            # Extract a 2 by 2 squary matrix:
-            .get_ld_matrix_slice(
-                gnomad_ancestry="test-pop", start_index=1, end_index=2
-            ).persist()
-        )
-
-        # Is the returned data is a dataframe?
-        assert isinstance(matrix_slice, DataFrame)
-
-        # Is the returned data has the right number of rows?
-        assert matrix_slice.count() == 4
-
         # Has the returned data ones in the diagonal?
         assert (
             matrix_slice.filter(f.col("idx_i") == f.col("idx_j"))
@@ -111,6 +111,28 @@ class TestGnomADLDMatrix:
             == 1.0
         )
 
+    def test_get_ld_matrix_slice__count(
+        self: TestGnomADLDMatrix, matrix_slice: DataFrame
+    ) -> None:
+        """Test LD matrix slice."""
+        # As the slicing of the matrix is inclusive, the total number of rows are calculated as follows:
+        included_indices = self.slice_end_index - self.slice_start_index + 1
+        expected_pariwise_count = included_indices**2
+
+        # Is the returned data has the right number of rows?
+        assert matrix_slice.count() == expected_pariwise_count
+
+    def test_get_ld_matrix_slice__type(
+        self: TestGnomADLDMatrix, matrix_slice: DataFrame
+    ) -> None:
+        """Test LD matrix slice."""
+        # Is the returned data is a dataframe?
+        assert isinstance(matrix_slice, DataFrame)
+
+    def test_get_ld_matrix_slice__symmetry(
+        self: TestGnomADLDMatrix, matrix_slice: DataFrame
+    ) -> None:
+        """Test LD matrix slice."""
         # Testing square matrix completeness and symmetry:
         compared = matrix_slice.join(
             (
