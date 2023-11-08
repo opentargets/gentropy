@@ -33,8 +33,7 @@
 <span class=normal>44</span>
 <span class=normal>45</span>
 <span class=normal>46</span>
-<span class=normal>47</span>
-<span class=normal>48</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>47</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>GWASCatalogSumstatsPreprocessStep</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Step to preprocess GWAS Catalog harmonised summary stats.</span>
 
@@ -45,8 +44,7 @@
 <span class=sd>        study_id (str): GWAS Catalog study identifier.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
 
-    <span class=n>session</span><span class=p>:</span> <span class=n>Session</span> <span class=o>=</span> <span class=n>Session</span><span class=p>()</span>
-
+    <span class=n>session</span><span class=p>:</span> <span class=n>Session</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>raw_sumstats_path</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>out_sumstats_path</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>study_id</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>

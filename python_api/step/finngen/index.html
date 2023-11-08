@@ -51,8 +51,7 @@
 <span class=normal>65</span>
 <span class=normal>66</span>
 <span class=normal>67</span>
-<span class=normal>68</span>
-<span class=normal>69</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>68</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>FinnGenStep</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;FinnGen ingestion step.</span>
 
@@ -66,8 +65,7 @@
 <span class=sd>        finngen_summary_stats_out (str): Output path for the FinnGen summary statistics.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
 
-    <span class=n>session</span><span class=p>:</span> <span class=n>Session</span> <span class=o>=</span> <span class=n>Session</span><span class=p>()</span>
-
+    <span class=n>session</span><span class=p>:</span> <span class=n>Session</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>finngen_phenotype_table_url</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>finngen_release_prefix</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>finngen_sumstat_url_prefix</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>

@@ -25,8 +25,7 @@
 <span class=normal>37</span>
 <span class=normal>38</span>
 <span class=normal>39</span>
-<span class=normal>40</span>
-<span class=normal>41</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>40</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>UKBiobankStep</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;UKBiobank study table ingestion step.</span>
 
@@ -36,8 +35,7 @@
 <span class=sd>        ukbiobank_study_index_out (str): Output path for the UKBiobank study index dataset.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
 
-    <span class=n>session</span><span class=p>:</span> <span class=n>Session</span> <span class=o>=</span> <span class=n>Session</span><span class=p>()</span>
-
+    <span class=n>session</span><span class=p>:</span> <span class=n>Session</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>ukbiobank_manifest</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>
     <span class=n>ukbiobank_study_index_out</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>MISSING</span>
 
