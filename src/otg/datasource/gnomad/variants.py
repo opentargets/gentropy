@@ -1,6 +1,8 @@
 """Import gnomAD variants dataset."""
 from __future__ import annotations
 
+import importlib.resources as pkg_resources
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import hail as hl
@@ -11,8 +13,34 @@ if TYPE_CHECKING:
     from hail.expr.expressions import Int32Expression, StringExpression
 
 
+@dataclass
 class GnomADVariants:
-    """GnomAD variants included in the GnomAD genomes dataset."""
+    """GnomAD variants included in the GnomAD genomes dataset.
+
+    Attributes:
+        gnomad_genomes (str): Path to gnomAD genomes hail table. Defaults to gnomAD's 3.1.2 release.
+        chain_hail_38_37 (str): Path to GRCh38 to GRCh37 chain file. Defaults to Hail's chain file.
+        populations (list[str]): List of populations to include. Defaults to all populations.
+    """
+
+    gnomad_genomes: str = "gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht"
+    chain_hail_38_37: str = str(
+        pkg_resources.path("otg.assets.data", "grch38_to_grch37.over.chain.gz")
+    )
+    populations: list[str] = field(
+        default_factory=lambda: [
+            "afr",  # African-American
+            "amr",  # American Admixed/Latino
+            "ami",  # Amish ancestry
+            "asj",  # Ashkenazi Jewish
+            "eas",  # East Asian
+            "fin",  # Finnish
+            "nfe",  # Non-Finnish European
+            "mid",  # Middle Eastern
+            "sas",  # South Asian
+            "oth",  # Other
+        ]
+    )
 
     @staticmethod
     def _convert_gnomad_position_to_ensembl_hail(
@@ -37,13 +65,7 @@ class GnomADVariants:
             (reference.length() > 1) | (alternate.length() > 1), position + 1, position
         )
 
-    @classmethod
-    def as_variant_annotation(
-        cls: type[GnomADVariants],
-        gnomad_file: str,
-        grch38_to_grch37_chain: str,
-        populations: list,
-    ) -> VariantAnnotation:
+    def as_variant_annotation(self: GnomADVariants) -> VariantAnnotation:
         """Generate variant annotation dataset from gnomAD.
 
         Some relevant modifications to the original dataset are:
@@ -52,24 +74,19 @@ class GnomADVariants:
         2. Genome coordinates are liftovered from GRCh38 to GRCh37 to keep as annotation.
         3. Field names are converted to camel case to follow the convention.
 
-        Args:
-            gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset
-            grch38_to_grch37_chain (str): Path to chain file for liftover
-            populations (list): List of populations to include in the dataset
-
         Returns:
             VariantAnnotation: Variant annotation dataset
         """
         # Load variants dataset
         ht = hl.read_table(
-            gnomad_file,
+            self.gnomad_genomes,
             _load_refs=False,
         )
 
         # Liftover
         grch37 = hl.get_reference("GRCh37")
         grch38 = hl.get_reference("GRCh38")
-        grch38.add_liftover(grch38_to_grch37_chain, grch37)
+        grch38.add_liftover(self.chain_hail_38_37, grch37)
 
         # Drop non biallelic variants
         ht = ht.filter(ht.alleles.length() == 2)
@@ -113,7 +130,9 @@ class GnomADVariants:
                         phred=ht.cadd.phred,
                         raw=ht.cadd.raw_score,
                     ),
-                    alleleFrequencies=hl.set([f"{pop}-adj" for pop in populations]).map(
+                    alleleFrequencies=hl.set(
+                        [f"{pop}-adj" for pop in self.populations]
+                    ).map(
                         lambda p: hl.struct(
                             populationName=p,
                             alleleFrequency=ht.freq[ht.globals.freq_index_dict[p]].AF,
