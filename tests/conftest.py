@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dbldatagen as dg
 import pytest
+from pyspark.conf import SparkConf
 from pyspark.sql import DataFrame, SparkSession
 
 from otg.common.Liftover import LiftOverSpark
@@ -25,7 +26,32 @@ from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
-from src.utils.spark import get_spark_testing_conf
+
+
+def get_spark_testing_conf() -> SparkConf:
+    """Get SparkConf for testing purposes.
+
+    Returns:
+        SparkConf: SparkConf with settings for testing.
+    """
+    return (
+        SparkConf()
+        .set("spark.driver.bindAddress", "127.0.0.1")
+        # No shuffling.
+        .set("spark.sql.shuffle.partitions", "1")
+        # UI settings.
+        .set("spark.ui.showConsoleProgress", "false")
+        .set("spark.ui.enabled", "false")
+        .set("spark.ui.dagGraph.retainedRootRDDs", "1")
+        .set("spark.ui.retainedJobs", "1")
+        .set("spark.ui.retainedStages", "1")
+        .set("spark.ui.retainedTasks", "1")
+        .set("spark.sql.ui.retainedExecutions", "1")
+        .set("spark.worker.ui.retainedExecutors", "1")
+        .set("spark.worker.ui.retainedDrivers", "1")
+        # Fixed memory.
+        .set("spark.driver.memory", "2g")
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -149,7 +175,7 @@ def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
 def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
     """Mock FinnGenSummaryStats dataset."""
     return FinnGenSummaryStats(
-        _df=mock_summary_statistics(spark),
+        _df=mock_summary_statistics_data(spark),
         _schema=SummaryStatistics.get_schema(),
     )
 
@@ -358,8 +384,15 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
 
 
 @pytest.fixture()
-def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
-    """Generating a mock summary statistics dataset."""
+def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
+    """Generating mock summary statistics data.
+
+    Args:
+        spark (SparkSession): Spark session
+
+    Returns:
+        DataFrame: Mock summary statistics data
+    """
     ss_schema = SummaryStatistics.get_schema()
 
     data_spec = (
@@ -387,7 +420,17 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
         "betaConfidenceIntervalLower", "betaConfidenceIntervalUpper"
     )
 
-    return SummaryStatistics(_df=data_spec, _schema=ss_schema)
+    return data_spec
+
+
+@pytest.fixture()
+def mock_summary_statistics(
+    mock_summary_statistics_data: DataFrame,
+) -> SummaryStatistics:
+    """Generating a mock summary statistics dataset."""
+    return SummaryStatistics(
+        _df=mock_summary_statistics_data, _schema=SummaryStatistics.get_schema()
+    )
 
 
 @pytest.fixture()
@@ -539,7 +582,7 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 
 
 @pytest.fixture()
-def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
+def liftover_chain_37_to_38(spark: SparkSession) -> LiftOverSpark:
     """Sample liftover chain file."""
     return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")
 

@@ -42,7 +42,7 @@ class GnomADVariants:
         cls: type[GnomADVariants],
         gnomad_file: str,
         grch38_to_grch37_chain: str,
-        populations: list,
+        populations: list[str],
     ) -> VariantAnnotation:
         """Generate variant annotation dataset from gnomAD.
 
@@ -55,7 +55,7 @@ class GnomADVariants:
         Args:
             gnomad_file (str): Path to `gnomad.genomes.vX.X.X.sites.ht` gnomAD dataset
             grch38_to_grch37_chain (str): Path to chain file for liftover
-            populations (list): List of populations to include in the dataset
+            populations (list[str]): List of populations to include in the dataset
 
         Returns:
             VariantAnnotation: Variant annotation dataset

@@ -41,8 +41,8 @@ repos:
     rev: 5.12.0
     hooks:
       - id: isort
-        args: [--add-import, from __future__ import annotations, --profile, black]
-
+        args:
+          [--add-import, from __future__ import annotations, --profile, black]
 
   - repo: https://github.com/psf/black
     rev: 23.10.1
@@ -53,13 +53,34 @@ repos:
     rev: v9.5.0
     hooks:
       - id: commitlint
-        additional_dependencies: ['@commitlint/config-conventional']
+        additional_dependencies: ["@commitlint/config-conventional"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.6.1'
+    rev: "v1.6.1"
     hooks:
       - id: mypy
+        # Additional dependencies are required for the mypy plugin to follow up types.
+        # Pre-commit needs to know what other packages to install before running the hook.
+        # TOML is not enough as it only specifies the packages to install, not the packages
+        additional_dependencies:
+          [
+            "pytest",
+            "pyspark",
+            "scipy",
+            "hydra-core",
+            "pyliftover",
+            "xgboost",
+            "hail",
+            "scikit-learn",
+            "pyarrow",
+            "wandb",
+            "mkdocs",
+            "apache-airflow",
+            "apache-airflow-providers-google",
+            "ipython",
+            "py",
+          ]
 
   - repo: https://github.com/econchick/interrogate
     rev: 1.5.0
@@ -82,4 +103,3 @@ repos:
     rev: 0.3.8
     hooks:
       - id: pydoclint
-        args: [--style=google, --check-return-types=True, --allow-init-docstring=True, --config=pyproject.toml src]

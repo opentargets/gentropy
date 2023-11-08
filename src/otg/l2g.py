@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from omegaconf import MISSING
 from xgboost.spark import SparkXGBClassifier
@@ -36,7 +37,7 @@ class LocusToGeneStep:
         variant_gene_path (str): Path to variant to gene Parquet files.
         colocalisation_path (str): Path to colocalisation Parquet files.
         study_index_path (str): Path to study index Parquet files.
-        study_locus_overlap_path (str | None): Path to study locus overlap Parquet files.
+        study_locus_overlap_path (str): Path to study locus overlap Parquet files.
         gold_standard_curation_path (str | None): Path to gold standard curation JSON files.
         gene_interactions_path (str | None): Path to gene interactions Parquet files.
         features_list (list[str]): List of features to use.
@@ -49,15 +50,15 @@ class LocusToGeneStep:
     run_mode: str = MISSING
     wandb_run_name: str | None = None
     perform_cross_validation: bool = False
-    model_path: str | None = None
-    predictions_path: str | None = None
+    model_path: str = MISSING
+    predictions_path: str = MISSING
     study_locus_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
-    study_locus_overlap_path: str | None = None
-    gold_standard_curation_path: str | None = None
-    gene_interactions_path: str | None = None
+    study_locus_overlap_path: str = MISSING
+    gold_standard_curation_path: str = MISSING
+    gene_interactions_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
             # average distance of all tagging variants to gene TSS
@@ -90,7 +91,7 @@ class LocusToGeneStep:
             # "sqtlColocLlrNeighborhoodMaximum",
         ]
     )
-    hyperparameters: dict = field(
+    hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "max_depth": 5,
             "loss_function": "binary:logistic",

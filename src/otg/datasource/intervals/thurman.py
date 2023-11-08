@@ -49,7 +49,7 @@ class IntervalsThurman(Intervals):
         thurman_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> Intervals:
+    ) -> IntervalsThurman:
         """Parse the Thurman et al. 2012 dataset.
 
         Args:
@@ -58,7 +58,7 @@ class IntervalsThurman(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            Intervals: Interval dataset containing Thurman et al. 2012 data
+            IntervalsThurman: Interval dataset containing Thurman et al. 2012 data
         """
         dataset_name = "thurman2012"
         experiment_type = "dhscor"

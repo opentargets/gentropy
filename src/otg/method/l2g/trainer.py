@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.tuning import CrossValidator
@@ -28,7 +28,7 @@ class LocusToGeneTrainer:
         evaluate: bool,
         wandb_run_name: str | None = None,
         model_path: str | None = None,
-        **hyperparams: dict,
+        **hyperparams: dict[str, Any],
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
@@ -39,7 +39,7 @@ class LocusToGeneTrainer:
             evaluate (bool): Whether to evaluate the model on a test set
             wandb_run_name (str | None): Descriptive name for the run to be tracked with W&B
             model_path (str | None): Path to save the model to
-            **hyperparams (dict): Hyperparameters to use for the model
+            **hyperparams (dict[str, Any]): Hyperparameters to use for the model
 
         Returns:
             LocusToGeneModel: Trained model
@@ -64,7 +64,7 @@ class LocusToGeneTrainer:
         l2g_model: LocusToGeneModel,
         data: L2GFeatureMatrix,
         num_folds: int,
-        param_grid: Optional[list] = None,
+        param_grid: Optional[list] = None,  # type: ignore
     ) -> LocusToGeneModel:
         """Perform k-fold cross validation on the model.
 
@@ -100,13 +100,12 @@ class LocusToGeneTrainer:
             seed=42,
         )
 
-        l2g_model.add_pipeline_stage(cv)
+        l2g_model.add_pipeline_stage(cv)  # type: ignore
 
         # Integrate the best model from the last stage of the pipeline
         if (full_pipeline_model := l2g_model.fit(data).model) is None or not hasattr(
             full_pipeline_model, "stages"
         ):
             raise ValueError("Unable to retrieve the best model.")
-        l2g_model.model = full_pipeline_model.stages[-1].bestModel
-
+        l2g_model.model = full_pipeline_model.stages[-1].bestModel  # type: ignore
         return l2g_model

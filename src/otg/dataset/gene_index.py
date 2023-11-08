@@ -30,11 +30,11 @@ class GeneIndex(Dataset):
         """
         return parse_spark_schema("gene_index.json")
 
-    def filter_by_biotypes(self: GeneIndex, biotypes: list) -> GeneIndex:
+    def filter_by_biotypes(self: GeneIndex, biotypes: list[str]) -> GeneIndex:
         """Filter by approved biotypes.
 
         Args:
-            biotypes (list): List of Ensembl biotypes to keep.
+            biotypes (list[str]): List of Ensembl biotypes to keep.
 
         Returns:
             GeneIndex: Gene index dataset filtered by biotypes.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from pyspark.sql import SparkSession
 
@@ -42,7 +44,7 @@ from otg.datasource.gnomad.ld import GnomADLDMatrix
     ],
 )
 def test_resolve_variant_indices(
-    spark: SparkSession, observed: list, expected: list
+    spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test _resolve_variant_indices."""
     ld_matrix = spark.createDataFrame(

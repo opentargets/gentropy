@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -94,7 +94,9 @@ class PICS:
         return neglog_p * r2 if r2 >= 0.5 else None
 
     @staticmethod
-    def _finemap(ld_set: list[Row], lead_neglog_p: float, k: float) -> list | None:
+    def _finemap(
+        ld_set: list[Row], lead_neglog_p: float, k: float
+    ) -> list[dict[str, Any]] | None:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
         It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
@@ -107,7 +109,7 @@ class PICS:
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
-            list | None: List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
+            list[dict[str, Any]] | None: List of tagging variants with an estimation of the association signal and their posterior probability as of PICS.
 
         Examples:
             >>> from pyspark.sql import Row

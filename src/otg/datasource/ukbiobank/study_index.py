@@ -49,7 +49,7 @@ class UKBiobankStudyIndex(StudyIndex):
         Returns:
             UKBiobankStudyIndex: Annotated UKBiobank study table.
         """
-        return StudyIndex(
+        return UKBiobankStudyIndex(
             _df=(
                 ukbiobank_studies.select(
                     f.col("code").alias("studyId"),
@@ -106,5 +106,5 @@ class UKBiobankStudyIndex(StudyIndex):
                     cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
                 )
             ),
-            _schema=StudyIndex.get_schema(),
+            _schema=UKBiobankStudyIndex.get_schema(),
         )

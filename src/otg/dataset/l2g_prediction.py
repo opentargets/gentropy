@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
+import pyspark.sql.functions as f
 from pyspark.ml.functions import vector_to_array
 
 from otg.common.schemas import parse_spark_schema
@@ -61,7 +62,7 @@ class L2GPrediction(Dataset):
         """
         fm = L2GFeatureMatrix.generate_features(
             study_locus=study_locus,
-            study_index=StudyIndex,
+            study_index=study_index,
             variant_gene=v2g,
             # colocalisation=coloc,
         ).fill_na()
@@ -77,7 +78,7 @@ class L2GPrediction(Dataset):
                 .select(
                     "studyLocusId",
                     "geneId",
-                    vector_to_array("probability")[1].alias("score"),
+                    vector_to_array(f.col("probability"))[1].alias("score"),
                 )
             ),
             _schema=cls.get_schema(),

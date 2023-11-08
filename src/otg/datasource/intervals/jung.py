@@ -37,7 +37,7 @@ class IntervalsJung(Intervals):
         jung_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> Intervals:
+    ) -> IntervalsJung:
         """Parse the Jung et al. 2019 dataset.
 
         Args:
@@ -46,7 +46,7 @@ class IntervalsJung(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            Intervals: Interval dataset containing Jung et al. 2019 data
+            IntervalsJung: Interval dataset containing Jung et al. 2019 data
         """
         dataset_name = "jung2019"
         experiment_type = "pchic"
@@ -99,5 +99,5 @@ class IntervalsJung(Intervals):
                 )
                 .drop_duplicates()
             ),
-            _schema=Intervals.get_schema(),
+            _schema=cls.get_schema(),
         )

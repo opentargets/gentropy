@@ -61,7 +61,7 @@ def calculate_confidence_interval(
     pvalue_exponent: Column,
     beta: Column,
     standard_error: Column,
-) -> tuple:
+) -> tuple[Column, Column]:
     """Calculate the confidence interval for the effect based on the p-value and the effect size.
 
     If the standard error already available, don't re-calculate from p-value.
@@ -73,7 +73,7 @@ def calculate_confidence_interval(
         standard_error (Column): standard error.
 
     Returns:
-        tuple: betaConfidenceIntervalLower (float), betaConfidenceIntervalUpper (float)
+        tuple[Column, Column]: betaConfidenceIntervalLower (float), betaConfidenceIntervalUpper (float)
 
     Examples:
         >>> df = spark.createDataFrame([
@@ -318,5 +318,5 @@ def parse_efos(efo_uri: Column) -> Column:
         <BLANKLINE>
 
     """
-    colname = efo_uri._jc.toString()  # type: ignore
+    colname = efo_uri._jc.toString()
     return f.array_sort(f.expr(f"regexp_extract_all(`{colname}`, '([A-Z]+_[0-9]+)')"))

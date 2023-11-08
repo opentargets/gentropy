@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 
 from otg.common.spark_helpers import (
-    _convert_from_wide_to_long,
+    convert_from_wide_to_long,
     get_record_with_maximum_value,
 )
 from otg.dataset.l2g_feature import L2GFeature
@@ -120,11 +120,7 @@ class ColocalisationFactory:
         # Split feature per molQTL
         local_dfs = []
         nbh_dfs = []
-        study_types = (
-            colocalising_study_locus.select("right_studyType").distinct().collect()
-        )
-
-        for qtl_type in study_types:
+        for qtl_type in ["eqtl", "sqtl", "pqtl"]:
             local_max = local_max.filter(
                 f.col("right_studyType") == qtl_type
             ).withColumnRenamed(
@@ -147,7 +143,7 @@ class ColocalisationFactory:
         )
 
         return L2GFeature(
-            _df=_convert_from_wide_to_long(
+            _df=convert_from_wide_to_long(
                 wide_dfs,
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
@@ -228,7 +224,7 @@ class StudyLocusFactory(StudyLocus):
         )
 
         return L2GFeature(
-            _df=_convert_from_wide_to_long(
+            _df=convert_from_wide_to_long(
                 wide_df,
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",

@@ -51,7 +51,7 @@ class IntervalsAndersson(Intervals):
         raw_anderson_df: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> Intervals:
+    ) -> IntervalsAndersson:
         """Parse Andersson et al. 2014 dataset.
 
         Args:
@@ -60,7 +60,7 @@ class IntervalsAndersson(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            Intervals: Intervals dataset
+            IntervalsAndersson: Intervals dataset
         """
         # Constant values:
         dataset_name = "andersson2014"
@@ -136,5 +136,5 @@ class IntervalsAndersson(Intervals):
                     f.lit(bio_feature).alias("biofeature"),
                 )
             ),
-            _schema=Intervals.get_schema(),
+            _schema=cls.get_schema(),
         )
