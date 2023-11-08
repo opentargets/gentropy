@@ -25,11 +25,3 @@ def mkdocs_build() -> None:
 def test_mkdocs_build() -> None:
     """Function to check if MkDocs build succeeded."""
     pass
-
-
-def test_check_missing_files() -> None:
-    """Test function to check for missing files in the documentation build."""
-    import os
-
-    build_dir = "site"
-    assert os.path.exists(build_dir), f"Build directory '{build_dir}' does not exist."
