@@ -333,7 +333,6 @@ class GnomADLDMatrix:
             DataFrame: square slice of the LD matrix melted as dataframe with idx_i, idx_j and r columns
         """
         # Extracting block matrix slice:
-        print(self.ld_matrix_template.format(POP=gnomad_ancestry))
         half_matrix = BlockMatrix.read(
             self.ld_matrix_template.format(POP=gnomad_ancestry)
         ).filter(range(start_index, end_index + 1), range(start_index, end_index + 1))
