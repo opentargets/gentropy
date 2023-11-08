@@ -41,8 +41,7 @@ class V2GStep:
         v2g_path (str): Output V2G path.
     """
 
-    session: Session = Session()
-
+    session: Session = MISSING
     variant_index_path: str = MISSING
     variant_annotation_path: str = MISSING
     gene_index_path: str = MISSING

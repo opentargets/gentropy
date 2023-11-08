@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class GnomADLDMatrix:
     """Toolset ot interact with GnomAD LD dataset (version: r2.1.1).
 
-    Datasets are accessed in Hail's native format, as provided by the [GnomAD consotiums](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium).
+    Datasets are accessed in Hail's native format, as provided by the [GnomAD consortium](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium).
 
     Attributes:
         ld_matrix_template (str): Template for the LD matrix path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm".
@@ -266,7 +266,6 @@ class GnomADLDMatrix:
             f.col("variantId_i") != f.col("variantId_j")
         ).unionByName(ld_matrix_transposed)
 
-    # @classmethod
     def as_ld_index(
         self: GnomADLDMatrix,
         min_r2: float,
@@ -312,4 +311,42 @@ class GnomADLDMatrix:
         return LDIndex(
             _df=self._aggregate_ld_index_across_populations(ld_index_unaggregated),
             _schema=LDIndex.get_schema(),
+        )
+
+    def get_ld_matrix_slice(
+        self: GnomADLDMatrix,
+        gnomad_ancestry: str,
+        start_index: int,
+        end_index: int,
+    ) -> DataFrame:
+        """Extract a slice of the LD matrix based on the provided ancestry and stop and end indices.
+
+        - The half matrix is completed into a full square.
+        - The returned indices are adjusted based on the start index.
+
+        Args:
+            gnomad_ancestry (str): LD population label eg. `nfe`
+            start_index (int): start index of the slice
+            end_index (int): end index of the slice
+
+        Returns:
+            DataFrame: square slice of the LD matrix melted as dataframe with idx_i, idx_j and r columns
+        """
+        # Extracting block matrix slice:
+        half_matrix = BlockMatrix.read(
+            self.ld_matrix_template.format(POP=gnomad_ancestry)
+        ).filter(range(start_index, end_index + 1), range(start_index, end_index + 1))
+
+        # Return converted Dataframe:
+        return (
+            (half_matrix + half_matrix.T)
+            .entries()
+            .to_spark()
+            .select(
+                (f.col("i") + start_index).alias("idx_i"),
+                (f.col("j") + start_index).alias("idx_j"),
+                f.when(f.col("i") == f.col("j"), f.col("entry") / 2)
+                .otherwise(f.col("entry"))
+                .alias("r"),
+            )
         )
