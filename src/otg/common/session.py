@@ -146,10 +146,10 @@ class Log4j:
 
     def __init__(self, spark: SparkSession) -> None:  # noqa: D107
         # get spark app details with which to prefix all messages
-        log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore
+        log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
         self.logger = log4j.Logger.getLogger(__name__)
 
-        log4j_logger = spark.sparkContext._jvm.org.apache.log4j  # type: ignore
+        log4j_logger = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
         self.logger = log4j_logger.LogManager.getLogger(__name__)
 
     def error(self: Log4j, message: str) -> None:

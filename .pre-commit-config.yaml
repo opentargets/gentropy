@@ -60,26 +60,19 @@ repos:
     rev: "v1.6.1"
     hooks:
       - id: mypy
-        # Additional dependencies are required for the mypy plugin to follow up types.
-        # Pre-commit needs to know what other packages to install before running the hook.
-        # TOML is not enough as it only specifies the packages to install, not the packages
-        additional_dependencies:
-          [
-            "pytest",
-            "pyspark",
-            "scipy",
-            "hydra-core",
-            "pyliftover",
-            "xgboost",
-            "hail",
-            "scikit-learn",
-            "pyarrow",
-            "wandb",
-            "mkdocs",
-            "apache-airflow",
-            "apache-airflow-providers-google",
-            "ipython",
-            "py",
+        args: [
+            # --ignore-missing-imports is required to run mypy on virtual
+            # environments without installed dependencies
+            "--ignore-missing-imports",
+            "--check-untyped-defs",
+            "--disallow-any-generics",
+            "--disallow-incomplete-defs",
+            "--no-implicit-optional",
+            "--no-implicit-reexport",
+            "--strict-equality",
+            "--warn-redundant-casts",
+            "--warn-unused-ignores",
+            "--disallow-untyped-defs",
           ]
 
   - repo: https://github.com/econchick/interrogate

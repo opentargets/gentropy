@@ -100,12 +100,12 @@ class LocusToGeneTrainer:
             seed=42,
         )
 
-        l2g_model.add_pipeline_stage(cv)  # type: ignore
+        l2g_model.add_pipeline_stage(cv)  # type: ignore[assignment, unused-ignore]
 
         # Integrate the best model from the last stage of the pipeline
         if (full_pipeline_model := l2g_model.fit(data).model) is None or not hasattr(
             full_pipeline_model, "stages"
         ):
             raise ValueError("Unable to retrieve the best model.")
-        l2g_model.model = full_pipeline_model.stages[-1].bestModel  # type: ignore
+        l2g_model.model = full_pipeline_model.stages[-1].bestModel  # type: ignore[assignment, unused-ignore]
         return l2g_model

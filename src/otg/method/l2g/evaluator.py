@@ -161,7 +161,7 @@ class WandbEvaluator(Evaluator):
         metric_values: list[tuple[str, Any]] = []
         label_values = self.getlabel_values()
         spark_ml_evaluator: BinaryClassificationEvaluator | MulticlassClassificationEvaluator = (
-            self.getspark_ml_evaluator()  # type: ignore
+            self.getspark_ml_evaluator()  # type: ignore[assignment, unused-ignore]
         )
         run = self.getwandb_run()
         evaluator_type = type(spark_ml_evaluator)
@@ -184,7 +184,7 @@ class WandbEvaluator(Evaluator):
                 out = spark_ml_evaluator.evaluate(
                     dataset,
                     {
-                        spark_ml_evaluator.metricLabel: label,  # type: ignore
+                        spark_ml_evaluator.metricLabel: label,  # type: ignore[assignment, unused-ignore]
                         spark_ml_evaluator.metricName: metric,
                     },
                 )
