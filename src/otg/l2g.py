@@ -43,9 +43,9 @@ class LocusToGeneStep:
         hyperparameters (dict): Hyperparameters for the model.
     """
 
-    session: Session = Session()
     extended_spark_conf: dict[str, str] | None = None
 
+    session: Session = MISSING
     run_mode: str = MISSING
     wandb_run_name: str | None = None
     perform_cross_validation: bool = False

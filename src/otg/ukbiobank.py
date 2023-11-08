@@ -20,8 +20,7 @@ class UKBiobankStep:
         ukbiobank_study_index_out (str): Output path for the UKBiobank study index dataset.
     """
 
-    session: Session = Session()
-
+    session: Session = MISSING
     ukbiobank_manifest: str = MISSING
     ukbiobank_study_index_out: str = MISSING
 

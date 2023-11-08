@@ -1,0 +1,21 @@
+{
+  "blockSize": 2,
+  "nRows": 5,
+  "nCols": 5,
+  "maybeFiltered": [
+    0,
+    3,
+    4,
+    6,
+    7,
+    8
+  ],
+  "partFiles": [
+    "part-0-17-0-0-e3ab091a-11ed-50ee-431d-8f2be29e7fb0",
+    "part-1-17-1-0-50da5bf3-93d4-fb68-d8ad-4450d10b2c28",
+    "part-2-17-2-0-94bda190-9389-91ab-30ad-9b3c9a3baf39",
+    "part-3-17-3-0-819f71a1-a22c-8937-48e2-dc686b8ec9c5",
+    "part-4-17-4-0-b9ac71e5-8432-3dac-e262-4eb17772eb45",
+    "part-5-17-5-0-8d7756c7-f87c-eff0-3262-a16def109b7a"
+  ]
+}
