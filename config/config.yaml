@@ -1,4 +1,4 @@
 defaults:
   - datasets: gcp
-  - session: dataproc
   - step: ???
+  - step/session: dataproc

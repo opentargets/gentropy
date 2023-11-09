@@ -1,5 +1,5 @@
+defaults:
+  - override session/start_hail: true
+
 _target_: otg.ld_index.LDIndexStep
 ld_index_out: ${datasets.ld_index}
-
-session:
-  start_hail: true

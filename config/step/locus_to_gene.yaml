@@ -1,3 +1,6 @@
+defaults:
+  - override session/extended_spark_conf/spark.dynamicAllocation.enabled: false
+
 _target_: otg.l2g.LocusToGeneStep
 run_mode: train
 wandb_run_name: null
@@ -14,7 +17,3 @@ gene_interactions_path: ${datasets.gene_interactions}
 hyperparameters:
   max_depth: 5
   loss_function: binary:logistic
-
-session:
-  extended_spark_conf:
-    spark.dynamicAllocation.enabled: false
