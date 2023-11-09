@@ -3,8 +3,6 @@ _target_: otg.gwas_catalog.GWASCatalogStep
 defaults:
     - session: dataproc
 
-session:
-  start_hail: false
 catalog_studies_file: ${datasets.catalog_studies}
 catalog_ancestry_file: ${datasets.catalog_ancestries}
 catalog_associations_file: ${datasets.catalog_associations}

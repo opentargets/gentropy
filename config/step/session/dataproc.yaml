@@ -2,4 +2,3 @@ defaults:
     - session_config
 spark_uri: yarn
 hail_home: /opt/conda/miniconda3/lib/python3.10/site-packages/hail
-start_hail: ${step.session.start_hail}

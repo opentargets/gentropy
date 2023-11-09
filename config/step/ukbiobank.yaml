@@ -3,7 +3,5 @@ _target_: otg.ukbiobank.UKBiobankStep
 defaults:
     - session: dataproc
 
-session:
-  start_hail: false
 ukbiobank_manifest: ${datasets.ukbiobank_manifest}
 ukbiobank_study_index_out: ${datasets.ukbiobank_study_index}

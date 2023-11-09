@@ -6,7 +6,6 @@ defaults:
 session:
   extended_spark_conf:
     spark.dynamicAllocation.enabled: false
-  start_hail: false
 run_mode: train
 wandb_run_name: null
 perform_cross_validation: false
