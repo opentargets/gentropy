@@ -1,5 +1,5 @@
 _target_: otg.ld_index.LDIndexStep
 ld_index_out: ${datasets.ld_index}
 
-session_config:
+session:
   start_hail: true

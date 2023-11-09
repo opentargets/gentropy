@@ -3,22 +3,18 @@ from __future__ import annotations
 
 import hydra
 from hydra.utils import instantiate
-from omegaconf import OmegaConf
-
-from otg.config import Config, register_configs
-
-register_configs()
+from omegaconf import DictConfig, OmegaConf
 
 
-@hydra.main(version_base="1.1", config_path=None, config_name="config")
-def main(cfg: Config) -> None:
+@hydra.main(version_base="1.3", config_path=None, config_name="config")
+def main(cfg: DictConfig) -> None:
     """OTG ETL CLI.
 
     Args:
-        cfg (Config): hydra configuration object
+        cfg (DictConfig): hydra configuration object
     """
     print(OmegaConf.to_yaml(cfg))
-    # Initialise and run step
+    # Initialise and run step.
     instantiate(cfg.step)
 
 

@@ -1,4 +1,4 @@
-defaults:
-  - session_config
+_target_: otg.common.session.Session
 spark_uri: local[*]
 hail_home: .venv/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar
+start_hail: false

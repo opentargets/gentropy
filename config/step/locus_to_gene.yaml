@@ -15,6 +15,6 @@ hyperparameters:
   max_depth: 5
   loss_function: binary:logistic
 
-session_config:
+session:
   extended_spark_conf:
     spark.dynamicAllocation.enabled: false
