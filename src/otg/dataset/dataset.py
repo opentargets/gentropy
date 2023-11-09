@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from typing_extensions import Self
 
 from otg.common.schemas import flatten_schema
 
@@ -58,7 +60,7 @@ class Dataset(ABC):
 
     @classmethod
     @abstractmethod
-    def get_schema(cls: type[Dataset]) -> StructType:
+    def get_schema(cls: type[Self]) -> StructType:
         """Abstract method to get the schema. Must be implemented by child classes.
 
         Returns:
@@ -68,23 +70,26 @@ class Dataset(ABC):
 
     @classmethod
     def from_parquet(
-        cls: type[Dataset], session: Session, path: str, **kwargs: dict[str, Any]
-    ) -> Dataset:
+        cls: type[Self],
+        session: Session,
+        path: str,
+        **kwargs: bool | float | int | str | None,
+    ) -> Self:
         """Reads a parquet file into a Dataset with a given schema.
 
         Args:
             session (Session): Spark session
             path (str): Path to the parquet file
-            **kwargs (dict[str, Any]): Additional arguments to pass to spark.read.parquet
+            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.parquet
 
         Returns:
-            Dataset: Dataset with the parquet file contents
+            Self: Dataset with the parquet file contents
         """
         schema = cls.get_schema()
         df = session.read_parquet(path=path, schema=schema, **kwargs)
         return cls(_df=df, _schema=schema)
 
-    def validate_schema(self: Dataset) -> None:  # sourcery skip: invert-any-all
+    def validate_schema(self: Dataset) -> None:
         """Validate DataFrame schema against expected class schema.
 
         Raises:
@@ -141,20 +146,20 @@ class Dataset(ABC):
                 f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
             )
 
-    def persist(self: Dataset) -> Dataset:
+    def persist(self: Self) -> Self:
         """Persist in memory the DataFrame included in the Dataset.
 
         Returns:
-            Dataset: Persisted Dataset
+            Self: Persisted Dataset
         """
         self.df = self._df.persist()
         return self
 
-    def unpersist(self: Dataset) -> Dataset:
+    def unpersist(self: Self) -> Self:
         """Remove the persisted DataFrame from memory.
 
         Returns:
-            Dataset: Unpersisted Dataset
+            Self: Unpersisted Dataset
         """
         self.df = self._df.unpersist()
         return self

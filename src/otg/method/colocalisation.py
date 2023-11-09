@@ -13,7 +13,7 @@ from pyspark.sql.types import DoubleType
 from otg.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
-    from numpy import ndarray
+    from numpy.typing import NDArray
     from pyspark.sql import Column
 
     from otg.dataset.study_locus_overlap import StudyLocusOverlap
@@ -105,14 +105,14 @@ class Coloc:
     """
 
     @staticmethod
-    def _get_logsum(log_abf: ndarray) -> float:
+    def _get_logsum(log_abf: NDArray[np.float64]) -> float:
         """Calculates logsum of vector.
 
         This function calculates the log of the sum of the exponentiated
         logs taking out the max, i.e. insuring that the sum is not Inf
 
         Args:
-            log_abf (ndarray): log approximate bayes factor
+            log_abf (NDArray[np.float64]): log approximate bayes factor
 
         Returns:
             float: logsum
@@ -127,11 +127,11 @@ class Coloc:
         return float(result)
 
     @staticmethod
-    def _get_posteriors(all_abfs: ndarray) -> DenseVector:
+    def _get_posteriors(all_abfs: NDArray[np.float64]) -> DenseVector:
         """Calculate posterior probabilities for each hypothesis.
 
         Args:
-            all_abfs (ndarray): h0-h4 bayes factors
+            all_abfs (NDArray[np.float64]): h0-h4 bayes factors
 
         Returns:
             DenseVector: Posterior

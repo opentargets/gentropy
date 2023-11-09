@@ -243,7 +243,7 @@ class GWASCatalogStudyIndex(StudyIndex):
         catalog_studies: DataFrame,
         ancestry_file: DataFrame,
         sumstats_lut: DataFrame,
-    ) -> StudyIndex:
+    ) -> GWASCatalogStudyIndex:
         """Ingests study level metadata from the GWAS Catalog.
 
         Args:
@@ -252,7 +252,7 @@ class GWASCatalogStudyIndex(StudyIndex):
             sumstats_lut (DataFrame): GWAS Catalog summary statistics list.
 
         Returns:
-            StudyIndex: Parsed and annotated GWAS Catalog study table.
+            GWASCatalogStudyIndex: Parsed and annotated GWAS Catalog study table.
         """
         # Read GWAS Catalogue raw data
         return (

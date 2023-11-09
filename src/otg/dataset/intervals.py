@@ -72,8 +72,8 @@ class Intervals(Dataset):
             raise ValueError(f"Unknown interval source: {source_name}")
 
         source_class = source_to_class[source_name]
-        data = source_class.read(spark, source_path)
-        return source_class.parse(data, gene_index, lift)
+        data = source_class.read(spark, source_path)  # type: ignore
+        return source_class.parse(data, gene_index, lift)  # type: ignore
 
     def v2g(self: Intervals, variant_index: VariantIndex) -> V2G:
         """Convert intervals into V2G by intersecting with a variant index.

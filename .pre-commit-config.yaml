@@ -41,8 +41,8 @@ repos:
     rev: 5.12.0
     hooks:
       - id: isort
-        args: [--add-import, from __future__ import annotations, --profile, black]
-
+        args:
+          [--add-import, from __future__ import annotations, --profile, black]
 
   - repo: https://github.com/psf/black
     rev: 23.10.1
@@ -53,13 +53,27 @@ repos:
     rev: v9.7.0
     hooks:
       - id: commitlint
-        additional_dependencies: ['@commitlint/config-conventional']
+        additional_dependencies: ["@commitlint/config-conventional"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.6.1'
+    rev: "v1.6.1"
     hooks:
       - id: mypy
+        args: [
+            # --ignore-missing-imports is required to run mypy on virtual
+            # environments without installed dependencies
+            "--ignore-missing-imports",
+            "--check-untyped-defs",
+            "--disallow-any-generics",
+            "--disallow-incomplete-defs",
+            "--no-implicit-optional",
+            "--no-implicit-reexport",
+            "--strict-equality",
+            "--warn-redundant-casts",
+            "--warn-unused-ignores",
+            "--disallow-untyped-defs",
+          ]
 
   - repo: https://github.com/econchick/interrogate
     rev: 1.5.0
@@ -82,4 +96,3 @@ repos:
     rev: 0.3.8
     hooks:
       - id: pydoclint
-        args: [--style=google, --check-return-types=True, --allow-init-docstring=True, --config=pyproject.toml src]

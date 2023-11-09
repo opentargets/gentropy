@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pendulum
 import yaml
@@ -13,6 +13,9 @@ from airflow.providers.google.cloud.operators.dataproc import (
     DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
 OTG_VERSION = "1.0.0"
@@ -161,8 +164,16 @@ def submit_pyspark_job(
     )
 
 
-def submit_step(cluster_name, step_id):
-    """Submit a PySpark job to execute a specific CLI step."""
+def submit_step(cluster_name: str, step_id: str) -> DataprocSubmitJobOperator:
+    """Submit a PySpark job to execute a specific CLI step.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+        step_id (str): Name of the step.
+
+    Returns:
+        DataprocSubmitJobOperator: Airflow task to submit a PySpark job to execute a specific CLI step.
+    """
     return submit_pyspark_job(
         cluster_name=cluster_name,
         task_id=step_id,
@@ -221,15 +232,30 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
     )
 
 
-def read_yaml_config(config_path):
-    """Parse a YAMl config file and do all necessary checks."""
+def read_yaml_config(config_path: Path) -> Any:
+    """Parse a YAMl config file and do all necessary checks.
+
+    Args:
+        config_path (Path): Path to the YAML config file.
+
+    Returns:
+        Any: Parsed YAML config file.
+    """
     assert config_path.exists(), f"YAML config path {config_path} does not exist."
     with open(config_path, "r") as config_file:
         return yaml.safe_load(config_file)
 
 
-def generate_dag(cluster_name, tasks):
-    """For a list of tasks, generate a complete DAG."""
+def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> Any:
+    """For a list of tasks, generate a complete DAG.
+
+    Args:
+        cluster_name (str): Name of the cluster.
+        tasks (list[DataprocSubmitJobOperator]): List of tasks to execute.
+
+    Returns:
+        Any: Airflow DAG.
+    """
     return (
         create_cluster(cluster_name)
         >> install_dependencies(cluster_name)

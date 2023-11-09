@@ -10,47 +10,47 @@ from pyspark.ml.evaluation import (
     BinaryClassificationEvaluator,
     Evaluator,
     MulticlassClassificationEvaluator,
-    RankingEvaluator,
 )
 from pyspark.ml.param import Param, Params, TypeConverters
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
+    from wandb.wandb_run import Run
 
 
 class WandbEvaluator(Evaluator):
     """Wrapper for pyspark Evaluators. It is expected that the user will provide an Evaluators, and this wrapper will log metrics from said evaluator to W&B."""
 
-    spark_ml_evaluator: Param = Param(
-        Params._dummy(), "spark_ml_evaluator", "evaluator from pyspark.ml.evaluation"  # type: ignore
+    spark_ml_evaluator: Param[Evaluator] = Param(
+        Params._dummy(), "spark_ml_evaluator", "evaluator from pyspark.ml.evaluation"
     )
 
-    wandb_run: Param = Param(
-        Params._dummy(),  # type: ignore
+    wandb_run: Param[Run] = Param(
+        Params._dummy(),
         "wandb_run",
         "wandb run.  Expects an already initialized run.  You should set this, or wandb_run_kwargs, NOT BOTH",
     )
 
-    wandb_run_kwargs: Param = Param(
+    wandb_run_kwargs: Param[Any] = Param(
         Params._dummy(),
         "wandb_run_kwargs",
         "kwargs to be passed to wandb.init.  You should set this, or wandb_runId, NOT BOTH.  Setting this is useful when using with WandbCrossValdidator",
     )
 
-    wandb_runId: Param = Param(  # noqa: N815
-        Params._dummy(),  # type: ignore
+    wandb_runId: Param[str] = Param(  # noqa: N815
+        Params._dummy(),
         "wandb_runId",
         "wandb run id.  if not providing an intialized run to wandb_run, a run with id wandb_runId will be resumed",
     )
 
-    wandb_project_name: Param = Param(
+    wandb_project_name: Param[str] = Param(
         Params._dummy(),
         "wandb_project_name",
         "name of W&B project",
         typeConverter=TypeConverters.toString,
     )
 
-    label_values: Param = Param(
+    label_values: Param[list[str]] = Param(
         Params._dummy(),
         "label_values",
         "for classification and multiclass classification, this is a list of values the label can assume\nIf provided Multiclass or Multilabel evaluator without label_values, we'll figure it out from dataset passed through to evaluate.",
@@ -61,17 +61,16 @@ class WandbEvaluator(Evaluator):
     @keyword_only
     def __init__(
         self: WandbEvaluator,
-        *,
-        label_values: list,
-        wandb_run: wandb.sdk.wandb_run.Run | None = None,
-        spark_ml_evaluator: Evaluator | None = None,
+        label_values: list[str] | None = None,
+        **kwargs: BinaryClassificationEvaluator
+        | MulticlassClassificationEvaluator
+        | Run,
     ) -> None:
         """Initialize a WandbEvaluator.
 
         Args:
-            label_values (list): List of label values.
-            wandb_run (wandb.sdk.wandb_run.Run | None): Wandb run object. Defaults to None.
-            spark_ml_evaluator (Evaluator | None): Spark ML evaluator. Defaults to None.
+            label_values (list[str] | None): List of label values.
+            **kwargs (BinaryClassificationEvaluator | MulticlassClassificationEvaluator | Run): Keyword arguments.
         """
         if label_values is None:
             label_values = []
@@ -109,11 +108,11 @@ class WandbEvaluator(Evaluator):
         """
         self._set(spark_ml_evaluator=value)
 
-    def setlabel_values(self: WandbEvaluator, value: list) -> None:
+    def setlabel_values(self: WandbEvaluator, value: list[str]) -> None:
         """Set the label_values parameter.
 
         Args:
-            value (list): List of label values.
+            value (list[str]): List of label values.
         """
         self._set(label_values=value)
 
@@ -133,19 +132,19 @@ class WandbEvaluator(Evaluator):
         """
         return self.getOrDefault(self.wandb_run)
 
-    def getwandb_project_name(self: WandbEvaluator) -> str:
+    def getwandb_project_name(self: WandbEvaluator) -> Any:
         """Get the wandb_project_name parameter.
 
         Returns:
-            str: Name of the W&B project.
+            Any: Name of the W&B project.
         """
         return self.getOrDefault(self.wandb_project_name)
 
-    def getlabel_values(self: WandbEvaluator) -> list:
+    def getlabel_values(self: WandbEvaluator) -> list[str]:
         """Get the label_values parameter.
 
         Returns:
-            list: List of label values.
+            list[str]: List of label values.
         """
         return self.getOrDefault(self.label_values)
 
@@ -159,13 +158,13 @@ class WandbEvaluator(Evaluator):
             float: Metric value.
         """
         dataset.persist()
-        metric_values = []
+        metric_values: list[tuple[str, Any]] = []
         label_values = self.getlabel_values()
-        spark_ml_evaluator = self.getspark_ml_evaluator()
+        spark_ml_evaluator: BinaryClassificationEvaluator | MulticlassClassificationEvaluator = (
+            self.getspark_ml_evaluator()  # type: ignore[assignment, unused-ignore]
+        )
         run = self.getwandb_run()
         evaluator_type = type(spark_ml_evaluator)
-        if isinstance(spark_ml_evaluator, RankingEvaluator):
-            metric_values.append(("k", spark_ml_evaluator.getK()))
         for metric in self.metrics[evaluator_type]:
             if "ByLabel" in metric and label_values == []:
                 print(
@@ -185,7 +184,7 @@ class WandbEvaluator(Evaluator):
                 out = spark_ml_evaluator.evaluate(
                     dataset,
                     {
-                        spark_ml_evaluator.metricLabel: label,
+                        spark_ml_evaluator.metricLabel: label,  # type: ignore[assignment, unused-ignore]
                         spark_ml_evaluator.metricName: metric,
                     },
                 )

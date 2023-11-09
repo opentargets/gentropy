@@ -1,7 +1,7 @@
 """Test colocalisation dataset."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.types as t
 import pytest
@@ -62,7 +62,9 @@ def test_study_locus_overlap_from_associations(
         ),
     ],
 )
-def test_overlapping_peaks(spark: SparkSession, observed: list, expected: list) -> None:
+def test_overlapping_peaks(
+    spark: SparkSession, observed: list[dict[str, Any]], expected: list[dict[str, Any]]
+) -> None:
     """Test overlapping signals between GWAS-GWAS and GWAS-Molecular trait to make sure that mQTLs are always on the right."""
     mock_schema = t.StructType(
         [
@@ -82,6 +84,4 @@ def test_overlapping_peaks(spark: SparkSession, observed: list, expected: list) 
     observed_df = spark.createDataFrame(observed, mock_schema)
     result_df = StudyLocus._overlapping_peaks(observed_df)
     expected_df = spark.createDataFrame(expected, expected_schema)
-    print("RESULT", result_df.show())
-    print("EXPECTED", expected_df.show())
     assert result_df.collect() == expected_df.collect()
