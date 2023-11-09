@@ -1,7 +1,6 @@
 """Import gnomAD variants dataset."""
 from __future__ import annotations
 
-import importlib.resources as pkg_resources
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -24,9 +23,7 @@ class GnomADVariants:
     """
 
     gnomad_genomes: str = "gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht"
-    chain_hail_38_37: str = str(
-        pkg_resources.path("otg.assets.data", "grch38_to_grch37.over.chain.gz")
-    )
+    chain_hail_38_37: str = "gs://hail-common/references/grch38_to_grch37.over.chain.gz"
     populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
@@ -95,7 +92,8 @@ class GnomADVariants:
         # Select relevant fields and nested records to create class
         return VariantAnnotation(
             _df=(
-                ht.select(
+                ht.head(30)
+                .select(
                     gnomad3VariantId=hl.str("-").join(
                         [
                             ht.locus.contig.replace("chr", ""),
