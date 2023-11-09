@@ -67,7 +67,7 @@
         <span class=n>si</span> <span class=o>=</span> <span class=n>StudyIndex</span><span class=o>.</span><span class=n>from_parquet</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>session</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>study_index_path</span><span class=p>)</span>
 
         <span class=c1># Study-locus overlaps for 95% credible sets</span>
-        <span class=n>sl_overlaps</span> <span class=o>=</span> <span class=n>sl</span><span class=o>.</span><span class=n>credible_set</span><span class=p>(</span><span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=p>)</span><span class=o>.</span><span class=n>overlaps</span><span class=p>(</span><span class=n>si</span><span class=p>)</span>
+        <span class=n>sl_overlaps</span> <span class=o>=</span> <span class=n>sl</span><span class=o>.</span><span class=n>filter_credible_set</span><span class=p>(</span><span class=n>CredibleInterval</span><span class=o>.</span><span class=n>IS95</span><span class=p>)</span><span class=o>.</span><span class=n>find_overlaps</span><span class=p>(</span><span class=n>si</span><span class=p>)</span>
 
         <span class=n>coloc_results</span> <span class=o>=</span> <span class=n>Coloc</span><span class=o>.</span><span class=n>colocalise</span><span class=p>(</span>
             <span class=n>sl_overlaps</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>priorc1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>priorc2</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>priorc12</span>

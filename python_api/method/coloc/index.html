@@ -202,14 +202,14 @@
 <span class=sd>    &quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
-    <span class=k>def</span> <span class=nf>_get_logsum</span><span class=p>(</span><span class=n>log_abf</span><span class=p>:</span> <span class=n>ndarray</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>_get_logsum</span><span class=p>(</span><span class=n>log_abf</span><span class=p>:</span> <span class=n>NDArray</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>float64</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Calculates logsum of vector.</span>
 
 <span class=sd>        This function calculates the log of the sum of the exponentiated</span>
 <span class=sd>        logs taking out the max, i.e. insuring that the sum is not Inf</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            log_abf (ndarray): log approximate bayes factor</span>
+<span class=sd>            log_abf (NDArray[np.float64]): log approximate bayes factor</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            float: logsum</span>
@@ -224,11 +224,11 @@
         <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
 
     <span class=nd>@staticmethod</span>
-    <span class=k>def</span> <span class=nf>_get_posteriors</span><span class=p>(</span><span class=n>all_abfs</span><span class=p>:</span> <span class=n>ndarray</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>DenseVector</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>_get_posteriors</span><span class=p>(</span><span class=n>all_abfs</span><span class=p>:</span> <span class=n>NDArray</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>float64</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n>DenseVector</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Calculate posterior probabilities for each hypothesis.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            all_abfs (ndarray): h0-h4 bayes factors</span>
+<span class=sd>            all_abfs (NDArray[np.float64]): h0-h4 bayes factors</span>
 
 <span class=sd>        Returns:</span>
 <span class=sd>            DenseVector: Posterior</span>

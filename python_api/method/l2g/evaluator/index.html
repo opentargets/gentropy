@@ -182,40 +182,39 @@
 <span class=normal>202</span>
 <span class=normal>203</span>
 <span class=normal>204</span>
-<span class=normal>205</span>
-<span class=normal>206</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>WandbEvaluator</span><span class=p>(</span><span class=n>Evaluator</span><span class=p>):</span>
+<span class=normal>205</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>WandbEvaluator</span><span class=p>(</span><span class=n>Evaluator</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Wrapper for pyspark Evaluators. It is expected that the user will provide an Evaluators, and this wrapper will log metrics from said evaluator to W&amp;B.&quot;&quot;&quot;</span>
 
-    <span class=n>spark_ml_evaluator</span><span class=p>:</span> <span class=n>Param</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
-        <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span> <span class=s2>&quot;spark_ml_evaluator&quot;</span><span class=p>,</span> <span class=s2>&quot;evaluator from pyspark.ml.evaluation&quot;</span>  <span class=c1># type: ignore</span>
+    <span class=n>spark_ml_evaluator</span><span class=p>:</span> <span class=n>Param</span><span class=p>[</span><span class=n>Evaluator</span><span class=p>]</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
+        <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span> <span class=s2>&quot;spark_ml_evaluator&quot;</span><span class=p>,</span> <span class=s2>&quot;evaluator from pyspark.ml.evaluation&quot;</span>
     <span class=p>)</span>
 
-    <span class=n>wandb_run</span><span class=p>:</span> <span class=n>Param</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
-        <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span>  <span class=c1># type: ignore</span>
+    <span class=n>wandb_run</span><span class=p>:</span> <span class=n>Param</span><span class=p>[</span><span class=n>Run</span><span class=p>]</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
+        <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span>
         <span class=s2>&quot;wandb_run&quot;</span><span class=p>,</span>
         <span class=s2>&quot;wandb run.  Expects an already initialized run.  You should set this, or wandb_run_kwargs, NOT BOTH&quot;</span><span class=p>,</span>
     <span class=p>)</span>
 
-    <span class=n>wandb_run_kwargs</span><span class=p>:</span> <span class=n>Param</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
+    <span class=n>wandb_run_kwargs</span><span class=p>:</span> <span class=n>Param</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
         <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span>
         <span class=s2>&quot;wandb_run_kwargs&quot;</span><span class=p>,</span>
         <span class=s2>&quot;kwargs to be passed to wandb.init.  You should set this, or wandb_runId, NOT BOTH.  Setting this is useful when using with WandbCrossValdidator&quot;</span><span class=p>,</span>
     <span class=p>)</span>
 
-    <span class=n>wandb_runId</span><span class=p>:</span> <span class=n>Param</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>  <span class=c1># noqa: N815</span>
-        <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span>  <span class=c1># type: ignore</span>
+    <span class=n>wandb_runId</span><span class=p>:</span> <span class=n>Param</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>  <span class=c1># noqa: N815</span>
+        <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span>
         <span class=s2>&quot;wandb_runId&quot;</span><span class=p>,</span>
         <span class=s2>&quot;wandb run id.  if not providing an intialized run to wandb_run, a run with id wandb_runId will be resumed&quot;</span><span class=p>,</span>
     <span class=p>)</span>
 
-    <span class=n>wandb_project_name</span><span class=p>:</span> <span class=n>Param</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
+    <span class=n>wandb_project_name</span><span class=p>:</span> <span class=n>Param</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
         <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span>
         <span class=s2>&quot;wandb_project_name&quot;</span><span class=p>,</span>
         <span class=s2>&quot;name of W&amp;B project&quot;</span><span class=p>,</span>
         <span class=n>typeConverter</span><span class=o>=</span><span class=n>TypeConverters</span><span class=o>.</span><span class=n>toString</span><span class=p>,</span>
     <span class=p>)</span>
 
-    <span class=n>label_values</span><span class=p>:</span> <span class=n>Param</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
+    <span class=n>label_values</span><span class=p>:</span> <span class=n>Param</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=n>Param</span><span class=p>(</span>
         <span class=n>Params</span><span class=o>.</span><span class=n>_dummy</span><span class=p>(),</span>
         <span class=s2>&quot;label_values&quot;</span><span class=p>,</span>
         <span class=s2>&quot;for classification and multiclass classification, this is a list of values the label can assume</span><span class=se>\n</span><span class=s2>If provided Multiclass or Multilabel evaluator without label_values, we&#39;ll figure it out from dataset passed through to evaluate.&quot;</span><span class=p>,</span>
@@ -226,17 +225,16 @@
     <span class=nd>@keyword_only</span>
     <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
         <span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>,</span>
-        <span class=o>*</span><span class=p>,</span>
-        <span class=n>label_values</span><span class=p>:</span> <span class=nb>list</span><span class=p>,</span>
-        <span class=n>wandb_run</span><span class=p>:</span> <span class=n>wandb</span><span class=o>.</span><span class=n>sdk</span><span class=o>.</span><span class=n>wandb_run</span><span class=o>.</span><span class=n>Run</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
-        <span class=n>spark_ml_evaluator</span><span class=p>:</span> <span class=n>Evaluator</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>label_values</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=o>**</span><span class=n>kwargs</span><span class=p>:</span> <span class=n>BinaryClassificationEvaluator</span>
+        <span class=o>|</span> <span class=n>MulticlassClassificationEvaluator</span>
+        <span class=o>|</span> <span class=n>Run</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Initialize a WandbEvaluator.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            label_values (list): List of label values.</span>
-<span class=sd>            wandb_run (wandb.sdk.wandb_run.Run | None): Wandb run object. Defaults to None.</span>
-<span class=sd>            spark_ml_evaluator (Evaluator | None): Spark ML evaluator. Defaults to None.</span>
+<span class=sd>            label_values (list[str] | None): List of label values.</span>
+<span class=sd>            **kwargs (BinaryClassificationEvaluator | MulticlassClassificationEvaluator | Run): Keyword arguments.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>if</span> <span class=n>label_values</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
             <span class=n>label_values</span> <span class=o>=</span> <span class=p>[]</span>
@@ -274,11 +272,11 @@
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>_set</span><span class=p>(</span><span class=n>spark_ml_evaluator</span><span class=o>=</span><span class=n>value</span><span class=p>)</span>
 
-    <span class=k>def</span> <span class=nf>setlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>setlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Set the label_values parameter.</span>
 
 <span class=sd>        Args:</span>
-<span class=sd>            value (list): List of label values.</span>
+<span class=sd>            value (list[str]): List of label values.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>_set</span><span class=p>(</span><span class=n>label_values</span><span class=o>=</span><span class=n>value</span><span class=p>)</span>
 
@@ -298,19 +296,19 @@
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>getOrDefault</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>wandb_run</span><span class=p>)</span>
 
-    <span class=k>def</span> <span class=nf>getwandb_project_name</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>getwandb_project_name</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Any</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Get the wandb_project_name parameter.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            str: Name of the W&amp;B project.</span>
+<span class=sd>            Any: Name of the W&amp;B project.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>getOrDefault</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>wandb_project_name</span><span class=p>)</span>
 
-    <span class=k>def</span> <span class=nf>getlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>getlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Get the label_values parameter.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            list: List of label values.</span>
+<span class=sd>            list[str]: List of label values.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>getOrDefault</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>label_values</span><span class=p>)</span>
 
@@ -324,13 +322,13 @@
 <span class=sd>            float: Metric value.</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>dataset</span><span class=o>.</span><span class=n>persist</span><span class=p>()</span>
-        <span class=n>metric_values</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>metric_values</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
         <span class=n>label_values</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>getlabel_values</span><span class=p>()</span>
-        <span class=n>spark_ml_evaluator</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>getspark_ml_evaluator</span><span class=p>()</span>
+        <span class=n>spark_ml_evaluator</span><span class=p>:</span> <span class=n>BinaryClassificationEvaluator</span> <span class=o>|</span> <span class=n>MulticlassClassificationEvaluator</span> <span class=o>=</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>getspark_ml_evaluator</span><span class=p>()</span>  <span class=c1># type: ignore[assignment, unused-ignore]</span>
+        <span class=p>)</span>
         <span class=n>run</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>getwandb_run</span><span class=p>()</span>
         <span class=n>evaluator_type</span> <span class=o>=</span> <span class=nb>type</span><span class=p>(</span><span class=n>spark_ml_evaluator</span><span class=p>)</span>
-        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>spark_ml_evaluator</span><span class=p>,</span> <span class=n>RankingEvaluator</span><span class=p>):</span>
-            <span class=n>metric_values</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=s2>&quot;k&quot;</span><span class=p>,</span> <span class=n>spark_ml_evaluator</span><span class=o>.</span><span class=n>getK</span><span class=p>()))</span>
         <span class=k>for</span> <span class=n>metric</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>metrics</span><span class=p>[</span><span class=n>evaluator_type</span><span class=p>]:</span>
             <span class=k>if</span> <span class=s2>&quot;ByLabel&quot;</span> <span class=ow>in</span> <span class=n>metric</span> <span class=ow>and</span> <span class=n>label_values</span> <span class=o>==</span> <span class=p>[]:</span>
                 <span class=nb>print</span><span class=p>(</span>
@@ -350,7 +348,7 @@
                 <span class=n>out</span> <span class=o>=</span> <span class=n>spark_ml_evaluator</span><span class=o>.</span><span class=n>evaluate</span><span class=p>(</span>
                     <span class=n>dataset</span><span class=p>,</span>
                     <span class=p>{</span>
-                        <span class=n>spark_ml_evaluator</span><span class=o>.</span><span class=n>metricLabel</span><span class=p>:</span> <span class=n>label</span><span class=p>,</span>
+                        <span class=n>spark_ml_evaluator</span><span class=o>.</span><span class=n>metricLabel</span><span class=p>:</span> <span class=n>label</span><span class=p>,</span>  <span class=c1># type: ignore[assignment, unused-ignore]</span>
                         <span class=n>spark_ml_evaluator</span><span class=o>.</span><span class=n>metricName</span><span class=p>:</span> <span class=n>metric</span><span class=p>,</span>
                     <span class=p>},</span>
                 <span class=p>)</span>
@@ -369,78 +367,78 @@
         <span class=n>return_metric</span> <span class=o>=</span> <span class=n>spark_ml_evaluator</span><span class=o>.</span><span class=n>evaluate</span><span class=p>(</span><span class=n>dataset</span><span class=p>)</span>
         <span class=n>dataset</span><span class=o>.</span><span class=n>unpersist</span><span class=p>()</span>
         <span class=k>return</span> <span class=n>return_metric</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getlabel_values class="doc doc-heading"> <code class="highlight language-python"><span class=n>getlabel_values</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=nb>list</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getlabel_values class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the label_values parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>list</code></td> <td> <code>list</code> </td> <td> <div class=doc-md-description> <p>List of label values.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>144</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getlabel_values class="doc doc-heading"> <code class="highlight language-python"><span class=n>getlabel_values</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getlabel_values class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the label_values parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code>list[str]</code> </td> <td> <div class=doc-md-description> <p>list[str]: List of label values.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>143</span>
+<span class=normal>144</span>
 <span class=normal>145</span>
 <span class=normal>146</span>
 <span class=normal>147</span>
 <span class=normal>148</span>
-<span class=normal>149</span>
-<span class=normal>150</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>:</span>
+<span class=normal>149</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Get the label_values parameter.</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        list: List of label values.</span>
+<span class=sd>        list[str]: List of label values.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>getOrDefault</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>label_values</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getspark_ml_evaluator class="doc doc-heading"> <code class="highlight language-python"><span class=n>getspark_ml_evaluator</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>Evaluator</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getspark_ml_evaluator class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the spark_ml_evaluator parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Evaluator</code></td> <td> <code><span title="pyspark.ml.evaluation.Evaluator">Evaluator</span></code> </td> <td> <div class=doc-md-description> <p>Spark ML evaluator.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>120</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getspark_ml_evaluator class="doc doc-heading"> <code class="highlight language-python"><span class=n>getspark_ml_evaluator</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>Evaluator</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getspark_ml_evaluator class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the spark_ml_evaluator parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Evaluator</code></td> <td> <code><span title="pyspark.ml.evaluation.Evaluator">Evaluator</span></code> </td> <td> <div class=doc-md-description> <p>Spark ML evaluator.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>119</span>
+<span class=normal>120</span>
 <span class=normal>121</span>
 <span class=normal>122</span>
 <span class=normal>123</span>
 <span class=normal>124</span>
-<span class=normal>125</span>
-<span class=normal>126</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getspark_ml_evaluator</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Evaluator</span><span class=p>:</span>
+<span class=normal>125</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getspark_ml_evaluator</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Evaluator</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Get the spark_ml_evaluator parameter.</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        Evaluator: Spark ML evaluator.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>getOrDefault</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>spark_ml_evaluator</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getwandb_project_name class="doc doc-heading"> <code class="highlight language-python"><span class=n>getwandb_project_name</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=nb>str</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getwandb_project_name class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the wandb_project_name parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>str</code></td> <td> <code>str</code> </td> <td> <div class=doc-md-description> <p>Name of the W&amp;B project.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>136</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getwandb_project_name class="doc doc-heading"> <code class="highlight language-python"><span class=n>getwandb_project_name</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>Any</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getwandb_project_name class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the wandb_project_name parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>Any</code></td> <td> <code><span title="typing.Any">Any</span></code> </td> <td> <div class=doc-md-description> <p>Name of the W&amp;B project.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>135</span>
+<span class=normal>136</span>
 <span class=normal>137</span>
 <span class=normal>138</span>
 <span class=normal>139</span>
 <span class=normal>140</span>
-<span class=normal>141</span>
-<span class=normal>142</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getwandb_project_name</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+<span class=normal>141</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getwandb_project_name</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Any</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Get the wandb_project_name parameter.</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        str: Name of the W&amp;B project.</span>
+<span class=sd>        Any: Name of the W&amp;B project.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>getOrDefault</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>wandb_project_name</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getwandb_run class="doc doc-heading"> <code class="highlight language-python"><span class=n>getwandb_run</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>wandb</span><span class=o>.</span><span class=n>sdk</span><span class=o>.</span><span class=n>wandb_run</span><span class=o>.</span><span class=n>Run</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getwandb_run class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the wandb_run parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code><span title="wandb.sdk.wandb_run.Run">Run</span></code> </td> <td> <div class=doc-md-description> <p>wandb.sdk.wandb_run.Run: Wandb run object.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>128</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.getwandb_run class="doc doc-heading"> <code class="highlight language-python"><span class=n>getwandb_run</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>wandb</span><span class=o>.</span><span class=n>sdk</span><span class=o>.</span><span class=n>wandb_run</span><span class=o>.</span><span class=n>Run</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.getwandb_run class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Get the wandb_run parameter.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code><span title="wandb.sdk.wandb_run.Run">Run</span></code> </td> <td> <div class=doc-md-description> <p>wandb.sdk.wandb_run.Run: Wandb run object.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>127</span>
+<span class=normal>128</span>
 <span class=normal>129</span>
 <span class=normal>130</span>
 <span class=normal>131</span>
 <span class=normal>132</span>
-<span class=normal>133</span>
-<span class=normal>134</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getwandb_run</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>wandb</span><span class=o>.</span><span class=n>sdk</span><span class=o>.</span><span class=n>wandb_run</span><span class=o>.</span><span class=n>Run</span><span class=p>:</span>
+<span class=normal>133</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>getwandb_run</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>wandb</span><span class=o>.</span><span class=n>sdk</span><span class=o>.</span><span class=n>wandb_run</span><span class=o>.</span><span class=n>Run</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Get the wandb_run parameter.</span>
 
 <span class=sd>    Returns:</span>
 <span class=sd>        wandb.sdk.wandb_run.Run: Wandb run object.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>getOrDefault</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>wandb_run</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.setlabel_values class="doc doc-heading"> <code class="highlight language-python"><span class=n>setlabel_values</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.setlabel_values class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Set the label_values parameter.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>value</code></td> <td> <code>list</code> </td> <td> <div class=doc-md-description> <p>List of label values.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>112</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.setlabel_values class="doc doc-heading"> <code class="highlight language-python"><span class=n>setlabel_values</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.setlabel_values class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Set the label_values parameter.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>value</code></td> <td> <code>list[str]</code> </td> <td> <div class=doc-md-description> <p>List of label values.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>111</span>
+<span class=normal>112</span>
 <span class=normal>113</span>
 <span class=normal>114</span>
 <span class=normal>115</span>
 <span class=normal>116</span>
-<span class=normal>117</span>
-<span class=normal>118</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>setlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+<span class=normal>117</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>setlabel_values</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Set the label_values parameter.</span>
 
 <span class=sd>    Args:</span>
-<span class=sd>        value (list): List of label values.</span>
+<span class=sd>        value (list[str]): List of label values.</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>_set</span><span class=p>(</span><span class=n>label_values</span><span class=o>=</span><span class=n>value</span><span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.setspark_ml_evaluator class="doc doc-heading"> <code class="highlight language-python"><span class=n>setspark_ml_evaluator</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=n>Evaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.setspark_ml_evaluator class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Set the spark_ml_evaluator parameter.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>value</code></td> <td> <code><span title="pyspark.ml.evaluation.Evaluator">Evaluator</span></code> </td> <td> <div class=doc-md-description> <p>Spark ML evaluator.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>104</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.evaluator.WandbEvaluator.setspark_ml_evaluator class="doc doc-heading"> <code class="highlight language-python"><span class=n>setspark_ml_evaluator</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=n>Evaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.method.l2g.evaluator.WandbEvaluator.setspark_ml_evaluator class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Set the spark_ml_evaluator parameter.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>value</code></td> <td> <code><span title="pyspark.ml.evaluation.Evaluator">Evaluator</span></code> </td> <td> <div class=doc-md-description> <p>Spark ML evaluator.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/evaluator.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>103</span>
+<span class=normal>104</span>
 <span class=normal>105</span>
 <span class=normal>106</span>
 <span class=normal>107</span>
 <span class=normal>108</span>
-<span class=normal>109</span>
-<span class=normal>110</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>setspark_ml_evaluator</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=n>Evaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+<span class=normal>109</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>setspark_ml_evaluator</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>WandbEvaluator</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=n>Evaluator</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Set the spark_ml_evaluator parameter.</span>
 
 <span class=sd>    Args:</span>

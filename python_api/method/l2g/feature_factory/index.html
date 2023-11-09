@@ -161,11 +161,7 @@
 <span class=normal>182</span>
 <span class=normal>183</span>
 <span class=normal>184</span>
-<span class=normal>185</span>
-<span class=normal>186</span>
-<span class=normal>187</span>
-<span class=normal>188</span>
-<span class=normal>189</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>ColocalisationFactory</span><span class=p>:</span>
+<span class=normal>185</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>ColocalisationFactory</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Feature extraction in colocalisation.&quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
@@ -266,11 +262,7 @@
         <span class=c1># Split feature per molQTL</span>
         <span class=n>local_dfs</span> <span class=o>=</span> <span class=p>[]</span>
         <span class=n>nbh_dfs</span> <span class=o>=</span> <span class=p>[]</span>
-        <span class=n>study_types</span> <span class=o>=</span> <span class=p>(</span>
-            <span class=n>colocalising_study_locus</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=s2>&quot;right_studyType&quot;</span><span class=p>)</span><span class=o>.</span><span class=n>distinct</span><span class=p>()</span><span class=o>.</span><span class=n>collect</span><span class=p>()</span>
-        <span class=p>)</span>
-
-        <span class=k>for</span> <span class=n>qtl_type</span> <span class=ow>in</span> <span class=n>study_types</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>qtl_type</span> <span class=ow>in</span> <span class=p>[</span><span class=s2>&quot;eqtl&quot;</span><span class=p>,</span> <span class=s2>&quot;sqtl&quot;</span><span class=p>,</span> <span class=s2>&quot;pqtl&quot;</span><span class=p>]:</span>
             <span class=n>local_max</span> <span class=o>=</span> <span class=n>local_max</span><span class=o>.</span><span class=n>filter</span><span class=p>(</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;right_studyType&quot;</span><span class=p>)</span> <span class=o>==</span> <span class=n>qtl_type</span>
             <span class=p>)</span><span class=o>.</span><span class=n>withColumnRenamed</span><span class=p>(</span>
@@ -293,7 +285,7 @@
         <span class=p>)</span>
 
         <span class=k>return</span> <span class=n>L2GFeature</span><span class=p>(</span>
-            <span class=n>_df</span><span class=o>=</span><span class=n>_convert_from_wide_to_long</span><span class=p>(</span>
+            <span class=n>_df</span><span class=o>=</span><span class=n>convert_from_wide_to_long</span><span class=p>(</span>
                 <span class=n>wide_dfs</span><span class=p>,</span>
                 <span class=n>id_vars</span><span class=o>=</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>),</span>
                 <span class=n>var_name</span><span class=o>=</span><span class=s2>&quot;featureName&quot;</span><span class=p>,</span>
@@ -333,7 +325,11 @@
             <span class=n>_df</span><span class=o>=</span><span class=n>coloc_llr</span><span class=o>.</span><span class=n>df</span><span class=o>.</span><span class=n>unionByName</span><span class=p>(</span><span class=n>coloc_clpp</span><span class=o>.</span><span class=n>df</span><span class=p>,</span> <span class=n>allowMissingColumns</span><span class=o>=</span><span class=kc>True</span><span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=n>L2GFeature</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
         <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> </div> </div> </div><hr> <div class="doc doc-object doc-class"> <h2 id=otg.method.l2g.feature_factory.StudyLocusFactory class="doc doc-heading"> <code>otg.method.l2g.feature_factory.StudyLocusFactory</code> <a href=#otg.method.l2g.feature_factory.StudyLocusFactory class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../../dataset/study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code></p> <p>Feature extraction in study locus.</p> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/feature_factory.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>192</span>
+</code></pre></div></td></tr></table></div> </details> <div class="doc doc-children"> </div> </div> </div><hr> <div class="doc doc-object doc-class"> <h2 id=otg.method.l2g.feature_factory.StudyLocusFactory class="doc doc-heading"> <code>otg.method.l2g.feature_factory.StudyLocusFactory</code> <a href=#otg.method.l2g.feature_factory.StudyLocusFactory class=headerlink title="Permanent link">&para;</a></h2> <div class="doc doc-contents first"> <p class="doc doc-class-bases"> Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocus" href="../../../dataset/study_locus/#otg.dataset.study_locus.StudyLocus">StudyLocus</a></code></p> <p>Feature extraction in study locus.</p> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/feature_factory.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>188</span>
+<span class=normal>189</span>
+<span class=normal>190</span>
+<span class=normal>191</span>
+<span class=normal>192</span>
 <span class=normal>193</span>
 <span class=normal>194</span>
 <span class=normal>195</span>
@@ -375,11 +371,7 @@
 <span class=normal>231</span>
 <span class=normal>232</span>
 <span class=normal>233</span>
-<span class=normal>234</span>
-<span class=normal>235</span>
-<span class=normal>236</span>
-<span class=normal>237</span>
-<span class=normal>238</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>StudyLocusFactory</span><span class=p>(</span><span class=n>StudyLocus</span><span class=p>):</span>
+<span class=normal>234</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>class</span> <span class=nc>StudyLocusFactory</span><span class=p>(</span><span class=n>StudyLocus</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Feature extraction in study locus.&quot;&quot;&quot;</span>
 
     <span class=nd>@staticmethod</span>
@@ -418,7 +410,7 @@
         <span class=p>)</span>
 
         <span class=k>return</span> <span class=n>L2GFeature</span><span class=p>(</span>
-            <span class=n>_df</span><span class=o>=</span><span class=n>_convert_from_wide_to_long</span><span class=p>(</span>
+            <span class=n>_df</span><span class=o>=</span><span class=n>convert_from_wide_to_long</span><span class=p>(</span>
                 <span class=n>wide_df</span><span class=p>,</span>
                 <span class=n>id_vars</span><span class=o>=</span><span class=p>(</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>),</span>
                 <span class=n>var_name</span><span class=o>=</span><span class=s2>&quot;featureName&quot;</span><span class=p>,</span>

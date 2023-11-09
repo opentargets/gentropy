@@ -371,11 +371,11 @@
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=bp>self</span><span class=o>.</span><span class=n>estimator</span> <span class=o>=</span> <span class=n>new_estimator</span>
 
-    <span class=k>def</span> <span class=nf>get_param_grid</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>LocusToGeneModel</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>:</span>
+    <span class=k>def</span> <span class=nf>get_param_grid</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>LocusToGeneModel</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=n>Any</span><span class=p>]:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Return the parameter grid for the model.</span>
 
 <span class=sd>        Returns:</span>
-<span class=sd>            list: List of parameter maps to use for cross validation</span>
+<span class=sd>            list[Any]: List of parameter maps to use for cross validation</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=k>return</span> <span class=p>(</span>
             <span class=n>ParamGridBuilder</span><span class=p>()</span>
@@ -412,14 +412,14 @@
     <span class=k>def</span> <span class=nf>evaluate</span><span class=p>(</span>
         <span class=bp>self</span><span class=p>:</span> <span class=n>LocusToGeneModel</span><span class=p>,</span>
         <span class=n>results</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
-        <span class=n>hyperparameters</span><span class=p>:</span> <span class=nb>dict</span><span class=p>,</span>
+        <span class=n>hyperparameters</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span>
         <span class=n>wandb_run_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
     <span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>        </span><span class=sd>&quot;&quot;&quot;Perform evaluation of the model by applying it to a test set and tracking the results with W&amp;B.</span>
 
 <span class=sd>        Args:</span>
 <span class=sd>            results (DataFrame): Dataframe containing the predictions</span>
-<span class=sd>            hyperparameters (dict): Hyperparameters used for the model</span>
+<span class=sd>            hyperparameters (dict[str, Any]): Hyperparameters used for the model</span>
 <span class=sd>            wandb_run_name (str | None): Descriptive name for the run to be tracked with W&amp;B</span>
 <span class=sd>        &quot;&quot;&quot;</span>
         <span class=n>binary_evaluator</span> <span class=o>=</span> <span class=n>BinaryClassificationEvaluator</span><span class=p>(</span>
@@ -553,7 +553,7 @@
     <span class=n>new_stages</span> <span class=o>=</span> <span class=n>pipeline_stages</span> <span class=o>+</span> <span class=p>[</span><span class=n>transformer</span><span class=p>]</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>pipeline</span> <span class=o>=</span> <span class=n>Pipeline</span><span class=p>(</span><span class=n>stages</span><span class=o>=</span><span class=n>new_stages</span><span class=p>)</span>
     <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.model.LocusToGeneModel.evaluate class="doc doc-heading"> <code class="highlight language-python"><span class=n>evaluate</span><span class=p>(</span><span class=n>results</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>hyperparameters</span><span class=p>:</span> <span class=nb>dict</span><span class=p>,</span> <span class=n>wandb_run_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.method.l2g.model.LocusToGeneModel.evaluate class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Perform evaluation of the model by applying it to a test set and tracking the results with W&amp;B.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>results</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe containing the predictions</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>hyperparameters</code></td> <td> <code>dict</code> </td> <td> <div class=doc-md-description> <p>Hyperparameters used for the model</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>wandb_run_name</code></td> <td> <code>str | None</code> </td> <td> <div class=doc-md-description> <p>Descriptive name for the run to be tracked with W&amp;B</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>187</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.model.LocusToGeneModel.evaluate class="doc doc-heading"> <code class="highlight language-python"><span class=n>evaluate</span><span class=p>(</span><span class=n>results</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span> <span class=n>hyperparameters</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span> <span class=n>wandb_run_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span></code> <a href=#otg.method.l2g.model.LocusToGeneModel.evaluate class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Perform evaluation of the model by applying it to a test set and tracking the results with W&amp;B.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>results</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe containing the predictions</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>hyperparameters</code></td> <td> <code>dict[str, <span title="typing.Any">Any</span>]</code> </td> <td> <div class=doc-md-description> <p>Hyperparameters used for the model</p> </div> </td> <td> <em>required</em> </td> </tr> <tr> <td><code>wandb_run_name</code></td> <td> <code>str | None</code> </td> <td> <div class=doc-md-description> <p>Descriptive name for the run to be tracked with W&amp;B</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>187</span>
 <span class=normal>188</span>
 <span class=normal>189</span>
 <span class=normal>190</span>
@@ -607,14 +607,14 @@
 <span class=normal>238</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>evaluate</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>LocusToGeneModel</span><span class=p>,</span>
     <span class=n>results</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
-    <span class=n>hyperparameters</span><span class=p>:</span> <span class=nb>dict</span><span class=p>,</span>
+    <span class=n>hyperparameters</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span>
     <span class=n>wandb_run_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Perform evaluation of the model by applying it to a test set and tracking the results with W&amp;B.</span>
 
 <span class=sd>    Args:</span>
 <span class=sd>        results (DataFrame): Dataframe containing the predictions</span>
-<span class=sd>        hyperparameters (dict): Hyperparameters used for the model</span>
+<span class=sd>        hyperparameters (dict[str, Any]): Hyperparameters used for the model</span>
 <span class=sd>        wandb_run_name (str | None): Descriptive name for the run to be tracked with W&amp;B</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=n>binary_evaluator</span> <span class=o>=</span> <span class=n>BinaryClassificationEvaluator</span><span class=p>(</span>
@@ -745,7 +745,7 @@
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>pipeline</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>feature_matrix</span><span class=o>.</span><span class=n>df</span><span class=p>)</span>
     <span class=k>return</span> <span class=bp>self</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.model.LocusToGeneModel.get_param_grid class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_param_grid</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=nb>list</span></code> <a href=#otg.method.l2g.model.LocusToGeneModel.get_param_grid class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Return the parameter grid for the model.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>list</code></td> <td> <code>list</code> </td> <td> <div class=doc-md-description> <p>List of parameter maps to use for cross validation</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>149</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.method.l2g.model.LocusToGeneModel.get_param_grid class="doc doc-heading"> <code class="highlight language-python"><span class=n>get_param_grid</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span></code> <a href=#otg.method.l2g.model.LocusToGeneModel.get_param_grid class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Return the parameter grid for the model.</p> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td> <code>list[<span title="typing.Any">Any</span>]</code> </td> <td> <div class=doc-md-description> <p>list[Any]: List of parameter maps to use for cross validation</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>149</span>
 <span class=normal>150</span>
 <span class=normal>151</span>
 <span class=normal>152</span>
@@ -756,11 +756,11 @@
 <span class=normal>157</span>
 <span class=normal>158</span>
 <span class=normal>159</span>
-<span class=normal>160</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_param_grid</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>LocusToGeneModel</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>:</span>
+<span class=normal>160</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>get_param_grid</span><span class=p>(</span><span class=bp>self</span><span class=p>:</span> <span class=n>LocusToGeneModel</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=n>Any</span><span class=p>]:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Return the parameter grid for the model.</span>
 
 <span class=sd>    Returns:</span>
-<span class=sd>        list: List of parameter maps to use for cross validation</span>
+<span class=sd>        list[Any]: List of parameter maps to use for cross validation</span>
 <span class=sd>    &quot;&quot;&quot;</span>
     <span class=k>return</span> <span class=p>(</span>
         <span class=n>ParamGridBuilder</span><span class=p>()</span>

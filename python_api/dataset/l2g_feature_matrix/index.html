@@ -145,7 +145,7 @@
         <span class=c1># raise error if the feature matrix is empty</span>
         <span class=k>if</span> <span class=n>fm</span><span class=o>.</span><span class=n>limit</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>count</span><span class=p>()</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
             <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
-                <span class=n>_df</span><span class=o>=</span><span class=n>_convert_from_long_to_wide</span><span class=p>(</span>
+                <span class=n>_df</span><span class=o>=</span><span class=n>convert_from_long_to_wide</span><span class=p>(</span>
                     <span class=n>fm</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>],</span> <span class=s2>&quot;featureName&quot;</span><span class=p>,</span> <span class=s2>&quot;featureValue&quot;</span>
                 <span class=p>),</span>
                 <span class=n>_schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
@@ -317,7 +317,7 @@
     <span class=c1># raise error if the feature matrix is empty</span>
     <span class=k>if</span> <span class=n>fm</span><span class=o>.</span><span class=n>limit</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>count</span><span class=p>()</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
         <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span>
-            <span class=n>_df</span><span class=o>=</span><span class=n>_convert_from_long_to_wide</span><span class=p>(</span>
+            <span class=n>_df</span><span class=o>=</span><span class=n>convert_from_long_to_wide</span><span class=p>(</span>
                 <span class=n>fm</span><span class=p>,</span> <span class=p>[</span><span class=s2>&quot;studyLocusId&quot;</span><span class=p>,</span> <span class=s2>&quot;geneId&quot;</span><span class=p>],</span> <span class=s2>&quot;featureName&quot;</span><span class=p>,</span> <span class=s2>&quot;featureValue&quot;</span>
             <span class=p>),</span>
             <span class=n>_schema</span><span class=o>=</span><span class=bp>cls</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
