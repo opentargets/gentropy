@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import hail as hl
 import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
-from pyspark.sql import Window
+from pyspark.sql import Row, Window
 
 from otg.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
 from otg.dataset.ld_index import LDIndex
@@ -187,6 +187,7 @@ class GnomADLDMatrix:
             )
             .select(
                 "chromosome",
+                "position",
                 f.concat_ws(
                     "_",
                     f.col("chromosome"),
@@ -311,6 +312,96 @@ class GnomADLDMatrix:
         return LDIndex(
             _df=self._aggregate_ld_index_across_populations(ld_index_unaggregated),
             _schema=LDIndex.get_schema(),
+        )
+
+    @staticmethod
+    def _get_value_from_row(row: Row | None, column: str) -> int | None:
+        """Extract index value from a row if exists.
+
+        Args:
+            row (Row | None): One row from a dataframe
+            column (str): column label we want to extract.
+
+        Returns:
+            int | None: _description_
+        """
+        if isinstance(row, Row) and column in row:
+            return row[column]
+        else:
+            return None
+
+    def get_ld_variants(
+        self: GnomADLDMatrix,
+        gnomad_ancestry: str,
+        chromosome: str,
+        start: int,
+        end: int,
+    ) -> DataFrame | None:
+        """Return melted LD table with resolved variant id based on ancestry and genomic location.
+
+        Args:
+            gnomad_ancestry (str): GnomAD major ancestry label eg. `nfe`
+            chromosome (str): chromosome label
+            start (int): window upper bound
+            end (int): window lower bound
+
+        Returns:
+            DataFrame | None: square LD matrix resolved to variants.
+        """
+        # Extracting locus:
+        ld_index_df = (
+            self._process_variant_indices(
+                hl.read_table(self.ld_index_raw_template.format(POP=gnomad_ancestry)),
+                self.grch37_to_grch38_chain_path,
+            )
+            .filter(
+                (f.col("chromosome") == chromosome)
+                & (f.col("position") >= start)
+                & (f.col("position") <= end)
+            )
+            .select("chromosome", "position", "variantId", "idx")
+            .persist()
+        )
+        # +----------+---------+--------------------+--------+
+        # |chromosome| position|           variantId|     idx|
+        # +----------+---------+--------------------+--------+
+        start_index = self._get_value_from_row(
+            ld_index_df.orderBy(f.col("position").asc()).first(), "idx"
+        )
+        end_index = self._get_value_from_row(
+            ld_index_df.orderBy(f.col("position").desc()).first(), "idx"
+        )
+
+        # If the returned slice from the ld index is empty, nothing to:
+        if (start_index is None) or (end_index is None):
+            return None
+
+        # Extract square matrix:
+        return (
+            self.get_ld_matrix_slice(
+                gnomad_ancestry, start_index=start_index, end_index=end_index
+            )
+            .join(
+                (
+                    ld_index_df.select(
+                        f.col("idx").alias("idx_i"),
+                        f.col("variantId").alias("variantId_i"),
+                    )
+                ),
+                on="idx_i",
+                how="inner",
+            )
+            .join(
+                (
+                    ld_index_df.select(
+                        f.col("idx").alias("idx_j"),
+                        f.col("variantId").alias("variantId_j"),
+                    )
+                ),
+                on="idx_j",
+                how="inner",
+            )
+            .select("variantId_i", "variantId_j", "r")
         )
 
     def get_ld_matrix_slice(
