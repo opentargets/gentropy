@@ -13,8 +13,10 @@ from otg.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from otg.dataset.dataset import Dataset
+from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
+from otg.method.ld import LDAnnotator
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -401,6 +403,20 @@ class StudyLocus(Dataset):
             .drop("is_lead_linked")
         )
         return self
+
+    def annotate_ld(
+        self: StudyLocus, study_index: StudyIndex, ld_index: LDIndex
+    ) -> StudyLocus:
+        """Annotate LD information to study-locus.
+
+        Args:
+            study_index (StudyIndex): Study index to resolve ancestries.
+            ld_index (LDIndex): LD index to resolve LD information.
+
+        Returns:
+            StudyLocus: Study locus annotated with ld information from LD index.
+        """
+        return LDAnnotator.ld_annotate(self, study_index, ld_index)
 
     def _qc_unresolved_ld(
         self: StudyLocus,
