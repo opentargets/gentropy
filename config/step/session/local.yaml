@@ -1,3 +1,4 @@
 _target_: otg.common.session.Session
 spark_uri: local[*]
 hail_home: .venv/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar
+write_mode: overwrite
