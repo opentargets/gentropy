@@ -17,7 +17,7 @@ def test_study_index_type_lut(mock_study_index: StudyIndex) -> None:
     assert isinstance(mock_study_index.study_type_lut(), DataFrame)
 
 
-def test_aggregate_and_map_ancestries__correctness(spark: SparkSession):
+def test_aggregate_and_map_ancestries__correctness(spark: SparkSession) -> None:
     """Test if population are mapped and relative sample sizes are calculated."""
     data = [
         (

@@ -14,7 +14,7 @@ from pyspark.sql.window import Window
 from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
-    from numpy import ndarray
+    from numpy.typing import NDArray
     from pyspark.sql import Column
 
     from otg.dataset.summary_statistics import SummaryStatistics
@@ -111,13 +111,13 @@ class WindowBasedClumping:
         ).otherwise(cluster_id)
 
     @staticmethod
-    def _prune_peak(position: ndarray, window_size: int) -> DenseVector:
+    def _prune_peak(position: NDArray[np.float64], window_size: int) -> DenseVector:
         """Establish lead snps based on their positions listed by p-value.
 
         The function `find_peak` assigns lead SNPs based on their positions listed by p-value within a specified window size.
 
         Args:
-            position (ndarray): positions of the SNPs sorted by p-value.
+            position (NDArray[np.float64]): positions of the SNPs sorted by p-value.
             window_size (int): the distance in bp within which associations are clumped together around the lead snp.
 
         Returns:
@@ -131,10 +131,10 @@ class WindowBasedClumping:
 
         """
         # Initializing the lead list with zeroes:
-        is_lead: ndarray = np.zeros(len(position))
+        is_lead = np.zeros(len(position))
 
         # List containing indices of leads:
-        lead_indices: list = []
+        lead_indices: list[int] = []
 
         # Looping through all positions:
         for index in range(len(position)):
@@ -234,7 +234,9 @@ class WindowBasedClumping:
                 # Adding study-locus id:
                 .withColumn(
                     "studyLocusId",
-                    StudyLocus.assign_study_locus_id("studyId", "variantId"),
+                    StudyLocus.assign_study_locus_id(
+                        f.col("studyId"), f.col("variantId")
+                    ),
                 )
                 # Initialize QC column as array of strings:
                 .withColumn(

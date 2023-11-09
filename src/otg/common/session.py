@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
@@ -22,7 +22,7 @@ class Session:
         app_name: str = "otgenetics",
         hail_home: str | None = None,
         start_hail: bool = False,
-        extended_spark_conf: dict | None = None,
+        extended_spark_conf: dict[str, str] | None = None,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -32,7 +32,7 @@ class Session:
             app_name (str): Spark application name. Defaults to "otgenetics".
             hail_home (str | None): Path to Hail installation. Defaults to None.
             start_hail (bool): Whether to start Hail. Defaults to False.
-            extended_spark_conf (dict | None): Extended Spark configuration. Defaults to None.
+            extended_spark_conf (dict[str, str] | None): Extended Spark configuration. Defaults to None.
         """
         merged_conf = self._create_merged_config(
             start_hail, hail_home, extended_spark_conf
@@ -95,14 +95,14 @@ class Session:
         self: Session,
         start_hail: bool,
         hail_home: str | None,
-        extended_spark_conf: SparkConf,
+        extended_spark_conf: dict[str, str] | None,
     ) -> SparkConf:
         """Merges the default, and optionally the Hail and extended configurations if provided.
 
         Args:
             start_hail (bool): Whether to start Hail.
             hail_home (str | None): Path to Hail installation. Defaults to None.
-            extended_spark_conf (SparkConf): Extended Spark configuration.
+            extended_spark_conf (dict[str, str] | None): Extended Spark configuration.
 
         Returns:
             SparkConf: Merged Spark configuration.
@@ -117,14 +117,17 @@ class Session:
         return SparkConf().setAll(all_settings)
 
     def read_parquet(
-        self: Session, path: str, schema: StructType, **kwargs: dict[str, Any]
+        self: Session,
+        path: str,
+        schema: StructType,
+        **kwargs: bool | float | int | str | None,
     ) -> DataFrame:
         """Reads parquet dataset with a provided schema.
 
         Args:
             path (str): parquet dataset path
             schema (StructType): Spark schema
-            **kwargs (dict[str, Any]): Additional arguments to pass to spark.read.parquet
+            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.parquet
 
         Returns:
             DataFrame: Dataframe with provided schema
@@ -143,10 +146,10 @@ class Log4j:
 
     def __init__(self, spark: SparkSession) -> None:  # noqa: D107
         # get spark app details with which to prefix all messages
-        log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore
+        log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
         self.logger = log4j.Logger.getLogger(__name__)
 
-        log4j_logger = spark.sparkContext._jvm.org.apache.log4j  # type: ignore
+        log4j_logger = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
         self.logger = log4j_logger.LogManager.getLogger(__name__)
 
     def error(self: Log4j, message: str) -> None:

@@ -25,7 +25,7 @@ from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
-from src.utils.spark import get_spark_testing_conf
+from utils.spark import get_spark_testing_conf
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -149,7 +149,7 @@ def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
 def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
     """Mock FinnGenSummaryStats dataset."""
     return FinnGenSummaryStats(
-        _df=mock_summary_statistics(spark),
+        _df=mock_summary_statistics_data(spark),
         _schema=SummaryStatistics.get_schema(),
     )
 
@@ -358,8 +358,15 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
 
 
 @pytest.fixture()
-def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
-    """Generating a mock summary statistics dataset."""
+def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
+    """Generating mock summary statistics data.
+
+    Args:
+        spark (SparkSession): Spark session
+
+    Returns:
+        DataFrame: Mock summary statistics data
+    """
     ss_schema = SummaryStatistics.get_schema()
 
     data_spec = (
@@ -387,7 +394,17 @@ def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
         "betaConfidenceIntervalLower", "betaConfidenceIntervalUpper"
     )
 
-    return SummaryStatistics(_df=data_spec, _schema=ss_schema)
+    return data_spec
+
+
+@pytest.fixture()
+def mock_summary_statistics(
+    mock_summary_statistics_data: DataFrame,
+) -> SummaryStatistics:
+    """Generating a mock summary statistics dataset."""
+    return SummaryStatistics(
+        _df=mock_summary_statistics_data, _schema=SummaryStatistics.get_schema()
+    )
 
 
 @pytest.fixture()
@@ -539,7 +556,7 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 
 
 @pytest.fixture()
-def liftover_chain_37_to_38(spark: SparkSession) -> DataFrame:
+def liftover_chain_37_to_38(spark: SparkSession) -> LiftOverSpark:
     """Sample liftover chain file."""
     return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")
 

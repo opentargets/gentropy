@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from pyspark.sql import SparkSession
 
-from src.utils.spark import get_spark_testing_conf
+from utils.spark import get_spark_testing_conf
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -1,6 +1,8 @@
 """Test study locus dataset."""
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
@@ -14,7 +16,8 @@ from pyspark.sql.types import (
 )
 
 from otg.dataset.study_index import StudyIndex
-from otg.dataset.study_locus import CredibleInterval, StudyLocus, StudyLocusOverlap
+from otg.dataset.study_locus import CredibleInterval, StudyLocus
+from otg.dataset.study_locus_overlap import StudyLocusOverlap
 
 
 def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
@@ -80,7 +83,7 @@ def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     ],
 )
 def test_unique_variants_in_locus(
-    spark: SparkSession, observed: list, expected: list
+    spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test unique variants in locus."""
     # assert isinstance(mock_study_locus.test_unique_variants_in_locus(), DataFrame)
@@ -269,7 +272,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
     ],
 )
 def test_annotate_credible_sets(
-    spark: SparkSession, observed: list, expected: list
+    spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test annotate_credible_sets."""
     schema = StructType(

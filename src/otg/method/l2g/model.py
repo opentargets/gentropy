@@ -146,11 +146,11 @@ class LocusToGeneModel:
         """
         self.estimator = new_estimator
 
-    def get_param_grid(self: LocusToGeneModel) -> list:
+    def get_param_grid(self: LocusToGeneModel) -> list[Any]:
         """Return the parameter grid for the model.
 
         Returns:
-            list: List of parameter maps to use for cross validation
+            list[Any]: List of parameter maps to use for cross validation
         """
         return (
             ParamGridBuilder()
@@ -187,14 +187,14 @@ class LocusToGeneModel:
     def evaluate(
         self: LocusToGeneModel,
         results: DataFrame,
-        hyperparameters: dict,
+        hyperparameters: dict[str, Any],
         wandb_run_name: str | None,
     ) -> None:
         """Perform evaluation of the model by applying it to a test set and tracking the results with W&B.
 
         Args:
             results (DataFrame): Dataframe containing the predictions
-            hyperparameters (dict): Hyperparameters used for the model
+            hyperparameters (dict[str, Any]): Hyperparameters used for the model
             wandb_run_name (str | None): Descriptive name for the run to be tracked with W&B
         """
         binary_evaluator = BinaryClassificationEvaluator(

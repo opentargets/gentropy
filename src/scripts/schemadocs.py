@@ -39,17 +39,16 @@ def generate_schema_assets(
                 df = spark.createDataFrame([], input_schema)
                 outfilename = i.replace("json", "md")
                 with (assets_dir / outfilename).open("w") as out:
-                    tree = df._jdf.schema().treeString()  # type: ignore
+                    tree = df._jdf.schema().treeString()
                     out.write(f"```\n{tree}\n```")
 
 
 @mkdocs.plugins.event_priority(50)
-def on_pre_build(config: MkdocsConfig, **kwargs) -> None:
+def on_pre_build(config: MkdocsConfig) -> None:
     """Main function.
 
     Args:
         config (MkdocsConfig): MkdocsConfig object.
-        **kwargs: Arbitrary keyword arguments.
     """
     # Create schema dir if not exist:
     assets_dir = Path("docs/assets/schemas")
