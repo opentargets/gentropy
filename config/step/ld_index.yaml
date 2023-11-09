@@ -1,8 +1,5 @@
 _target_: otg.ld_index.LDIndexStep
-
-defaults:
-  - session: dataproc
-session:
-  start_hail: true
-
 ld_index_out: ${datasets.ld_index}
+
+session_config:
+  start_hail: true
