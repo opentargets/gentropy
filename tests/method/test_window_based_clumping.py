@@ -61,8 +61,12 @@ def test_window_based_clump_with_locus__correctness(
     assert (clumped.df.select(f.explode_outer("locus").alias("loci")).count()) == 132
 
 
-def test_prune_peak(spark: SparkSession):
-    """Test the pruning of peaks."""
+def test_prune_peak(spark: SparkSession) -> None:
+    """Test the pruning of peaks.
+
+    Args:
+        spark (SparkSession): Spark session
+    """
     data = [
         ("c", 3, 4.0),
         ("c", 4, 2.0),

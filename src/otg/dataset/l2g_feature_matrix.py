@@ -6,7 +6,7 @@ from functools import reduce
 from typing import TYPE_CHECKING, Type
 
 from otg.common.schemas import parse_spark_schema
-from otg.common.spark_helpers import _convert_from_long_to_wide
+from otg.common.spark_helpers import convert_from_long_to_wide
 from otg.dataset.dataset import Dataset
 from otg.method.l2g.feature_factory import StudyLocusFactory
 
@@ -61,7 +61,7 @@ class L2GFeatureMatrix(Dataset):
         # raise error if the feature matrix is empty
         if fm.limit(1).count() != 0:
             return cls(
-                _df=_convert_from_long_to_wide(
+                _df=convert_from_long_to_wide(
                     fm, ["studyLocusId", "geneId"], "featureName", "featureValue"
                 ),
                 _schema=cls.get_schema(),

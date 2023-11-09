@@ -1,7 +1,7 @@
 """Tests on helper spark functions."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
@@ -72,7 +72,7 @@ def test_get_record_with_maximum_value_group_two_cols(
     ],
 )
 def test_order_array_of_structs_by_field(
-    spark: SparkSession, observed: list, expected: list
+    spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test the util that returns an array of structs ordered by a field."""
     mock_schema = StructType(

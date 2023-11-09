@@ -41,7 +41,7 @@ class ColocalisationStep:
         si = StudyIndex.from_parquet(self.session, self.study_index_path)
 
         # Study-locus overlaps for 95% credible sets
-        sl_overlaps = sl.credible_set(CredibleInterval.IS95).overlaps(si)
+        sl_overlaps = sl.filter_credible_set(CredibleInterval.IS95).find_overlaps(si)
 
         coloc_results = Coloc.colocalise(
             sl_overlaps, self.priorc1, self.priorc2, self.priorc12

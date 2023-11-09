@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -148,7 +148,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
     ],
 )
 def test_is_lead_linked(
-    spark: SparkSession, observed_data: list, expected_data: list
+    spark: SparkSession, observed_data: list[Any], expected_data: list[Any]
 ) -> None:
     """Test function that annotates whether a studyLocusId is linked to a more statistically significant studyLocusId."""
     schema = t.StructType(

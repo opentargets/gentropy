@@ -44,7 +44,9 @@ class OpenTargetsTarget:
         return f.when(strand_col == 1, start_col).when(strand_col == -1, end_col)
 
     @classmethod
-    def as_gene_index(cls: type[GeneIndex], target_index: DataFrame) -> GeneIndex:
+    def as_gene_index(
+        cls: type[OpenTargetsTarget], target_index: DataFrame
+    ) -> GeneIndex:
         """Initialise GeneIndex from source dataset.
 
         Args:

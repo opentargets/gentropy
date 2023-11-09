@@ -37,7 +37,7 @@ class IntervalsJavierre(Intervals):
         javierre_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> Intervals:
+    ) -> IntervalsJavierre:
         """Parse Javierre et al. 2016 dataset.
 
         Args:
@@ -46,7 +46,7 @@ class IntervalsJavierre(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            Intervals: Javierre et al. 2016 interval data
+            IntervalsJavierre: Javierre et al. 2016 interval data
         """
         # Constant values:
         dataset_name = "javierre2016"
@@ -167,5 +167,5 @@ class IntervalsJavierre(Intervals):
                     f.lit(pmid).alias("pmid"),
                 )
             ),
-            _schema=Intervals.get_schema(),
+            _schema=cls.get_schema(),
         )

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame, WindowSpec
 
 
-def _convert_from_wide_to_long(
+def convert_from_wide_to_long(
     df: DataFrame,
     id_vars: Iterable[str],
     var_name: str,
@@ -39,7 +39,7 @@ def _convert_from_wide_to_long(
 
     Examples:
     >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
-    >>> _convert_from_wide_to_long(df, ["id"], "feature", "value").show()
+    >>> convert_from_wide_to_long(df, ["id"], "feature", "value").show()
     +---+---------+-----+
     | id|  feature|value|
     +---+---------+-----+
@@ -68,7 +68,7 @@ def _convert_from_wide_to_long(
     return _tmp.select(*cols)
 
 
-def _convert_from_long_to_wide(
+def convert_from_long_to_wide(
     df: DataFrame, id_vars: list[str], var_name: str, value_name: str
 ) -> DataFrame:
     """Converts a dataframe from long to wide format using Spark pivot built-in function.
@@ -84,7 +84,7 @@ def _convert_from_long_to_wide(
 
     Examples:
     >>> df = spark.createDataFrame([("a", "feature_1", 1), ("a", "feature_2", 2)], ["id", "featureName", "featureValue"])
-    >>> _convert_from_long_to_wide(df, ["id"], "featureName", "featureValue").show()
+    >>> convert_from_long_to_wide(df, ["id"], "featureName", "featureValue").show()
     +---+---------+---------+
     | id|feature_1|feature_2|
     +---+---------+---------+
@@ -192,14 +192,14 @@ def get_record_with_minimum_value(
 
 def get_record_with_maximum_value(
     df: DataFrame,
-    grouping_col: Column | str | list[Column | str],
+    grouping_col: str | list[str],
     sorting_col: str,
 ) -> DataFrame:
     """Returns the record with the maximum value of the sorting column within each group of the grouping column.
 
     Args:
         df (DataFrame): The DataFrame to be processed.
-        grouping_col (Column | str | list[Column | str]): The column(s) to group the DataFrame by.
+        grouping_col (str | list[str]): The column(s) to group the DataFrame by.
         sorting_col (str): The column name to sort the DataFrame by.
 
     Returns:
@@ -345,7 +345,7 @@ def pivot_df(
     df: DataFrame,
     pivot_col: str,
     value_col: str,
-    grouping_cols: list,
+    grouping_cols: list[Column],
 ) -> DataFrame:
     """Pivot a dataframe.
 
@@ -353,7 +353,7 @@ def pivot_df(
         df (DataFrame): Dataframe to pivot
         pivot_col (str): Column to pivot on
         value_col (str): Column to pivot
-        grouping_cols (list): Columns to group by
+        grouping_cols (list[Column]): Columns to group by
 
     Returns:
         DataFrame: Pivoted dataframe
