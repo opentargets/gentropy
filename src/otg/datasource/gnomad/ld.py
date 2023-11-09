@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING
 
 import hail as hl
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 from hail.linalg import BlockMatrix
-from pyspark.sql import Row, Window
+from pyspark.sql import Row, SparkSession, Window
 
 from otg.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
 from otg.dataset.ld_index import LDIndex
@@ -336,7 +337,7 @@ class GnomADLDMatrix:
         chromosome: str,
         start: int,
         end: int,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         """Return melted LD table with resolved variant id based on ancestry and genomic location.
 
         Args:
@@ -346,7 +347,7 @@ class GnomADLDMatrix:
             end (int): window lower bound
 
         Returns:
-            DataFrame | None: square LD matrix resolved to variants.
+            DataFrame: square LD matrix resolved to variants.
         """
         # Extracting locus:
         ld_index_df = (
@@ -372,9 +373,16 @@ class GnomADLDMatrix:
             ld_index_df.orderBy(f.col("position").desc()).first(), "idx"
         )
 
-        # If the returned slice from the ld index is empty, nothing to:
+        # If the returned slice from the ld index is empty, return empty dataframe with the same schema:
         if (start_index is None) or (end_index is None):
-            return None
+            schema = t.StructType(
+                [
+                    t.StructField("variantId_i", t.StringType(), True),
+                    t.StructField("variantId_j", t.StringType(), True),
+                    t.StructField("r", t.DoubleType(), True),
+                ]
+            )
+            return SparkSession.builder.getOrCreate().createDataFrame([], schema=schema)
 
         # Extract square matrix:
         return (
