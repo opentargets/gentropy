@@ -1,4 +1,9 @@
 _target_: otg.l2g.LocusToGeneStep
+
+session:
+  extended_spark_conf:
+    spark.dynamicAllocation.enabled: false
+
 run_mode: train
 wandb_run_name: null
 perform_cross_validation: false
@@ -14,7 +19,3 @@ gene_interactions_path: ${datasets.gene_interactions}
 hyperparameters:
   max_depth: 5
   loss_function: binary:logistic
-
-session:
-  extended_spark_conf:
-    spark.dynamicAllocation.enabled: false

@@ -14,7 +14,7 @@ def main(cfg: DictConfig) -> None:
         cfg (DictConfig): hydra configuration object
     """
     print(OmegaConf.to_yaml(cfg))
-    # Initialise and run step.
+    # Initialise and run step
     instantiate(cfg.step)
 
 
