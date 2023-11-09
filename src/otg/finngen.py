@@ -8,8 +8,10 @@ from urllib.request import urlopen
 from omegaconf import MISSING
 
 from otg.common.session import Session
+from otg.dataset.ld_index import LDIndex
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
 from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
+from otg.method.pics import PICS
 
 
 @dataclass
@@ -33,6 +35,9 @@ class FinnGenStep:
     finngen_sumstat_url_suffix: str = MISSING
     finngen_study_index_out: str = MISSING
     finngen_summary_stats_out: str = MISSING
+    finngen_clumped_out: str = MISSING
+    finngen_picsed_out: str = MISSING
+    ld_index_path: str = MISSING
 
     def __post_init__(self: FinnGenStep) -> None:
         """Run step."""
@@ -58,11 +63,34 @@ class FinnGenStep:
             input_filenames, header=True
         )
         # Process summary stats.
-        summary_stats_df = FinnGenSummaryStats.from_source(summary_stats_df).df
+        summary_stats = FinnGenSummaryStats.from_source(summary_stats_df)
+
         # Write summary stats.
         (
-            summary_stats_df.sortWithinPartitions("position")
+            summary_stats.df.sortWithinPartitions("position")
             .write.partitionBy("studyId", "chromosome")
             .mode(self.session.write_mode)
             .parquet(self.finngen_summary_stats_out)
+        )
+
+        ### Window-based clumping + LD Annotation + LD clumping
+
+        # Extract.
+        ld_index = LDIndex.from_parquet(session=self.session, path=self.ld_index_path)
+
+        # Transform
+        sl = (
+            summary_stats.window_based_clumping()
+            .annotate_ld(study_index=study_index, ld_index=ld_index)
+            .clump()
+        )
+
+        # Write clumped study-locus.
+        sl.df.write.mode(self.session.write_mode).parquet(self.finngen_clumped_out)
+
+        ### PICS
+
+        picsed_sl = PICS.finemap(sl).annotate_credible_sets()
+        picsed_sl.df.write.mode(self.session.write_mode).parquet(
+            self.finngen_picsed_out
         )

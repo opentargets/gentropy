@@ -35,6 +35,8 @@ catalog_study_index: ${datasets.outputs}/catalog_study_index
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 finngen_study_index: ${datasets.outputs}/finngen_study_index
 finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
+finngen_clumped: ${datasets.study_locus/finngen_clumped}
+finngen_picsed: ${datasets.study_locus/finngen_picsed}
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
 l2g_model: ${datasets.outputs}/l2g_model
 l2g_predictions: ${datasets.outputs}/l2g_predictions
