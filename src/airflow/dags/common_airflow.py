@@ -151,7 +151,7 @@ def submit_pyspark_job(
         task_id=task_id,
         job_type="pyspark_job",
         job_specification={
-            "main_python_file_uri": f"{INITIALISATION_BASE_PATH}/{python_module_path}",
+            "main_python_file_uri": python_module_path,
             "args": args,
             "properties": {
                 "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
