@@ -13,15 +13,14 @@ from otg.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from otg.dataset.dataset import Dataset
-from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
-from otg.method.ld import LDAnnotator
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex
 
 
@@ -416,6 +415,8 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Study locus annotated with ld information from LD index.
         """
+        from otg.method.ld import LDAnnotator
+
         return LDAnnotator.ld_annotate(self, study_index, ld_index)
 
     def _qc_unresolved_ld(
