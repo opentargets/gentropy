@@ -18,11 +18,8 @@ class VariantAnnotationStep:
 
     Attributes:
         session (Session): Session object.
-        start_hail (bool): Whether to start a Hail session. Defaults to True.
         variant_annotation_path (str): Output variant annotation path.
     """
-
-    start_hail: bool = True
 
     session: Session = MISSING
     variant_annotation_path: str = MISSING
