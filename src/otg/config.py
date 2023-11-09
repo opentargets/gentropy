@@ -40,4 +40,4 @@ def register_configs() -> None:
     """Register step configs - each config class has all the parameters needed to run a step."""
     cs = ConfigStore.instance()
     cs.store(name="default_config", node=Config)
-    cs.store(name="session_config", group="step/session", node=SessionConfig)
+    cs.store(name="session_config", group="session", node=SessionConfig)
