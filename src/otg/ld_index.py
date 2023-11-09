@@ -19,15 +19,13 @@ class LDIndexStep:
 
     Attributes:
         session (Session): Session object.
-        start_hail (bool): Whether to start Hail. Defaults to True.
         min_r2 (float): Minimum r2 to consider when considering variants within a window.
         ld_index_out (str): Output LD index path.
     """
 
-    start_hail: bool = True
-    min_r2: float = 0.5
-
     session: Session = MISSING
+
+    min_r2: float = 0.5
     ld_index_out: str = MISSING
 
     def __post_init__(self: LDIndexStep) -> None:
