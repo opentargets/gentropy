@@ -1,7 +1,5 @@
 _target_: otg.l2g.LocusToGeneStep
 
-defaults:
-    - session: dataproc
 session:
   extended_spark_conf:
     spark.dynamicAllocation.enabled: false
