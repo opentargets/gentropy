@@ -7,17 +7,14 @@
   prerequisites:
     - "variant_index"
     - "gene_index"
-- id: "finngen"
 - id: "ukbiobank"
 - id: "study_locus_overlap"
   prerequisites:
     - "gwas_catalog"
-    - "finngen"
     - "ukbiobank"
 - id: "locus_to_gene"
   prerequisites:
     - "gwas_catalog"
-    - "finngen"
     - "ukbiobank"
     - "variant_index"
     - "v2g"
