@@ -39,6 +39,11 @@ function install_pip() {
 }
 
 function main() {
+    # Define a specific directory to download the files
+    local work_dir="/"
+    cd "${work_dir}" || err "Failed to change to working directory"
+    echo "Working directory: $(pwd)"
+
     if [[ -z "${PACKAGE}" ]]; then
         echo "ERROR: Must specify PACKAGE metadata key"
         exit 1
@@ -46,7 +51,7 @@ function main() {
     install_pip
 
     echo "Downloading package..."
-    gsutil cp ${PACKAGE} .
+    gsutil cp ${PACKAGE} . || err "Failed to download PACKAGE"
     PACKAGENAME=$(basename ${PACKAGE})
 
     echo "Uninstalling previous version if it exists"
@@ -55,8 +60,8 @@ function main() {
     run_with_retry pip install --upgrade ${PACKAGENAME}
 
     echo "Downloading and uncompressing config..."
-    gsutil cp ${CONFIGTAR} .
-    tar -xvf $(basename ${CONFIGTAR})
+    gsutil cp ${CONFIGTAR} . || err "Failed to download CONFIGTAR"
+    tar -xvf $(basename ${CONFIGTAR}) || err "Failed to extract CONFIGTAR"
 }
 
 main
