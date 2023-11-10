@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING
 
 import hail as hl
 import pyspark.sql.functions as f
-import pyspark.sql.types as t
 from hail.linalg import BlockMatrix
-from pyspark.sql import Row, SparkSession, Window
+from pyspark.sql import Window
 
+from otg.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
 from otg.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
 from otg.dataset.ld_index import LDIndex
 
@@ -315,29 +315,13 @@ class GnomADLDMatrix:
             _schema=LDIndex.get_schema(),
         )
 
-    @staticmethod
-    def _get_value_from_row(row: Row | None, column: str) -> int | None:
-        """Extract index value from a row if exists.
-
-        Args:
-            row (Row | None): One row from a dataframe
-            column (str): column label we want to extract.
-
-        Returns:
-            int | None: _description_
-        """
-        if isinstance(row, Row) and column in row:
-            return row[column]
-        else:
-            return None
-
     def get_ld_variants(
         self: GnomADLDMatrix,
         gnomad_ancestry: str,
         chromosome: str,
         start: int,
         end: int,
-    ) -> DataFrame:
+    ) -> DataFrame | None:
         """Return melted LD table with resolved variant id based on ancestry and genomic location.
 
         Args:
@@ -347,7 +331,7 @@ class GnomADLDMatrix:
             end (int): window lower bound
 
         Returns:
-            DataFrame: square LD matrix resolved to variants.
+            DataFrame | None: LD table with resolved variant id based on ancestry and genomic location
         """
         # Extracting locus:
         ld_index_df = (
@@ -363,48 +347,63 @@ class GnomADLDMatrix:
             .select("chromosome", "position", "variantId", "idx")
             .persist()
         )
-        # +----------+---------+--------------------+--------+
-        # |chromosome| position|           variantId|     idx|
-        # +----------+---------+--------------------+--------+
-        start_index = self._get_value_from_row(
-            ld_index_df.orderBy(f.col("position").asc()).first(), "idx"
+
+        if ld_index_df.limit(1).count() == 0:
+            # If the returned slice from the ld index is empty, return None
+            return None
+
+        # Compute start and end indices
+        start_index = get_value_from_row(
+            get_top_ranked_in_window(
+                ld_index_df, Window.partitionBy().orderBy(f.col("position").asc())
+            ).collect()[0],
+            "idx",
         )
-        end_index = self._get_value_from_row(
-            ld_index_df.orderBy(f.col("position").desc()).first(), "idx"
+        end_index = get_value_from_row(
+            get_top_ranked_in_window(
+                ld_index_df, Window.partitionBy().orderBy(f.col("position").desc())
+            ).collect()[0],
+            "idx",
         )
 
-        # If the returned slice from the ld index is empty, return empty dataframe with the same schema:
-        if (start_index is None) or (end_index is None):
-            schema = t.StructType(
-                [
-                    t.StructField("variantId_i", t.StringType(), True),
-                    t.StructField("variantId_j", t.StringType(), True),
-                    t.StructField("r", t.DoubleType(), True),
-                ]
-            )
-            return SparkSession.builder.getOrCreate().createDataFrame([], schema=schema)
+        return self._extract_square_matrix(
+            ld_index_df, gnomad_ancestry, start_index, end_index
+        )
 
-        # Extract square matrix:
+    def _extract_square_matrix(
+        self: GnomADLDMatrix,
+        ld_index_df: DataFrame,
+        gnomad_ancestry: str,
+        start_index: int,
+        end_index: int,
+    ) -> DataFrame:
+        """Return LD square matrix for a region where coordinates are normalised.
+
+        Args:
+            ld_index_df (DataFrame): Look up table between a variantId and its index in the LD matrix
+            gnomad_ancestry (str): GnomAD major ancestry label eg. `nfe`
+            start_index (int): start index of the slice
+            end_index (int): end index of the slice
+
+        Returns:
+            DataFrame: square LD matrix resolved to variants.
+        """
         return (
             self.get_ld_matrix_slice(
                 gnomad_ancestry, start_index=start_index, end_index=end_index
             )
             .join(
-                (
-                    ld_index_df.select(
-                        f.col("idx").alias("idx_i"),
-                        f.col("variantId").alias("variantId_i"),
-                    )
+                ld_index_df.select(
+                    f.col("idx").alias("idx_i"),
+                    f.col("variantId").alias("variantId_i"),
                 ),
                 on="idx_i",
                 how="inner",
             )
             .join(
-                (
-                    ld_index_df.select(
-                        f.col("idx").alias("idx_j"),
-                        f.col("variantId").alias("variantId_j"),
-                    )
+                ld_index_df.select(
+                    f.col("idx").alias("idx_j"),
+                    f.col("variantId").alias("variantId_j"),
                 ),
                 on="idx_j",
                 how="inner",
