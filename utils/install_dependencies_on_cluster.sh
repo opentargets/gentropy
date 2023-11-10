@@ -43,7 +43,7 @@ function main() {
     local work_dir="/"
     cd "${work_dir}" || err "Failed to change to working directory"
     echo "Working directory: $(pwd)"
-    
+
     # more meaningful errors from hydra
     echo "export HYDRA_FULL_ERROR=1" | tee --append /etc/profile
     source /etc/profile
