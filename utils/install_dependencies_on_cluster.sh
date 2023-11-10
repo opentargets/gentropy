@@ -39,6 +39,10 @@ function install_pip() {
 }
 
 function main() {
+    # more meaningful errors from hydra
+    echo "export HYDRA_FULL_ERROR=1" | tee --append /etc/profile
+    source /etc/profile
+
     if [[ -z "${PACKAGE}" ]]; then
         echo "ERROR: Must specify PACKAGE metadata key"
         exit 1
