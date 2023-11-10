@@ -1,7 +1,7 @@
 """Step to dump a filtered version of a LD matrix (block matrix) as Parquet files."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import hail as hl
 from omegaconf import MISSING
@@ -19,17 +19,13 @@ class LDIndexStep:
 
     Attributes:
         session (Session): Session object.
-        start_hail (bool): Whether to start Hail. Defaults to True.
         min_r2 (float): Minimum r2 to consider when considering variants within a window.
         ld_index_out (str): Output LD index path.
     """
 
-    start_hail: bool = field(
-        default=True,
-    )
-    min_r2: float = 0.5
-
     session: Session = MISSING
+
+    min_r2: float = 0.5
     ld_index_out: str = MISSING
 
     def __post_init__(self: LDIndexStep) -> None:

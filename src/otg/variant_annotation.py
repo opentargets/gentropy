@@ -1,7 +1,7 @@
 """Step to generate variant annotation dataset."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import hail as hl
 from omegaconf import MISSING
@@ -18,13 +18,8 @@ class VariantAnnotationStep:
 
     Attributes:
         session (Session): Session object.
-        start_hail (bool): Whether to start a Hail session. Defaults to True.
         variant_annotation_path (str): Output variant annotation path.
     """
-
-    start_hail: bool = field(
-        default=True,
-    )
 
     session: Session = MISSING
     variant_annotation_path: str = MISSING

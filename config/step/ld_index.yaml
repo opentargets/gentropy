@@ -1,8 +1,5 @@
 _target_: otg.ld_index.LDIndexStep
 
-defaults:
-    - session: dataproc
-
 session:
   start_hail: true
 grch37_to_grch38_chain_path: ${datasets.chain_hail_37_38}
