@@ -89,27 +89,55 @@ class TestGnomADLDMatrixVariants:
             ld_index_raw_template="tests/data_samples/example_{POP}.ht",
             grch37_to_grch38_chain_path="tests/data_samples/grch37_to_grch38.over.chain",
         )
-
-    @pytest.fixture(scope="class")
-    def ld_slice(self: TestGnomADLDMatrixVariants) -> DataFrame | None:
-        """Generate a resolved LD slice."""
-        return self.gnomad_ld_matrix.get_ld_variants(
-            gnomad_ancestry="test-pop",  # observed[0],
-            chromosome="1",  # observed[1],
-            start=10025,  # observed[2],
-            end=10075,  # observed[3],
+        self.ld_slice = self.gnomad_ld_matrix.get_ld_variants(
+            gnomad_ancestry="test-pop",
+            chromosome="1",
+            start=10025,
+            end=10075,
         )
+        self.ld_empty_slice = self.gnomad_ld_matrix.get_ld_variants(
+            gnomad_ancestry="test-pop",
+            chromosome="1",
+            start=0,
+            end=1,
+        )
+
+    # @pytest.fixture(scope="class")
+    # def ld_slice(self: TestGnomADLDMatrixVariants) -> DataFrame | None:
+    #     """Generate a resolved LD slice."""
+    #     return self.gnomad_ld_matrix.get_ld_variants(
+    #         gnomad_ancestry="test-pop",
+    #         chromosome="1",
+    #         start=10025,
+    #         end=10075,
+    #     )
+
+    # @pytest.fixture(scope="class")
+    # def ld_empty_slice(self: TestGnomADLDMatrixVariants) -> DataFrame | None:
+    #     """Generate a resolved LD slice."""
+    #     return self.gnomad_ld_matrix.get_ld_variants(
+    #         gnomad_ancestry="test-pop",
+    #         chromosome="1",
+    #         start=0,
+    #         end=1,
+    #     )
 
     def test_get_ld_variants__type(
         self: TestGnomADLDMatrixVariants,
-        ld_slice: DataFrame
-        # self: TestGnomADLDMatrixVariants, observed: list[Any], expected: list[Any]
     ) -> None:
         """Testing if the function returns the right type."""
         # Do we have the right type?
-        assert isinstance(ld_slice, DataFrame)
+        assert isinstance(self.ld_slice, DataFrame)
         # Do we have a real square?
-        assert sqrt(ld_slice.count()) == int(sqrt(ld_slice.count()))
+        assert sqrt(self.ld_slice.count()) == int(sqrt(self.ld_slice.count()))
+
+    # def test_get_ld_variants_empty__type(
+    #     self: TestGnomADLDMatrixVariants,
+    #     ld_slice: DataFrame,
+    # ) -> None:
+    #     """Testing if the function returns the right type when the ld_slice is empty."""
+    #     ld_slice_empty = ld_slice.limit(0)
+    #     assert ld_slice_empty
 
 
 class TestGnomADLDMatrixSlice:
