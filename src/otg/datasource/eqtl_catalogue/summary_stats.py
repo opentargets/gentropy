@@ -28,7 +28,7 @@ class EqtlCatalogueSummaryStats(SummaryStatistics):
             Column: expression to extract a full study ID from the URI.
         """
         # Example of a URI which is used for parsing:
-        # "ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz".
+        # "gs://genetics_etl_python_playground/input/preprocess/eqtl_catalogue/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz".
 
         # Regular expession to extract project ID from URI.  Example: "GTEx_V8".
         _project_id = f.regexp_extract(

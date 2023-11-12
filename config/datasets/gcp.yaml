@@ -19,7 +19,7 @@ ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study
 l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 finngen_phenotype_table_url: https://r9.finngen.fi/api/phenos
-eqtl_catalogue_paths_imported: https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv
+eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 
 # Output datasets
 gene_index: ${datasets.outputs}/gene_index
