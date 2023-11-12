@@ -78,7 +78,7 @@ class EqtlCatalogueStudyIndex(StudyIndex):
                 "The GTEx Consortium atlas of genetic regulatory effects across human tissues"
             ).alias("publicationTitle"),
             f.lit("GTEx Consortium").alias("publicationFirstAuthor"),
-            f.lit("publicationDate").alias("2020-09-11"),
+            f.lit("2020-09-11").alias("publicationDate"),
             f.lit("Science").alias("publicationJournal"),
         ]
         return (
