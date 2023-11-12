@@ -13,43 +13,57 @@ from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
+    from pyspark.sql.column import Column
 
 
 @dataclass
 class EqtlCatalogueSummaryStats(SummaryStatistics):
     """Summary statistics dataset for eQTL Catalogue."""
 
-    # The following regular expresions are used to construct a full study ID.
-    # Example of a URI which is used for parsing:
-    # "ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz".
+    @staticmethod
+    def _full_study_id_regexp() -> Column:
+        """Constructs a full study ID from the URI.
 
-    # Regular expession to extract project ID from URI.  Example: "GTEx_V8".
-    _project_id = f.regexp_extract(
-        f.input_file_name(),
-        r"ftp://ftp\.ebi\.ac\.uk/pub/databases/spot/eQTL/imported/([^/]+)/.*",
-        1,
-    )
-    # Regular expression to extract QTL group from URI.  Example: "Adipose_Subcutaneous".
-    _qtl_group = f.regexp_extract(f.input_file_name(), r"([^/]+)\.tsv\.gz", 1)
-    # Extracting gene ID from the column.  Example: "ENSG00000225630".
-    _gene_id = f.col("gene_id")
+        Returns:
+            Column: expression to extract a full study ID from the URI.
+        """
+        # Example of a URI which is used for parsing:
+        # "ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz".
 
-    # We can now construct the full study ID based on all fields.
-    # Example: "GTEx_V8_Adipose_Subcutaneous_ENSG00000225630".
-    _study_id = f.concat(_project_id, f.lit("_"), _qtl_group, f.lit("_"), _gene_id)
+        # Regular expession to extract project ID from URI.  Example: "GTEx_V8".
+        _project_id = f.regexp_extract(
+            f.input_file_name(),
+            r"ftp://ftp\.ebi\.ac\.uk/pub/databases/spot/eQTL/imported/([^/]+)/.*",
+            1,
+        )
+        # Regular expression to extract QTL group from URI.  Example: "Adipose_Subcutaneous".
+        _qtl_group = f.regexp_extract(f.input_file_name(), r"([^/]+)\.tsv\.gz", 1)
+        # Extracting gene ID from the column.  Example: "ENSG00000225630".
+        _gene_id = f.col("gene_id")
+
+        # We can now construct the full study ID based on all fields.
+        # Example: "GTEx_V8_Adipose_Subcutaneous_ENSG00000225630".
+        return f.concat(_project_id, f.lit("_"), _qtl_group, f.lit("_"), _gene_id)
 
     @classmethod
     def from_source(
         cls: type[EqtlCatalogueSummaryStats],
         summary_stats_df: DataFrame,
     ) -> EqtlCatalogueSummaryStats:
-        """Ingests all summary statst for all eQTL Catalogue studies."""
+        """Ingests all summary stats for all eQTL Catalogue studies.
+
+        Args:
+            summary_stats_df (DataFrame): an ingested but unprocessed summary statistics dataframe from eQTL Catalogue.
+
+        Returns:
+            EqtlCatalogueSummaryStats: a processed summary statistics dataframe for eQTL Catalogue.
+        """
         processed_summary_stats_df = (
             summary_stats_df
             # Drop rows which don't have proper position.
             .filter(f.col("posision").cast(t.IntegerType()).isNotNull()).select(
                 # Construct study ID from the appropriate columns.
-                cls._study_id.alias("studyId"),
+                cls._full_study_id_regexp().alias("studyId"),
                 # Add variant information.
                 f.concat_ws(
                     "_",
