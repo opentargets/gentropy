@@ -61,7 +61,7 @@ class EqtlCatalogueSummaryStats(SummaryStatistics):
         processed_summary_stats_df = (
             summary_stats_df
             # Drop rows which don't have proper position.
-            .filter(f.col("posision").cast(t.IntegerType()).isNotNull()).select(
+            .filter(f.col("position").cast(t.IntegerType()).isNotNull()).select(
                 # Construct study ID from the appropriate columns.
                 cls._full_study_id_regexp().alias("studyId"),
                 # Add variant information.
