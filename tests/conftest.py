@@ -544,9 +544,7 @@ def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
     """Sample eQTL Catalogue studies."""
     # For reference, the sample file was generated with the following command:
     # curl https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv | head -n11 > tests/data_samples/eqtl_catalogue_studies_sample.tsv
-    with open(
-        "tests/data_samples/eqtl_catalogue_studies_sample.json"
-    ) as eqtl_catalogue:
+    with open("tests/data_samples/eqtl_catalogue_studies_sample.tsv") as eqtl_catalogue:
         tsv = eqtl_catalogue.read()
         rdd = spark.sparkContext.parallelize([tsv])
         return spark.read.csv(rdd, sep="\t", header=True)
