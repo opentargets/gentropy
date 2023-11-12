@@ -86,7 +86,7 @@ class EqtlCatalogueStep:
         # Write summary stats.
         (
             summary_stats_df.sortWithinPartitions("position")
-            .write.partitionBy("studyId")
+            .write.partitionBy("chromosome")
             .mode(self.session.write_mode)
             .parquet(self.eqtl_catalogue_summary_stats_out)
         )
