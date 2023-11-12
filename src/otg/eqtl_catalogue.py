@@ -34,7 +34,7 @@ class EqtlCatalogueStep:
         # Fetch study index.
         tsv_data = urlopen(self.eqtl_catalogue_paths_imported).read().decode("utf-8")
         rdd = self.session.spark.sparkContext.parallelize([tsv_data])
-        df = self.session.spark.read.option("delimiter", "\t").csv(rdd)
+        df = self.session.spark.read.option("delimiter", "\t").csv(rdd, header=True)
         # Process partial study index.  At this point, it is not complete because we don't have the gene IDs, which we
         # will only get once the summary stats are ingested.
         study_index_df = EqtlCatalogueStudyIndex.from_source(df).df
