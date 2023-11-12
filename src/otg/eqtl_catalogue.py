@@ -23,7 +23,7 @@ class EqtlCatalogueStep:
         eqtl_catalogue_summary_stats_out (str): Output path for the eQTL Catalogue summary stats.
     """
 
-    session: Session = Session()
+    session: Session = MISSING
 
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
