@@ -33,7 +33,7 @@ class EqtlCatalogueSummaryStats(SummaryStatistics):
         # Regular expession to extract project ID from URI.  Example: "GTEx_V8".
         _project_id = f.regexp_extract(
             f.input_file_name(),
-            r"ftp://ftp\.ebi\.ac\.uk/pub/databases/spot/eQTL/imported/([^/]+)/.*",
+            r"imported/([^/]+)/.*",
             1,
         )
         # Regular expression to extract QTL group from URI.  Example: "Adipose_Subcutaneous".

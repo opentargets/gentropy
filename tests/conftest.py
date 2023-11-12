@@ -553,6 +553,19 @@ def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_eqtl_catalogue_summary_stats(spark: SparkSession) -> DataFrame:
+    """Sample eQTL Catalogue summary stats."""
+    # For reference, the sample file was generated with the following commands:
+    # mkdir -p tests/data_samples/imported/GTEx_V8/ge
+    # curl ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz
+    # It's important for the test file to be named in exactly this way, because eQTL Catalogue study ID is populated based on input file name.
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz",
+        header=True,
+    )
+
+
+@pytest.fixture()
 def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
     """Sample UKBiobank manifest."""
     # Sampled 10 rows of the UKBB manifest tsv
