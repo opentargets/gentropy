@@ -23,6 +23,8 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
+from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
 from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
@@ -158,6 +160,24 @@ def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
 def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
     """Mock FinnGenSummaryStats dataset."""
     return FinnGenSummaryStats(
+        _df=mock_summary_statistics_data(spark),
+        _schema=SummaryStatistics.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueStudyIndex:
+    """Mock EqtlCatalogueStudyIndex dataset."""
+    return EqtlCatalogueStudyIndex(
+        _df=mock_study_index_data(spark),
+        _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_summary_stats_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueSummaryStats:
+    """Mock EqtlCatalogueSummaryStats dataset."""
+    return EqtlCatalogueSummaryStats(
         _df=mock_summary_statistics_data(spark),
         _schema=SummaryStatistics.get_schema(),
     )
