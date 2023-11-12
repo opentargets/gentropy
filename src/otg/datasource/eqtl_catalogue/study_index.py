@@ -51,7 +51,7 @@ class EqtlCatalogueStudyIndex(StudyIndex):
             ).alias("traitFromSourceMappedIds"),
         ]
         sample_attributes = [
-            f.lit(838).alias("nSamples"),
+            f.lit(838).cast("long").alias("nSamples"),
             f.lit("838 (281 females and 557 males)").alias("initialSampleSize"),
             f.array(
                 f.struct(
