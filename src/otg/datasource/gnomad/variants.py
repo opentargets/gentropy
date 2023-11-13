@@ -92,8 +92,7 @@ class GnomADVariants:
         # Select relevant fields and nested records to create class
         return VariantAnnotation(
             _df=(
-                ht.head(30)
-                .select(
+                ht.select(
                     gnomad3VariantId=hl.str("-").join(
                         [
                             ht.locus.contig.replace("chr", ""),

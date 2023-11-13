@@ -22,7 +22,7 @@ gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 
 # Output datasets
 gene_index: ${datasets.outputs}/gene_index
-variant_annotation: ${datasets.outputs}/variant_annotation_test
+variant_annotation: ${datasets.outputs}/variant_annotation
 variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
 study_locus_overlap: ${datasets.outputs}/study_locus_overlap
