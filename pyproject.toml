@@ -22,7 +22,7 @@ scikit-learn = "^1.2.1"
 numpy = "^1.26.1"
 hail = "0.2.126"
 pyarrow = "^11.0.0"
-wandb = "^0.13.9"
+wandb = "^0.16.0"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^3.5.0"
