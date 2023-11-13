@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from math import sqrt
 from typing import Any
 
 import hail as hl
@@ -71,74 +72,87 @@ def test_resolve_variant_indices(
     )
 
 
-class TestGnomADLDMatrix:
-    """Test GnomAD LD methods."""
+class TestGnomADLDMatrixVariants:
+    """Test the resolved LD variant sets."""
 
-    gnomad_ld_matrix: GnomADLDMatrix
-    ld_population: str = "test-pop"
-    slice_start_index: int = 1
-    slice_end_index: int = 2
+    def test_get_ld_slice_type(self: TestGnomADLDMatrixVariants) -> None:
+        """Testing if ld_slice has the right type."""
+        assert isinstance(self.ld_slice, DataFrame)
 
-    @pytest.fixture(autouse=True, scope="class")
-    def _setup(self: TestGnomADLDMatrix, spark: SparkSession) -> None:
-        """Initialize hail for the tests below."""
-        hl.init(sc=spark.sparkContext, log="/dev/null")
-        self.gnomad_ld_matrix = GnomADLDMatrix(
-            ld_matrix_template="tests/data_samples/example_{POP}.bm"
+    def test_get_ld_empty_slice_type(self: TestGnomADLDMatrixVariants) -> None:
+        """Testing if ld_empty_slice is None."""
+        assert self.ld_empty_slice is None
+
+    def test_get_ld_variants__square(
+        self: TestGnomADLDMatrixVariants,
+    ) -> None:
+        """Testing if the function returns a square matrix."""
+        if self.ld_slice is not None:
+            assert sqrt(self.ld_slice.count()) == int(sqrt(self.ld_slice.count()))
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestGnomADLDMatrixVariants, spark: SparkSession) -> None:
+        """Prepares fixtures for the test."""
+        hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
+
+        ld_test_population = "test-pop"
+
+        gnomad_ld_matrix = GnomADLDMatrix(
+            ld_matrix_template="tests/data_samples/example_{POP}.bm",
+            ld_index_raw_template="tests/data_samples/example_{POP}.ht",
+            grch37_to_grch38_chain_path="tests/data_samples/grch37_to_grch38.over.chain",
+        )
+        self.ld_slice = gnomad_ld_matrix.get_ld_variants(
+            gnomad_ancestry=ld_test_population,
+            chromosome="1",
+            start=10025,
+            end=10075,
+        )
+        self.ld_empty_slice = gnomad_ld_matrix.get_ld_variants(
+            gnomad_ancestry=ld_test_population,
+            chromosome="1",
+            start=0,
+            end=1,
         )
 
-    @pytest.fixture(scope="class")
-    def matrix_slice(self) -> DataFrame:
-        """Return a slice from the LD matrix.
 
-        Returns:
-            DataFrame: Melted LD matrix
-        """
-        return self.gnomad_ld_matrix.get_ld_matrix_slice(
-            gnomad_ancestry=self.ld_population,
-            start_index=self.slice_start_index,
-            end_index=self.slice_end_index,
-        ).persist()
+class TestGnomADLDMatrixSlice:
+    """Test GnomAD LD methods."""
 
-    def test_get_ld_matrix_slice__diagonal(
-        self: TestGnomADLDMatrix, matrix_slice: DataFrame
-    ) -> None:
+    def test_get_ld_matrix_slice__diagonal(self: TestGnomADLDMatrixSlice) -> None:
         """Test LD matrix slice."""
-        # Has the returned data ones in the diagonal?
         assert (
-            matrix_slice.filter(f.col("idx_i") == f.col("idx_j"))
+            self.matrix_slice.filter(f.col("idx_i") == f.col("idx_j"))
             .select("r")
             .distinct()
             .collect()[0]["r"]
             == 1.0
-        )
+        ), "The matrix does not have ones in the diagonal."
 
-    def test_get_ld_matrix_slice__count(
-        self: TestGnomADLDMatrix, matrix_slice: DataFrame
-    ) -> None:
+    def test_get_ld_matrix_slice__count(self: TestGnomADLDMatrixSlice) -> None:
         """Test LD matrix slice."""
         # As the slicing of the matrix is inclusive, the total number of rows are calculated as follows:
         included_indices = self.slice_end_index - self.slice_start_index + 1
         expected_pariwise_count = included_indices**2
 
-        # Is the returned data has the right number of rows?
-        assert matrix_slice.count() == expected_pariwise_count
+        assert (
+            self.matrix_slice.count() == expected_pariwise_count
+        ), "The matrix is not complete."
 
-    def test_get_ld_matrix_slice__type(
-        self: TestGnomADLDMatrix, matrix_slice: DataFrame
-    ) -> None:
+    def test_get_ld_matrix_slice__type(self: TestGnomADLDMatrixSlice) -> None:
         """Test LD matrix slice."""
-        # Is the returned data is a dataframe?
-        assert isinstance(matrix_slice, DataFrame)
+        assert isinstance(
+            self.matrix_slice, DataFrame
+        ), "The returned data is not a dataframe."
 
     def test_get_ld_matrix_slice__symmetry(
-        self: TestGnomADLDMatrix, matrix_slice: DataFrame
+        self: TestGnomADLDMatrixSlice,
     ) -> None:
         """Test LD matrix slice."""
         # Testing square matrix completeness and symmetry:
-        compared = matrix_slice.join(
+        compared = self.matrix_slice.join(
             (
-                matrix_slice.select(
+                self.matrix_slice.select(
                     f.col("idx_i").alias("idx_j"),
                     f.col("idx_j").alias("idx_i"),
                     f.col("r").alias("r_sym"),
@@ -148,8 +162,26 @@ class TestGnomADLDMatrix:
             how="inner",
         )
 
-        # Is the matrix complete:
-        assert compared.count() == matrix_slice.count()
+        assert (
+            compared.count() == self.matrix_slice.count()
+        ), "The matrix is not complete."
+        assert (
+            compared.filter(f.col("r") == f.col("r_sym")).count() == compared.count()
+        ), "The matrix is not symmetric."
 
-        # Is the matrix symmetric:
-        assert compared.filter(f.col("r") == f.col("r_sym")).count() == compared.count()
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestGnomADLDMatrixSlice, spark: SparkSession) -> None:
+        """Prepares fixtures for the test."""
+        hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
+        gnomad_ld_matrix = GnomADLDMatrix(
+            ld_matrix_template="tests/data_samples/example_{POP}.bm"
+        )
+        test_ld_population: str = "test-pop"
+        self.slice_start_index: int = 1
+        self.slice_end_index: int = 2
+
+        self.matrix_slice = gnomad_ld_matrix.get_ld_matrix_slice(
+            gnomad_ancestry=test_ld_population,
+            start_index=self.slice_start_index,
+            end_index=self.slice_end_index,
+        )
