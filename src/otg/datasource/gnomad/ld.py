@@ -14,6 +14,7 @@ from pyspark.sql import Row, SparkSession, Window
 
 from otg.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
 from otg.dataset.ld_index import LDIndex
+from otg.dataset.pairwise_ld import PairwiseLD
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -337,7 +338,7 @@ class GnomADLDMatrix:
         chromosome: str,
         start: int,
         end: int,
-    ) -> DataFrame:
+    ) -> PairwiseLD:
         """Return melted LD table with resolved variant id based on ancestry and genomic location.
 
         Args:
@@ -347,7 +348,7 @@ class GnomADLDMatrix:
             end (int): window lower bound
 
         Returns:
-            DataFrame: square LD matrix resolved to variants.
+            PairwiseLD: Melted representation of the square slice of the LD matrix.
         """
         # Extracting locus:
         ld_index_df = (
@@ -363,9 +364,6 @@ class GnomADLDMatrix:
             .select("chromosome", "position", "variantId", "idx")
             .persist()
         )
-        # +----------+---------+--------------------+--------+
-        # |chromosome| position|           variantId|     idx|
-        # +----------+---------+--------------------+--------+
         start_index = self._get_value_from_row(
             ld_index_df.orderBy(f.col("position").asc()).first(), "idx"
         )
@@ -385,31 +383,34 @@ class GnomADLDMatrix:
             return SparkSession.builder.getOrCreate().createDataFrame([], schema=schema)
 
         # Extract square matrix:
-        return (
-            self.get_ld_matrix_slice(
-                gnomad_ancestry, start_index=start_index, end_index=end_index
-            )
-            .join(
-                (
-                    ld_index_df.select(
-                        f.col("idx").alias("idx_i"),
-                        f.col("variantId").alias("variantId_i"),
-                    )
-                ),
-                on="idx_i",
-                how="inner",
-            )
-            .join(
-                (
-                    ld_index_df.select(
-                        f.col("idx").alias("idx_j"),
-                        f.col("variantId").alias("variantId_j"),
-                    )
-                ),
-                on="idx_j",
-                how="inner",
-            )
-            .select("variantId_i", "variantId_j", "r")
+        return PairwiseLD(
+            _df=(
+                self.get_ld_matrix_slice(
+                    gnomad_ancestry, start_index=start_index, end_index=end_index
+                )
+                .join(
+                    (
+                        ld_index_df.select(
+                            f.col("idx").alias("idx_i"),
+                            f.col("variantId").alias("variantId_i"),
+                        )
+                    ),
+                    on="idx_i",
+                    how="inner",
+                )
+                .join(
+                    (
+                        ld_index_df.select(
+                            f.col("idx").alias("idx_j"),
+                            f.col("variantId").alias("variantId_j"),
+                        )
+                    ),
+                    on="idx_j",
+                    how="inner",
+                )
+                .select("variantId_i", "variantId_j", "r")
+            ),
+            _schema=PairwiseLD.get_schema(),
         )
 
     def get_ld_matrix_slice(

@@ -10,6 +10,7 @@ import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 
+from otg.dataset.pairwise_ld import PairwiseLD
 from otg.datasource.gnomad.ld import GnomADLDMatrix
 
 
@@ -91,7 +92,7 @@ class TestGnomADLDMatrixVariants:
         )
 
     @pytest.fixture(scope="class")
-    def ld_slice(self: TestGnomADLDMatrixVariants) -> DataFrame:
+    def ld_slice(self: TestGnomADLDMatrixVariants) -> PairwiseLD:
         """Generate a resolved LD slice."""
         return self.gnomad_ld_matrix.get_ld_variants(
             gnomad_ancestry="test-pop",  # observed[0],
@@ -102,14 +103,14 @@ class TestGnomADLDMatrixVariants:
 
     def test_get_ld_variants__type(
         self: TestGnomADLDMatrixVariants,
-        ld_slice: DataFrame
+        ld_slice: PairwiseLD
         # self: TestGnomADLDMatrixVariants, observed: list[Any], expected: list[Any]
     ) -> None:
         """Testing if the function returns the right type."""
         # Do we have the right type?
-        assert isinstance(ld_slice, DataFrame)
+        assert isinstance(ld_slice, PairwiseLD)
         # Do we have a real square?
-        assert sqrt(ld_slice.count()) == int(sqrt(ld_slice.count()))
+        assert sqrt(ld_slice.df.count()) == int(sqrt(ld_slice.df.count()))
 
 
 class TestGnomADLDMatrixSlice:
