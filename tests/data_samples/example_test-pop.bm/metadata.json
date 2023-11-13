@@ -1,21 +1,29 @@
 {
   "blockSize": 2,
-  "nRows": 5,
-  "nCols": 5,
+  "nRows": 7,
+  "nCols": 7,
   "maybeFiltered": [
     0,
-    3,
     4,
-    6,
-    7,
-    8
+    5,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    15
   ],
   "partFiles": [
-    "part-0-17-0-0-e3ab091a-11ed-50ee-431d-8f2be29e7fb0",
-    "part-1-17-1-0-50da5bf3-93d4-fb68-d8ad-4450d10b2c28",
-    "part-2-17-2-0-94bda190-9389-91ab-30ad-9b3c9a3baf39",
-    "part-3-17-3-0-819f71a1-a22c-8937-48e2-dc686b8ec9c5",
-    "part-4-17-4-0-b9ac71e5-8432-3dac-e262-4eb17772eb45",
-    "part-5-17-5-0-8d7756c7-f87c-eff0-3262-a16def109b7a"
+    "part-00-36-0-0-9da891bc-b3f3-211c-ec5d-b4586236d3f6",
+    "part-01-36-1-0-0f48a14a-3dc0-261b-3b0e-e3549671ed4b",
+    "part-02-36-2-0-c23e0dd7-d912-f900-88fd-fae87408e0bd",
+    "part-03-36-3-0-596fbcf8-3832-3676-1b73-987b185558f9",
+    "part-04-36-4-0-556c0d84-977b-2faa-376b-e758c55e2f42",
+    "part-05-36-5-0-8ac23bab-8bc8-8b2e-b897-9d818f17a80e",
+    "part-06-36-6-0-821b84fa-ae1c-8e95-c967-485dc621bd09",
+    "part-07-36-7-0-35b03c95-f5f4-aa0a-c39a-3e0a201c7e60",
+    "part-08-36-8-0-b6d68819-fa17-6649-1400-4113d86b4b81",
+    "part-09-36-9-0-7e9bb167-9ee1-443f-de8d-dcebf8c9b5fa"
   ]
 }
