@@ -3,7 +3,6 @@ _target_: otg.l2g.LocusToGeneStep
 session:
   extended_spark_conf:
     spark.dynamicAllocation.enabled: false
-
 run_mode: train
 wandb_run_name: null
 perform_cross_validation: false
