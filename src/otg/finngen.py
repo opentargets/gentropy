@@ -54,10 +54,8 @@ class FinnGenStep:
 
         # Fetch summary stats.
         input_filenames = [row.summarystatsLocation for row in study_index.df.collect()]
-        summary_stats_df = (
-            self.session.spark.read.option("delimiter", "\t")
-            .csv(input_filenames, header=True)
-            .repartition(len(input_filenames) * 16)
+        summary_stats_df = self.session.spark.read.option("delimiter", "\t").csv(
+            input_filenames, header=True
         )
         # Process summary stats.
         summary_stats_df = FinnGenSummaryStats.from_source(summary_stats_df).df
