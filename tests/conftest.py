@@ -1,7 +1,10 @@
 """Unit test configuration."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import dbldatagen as dg
+import hail as hl
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
@@ -44,6 +47,12 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
         .appName("test")
         .getOrCreate()
     )
+
+
+@pytest.fixture()
+def hail_home() -> str:
+    """Return the path to the Hail home directory."""
+    return Path(hl.__file__).parent.as_posix()
 
 
 @pytest.fixture()
