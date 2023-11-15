@@ -203,16 +203,17 @@ class StudyLocus(Dataset):
 
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
-            +----------+----------+--------------------+
-            |   studyId| variantId|      study_locus_id|
-            +----------+----------+--------------------+
-            |GCST000001|1_1000_A_C| 7437284926964690765|
-            |GCST000002|1_1000_A_C|-7653912547667845377|
-            +----------+----------+--------------------+
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"))).show()
+            +----------+----------+-------------------+
+            |   studyId| variantId|     study_locus_id|
+            +----------+----------+-------------------+
+            |GCST000001|1_1000_A_C|1553357789130151995|
+            |GCST000002|1_1000_A_C|-415050894682709184|
+            +----------+----------+-------------------+
             <BLANKLINE>
         """
-        return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
+        variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
+        return f.xxhash64(study_id_col, variant_id_col).alias("studyLocusId")
 
     @classmethod
     def get_schema(cls: type[StudyLocus]) -> StructType:

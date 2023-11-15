@@ -1,7 +1,6 @@
 _target_: otg.variant_annotation.VariantAnnotationStep
 
-defaults:
-    - session: dataproc
-    - start_hail: true
+session:
+  start_hail: true
 
 variant_annotation_path: ${datasets.variant_annotation}

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pyspark.sql.functions as f
 import pytest
 from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
@@ -40,6 +41,20 @@ def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     assert isinstance(
         mock_study_locus.filter_credible_set(CredibleInterval.IS95), StudyLocus
     )
+
+
+def test_assign_study_locus_id__null_variant_id(spark: SparkSession) -> None:
+    """Test assign study locus id when variant id is null for the same study."""
+    df = spark.createDataFrame(
+        [("GCST000001", None), ("GCST000001", None)],
+        schema="studyId: string, variantId: string",
+    ).withColumn(
+        "studyLocusId",
+        StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+    )
+    assert (
+        df.select("studyLocusId").distinct().count() == 2
+    ), "studyLocusId is not unique when variantId is null"
 
 
 @pytest.mark.parametrize(

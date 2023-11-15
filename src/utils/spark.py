@@ -14,7 +14,6 @@ def get_spark_testing_conf() -> SparkConf:
         SparkConf: SparkConf with settings for testing.
     """
     hail_home = Path(hl.__file__).parent.as_posix()
-
     return (
         SparkConf()
         .set("spark.driver.bindAddress", "127.0.0.1")
