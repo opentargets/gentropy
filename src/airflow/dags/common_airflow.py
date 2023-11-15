@@ -61,7 +61,7 @@ shared_dag_kwargs = dict(
 
 def create_cluster(
     cluster_name: str,
-    master_machine_type: str = "n1-standard-4",
+    master_machine_type: str = "n1-highmem-8",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
 ) -> DataprocCreateClusterOperator:
