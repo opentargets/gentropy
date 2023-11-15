@@ -60,7 +60,7 @@ class GWASCatalogStep:
         )
         catalog_associations = self.session.spark.read.csv(
             self.catalog_associations_file, sep="\t", header=True
-        )
+        ).persist()
         ld_index = LDIndex.from_parquet(self.session, self.ld_index_path)
 
         # Transform

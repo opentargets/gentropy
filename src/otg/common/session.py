@@ -45,7 +45,11 @@ class Session:
             .getOrCreate()
         )
         self.logger = Log4j(self.spark)
+
         self.write_mode = write_mode
+
+        self.hail_home = hail_home
+        self.start_hail = start_hail
 
     def _default_config(self: Session) -> SparkConf:
         """Default spark configuration.
@@ -75,9 +79,14 @@ class Session:
 
         Returns:
             SparkConf: Hail specific Spark configuration.
+
+        Raises:
+            ValueError: If Hail home is not specified but Hail is requested.
         """
         if not start_hail:
             return SparkConf()
+        if not hail_home:
+            raise ValueError("Hail home must be specified to start Hail.")
         return (
             SparkConf()
             .set("spark.jars", f"{hail_home}/backend/hail-all-spark.jar")
@@ -87,8 +96,6 @@ class Session:
             .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
             .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
-            .set("spark.sql.files.openCostInBytes", "50gb")
-            .set("spark.sql.files.maxPartitionBytes", "50gb")
         )
 
     def _create_merged_config(
@@ -110,10 +117,9 @@ class Session:
         all_settings = (
             self._default_config().getAll()
             + self._hail_config(start_hail, hail_home).getAll()
-            + list(extended_spark_conf.items())
-            if extended_spark_conf
-            else []
         )
+        if extended_spark_conf:
+            all_settings += list(extended_spark_conf.items())
         return SparkConf().setAll(all_settings)
 
     def read_parquet(
@@ -136,15 +142,14 @@ class Session:
 
 
 class Log4j:
-    """Log4j logger class.
+    """Log4j logger class."""
 
-    This class provides a wrapper around the Log4j logging system.
+    def __init__(self, spark: SparkSession) -> None:
+        """Log4j logger class. This class provides a wrapper around the Log4j logging system.
 
-    Args:
-        spark (SparkSession): The Spark session used to access Spark context and Log4j logging.
-    """
-
-    def __init__(self, spark: SparkSession) -> None:  # noqa: D107
+        Args:
+            spark (SparkSession): The Spark session used to access Spark context and Log4j logging.
+        """
         # get spark app details with which to prefix all messages
         log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
         self.logger = log4j.Logger.getLogger(__name__)
