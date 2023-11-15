@@ -1,14 +1,12 @@
 """Study Index for Finngen data source."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from urllib.request import urlopen
 
 import pyspark.sql.functions as f
 
+from otg.common.session import Session
 from otg.dataset.study_index import StudyIndex
-
-if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
 
 
 class FinnGenStudyIndex(StudyIndex):
@@ -24,35 +22,39 @@ class FinnGenStudyIndex(StudyIndex):
     Some fields are also populated as constants, such as study type and the initial sample size.
     """
 
+    finngen_phenotype_table_url: str = "https://r9.finngen.fi/api/phenos"
+    finngen_release_prefix: str = "FINNGEN_R9"
+    finngen_summary_stats_url_prefix: str = (
+        "gs://finngen-public-data-r9/summary_stats/finngen_R9_"
+    )
+    finngen_summary_stats_url_suffix: str = ".gz"
+
     @classmethod
     def from_source(
         cls: type[FinnGenStudyIndex],
-        finngen_studies: DataFrame,
-        finngen_release_prefix: str,
-        finngen_summary_stats_url_prefix: str,
-        finngen_summary_stats_url_suffix: str,
+        session: Session,
     ) -> FinnGenStudyIndex:
         """This function ingests study level metadata from FinnGen.
 
         Args:
-            finngen_studies (DataFrame): FinnGen raw study table
-            finngen_release_prefix (str): Release prefix pattern.
-            finngen_summary_stats_url_prefix (str): URL prefix for summary statistics location.
-            finngen_summary_stats_url_suffix (str): URL prefix suffix for summary statistics location.
+            session (Session): Session object.
 
         Returns:
             FinnGenStudyIndex: Parsed and annotated FinnGen study table.
         """
+        json_data = urlopen(cls.finngen_phenotype_table_url).read().decode("utf-8")
+        rdd = session.spark.sparkContext.parallelize([json_data])
+        finngen_studies = session.spark.read.json(rdd)
         return FinnGenStudyIndex(
             _df=finngen_studies.select(
-                f.concat(f.lit(f"{finngen_release_prefix}_"), f.col("phenocode")).alias(
-                    "studyId"
-                ),
+                f.concat(
+                    f.lit(f"{cls.finngen_release_prefix}_"), f.col("phenocode")
+                ).alias("studyId"),
                 f.col("phenostring").alias("traitFromSource"),
                 f.col("num_cases").alias("nCases"),
                 f.col("num_controls").alias("nControls"),
                 (f.col("num_cases") + f.col("num_controls")).alias("nSamples"),
-                f.lit(finngen_release_prefix).alias("projectId"),
+                f.lit(cls.finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
                 f.lit("377,277 (210,870 females and 166,407 males)").alias(
@@ -65,9 +67,9 @@ class FinnGenStudyIndex(StudyIndex):
                     )
                 ).alias("discoverySamples"),
                 f.concat(
-                    f.lit(finngen_summary_stats_url_prefix),
+                    f.lit(cls.finngen_summary_stats_url_prefix),
                     f.col("phenocode"),
-                    f.lit(finngen_summary_stats_url_suffix),
+                    f.lit(cls.finngen_summary_stats_url_suffix),
                 ).alias("summarystatsLocation"),
             ).withColumn(
                 "ldPopulationStructure",

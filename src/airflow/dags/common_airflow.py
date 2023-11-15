@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
-OTG_VERSION = "1.0.0"
+OTG_VERSION = "1.0.17"
 
 
 # Cloud configuration.
@@ -49,7 +49,7 @@ PYTHON_CLI = "cli.py"
 # Shared DAG construction parameters.
 shared_dag_args = dict(
     owner="Open Targets Data Team",
-    retries=1,
+    retries=0,
 )
 shared_dag_kwargs = dict(
     tags=["genetics_etl", "experimental"],
@@ -81,7 +81,7 @@ def create_cluster(
         zone=GCP_ZONE,
         master_machine_type=master_machine_type,
         worker_machine_type=worker_machine_type,
-        master_disk_size=500,
+        master_disk_size=2000,
         worker_disk_size=500,
         num_workers=num_workers,
         num_local_ssds=1,
@@ -164,19 +164,22 @@ def submit_pyspark_job(
     )
 
 
-def submit_step(cluster_name: str, step_id: str) -> DataprocSubmitJobOperator:
+def submit_step(
+    cluster_name: str, step_id: str, task_id: str
+) -> DataprocSubmitJobOperator:
     """Submit a PySpark job to execute a specific CLI step.
 
     Args:
         cluster_name (str): Name of the cluster.
-        step_id (str): Name of the step.
+        step_id (str): Name of the step in otg.
+        task_id (str): Name of the task in airflow.
 
     Returns:
         DataprocSubmitJobOperator: Airflow task to submit a PySpark job to execute a specific CLI step.
     """
     return submit_pyspark_job(
         cluster_name=cluster_name,
-        task_id=step_id,
+        task_id=task_id,
         python_module_path=f"{INITIALISATION_BASE_PATH}/{PYTHON_CLI}",
         args=[
             f"step={step_id}",
@@ -228,7 +231,6 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
         cluster_name=cluster_name,
         region=GCP_REGION,
         trigger_rule=TriggerRule.ALL_DONE,
-        deferrable=True,
     )
 
 
