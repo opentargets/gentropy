@@ -62,78 +62,83 @@ class OpenTargetsL2GGoldStandard:
             "leftStudyLocusId", "rightStudyLocusId"
         )
         interactions_df = cls.process_gene_interactions(interactions)
+
+        positive_set = (
+            gold_standard_curation.filter(
+                f.col("gold_standard_info.highest_confidence").isin(["High", "Medium"])
+            )
+            .select(
+                f.col("association_info.otg_id").alias("studyId"),
+                f.col("gold_standard_info.gene_id").alias("geneId"),
+                f.concat_ws(
+                    "_",
+                    f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                    f.col("sentinel_variant.locus_GRCh38.position"),
+                    f.col("sentinel_variant.alleles.reference"),
+                    f.col("sentinel_variant.alleles.alternative"),
+                ).alias("variantId"),
+                f.col("metadata.set_label").alias("source"),
+            )
+            .withColumn(
+                "studyLocusId",
+                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+            )
+            .groupBy("studyLocusId", "studyId", "variantId", "geneId")
+            .agg(
+                f.collect_set("source").alias("sources"),
+            )
+        )
+
+        full_set = (
+            # Bring negative evidence based on genes that are in the vicinity of the locus but are not part of the positive set
+            positive_set.alias("positives")
+            .join(
+                v2g.df.filter(f.col("distance") <= 500_000)
+                .select("variantId", "geneId", "distance")
+                .alias("negatives"),
+                on="variantId",
+                how="left",
+            )
+            # Assign set label
+            .withColumn(
+                "goldStandardSet",
+                f.when(
+                    (f.col("positives.geneId") == f.col("negatives.geneId"))
+                    # to keep the positives that are outside the v2g dataset
+                    | (f.col("negatives.geneId").isNull()),
+                    f.lit("positive"),
+                ).otherwise("negative"),
+            )
+            # Remove redundant loci by testing they are truly independent
+            .alias("left")
+            .join(
+                overlaps_df.alias("right"),
+                (f.col("left.variantId") == f.col("right.leftStudyLocusId"))
+                | (f.col("left.variantId") == f.col("right.rightStudyLocusId")),
+                how="left",
+            )
+            .distinct()
+            # filter out genes where geneIdA has goldStandardSet negative but geneIdA and gene IdB are interacting
+            .join(
+                interactions_df.alias("interactions"),
+                (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                | (f.col("left.geneId") == f.col("interactions.geneIdB")),
+                how="left",
+            )
+            .withColumn("interacting", (f.col("score") > 0.7))
+            .filter(
+                ~(
+                    (f.col("goldStandardSet") == 0)
+                    & (f.col("interacting"))
+                    & (
+                        (f.col("left.geneId") == f.col("interactions.geneIdA"))
+                        | (f.col("left.geneId") == f.col("interactions.geneIdB"))
+                    )
+                )
+            )
+            .select("studyLocusId", "geneId", "goldStandardSet", "sources")
+        )
         return L2GGoldStandard(
-            _df=(
-                gold_standard_curation.filter(
-                    f.col("gold_standard_info.highest_confidence").isin(
-                        ["High", "Medium"]
-                    )
-                )
-                .select(
-                    f.col("association_info.otg_id").alias("studyId"),
-                    f.col("gold_standard_info.gene_id").alias("geneId"),
-                    f.concat_ws(
-                        "_",
-                        f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                        f.col("sentinel_variant.locus_GRCh38.position"),
-                        f.col("sentinel_variant.alleles.reference"),
-                        f.col("sentinel_variant.alleles.alternative"),
-                    ).alias("variantId"),
-                    f.col("metadata.set_label").alias("source"),
-                )
-                .withColumn(
-                    "studyLocusId",
-                    StudyLocus.assign_study_locus_id(
-                        f.col("studyId"), f.col("variantId")
-                    ),
-                )
-                .groupBy("studyLocusId", "studyId", "variantId", "geneId")
-                .agg(
-                    f.collect_set("source").alias("sources"),
-                )
-                # Assign Positive or Negative Status based on confidence
-                .join(
-                    v2g.df.filter(f.col("distance").isNotNull()).select(
-                        "variantId", "geneId", "distance"
-                    ),
-                    on=["variantId", "geneId"],
-                    how="inner",
-                )
-                .withColumn(
-                    "goldStandardSet",
-                    f.when(f.col("distance") <= 500_000, f.lit("positive")).otherwise(
-                        f.lit("negative")
-                    ),
-                )
-                # Remove redundant loci by testing they are truly independent
-                .alias("left")
-                .join(
-                    overlaps_df.alias("right"),
-                    (f.col("left.variantId") == f.col("right.leftStudyLocusId"))
-                    | (f.col("left.variantId") == f.col("right.rightStudyLocusId")),
-                    how="left",
-                )
-                .distinct()
-                # Remove redundant genes by testing they do not interact with a positive gene
-                .join(
-                    interactions_df.alias("interactions"),
-                    (f.col("left.geneId") == f.col("interactions.geneIdA"))
-                    | (f.col("left.geneId") == f.col("interactions.geneIdB")),
-                    how="left",
-                )
-                .withColumn("interacting", (f.col("score") > 0.7))
-                # filter out genes where geneIdA has goldStandardSet negative but geneIdA and gene IdB are interacting
-                .filter(
-                    ~(
-                        (f.col("goldStandardSet") == 0)
-                        & (f.col("interacting"))
-                        & (
-                            (f.col("left.geneId") == f.col("interactions.geneIdA"))
-                            | (f.col("left.geneId") == f.col("interactions.geneIdB"))
-                        )
-                    )
-                )
-                .select("studyLocusId", "geneId", "goldStandardSet", "sources")
-            ),
+            _df=full_set,
             _schema=L2GGoldStandard.get_schema(),
         )
