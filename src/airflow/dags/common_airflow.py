@@ -84,7 +84,6 @@ def create_cluster(
         master_disk_size=500,
         worker_disk_size=500,
         num_workers=num_workers,
-        num_local_ssds=1,
         image_version=GCP_DATAPROC_IMAGE,
         enable_component_gateway=True,
         init_actions_uris=INITIALISATION_EXECUTABLE_FILE,
