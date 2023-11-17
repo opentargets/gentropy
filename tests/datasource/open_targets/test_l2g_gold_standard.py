@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING
 from pyspark.sql import DataFrame
 
 from otg.dataset.l2g_gold_standard import L2GGoldStandard
+from otg.dataset.v2g import V2G
 from otg.datasource.open_targets.l2g_gold_standard import OpenTargetsL2GGoldStandard
 
 if TYPE_CHECKING:
-    from otg.dataset.v2g import V2G
+    from pyspark.sql.session import SparkSession
 
 
 def test_open_targets_as_l2g_gold_standard(
@@ -33,3 +34,36 @@ def test_parse_positive_curation(
     expected_cols = ["studyLocusId", "studyId", "variantId", "geneId", "sources"]
     df = OpenTargetsL2GGoldStandard.parse_positive_curation(sample_l2g_gold_standard)
     assert df.columns == expected_cols, "GS parsing has a different schema."
+
+
+def test_expand_gold_standard_with_negatives(spark: SparkSession) -> None:
+    """Test expanding positive set with negative set."""
+    sample_positive_set = spark.createDataFrame(
+        [
+            ("variant1", "gene1", "study1"),
+            ("variant2", "gene2", "study1"),
+        ],
+        ["variantId", "geneId", "studyId"],
+    )
+    sample_v2g_df = spark.createDataFrame(
+        [
+            ("variant1", "gene1", 5, "X", "X", "X"),
+            ("variant1", "gene3", 10, "X", "X", "X"),
+        ],
+        ["variantId", "geneId", "distance", "chromosome", "datatypeId", "datasourceId"],
+    )
+
+    expected_expanded_gs = spark.createDataFrame(
+        [
+            ("variant1", "study1", "negative", "gene3"),
+            ("variant1", "study1", "positive", "gene1"),
+            ("variant2", "study1", "positive", "gene2"),
+        ],
+        ["variantId", "geneId", "goldStandardSet", "studyId"],
+    )
+    observed_df = OpenTargetsL2GGoldStandard.expand_gold_standard_with_negatives(
+        sample_positive_set, V2G(_df=sample_v2g_df, _schema=V2G.get_schema())
+    )
+    assert (
+        observed_df.collect() == expected_expanded_gs.collect()
+    ), "GS expansion is not as expected."

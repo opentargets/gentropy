@@ -75,18 +75,32 @@ class OpenTargetsL2GGoldStandard:
             DataFrame: Full set of positive and negative evidence of locus to gene associations
         """
         # TODO: test function
-        return positive_set.join(
-            v2g.df.filter(f.col("distance") <= cls.LOCUS_TO_GENE_WINDOW),
-            on="variantId",
-            how="left",
-        ).withColumn(
-            "goldStandardSet",
-            f.when(
-                (f.col("positives.geneId") == f.col("negatives.geneId"))
-                # to keep the positives that are outside the v2g dataset
-                | (f.col("negatives.geneId").isNull()),
-                f.lit(cls.GS_POSITIVE_LABEL),
-            ).otherwise(cls.GS_NEGATIVE_LABEL),
+        return (
+            positive_set.withColumnRenamed("geneId", "curated_geneId")
+            .join(
+                v2g.df.selectExpr(
+                    "variantId", "geneId as non_curated_geneId", "distance"
+                ).filter(f.col("distance") <= cls.LOCUS_TO_GENE_WINDOW),
+                on="variantId",
+                how="left",
+            )
+            .withColumn(
+                "goldStandardSet",
+                f.when(
+                    (f.col("curated_geneId") == f.col("non_curated_geneId"))
+                    # to keep the positives that are outside the v2g dataset
+                    | (f.col("non_curated_geneId").isNull()),
+                    f.lit(cls.GS_POSITIVE_LABEL),
+                ).otherwise(cls.GS_NEGATIVE_LABEL),
+            )
+            .withColumn(
+                "geneId",
+                f.when(
+                    f.col("goldStandardSet") == cls.GS_POSITIVE_LABEL,
+                    f.col("curated_geneId"),
+                ).otherwise(f.col("non_curated_geneId")),
+            )
+            .drop("distance", "curated_geneId", "non_curated_geneId")
         )
 
     @classmethod
@@ -105,8 +119,11 @@ class OpenTargetsL2GGoldStandard:
             L2GGoldStandard: L2G Gold Standard dataset. False negatives have not yet been removed.
         """
         return L2GGoldStandard(
-            _df=cls.parse_positive_curation(gold_standard_curation).transform(
-                cls.expand_gold_standard_with_negatives, v2g
+            _df=cls.parse_positive_curation(gold_standard_curation)
+            .transform(cls.expand_gold_standard_with_negatives, v2g)
+            .drop(
+                "variantId",
+                "studyId",
             ),
             _schema=L2GGoldStandard.get_schema(),
         )
