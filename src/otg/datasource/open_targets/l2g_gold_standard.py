@@ -15,8 +15,8 @@ class OpenTargetsL2GGoldStandard:
     """Parser for OTGenetics locus to gene gold standards curation.
 
     The curation is processed to generate a dataset with 2 labels:
-        - Gold Standard Positive (GSP): Variant is within 500kb of gene
-        - Gold Standard Negative (GSN): Variant is not within 500kb of gene
+        - Gold Standard Positive (GSP): When the lead variant is part of a curated list of GWAS loci with known gene-trait associations.
+        - Gold Standard Negative (GSN): When the lead variant is not part of a curated list of GWAS loci with known gene-trait associations but is in the vicinity of a gene's TSS.
     """
 
     @staticmethod
@@ -39,31 +39,17 @@ class OpenTargetsL2GGoldStandard:
             "scoring as score",
         )
 
-    @classmethod
-    def as_l2g_gold_standard(
-        cls: type[OpenTargetsL2GGoldStandard],
-        gold_standard_curation: DataFrame,
-        v2g: V2G,
-        study_locus_overlap: StudyLocusOverlap,
-        interactions: DataFrame,
-    ) -> L2GGoldStandard:
-        """Initialise L2GGoldStandard from source dataset.
+    @staticmethod
+    def create_positive_set(gold_standard_curation: DataFrame) -> DataFrame:
+        """Parse positive set from gold standard curation.
 
         Args:
-            gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from https://github.com/opentargets/genetics-gold-standards
-            v2g (V2G): Variant to gene dataset to bring distance between a variant and a gene's TSS
-            study_locus_overlap (StudyLocusOverlap): Study locus overlap dataset to remove duplicated loci
-            interactions (DataFrame): Gene-gene interactions dataset to remove negative cases where the gene interacts with a positive gene
+            gold_standard_curation (DataFrame): Gold standard curation dataframe
 
         Returns:
-            L2GGoldStandard: L2G Gold Standard dataset
+            DataFrame: Positive set
         """
-        overlaps_df = study_locus_overlap._df.select(
-            "leftStudyLocusId", "rightStudyLocusId"
-        )
-        interactions_df = cls.process_gene_interactions(interactions)
-
-        positive_set = (
+        return (
             gold_standard_curation.filter(
                 f.col("gold_standard_info.highest_confidence").isin(["High", "Medium"])
             )
@@ -84,48 +70,56 @@ class OpenTargetsL2GGoldStandard:
                 StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
             )
             .groupBy("studyLocusId", "studyId", "variantId", "geneId")
-            .agg(
-                f.collect_set("source").alias("sources"),
-            )
+            .agg(f.collect_set("source").alias("sources"))
         )
 
-        full_set = (
-            # Bring negative evidence based on genes that are in the vicinity of the locus but are not part of the positive set
-            positive_set.alias("positives")
-            .join(
-                v2g.df.filter(f.col("distance") <= 500_000)
-                .select("variantId", "geneId", "distance")
-                .alias("negatives"),
-                on="variantId",
-                how="left",
-            )
-            # Assign set label
-            .withColumn(
-                "goldStandardSet",
-                f.when(
-                    (f.col("positives.geneId") == f.col("negatives.geneId"))
-                    # to keep the positives that are outside the v2g dataset
-                    | (f.col("negatives.geneId").isNull()),
-                    f.lit("positive"),
-                ).otherwise("negative"),
-            )
-            # Remove redundant loci by testing they are truly independent
-            .alias("left")
-            .join(
-                overlaps_df.alias("right"),
-                (f.col("left.variantId") == f.col("right.leftStudyLocusId"))
-                | (f.col("left.variantId") == f.col("right.rightStudyLocusId")),
-                how="left",
-            )
-            .distinct()
-            # filter out genes where geneIdA has goldStandardSet negative but geneIdA and gene IdB are interacting
+    @staticmethod
+    def create_full_set(positive_set: DataFrame, v2g: V2G) -> DataFrame:
+        """Create full set of positive and negative evidence of locus to gene associations.
+
+        Args:
+            positive_set (DataFrame): Positive set
+            v2g (V2G): Variant to gene dataset to bring distance between a variant and a gene's TSS
+
+        Returns:
+            DataFrame: Full set of positive and negative evidence of locus to gene associations
+        """
+        return positive_set.join(
+            v2g.df.filter(f.col("distance") <= 500_000),
+            on="variantId",
+            how="left",
+        ).withColumn(
+            "goldStandardSet",
+            f.when(
+                (f.col("positives.geneId") == f.col("negatives.geneId"))
+                # to keep the positives that are outside the v2g dataset
+                | (f.col("negatives.geneId").isNull()),
+                f.lit("positive"),
+            ).otherwise("negative"),
+        )
+
+    @staticmethod
+    def remove_false_negatives(
+        full_set: DataFrame, interactions_df: DataFrame
+    ) -> DataFrame:
+        """Remove redundant loci by testing they are truly independent.
+
+        Args:
+            full_set (DataFrame): Full set of positive and negative evidence of locus to gene associations. These include false negatives.
+            interactions_df (DataFrame): Top scoring gene-gene interaction per pair of genes
+
+        Returns:
+            DataFrame: Full set of positive and negative evidence of locus to gene associations. False negatives are removed.
+        """
+        return (
+            full_set.alias("left")
             .join(
                 interactions_df.alias("interactions"),
                 (f.col("left.geneId") == f.col("interactions.geneIdA"))
                 | (f.col("left.geneId") == f.col("interactions.geneIdB")),
                 how="left",
             )
-            .withColumn("interacting", (f.col("score") > 0.7))
+            .withColumn("interacting", (f.col("score") > 0.7))  # remove hardcoded value
             .filter(
                 ~(
                     (f.col("goldStandardSet") == 0)
@@ -136,9 +130,64 @@ class OpenTargetsL2GGoldStandard:
                     )
                 )
             )
-            .select("studyLocusId", "geneId", "goldStandardSet", "sources")
         )
+
+    @staticmethod
+    def remove_redundant_locus(
+        full_set: DataFrame, study_locus_overlap: StudyLocusOverlap
+    ) -> DataFrame:
+        """Remove redundant loci by testing they are truly independent.
+
+        Args:
+            full_set (DataFrame): Full set of positive and negative evidence of locus to gene associations. These include false negatives.
+            study_locus_overlap (StudyLocusOverlap): Study locus overlap dataset to remove duplicated loci
+
+        Returns:
+            DataFrame: Full set of positive and negative evidence of locus to gene associations. False negatives are removed. # TODO rename
+        """
+        return (
+            full_set.alias("left")
+            .join(
+                study_locus_overlap.df.select(
+                    "leftStudyLocusId", "rightStudyLocusId"
+                ).alias("right"),
+                (f.col("left.variantId") == f.col("right.leftStudyLocusId"))
+                | (f.col("left.variantId") == f.col("right.rightStudyLocusId")),
+                how="left",
+            )
+            .distinct()
+        )
+
+    @classmethod
+    def as_l2g_gold_standard(
+        cls: type[OpenTargetsL2GGoldStandard],
+        gold_standard_curation: DataFrame,
+        v2g: V2G,
+        study_locus_overlap: StudyLocusOverlap,
+        interactions: DataFrame,
+    ) -> L2GGoldStandard:
+        """Initialise L2GGoldStandard from source dataset.
+
+        Args:
+            gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from https://github.com/opentargets/genetics-gold-standards
+            v2g (V2G): Variant to gene dataset to bring distance between a variant and a gene's TSS
+            study_locus_overlap (StudyLocusOverlap): Study locus overlap dataset to remove duplicated loci
+            interactions (DataFrame): Gene-gene interactions dataset to remove negative cases where the gene interacts with a positive gene
+
+        Returns:
+            L2GGoldStandard: L2G Gold Standard dataset
+        """
+        interactions_df = cls.process_gene_interactions(interactions)
+
+        positive_set = cls.create_positive_set(gold_standard_curation)
+
+        full_set = cls.create_full_set(positive_set, v2g)
+
+        final_set = full_set.transform(
+            cls.remove_redundant_locus, study_locus_overlap
+        ).transform(cls.remove_false_negatives, interactions_df)
+
         return L2GGoldStandard(
-            _df=full_set,
+            _df=final_set,
             _schema=L2GGoldStandard.get_schema(),
         )
