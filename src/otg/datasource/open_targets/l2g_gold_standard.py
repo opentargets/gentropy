@@ -74,7 +74,6 @@ class OpenTargetsL2GGoldStandard:
         Returns:
             DataFrame: Full set of positive and negative evidence of locus to gene associations
         """
-        # TODO: test function
         return (
             positive_set.withColumnRenamed("geneId", "curated_geneId")
             .join(

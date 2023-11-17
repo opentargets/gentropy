@@ -56,16 +56,36 @@ class L2GGoldStandard(Dataset):
         )
 
     @classmethod
+    def get_schema(cls: type[L2GGoldStandard]) -> StructType:
+        """Provides the schema for the L2GGoldStandard dataset.
+
+        Returns:
+            StructType: Spark schema for the L2GGoldStandard dataset
+        """
+        return parse_spark_schema("l2g_gold_standard.json")
+
+    @classmethod
     def process_gene_interactions(
         cls: Type[L2GGoldStandard], interactions: DataFrame
     ) -> DataFrame:
         """Extract top scoring gene-gene interaction from the interactions dataset of the Platform.
 
         Args:
-            interactions (DataFrame): Gene-gene interactions dataset
+            interactions (DataFrame): Gene-gene interactions dataset from the Open Targets Platform
 
         Returns:
             DataFrame: Top scoring gene-gene interaction per pair of genes
+
+        Examples:
+            >>> interactions = spark.createDataFrame([("gene1", "gene2", 0.8), ("gene1", "gene2", 0.5), ("gene2", "gene3", 0.7)], ["targetA", "targetB", "scoring"])
+            >>> L2GGoldStandard.process_gene_interactions(interactions).show()
+            +-------+-------+-----+
+            |geneIdA|geneIdB|score|
+            +-------+-------+-----+
+            |  gene1|  gene2|  0.8|
+            |  gene2|  gene3|  0.7|
+            +-------+-------+-----+
+            <BLANKLINE>
         """
         return get_record_with_maximum_value(
             interactions,
@@ -76,15 +96,6 @@ class L2GGoldStandard(Dataset):
             "targetB as geneIdB",
             "scoring as score",
         )
-
-    @classmethod
-    def get_schema(cls: type[L2GGoldStandard]) -> StructType:
-        """Provides the schema for the L2GGoldStandard dataset.
-
-        Returns:
-            StructType: Spark schema for the L2GGoldStandard dataset
-        """
-        return parse_spark_schema("l2g_gold_standard.json")
 
     def filter_unique_associations(
         self: L2GGoldStandard,
