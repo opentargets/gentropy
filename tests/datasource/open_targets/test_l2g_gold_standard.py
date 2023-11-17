@@ -9,23 +9,27 @@ from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.datasource.open_targets.l2g_gold_standard import OpenTargetsL2GGoldStandard
 
 if TYPE_CHECKING:
-    from otg.dataset.study_locus_overlap import StudyLocusOverlap
     from otg.dataset.v2g import V2G
 
 
 def test_open_targets_as_l2g_gold_standard(
     sample_l2g_gold_standard: DataFrame,
     mock_v2g: V2G,
-    mock_study_locus_overlap: StudyLocusOverlap,
-    sample_otp_interactions: DataFrame,
 ) -> None:
     """Test L2G gold standard from OTG curation."""
     assert isinstance(
         OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
             sample_l2g_gold_standard,
             mock_v2g,
-            mock_study_locus_overlap,
-            sample_otp_interactions,
         ),
         L2GGoldStandard,
     )
+
+
+def test_parse_positive_curation(
+    sample_l2g_gold_standard: DataFrame,
+) -> None:
+    """Test parsing curation as the positive set."""
+    expected_cols = ["studyLocusId", "studyId", "variantId", "geneId", "sources"]
+    df = OpenTargetsL2GGoldStandard.parse_positive_curation(sample_l2g_gold_standard)
+    assert df.columns == expected_cols, "GS parsing has a different schema."
