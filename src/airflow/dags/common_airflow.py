@@ -69,9 +69,9 @@ def create_cluster(
 
     Args:
         cluster_name (str): Name of the cluster.
-        master_machine_type (str): Machine type for the master node. Defaults to "n1-standard-4".
+        master_machine_type (str): Machine type for the master node. Defaults to "n1-highmem-8".
         worker_machine_type (str): Machine type for the worker nodes. Defaults to "n1-standard-16".
-        num_workers (int): Number of worker nodes. Defaults to 0.
+        num_workers (int): Number of worker nodes. Defaults to 2.
 
     Returns:
         DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
