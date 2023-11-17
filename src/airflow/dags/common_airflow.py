@@ -64,7 +64,7 @@ def create_cluster(
     master_machine_type: str = "n1-highmem-8",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
-    num_local_ssds: int = 0,
+    num_local_ssds: int = 1,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
@@ -73,7 +73,7 @@ def create_cluster(
         master_machine_type (str): Machine type for the master node. Defaults to "n1-highmem-8".
         worker_machine_type (str): Machine type for the worker nodes. Defaults to "n1-standard-16".
         num_workers (int): Number of worker nodes. Defaults to 2.
-        num_local_ssds (int): How many local SSDs to attach to each worker node, both primary and secondary. Defaults to 0.
+        num_local_ssds (int): How many local SSDs to attach to each worker node, both primary and secondary. Defaults to 1.
 
     Returns:
         DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
