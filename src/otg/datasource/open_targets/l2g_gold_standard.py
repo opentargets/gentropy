@@ -1,6 +1,8 @@
 """Parser for OTPlatform locus to gene gold standards curation."""
 from __future__ import annotations
 
+from typing import Type
+
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
 
@@ -24,8 +26,10 @@ class OpenTargetsL2GGoldStandard:
     GS_NEGATIVE_LABEL = "negative"
     INTERACTION_THRESHOLD = 0.7
 
-    @staticmethod
-    def process_gene_interactions(interactions: DataFrame) -> DataFrame:
+    @classmethod
+    def process_gene_interactions(
+        cls: Type[OpenTargetsL2GGoldStandard], interactions: DataFrame
+    ) -> DataFrame:
         """Extract top scoring gene-gene interaction from the interactions dataset of the Platform.
 
         Args:
@@ -44,8 +48,10 @@ class OpenTargetsL2GGoldStandard:
             "scoring as score",
         )
 
-    @staticmethod
-    def create_positive_set(gold_standard_curation: DataFrame) -> DataFrame:
+    @classmethod
+    def create_positive_set(
+        cls: Type[OpenTargetsL2GGoldStandard], gold_standard_curation: DataFrame
+    ) -> DataFrame:
         """Parse positive set from gold standard curation.
 
         Args:
@@ -78,8 +84,10 @@ class OpenTargetsL2GGoldStandard:
             .agg(f.collect_set("source").alias("sources"))
         )
 
-    @staticmethod
-    def create_full_set(positive_set: DataFrame, v2g: V2G) -> DataFrame:
+    @classmethod
+    def create_full_set(
+        cls: Type[OpenTargetsL2GGoldStandard], positive_set: DataFrame, v2g: V2G
+    ) -> DataFrame:
         """Create full set of positive and negative evidence of locus to gene associations.
 
         Args:
@@ -90,9 +98,7 @@ class OpenTargetsL2GGoldStandard:
             DataFrame: Full set of positive and negative evidence of locus to gene associations
         """
         return positive_set.join(
-            v2g.df.filter(
-                f.col("distance") <= OpenTargetsL2GGoldStandard.LOCUS_TO_GENE_WINDOW
-            ),
+            v2g.df.filter(f.col("distance") <= cls.LOCUS_TO_GENE_WINDOW),
             on="variantId",
             how="left",
         ).withColumn(
@@ -101,13 +107,15 @@ class OpenTargetsL2GGoldStandard:
                 (f.col("positives.geneId") == f.col("negatives.geneId"))
                 # to keep the positives that are outside the v2g dataset
                 | (f.col("negatives.geneId").isNull()),
-                f.lit(OpenTargetsL2GGoldStandard.GS_POSITIVE_LABEL),
-            ).otherwise(OpenTargetsL2GGoldStandard.GS_NEGATIVE_LABEL),
+                f.lit(cls.GS_POSITIVE_LABEL),
+            ).otherwise(cls.GS_NEGATIVE_LABEL),
         )
 
-    @staticmethod
+    @classmethod
     def remove_false_negatives(
-        full_set: DataFrame, interactions_df: DataFrame
+        cls: Type[OpenTargetsL2GGoldStandard],
+        full_set: DataFrame,
+        interactions_df: DataFrame,
     ) -> DataFrame:
         """Remove redundant loci by testing they are truly independent.
 
@@ -128,7 +136,7 @@ class OpenTargetsL2GGoldStandard:
             )
             .withColumn(
                 "interacting",
-                (f.col("score") > OpenTargetsL2GGoldStandard.INTERACTION_THRESHOLD),
+                (f.col("score") > cls.INTERACTION_THRESHOLD),
             )
             .filter(
                 ~(
@@ -144,9 +152,11 @@ class OpenTargetsL2GGoldStandard:
             )
         )
 
-    @staticmethod
+    @classmethod
     def remove_redundant_locus(
-        full_set: DataFrame, study_locus_overlap: StudyLocusOverlap
+        cls: Type[OpenTargetsL2GGoldStandard],
+        full_set: DataFrame,
+        study_locus_overlap: StudyLocusOverlap,
     ) -> DataFrame:
         """Remove redundant loci by testing they are truly independent.
 
