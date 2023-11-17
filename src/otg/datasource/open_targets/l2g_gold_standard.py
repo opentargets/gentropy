@@ -19,6 +19,11 @@ class OpenTargetsL2GGoldStandard:
         - Gold Standard Negative (GSN): When the lead variant is not part of a curated list of GWAS loci with known gene-trait associations but is in the vicinity of a gene's TSS.
     """
 
+    LOCUS_TO_GENE_WINDOW = 500_000
+    GS_POSITIVE_LABEL = "positive"
+    GS_NEGATIVE_LABEL = "negative"
+    INTERACTION_THRESHOLD = 0.7
+
     @staticmethod
     def process_gene_interactions(interactions: DataFrame) -> DataFrame:
         """Extract top scoring gene-gene interaction from the interactions dataset of the Platform.
@@ -85,7 +90,9 @@ class OpenTargetsL2GGoldStandard:
             DataFrame: Full set of positive and negative evidence of locus to gene associations
         """
         return positive_set.join(
-            v2g.df.filter(f.col("distance") <= 500_000),
+            v2g.df.filter(
+                f.col("distance") <= OpenTargetsL2GGoldStandard.LOCUS_TO_GENE_WINDOW
+            ),
             on="variantId",
             how="left",
         ).withColumn(
@@ -94,8 +101,8 @@ class OpenTargetsL2GGoldStandard:
                 (f.col("positives.geneId") == f.col("negatives.geneId"))
                 # to keep the positives that are outside the v2g dataset
                 | (f.col("negatives.geneId").isNull()),
-                f.lit("positive"),
-            ).otherwise("negative"),
+                f.lit(OpenTargetsL2GGoldStandard.GS_POSITIVE_LABEL),
+            ).otherwise(OpenTargetsL2GGoldStandard.GS_NEGATIVE_LABEL),
         )
 
     @staticmethod
@@ -119,10 +126,15 @@ class OpenTargetsL2GGoldStandard:
                 | (f.col("left.geneId") == f.col("interactions.geneIdB")),
                 how="left",
             )
-            .withColumn("interacting", (f.col("score") > 0.7))  # remove hardcoded value
+            .withColumn(
+                "interacting",
+                (f.col("score") > OpenTargetsL2GGoldStandard.INTERACTION_THRESHOLD),
+            )
             .filter(
                 ~(
-                    (f.col("goldStandardSet") == 0)
+                    (
+                        f.col("goldStandardSet") == 0
+                    )  # bugfix: goldStandardSet is a string, not an int
                     & (f.col("interacting"))
                     & (
                         (f.col("left.geneId") == f.col("interactions.geneIdA"))
@@ -184,7 +196,9 @@ class OpenTargetsL2GGoldStandard:
         full_set = cls.create_full_set(positive_set, v2g)
 
         final_set = full_set.transform(
-            cls.remove_redundant_locus, study_locus_overlap
+            # TODO: move logic to L2GGoldStandard
+            cls.remove_redundant_locus,
+            study_locus_overlap,
         ).transform(cls.remove_false_negatives, interactions_df)
 
         return L2GGoldStandard(
