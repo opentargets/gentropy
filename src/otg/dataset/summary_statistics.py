@@ -57,7 +57,7 @@ class SummaryStatistics(Dataset):
 
     def window_based_clumping(
         self: SummaryStatistics,
-        distance: int,
+        distance: int = 500_000,
         gwas_significance: float = 5e-8,
         baseline_significance: float = 0.05,
         locus_collect_distance: int | None = None,
@@ -65,7 +65,7 @@ class SummaryStatistics(Dataset):
         """Generate study-locus from summary statistics by distance based clumping + collect locus.
 
         Args:
-            distance (int): Distance in base pairs to be used for clumping.
+            distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
             gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
             baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.
             locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, defaults to `distance`.
