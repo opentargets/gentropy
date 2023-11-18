@@ -1,0 +1,5 @@
+_target_: otg.clump.ClumpStep
+summary_stats_path: ${datasets.summary_statistics}
+study_index_path: ${datasets.study_index}
+ld_index_path: ${datasets.ld_index}
+clumped_study_locus_out: ${datasets.from_sumstats_study_locus}
