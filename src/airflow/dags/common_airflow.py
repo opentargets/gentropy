@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import pendulum
 import yaml
@@ -108,7 +108,11 @@ def create_cluster(
 
 
 def submit_job(
-    cluster_name: str, task_id: str, job_type: str, job_specification: dict[str, Any]
+    cluster_name: str,
+    task_id: str,
+    job_type: str,
+    job_specification: dict[str, Any],
+    trigger_rule: TriggerRule = TriggerRule.ALL_SUCCESS,
 ) -> DataprocSubmitJobOperator:
     """Submit an arbitrary job to a Dataproc cluster.
 
@@ -117,6 +121,7 @@ def submit_job(
         task_id (str): Name of the task.
         job_type (str): Type of the job to submit.
         job_specification (dict[str, Any]): Specification of the job to submit.
+        trigger_rule (TriggerRule): Trigger rule for the task. Defaults to TriggerRule.ALL_SUCCESS.
 
     Returns:
         DataprocSubmitJobOperator: Airflow task to submit an arbitrary job to a Dataproc cluster.
@@ -131,11 +136,16 @@ def submit_job(
             "placement": {"cluster_name": cluster_name},
             job_type: job_specification,
         },
+        trigger_rule=trigger_rule,
     )
 
 
 def submit_pyspark_job(
-    cluster_name: str, task_id: str, python_module_path: str, args: list[str]
+    cluster_name: str,
+    task_id: str,
+    python_module_path: str,
+    args: list[str],
+    trigger_rule: TriggerRule = TriggerRule.ALL_SUCCESS,
 ) -> DataprocSubmitJobOperator:
     """Submit a PySpark job to a Dataproc cluster.
 
@@ -144,6 +154,7 @@ def submit_pyspark_job(
         task_id (str): Name of the task.
         python_module_path (str): Path to the Python module to run.
         args (list[str]): Arguments to pass to the Python module.
+        trigger_rule (TriggerRule): Trigger rule for the task. Defaults to TriggerRule.ALL_SUCCESS.
 
     Returns:
         DataprocSubmitJobOperator: Airflow task to submit a PySpark job to a Dataproc cluster.
@@ -152,6 +163,7 @@ def submit_pyspark_job(
         cluster_name=cluster_name,
         task_id=task_id,
         job_type="pyspark_job",
+        trigger_rule=trigger_rule,
         job_specification={
             "main_python_file_uri": python_module_path,
             "args": args,
@@ -166,22 +178,35 @@ def submit_pyspark_job(
     )
 
 
-def submit_step(cluster_name: str, step_id: str) -> DataprocSubmitJobOperator:
+def submit_step(
+    cluster_name: str,
+    step_id: str,
+    task_id: str = "",
+    trigger_rule: TriggerRule = TriggerRule.ALL_SUCCESS,
+    other_args: Optional[list[str]] = None,
+) -> DataprocSubmitJobOperator:
     """Submit a PySpark job to execute a specific CLI step.
 
     Args:
         cluster_name (str): Name of the cluster.
-        step_id (str): Name of the step.
+        step_id (str): Name of the step in otg.
+        task_id (str): Name of the task. Defaults to step_id.
+        trigger_rule (TriggerRule): Trigger rule for the task. Defaults to TriggerRule.ALL_SUCCESS.
+        other_args (Optional[list[str]]): Other arguments to pass to the CLI step. Defaults to None.
 
     Returns:
         DataprocSubmitJobOperator: Airflow task to submit a PySpark job to execute a specific CLI step.
     """
+    if task_id == "":
+        task_id = step_id
     return submit_pyspark_job(
         cluster_name=cluster_name,
         task_id=step_id,
         python_module_path=f"{INITIALISATION_BASE_PATH}/{PYTHON_CLI}",
-        args=[
-            f"step={step_id}",
+        trigger_rule=trigger_rule,
+        args=[f"step={step_id}"]
+        + (other_args if other_args is not None else [])
+        + [
             f"--config-dir={CLUSTER_CONFIG_DIR}",
             f"--config-name={CONFIG_NAME}",
         ],
