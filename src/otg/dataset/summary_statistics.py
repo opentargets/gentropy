@@ -68,7 +68,7 @@ class SummaryStatistics(Dataset):
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
             gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
             baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.
-            locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, defaults to `distance`.
+            locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, locus is not collected.
 
         Returns:
             StudyLocus: Clumped study-locus containing variants based on window.
