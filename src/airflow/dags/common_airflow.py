@@ -64,6 +64,7 @@ def create_cluster(
     master_machine_type: str = "n1-highmem-8",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
+    autoscaling_policy: str = GCP_AUTOSCALING_POLICY,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
@@ -72,6 +73,7 @@ def create_cluster(
         master_machine_type (str): Machine type for the master node. Defaults to "n1-standard-4".
         worker_machine_type (str): Machine type for the worker nodes. Defaults to "n1-standard-16".
         num_workers (int): Number of worker nodes. Defaults to 0.
+        autoscaling_policy (str): Name of the autoscaling policy to use. Defaults to GCP_AUTOSCALING_POLICY.
 
     Returns:
         DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
@@ -93,7 +95,7 @@ def create_cluster(
             "PACKAGE": PACKAGE_WHEEL,
         },
         idle_delete_ttl=None,
-        autoscaling_policy=f"projects/{GCP_PROJECT}/regions/{GCP_REGION}/autoscalingPolicies/{GCP_AUTOSCALING_POLICY}",
+        autoscaling_policy=f"projects/{GCP_PROJECT}/regions/{GCP_REGION}/autoscalingPolicies/{autoscaling_policy}",
     ).make()
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
