@@ -39,3 +39,8 @@ from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 ukbiobank_study_index: ${datasets.outputs}/ukbiobank_study_index
 l2g_model: ${datasets.outputs}/l2g_model
 l2g_predictions: ${datasets.outputs}/l2g_predictions
+
+# Constants
+finngen_release_prefix: FINNGEN_R9
+finngen_sumstat_url_prefix: gs://finngen-public-data-r9/summary_stats/finngen_R9_
+finngen_sumstat_url_suffix: .gz
