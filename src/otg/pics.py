@@ -20,7 +20,6 @@ class PICSStep:
 
         summary_stats_path (str): Path to summary statistics.
         study_index_path (str): Path to study index.
-        ld_index_path (str): Path to LD index.
     """
 
     session: Session = MISSING
