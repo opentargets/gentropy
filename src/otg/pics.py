@@ -19,7 +19,7 @@ class PICSStep:
         session (Session): Session object.
 
         study_locus_ld_annotated_in (str): Path to Study Locus with the LD information annotated
-        study_index_path (str): Path to study index.
+        picsed_study_locus_out (str): Path to Study Locus after running PICS
     """
 
     session: Session = MISSING
