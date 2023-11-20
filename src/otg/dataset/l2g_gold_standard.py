@@ -109,7 +109,7 @@ class L2GGoldStandard(Dataset):
         Returns:
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.
         """
-        # TODO: Test this logic
+        cols_to_keep = self.df.columns
         self.df = (
             self.df.alias("left")
             .join(
@@ -120,6 +120,7 @@ class L2GGoldStandard(Dataset):
                 | (f.col("left.variantId") == f.col("right.rightStudyLocusId")),
                 how="left",
             )
+            .select(*cols_to_keep)
             .distinct()
         )
         return self
