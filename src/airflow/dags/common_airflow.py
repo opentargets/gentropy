@@ -64,21 +64,24 @@ def create_cluster(
     master_machine_type: str = "n1-highmem-8",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
+    num_local_ssds: int = 1,
     autoscaling_policy: str = GCP_AUTOSCALING_POLICY,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
     Args:
         cluster_name (str): Name of the cluster.
-        master_machine_type (str): Machine type for the master node. Defaults to "n1-standard-4".
+        master_machine_type (str): Machine type for the master node. Defaults to "n1-highmem-8".
         worker_machine_type (str): Machine type for the worker nodes. Defaults to "n1-standard-16".
-        num_workers (int): Number of worker nodes. Defaults to 0.
+        num_workers (int): Number of worker nodes. Defaults to 2.
+        num_local_ssds (int): How many local SSDs to attach to each worker node, both primary and secondary. Defaults to 1.
         autoscaling_policy (str): Name of the autoscaling policy to use. Defaults to GCP_AUTOSCALING_POLICY.
 
     Returns:
         DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
     """
-    cluster_generator_config = ClusterGenerator(
+    # Create base cluster configuration.
+    cluster_config = ClusterGenerator(
         project_id=GCP_PROJECT,
         zone=GCP_ZONE,
         master_machine_type=master_machine_type,
@@ -86,7 +89,6 @@ def create_cluster(
         master_disk_size=500,
         worker_disk_size=500,
         num_workers=num_workers,
-        num_local_ssds=1,
         image_version=GCP_DATAPROC_IMAGE,
         enable_component_gateway=True,
         init_actions_uris=INITIALISATION_EXECUTABLE_FILE,
@@ -97,10 +99,20 @@ def create_cluster(
         idle_delete_ttl=None,
         autoscaling_policy=f"projects/{GCP_PROJECT}/regions/{GCP_REGION}/autoscalingPolicies/{autoscaling_policy}",
     ).make()
+
+    # If specified, amend the configuration to include local SSDs for worker nodes.
+    if num_local_ssds:
+        for worker_section in ("worker_config", "secondary_worker_config"):
+            # Create a disk config section if it does not exist.
+            cluster_config[worker_section].setdefault("disk_config", dict())
+            # Specify the number of local SSDs.
+            cluster_config[worker_section]["num_local_ssds"] = num_local_ssds
+
+    # Return the cluster creation operator.
     return DataprocCreateClusterOperator(
         task_id="create_cluster",
         project_id=GCP_PROJECT,
-        cluster_config=cluster_generator_config,
+        cluster_config=cluster_config,
         region=GCP_REGION,
         cluster_name=cluster_name,
         trigger_rule=TriggerRule.ALL_SUCCESS,
