@@ -87,3 +87,57 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
     observed_df = mock_l2g_gs.filter_unique_associations(mock_sl_overlap).df
 
     assert observed_df.collect() == expected_df.collect()
+
+
+def test_remove_false_negatives(spark: SparkSession) -> None:
+    """Test `remove_false_negatives`."""
+    mock_l2g_gs_df = spark.createDataFrame(
+        [
+            (1, "variant1", "gene1", "positive"),
+            (
+                2,
+                "variant2",
+                "gene2",
+                "negative",
+            ),  # gene2 is a partner of gene1, has to be dropped
+            (
+                3,
+                "variant3",
+                "gene3",
+                "negative",
+            ),  # gene 3 is not a partner of gene1, has to be kept
+            (
+                4,
+                "variant4",
+                "gene4",
+                "positive",
+            ),  # gene 4 is a partner of gene1, has to be kept because it's positive
+        ],
+        "studyLocusId LONG, variantId STRING, geneId STRING, goldStandardSet STRING",
+    )
+
+    mock_interactions_df = spark.createDataFrame(
+        [
+            ("gene1", "gene2", 0.8),
+            ("gene1", "gene3", 0.5),
+            ("gene1", "gene4", 0.8),
+        ],
+        "geneIdA STRING, geneIdB STRING, score DOUBLE",
+    )
+
+    expected_df = spark.createDataFrame(
+        [
+            (1, "variant1", "gene1", "positive"),
+            (3, "variant3", "gene3", "negative"),
+            (4, "variant4", "gene4", "positive"),
+        ],
+        "studyLocusId LONG, variantId STRING, geneId STRING, goldStandardSet STRING",
+    )
+
+    mock_l2g_gs = L2GGoldStandard(
+        _df=mock_l2g_gs_df, _schema=L2GGoldStandard.get_schema()
+    )
+
+    observed_df = mock_l2g_gs.remove_false_negatives(mock_interactions_df).df
+
+    assert observed_df.collect() == expected_df.collect()
