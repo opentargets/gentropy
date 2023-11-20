@@ -82,7 +82,7 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
     )
     mock_sl_overlap = StudyLocusOverlap(
         _df=mock_sl_overlap_df, _schema=StudyLocusOverlap.get_schema()
-    )
+    )._convert_to_square_matrix()
 
     observed_df = mock_l2g_gs.filter_unique_associations(mock_sl_overlap).df
 

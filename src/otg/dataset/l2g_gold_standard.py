@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import get_record_with_maximum_value
@@ -101,7 +102,12 @@ class L2GGoldStandard(Dataset):
         self: L2GGoldStandard,
         study_locus_overlap: StudyLocusOverlap,
     ) -> L2GGoldStandard:
-        """Refines the gold standard to filter out loci that are not independent. redundant loci by testing they are truly independent.
+        """Refines the gold standard to filter out loci that are not independent.
+
+        Rules:
+        - If two loci point to the same gene, one positive and one negative, and have overlapping variants, we keep the positive one.
+        - If two loci point to the same gene, both positive or negative, and have overlapping variants, we drop one.
+        - If two loci point to different genes, and have overlapping variants, we keep both.
 
         Args:
             study_locus_overlap (StudyLocusOverlap): A dataset detailing variants that overlap between StudyLocus.
@@ -109,21 +115,33 @@ class L2GGoldStandard(Dataset):
         Returns:
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.
         """
+        squared_overlaps = study_locus_overlap._convert_to_square_matrix()
         cols_to_keep = self.df.columns
-        self.df = (
+        unique_associations = (
             self.df.alias("left")
-            .join(
-                study_locus_overlap.df.select(
-                    "leftStudyLocusId", "rightStudyLocusId"
-                ).alias("right"),
-                (f.col("left.variantId") == f.col("right.leftStudyLocusId"))
-                | (f.col("left.variantId") == f.col("right.rightStudyLocusId")),
-                how="left",
+            # identify all the study loci that point to the same gene
+            .withColumn(
+                "sl_same_gene",
+                f.collect_set("studyLocusId").over(Window.partitionBy("geneId")),
             )
+            # identify all the study loci that have an overlapping variant
+            .join(
+                squared_overlaps.df.alias("right"),
+                (f.col("left.studyLocusId") == f.col("right.leftStudyLocusId"))
+                & (f.col("left.variantId") == f.col("right.tagVariantId")),
+                "left",
+            )
+            .withColumn(
+                "overlaps",
+                f.when(f.col("right.tagVariantId").isNotNull(), f.lit(True)).otherwise(
+                    f.lit(False)
+                ),
+            )
+            # drop redundant rows: where the variantid overlaps and the gene is "explained" by more than one study locus
+            .filter(~((f.size("sl_same_gene") > 1) & (f.col("overlaps") == 1)))
             .select(*cols_to_keep)
-            .distinct()
         )
-        return self
+        return L2GGoldStandard(_df=unique_associations, _schema=self.get_schema())
 
     def remove_false_negatives(
         self: L2GGoldStandard,
