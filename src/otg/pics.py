@@ -1,4 +1,4 @@
-"""Step to run clump summary statistics."""
+"""Step to apply PICS finemapping."""
 
 from __future__ import annotations
 
