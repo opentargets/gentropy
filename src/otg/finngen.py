@@ -35,25 +35,16 @@ class FinnGenStep:
             self.finngen_study_index_out
         )
 
-        # Fetch summary stats.
-        # input_filenames = [row.summarystatsLocation for row in study_index.df.collect()]
+        # Fetch summary stats locations
+        input_filenames = [row.summarystatsLocation for row in study_index.df.collect()]
         # Process summary stats.
         summary_stats = FinnGenSummaryStats.from_source(
-            self.session, "gs://finngen-public-data-r9/summary_stats/"
+            self.session, raw_files=input_filenames
         )
 
         # Write summary stats.
-        # (
-        #     summary_stats.df.write.mode(self.session.write_mode).parquet(
-        #         self.finngen_summary_stats_out
-        #     )
-        # )
         (
-            summary_stats.df.writeStream.format("parquet")
-            .outputMode("append")
-            .option("checkpointLocation", "gs://genetics_etl_python_playground")
-            # .partitionBy("file_name")
-            .option("path", self.finngen_summary_stats_out)
-            .start()
-            .awaitTermination()
+            summary_stats.df.write.partitionBy("studyId")
+            .mode(self.session.write_mode)
+            .parquet(self.finngen_summary_stats_out)
         )

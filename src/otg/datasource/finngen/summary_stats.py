@@ -39,26 +39,21 @@ class FinnGenSummaryStats(SummaryStatistics):
     def from_source(
         cls: type[FinnGenSummaryStats],
         session: Session,
-        raw_files: str,
+        raw_files: list[str],
     ) -> FinnGenSummaryStats:
         """Ingests all summary statst for all FinnGen studies.
 
         Args:
             session (Session): Session object.
-            raw_files (str): Path to the raw summary statistics file.
+            raw_files (list[str]): Paths to raw summary statistics .gz files.
 
         Returns:
             FinnGenSummaryStats: Processed summary statistics dataset
         """
         processed_summary_stats_df = (
-            session.spark.readStream.format("csv")
-            .schema(cls.raw_schema)
+            session.spark.read.schema(cls.raw_schema)
             .option("delimiter", "\t")
-            .option("header", True)
-            .load(raw_files)
-            # session.spark.read.schema(cls.raw_schema)
-            # .option("delimiter", "\t")
-            # .csv(raw_files, header=True)
+            .csv(raw_files, header=True)
             # Drop rows which don't have proper position.
             .filter(f.col("pos").cast(t.IntegerType()).isNotNull())
             .select(
