@@ -8,6 +8,12 @@
       "metadata": {}
     },
     {
+      "name": "variantId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
       "name": "geneId",
       "type": "string",
       "nullable": false,
