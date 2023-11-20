@@ -18,7 +18,7 @@ class PICSStep:
     Attributes:
         session (Session): Session object.
 
-        summary_stats_path (str): Path to summary statistics.
+        study_locus_ld_annotated_in (str): Path to Study Locus with the LD information annotated
         study_index_path (str): Path to study index.
     """
 
