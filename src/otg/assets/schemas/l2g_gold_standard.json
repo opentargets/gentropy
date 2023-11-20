@@ -28,7 +28,7 @@
     {
       "metadata": {},
       "name": "sources",
-      "nullable": false,
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": "string",
