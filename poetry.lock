@@ -2754,13 +2754,13 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4
 
 [[package]]
 name = "google-cloud-dataproc"
-version = "5.6.0"
+version = "5.7.0"
 description = "Google Cloud Dataproc API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-dataproc-5.6.0.tar.gz", hash = "sha256:5fa9dfb88433c2d0c138b7ebb6ade174103be3762ccd039b24d53c7448e3760d"},
-    {file = "google_cloud_dataproc-5.6.0-py2.py3-none-any.whl", hash = "sha256:d76a7791d5b81b498cf353be4f14a2194a696fdd1a41a69b33ac3319c5a8a213"},
+    {file = "google-cloud-dataproc-5.7.0.tar.gz", hash = "sha256:086229a0f987448bb92029e166212acef85d4e8e5d94f2822add21b382bf1c04"},
+    {file = "google_cloud_dataproc-5.7.0-py2.py3-none-any.whl", hash = "sha256:599436545f7091eda2fafe194ca657d302512064009d685c2ff3f0cd7c08deaf"},
 ]
 
 [package.dependencies]
@@ -8390,4 +8390,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "2d91850e40b96bf445d1c4c169abaad485885b8bf38d62b25f68eaf025193fda"
+content-hash = "c3f6d3748fd17dd821eeddf21c6e777c5310f5ca592cb5c96983aca0fab39350"
