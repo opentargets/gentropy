@@ -8,11 +8,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from otg.common.utils import (
-    calculate_confidence_interval,
-    convert_odds_ratio_to_beta,
-    parse_pvalue,
-)
+from otg.common.utils import convert_odds_ratio_to_beta, parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -45,11 +41,17 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             else f.lit(None)
         )
 
+        # Do we have sample size? This expression captures 99.7% of sample size columns.
+        sample_size_expression = (
+            f.col("n").cast(t.IntegerType())
+            if "n" in sumstats_df.columns
+            else f.lit(None).cast(t.IntegerType())
+        )
+
         # Processing columns of interest:
         processed_sumstats_df = (
             sumstats_df
             # Dropping rows which doesn't have proper position:
-            .filter(f.col("hm_pos").cast(t.IntegerType()).isNotNull())
             .select(
                 # Adding study identifier:
                 f.lit(study_id).cast(t.StringType()).alias("studyId"),
@@ -66,19 +68,17 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
                     f.col("standard_error").cast(t.DoubleType()),
                 ),
                 allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
+                sample_size_expression.alias("sampleSize"),
             )
-            # The previous select expression generated the necessary fields for calculating the confidence intervals:
-            .select(
-                "*",
-                *calculate_confidence_interval(
-                    f.col("pValueMantissa"),
-                    f.col("pValueExponent"),
-                    f.col("beta"),
-                    f.col("standardError"),
-                ),
+            .filter(
+                # Dropping associations where no harmonized position is available:
+                f.col("position").isNotNull()
+                &
+                # We are not interested in associations with zero effect:
+                (f.col("beta") != 0)
             )
-            .repartition(200, "chromosome")
-            .sortWithinPartitions("position")
+            .orderBy(f.col("chromosome"), f.col("position"))
+            .repartition(400)
         )
 
         # Initializing summary statistics object:
