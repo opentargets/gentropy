@@ -1068,65 +1068,7 @@
 <span class=normal>1097</span>
 <span class=normal>1098</span>
 <span class=normal>1099</span>
-<span class=normal>1100</span>
-<span class=normal>1101</span>
-<span class=normal>1102</span>
-<span class=normal>1103</span>
-<span class=normal>1104</span>
-<span class=normal>1105</span>
-<span class=normal>1106</span>
-<span class=normal>1107</span>
-<span class=normal>1108</span>
-<span class=normal>1109</span>
-<span class=normal>1110</span>
-<span class=normal>1111</span>
-<span class=normal>1112</span>
-<span class=normal>1113</span>
-<span class=normal>1114</span>
-<span class=normal>1115</span>
-<span class=normal>1116</span>
-<span class=normal>1117</span>
-<span class=normal>1118</span>
-<span class=normal>1119</span>
-<span class=normal>1120</span>
-<span class=normal>1121</span>
-<span class=normal>1122</span>
-<span class=normal>1123</span>
-<span class=normal>1124</span>
-<span class=normal>1125</span>
-<span class=normal>1126</span>
-<span class=normal>1127</span>
-<span class=normal>1128</span>
-<span class=normal>1129</span>
-<span class=normal>1130</span>
-<span class=normal>1131</span>
-<span class=normal>1132</span>
-<span class=normal>1133</span>
-<span class=normal>1134</span>
-<span class=normal>1135</span>
-<span class=normal>1136</span>
-<span class=normal>1137</span>
-<span class=normal>1138</span>
-<span class=normal>1139</span>
-<span class=normal>1140</span>
-<span class=normal>1141</span>
-<span class=normal>1142</span>
-<span class=normal>1143</span>
-<span class=normal>1144</span>
-<span class=normal>1145</span>
-<span class=normal>1146</span>
-<span class=normal>1147</span>
-<span class=normal>1148</span>
-<span class=normal>1149</span>
-<span class=normal>1150</span>
-<span class=normal>1151</span>
-<span class=normal>1152</span>
-<span class=normal>1153</span>
-<span class=normal>1154</span>
-<span class=normal>1155</span>
-<span class=normal>1156</span>
-<span class=normal>1157</span>
-<span class=normal>1158</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
+<span class=normal>1100</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@dataclass</span>
 <span class=k>class</span> <span class=nc>GWASCatalogAssociations</span><span class=p>(</span><span class=n>StudyLocus</span><span class=p>):</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Study-locus dataset derived from GWAS Catalog.&quot;&quot;&quot;</span>
 
@@ -2141,64 +2083,6 @@
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
                     <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
                 <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;beta&quot;</span><span class=p>),</span>
-                <span class=c1># odds ratio of the association</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_odds_ratio</span><span class=p>(</span>
-                    <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                    <span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;oddsRatio&quot;</span><span class=p>),</span>
-                <span class=c1># CI lower of the beta value</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_beta_ci</span><span class=p>(</span>
-                    <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                    <span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                    <span class=s2>&quot;lower&quot;</span><span class=p>,</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;betaConfidenceIntervalLower&quot;</span><span class=p>),</span>
-                <span class=c1># CI upper for the beta value</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_beta_ci</span><span class=p>(</span>
-                    <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                    <span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                    <span class=s2>&quot;upper&quot;</span><span class=p>,</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;betaConfidenceIntervalUpper&quot;</span><span class=p>),</span>
-                <span class=c1># CI lower of the odds ratio value</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_odds_ratio_ci</span><span class=p>(</span>
-                    <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                    <span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                    <span class=s2>&quot;lower&quot;</span><span class=p>,</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;oddsRatioConfidenceIntervalLower&quot;</span><span class=p>),</span>
-                <span class=c1># CI upper of the odds ratio value</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_odds_ratio_ci</span><span class=p>(</span>
-                    <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                        <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                    <span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                    <span class=s2>&quot;upper&quot;</span><span class=p>,</span>
-                <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;oddsRatioConfidenceIntervalUpper&quot;</span><span class=p>),</span>
                 <span class=c1># p-value of the association, string: split into exponent and mantissa.</span>
                 <span class=o>*</span><span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_parse_pvalue</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>)),</span>
                 <span class=c1># Capturing phenotype granularity at the association level</span>
@@ -2330,65 +2214,7 @@
 <span class=normal>1054</span>
 <span class=normal>1055</span>
 <span class=normal>1056</span>
-<span class=normal>1057</span>
-<span class=normal>1058</span>
-<span class=normal>1059</span>
-<span class=normal>1060</span>
-<span class=normal>1061</span>
-<span class=normal>1062</span>
-<span class=normal>1063</span>
-<span class=normal>1064</span>
-<span class=normal>1065</span>
-<span class=normal>1066</span>
-<span class=normal>1067</span>
-<span class=normal>1068</span>
-<span class=normal>1069</span>
-<span class=normal>1070</span>
-<span class=normal>1071</span>
-<span class=normal>1072</span>
-<span class=normal>1073</span>
-<span class=normal>1074</span>
-<span class=normal>1075</span>
-<span class=normal>1076</span>
-<span class=normal>1077</span>
-<span class=normal>1078</span>
-<span class=normal>1079</span>
-<span class=normal>1080</span>
-<span class=normal>1081</span>
-<span class=normal>1082</span>
-<span class=normal>1083</span>
-<span class=normal>1084</span>
-<span class=normal>1085</span>
-<span class=normal>1086</span>
-<span class=normal>1087</span>
-<span class=normal>1088</span>
-<span class=normal>1089</span>
-<span class=normal>1090</span>
-<span class=normal>1091</span>
-<span class=normal>1092</span>
-<span class=normal>1093</span>
-<span class=normal>1094</span>
-<span class=normal>1095</span>
-<span class=normal>1096</span>
-<span class=normal>1097</span>
-<span class=normal>1098</span>
-<span class=normal>1099</span>
-<span class=normal>1100</span>
-<span class=normal>1101</span>
-<span class=normal>1102</span>
-<span class=normal>1103</span>
-<span class=normal>1104</span>
-<span class=normal>1105</span>
-<span class=normal>1106</span>
-<span class=normal>1107</span>
-<span class=normal>1108</span>
-<span class=normal>1109</span>
-<span class=normal>1110</span>
-<span class=normal>1111</span>
-<span class=normal>1112</span>
-<span class=normal>1113</span>
-<span class=normal>1114</span>
-<span class=normal>1115</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
+<span class=normal>1057</span></pre></div></td><td class=code><div><pre><span></span><code><span class=nd>@classmethod</span>
 <span class=k>def</span> <span class=nf>from_source</span><span class=p>(</span>
     <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=n>GWASCatalogAssociations</span><span class=p>],</span>
     <span class=n>gwas_associations</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>,</span>
@@ -2451,64 +2277,6 @@
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
                 <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
             <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;beta&quot;</span><span class=p>),</span>
-            <span class=c1># odds ratio of the association</span>
-            <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_odds_ratio</span><span class=p>(</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                <span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;oddsRatio&quot;</span><span class=p>),</span>
-            <span class=c1># CI lower of the beta value</span>
-            <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_beta_ci</span><span class=p>(</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                <span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                <span class=s2>&quot;lower&quot;</span><span class=p>,</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;betaConfidenceIntervalLower&quot;</span><span class=p>),</span>
-            <span class=c1># CI upper for the beta value</span>
-            <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_beta_ci</span><span class=p>(</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                <span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                <span class=s2>&quot;upper&quot;</span><span class=p>,</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;betaConfidenceIntervalUpper&quot;</span><span class=p>),</span>
-            <span class=c1># CI lower of the odds ratio value</span>
-            <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_odds_ratio_ci</span><span class=p>(</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                <span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                <span class=s2>&quot;lower&quot;</span><span class=p>,</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;oddsRatioConfidenceIntervalLower&quot;</span><span class=p>),</span>
-            <span class=c1># CI upper of the odds ratio value</span>
-            <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_harmonise_odds_ratio_ci</span><span class=p>(</span>
-                <span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_normalise_risk_allele</span><span class=p>(</span>
-                    <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;STRONGEST SNP-RISK ALLELE&quot;</span><span class=p>)</span>
-                <span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;referenceAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;alternateAllele&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;OR or BETA&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;95% CI (TEXT)&quot;</span><span class=p>),</span>
-                <span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>),</span>
-                <span class=s2>&quot;upper&quot;</span><span class=p>,</span>
-            <span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&quot;oddsRatioConfidenceIntervalUpper&quot;</span><span class=p>),</span>
             <span class=c1># p-value of the association, string: split into exponent and mantissa.</span>
             <span class=o>*</span><span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>_parse_pvalue</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>col</span><span class=p>(</span><span class=s2>&quot;P-VALUE&quot;</span><span class=p>)),</span>
             <span class=c1># Capturing phenotype granularity at the association level</span>
@@ -2522,28 +2290,28 @@
         <span class=p>),</span>
         <span class=n>_schema</span><span class=o>=</span><span class=n>GWASCatalogAssociations</span><span class=o>.</span><span class=n>get_schema</span><span class=p>(),</span>
     <span class=p>)</span>
-</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class="doc doc-heading"> <code class="highlight language-python"><span class=n>update_study_id</span><span class=p>(</span><span class=n>study_annotation</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GWASCatalogAssociations</span></code> <a href=#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Update final studyId and studyLocusId with a dataframe containing study annotation.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_annotation</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe containing <code>updatedStudyId</code> and key columns <code>studyId</code> and <code>subStudyDescription</code>.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>GWASCatalogAssociations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a></code> </td> <td> <div class=doc-md-description> <p>Updated study locus with new <code>studyId</code> and <code>studyLocusId</code>.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/associations.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1117</span>
-<span class=normal>1118</span>
-<span class=normal>1119</span>
-<span class=normal>1120</span>
-<span class=normal>1121</span>
-<span class=normal>1122</span>
-<span class=normal>1123</span>
-<span class=normal>1124</span>
-<span class=normal>1125</span>
-<span class=normal>1126</span>
-<span class=normal>1127</span>
-<span class=normal>1128</span>
-<span class=normal>1129</span>
-<span class=normal>1130</span>
-<span class=normal>1131</span>
-<span class=normal>1132</span>
-<span class=normal>1133</span>
-<span class=normal>1134</span>
-<span class=normal>1135</span>
-<span class=normal>1136</span>
-<span class=normal>1137</span>
-<span class=normal>1138</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>update_study_id</span><span class=p>(</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h3 id=otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class="doc doc-heading"> <code class="highlight language-python"><span class=n>update_study_id</span><span class=p>(</span><span class=n>study_annotation</span><span class=p>:</span> <span class=n>DataFrame</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GWASCatalogAssociations</span></code> <a href=#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations.update_study_id class=headerlink title="Permanent link">&para;</a></h3> <div class="doc doc-contents "> <p>Update final studyId and studyLocusId with a dataframe containing study annotation.</p> <p><strong>Parameters:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr> <td><code>study_annotation</code></td> <td> <code><span title="pyspark.sql.DataFrame">DataFrame</span></code> </td> <td> <div class=doc-md-description> <p>Dataframe containing <code>updatedStudyId</code> and key columns <code>studyId</code> and <code>subStudyDescription</code>.</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><strong>Returns:</strong></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>GWASCatalogAssociations</code></td> <td> <code><a class="autorefs autorefs-internal" title="otg.datasource.gwas_catalog.associations.GWASCatalogAssociations" href="#otg.datasource.gwas_catalog.associations.GWASCatalogAssociations">GWASCatalogAssociations</a></code> </td> <td> <div class=doc-md-description> <p>Updated study locus with new <code>studyId</code> and <code>studyLocusId</code>.</p> </div> </td> </tr> </tbody> </table> <details class=quote> <summary>Source code in <code>src/otg/datasource/gwas_catalog/associations.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1059</span>
+<span class=normal>1060</span>
+<span class=normal>1061</span>
+<span class=normal>1062</span>
+<span class=normal>1063</span>
+<span class=normal>1064</span>
+<span class=normal>1065</span>
+<span class=normal>1066</span>
+<span class=normal>1067</span>
+<span class=normal>1068</span>
+<span class=normal>1069</span>
+<span class=normal>1070</span>
+<span class=normal>1071</span>
+<span class=normal>1072</span>
+<span class=normal>1073</span>
+<span class=normal>1074</span>
+<span class=normal>1075</span>
+<span class=normal>1076</span>
+<span class=normal>1077</span>
+<span class=normal>1078</span>
+<span class=normal>1079</span>
+<span class=normal>1080</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span> <span class=nf>update_study_id</span><span class=p>(</span>
     <span class=bp>self</span><span class=p>:</span> <span class=n>GWASCatalogAssociations</span><span class=p>,</span> <span class=n>study_annotation</span><span class=p>:</span> <span class=n>DataFrame</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GWASCatalogAssociations</span><span class=p>:</span>
 <span class=w>    </span><span class=sd>&quot;&quot;&quot;Update final studyId and studyLocusId with a dataframe containing study annotation.</span>
