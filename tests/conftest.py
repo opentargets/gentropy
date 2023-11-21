@@ -23,6 +23,8 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
+from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
 from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
@@ -158,6 +160,24 @@ def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
 def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
     """Mock FinnGenSummaryStats dataset."""
     return FinnGenSummaryStats(
+        _df=mock_summary_statistics_data(spark),
+        _schema=SummaryStatistics.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueStudyIndex:
+    """Mock EqtlCatalogueStudyIndex dataset."""
+    return EqtlCatalogueStudyIndex(
+        _df=mock_study_index_data(spark),
+        _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_summary_stats_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueSummaryStats:
+    """Mock EqtlCatalogueSummaryStats dataset."""
+    return EqtlCatalogueSummaryStats(
         _df=mock_summary_statistics_data(spark),
         _schema=SummaryStatistics.get_schema(),
     )
@@ -513,6 +533,30 @@ def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
     # It's important for the test file to be named in exactly this way, because FinnGen study ID is populated based on input file name.
     return spark.read.option("delimiter", "\t").csv(
         "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz", header=True
+    )
+
+
+@pytest.fixture()
+def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
+    """Sample eQTL Catalogue studies."""
+    # For reference, the sample file was generated with the following command:
+    # curl https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv | head -n11 > tests/data_samples/eqtl_catalogue_studies_sample.tsv
+    with open("tests/data_samples/eqtl_catalogue_studies_sample.tsv") as eqtl_catalogue:
+        tsv = eqtl_catalogue.read()
+        rdd = spark.sparkContext.parallelize([tsv])
+        return spark.read.csv(rdd, sep="\t", header=True)
+
+
+@pytest.fixture()
+def sample_eqtl_catalogue_summary_stats(spark: SparkSession) -> DataFrame:
+    """Sample eQTL Catalogue summary stats."""
+    # For reference, the sample file was generated with the following commands:
+    # mkdir -p tests/data_samples/imported/GTEx_V8/ge
+    # curl ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz
+    # It's important for the test file to be named in exactly this way, because eQTL Catalogue study ID is populated based on input file name.
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz",
+        header=True,
     )
 
 
