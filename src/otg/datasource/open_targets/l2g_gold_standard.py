@@ -20,8 +20,6 @@ class OpenTargetsL2GGoldStandard:
     """
 
     LOCUS_TO_GENE_WINDOW = 500_000
-    GS_POSITIVE_LABEL = "positive"
-    GS_NEGATIVE_LABEL = "negative"
 
     @classmethod
     def parse_positive_curation(
@@ -89,13 +87,13 @@ class OpenTargetsL2GGoldStandard:
                     (f.col("curated_geneId") == f.col("non_curated_geneId"))
                     # to keep the positives that are outside the v2g dataset
                     | (f.col("non_curated_geneId").isNull()),
-                    f.lit(cls.GS_POSITIVE_LABEL),
-                ).otherwise(cls.GS_NEGATIVE_LABEL),
+                    f.lit(L2GGoldStandard.GS_POSITIVE_LABEL),
+                ).otherwise(L2GGoldStandard.GS_NEGATIVE_LABEL),
             )
             .withColumn(
                 "geneId",
                 f.when(
-                    f.col("goldStandardSet") == cls.GS_POSITIVE_LABEL,
+                    f.col("goldStandardSet") == L2GGoldStandard.GS_POSITIVE_LABEL,
                     f.col("curated_geneId"),
                 ).otherwise(f.col("non_curated_geneId")),
             )

@@ -24,6 +24,8 @@ class L2GGoldStandard(Dataset):
     """L2G gold standard dataset."""
 
     INTERACTION_THRESHOLD = 0.7
+    GS_POSITIVE_LABEL = "positive"
+    GS_NEGATIVE_LABEL = "negative"
 
     @classmethod
     def from_otg_curation(
