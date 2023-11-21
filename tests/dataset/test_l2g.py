@@ -138,6 +138,8 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
         _df=mock_l2g_gs_df, _schema=L2GGoldStandard.get_schema()
     )
 
-    observed_df = mock_l2g_gs.remove_false_negatives(mock_interactions_df).df
+    observed_df = mock_l2g_gs.remove_false_negatives(mock_interactions_df).df.orderBy(
+        "studyLocusId"
+    )
 
     assert observed_df.collect() == expected_df.collect()

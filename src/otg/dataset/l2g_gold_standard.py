@@ -116,7 +116,6 @@ class L2GGoldStandard(Dataset):
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.
         """
         squared_overlaps = study_locus_overlap._convert_to_square_matrix()
-        cols_to_keep = self.df.columns
         unique_associations = (
             self.df.alias("left")
             # identify all the study loci that point to the same gene
@@ -139,7 +138,7 @@ class L2GGoldStandard(Dataset):
             )
             # drop redundant rows: where the variantid overlaps and the gene is "explained" by more than one study locus
             .filter(~((f.size("sl_same_gene") > 1) & (f.col("overlaps") == 1)))
-            .select(*cols_to_keep)
+            .select(*self.df.columns)
         )
         return L2GGoldStandard(_df=unique_associations, _schema=self.get_schema())
 
@@ -155,30 +154,44 @@ class L2GGoldStandard(Dataset):
         Returns:
             L2GGoldStandard: A refined set of locus-to-gene associations with increased reliability, having excluded loci that were likely false negatives due to gene-gene interaction confounding.
         """
-        # TODO: Test this logic
-        self.df = (
+        squared_interactions = interactions_df.unionByName(
+            interactions_df.selectExpr(
+                "geneIdB as geneIdA", "geneIdA as geneIdB", "score"
+            )
+        ).filter(f.col("score") > self.INTERACTION_THRESHOLD)
+        df = (
             self.df.alias("left")
             .join(
-                interactions_df.alias("interactions"),
-                (f.col("left.geneId") == f.col("interactions.geneIdA"))
-                | (f.col("left.geneId") == f.col("interactions.geneIdB")),
-                how="left",
+                # bring gene partners
+                squared_interactions.alias("right"),
+                f.col("left.geneId") == f.col("right.geneIdA"),
+                "left",
             )
-            .withColumn(
-                "interacting",
-                (f.col("score") > self.INTERACTION_THRESHOLD),
+            .withColumnRenamed("geneIdB", "interactorGeneId")
+            .join(
+                # bring gold standard status for gene partners
+                self.df.selectExpr(
+                    "geneId as interactorGeneId",
+                    "goldStandardSet as interactorGeneIdGoldStandardSet",
+                ),
+                "interactorGeneId",
+                "left",
             )
+            # remove self-interactions
             .filter(
-                ~(
-                    (
-                        f.col("goldStandardSet") == 0
-                    )  # TODO: goldStandardSet is a string, not an int
-                    & (f.col("interacting"))
-                    & (
-                        (f.col("left.geneId") == f.col("interactions.geneIdA"))
-                        | (f.col("left.geneId") == f.col("interactions.geneIdB"))
-                    )
-                )
+                (f.col("geneId") != f.col("interactorGeneId"))
+                | (f.col("interactorGeneId").isNull())
             )
+            # remove false negatives
+            .filter(
+                # drop rows where the GS gene is negative but the interactor is a GS positive
+                ~(f.col("goldStandardSet") == "negative")
+                & (f.col("interactorGeneIdGoldStandardSet") == "positive")
+                |
+                # keep rows where the gene does not interact
+                (f.col("interactorGeneId").isNull())
+            )
+            .select(*self.df.columns)
+            .distinct()
         )
-        return self
+        return L2GGoldStandard(_df=df, _schema=self.get_schema())

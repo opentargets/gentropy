@@ -121,7 +121,6 @@ class OpenTargetsL2GGoldStandard:
             _df=cls.parse_positive_curation(gold_standard_curation)
             .transform(cls.expand_gold_standard_with_negatives, v2g)
             .drop(
-                "variantId",
                 "studyId",
             ),
             _schema=L2GGoldStandard.get_schema(),
