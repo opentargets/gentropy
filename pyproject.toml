@@ -63,7 +63,7 @@ ipython = "^8.5.0"
 ipykernel = "^6.19.0"
 google-cloud-dataproc = "^5.7.0"
 apache-airflow = "^2.7.3"
-apache-airflow-providers-google = "^10.10.1"
+apache-airflow-providers-google = "^10.11.1"
 pydoclint = "^0.3.8"
 
 
