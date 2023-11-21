@@ -38,36 +38,6 @@
     },
     {
       "metadata": {},
-      "name": "oddsRatio",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "oddsRatioConfidenceIntervalLower",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "oddsRatioConfidenceIntervalUpper",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "betaConfidenceIntervalLower",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "betaConfidenceIntervalUpper",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
       "name": "pValueMantissa",
       "nullable": true,
       "type": "float"

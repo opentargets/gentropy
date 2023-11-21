@@ -1042,64 +1042,6 @@ class GWASCatalogAssociations(StudyLocus):
                     f.col("OR or BETA"),
                     f.col("95% CI (TEXT)"),
                 ).alias("beta"),
-                # odds ratio of the association
-                GWASCatalogAssociations._harmonise_odds_ratio(
-                    GWASCatalogAssociations._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                ).alias("oddsRatio"),
-                # CI lower of the beta value
-                GWASCatalogAssociations._harmonise_beta_ci(
-                    GWASCatalogAssociations._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "lower",
-                ).alias("betaConfidenceIntervalLower"),
-                # CI upper for the beta value
-                GWASCatalogAssociations._harmonise_beta_ci(
-                    GWASCatalogAssociations._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "upper",
-                ).alias("betaConfidenceIntervalUpper"),
-                # CI lower of the odds ratio value
-                GWASCatalogAssociations._harmonise_odds_ratio_ci(
-                    GWASCatalogAssociations._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "lower",
-                ).alias("oddsRatioConfidenceIntervalLower"),
-                # CI upper of the odds ratio value
-                GWASCatalogAssociations._harmonise_odds_ratio_ci(
-                    GWASCatalogAssociations._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                    f.col("P-VALUE"),
-                    "upper",
-                ).alias("oddsRatioConfidenceIntervalUpper"),
                 # p-value of the association, string: split into exponent and mantissa.
                 *GWASCatalogAssociations._parse_pvalue(f.col("P-VALUE")),
                 # Capturing phenotype granularity at the association level
