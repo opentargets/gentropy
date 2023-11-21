@@ -84,9 +84,14 @@ class Dataset(ABC):
 
         Returns:
             Self: Dataset with the parquet file contents
+
+        Raises:
+            ValueError: Parquet file is empty
         """
         schema = cls.get_schema()
         df = session.read_parquet(path=path, schema=schema, **kwargs)
+        if df.isEmpty():
+            raise ValueError(f"Parquet file is empty: {path}")
         return cls(_df=df, _schema=schema)
 
     def validate_schema(self: Dataset) -> None:
