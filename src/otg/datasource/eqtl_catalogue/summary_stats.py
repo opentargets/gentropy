@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from otg.common.utils import calculate_confidence_interval, parse_pvalue
+from otg.common.utils import parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -59,9 +59,7 @@ class EqtlCatalogueSummaryStats(SummaryStatistics):
             EqtlCatalogueSummaryStats: a processed summary statistics dataframe for eQTL Catalogue.
         """
         processed_summary_stats_df = (
-            summary_stats_df
-            # Drop rows which don't have proper position.
-            .filter(f.col("position").cast(t.IntegerType()).isNotNull()).select(
+            summary_stats_df.select(
                 # Construct study ID from the appropriate columns.
                 cls._full_study_id_regexp().alias("studyId"),
                 # Add variant information.
@@ -81,19 +79,14 @@ class EqtlCatalogueSummaryStats(SummaryStatistics):
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
             )
-            # Calculating the confidence intervals.
-            .select(
-                "*",
-                *calculate_confidence_interval(
-                    f.col("pValueMantissa"),
-                    f.col("pValueExponent"),
-                    f.col("beta"),
-                    f.col("standardError"),
-                ),
+            # Drop rows which don't have proper position or beta value.
+            .filter(
+                f.col("position").cast(t.IntegerType()).isNotNull()
+                & (f.col("beta") != 0)
             )
         )
 
-        # Initializing summary statistics object:
+        # Initialise a summary statistics object.
         return cls(
             _df=processed_summary_stats_df,
             _schema=cls.get_schema(),
