@@ -9,7 +9,7 @@ import pyspark.sql.types as t
 from pyspark.sql.types import StringType, StructField, StructType
 
 from otg.common.session import Session
-from otg.common.utils import calculate_confidence_interval, parse_pvalue
+from otg.common.utils import parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
 
@@ -79,14 +79,8 @@ class FinnGenSummaryStats(SummaryStatistics):
                 f.col("af_alt").cast("float").alias("effectAlleleFrequencyFromSource"),
             )
             # Calculating the confidence intervals.
-            .select(
-                "*",
-                *calculate_confidence_interval(
-                    f.col("pValueMantissa"),
-                    f.col("pValueExponent"),
-                    f.col("beta"),
-                    f.col("standardError"),
-                ),
+            .filter(
+                f.col("pos").cast(t.IntegerType()).isNotNull() & (f.col("beta") != 0)
             )
         )
 

@@ -8,7 +8,7 @@ from airflow.models.dag import DAG
 
 CLUSTER_NAME = "otg-preprocess-do"
 
-ALL_STEPS = ["finngen"]
+ALL_STEPS = ["finngen", "eqtl_catalogue", "ld_index", "variant_annotation"]
 
 
 with DAG(
