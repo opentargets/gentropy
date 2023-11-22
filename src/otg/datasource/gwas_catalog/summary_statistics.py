@@ -78,7 +78,8 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
                 (f.col("beta") != 0)
             )
             .orderBy(f.col("chromosome"), f.col("position"))
-            .repartition(400)
+            # median study size is 200Mb, max is 2.6Gb
+            .repartition(20)
         )
 
         # Initializing summary statistics object:
