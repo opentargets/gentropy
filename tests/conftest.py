@@ -410,11 +410,6 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
         # Making sure p-values are below 1:
     ).build()
 
-    # Because some of the columns are not strictly speaking required, they are dropped now:
-    data_spec = data_spec.drop(
-        "betaConfidenceIntervalLower", "betaConfidenceIntervalUpper"
-    )
-
     return data_spec
 
 
