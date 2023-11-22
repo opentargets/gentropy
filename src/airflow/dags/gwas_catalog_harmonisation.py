@@ -102,6 +102,7 @@ with DAG(
         >> common.create_cluster(
             CLUSTER_NAME,
             autoscaling_policy=AUTOSCALING,
+            num_workers=8,
             master_machine_type="n1-highmem-64",
             worker_machine_type="n1-standard-2",
         )
