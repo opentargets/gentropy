@@ -12,7 +12,7 @@ from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
 
 CLUSTER_NAME = "otg-preprocess-gwascatalog"
-AUTOSCALING = "finngen-preprocess"
+AUTOSCALING = "gwascatalog-harmonisation"
 
 SUMMARY_STATS_BUCKET_NAME = "open-targets-gwas-summary-stats"
 
