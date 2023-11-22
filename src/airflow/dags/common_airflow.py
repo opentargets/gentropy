@@ -106,7 +106,9 @@ def create_cluster(
             # Create a disk config section if it does not exist.
             cluster_config[worker_section].setdefault("disk_config", dict())
             # Specify the number of local SSDs.
-            cluster_config[worker_section]["num_local_ssds"] = num_local_ssds
+            cluster_config[worker_section]["disk_config"][
+                "num_local_ssds"
+            ] = num_local_ssds
 
     # Return the cluster creation operator.
     return DataprocCreateClusterOperator(
