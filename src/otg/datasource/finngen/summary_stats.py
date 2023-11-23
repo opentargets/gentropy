@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from otg.common.utils import calculate_confidence_interval, parse_pvalue
+from otg.common.utils import parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ class FinnGenSummaryStats(SummaryStatistics):
         processed_summary_stats_df = (
             summary_stats_df
             # Drop rows which don't have proper position.
-            .filter(f.col("pos").cast(t.IntegerType()).isNotNull()).select(
+            .select(
                 # From the full path, extracts just the filename, and converts to upper case to get the study ID.
                 f.upper(f.regexp_extract(f.input_file_name(), r"([^/]+)\.gz", 1)).alias(
                     "studyId"
@@ -58,14 +58,8 @@ class FinnGenSummaryStats(SummaryStatistics):
                 f.col("af_alt").cast("float").alias("effectAlleleFrequencyFromSource"),
             )
             # Calculating the confidence intervals.
-            .select(
-                "*",
-                *calculate_confidence_interval(
-                    f.col("pValueMantissa"),
-                    f.col("pValueExponent"),
-                    f.col("beta"),
-                    f.col("standardError"),
-                ),
+            .filter(
+                f.col("pos").cast(t.IntegerType()).isNotNull() & (f.col("beta") != 0)
             )
         )
 
