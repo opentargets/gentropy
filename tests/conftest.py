@@ -23,6 +23,8 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
+from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
+from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
 from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
@@ -164,6 +166,24 @@ def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
 
 
 @pytest.fixture()
+def mock_study_index_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueStudyIndex:
+    """Mock EqtlCatalogueStudyIndex dataset."""
+    return EqtlCatalogueStudyIndex(
+        _df=mock_study_index_data(spark),
+        _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_summary_stats_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueSummaryStats:
+    """Mock EqtlCatalogueSummaryStats dataset."""
+    return EqtlCatalogueSummaryStats(
+        _df=mock_summary_statistics_data(spark),
+        _schema=SummaryStatistics.get_schema(),
+    )
+
+
+@pytest.fixture()
 def mock_study_index_ukbiobank(spark: SparkSession) -> UKBiobankStudyIndex:
     """Mock StudyIndexUKBiobank dataset."""
     return UKBiobankStudyIndex(
@@ -202,11 +222,6 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("chromosome", percentNulls=0.1)
         .withColumnSpec("position", percentNulls=0.1)
         .withColumnSpec("beta", percentNulls=0.1)
-        .withColumnSpec("oddsRatio", percentNulls=0.1)
-        .withColumnSpec("oddsRatioConfidenceIntervalLower", percentNulls=0.1)
-        .withColumnSpec("oddsRatioConfidenceIntervalUpper", percentNulls=0.1)
-        .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
-        .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
         .withColumnSpec("effectAlleleFrequencyFromSource", percentNulls=0.1)
         .withColumnSpec("standardError", percentNulls=0.1)
         .withColumnSpec("subStudyDescription", percentNulls=0.1)
@@ -385,23 +400,15 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
             partitions=4,
             randomSeedMethod="hash_fieldname",
             name="summaryStats",
-        )
-        .withSchema(ss_schema)
+        ).withSchema(ss_schema)
         # Allowing missingness in effect allele frequency and enforce upper limit:
         .withColumnSpec(
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
         )
         # Allowing missingness:
-        .withColumnSpec("betaConfidenceIntervalLower", percentNulls=0.1)
-        .withColumnSpec("betaConfidenceIntervalUpper", percentNulls=0.1)
         .withColumnSpec("standardError", percentNulls=0.1)
         # Making sure p-values are below 1:
     ).build()
-
-    # Because some of the columns are not strictly speaking required, they are dropped now:
-    data_spec = data_spec.drop(
-        "betaConfidenceIntervalLower", "betaConfidenceIntervalUpper"
-    )
 
     return data_spec
 
@@ -516,6 +523,30 @@ def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
     # It's important for the test file to be named in exactly this way, because FinnGen study ID is populated based on input file name.
     return spark.read.option("delimiter", "\t").csv(
         "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz", header=True
+    )
+
+
+@pytest.fixture()
+def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
+    """Sample eQTL Catalogue studies."""
+    # For reference, the sample file was generated with the following command:
+    # curl https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv | head -n11 > tests/data_samples/eqtl_catalogue_studies_sample.tsv
+    with open("tests/data_samples/eqtl_catalogue_studies_sample.tsv") as eqtl_catalogue:
+        tsv = eqtl_catalogue.read()
+        rdd = spark.sparkContext.parallelize([tsv])
+        return spark.read.csv(rdd, sep="\t", header=True)
+
+
+@pytest.fixture()
+def sample_eqtl_catalogue_summary_stats(spark: SparkSession) -> DataFrame:
+    """Sample eQTL Catalogue summary stats."""
+    # For reference, the sample file was generated with the following commands:
+    # mkdir -p tests/data_samples/imported/GTEx_V8/ge
+    # curl ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz
+    # It's important for the test file to be named in exactly this way, because eQTL Catalogue study ID is populated based on input file name.
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz",
+        header=True,
     )
 
 
