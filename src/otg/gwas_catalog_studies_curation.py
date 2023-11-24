@@ -1,4 +1,4 @@
-"""Step to process GWAS Catalog associations."""
+"""Step to process GWAS Catalog study index and curated associations."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -16,7 +16,7 @@ from otg.method.pics import PICS
 
 
 @dataclass
-class GWASCatalogStep:
+class GWASCatalogStudiesCurationStep:
     """GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables.
 
     !!!note This step currently only processes the GWAS Catalog curated list of top hits.
@@ -45,7 +45,7 @@ class GWASCatalogStep:
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
 
-    def __post_init__(self: GWASCatalogStep) -> None:
+    def __post_init__(self: GWASCatalogStudiesCurationStep) -> None:
         """Run step."""
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
@@ -64,10 +64,11 @@ class GWASCatalogStep:
         ld_index = LDIndex.from_parquet(self.session, self.ld_index_path)
 
         # Transform
+        study_index_before_split = GWASCatalogStudyIndex.from_source(
+            catalog_studies, ancestry_lut, sumstats_lut
+        ).persist()
         study_index, study_locus = GWASCatalogStudySplitter.split(
-            GWASCatalogStudyIndex.from_source(
-                catalog_studies, ancestry_lut, sumstats_lut
-            ),
+            study_index_before_split,
             GWASCatalogAssociations.from_source(catalog_associations, va),
         )
         study_locus_ld = LDAnnotator.ld_annotate(
@@ -76,6 +77,9 @@ class GWASCatalogStep:
         finemapped_study_locus = PICS.finemap(study_locus_ld).annotate_credible_sets()
 
         # Load
+        study_index_before_split.df.write.mode(self.session.write_mode).parquet(
+            f"{self.catalog_studies_out}_no_split"
+        )
         study_index.df.write.mode(self.session.write_mode).parquet(
             self.catalog_studies_out
         )
