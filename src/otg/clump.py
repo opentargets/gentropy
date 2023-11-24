@@ -1,4 +1,5 @@
-"""Step to run clump summary statistics or study locus."""
+"""Step to run clump summary statistics."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,54 +10,40 @@ from otg.common.session import Session
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
-from otg.dataset.summary_statistics import SummaryStatistics
 
 
 @dataclass
 class ClumpStep:
-    """Clumping step with customizable method.
+    """LD annotation and LD clumping and PICS of a StudyLocus object.
 
     Attributes:
         session (Session): Session object.
-        clump_method (ClumpMethod): Method of clumping to use.
-        study_locus_in (str): Path to StudyLocus dataset to be clumped.
-        study_index_path (str): Path to study index.
+
+        study_locus_in_path (str): Path to StudyLocus to be clumped.
+        study_index_path (str): Path to study index to annotate ancestries.
         ld_index_path (str): Path to LD index.
-        clumped_study_locus_out (str): Output path for the clumped study locus dataset.
+        clumped_study_locus_out_path (str): Output path for the clumped study locus dataset.
     """
 
     session: Session = MISSING
-    summary_stats_path: str | None = None
-    study_locus_path: str | None = None
+    study_locus_in_path: str = MISSING
     study_index_path: str = MISSING
     ld_index_path: str = MISSING
-    clumped_study_locus_out: str = MISSING
+    clumped_study_locus_out_path: str = MISSING
 
     def __post_init__(self: ClumpStep) -> None:
-        """Run the clumping step."""
-        # Read
+        """Run step."""
+        # Extract
+        study_locus = StudyLocus.from_parquet(self.session, self.study_locus_in_path)
         ld_index = LDIndex.from_parquet(self.session, self.ld_index_path)
         study_index = StudyIndex.from_parquet(self.session, self.study_index_path)
-        if self.summary_stats_path:
-            # Window-based clumping if summary statistics are provided
-            study_locus_from_sumstats = SummaryStatistics.from_parquet(
-                self.session, self.summary_stats_path
-            ).window_based_clumping()
-
-        if self.study_locus_path:
-            # If an existing study locus is provided, read it in and combine it with the above
-            study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
-            combined_study_locus = StudyLocus(
-                _df=study_locus.df.unionByName(study_locus_from_sumstats.df),
-                _schema=StudyLocus.get_schema(),
-            )
 
         # Transform
-        clumped_study_locus = combined_study_locus.annotate_ld(
+        study_locus = study_locus.annotate_ld(
             study_index=study_index, ld_index=ld_index
         ).clump()
 
         # Load
-        clumped_study_locus.df.write.mode(self.session.write_mode).parquet(
-            self.clumped_study_locus_out
+        study_locus.df.write.mode(self.session.write_mode).parquet(
+            self.clumped_study_locus_out_path
         )
