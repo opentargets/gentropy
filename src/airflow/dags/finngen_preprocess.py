@@ -10,6 +10,8 @@ from airflow.utils.trigger_rule import TriggerRule
 CLUSTER_NAME = "otg-preprocess-finngen"
 AUTOSCALING = "finngen-preprocess"
 
+RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX"
+
 with DAG(
     dag_id=Path(__file__).stem,
     description="Open Targets Genetics — Finngen preprocess",
@@ -27,8 +29,8 @@ with DAG(
         step_id="clump",
         task_id="finngen_clump",
         other_args=[
-            "step.summary_stats_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/summary_statistics/finngen",
-            "step.clumped_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus/finngen",
+            f"step.summary_stats_path={RELEASEBUCKET}/summary_statistics/finngen",
+            f"step.clumped_study_locus_out={RELEASEBUCKET}/study_locus/from_sumstats_study_locus/finngen",
         ],
         # This allows to attempt running the task when above step fails do to failifexists
         trigger_rule=TriggerRule.ALL_DONE,
@@ -39,8 +41,8 @@ with DAG(
         step_id="pics",
         task_id="finngen_pics",
         other_args=[
-            "step.study_locus_ld_annotated_in=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus/finngen",
-            "step.picsed_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/credible_set/from_sumstats_study_locus/finngen",
+            f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/from_sumstats_study_locus/finngen",
+            f"step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/from_sumstats_study_locus/finngen",
         ],
         # This allows to attempt running the task when above step fails do to failifexists
         trigger_rule=TriggerRule.ALL_DONE,
