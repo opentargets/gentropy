@@ -6,7 +6,7 @@ from pathlib import Path
 import common_airflow as common
 from airflow.models.dag import DAG
 
-CLUSTER_NAME = "otg-preprocess-do"
+CLUSTER_NAME = "otg-preprocess"
 
 ALL_STEPS = ["eqtl_catalogue", "ld_index", "variant_annotation"]
 
