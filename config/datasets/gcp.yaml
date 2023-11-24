@@ -28,6 +28,7 @@ variant_index: ${datasets.outputs}/variant_index
 study_locus: ${datasets.outputs}/study_locus
 study_index: ${datasets.outputs}/study_index
 summary_statistics: ${datasets.outputs}/summary_statistics
+credible_set: ${datasets.outputs}/credible_set
 study_locus_overlap: ${datasets.outputs}/study_locus_overlap
 colocalisation: ${datasets.outputs}/colocalisation
 v2g: ${datasets.outputs}/v2g
@@ -38,6 +39,7 @@ finngen_study_index: ${datasets.study_index}/finngen
 finngen_summary_stats: ${datasets.summary_statistics}/finngen
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 ukbiobank_study_index: ${datasets.study_index}/ukbiobank
+from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 l2g_model: ${datasets.outputs}/l2g_model
 l2g_predictions: ${datasets.outputs}/l2g_predictions
 eqtl_catalogue_study_index_out: ${datasets.outputs}/preprocess/eqtl_catalogue/study_index
