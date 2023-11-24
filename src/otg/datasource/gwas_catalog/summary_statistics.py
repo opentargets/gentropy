@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
+from otg.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
 from otg.common.utils import convert_odds_ratio_to_beta, parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
@@ -36,8 +37,8 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
         """
         # The effect allele frequency is an optional column, we have to test if it is there:
         allele_frequency_expression = (
-            f.col("hm_effect_allele_frequency").cast(t.FloatType())
-            if "hm_effect_allele_frequency" in sumstats_df.columns
+            f.col("effect_allele_frequency").cast(t.FloatType())
+            if "effect_allele_frequency" in sumstats_df.columns
             else f.lit(None)
         )
 
@@ -48,6 +49,29 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             else f.lit(None).cast(t.IntegerType())
         )
 
+        # Depending on the input, we might have beta, but the column might not be there at all:
+        beta_expression = (
+            f.col("beta").cast(t.DoubleType())
+            if "beta" in sumstats_df.columns
+            else f.lit(None).alias("beta").cast(t.DoubleType())
+        )
+
+        # We might have odds ratio or hazard ratio, wich are basically the same:
+        odds_ratio_expression = (
+            f.col("odds_ratio").cast(t.DoubleType())
+            if "odds_ratio" in sumstats_df.columns
+            else f.col("hazard_ratio").alias("odds_ratio").cast(t.DoubleType())
+            if "hazard_ratio" in sumstats_df.columns
+            else f.lit(None).alias("odds_ratio").cast(t.DoubleType())
+        )
+
+        # p-values might come in two different flavours:
+        pvalue_expression = (
+            parse_pvalue(f.col("p_value"))
+            if "p_value" in sumstats_df.columns
+            else neglog_pvalue_to_mantissa_and_exponent(f.col(""))
+        )
+
         # Processing columns of interest:
         processed_sumstats_df = (
             sumstats_df
@@ -56,15 +80,21 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
                 # Adding study identifier:
                 f.lit(study_id).cast(t.StringType()).alias("studyId"),
                 # Adding variant identifier:
-                f.col("hm_variant_id").alias("variantId"),
-                f.col("hm_chrom").alias("chromosome"),
-                f.col("hm_pos").cast(t.IntegerType()).alias("position"),
+                f.concat_ws(
+                    "_",
+                    f.col("chromosome"),
+                    f.col("position"),
+                    f.col("other_allele"),
+                    f.col("effect_allele"),
+                ).alias("variantId"),
+                f.col("chromosome").alias("chromosome"),
+                f.col("base_pair_location").cast(t.IntegerType()).alias("position"),
                 # Parsing p-value mantissa and exponent:
-                *parse_pvalue(f.col("p_value")),
+                *pvalue_expression,
                 # Converting/calculating effect and confidence interval:
                 *convert_odds_ratio_to_beta(
-                    f.col("hm_beta").cast(t.DoubleType()),
-                    f.col("hm_odds_ratio").cast(t.DoubleType()),
+                    beta_expression,
+                    odds_ratio_expression,
                     f.col("standard_error").cast(t.DoubleType()),
                 ),
                 allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
