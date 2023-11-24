@@ -33,8 +33,8 @@ with DAG(
     list_outputs = GCSListObjectsOperator(
         task_id="list_harmonised_parquet",
         bucket=SUMMARY_STATS_BUCKET_NAME,
-        prefix="studies",
-        match_glob="*/_SUCCESS",
+        prefix="harmonised",
+        match_glob="**/_SUCCESS",
     )
 
     # Create list of pending jobs
@@ -52,17 +52,21 @@ with DAG(
         raw_harmonised = ti.xcom_pull(
             task_ids="list_raw_harmonised", key="return_value"
         )
+        print("Number of raw harmonised files: ", len(raw_harmonised))
+        to_do_list = []
         # Remove the ones that have been processed
         parquets = ti.xcom_pull(task_ids="list_harmonised_parquet", key="return_value")
+        print("Number of parquet files: ", len(parquets))
         for path in raw_harmonised:
             match_result = re.search(
                 "raw-harmonised/(.*)/(.*)/harmonised/(.*).h.tsv.gz", path
             )
             if match_result:
                 study_id = match_result.group(2)
-                if f"harmonised/{study_id}.parquet/_SUCCESS" in parquets:
-                    raw_harmonised.remove(path)
-        return {"to_do_list": raw_harmonised}
+                if f"harmonised/{study_id}.parquet/_SUCCESS" not in parquets:
+                    to_do_list.append(path)
+        print("Number of jobs to submit: ", len(to_do_list))
+        ti.xcom_push(key="to_do_list", value=to_do_list)
 
     # Submit jobs to dataproc
     @task(task_id="submit_jobs")
@@ -74,13 +78,14 @@ with DAG(
         """
         ti = kwargs["ti"]
         todo = ti.xcom_pull(task_ids="create_to_do_list", key="to_do_list")
+        print("Number of jobs to submit: ", len(todo))
         for i in range(len(todo)):
             # Not to exceed default quota 400 jobs per minute
             if i > 0 and i % 399 == 0:
                 time.sleep(60)
             input_path = todo[i]
             match_result = re.search(
-                "raw-harmonised/(.*)/(.*)/harmonised/(.*).h.tsv.gz", input_path
+                "raw-harmonised/(.*)/(.*)/harmonised/(.*)\.h\.tsv\.gz", input_path
             )
             if match_result:
                 study_id = match_result.group(2)
@@ -109,5 +114,5 @@ with DAG(
         )
         >> common.install_dependencies(CLUSTER_NAME)
         >> submit_jobs()
-        >> common.delete_cluster(CLUSTER_NAME)
+        # >> common.delete_cluster(CLUSTER_NAME)
     )
