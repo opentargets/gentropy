@@ -39,7 +39,7 @@ class FinnGenStep:
         input_filenames = [row.summarystatsLocation for row in study_index.df.collect()]
         # Process summary stats.
         summary_stats = FinnGenSummaryStats.from_source(
-            self.session, raw_files=input_filenames
+            self.session.spark, raw_files=input_filenames
         )
 
         # Write summary stats.

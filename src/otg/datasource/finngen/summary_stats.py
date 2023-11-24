@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql import SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
-from otg.common.session import Session
 from otg.common.utils import parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
@@ -38,20 +38,20 @@ class FinnGenSummaryStats(SummaryStatistics):
     @classmethod
     def from_source(
         cls: type[FinnGenSummaryStats],
-        session: Session,
+        spark: SparkSession,
         raw_files: list[str],
     ) -> FinnGenSummaryStats:
         """Ingests all summary statst for all FinnGen studies.
 
         Args:
-            session (Session): Session object.
+            spark (SparkSession): Spark session object.
             raw_files (list[str]): Paths to raw summary statistics .gz files.
 
         Returns:
             FinnGenSummaryStats: Processed summary statistics dataset
         """
         processed_summary_stats_df = (
-            session.spark.read.schema(cls.raw_schema)
+            spark.read.schema(cls.raw_schema)
             .option("delimiter", "\t")
             .csv(raw_files, header=True)
             # Drop rows which don't have proper position.
