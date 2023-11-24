@@ -18,14 +18,17 @@ with DAG(
 ):
     study_and_curated_assocs = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="gwas_catalog",  # TODO: change name
+        step_id="gwas_catalog_studies_curation",
         task_id="gwas_catalog_study_and_curated_assocs",
     )
 
     summary_stats = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="gwas_catalog_process_summary_stats",
+        step_id="process_summary_stats",
         task_id="gwas_catalog_summary_stats",
+        other_args=[
+            "step.sumstats_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats"
+        ],
     )
 
     ld_clumping = common.submit_step(
@@ -34,7 +37,7 @@ with DAG(
         task_id="gwas_catalog_clump",
         other_args=[
             "step.study_locus_in=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus/gwas_catalog",  # TODO: update pattern to match curated and from_sumstats
-            "step.clumped_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus/gwas_catalog",
+            "step.clumped_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_clumped/gwas_catalog",
         ],
         trigger_rule=TriggerRule.ALL_DONE,
     )
@@ -44,8 +47,8 @@ with DAG(
         step_id="pics",
         task_id="gwas_catalogs_pics",
         other_args=[
-            "step.study_locus_ld_annotated_in=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus/finngen",  # TODO: update pattern to match curated and from_sumstats
-            "step.picsed_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/credible_set/from_sumstats_study_locus/finngen",
+            "step.study_locus_ld_annotated_in=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_clumped/gwas_catalog",  # TODO: update pattern to match curated and from_sumstats
+            "step.picsed_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/credible_set/from_sumstats_study_locus/gwas_catalog",
         ],
         trigger_rule=TriggerRule.ALL_DONE,
     )
