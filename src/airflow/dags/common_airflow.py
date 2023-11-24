@@ -65,6 +65,7 @@ def create_cluster(
     master_machine_type: str = "n1-highmem-8",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
+    num_preemptible_workers: int = 0,
     num_local_ssds: int = 1,
     autoscaling_policy: str = GCP_AUTOSCALING_POLICY,
 ) -> DataprocCreateClusterOperator:
@@ -75,6 +76,7 @@ def create_cluster(
         master_machine_type (str): Machine type for the master node. Defaults to "n1-highmem-8".
         worker_machine_type (str): Machine type for the worker nodes. Defaults to "n1-standard-16".
         num_workers (int): Number of worker nodes. Defaults to 2.
+        num_preemptible_workers (int): Number of preemptible worker nodes. Defaults to 0.
         num_local_ssds (int): How many local SSDs to attach to each worker node, both primary and secondary. Defaults to 1.
         autoscaling_policy (str): Name of the autoscaling policy to use. Defaults to GCP_AUTOSCALING_POLICY.
 
@@ -89,6 +91,7 @@ def create_cluster(
         worker_machine_type=worker_machine_type,
         master_disk_size=500,
         worker_disk_size=500,
+        num_preemptible_workers=num_preemptible_workers,
         num_workers=num_workers,
         image_version=GCP_DATAPROC_IMAGE,
         enable_component_gateway=True,
