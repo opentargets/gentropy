@@ -1,4 +1,4 @@
-"""Step to generate variant annotation dataset."""
+"""Step to create summary statistics object from summary statistics flatfiles."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,7 +10,7 @@ from otg.datasource.gwas_catalog.summary_statistics import GWASCatalogSummarySta
 
 
 @dataclass
-class GWASCatalogSumstatsPreprocessStep:
+class GWASCatalogSumstatsHarmonisationStep:
     """Step to preprocess GWAS Catalog harmonised summary stats.
 
     Attributes:
@@ -25,7 +25,7 @@ class GWASCatalogSumstatsPreprocessStep:
     out_sumstats_path: str = MISSING
     study_id: str = MISSING
 
-    def __post_init__(self: GWASCatalogSumstatsPreprocessStep) -> None:
+    def __post_init__(self: GWASCatalogSumstatsHarmonisationStep) -> None:
         """Run step."""
         # Extract
         self.session.logger.info(self.raw_sumstats_path)
