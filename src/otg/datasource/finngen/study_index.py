@@ -4,8 +4,8 @@ from __future__ import annotations
 from urllib.request import urlopen
 
 import pyspark.sql.functions as f
+from pyspark.sql import SparkSession
 
-from otg.common.session import Session
 from otg.dataset.study_index import StudyIndex
 
 
@@ -32,21 +32,27 @@ class FinnGenStudyIndex(StudyIndex):
     @classmethod
     def from_source(
         cls: type[FinnGenStudyIndex],
-        session: Session,
+        spark: SparkSession,
+        finngen_studies_json: str = "",
     ) -> FinnGenStudyIndex:
         """This function ingests study level metadata from FinnGen.
 
         Args:
-            session (Session): Session object.
+            spark (SparkSession): Spark session object.
+            finngen_studies_json (str): Path to the FinnGen study index JSON file.
 
         Returns:
             FinnGenStudyIndex: Parsed and annotated FinnGen study table.
         """
-        json_data = urlopen(cls.finngen_phenotype_table_url).read().decode("utf-8")
-        rdd = session.spark.sparkContext.parallelize([json_data])
-        finngen_studies = session.spark.read.json(rdd)
+        if finngen_studies_json != "":
+            with open(finngen_studies_json) as finngen_studies:
+                json_data = finngen_studies.read()
+        else:
+            json_data = urlopen(cls.finngen_phenotype_table_url).read().decode("utf-8")
+        rdd = spark.sparkContext.parallelize([json_data])
+        raw_df = spark.read.json(rdd)
         return FinnGenStudyIndex(
-            _df=finngen_studies.select(
+            _df=raw_df.select(
                 f.concat(
                     f.lit(f"{cls.finngen_release_prefix}_"), f.col("phenocode")
                 ).alias("studyId"),

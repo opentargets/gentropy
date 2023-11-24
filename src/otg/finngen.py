@@ -29,7 +29,7 @@ class FinnGenStep:
         """Run step."""
         # Fetch study index.
         # Process study index.
-        study_index = FinnGenStudyIndex.from_source(self.session)
+        study_index = FinnGenStudyIndex.from_source(self.session.spark)
         # Write study index.
         study_index.df.write.mode(self.session.write_mode).parquet(
             self.finngen_study_index_out
