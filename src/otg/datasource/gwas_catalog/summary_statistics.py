@@ -50,7 +50,7 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             f.col("hm_chrom")
             if "hm_chrom" in sumstats_df.columns
             else f.col("chromosome")
-        )
+        ).cast(t.StringType())
         position = (
             f.col("hm_pos")
             if "hm_pos" in sumstats_df.columns
@@ -76,10 +76,10 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
 
         # The effect allele frequency is an optional column, we have to test if it is there:
         allele_frequency = (
-            f.col("effect_allele_frequency").cast(t.FloatType())
+            f.col("effect_allele_frequency")
             if "effect_allele_frequency" in sumstats_df.columns
             else f.lit(None)
-        )
+        ).cast(t.FloatType())
 
         # Do we have sample size? This expression captures 99.7% of sample size columns.
         sample_size = (f.col("n") if "n" in sumstats_df.columns else f.lit(None)).cast(
