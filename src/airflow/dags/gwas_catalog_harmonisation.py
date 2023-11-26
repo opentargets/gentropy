@@ -96,7 +96,6 @@ with DAG(
                 other_args=[
                     f"step.raw_sumstats_path=gs://{SUMMARY_STATS_BUCKET_NAME}/{input_path}",
                     f"step.out_sumstats_path=gs://{SUMMARY_STATS_BUCKET_NAME}/harmonised/{study_id}.parquet",
-                    f"step.study_id={study_id}",
                 ],
             )
 
