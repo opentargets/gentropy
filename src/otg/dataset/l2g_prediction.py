@@ -41,7 +41,7 @@ class L2GPrediction(Dataset):
         return parse_spark_schema("l2g_predictions.json")
 
     @classmethod
-    def from_study_locus(
+    def from_credible_set(
         cls: Type[L2GPrediction],
         model_path: str,
         study_locus: StudyLocus,
