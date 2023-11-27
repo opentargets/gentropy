@@ -35,7 +35,6 @@ def filename_to_study_identifier(path: str) -> str:
         Traceback (most recent call last):
         ...
         AssertionError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
-        assert None is not None
     """
     file_name = path.split("/")[-1]
     study_id_matches = re.search(r"(GCST\d+)", file_name)
