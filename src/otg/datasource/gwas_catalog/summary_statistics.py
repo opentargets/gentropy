@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,36 @@ from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
+
+
+def filename_to_study_identifier(path: str) -> str:
+    r"""Extract GWAS Catalog study identifier from path.
+
+    There's an expectation that the filename has to have the GCST accession of the study.
+
+    Args:
+        path(str): filename of the harmonized summary statistics.
+
+    Returns:
+        str: GWAS Catalog stuy accession.
+
+    Examples:
+        >>> filename_to_study_identifier("http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST006001-GCST007000/GCST006090/harmonised/29895819-GCST006090-HP_0000975.h.tsv.gz")
+        'GCST006090'
+        >>> filename_to_study_identifier("wrong/path")
+        Traceback (most recent call last):
+        ...
+        AssertionError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
+        assert None is not None
+    """
+    file_name = path.split("/")[-1]
+    study_id_matches = re.search(r"(GCST\d+)", file_name)
+
+    assert (
+        study_id_matches is not None
+    ), f'Path ("{path}") does not contain GWAS Catalog study identifier.'
+
+    return study_id_matches[0]
 
 
 @dataclass
@@ -39,10 +70,9 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             GWASCatalogSummaryStatistics: Summary statistics object.
         """
         sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True).withColumn(
+            # Parsing GWAS Catalog study identifier from filename:
             "studyId",
-            f.upper(
-                f.regexp_extract(f.input_file_name(), r"(GCST\d+)\.h\.tsv\.gz$", 1)
-            ),
+            f.lit(filename_to_study_identifier(sumstats_file)),
         )
 
         # Parsing variant id fields:
