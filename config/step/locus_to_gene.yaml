@@ -8,7 +8,7 @@ wandb_run_name: null
 perform_cross_validation: false
 model_path: ${datasets.l2g_model}
 predictions_path: ${datasets.l2g_predictions}
-study_locus_path: ${datasets.credible_set}
+credible_set_path: ${datasets.credible_set}
 variant_gene_path: ${datasets.v2g}
 colocalisation_path: ${datasets.colocalisation}
 study_index_path: ${datasets.catalog_study_index}
