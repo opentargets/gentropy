@@ -192,6 +192,15 @@ class CARMA:
 
         Returns:
             float: The likelihood of a model.
+
+        Examples:
+            >>> index_vec_input = np.array([1, 2, 3])
+            >>> Sigma = np.array([[1, 0.5, 0.2], [0.5, 1, 0.3], [0.2, 0.3, 1]])
+            >>> z = np.array([0.1, 0.2, 0.3])
+            >>> tau = 1 / 0.05**2
+            >>> p_S = 3
+            >>> CARMA._outlier_ind_Normal_marginal_external(index_vec_input, Sigma, z, tau, p_S)
+            -8.849700072766373
         """
         index_vec = index_vec_input - 1
 
