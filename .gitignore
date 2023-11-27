@@ -10,3 +10,4 @@ docs/assets/schemas/
 src/airflow/logs/*
 !src/airflow/logs/.gitkeep
 site/
+.env

@@ -15,7 +15,7 @@
     {
       "metadata": {},
       "name": "chromosome",
-      "nullable": false,
+      "nullable": true,
       "type": "string"
     },
     {
@@ -27,7 +27,7 @@
     {
       "metadata": {},
       "name": "statistics",
-      "nullable": false,
+      "nullable": true,
       "type": {
         "fields": [
           {

@@ -250,6 +250,38 @@ def normalise_column(
     )
 
 
+def neglog_pvalue_to_mantissa_and_exponent(p_value: Column) -> tuple[Column, Column]:
+    """Computing p-value mantissa and exponent based on the negative 10 based logarithm of the p-value.
+
+    Args:
+        p_value (Column): Neg-log p-value (string)
+
+    Returns:
+        tuple[Column, Column]: mantissa and exponent of the p-value
+
+    Examples:
+        >>> (
+        ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b')], ['negLogPv', 'label'])
+        ... .select('negLogPv',*neglog_pvalue_to_mantissa_and_exponent(f.col('negLogPv')))
+        ... .show()
+        ... )
+        +--------+------------------+--------------+
+        |negLogPv|    pValueMantissa|pValueExponent|
+        +--------+------------------+--------------+
+        |    4.56|  3.63078054770101|            -5|
+        | 2109.23|1.6982436524618154|         -2110|
+        +--------+------------------+--------------+
+        <BLANKLINE>
+    """
+    exponent: Column = f.ceil(p_value)
+    mantissa: Column = f.pow(f.lit(10), (p_value - exponent + f.lit(1)))
+
+    return (
+        mantissa.cast(t.DoubleType()).alias("pValueMantissa"),
+        (-1 * exponent).cast(t.IntegerType()).alias("pValueExponent"),
+    )
+
+
 def calculate_neglog_pvalue(
     p_value_mantissa: Column, p_value_exponent: Column
 ) -> Column:

@@ -14,6 +14,8 @@
     - "ukbiobank"
 - id: "locus_to_gene"
   prerequisites:
+    - "gwas_catalog"
+    - "ukbiobank"
     - "variant_index"
     - "v2g"
     - "study_locus_overlap"
