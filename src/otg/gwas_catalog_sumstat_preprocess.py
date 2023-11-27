@@ -17,31 +17,24 @@ class GWASCatalogSumstatsPreprocessStep:
         session (Session): Session object.
         raw_sumstats_path (str): Input raw GWAS Catalog summary statistics path.
         out_sumstats_path (str): Output GWAS Catalog summary statistics path.
-        study_id (str): GWAS Catalog study identifier.
     """
 
     session: Session = MISSING
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
-    study_id: str = MISSING
 
     def __post_init__(self: GWASCatalogSumstatsPreprocessStep) -> None:
         """Run step."""
         # Extract
         self.session.logger.info(self.raw_sumstats_path)
         self.session.logger.info(self.out_sumstats_path)
-        self.session.logger.info(self.study_id)
 
-        # Reading dataset:
-        raw_dataset = self.session.spark.read.csv(
-            self.raw_sumstats_path, header=True, sep="\t"
-        )
         self.session.logger.info(
-            f"Number of single point associations: {raw_dataset.count()}"
+            f"Ingesting summary stats from: {self.raw_sumstats_path}"
         )
 
         # Processing dataset:
         GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
-            raw_dataset, self.study_id
+            self.session.spark, self.raw_sumstats_path
         ).df.write.mode(self.session.write_mode).parquet(self.out_sumstats_path)
         self.session.logger.info("Processing dataset successfully completed.")

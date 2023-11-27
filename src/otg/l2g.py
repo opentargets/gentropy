@@ -33,7 +33,7 @@ class LocusToGeneStep:
         perform_cross_validation (bool): Whether to perform cross validation.
         model_path (str | None): Path to save the model.
         predictions_path (str | None): Path to save the predictions.
-        study_locus_path (str): Path to study locus Parquet files.
+        credible_set_path (str): Path to credible set Parquet files.
         variant_gene_path (str): Path to variant to gene Parquet files.
         colocalisation_path (str): Path to colocalisation Parquet files.
         study_index_path (str): Path to study index Parquet files.
@@ -52,7 +52,7 @@ class LocusToGeneStep:
     perform_cross_validation: bool = False
     model_path: str = MISSING
     predictions_path: str = MISSING
-    study_locus_path: str = MISSING
+    credible_set_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
@@ -109,8 +109,8 @@ class LocusToGeneStep:
                 f"run_mode must be one of 'train' or 'predict', got {self.run_mode}"
             )
         # Load common inputs
-        study_locus = StudyLocus.from_parquet(
-            self.session, self.study_locus_path, recursiveFileLookup=True
+        credible_set = StudyLocus.from_parquet(
+            self.session, self.credible_set_path, recursiveFileLookup=True
         )
         studies = StudyIndex.from_parquet(self.session, self.study_index_path)
         v2g = V2G.from_parquet(self.session, self.variant_gene_path)
@@ -132,7 +132,7 @@ class LocusToGeneStep:
             )
 
             fm = L2GFeatureMatrix.generate_features(
-                study_locus=study_locus,
+                study_locus=credible_set,
                 study_index=studies,
                 variant_gene=v2g,
                 # colocalisation=coloc,
@@ -185,9 +185,9 @@ class LocusToGeneStep:
                 raise ValueError(
                     "model_path and predictions_path must be set for predict mode."
                 )
-            predictions = L2GPrediction.from_study_locus(
+            predictions = L2GPrediction.from_credible_set(
                 self.model_path,
-                study_locus,
+                credible_set,
                 studies,
                 v2g,
                 # coloc
