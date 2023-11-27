@@ -86,9 +86,9 @@ def calculate_confidence_interval(
         +---------------+---------------+----+--------------+---------------------------+---------------------------+
         |pvalue_mantissa|pvalue_exponent|beta|standard_error|betaConfidenceIntervalLower|betaConfidenceIntervalUpper|
         +---------------+---------------+----+--------------+---------------------------+---------------------------+
-        |            2.5|            -10| 0.5|           0.2|                        0.3|                        0.7|
-        |            3.0|             -5| 1.0|          null|         0.7603910153486024|         1.2396089846513976|
-        |            1.5|             -8|-0.2|           0.1|       -0.30000000000000004|                       -0.1|
+        |            2.5|            -10| 0.5|           0.2|        0.10799999999999998|                      0.892|
+        |            3.0|             -5| 1.0|          null|         0.5303663900832607|         1.4696336099167393|
+        |            1.5|             -8|-0.2|           0.1|                     -0.396|       -0.00400000000000...|
         +---------------+---------------+----+--------------+---------------------------+---------------------------+
         <BLANKLINE>
     """
@@ -104,8 +104,13 @@ def calculate_confidence_interval(
     ).otherwise(standard_error)
 
     # Calculate upper and lower confidence interval:
-    ci_lower = (beta - standard_error).alias("betaConfidenceIntervalLower")
-    ci_upper = (beta + standard_error).alias("betaConfidenceIntervalUpper")
+    z_score_095 = 1.96
+    ci_lower = (beta - z_score_095 * standard_error).alias(
+        "betaConfidenceIntervalLower"
+    )
+    ci_upper = (beta + z_score_095 * standard_error).alias(
+        "betaConfidenceIntervalUpper"
+    )
 
     return (ci_lower, ci_upper)
 
