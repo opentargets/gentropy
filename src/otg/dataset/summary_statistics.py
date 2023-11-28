@@ -57,7 +57,7 @@ class SummaryStatistics(Dataset):
 
     def window_based_clumping(
         self: SummaryStatistics,
-        distance: int,
+        distance: int = 500_000,
         gwas_significance: float = 5e-8,
         baseline_significance: float = 0.05,
         locus_collect_distance: int | None = None,

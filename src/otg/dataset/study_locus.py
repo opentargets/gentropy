@@ -13,6 +13,7 @@ from otg.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from otg.dataset.dataset import Dataset
+from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
 
@@ -367,6 +368,22 @@ class StudyLocus(Dataset):
             ),
         )
         return self
+
+    def annotate_ld(
+        self: StudyLocus, study_index: StudyIndex, ld_index: LDIndex
+    ) -> StudyLocus:
+        """Annotate LD information to study-locus.
+
+        Args:
+            study_index (StudyIndex): Study index to resolve ancestries.
+            ld_index (LDIndex): LD index to resolve LD information.
+
+        Returns:
+            StudyLocus: Study locus annotated with ld information from LD index.
+        """
+        from otg.method.ld import LDAnnotator
+
+        return LDAnnotator.ld_annotate(self, study_index, ld_index)
 
     def clump(self: StudyLocus) -> StudyLocus:
         """Perform LD clumping of the studyLocus.
