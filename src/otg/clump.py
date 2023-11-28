@@ -14,7 +14,13 @@ from otg.dataset.summary_statistics import SummaryStatistics
 
 @dataclass
 class ClumpStep:
-    """Clumping step with customizable method.
+    """Perform clumping of an association dataset to identify independent signals.
+
+    Two types of clumping are supported and are applied based on the input dataset:
+    - Clumping of summary statistics based on a window-based approach.
+    - Clumping of study locus based on LD.
+
+    Both approaches yield a StudyLocus dataset.
 
     Attributes:
         session (Session): Session object.
