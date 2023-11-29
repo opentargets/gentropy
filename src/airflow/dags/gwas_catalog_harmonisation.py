@@ -59,7 +59,7 @@ with DAG(
         print("Number of parquet files: ", len(parquets))
         for path in raw_harmonised:
             match_result = re.search(
-                "raw-harmonised/(.*)/(.*)/harmonised/(.*).h.tsv.gz", path
+                "raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", path
             )
             if match_result:
                 study_id = match_result.group(2)
@@ -85,7 +85,7 @@ with DAG(
                 time.sleep(60)
             input_path = todo[i]
             match_result = re.search(
-                "raw-harmonised/(.*)/(.*)/harmonised/(.*)\.h\.tsv\.gz", input_path
+                "raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", input_path
             )
             if match_result:
                 study_id = match_result.group(2)
