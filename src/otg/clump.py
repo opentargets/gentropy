@@ -33,17 +33,25 @@ class ClumpStep:
 
     session: Session = MISSING
     input_path: str = MISSING
-    study_index_path: str = MISSING
-    ld_index_path: str = MISSING
     clumped_study_locus_path: str = MISSING
+    study_index_path: str | None = field(default=None)
+    ld_index_path: str | None = field(default=None)
 
     locus_collect_distance: int | None = field(default=None)
     data: StudyLocus | SummaryStatistics = field(init=False)
 
     def __post_init__(self: ClumpStep) -> None:
-        """Run the clumping step."""
+        """Run the clumping step.
+
+        Raises:
+            ValueError: If study index and LD index paths are not provided for study locus.
+        """
         input_cols = self.session.spark.read.parquet(self.input_path).columns
         if "studyLocusId" in input_cols:
+            if self.study_index_path is None or self.ld_index_path is None:
+                raise ValueError(
+                    "Study index and LD index paths are required for clumping study locus."
+                )
             self.data = StudyLocus.from_parquet(self.session, self.input_path)
             ld_index = LDIndex.from_parquet(self.session, self.ld_index_path)
             study_index = StudyIndex.from_parquet(self.session, self.study_index_path)
