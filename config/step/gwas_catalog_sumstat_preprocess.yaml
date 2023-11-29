@@ -1,3 +1,3 @@
 _target_: otg.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep
-raw_sumstats_path: gs://open-targets-gwas-summary-stats/raw-harmonised/
-out_sumstats_path: gs://open-targets-gwas-summary-stats/harmonised/
+raw_sumstats_path: ???
+out_sumstats_path: ???
