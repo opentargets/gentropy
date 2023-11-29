@@ -137,8 +137,12 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             else f.lit(None)
         ).cast(t.DoubleType())
 
-        # Standard error is mandatory but called differently in the new format:
-        standard_error = f.col("standard_error").cast(t.DoubleType())
+        # Does the file have standard error column?
+        standard_error = (
+            f.col("standard_error")
+            if "standard_error" in sumstats_df.columns
+            else f.lit(None)
+        ).cast(t.DoubleType())
 
         # Processing columns of interest:
         processed_sumstats_df = (
