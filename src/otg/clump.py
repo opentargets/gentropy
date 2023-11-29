@@ -27,6 +27,7 @@ class ClumpStep:
         input_path (str): Input path for the study locus or summary statistics files.
         study_index_path (str): Path to study index.
         ld_index_path (str): Path to LD index.
+        locus_collect_distance (int | None): The distance to collect locus around semi-indices.
         clumped_study_locus_path (str): Output path for the clumped study locus dataset.
     """
 
@@ -36,6 +37,7 @@ class ClumpStep:
     ld_index_path: str = MISSING
     clumped_study_locus_path: str = MISSING
 
+    locus_collect_distance: int | None = field(default=None)
     data: StudyLocus | SummaryStatistics = field(init=False)
 
     def __post_init__(self: ClumpStep) -> None:
@@ -51,7 +53,9 @@ class ClumpStep:
             ).clump()
         else:
             self.data = SummaryStatistics.from_parquet(self.session, self.input_path)
-            clumped_study_locus = self.data.window_based_clumping()
+            clumped_study_locus = self.data.window_based_clumping(
+                locus_collect_distance=self.locus_collect_distance
+            )
 
         clumped_study_locus.df.write.mode(self.session.write_mode).parquet(
             self.clumped_study_locus_path
