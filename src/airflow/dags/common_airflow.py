@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Union
 
 import pendulum
 import yaml
+from airflow.models import BaseOperator
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
     DataprocDeleteClusterOperator,
     DataprocSubmitJobOperator,
 )
+from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 
 if TYPE_CHECKING:
@@ -197,7 +199,7 @@ def submit_step(
     step_id: str,
     task_id: str = "",
     trigger_rule: TriggerRule = TriggerRule.ALL_SUCCESS,
-    other_args: Optional[list[str]] = None,
+    other_args: list[str] | None = None,
 ) -> DataprocSubmitJobOperator:
     """Submit a PySpark job to execute a specific CLI step.
 
@@ -206,7 +208,7 @@ def submit_step(
         step_id (str): Name of the step in otg.
         task_id (str): Name of the task. Defaults to step_id.
         trigger_rule (TriggerRule): Trigger rule for the task. Defaults to TriggerRule.ALL_SUCCESS.
-        other_args (Optional[list[str]]): Other arguments to pass to the CLI step. Defaults to None.
+        other_args (list[str] | None): Other arguments to pass to the CLI step. Defaults to None.
 
     Returns:
         DataprocSubmitJobOperator: Airflow task to submit a PySpark job to execute a specific CLI step.
@@ -287,19 +289,39 @@ def read_yaml_config(config_path: Path) -> Any:
         return yaml.safe_load(config_file)
 
 
-def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> Any:
+# def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> Any:
+#     """For a list of tasks, generate a complete DAG.
+
+#     Args:
+#         cluster_name (str): Name of the cluster.
+#         tasks (list[DataprocSubmitJobOperator]): List of tasks to execute.
+
+#     Returns:
+#         Any: Airflow DAG.
+#     """
+#     return (
+#         create_cluster(cluster_name)
+#         >> install_dependencies(cluster_name)
+#         >> tasks
+#         >> delete_cluster(cluster_name)
+#     )
+
+
+def generate_dag(
+    cluster_name: str, tasks: list[Union[BaseOperator, TaskGroup]]
+) -> None:
     """For a list of tasks, generate a complete DAG.
 
     Args:
         cluster_name (str): Name of the cluster.
-        tasks (list[DataprocSubmitJobOperator]): List of tasks to execute.
-
-    Returns:
-        Any: Airflow DAG.
+        tasks (list[Union[BaseOperator, TaskGroup]]): List of tasks or task groups to execute.
     """
-    return (
-        create_cluster(cluster_name)
-        >> install_dependencies(cluster_name)
-        >> tasks
-        >> delete_cluster(cluster_name)
-    )
+    create_cluster_task = create_cluster(cluster_name)
+    install_dependencies_task = install_dependencies(cluster_name)
+    delete_cluster_task = delete_cluster(cluster_name)
+
+    create_cluster_task >> install_dependencies_task
+
+    for task in tasks:
+        install_dependencies_task >> task
+        task >> delete_cluster_task
