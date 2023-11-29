@@ -12,7 +12,7 @@ from airflow.utils.task_group import TaskGroup
 
 CLUSTER_NAME = "otg-etl-il"
 SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
-RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX"
+RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -32,7 +32,7 @@ with DAG(
                 prev_task = None
                 for task in node["tasks"]:
                     parsed_args = [
-                        f"step.{key}={value}"
+                        f"step.{key}={RELEASEBUCKET}{value}"
                         for key, value in task.get("args", {}).items()
                     ]
                     current_task = common.submit_step(

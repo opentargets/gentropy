@@ -289,24 +289,6 @@ def read_yaml_config(config_path: Path) -> Any:
         return yaml.safe_load(config_file)
 
 
-# def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> Any:
-#     """For a list of tasks, generate a complete DAG.
-
-#     Args:
-#         cluster_name (str): Name of the cluster.
-#         tasks (list[DataprocSubmitJobOperator]): List of tasks to execute.
-
-#     Returns:
-#         Any: Airflow DAG.
-#     """
-#     return (
-#         create_cluster(cluster_name)
-#         >> install_dependencies(cluster_name)
-#         >> tasks
-#         >> delete_cluster(cluster_name)
-#     )
-
-
 def generate_dag(
     cluster_name: str, tasks: list[Union[BaseOperator, TaskGroup]]
 ) -> None:
