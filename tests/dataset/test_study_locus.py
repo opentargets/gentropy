@@ -16,6 +16,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import CredibleInterval, StudyLocus
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
@@ -323,3 +324,12 @@ def test_annotate_credible_sets(
 def test__qc_no_population(mock_study_locus: StudyLocus) -> None:
     """Test _qc_no_population."""
     assert isinstance(mock_study_locus._qc_no_population(), StudyLocus)
+
+
+def test_ldannotate(
+    mock_study_locus: StudyLocus, mock_study_index: StudyIndex, mock_ld_index: LDIndex
+) -> None:
+    """Test ldannotate."""
+    assert isinstance(
+        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocus
+    )
