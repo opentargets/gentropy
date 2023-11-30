@@ -38,7 +38,6 @@ class ClumpStep:
     ld_index_path: str | None = field(default=None)
 
     locus_collect_distance: int | None = field(default=None)
-    data: StudyLocus | SummaryStatistics = field(init=False)
 
     def __post_init__(self: ClumpStep) -> None:
         """Run the clumping step.
@@ -52,16 +51,16 @@ class ClumpStep:
                 raise ValueError(
                     "Study index and LD index paths are required for clumping study locus."
                 )
-            self.data = StudyLocus.from_parquet(self.session, self.input_path)
+            study_locus = StudyLocus.from_parquet(self.session, self.input_path)
             ld_index = LDIndex.from_parquet(self.session, self.ld_index_path)
             study_index = StudyIndex.from_parquet(self.session, self.study_index_path)
 
-            clumped_study_locus = self.data.annotate_ld(
+            clumped_study_locus = study_locus.annotate_ld(
                 study_index=study_index, ld_index=ld_index
             ).clump()
         else:
-            self.data = SummaryStatistics.from_parquet(self.session, self.input_path)
-            clumped_study_locus = self.data.window_based_clumping(
+            sumstats = SummaryStatistics.from_parquet(self.session, self.input_path)
+            clumped_study_locus = sumstats.window_based_clumping(
                 locus_collect_distance=self.locus_collect_distance
             )
 
