@@ -2072,6 +2072,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../../step/clump/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Clump
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../step/colocalisation/" class="md-nav__link">
         
   
@@ -2607,7 +2627,7 @@
 
     <span class="k">def</span> <span class="nf">window_based_clumping</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
-        <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
         <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-8</span><span class="p">,</span>
         <span class="n">baseline_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
         <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2618,26 +2638,26 @@
 <span class="sd">            distance (int): Distance in base pairs to be used for clumping.</span>
 <span class="sd">            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.</span>
 <span class="sd">            baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.</span>
-<span class="sd">            locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, defaults to `distance`.</span>
+<span class="sd">            locus_collect_distance (int | None): The distance to collect locus around semi-indices.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            StudyLocus: Clumped study-locus containing variants based on window.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># If locus collect distance is present, collect locus with the provided distance:</span>
-        <span class="k">if</span> <span class="n">locus_collect_distance</span><span class="p">:</span>
-            <span class="n">clumped_df</span> <span class="o">=</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump_with_locus</span><span class="p">(</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump_with_locus</span><span class="p">(</span>
                 <span class="bp">self</span><span class="p">,</span>
                 <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
                 <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
                 <span class="n">p_value_baseline</span><span class="o">=</span><span class="n">baseline_significance</span><span class="p">,</span>
                 <span class="n">locus_window_length</span><span class="o">=</span><span class="n">locus_collect_distance</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">clumped_df</span> <span class="o">=</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
-                <span class="bp">self</span><span class="p">,</span> <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span> <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span>
+            <span class="k">if</span> <span class="n">locus_collect_distance</span>
+            <span class="k">else</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+                <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
             <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">clumped_df</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">exclude_region</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Exclude a region from the summary stats dataset.</span>
@@ -2999,7 +3019,7 @@
 
 
 <h3 id="otg.dataset.summary_statistics.SummaryStatistics.window_based_clumping" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">window_based_clumping</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-08</span><span class="p">,</span> <span class="n">baseline_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span></code>
+          <code class="highlight language-python"><span class="n">window_based_clumping</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500000</span><span class="p">,</span> <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-08</span><span class="p">,</span> <span class="n">baseline_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span></code>
 
 <a href="#otg.dataset.summary_statistics.SummaryStatistics.window_based_clumping" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3032,7 +3052,7 @@
             </div>
           </td>
           <td>
-              <em>required</em>
+                <code>500000</code>
           </td>
         </tr>
         <tr>
@@ -3070,7 +3090,7 @@
           </td>
           <td>
             <div class="doc-md-description">
-              <p>The distance to collect locus around semi-indices. If not provided, defaults to <code>distance</code>.</p>
+              <p>The distance to collect locus around semi-indices.</p>
             </div>
           </td>
           <td>
@@ -3140,7 +3160,7 @@
 <span class="normal">89</span>
 <span class="normal">90</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">window_based_clumping</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
-    <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
     <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-8</span><span class="p">,</span>
     <span class="n">baseline_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
     <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3151,26 +3171,26 @@
 <span class="sd">        distance (int): Distance in base pairs to be used for clumping.</span>
 <span class="sd">        gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.</span>
 <span class="sd">        baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.</span>
-<span class="sd">        locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, defaults to `distance`.</span>
+<span class="sd">        locus_collect_distance (int | None): The distance to collect locus around semi-indices.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        StudyLocus: Clumped study-locus containing variants based on window.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># If locus collect distance is present, collect locus with the provided distance:</span>
-    <span class="k">if</span> <span class="n">locus_collect_distance</span><span class="p">:</span>
-        <span class="n">clumped_df</span> <span class="o">=</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump_with_locus</span><span class="p">(</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump_with_locus</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
             <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
             <span class="n">p_value_baseline</span><span class="o">=</span><span class="n">baseline_significance</span><span class="p">,</span>
             <span class="n">locus_window_length</span><span class="o">=</span><span class="n">locus_collect_distance</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">clumped_df</span> <span class="o">=</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span> <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span>
+        <span class="k">if</span> <span class="n">locus_collect_distance</span>
+        <span class="k">else</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+            <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
         <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">clumped_df</span>
+    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
