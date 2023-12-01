@@ -54,7 +54,7 @@ shared_dag_args = dict(
 shared_dag_kwargs = dict(
     tags=["genetics_etl", "experimental"],
     start_date=pendulum.now(tz="Europe/London").subtract(days=1),
-    schedule_interval="@once",
+    schedule="@once",
     catchup=False,
 )
 
