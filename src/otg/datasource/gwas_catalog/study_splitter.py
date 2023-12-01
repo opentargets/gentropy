@@ -74,7 +74,7 @@ class GWASCatalogStudySplitter:
         """
         split_w = Window.partitionBy(study_id).orderBy(sub_study_description)
         row_number = f.dense_rank().over(split_w)
-        substudy_count = f.count(row_number).over(split_w)
+        substudy_count = f.approx_count_distinct(row_number).over(split_w)
         return f.when(substudy_count == 1, study_id).otherwise(
             f.concat_ws("_", study_id, row_number)
         )
