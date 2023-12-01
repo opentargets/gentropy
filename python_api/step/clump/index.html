@@ -2525,7 +2525,11 @@
 <span class="normal">66</span>
 <span class="normal">67</span>
 <span class="normal">68</span>
-<span class="normal">69</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">ClumpStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform clumping of an association dataset to identify independent signals.</span>
 
@@ -2558,7 +2562,9 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If study index and LD index paths are not provided for study locus.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">input_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_path</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span>
+        <span class="n">input_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">columns</span>
         <span class="k">if</span> <span class="s2">&quot;studyLocusId&quot;</span> <span class="ow">in</span> <span class="n">input_cols</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">study_index_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_index_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -2572,7 +2578,9 @@
                 <span class="n">study_index</span><span class="o">=</span><span class="n">study_index</span><span class="p">,</span> <span class="n">ld_index</span><span class="o">=</span><span class="n">ld_index</span>
             <span class="p">)</span><span class="o">.</span><span class="n">clump</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">sumstats</span> <span class="o">=</span> <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span><span class="p">)</span>
+            <span class="n">sumstats</span> <span class="o">=</span> <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
             <span class="n">clumped_study_locus</span> <span class="o">=</span> <span class="n">sumstats</span><span class="o">.</span><span class="n">window_based_clumping</span><span class="p">(</span>
                 <span class="n">locus_collect_distance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">locus_collect_distance</span>
             <span class="p">)</span>
