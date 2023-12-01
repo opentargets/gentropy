@@ -11,6 +11,12 @@ CLUSTER_NAME = "otg-preprocess-finngen"
 AUTOSCALING = "finngen-preprocess"
 
 RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX"
+SUMSTATS = "{RELEASEBUCKET}/summary_statistics/finngen"
+WINDOWBASED_CLUMPED = (
+    "{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/finngen"
+)
+LD_CLUMPED = "{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/finngen"
+PICSED = "{RELEASEBUCKET}/credible_set/from_sumstats_study_locus/finngen"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -24,15 +30,23 @@ with DAG(
         task_id="finngen_sumstats_and_study_index",
     )
 
-    clumping = common.submit_step(
+    window_based_clumping = common.submit_step(
         cluster_name=CLUSTER_NAME,
         step_id="clump",
-        task_id="finngen_clump",
+        task_id="finngen_window_based_clumping",
         other_args=[
-            f"step.summary_stats_path={RELEASEBUCKET}/summary_statistics/finngen",
-            f"step.clumped_study_locus_out={RELEASEBUCKET}/study_locus/from_sumstats_study_locus/finngen",
+            "step.input_path={SUMSTATS}",
+            "step.clumped_study_locus_path={WINDOWBASED_CLUMPED}",
         ],
-        # This allows to attempt running the task when above step fails do to failifexists
+    )
+    ld_clumping = common.submit_step(
+        cluster_name=CLUSTER_NAME,
+        step_id="clump",
+        task_id="finngen_ld_clumping",
+        other_args=[
+            "step.input_path={WINDOWBASED_CLUMPED}",
+            "step.clumped_study_locus_path={LD_CLUMPED}",
+        ],
         trigger_rule=TriggerRule.ALL_DONE,
     )
 
@@ -41,8 +55,8 @@ with DAG(
         step_id="pics",
         task_id="finngen_pics",
         other_args=[
-            f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/from_sumstats_study_locus/finngen",
-            f"step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/from_sumstats_study_locus/finngen",
+            f"step.study_locus_ld_annotated_in={LD_CLUMPED}",
+            f"step.picsed_study_locus_out={PICSED}",
         ],
         # This allows to attempt running the task when above step fails do to failifexists
         trigger_rule=TriggerRule.ALL_DONE,
@@ -52,7 +66,8 @@ with DAG(
         common.create_cluster(CLUSTER_NAME, autoscaling_policy=AUTOSCALING)
         >> common.install_dependencies(CLUSTER_NAME)
         >> study_and_sumstats
-        >> clumping
+        >> window_based_clumping
+        >> ld_clumping
         >> pics
         >> common.delete_cluster(CLUSTER_NAME)
     )
