@@ -9,6 +9,7 @@ import pytest
 from pyspark.sql import DataFrame, SparkSession
 
 from otg.common.Liftover import LiftOverSpark
+from otg.common.session import Session
 from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
@@ -49,6 +50,12 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
         .appName("test")
         .getOrCreate()
     )
+
+
+@pytest.fixture()
+def session() -> Session:
+    """Return OTG Session object."""
+    return Session()
 
 
 @pytest.fixture()

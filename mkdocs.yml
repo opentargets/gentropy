@@ -23,8 +23,6 @@ plugins:
       exclude:
         - index.md
   - autolinks
-  - minify:
-      minify_html: true
   - exclude:
       glob:
         - assets/schemas/*

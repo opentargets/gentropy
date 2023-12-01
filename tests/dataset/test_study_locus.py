@@ -333,3 +333,12 @@ def test_annotate_ld(
 def test__qc_no_population(mock_study_locus: StudyLocus) -> None:
     """Test _qc_no_population."""
     assert isinstance(mock_study_locus._qc_no_population(), StudyLocus)
+
+
+def test_ldannotate(
+    mock_study_locus: StudyLocus, mock_study_index: StudyIndex, mock_ld_index: LDIndex
+) -> None:
+    """Test ldannotate."""
+    assert isinstance(
+        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocus
+    )

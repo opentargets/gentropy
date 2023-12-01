@@ -73,21 +73,21 @@ class SummaryStatistics(Dataset):
         Returns:
             StudyLocus: Clumped study-locus containing variants based on window.
         """
-        # If locus collect distance is present, collect locus with the provided distance:
-        if locus_collect_distance:
-            clumped_df = WindowBasedClumping.clump_with_locus(
+        return (
+            WindowBasedClumping.clump_with_locus(
                 self,
                 window_length=distance,
                 p_value_significance=gwas_significance,
                 p_value_baseline=baseline_significance,
                 locus_window_length=locus_collect_distance,
             )
-        else:
-            clumped_df = WindowBasedClumping.clump(
-                self, window_length=distance, p_value_significance=gwas_significance
+            if locus_collect_distance
+            else WindowBasedClumping.clump(
+                self,
+                window_length=distance,
+                p_value_significance=gwas_significance,
             )
-
-        return clumped_df
+        )
 
     def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
         """Exclude a region from the summary stats dataset.
