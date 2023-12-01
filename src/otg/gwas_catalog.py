@@ -23,8 +23,8 @@ class GWASCatalogStep:
 
     Attributes:
         session (Session): Session object.
-        catalog_study_files (list[str]): Raw GWAS catalog studies file.
-        catalog_ancestry_file (str): Ancestry annotations file from GWAS Catalog.
+        catalog_study_files (list[str]): List of raw GWAS catalog studies file.
+        catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
         catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
         catalog_associations_file (str): Raw GWAS catalog associations file.
         variant_annotation_path (str): Input variant annotation path.
@@ -36,7 +36,7 @@ class GWASCatalogStep:
 
     session: Session = MISSING
     catalog_study_files: list[str] = MISSING
-    catalog_ancestry_file: str = MISSING
+    catalog_ancestry_files: list[str] = MISSING
     catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
     variant_annotation_path: str = MISSING
@@ -53,7 +53,7 @@ class GWASCatalogStep:
             self.catalog_study_files, sep="\t", header=True
         )
         ancestry_lut = self.session.spark.read.csv(
-            self.catalog_ancestry_file, sep="\t", header=True
+            self.catalog_ancestry_files, sep="\t", header=True
         )
         sumstats_lut = self.session.spark.read.csv(
             self.catalog_sumstats_lut, sep="\t", header=False
