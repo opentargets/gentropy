@@ -55,6 +55,10 @@ wget -q ${RELEASE_URL}/gwas-catalog-download-studies-v1.0.3.txt \
     -O gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv
 logging "File gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv saved."
 
+wget -q ${RELEASE_URL}/gwas-catalog-unpublished-studies-v1.0.3.tsv \
+    -O gwas-catalog-v1.0.3-unpublished-studies-r${YEAR}-${MONTH}-${DAY}.tsv
+logging "File gwas-catalog-v1.0.3-unpublished-studies-r${YEAR}-${MONTH}-${DAY}.tsv saved."
+
 wget -q ${RELEASE_URL}/gwas-catalog-download-ancestries-v1.0.3.txt \
     -O gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv
 logging "File gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv saved."
@@ -63,9 +67,10 @@ wget -q ${BASE_URL}/summary_statistics/harmonised_list.txt -O harmonised_list-r$
 logging "File harmonised_list-r${YEAR}-${MONTH}-${DAY}.txt saved."
 
 logging "Copying files to GCP..."
-gsutil  -q cp file://$(pwd)/gwas_catalog_v1.0.2-associations_e${ENSEMBL}_r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
-gsutil  -q cp file://$(pwd)/gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
-gsutil  -q cp file://$(pwd)/gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
-gsutil  -q cp file://$(pwd)/harmonised_list-r${YEAR}-${MONTH}-${DAY}.txt ${GCP_TARGET}/
+gsutil -mq cp file://$(pwd)/gwas_catalog_v1.0.2-associations_e${ENSEMBL}_r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
+gsutil -mq cp file://$(pwd)/gwas-catalog-v1.0.3-studies-r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
+gsutil -mq cp file://$(pwd)/gwas-catalog-v1.0.3-ancestries-r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
+gsutil -mq cp file://$(pwd)/harmonised_list-r${YEAR}-${MONTH}-${DAY}.txt ${GCP_TARGET}/
+gsutil -mq cp file://$(pwd)/gwas-catalog-v1.0.3-unpublished-studies-r${YEAR}-${MONTH}-${DAY}.tsv ${GCP_TARGET}/
 
 logging "Done."
