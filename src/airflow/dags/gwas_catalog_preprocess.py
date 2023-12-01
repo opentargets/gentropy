@@ -33,6 +33,8 @@ with DAG(
             task_id="catalog_sumstats_ld_clumping",
             other_args=[
                 "step.input_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_window_clumped/gwas_catalog",
+                "step.ld_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/ld_index",
+                "step.study_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/catalog_study_index",
                 "step.clumped_study_locus_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_ld_clumped/gwas_catalog",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
@@ -62,6 +64,8 @@ with DAG(
             task_id="catalog_curation_ld_clumping",
             other_args=[
                 "step.input_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/catalog_study_locus",
+                "step.ld_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/ld_index",
+                "step.study_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/catalog_study_index",
                 "step.clumped_study_locus_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/catalog_study_locus_ld_clumped",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
@@ -80,7 +84,9 @@ with DAG(
         parse_study_and_curated_assocs >> curation_ld_clumping >> curation_pics
 
     (
-        common.create_cluster(CLUSTER_NAME, autoscaling_policy=AUTOSCALING)
+        common.create_cluster(
+            CLUSTER_NAME, autoscaling_policy=AUTOSCALING, num_workers=5
+        )
         >> common.install_dependencies(CLUSTER_NAME)
         >> [summary_stats_group, curation_group]
         >> common.delete_cluster(CLUSTER_NAME)
