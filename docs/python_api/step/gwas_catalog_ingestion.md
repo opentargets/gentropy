@@ -1,4 +1,4 @@
 ---
 title: GWAS Catalog
 ---
-::: otg.gwas_catalog.GWASCatalogStep
+::: otg.gwas_catalog.GWASCatalogIngestionStep
