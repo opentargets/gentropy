@@ -13,7 +13,7 @@ from mkdocs.exceptions import MkDocsException
 def mkdocs_build() -> None:
     """Fixture to build documentation."""
     try:
-        cfg = load_config("mkdocs.yml", strict=False)
+        cfg = load_config("mkdocs.yml", strict=True)
         cfg.plugins["material/search"].on_startup(command="build", dirty=not "clean")
         # config = load_config()
         # config.strict = True
