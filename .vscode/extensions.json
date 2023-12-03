@@ -7,7 +7,5 @@
     "ms-python.black-formatter",
     "esbenp.prettier-vscode"
   ],
-  "unwantedRecommendations": [
-    "ms-python.flake8"
-  ]
+  "unwantedRecommendations": ["ms-python.flake8"]
 }

@@ -8,13 +8,12 @@ This section describes how to set up a local Airflow server which will orchestra
 - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
 
 !!!warning macOS Docker memory allocation
-    On macOS, the default amount of memory available for Docker might not be enough to get Airflow up and running. Allocate at least 4GB of memory for the Docker Engine (ideally 8GB). [More info](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#)
-
+On macOS, the default amount of memory available for Docker might not be enough to get Airflow up and running. Allocate at least 4GB of memory for the Docker Engine (ideally 8GB). [More info](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#)
 
 ## Configure Airflow access to Google Cloud Platform
 
 !!!warning Specifying Google Cloud parameters
-    Run the next two command with the appropriate Google Cloud project ID and service account name to ensure the correct Google default application credentials are set up.
+Run the next two command with the appropriate Google Cloud project ID and service account name to ensure the correct Google default application credentials are set up.
 
 Authenticate to Google Cloud:
 
@@ -28,7 +27,6 @@ Create the service account key file that will be used by Airflow to access Googl
 gcloud iam service-accounts keys create ~/.config/gcloud/service_account_credentials.json --iam-account=<PROJECT>@appspot.gserviceaccount.com
 ```
 
-
 ## Set up Airflow
 
 Change the working directory so that all subsequent commands will work:
@@ -40,7 +38,7 @@ cd src/airflow
 ### Build Docker image
 
 !!!note Custom Docker image for Airflow
-    The custom Dockerfile built by the command below extends the official [Airflow Docker Compose YAML](https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml). We add support for Google Cloud SDK, Google Dataproc operators, and access to GCP credentials.
+The custom Dockerfile built by the command below extends the official [Airflow Docker Compose YAML](https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml). We add support for Google Cloud SDK, Google Dataproc operators, and access to GCP credentials.
 
 ```bash
 docker build . --tag extending_airflow:latest
@@ -49,7 +47,7 @@ docker build . --tag extending_airflow:latest
 ### Set Airflow user ID
 
 !!!note Setting Airflow user ID
-    These commands allow Airflow running inside Docker to access the credentials file which was generated earlier.
+These commands allow Airflow running inside Docker to access the credentials file which was generated earlier.
 
 ```bash
 # If any user ID is already specified in .env, remove it.
@@ -78,7 +76,6 @@ Airflow UI will now be available at `http://localhost:8080/`. Default username a
 
 For additional information on how to use Airflow visit the [official documentation](https://airflow.apache.org/docs/apache-airflow/stable/index.html).
 
-
 ### Cleaning up
 
 At any time, you can check the status of your containers with:
@@ -105,17 +102,16 @@ More information on running Airflow with Docker Compose can be found in the [off
 
 1. **Increase Airflow concurrency**. Modify the `docker-compose.yaml` and add the following to the x-airflow-common → environment section:
 
-    ```yaml
-    AIRFLOW__CORE__PARALLELISM: 32
-    AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: 32
-    AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY: 16
-    AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 1
-    # Also add the following line if you are using CeleryExecutor (by default, LocalExecutor is used).
-    AIRFLOW__CELERY__WORKER_CONCURRENCY: 32
-    ```
+   ```yaml
+   AIRFLOW__CORE__PARALLELISM: 32
+   AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: 32
+   AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY: 16
+   AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 1
+   # Also add the following line if you are using CeleryExecutor (by default, LocalExecutor is used).
+   AIRFLOW__CELERY__WORKER_CONCURRENCY: 32
+   ```
 
 1. **Additional pip packages**. They can be added to the `requirements.txt` file.
-
 
 ## Troubleshooting
 
