@@ -64,6 +64,7 @@ google-cloud-dataproc = "^5.7.0"
 apache-airflow = "^2.7.3"
 apache-airflow-providers-google = "^10.11.1"
 pydoclint = "^0.3.8"
+prettier = "^0.0.7"
 
 
 [tool.semantic_release]
