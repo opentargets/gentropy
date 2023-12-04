@@ -102,3 +102,6 @@ repos:
     hooks:
       - id: deptry
         args: ["--per-rule-ignores", "DEP001=otg"]
+
+ci:
+    skip: [deptry]
