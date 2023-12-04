@@ -168,3 +168,15 @@ class Dataset(ABC):
         """
         self.df = self._df.unpersist()
         return self
+
+    def coalesce(self: Self, num_partitions: int) -> Self:
+        """Coalesce the DataFrame included in the Dataset.
+
+        Args:
+            num_partitions (int): Number of partitions to coalesce the DataFrame into
+
+        Returns:
+            Self: Coalesced Dataset
+        """
+        self.df = self._df.coalesce(num_partitions)
+        return self
