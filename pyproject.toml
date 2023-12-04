@@ -45,7 +45,7 @@ mkdocs-awesome-pages-plugin = "^2.9.2"
 mkdocs-exclude = "^1.0.2"
 mkdocs-git-committers-plugin-2 = "^1.2.0"
 lxml = "^4.9.3"
-pymdown-extensions = "^10.3"
+pymdown-extensions = "^10.5"
 
 
 [tool.poetry.group.tests.dependencies]
