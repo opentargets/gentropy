@@ -24,6 +24,7 @@ wandb = "^0.16.0"
 google = "^3.0.0"
 omegaconf = "^2.3.0"
 typing-extensions = "^4.8.0"
+scikit-learn = "^1.3.2"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^3.5.0"
@@ -125,6 +126,9 @@ module = [
     "scipy",
     "scipy.stats",
     "chardet",
+    "omegaconf",
+    "xgboost",
+    "sklearn",
 ]
 ignore_missing_imports = true
 
