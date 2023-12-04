@@ -169,14 +169,19 @@ class Dataset(ABC):
         self.df = self._df.unpersist()
         return self
 
-    def coalesce(self: Self, num_partitions: int) -> Self:
-        """Coalesce the DataFrame included in the Dataset.
+    def set_partitions(self: Self, num_partitions: int) -> Self:
+        """Coalesce or repartition the DataFrame included in the Dataset.
+
+        Coalescing is efficient for decreasing the number of partitions because it avoids a full shuffle of the data. Repartitioning creates new partitions with data that is distributed evenly.
 
         Args:
-            num_partitions (int): Number of partitions to coalesce the DataFrame into
+            num_partitions (int): Number of partitions to partition the DataFrame into
 
         Returns:
             Self: Coalesced Dataset
         """
-        self.df = self._df.coalesce(num_partitions)
+        if num_partitions > self._df.rdd.getNumPartitions():
+            self.df = self._df.repartition(num_partitions)
+        else:
+            self.df = self._df.coalesce(num_partitions)
         return self

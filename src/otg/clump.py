@@ -63,7 +63,7 @@ class ClumpStep:
         else:
             sumstats = SummaryStatistics.from_parquet(
                 self.session, self.input_path, recursiveFileLookup=True
-            ).coalesce(1_000)
+            ).set_partitions(1_000)
             clumped_study_locus = sumstats.window_based_clumping(
                 locus_collect_distance=self.locus_collect_distance
             )
