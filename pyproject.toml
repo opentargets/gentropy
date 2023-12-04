@@ -43,7 +43,7 @@ mkdocs-git-revision-date-localized-plugin = "^1.2.1"
 mkdocs-autolinks-plugin = "^0.7.1"
 mkdocs-awesome-pages-plugin = "^2.9.2"
 mkdocs-exclude = "^1.0.2"
-mkdocs-git-committers-plugin-2 = "^1.2.0"
+mkdocs-git-committers-plugin-2 = "^2.2.2"
 lxml = "^4.9.3"
 pymdown-extensions = "^10.5"
 
