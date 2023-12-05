@@ -1,4 +1,4 @@
-"""Airflow DAG for the Preprocess part of the pipeline."""
+"""Airflow DAG for the harmonisation part of the pipeline."""
 from __future__ import annotations
 
 import re
