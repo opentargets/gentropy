@@ -2604,13 +2604,13 @@
 </ul>
 <div class="admonition warning macos docker memory allocation">
 <p class="admonition-title">Warning</p>
-<p>On macOS, the default amount of memory available for Docker might not be enough to get Airflow up and running. Allocate at least 4GB of memory for the Docker Engine (ideally 8GB). <a href="https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#">More info</a></p>
 </div>
+<p>On macOS, the default amount of memory available for Docker might not be enough to get Airflow up and running. Allocate at least 4GB of memory for the Docker Engine (ideally 8GB). <a href="https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#">More info</a></p>
 <h2 id="configure-airflow-access-to-google-cloud-platform">Configure Airflow access to Google Cloud Platform<a class="headerlink" href="#configure-airflow-access-to-google-cloud-platform" title="Permanent link">&para;</a></h2>
 <div class="admonition warning specifying google cloud parameters">
 <p class="admonition-title">Warning</p>
-<p>Run the next two command with the appropriate Google Cloud project ID and service account name to ensure the correct Google default application credentials are set up.</p>
 </div>
+<p>Run the next two command with the appropriate Google Cloud project ID and service account name to ensure the correct Google default application credentials are set up.</p>
 <p>Authenticate to Google Cloud:</p>
 <div class="highlight"><pre><span></span><code>gcloud<span class="w"> </span>auth<span class="w"> </span>application-default<span class="w"> </span>login<span class="w"> </span>--project<span class="o">=</span>&lt;PROJECT&gt;
 </code></pre></div>
@@ -2624,15 +2624,15 @@
 <h3 id="build-docker-image">Build Docker image<a class="headerlink" href="#build-docker-image" title="Permanent link">&para;</a></h3>
 <div class="admonition note custom docker image for airflow">
 <p class="admonition-title">Note</p>
-<p>The custom Dockerfile built by the command below extends the official <a href="https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml">Airflow Docker Compose YAML</a>. We add support for Google Cloud SDK, Google Dataproc operators, and access to GCP credentials.</p>
 </div>
+<p>The custom Dockerfile built by the command below extends the official <a href="https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml">Airflow Docker Compose YAML</a>. We add support for Google Cloud SDK, Google Dataproc operators, and access to GCP credentials.</p>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>.<span class="w"> </span>--tag<span class="w"> </span>extending_airflow:latest
 </code></pre></div>
 <h3 id="set-airflow-user-id">Set Airflow user ID<a class="headerlink" href="#set-airflow-user-id" title="Permanent link">&para;</a></h3>
 <div class="admonition note setting airflow user id">
 <p class="admonition-title">Note</p>
-<p>These commands allow Airflow running inside Docker to access the credentials file which was generated earlier.</p>
 </div>
+<p>These commands allow Airflow running inside Docker to access the credentials file which was generated earlier.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># If any user ID is already specified in .env, remove it.</span>
 grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;AIRFLOW_UID&quot;</span><span class="w"> </span>.env<span class="w"> </span>&gt;<span class="w"> </span>.env.tmp
 <span class="c1"># Add the correct user ID.</span>
@@ -2662,8 +2662,8 @@ mv<span class="w"> </span>.env.tmp<span class="w"> </span>.env
 <h3 id="advanced-configuration">Advanced configuration<a class="headerlink" href="#advanced-configuration" title="Permanent link">&para;</a></h3>
 <p>More information on running Airflow with Docker Compose can be found in the <a href="https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html">official docs</a>.</p>
 <ol>
-<li>
-<p><strong>Increase Airflow concurrency</strong>. Modify the <code>docker-compose.yaml</code> and add the following to the x-airflow-common → environment section:</p>
+<li><strong>Increase Airflow concurrency</strong>. Modify the <code>docker-compose.yaml</code> and add the following to the x-airflow-common → environment section:</li>
+</ol>
 <div class="highlight"><pre><span></span><code><span class="nt">AIRFLOW__CORE__PARALLELISM</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
 <span class="nt">AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
 <span class="nt">AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
@@ -2671,10 +2671,8 @@ mv<span class="w"> </span>.env.tmp<span class="w"> </span>.env
 <span class="c1"># Also add the following line if you are using CeleryExecutor (by default, LocalExecutor is used).</span>
 <span class="nt">AIRFLOW__CELERY__WORKER_CONCURRENCY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
 </code></pre></div>
-</li>
-<li>
-<p><strong>Additional pip packages</strong>. They can be added to the <code>requirements.txt</code> file.</p>
-</li>
+<ol>
+<li><strong>Additional pip packages</strong>. They can be added to the <code>requirements.txt</code> file.</li>
 </ol>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <p>Note that when you a a new workflow under <code>dags/</code>, Airflow will not pick that up immediately. By default the filesystem is only scanned for new DAGs every 300s. However, once the DAG is added, updates are applied nearly instantaneously.</p>
@@ -2682,46 +2680,57 @@ mv<span class="w"> </span>.env.tmp<span class="w"> </span>.env
 
   <hr />
 <div class="md-source-file">
-    <small>
-        <ul class="metadata page-metadata" data-bi-name="page info" lang="en-us" dir="ltr">
-            <!-- mkdocs-git-revision-date-plugin -->
-            
-            <li>
-                <span class="icon twemoji">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z"/></svg>
-                </span>
-                <span class="label">
-                    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2023-10-09T08:46:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2023-10-09</span>
-                </span>
-            </li>
-            
+  <small>
+    <ul
+      class="metadata page-metadata"
+      data-bi-name="page info"
+      lang="en-us"
+      dir="ltr"
+    >
+      <!-- mkdocs-git-revision-date-plugin -->
+      
+      <li>
+        <span class="icon twemoji">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z"/></svg>
+        </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2023-10-09T08:46:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2023-10-09</span> </span>
+      </li>
+       
+      <li>
+        <span class="icon twemoji">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
+        </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2023-12-05T12:06:58+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2023-12-05</span> </span>
+      </li>
+      
 
-            
-            <li>
-                <span class="icon twemoji">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
-                </span>
-                <span class="label">
-                    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2023-11-05T12:24:00+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2023-11-05</span>
-                </span>
-            </li>
-            
-
-            <li>
-                <span class="icon twemoji">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2Z"/></svg>
-                </span>
-                <span class="label">
-                    Contributors
-                </span>
-            </li>
-            <li class="contributors-holder">
-                <ul class="contributors" data-bi-name="contributors"><li><a href="https://github.com/tskir" title="tskir" data-bi-name="contributorprofile"
-                            target="_blank"><img src="https://avatars.githubusercontent.com/u/10669118?v=4" alt="tskir"></a></li><li><a href="https://github.com/d0choa" title="d0choa" data-bi-name="contributorprofile"
-                            target="_blank"><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"></a></li></ul>
-            </li>
-        </ul>
-    </small>
+      <li>
+        <span class="icon twemoji">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2Z"/></svg>
+        </span>
+        <span class="label"> Contributors </span>
+      </li>
+      <li class="contributors-holder">
+        <ul class="contributors" data-bi-name="contributors"><li>
+            <a
+              href="https://github.com/d0choa"
+              title="d0choa"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/tskir"
+              title="tskir"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/10669118?v=4" alt="tskir"
+            /></a>
+          </li></ul>
+      </li>
+    </ul>
+  </small>
 </div>
 
 
