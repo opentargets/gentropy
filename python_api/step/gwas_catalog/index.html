@@ -2483,24 +2483,24 @@
           </td>
         </tr>
         <tr>
-          <td><code>catalog_studies_file</code></td>
+          <td><code>catalog_study_files</code></td>
           <td>
-                <code>str</code>
+                <code>list[str]</code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Raw GWAS catalog studies file.</p>
+              <p>List of raw GWAS catalog studies file.</p>
             </div>
           </td>
         </tr>
         <tr>
-          <td><code>catalog_ancestry_file</code></td>
+          <td><code>catalog_ancestry_files</code></td>
           <td>
-                <code>str</code>
+                <code>list[str]</code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Ancestry annotations file from GWAS Catalog.</p>
+              <p>List of raw ancestry annotations files from GWAS Catalog.</p>
             </div>
           </td>
         </tr>
@@ -2660,8 +2660,8 @@
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        session (Session): Session object.</span>
-<span class="sd">        catalog_studies_file (str): Raw GWAS catalog studies file.</span>
-<span class="sd">        catalog_ancestry_file (str): Ancestry annotations file from GWAS Catalog.</span>
+<span class="sd">        catalog_study_files (list[str]): List of raw GWAS catalog studies file.</span>
+<span class="sd">        catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.</span>
 <span class="sd">        catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.</span>
 <span class="sd">        catalog_associations_file (str): Raw GWAS catalog associations file.</span>
 <span class="sd">        variant_annotation_path (str): Input variant annotation path.</span>
@@ -2672,8 +2672,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">MISSING</span>
-    <span class="n">catalog_studies_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
-    <span class="n">catalog_ancestry_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
+    <span class="n">catalog_study_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">MISSING</span>
+    <span class="n">catalog_ancestry_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">MISSING</span>
     <span class="n">catalog_sumstats_lut</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
     <span class="n">catalog_associations_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
     <span class="n">variant_annotation_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
@@ -2687,10 +2687,10 @@
         <span class="c1"># Extract</span>
         <span class="n">va</span> <span class="o">=</span> <span class="n">VariantAnnotation</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variant_annotation_path</span><span class="p">)</span>
         <span class="n">catalog_studies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">catalog_studies_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">catalog_study_files</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
         <span class="n">ancestry_lut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">catalog_ancestry_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">catalog_ancestry_files</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
         <span class="n">sumstats_lut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">catalog_sumstats_lut</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span>
