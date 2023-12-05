@@ -27,7 +27,7 @@ with DAG(
             task_id="catalog_sumstats_window_clumping",
             other_args=[
                 f"step.input_path={SUMSTATS}",
-                f"step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/gwas_catalog",
+                f"step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
             ],
         )
         summary_stats_ld_clumping = common.submit_step(
@@ -35,10 +35,10 @@ with DAG(
             step_id="clump",
             task_id="catalog_sumstats_ld_clumping",
             other_args=[
-                f"step.input_path={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/gwas_catalog",
+                f"step.input_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
                 "step.ld_index_path={RELEASEBUCKET}/ld_index",
                 "step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                "step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/gwas_catalog",
+                "step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
         )
@@ -47,8 +47,8 @@ with DAG(
             step_id="pics",
             task_id="catalog_sumstats_pics",
             other_args=[
-                "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/gwas_catalog",
-                "step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/from_sumstats_study_locus/gwas_catalog",
+                "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
+                "step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/from_sumstats/catalog",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
         )
@@ -66,10 +66,10 @@ with DAG(
             step_id="clump",
             task_id="catalog_curation_ld_clumping",
             other_args=[
-                "step.input_path={RELEASEBUCKET}/study_locus/catalog_study_locus",
+                "step.input_path={RELEASEBUCKET}/study_locus/catalog_curated",
                 "step.ld_index_path={RELEASEBUCKET}/ld_index",
                 "step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                "step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/catalog_study_locus_ld_clumped",
+                "step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
         )
@@ -79,7 +79,7 @@ with DAG(
             step_id="pics",
             task_id="catalog_curation_pics",
             other_args=[
-                "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/catalog_study_locus_ld_clumped",
+                "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
                 "step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/catalog_curated",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
