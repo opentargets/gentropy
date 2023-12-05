@@ -13,7 +13,7 @@ jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
 thurman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
 catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e110_r2023-11-24.tsv
 catalog_studies:
-  # Currently ingesting GWAS Catalog studies from two different files:
+  # To get a complete representation of all GWAS Catalog studies, we need to ingest the list of unpublished studies from a different file.
   - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2023-11-24.tsv
   - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-unpublished-studies-r2023-11-24.tsv
 catalog_ancestries:
