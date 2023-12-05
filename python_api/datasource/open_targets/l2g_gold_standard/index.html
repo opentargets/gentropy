@@ -2640,9 +2640,7 @@
 <span class="normal">120</span>
 <span class="normal">121</span>
 <span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">OpenTargetsL2GGoldStandard</span><span class="p">:</span>
+<span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">OpenTargetsL2GGoldStandard</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parser for OTGenetics locus to gene gold standards curation.</span>
 
 <span class="sd">    The curation is processed to generate a dataset with 2 labels:</span>
@@ -2747,10 +2745,8 @@
 <span class="sd">            L2GGoldStandard: L2G Gold Standard dataset. False negatives have not yet been removed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">L2GGoldStandard</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">parse_positive_curation</span><span class="p">(</span><span class="n">gold_standard_curation</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">expand_gold_standard_with_negatives</span><span class="p">,</span> <span class="n">v2g</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">drop</span><span class="p">(</span>
-                <span class="s2">&quot;studyId&quot;</span><span class="p">,</span>
+            <span class="n">_df</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">parse_positive_curation</span><span class="p">(</span><span class="n">gold_standard_curation</span><span class="p">)</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">expand_gold_standard_with_negatives</span><span class="p">,</span> <span class="n">v2g</span>
             <span class="p">),</span>
             <span class="n">_schema</span><span class="o">=</span><span class="n">L2GGoldStandard</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
@@ -2879,9 +2875,7 @@
 <span class="normal">120</span>
 <span class="normal">121</span>
 <span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">as_l2g_gold_standard</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">OpenTargetsL2GGoldStandard</span><span class="p">],</span>
     <span class="n">gold_standard_curation</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -2897,10 +2891,8 @@
 <span class="sd">        L2GGoldStandard: L2G Gold Standard dataset. False negatives have not yet been removed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">L2GGoldStandard</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">parse_positive_curation</span><span class="p">(</span><span class="n">gold_standard_curation</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">expand_gold_standard_with_negatives</span><span class="p">,</span> <span class="n">v2g</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">drop</span><span class="p">(</span>
-            <span class="s2">&quot;studyId&quot;</span><span class="p">,</span>
+        <span class="n">_df</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">parse_positive_curation</span><span class="p">(</span><span class="n">gold_standard_curation</span><span class="p">)</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">expand_gold_standard_with_negatives</span><span class="p">,</span> <span class="n">v2g</span>
         <span class="p">),</span>
         <span class="n">_schema</span><span class="o">=</span><span class="n">L2GGoldStandard</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>
