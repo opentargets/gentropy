@@ -30,6 +30,8 @@ jobs:
         run: poetry install --no-interaction --no-root
       - name: Install library
         run: poetry install --no-interaction
+      - name: Check dependencies
+        run: poetry run deptry .
       - name: Run tests
         run: poetry run pytest
       - name: Upload coverage to Codecov
