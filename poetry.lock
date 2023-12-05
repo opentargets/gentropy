@@ -454,13 +454,13 @@ openlineage = ["apache-airflow-providers-openlineage"]
 
 [[package]]
 name = "apache-airflow-providers-google"
-version = "10.11.1"
-description = "Provider for Apache Airflow. Implements apache-airflow-providers-google package"
+version = "10.12.0"
+description = "Provider package apache-airflow-providers-google for Apache Airflow"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "apache-airflow-providers-google-10.11.1.tar.gz", hash = "sha256:d279194c9025e075ed62a2aa7c7b775e88296b5c9f7ed2f6e6aa9d95188d8367"},
-    {file = "apache_airflow_providers_google-10.11.1-py3-none-any.whl", hash = "sha256:4aa2b066457d9c31ae9a6627a1bd981711c4a4f35b57695d986336dc87de511b"},
+    {file = "apache_airflow_providers_google-10.12.0-py3-none-any.whl", hash = "sha256:a79c845382e672eab30757dfcd62cee8de5ac766e2d38558e1eb3e5fc1b00990"},
+    {file = "apache_airflow_providers_google-10.12.0.tar.gz", hash = "sha256:cedfd906b054036c2d0de40b9ecfa70d45828945b47313c37e9722ba275a9028"},
 ]
 
 [package.dependencies]
@@ -488,7 +488,7 @@ google-cloud-datacatalog = ">=3.11.1"
 google-cloud-dataflow-client = ">=0.8.2"
 google-cloud-dataform = ">=0.5.0"
 google-cloud-dataplex = ">=1.4.2"
-google-cloud-dataproc = ">=5.4.0"
+google-cloud-dataproc = ">=5.5.0"
 google-cloud-dataproc-metastore = ">=1.12.0"
 google-cloud-dlp = ">=3.12.0"
 google-cloud-kms = ">=2.15.0"
@@ -8323,4 +8323,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "86063cf6470e510172dde7a55c5dc3dcb9d3a2b675dfee961b20a4e96ae912fb"
+content-hash = "e96b2bc8ca8fde7927f32f22419dbb45d45b75f17600f0d2daf1635945a4bc1c"
