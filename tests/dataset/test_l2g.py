@@ -40,27 +40,30 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
     """Test filter_unique_associations."""
     mock_l2g_gs_df = spark.createDataFrame(
         [
-            (1, "variant1", "gene1", "positive"),
+            (1, "variant1", "study1", "gene1", "positive"),
             (
                 2,
                 "variant2",
+                "study1",
                 "gene1",
                 "negative",
             ),  # in the same locus as sl1 and pointing to same gene, has to be dropped
             (
                 3,
                 "variant3",
+                "study1",
                 "gene1",
                 "positive",
             ),  # in diff locus as sl1 and pointing to same gene, has to be kept
             (
                 4,
                 "variant4",
+                "study1",
                 "gene2",
                 "positive",
             ),  # in same locus as sl1 and pointing to diff gene, has to be kept
         ],
-        "studyLocusId LONG, variantId STRING, geneId STRING, goldStandardSet STRING",
+        "studyLocusId LONG, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_sl_overlap_df = spark.createDataFrame(
@@ -70,11 +73,11 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
 
     expected_df = spark.createDataFrame(
         [
-            (1, "variant1", "gene1", "positive"),
-            (3, "variant3", "gene1", "positive"),
-            (4, "variant4", "gene2", "positive"),
+            (1, "variant1", "study1", "gene1", "positive"),
+            (3, "variant3", "study1", "gene1", "positive"),
+            (4, "variant4", "study1", "gene2", "positive"),
         ],
-        "studyLocusId LONG, variantId STRING, geneId STRING, goldStandardSet STRING",
+        "studyLocusId LONG, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_l2g_gs = L2GGoldStandard(
@@ -93,27 +96,30 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
     """Test `remove_false_negatives`."""
     mock_l2g_gs_df = spark.createDataFrame(
         [
-            (1, "variant1", "gene1", "positive"),
+            (1, "variant1", "study1", "gene1", "positive"),
             (
                 2,
                 "variant2",
+                "study1",
                 "gene2",
                 "negative",
             ),  # gene2 is a partner of gene1, has to be dropped
             (
                 3,
                 "variant3",
+                "study1",
                 "gene3",
                 "negative",
             ),  # gene 3 is not a partner of gene1, has to be kept
             (
                 4,
                 "variant4",
+                "study1",
                 "gene4",
                 "positive",
             ),  # gene 4 is a partner of gene1, has to be kept because it's positive
         ],
-        "studyLocusId LONG, variantId STRING, geneId STRING, goldStandardSet STRING",
+        "studyLocusId LONG, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_interactions_df = spark.createDataFrame(
@@ -127,11 +133,11 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
 
     expected_df = spark.createDataFrame(
         [
-            (1, "variant1", "gene1", "positive"),
-            (3, "variant3", "gene3", "negative"),
-            (4, "variant4", "gene4", "positive"),
+            (1, "variant1", "study1", "gene1", "positive"),
+            (3, "variant3", "study1", "gene3", "negative"),
+            (4, "variant4", "study1", "gene4", "positive"),
         ],
-        "studyLocusId LONG, variantId STRING, geneId STRING, goldStandardSet STRING",
+        "studyLocusId LONG, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_l2g_gs = L2GGoldStandard(

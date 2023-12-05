@@ -20,8 +20,8 @@ class GWASCatalogIngestionStep:
 
     Attributes:
         session (Session): Session object.
-        catalog_studies_file (str): Raw GWAS catalog studies file.
-        catalog_ancestry_file (str): Ancestry annotations file from GWAS Catalog.
+        catalog_study_files (list[str]): List of raw GWAS catalog studies file.
+        catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
         catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
         catalog_associations_file (str): Raw GWAS catalog associations file.
         variant_annotation_path (str): Input variant annotation path.
@@ -31,8 +31,8 @@ class GWASCatalogIngestionStep:
     """
 
     session: Session = MISSING
-    catalog_studies_file: str = MISSING
-    catalog_ancestry_file: str = MISSING
+    catalog_study_files: list[str] = MISSING
+    catalog_ancestry_files: list[str] = MISSING
     catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
     variant_annotation_path: str = MISSING
@@ -44,10 +44,10 @@ class GWASCatalogIngestionStep:
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
         catalog_studies = self.session.spark.read.csv(
-            self.catalog_studies_file, sep="\t", header=True
+            self.catalog_study_files, sep="\t", header=True
         )
         ancestry_lut = self.session.spark.read.csv(
-            self.catalog_ancestry_file, sep="\t", header=True
+            self.catalog_ancestry_files, sep="\t", header=True
         )
         sumstats_lut = self.session.spark.read.csv(
             self.catalog_sumstats_lut, sep="\t", header=False
