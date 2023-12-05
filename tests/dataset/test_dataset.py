@@ -20,21 +20,25 @@ class TestDataset(Dataset):
         return StructType([StructField("value", IntegerType(), False)])
 
 
-class TestSetPartitions:
-    """Test TestDataset.set_partitions."""
+class TestCoalesceAndRepartition:
+    """Test TestDataset.coalesce and TestDataset.repartition."""
 
-    @pytest.mark.parametrize("new_partitions_expr", (+1, -1))
-    def test_set_partitions(self: TestSetPartitions, new_partitions_expr: int) -> None:
-        """Test Dataset.set_partitions."""
+    def test_repartition(self: TestCoalesceAndRepartition) -> None:
+        """Test Dataset.repartition."""
         initial_partitions = self.test_dataset._df.rdd.getNumPartitions()
-        new_partitions = (
-            initial_partitions + new_partitions_expr if initial_partitions > 1 else 1
-        )
-        self.test_dataset.set_partitions(new_partitions)
+        new_partitions = initial_partitions + 1
+        self.test_dataset.repartition(new_partitions)
+        assert self.test_dataset._df.rdd.getNumPartitions() == new_partitions
+
+    def test_coalesce(self: TestCoalesceAndRepartition) -> None:
+        """Test Dataset.coalesce."""
+        initial_partitions = self.test_dataset._df.rdd.getNumPartitions()
+        new_partitions = initial_partitions - 1 if initial_partitions > 1 else 1
+        self.test_dataset.coalesce(new_partitions)
         assert self.test_dataset._df.rdd.getNumPartitions() == new_partitions
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestSetPartitions, spark: SparkSession) -> None:
+    def _setup(self: TestCoalesceAndRepartition, spark: SparkSession) -> None:
         """Setup fixture."""
         self.test_dataset = TestDataset(
             _df=spark.createDataFrame(
