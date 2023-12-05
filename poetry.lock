@@ -5719,6 +5719,17 @@ pyyaml = ">=5.1"
 virtualenv = ">=20.10.0"
 
 [[package]]
+name = "prettier"
+version = "0.0.7"
+description = "Properly pprint of nested objects"
+optional = false
+python-versions = "*"
+files = [
+    {file = "prettier-0.0.7-py3-none-any.whl", hash = "sha256:20e76791de41cafe481328dd49552303f29ca192151cee1b120c26f66cae9bfc"},
+    {file = "prettier-0.0.7.tar.gz", hash = "sha256:6c34b8cd09fd9c8956c05d6395ea3f575e0122dce494ba57685c07065abed427"},
+]
+
+[[package]]
 name = "prison"
 version = "0.2.1"
 description = "Rison encoder/decoder"
@@ -8266,4 +8277,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "05ffe0a9e2d19162544ca3f0b77d3a6ee569b991a5edbc19b2cbbc916703e4ea"
+content-hash = "14e1151e8d4097e3898aa28f96b46c30a0960cb6d7afc72f4b6b7d6820f161b9"
