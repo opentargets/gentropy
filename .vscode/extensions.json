@@ -4,9 +4,8 @@
     "ms-python.isort",
     "ms-python.mypy-type-checker",
     "ms-python.python",
-    "ms-python.black-formatter"
+    "ms-python.black-formatter",
+    "esbenp.prettier-vscode"
   ],
-  "unwantedRecommendations": [
-    "ms-python.flake8"
-  ]
+  "unwantedRecommendations": ["ms-python.flake8"]
 }
