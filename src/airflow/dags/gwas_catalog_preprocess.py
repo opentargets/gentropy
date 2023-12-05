@@ -11,6 +11,9 @@ from airflow.utils.trigger_rule import TriggerRule
 CLUSTER_NAME = "otg-preprocess-gwascatalog"
 AUTOSCALING = "otg-preprocess-gwascatalog"
 
+SUMSTATS = "gs://open-targets-gwas-summary-stats/harmonised"
+RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX"
+
 with DAG(
     dag_id=Path(__file__).stem,
     description="Open Targets Genetics — GWAS Catalog preprocess",
@@ -23,8 +26,8 @@ with DAG(
             step_id="clump",
             task_id="catalog_sumstats_window_clumping",
             other_args=[
-                "step.input_path=gs://open-targets-gwas-summary-stats/harmonised",
-                "step.clumped_study_locus_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_window_clumped/gwas_catalog",
+                f"step.input_path={SUMSTATS}",
+                f"step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/gwas_catalog",
             ],
         )
         summary_stats_ld_clumping = common.submit_step(
@@ -32,10 +35,10 @@ with DAG(
             step_id="clump",
             task_id="catalog_sumstats_ld_clumping",
             other_args=[
-                "step.input_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_window_clumped/gwas_catalog",
-                "step.ld_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/ld_index",
-                "step.study_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/catalog_study_index",
-                "step.clumped_study_locus_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_ld_clumped/gwas_catalog",
+                f"step.input_path={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/gwas_catalog",
+                "step.ld_index_path={RELEASEBUCKET}/ld_index",
+                "step.study_index_path={RELEASEBUCKET}/study_index/catalog",
+                "step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/gwas_catalog",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
         )
@@ -44,8 +47,8 @@ with DAG(
             step_id="pics",
             task_id="catalog_sumstats_pics",
             other_args=[
-                "step.study_locus_ld_annotated_in=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/from_sumstats_study_locus_ld_clumped/gwas_catalog",
-                "step.picsed_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/credible_set/from_sumstats_study_locus/gwas_catalog",
+                "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/gwas_catalog",
+                "step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/from_sumstats_study_locus/gwas_catalog",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
         )
@@ -63,10 +66,10 @@ with DAG(
             step_id="clump",
             task_id="catalog_curation_ld_clumping",
             other_args=[
-                "step.input_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/catalog_study_locus",
-                "step.ld_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/ld_index",
-                "step.study_index_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/catalog_study_index",
-                "step.clumped_study_locus_path=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/catalog_study_locus_ld_clumped",
+                "step.input_path={RELEASEBUCKET}/study_locus/catalog_study_locus",
+                "step.ld_index_path={RELEASEBUCKET}/ld_index",
+                "step.study_index_path={RELEASEBUCKET}/study_index/catalog",
+                "step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/catalog_study_locus_ld_clumped",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
         )
@@ -76,8 +79,8 @@ with DAG(
             step_id="pics",
             task_id="catalog_curation_pics",
             other_args=[
-                "step.study_locus_ld_annotated_in=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/study_locus/catalog_study_locus_ld_clumped",
-                "step.picsed_study_locus_out=gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/credible_set/catalog_curated",
+                "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/catalog_study_locus_ld_clumped",
+                "step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/catalog_curated",
             ],
             trigger_rule=TriggerRule.ALL_DONE,
         )
