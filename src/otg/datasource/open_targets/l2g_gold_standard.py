@@ -116,10 +116,8 @@ class OpenTargetsL2GGoldStandard:
             L2GGoldStandard: L2G Gold Standard dataset. False negatives have not yet been removed.
         """
         return L2GGoldStandard(
-            _df=cls.parse_positive_curation(gold_standard_curation)
-            .transform(cls.expand_gold_standard_with_negatives, v2g)
-            .drop(
-                "studyId",
+            _df=cls.parse_positive_curation(gold_standard_curation).transform(
+                cls.expand_gold_standard_with_negatives, v2g
             ),
             _schema=L2GGoldStandard.get_schema(),
         )
