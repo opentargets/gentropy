@@ -11,10 +11,15 @@ anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associ
 javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
 jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
 thurman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e110_r2023-09-11.tsv
-catalog_studies: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2023-09-11.tsv
-catalog_ancestries: ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2023-09-11.tsv
-catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-09-11.txt
+catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e110_r2023-11-24.tsv
+catalog_studies:
+  # To get a complete representation of all GWAS Catalog studies, we need to ingest the list of unpublished studies from a different file.
+  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2023-11-24.tsv
+  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-unpublished-studies-r2023-11-24.tsv
+catalog_ancestries:
+  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2023-11-24.tsv
+  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-unpublished-ancestries-r2023-11-24.tsv
+catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-11-24a.txt
 ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study_manifest.190430.tsv
 l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
