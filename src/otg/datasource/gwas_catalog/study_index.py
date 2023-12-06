@@ -201,6 +201,32 @@ class GWASCatalogStudyIndex(StudyIndex):
             ),
         )
 
+    @staticmethod
+    def _parse_cohorts(raw_cohort: Column) -> Column:
+        """Return a list of unique cohort labels from pipe separated list if provided.
+
+        Args:
+            raw_cohort (Column): Cohort list column, where labels are separated by `|` sign.
+
+        Returns:
+            Column: an array colun with string elements.
+
+        Examples:
+        >>> data = [('BioME|CaPS|Estonia|FHS|UKB|GERA|GERA|GERA',),(None,),]
+        >>> spark.createDataFrame(data, ['cohorts']).select(GWASCatalogStudyIndex._parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
+        +--------------------------------------+
+        |parsedCohorts                         |
+        +--------------------------------------+
+        |[BioME, CaPS, Estonia, FHS, UKB, GERA]|
+        |[null]                                |
+        +--------------------------------------+
+        <BLANKLINE>
+        """
+        return f.when(
+            (raw_cohort.isNull()) | (raw_cohort == ""),
+            f.array(f.lit(None).cast(t.StringType())),
+        ).otherwise(f.array_distinct(f.split(raw_cohort, r"\|")))
+
     @classmethod
     def _parse_study_table(
         cls: type[GWASCatalogStudyIndex], catalog_studies: DataFrame
@@ -332,6 +358,12 @@ class GWASCatalogStudyIndex(StudyIndex):
             )  # studyId has not been split yet
         )
 
+        # Parsing cohort information:
+        cohorts = ancestry_lut.select(
+            f.col("STUDY ACCESSION").alias("studyId"),
+            self._parse_cohorts(f.col("COHORT(S)")).alias("cohorts"),
+        ).distinct()
+
         # Get a high resolution dataset on experimental stage:
         ancestry_stages = (
             ancestry.groupBy("studyId")
@@ -418,7 +450,9 @@ class GWASCatalogStudyIndex(StudyIndex):
             europeans_deconvoluted, on="studyId", how="outer"
         )
 
-        self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left")
+        self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left").join(
+            cohorts, on="studyId", how="left"
+        )
         return self
 
     def _annotate_sumstats_info(

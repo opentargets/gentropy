@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Self
 
@@ -167,4 +167,34 @@ class Dataset(ABC):
             Self: Unpersisted Dataset
         """
         self.df = self._df.unpersist()
+        return self
+
+    def coalesce(self: Self, num_partitions: int, **kwargs: Any) -> Self:
+        """Coalesce the DataFrame included in the Dataset.
+
+        Coalescing is efficient for decreasing the number of partitions because it avoids a full shuffle of the data.
+
+        Args:
+            num_partitions (int): Number of partitions to coalesce to
+            **kwargs (Any): Arguments to pass to the coalesce method
+
+        Returns:
+            Self: Coalesced Dataset
+        """
+        self.df = self._df.coalesce(num_partitions, **kwargs)
+        return self
+
+    def repartition(self: Self, num_partitions: int, **kwargs: Any) -> Self:
+        """Repartition the DataFrame included in the Dataset.
+
+        Repartitioning creates new partitions with data that is distributed evenly.
+
+        Args:
+            num_partitions (int): Number of partitions to repartition to
+            **kwargs (Any): Arguments to pass to the repartition method
+
+        Returns:
+            Self: Repartitioned Dataset
+        """
+        self.df = self._df.repartition(num_partitions, **kwargs)
         return self
