@@ -2561,7 +2561,9 @@
 <span class="normal">74</span>
 <span class="normal">75</span>
 <span class="normal">76</span>
-<span class="normal">77</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FinnGenStudyIndex</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FinnGenStudyIndex</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from FinnGen.</span>
 
 <span class="sd">    The following information is aggregated/extracted:</span>
@@ -2614,6 +2616,8 @@
                         <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Finnish&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ancestry&quot;</span><span class="p">),</span>
                     <span class="p">)</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">),</span>
+                <span class="c1"># Cohort label is consistent with GWAS Catalog curation.</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;FinnGen&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;cohorts&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_summary_stats_url_prefix</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">),</span>
@@ -2808,7 +2812,9 @@
 <span class="normal">74</span>
 <span class="normal">75</span>
 <span class="normal">76</span>
-<span class="normal">77</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenStudyIndex</span><span class="p">],</span>
     <span class="n">finngen_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -2848,6 +2854,8 @@
                     <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Finnish&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ancestry&quot;</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">),</span>
+            <span class="c1"># Cohort label is consistent with GWAS Catalog curation.</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;FinnGen&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;cohorts&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_summary_stats_url_prefix</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">),</span>
