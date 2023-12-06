@@ -117,7 +117,19 @@ class L2GGoldStandard(Dataset):
         Returns:
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.
         """
-        squared_overlaps = study_locus_overlap._convert_to_square_matrix()
+        overlapping_gold_standards = (
+            # identify all the study loci that have an overlapping variantº
+            study_locus_overlap._convert_to_square_matrix()
+            .df.alias("left")
+            .join(
+                f.broadcast(self.df.select("studyLocusId", "variantId")).alias("right"),
+                (f.col("left.leftStudyLocusId") == f.col("right.studyLocusId"))
+                & (f.col("left.tagVariantId") == f.col("right.variantId")),
+                "inner",
+            )
+            .select("leftStudyLocusId", f.lit(True).alias("overlaps"))
+        )
+
         unique_associations = (
             self.df.alias("left")
             # identify all the study loci that point to the same gene
@@ -125,21 +137,14 @@ class L2GGoldStandard(Dataset):
                 "sl_same_gene",
                 f.collect_set("studyLocusId").over(Window.partitionBy("geneId")),
             )
-            # identify all the study loci that have an overlapping variant
             .join(
-                squared_overlaps.df.alias("right"),
-                (f.col("left.studyLocusId") == f.col("right.leftStudyLocusId"))
-                & (f.col("left.variantId") == f.col("right.tagVariantId")),
+                f.broadcast(overlapping_gold_standards.alias("right")),
+                (f.col("left.studyLocusId") == f.col("right.leftStudyLocusId")),
                 "left",
             )
-            .withColumn(
-                "overlaps",
-                f.when(f.col("right.tagVariantId").isNotNull(), f.lit(True)).otherwise(
-                    f.lit(False)
-                ),
-            )
             # drop redundant rows: where the variantid overlaps and the gene is "explained" by more than one study locus
-            .filter(~((f.size("sl_same_gene") > 1) & (f.col("overlaps") == 1)))
+            .withColumn("overlaps", f.coalesce(f.col("overlaps"), f.lit(False)))
+            .filter(~((f.size("sl_same_gene") > 1) & (f.col("overlaps"))))
             .select(*self.df.columns)
         )
         return L2GGoldStandard(_df=unique_associations, _schema=self.get_schema())
