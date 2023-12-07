@@ -13,6 +13,7 @@ from airflow.providers.google.cloud.operators.dataproc import (
     DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
+from google.cloud import dataproc_v1
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -64,6 +65,7 @@ def create_cluster(
     master_machine_type: str = "n1-highmem-8",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
+    num_preemptible_workers: int = 0,
     num_local_ssds: int = 1,
     autoscaling_policy: str = GCP_AUTOSCALING_POLICY,
 ) -> DataprocCreateClusterOperator:
@@ -74,6 +76,7 @@ def create_cluster(
         master_machine_type (str): Machine type for the master node. Defaults to "n1-highmem-8".
         worker_machine_type (str): Machine type for the worker nodes. Defaults to "n1-standard-16".
         num_workers (int): Number of worker nodes. Defaults to 2.
+        num_preemptible_workers (int): Number of preemptible worker nodes. Defaults to 0.
         num_local_ssds (int): How many local SSDs to attach to each worker node, both primary and secondary. Defaults to 1.
         autoscaling_policy (str): Name of the autoscaling policy to use. Defaults to GCP_AUTOSCALING_POLICY.
 
@@ -88,6 +91,7 @@ def create_cluster(
         worker_machine_type=worker_machine_type,
         master_disk_size=500,
         worker_disk_size=500,
+        num_preemptible_workers=num_preemptible_workers,
         num_workers=num_workers,
         image_version=GCP_DATAPROC_IMAGE,
         enable_component_gateway=True,
@@ -303,3 +307,49 @@ def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> A
         >> tasks
         >> delete_cluster(cluster_name)
     )
+
+
+def submit_pyspark_job_no_operator(
+    cluster_name: str,
+    step_id: str,
+    other_args: Optional[list[str]] = None,
+) -> None:
+    """Submits the Pyspark job to the cluster.
+
+    Args:
+        cluster_name (str): Cluster name
+        step_id (str): Step id
+        other_args (Optional[list[str]]): Other arguments to pass to the CLI step. Defaults to None.
+    """
+    # Create the job client.
+    job_client = dataproc_v1.JobControllerClient(
+        client_options={"api_endpoint": f"{GCP_REGION}-dataproc.googleapis.com:443"}
+    )
+
+    python_uri = f"{INITIALISATION_BASE_PATH}/{PYTHON_CLI}"
+    # Create the job config. 'main_jar_file_uri' can also be a
+    # Google Cloud Storage URL.
+    job_description = {
+        "placement": {"cluster_name": cluster_name},
+        "pyspark_job": {
+            "main_python_file_uri": python_uri,
+            "args": [f"step={step_id}"]
+            + (other_args if other_args is not None else [])
+            + [
+                f"--config-dir={CLUSTER_CONFIG_DIR}",
+                f"--config-name={CONFIG_NAME}",
+            ],
+            "properties": {
+                "spark.jars": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                "spark.driver.extraClassPath": "/opt/conda/miniconda3/lib/python3.10/site-packages/hail/backend/hail-all-spark.jar",
+                "spark.executor.extraClassPath": "./hail-all-spark.jar",
+                "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+                "spark.kryo.registrator": "is.hail.kryo.HailKryoRegistrator",
+            },
+        },
+    }
+    res = job_client.submit_job(
+        project_id=GCP_PROJECT, region=GCP_REGION, job=job_description
+    )
+    job_id = res.reference.job_id
+    print(f"Submitted job ID {job_id}.")
