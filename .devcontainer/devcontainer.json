@@ -41,7 +41,8 @@
         "vivaxy.vscode-conventional-commits",
         "ms-vscode-remote.remote-ssh",
         "ms-toolsai.jupyter",
-        "ms-vscode.makefile-tools"
+        "ms-vscode.makefile-tools",
+        "GitHub.vscode-pull-request-github"
       ],
       "settings": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
