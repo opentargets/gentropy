@@ -1,0 +1,73 @@
+{
+  "name": "OTGdev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": {
+      "VARIANT": "3.10-bullseye",
+      "POETRY_VERSION": "1.7.1"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.10"
+    },
+    "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=devcontainer-bashhistory,target=/commandhistory,type=volume",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
+  ],
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "ms-python.isort",
+        "ms-python.mypy-type-checker",
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "esbenp.prettier-vscode",
+        "mhutchie.git-graph",
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-docker",
+        "github.vscode-github-actions",
+        "timonwong.shellcheck",
+        "GitHub.copilot",
+        "vivaxy.vscode-conventional-commits",
+        "ms-vscode-remote.remote-ssh",
+        "ms-toolsai.jupyter",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "workbench.startupEditor": "readme",
+        "terminal.integrated.fontFamily": "Fira Code",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnPaste": false,
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll": false,
+            "source.organizeImports": true
+          }
+        },
+        "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
+        "isort.args": ["--profile", "black"],
+        "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true,
+        "mypy-type-checker.severity": {
+          "error": "Information"
+        },
+        "ruff.fixAll": false,
+        "ruff.organizeImports": false
+      }
+    }
+  }
+}
