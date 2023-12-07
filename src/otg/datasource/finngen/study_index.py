@@ -64,6 +64,8 @@ class FinnGenStudyIndex(StudyIndex):
                         f.lit("Finnish").alias("ancestry"),
                     )
                 ).alias("discoverySamples"),
+                # Cohort label is consistent with GWAS Catalog curation.
+                f.array(f.lit("FinnGen")).alias("cohorts"),
                 f.concat(
                     f.lit(finngen_summary_stats_url_prefix),
                     f.col("phenocode"),

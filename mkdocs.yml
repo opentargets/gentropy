@@ -43,7 +43,7 @@ markdown_extensions:
       permalink: true
 
 hooks:
-  - src/scripts/schemadocs.py
+  - src/utils/schemadocs.py
 
 repo_name: opentargets/genetics_etl_python
 repo_url: https://github.com/opentargets/genetics_etl_python

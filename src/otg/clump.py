@@ -45,7 +45,9 @@ class ClumpStep:
         Raises:
             ValueError: If study index and LD index paths are not provided for study locus.
         """
-        input_cols = self.session.spark.read.parquet(self.input_path).columns
+        input_cols = self.session.spark.read.parquet(
+            self.input_path, recursiveFileLookup=True
+        ).columns
         if "studyLocusId" in input_cols:
             if self.study_index_path is None or self.ld_index_path is None:
                 raise ValueError(
@@ -59,7 +61,9 @@ class ClumpStep:
                 study_index=study_index, ld_index=ld_index
             ).clump()
         else:
-            sumstats = SummaryStatistics.from_parquet(self.session, self.input_path)
+            sumstats = SummaryStatistics.from_parquet(
+                self.session, self.input_path, recursiveFileLookup=True
+            ).coalesce(4000)
             clumped_study_locus = sumstats.window_based_clumping(
                 locus_collect_distance=self.locus_collect_distance
             )
