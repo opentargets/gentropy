@@ -6,4 +6,5 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python/main.svg)](https://results.pre-commit.ci/badge/github/opentargets/genetics_etl_python)
 
 # Genetics Portal Data Pipeline (experimental)
+
 - [Documentation](https://opentargets.github.io/genetics_etl_python/)
