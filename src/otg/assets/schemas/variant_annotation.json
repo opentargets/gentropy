@@ -92,26 +92,66 @@
       "metadata": {}
     },
     {
-      "name": "cadd",
-      "type": {
-        "type": "struct",
-        "fields": [
-          {
-            "name": "phred",
-            "type": "float",
-            "nullable": true,
-            "metadata": {}
-          },
-          {
-            "name": "raw",
-            "type": "float",
-            "nullable": true,
-            "metadata": {}
-          }
-        ]
-      },
-      "nullable": true,
-      "metadata": {}
+      "name": "inSilicoPredictors",
+      "type": "struct",
+      "fields": [
+        {
+          "name": "cadd",
+          "type": "struct",
+          "fields": [
+            {
+              "name": "phred",
+              "type": "float",
+              "nullable": true,
+              "metadata": {}
+            },
+            {
+              "name": "raw",
+              "type": "float",
+              "nullable": true,
+              "metadata": {}
+            }
+          ],
+          "containsNull": true
+        },
+        {
+          "name": "revelMax",
+          "type": "double",
+          "nullable": true,
+          "metadata": {}
+        },
+        {
+          "name": "spliceai_ds_max",
+          "type": "float",
+          "nullable": true,
+          "metadata": {}
+        },
+        {
+          "name": "pangolin_largest_ds",
+          "type": "double",
+          "nullable": true,
+          "metadata": {}
+        },
+        {
+          "name": "phylop",
+          "type": "double",
+          "nullable": true,
+          "metadata": {}
+        },
+        {
+          "name": "siftMax",
+          "type": "double",
+          "nullable": true,
+          "metadata": {}
+        },
+        {
+          "name": "polypheMax",
+          "type": "double",
+          "nullable": true,
+          "metadata": {}
+        }
+      ],
+      "containsNull": true
     },
     {
       "name": "vep",
@@ -155,30 +195,6 @@
                   },
                   {
                     "name": "lof",
-                    "type": "string",
-                    "nullable": true,
-                    "metadata": {}
-                  },
-                  {
-                    "name": "polyphenScore",
-                    "type": "double",
-                    "nullable": true,
-                    "metadata": {}
-                  },
-                  {
-                    "name": "polyphenPrediction",
-                    "type": "string",
-                    "nullable": true,
-                    "metadata": {}
-                  },
-                  {
-                    "name": "siftScore",
-                    "type": "double",
-                    "nullable": true,
-                    "metadata": {}
-                  },
-                  {
-                    "name": "siftPrediction",
                     "type": "string",
                     "nullable": true,
                     "metadata": {}

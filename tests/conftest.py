@@ -346,12 +346,17 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
         .withColumnSpec(
             "vep",
-            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string), "polyphenPrediction", cast(rand() as string), "polyphenScore", cast(rand() as float), "siftPrediction", cast(rand() as string), "siftScore", cast(rand() as float))))',
+            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string))))',
             percentNulls=0.1,
         )
+        .withColumnSpec(
+            "inSilicoPredictors",
+            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
+            percentNulls=0.1,
+        )
+
     )
     return VariantAnnotation(_df=data_spec.build(), _schema=va_schema)
-
 
 @pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:

@@ -17,12 +17,12 @@ class GnomADVariants:
     """GnomAD variants included in the GnomAD genomes dataset.
 
     Attributes:
-        gnomad_genomes (str): Path to gnomAD genomes hail table. Defaults to gnomAD's 3.1.2 release.
+        gnomad_genomes (str): Path to gnomAD genomes hail table. Defaults to gnomAD's 4.0 release.
         chain_hail_38_37 (str): Path to GRCh38 to GRCh37 chain file. Defaults to Hail's chain file.
         populations (list[str]): List of populations to include. Defaults to all populations.
     """
 
-    gnomad_genomes: str = "gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht"
+    gnomad_genomes: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
     chain_hail_38_37: str = "gs://hail-common/references/grch38_to_grch37.over.chain.gz"
     populations: list[str] = field(
         default_factory=lambda: [
@@ -35,7 +35,7 @@ class GnomADVariants:
             "nfe",  # Non-Finnish European
             "mid",  # Middle Eastern
             "sas",  # South Asian
-            "oth",  # Other
+            "remaining",  # Other
         ]
     )
 
@@ -123,12 +123,8 @@ class GnomADVariants:
                     alternateAllele=ht.alleles[1],
                     rsIds=ht.rsid,
                     alleleType=ht.allele_info.allele_type,
-                    cadd=hl.struct(
-                        phred=ht.cadd.phred,
-                        raw=ht.cadd.raw_score,
-                    ),
                     alleleFrequencies=hl.set(
-                        [f"{pop}-adj" for pop in self.populations]
+                        [f"{pop}_adj" for pop in self.populations]
                     ).map(
                         lambda p: hl.struct(
                             populationName=p,
@@ -143,10 +139,6 @@ class GnomADVariants:
                                 consequenceTerms=x.consequence_terms,
                                 geneId=x.gene_id,
                                 lof=x.lof,
-                                polyphenScore=x.polyphen_score,
-                                polyphenPrediction=x.polyphen_prediction,
-                                siftScore=x.sift_score,
-                                siftPrediction=x.sift_prediction,
                             ),
                             # Only keeping canonical transcripts
                             ht.vep.transcript_consequences.filter(
@@ -155,6 +147,18 @@ class GnomADVariants:
                             ),
                         ),
                     ),
+                    inSilicoPredictors=hl.struct(
+                        cadd=hl.struct(
+                            phred=ht.in_silico_predictors.cadd.phred,
+                            raw=ht.in_silico_predictors.cadd.raw_score,
+                        ),
+                        revelMax=ht.in_silico_predictors.revel_max,
+                        spliceaiDsMax=ht.in_silico_predictors.spliceai_ds_max,
+                        pangolinLargestDs=ht.in_silico_predictors.pangolin_largest_ds,
+                        phylop=ht.in_silico_predictors.phylop,
+                        siftMax=ht.in_silico_predictors.sift_max,
+                        polyphenMax=ht.in_silico_predictors.polyphen_max,
+                    )
                 )
                 .key_by("chromosome", "position")
                 .drop("locus", "alleles")
