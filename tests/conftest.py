@@ -338,11 +338,6 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
             expr='array(named_struct("alleleFrequency", rand(), "populationName", cast(rand() as string)))',
             percentNulls=0.1,
         )
-        .withColumnSpec(
-            "cadd",
-            expr='named_struct("phred", cast(rand() as float), "raw", cast(rand() as float))',
-            percentNulls=0.1,
-        )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
         .withColumnSpec(
             "vep",
