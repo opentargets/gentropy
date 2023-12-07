@@ -158,7 +158,7 @@ class GnomADVariants:
                         phylop=ht.in_silico_predictors.phylop,
                         siftMax=ht.in_silico_predictors.sift_max,
                         polyphenMax=ht.in_silico_predictors.polyphen_max,
-                    )
+                    ),
                 )
                 .key_by("chromosome", "position")
                 .drop("locus", "alleles")
