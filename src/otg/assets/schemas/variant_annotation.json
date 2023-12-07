@@ -93,65 +93,71 @@
     },
     {
       "name": "inSilicoPredictors",
-      "type": "struct",
-      "fields": [
-        {
-          "name": "cadd",
-          "type": "struct",
-          "fields": [
-            {
-              "name": "phred",
-              "type": "float",
-              "nullable": true,
-              "metadata": {}
-            },
-            {
-              "name": "raw",
-              "type": "float",
-              "nullable": true,
-              "metadata": {}
+      "nullable": false,
+      "metadata": {},
+      "type": {
+        "type": "struct",
+        "fields": [
+          {
+            "name": "cadd",
+            "nullable": true,
+            "metadata": {},
+            "type": {
+              "type": "struct",
+              "fields": [
+                {
+                  "name": "raw",
+                  "type": "float",
+                  "nullable": true,
+                  "metadata": {}
+                },
+                {
+                  "name": "phred",
+                  "type": "float",
+                  "nullable": true,
+                  "metadata": {}
+                }
+              ]
             }
-          ],
-          "containsNull": true
-        },
-        {
-          "name": "revelMax",
-          "type": "double",
-          "nullable": true,
-          "metadata": {}
-        },
-        {
-          "name": "spliceai_ds_max",
-          "type": "float",
-          "nullable": true,
-          "metadata": {}
-        },
-        {
-          "name": "pangolin_largest_ds",
-          "type": "double",
-          "nullable": true,
-          "metadata": {}
-        },
-        {
-          "name": "phylop",
-          "type": "double",
-          "nullable": true,
-          "metadata": {}
-        },
-        {
-          "name": "siftMax",
-          "type": "double",
-          "nullable": true,
-          "metadata": {}
-        },
-        {
-          "name": "polypheMax",
-          "type": "double",
-          "nullable": true,
-          "metadata": {}
-        }
-      ],
-      "containsNull": true
+          },
+          {
+            "name": "revelMax",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "spliceaiDsMax",
+            "type": "float",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "pangolinLargestDs",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "phylop",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "siftMax",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "polypheMax",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          }
+        ]
+      }
     },
     {
       "name": "vep",
