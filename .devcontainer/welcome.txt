@@ -1,0 +1,3 @@
+👋 Welcome to Open Targets Genetics DEV"!
+
+🛠️  Your environment is fully setup with all the required software.

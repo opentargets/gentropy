@@ -21,3 +21,5 @@ RUN pipx install poetry==${POETRY_VERSION}
 # Add fzf to .zshrc
 RUN echo "source /usr/share/doc/fzf/examples/key-bindings.zsh" >> /home/vscode/.zshrc
 RUN echo "source /usr/share/doc/fzf/examples/completion.zsh" >> /home/vscode/.zshrc
+
+COPY .devcontainer/welcome.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt
