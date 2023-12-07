@@ -135,7 +135,7 @@
             "metadata": {}
           },
           {
-            "name": "polypheMax",
+            "name": "polyphenMax",
             "type": "double",
             "nullable": true,
             "metadata": {}
