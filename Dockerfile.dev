@@ -4,19 +4,12 @@
 ARG VARIANT="3.10-bullseye"
 FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
 
-ENV POETRY_HOME="/home/vscode/.poetry"
-ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
-ENV POETRY_VERSION=1.7.1
-
 # [Optional] Uncomment this section to install additional OS packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     htop \
     fzf \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-COPY pyproject.toml poetry.lock ./
-RUN pipx install poetry==${POETRY_VERSION}
 
 # Add fzf to .zshrc
 RUN echo "source /usr/share/doc/fzf/examples/key-bindings.zsh" >> /home/vscode/.zshrc

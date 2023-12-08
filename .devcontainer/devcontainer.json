@@ -1,7 +1,7 @@
 {
   "name": "OTGdev",
   "build": {
-    "dockerfile": "Dockerfile",
+    "dockerfile": "../Dockerfile.dev",
     "context": "..",
     "args": {
       "VARIANT": "3.10-bullseye",
@@ -15,7 +15,8 @@
       "version": "3.10"
     },
     "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers-contrib/features/poetry:2": {}
   },
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
@@ -30,7 +31,7 @@
         "ms-python.isort",
         "ms-python.mypy-type-checker",
         "ms-python.python",
-        "ms-python.black-formatter",
+        "charliermarsh.ruff",
         "esbenp.prettier-vscode",
         "mhutchie.git-graph",
         "eamodio.gitlens",
@@ -49,25 +50,16 @@
         "workbench.startupEditor": "readme",
         "terminal.integrated.fontFamily": "Fira Code",
         "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnPaste": false,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
         "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter",
-          "editor.formatOnPaste": false,
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.fixAll": false,
-            "source.organizeImports": true
-          }
+          "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
-        "isort.args": ["--profile", "black"],
-        "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
-        "python.testing.unittestEnabled": false,
-        "python.testing.pytestEnabled": true,
-        "mypy-type-checker.severity": {
-          "error": "Information"
-        },
-        "ruff.fixAll": false,
-        "ruff.organizeImports": false
+        "python.defaultInterpreterPath": "/workspaces/genetics_etl_python/.venv/bin/python",
+        "python.testing.pytestPath": "/workspaces/genetics_etl_python/.venv/bin/pytest"
       }
     }
   }

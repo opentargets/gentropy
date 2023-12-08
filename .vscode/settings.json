@@ -1,33 +1,14 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnPaste": false,
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.fixAll": false,
-      "source.organizeImports": true
-    }
-  },
-  "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
-  "[jsonc]": {
-    "editor.tabSize": 2,
-    "editor.insertSpaces": true,
-    "editor.detectIndentation": false,
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": true
-    }
-  },
-  "json.format.keepLines": true,
-  "isort.args": ["--profile", "black"],
-  "autoDocstring.docstringFormat": "google",
+  "workbench.startupEditor": "readme",
+  "terminal.integrated.fontFamily": "Fira Code",
+  "terminal.integrated.defaultProfile.linux": "zsh",
+  "editor.formatOnPaste": false,
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
   "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true,
-  "mypy-type-checker.severity": {
-    "error": "Information"
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
   },
-  "ruff.fixAll": false,
-  "ruff.organizeImports": false
+  "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"]
 }
