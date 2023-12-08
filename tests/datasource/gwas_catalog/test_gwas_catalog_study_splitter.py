@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 import pytest
 
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
+from otg.dataset.study_index_gwas_catalog import StudyIndexGWASCatalog
+from otg.dataset.study_locus_gwas_catalog import StudyLocusGWASCatalog
 from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
 
 if TYPE_CHECKING:
@@ -15,16 +15,16 @@ if TYPE_CHECKING:
 
 
 def test_gwas_catalog_splitter_split(
-    mock_study_index_gwas_catalog: GWASCatalogStudyIndex,
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
+    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
     """Test GWASCatalogStudyIndex, GWASCatalogAssociations creation with mock data."""
     d1, d2 = GWASCatalogStudySplitter.split(
         mock_study_index_gwas_catalog, mock_study_locus_gwas_catalog
     )
 
-    assert isinstance(d1, GWASCatalogStudyIndex)
-    assert isinstance(d2, GWASCatalogAssociations)
+    assert isinstance(d1, StudyIndexGWASCatalog)
+    assert isinstance(d2, StudyLocusGWASCatalog)
 
 
 @pytest.mark.parametrize(

@@ -18,19 +18,14 @@ from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.dataset.l2g_prediction import L2GPrediction
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_index import StudyIndex
+from otg.dataset.study_index_gwas_catalog import StudyIndexGWASCatalog
 from otg.dataset.study_locus import StudyLocus
+from otg.dataset.study_locus_gwas_catalog import StudyLocusGWASCatalog
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
-from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
-from otg.datasource.finngen.study_index import FinnGenStudyIndex
-from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
-from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 from utils.spark import get_spark_testing_conf
 
 
@@ -146,56 +141,11 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
 
 
 @pytest.fixture()
-def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
+def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
     """Mock GWASCatalogStudyIndex dataset."""
-    return GWASCatalogStudyIndex(
+    return StudyIndexGWASCatalog(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
-    """Mock FinnGenStudyIndex dataset."""
-    return FinnGenStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
-    """Mock FinnGenSummaryStats dataset."""
-    return FinnGenSummaryStats(
-        _df=mock_summary_statistics_data(spark),
-        _schema=SummaryStatistics.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueStudyIndex:
-    """Mock EqtlCatalogueStudyIndex dataset."""
-    return EqtlCatalogueStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_summary_stats_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueSummaryStats:
-    """Mock EqtlCatalogueSummaryStats dataset."""
-    return EqtlCatalogueSummaryStats(
-        _df=mock_summary_statistics_data(spark),
-        _schema=SummaryStatistics.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_ukbiobank(spark: SparkSession) -> UKBiobankStudyIndex:
-    """Mock StudyIndexUKBiobank dataset."""
-    return UKBiobankStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=UKBiobankStudyIndex.get_schema(),
+        _schema=StudyIndexGWASCatalog.get_schema(),
     )
 
 
@@ -259,11 +209,11 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
 
 
 @pytest.fixture()
-def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
+def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocusGWASCatalog:
     """Mock study_locus dataset."""
-    return GWASCatalogAssociations(
+    return StudyLocusGWASCatalog(
         _df=mock_study_locus_data(spark),
-        _schema=GWASCatalogAssociations.get_schema(),
+        _schema=StudyLocusGWASCatalog.get_schema(),
     )
 
 

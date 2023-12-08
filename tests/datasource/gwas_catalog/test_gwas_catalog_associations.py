@@ -6,15 +6,16 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.types import LongType
 
+from otg.dataset.study_locus_gwas_catalog import StudyLocusGWASCatalog
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 
 
 def test_study_locus_gwas_catalog_creation(
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
     """Test study locus creation with mock data."""
-    assert isinstance(mock_study_locus_gwas_catalog, GWASCatalogAssociations)
+    assert isinstance(mock_study_locus_gwas_catalog, StudyLocusGWASCatalog)
 
 
 def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
@@ -39,16 +40,16 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
 
 
 def test_qc_ambiguous_study(
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
     """Test qc ambiguous."""
     assert isinstance(
-        mock_study_locus_gwas_catalog._qc_ambiguous_study(), GWASCatalogAssociations
+        mock_study_locus_gwas_catalog.qc_ambiguous_study(), StudyLocusGWASCatalog
     )
 
 
 def test_qc_unresolved_ld(
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
     """Test qc unresolved LD by making sure the flag is added when ldSet is null."""
     mock_study_locus_gwas_catalog.df = mock_study_locus_gwas_catalog.df.filter(
@@ -76,7 +77,7 @@ def test_study_locus_gwas_catalog_from_source(
         GWASCatalogAssociations.from_source(
             sample_gwas_catalog_associations, mock_variant_annotation
         ),
-        GWASCatalogAssociations,
+        StudyLocusGWASCatalog,
     )
 
 

@@ -10,8 +10,8 @@ from pyspark.sql.window import Window
 if TYPE_CHECKING:
     from pyspark.sql import Column
 
-    from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-    from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
+    from otg.dataset.study_index_gwas_catalog import StudyIndexGWASCatalog
+    from otg.dataset.study_locus_gwas_catalog import StudyLocusGWASCatalog
 
 
 class GWASCatalogStudySplitter:
@@ -82,20 +82,20 @@ class GWASCatalogStudySplitter:
     @classmethod
     def split(
         cls: type[GWASCatalogStudySplitter],
-        studies: GWASCatalogStudyIndex,
-        associations: GWASCatalogAssociations,
-    ) -> Tuple[GWASCatalogStudyIndex, GWASCatalogAssociations]:
+        studies: StudyIndexGWASCatalog,
+        associations: StudyLocusGWASCatalog,
+    ) -> Tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]:
         """Splitting multi-trait GWAS Catalog studies.
 
         If assigned disease of the study and the association don't agree, we assume the study needs to be split.
         Then disease EFOs, trait names and study ID are consolidated
 
         Args:
-            studies (GWASCatalogStudyIndex): GWAS Catalog studies.
-            associations (GWASCatalogAssociations): GWAS Catalog associations.
+            studies (StudyIndexGWASCatalog): GWAS Catalog studies.
+            associations (StudyLocusGWASCatalog): GWAS Catalog associations.
 
         Returns:
-            Tuple[GWASCatalogStudyIndex, GWASCatalogAssociations]: Split studies and associations.
+            Tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]: Split studies and associations.
         """
         # Composite of studies and associations to resolve scattered information
         st_ass = (
@@ -132,5 +132,5 @@ class GWASCatalogStudySplitter:
                 st_ass.select(
                     "updatedStudyId", "studyId", "subStudyDescription"
                 ).distinct()
-            )._qc_ambiguous_study(),
+            ).qc_ambiguous_study(),
         )

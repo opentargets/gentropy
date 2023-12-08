@@ -20,6 +20,7 @@ from otg.common.spark_helpers import (
 )
 from otg.common.utils import parse_efos
 from otg.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from otg.dataset.study_locus_gwas_catalog import StudyLocusGWASCatalog
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class GWASCatalogAssociations(StudyLocus):
+class GWASCatalogAssociations:
     """Study-locus dataset derived from GWAS Catalog."""
 
     @staticmethod
@@ -796,7 +797,7 @@ class GWASCatalogAssociations(StudyLocus):
         Returns:
             Column: Updated QC column with flag.
         """
-        return GWASCatalogAssociations._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             strongest_snp_risk_allele.contains(";"),
             StudyLocusQualityCheck.COMPOSITE_FLAG,
@@ -836,7 +837,7 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return StudyLocus._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
             < f.lit(-np.log10(pvalue_cutoff)),
@@ -873,7 +874,7 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return StudyLocus._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             position.isNull() | chromosome.isNull(),
             StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG,
@@ -897,7 +898,7 @@ class GWASCatalogAssociations(StudyLocus):
         Returns:
             Column: Updated QC column with flag.
         """
-        return GWASCatalogAssociations._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             # Number of chromosomes does not correspond to the number of positions:
             (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";")))
@@ -935,7 +936,7 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return GWASCatalogAssociations._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             alternate_allele.isNull(),
             StudyLocusQualityCheck.NON_MAPPED_VARIANT_FLAG,
@@ -971,7 +972,7 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return StudyLocus._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             GWASCatalogAssociations._are_alleles_palindromic(
                 reference_allele, alternate_allele
@@ -985,7 +986,7 @@ class GWASCatalogAssociations(StudyLocus):
         gwas_associations: DataFrame,
         variant_annotation: VariantAnnotation,
         pvalue_threshold: float = 5e-8,
-    ) -> GWASCatalogAssociations:
+    ) -> StudyLocusGWASCatalog:
         """Read GWASCatalog associations.
 
         It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
@@ -997,9 +998,9 @@ class GWASCatalogAssociations(StudyLocus):
             pvalue_threshold (float): P-value threshold for flagging associations
 
         Returns:
-            GWASCatalogAssociations: GWASCatalogAssociations dataset
+            StudyLocusGWASCatalog: GWASCatalogAssociations dataset
         """
-        return GWASCatalogAssociations(
+        return StudyLocusGWASCatalog(
             _df=gwas_associations.withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             )
@@ -1053,48 +1054,5 @@ class GWASCatalogAssociations(StudyLocus):
                 # Quality controls (array of strings)
                 "qualityControls",
             ),
-            _schema=GWASCatalogAssociations.get_schema(),
+            _schema=StudyLocusGWASCatalog.get_schema(),
         )
-
-    def update_study_id(
-        self: GWASCatalogAssociations, study_annotation: DataFrame
-    ) -> GWASCatalogAssociations:
-        """Update final studyId and studyLocusId with a dataframe containing study annotation.
-
-        Args:
-            study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
-
-        Returns:
-            GWASCatalogAssociations: Updated study locus with new `studyId` and `studyLocusId`.
-        """
-        self.df = (
-            self._df.join(
-                study_annotation, on=["studyId", "subStudyDescription"], how="left"
-            )
-            .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
-            .drop("subStudyDescription", "updatedStudyId")
-        ).withColumn(
-            "studyLocusId",
-            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
-        )
-        return self
-
-    def _qc_ambiguous_study(self: GWASCatalogAssociations) -> GWASCatalogAssociations:
-        """Flag associations with variants that can not be unambiguously associated with one study.
-
-        Returns:
-            GWASCatalogAssociations: Updated study locus.
-        """
-        assoc_ambiguity_window = Window.partitionBy(
-            f.col("studyId"), f.col("variantId")
-        )
-
-        self._df.withColumn(
-            "qualityControls",
-            StudyLocus._update_quality_flag(
-                f.col("qualityControls"),
-                f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
-                StudyLocusQualityCheck.AMBIGUOUS_STUDY,
-            ),
-        )
-        return self
