@@ -20,7 +20,7 @@
       "metadata": {}
     },
     {
-      "name": "gnomad3VariantId",
+      "name": "gnomadVariantId",
       "type": "string",
       "nullable": false,
       "metadata": {}

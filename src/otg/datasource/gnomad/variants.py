@@ -93,7 +93,7 @@ class GnomADVariants:
         return VariantAnnotation(
             _df=(
                 ht.select(
-                    gnomad3VariantId=hl.str("-").join(
+                    gnomadVariantId=hl.str("-").join(
                         [
                             ht.locus.contig.replace("chr", ""),
                             hl.str(ht.locus.position),
