@@ -1,8 +1,6 @@
 """Test Dataset class."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql.types import IntegerType, StructField, StructType
@@ -10,8 +8,7 @@ from pyspark.sql.types import IntegerType, StructField, StructType
 from otg.dataset.dataset import Dataset
 
 
-@dataclass
-class TestDataset(Dataset):
+class MockDataset(Dataset):
     """Concrete subclass of Dataset for testing. Necessary because Dataset is abstract."""
 
     @classmethod
@@ -40,9 +37,9 @@ class TestCoalesceAndRepartition:
     @pytest.fixture(autouse=True)
     def _setup(self: TestCoalesceAndRepartition, spark: SparkSession) -> None:
         """Setup fixture."""
-        self.test_dataset = TestDataset(
+        self.test_dataset = MockDataset(
             _df=spark.createDataFrame(
-                [(1,), (2,), (3,)], schema=TestDataset.get_schema()
+                [(1,), (2,), (3,)], schema=MockDataset.get_schema()
             ),
-            _schema=TestDataset.get_schema(),
+            _schema=MockDataset.get_schema(),
         )
