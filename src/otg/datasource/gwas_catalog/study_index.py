@@ -8,7 +8,6 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from otg.common.utils import parse_efos
-from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_index_gwas_catalog import (
     StudyIndexGWASCatalog as StudyIndexGWASCatalogDataset,
 )
@@ -271,7 +270,7 @@ class GWASCatalogStudyIndex:
         catalog_studies: DataFrame,
         ancestry_file: DataFrame,
         sumstats_lut: DataFrame,
-    ) -> StudyIndex:
+    ) -> StudyIndexGWASCatalogDataset:
         """Ingests study level metadata from the GWAS Catalog.
 
         Args:
@@ -280,7 +279,7 @@ class GWASCatalogStudyIndex:
             sumstats_lut (DataFrame): GWAS Catalog summary statistics list.
 
         Returns:
-            StudyIndex: Parsed and annotated GWAS Catalog study table.
+            StudyIndexGWASCatalogDataset: Parsed and annotated GWAS Catalog study table.
         """
         # Read GWAS Catalogue raw data
         return (
