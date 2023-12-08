@@ -26,6 +26,7 @@
   "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
   "customizations": {
     "vscode": {
+      // Please keep this file in sync with settings in /.vscode/extensions.json
       "extensions": [
         "charliermarsh.ruff",
         "ms-python.isort",
@@ -45,6 +46,7 @@
         "ms-vscode.makefile-tools",
         "GitHub.vscode-pull-request-github"
       ],
+      // Please keep this file in sync with settings in /.vscode/settings.json
       "settings": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "workbench.startupEditor": "readme",
