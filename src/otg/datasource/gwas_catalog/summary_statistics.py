@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 def filename_to_study_identifier(path: str) -> str:
-    r"""Extract GWAS Catalog study identifier from path.
+    """Extract GWAS Catalog study identifier from path.
 
     There's an expectation that the filename has to have the GCST accession of the study.
 
@@ -35,6 +35,7 @@ def filename_to_study_identifier(path: str) -> str:
         Traceback (most recent call last):
         ...
         AssertionError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
+        ...
     """
     file_name = path.split("/")[-1]
     study_id_matches = re.search(r"(GCST\d+)", file_name)
