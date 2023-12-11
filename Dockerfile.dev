@@ -2,17 +2,80 @@
 
 # [Choice] Python version (use -bullseye variants on local arm64/Apple Silicon): 3, 3.10, 3.9, 3.8, 3.7, 3.6, 3-bullseye, 3.10-bullseye, 3.9-bullseye, 3.8-bullseye, 3.7-bullseye, 3.6-bullseye, 3-buster, 3.10-buster, 3.9-buster, 3.8-buster, 3.7-buster, 3.6-buster
 ARG VARIANT="3.10-bullseye"
-FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
+FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT} as development_build
 
-# [Optional] Uncomment this section to install additional OS packages.
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends \
+ARG YOUR_ENV
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # pip
+    # PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    # PIP_DEFAULT_TIMEOUT=100 \
+    PIP_ROOT_USER_ACTION=ignore \
+    # Poetry
+    # https://python-poetry.org/docs/configuration/#using-environment-variables
+    POETRY_VERSION=1.7.1 \
+    # make poetry install to this location
+    POETRY_HOME="/usr/local" \
+    # do not ask any interactive question
+    POETRY_NO_INTERACTION=1 \
+    # cahce dir for poetry
+    POETRY_CACHE_DIR='/var/cache/pypoetry' \
+    # never create virtual environment automatically, only use env prepared by us
+    POETRY_VIRTUALENVS_CREATE=false
+
+
+# System deps (we don't use exact versions because it is hard to update them,
+# pin when needed):
+# hadolint ignore=DL3008
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    default-jdk \
     htop \
     fzf \
+    jq \
+    bat \
+    # Installing `poetry` package manager:
+    # https://github.com/python-poetry/poetry
+    && curl -sSL 'https://install.python-poetry.org' | python - \
+    # Enable tab completion for bash
+    && poetry completions bash >> /home/vscode/.bash_completion \
+    # Enable tab completion for Zsh
+    && mkdir -p /home/vscode/.zfunc/ \
+    && poetry completions zsh > /home/vscode/.zfunc/_poetry \
+    && echo "fpath+=~/.zfunc\nautoload -Uz compinit && compinit" >> /home/vscode/.zshrc \
+    && poetry --version \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Add fzf to .zshrc
-RUN echo "source /usr/share/doc/fzf/examples/key-bindings.zsh" >> /home/vscode/.zshrc
-RUN echo "source /usr/share/doc/fzf/examples/completion.zsh" >> /home/vscode/.zshrc
+RUN echo "source /usr/share/doc/fzf/examples/key-bindings.zsh" >> /home/vscode/.zshrc && \
+    echo "source /usr/share/doc/fzf/examples/completion.zsh" >> /home/vscode/.zshrc
+
+ARG USERNAME=vscode
+# Used to persist bash history as per https://code.visualstudio.com/remote/advancedcontainers/persist-bash-history
+# hadolint ignore=SC2086
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.zsh_history" \
+    && mkdir /commandhistory \
+    && touch /commandhistory/.zsh_history \
+    && chown -R $USERNAME /commandhistory \
+    && echo "$SNIPPET" >> "/home/$USERNAME/.zshrc"
 
 COPY .devcontainer/welcome.txt /usr/local/etc/vscode-dev-containers/first-run-notice.txt
+
+# working directory
+WORKDIR /workspaces
+
+# Copy only requirements, to cache them in docker layer
+COPY ./poetry.lock ./pyproject.toml ./README.md ./
+COPY src/otg src/otg
+COPY src/utils src/utils
+
+# Install runtime deps:
+# hadolint ignore=SC2046
+RUN --mount=type=cache,target="$POETRY_CACHE_DIR" \
+    poetry install --no-interaction --no-ansi
+
+EXPOSE 8080
