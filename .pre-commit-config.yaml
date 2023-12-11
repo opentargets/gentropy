@@ -28,12 +28,12 @@ repos:
         args: [--all]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+    rev: v0.1.7
     hooks:
       - id: ruff
 
   - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.1
     hooks:
       - id: isort
         args:
@@ -93,7 +93,7 @@ repos:
       - id: pydoclint
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: "v3.0.3"
+    rev: "v4.0.0-alpha.4"
     hooks:
       - id: prettier
         args: ["--staged"]
