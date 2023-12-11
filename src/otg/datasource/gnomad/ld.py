@@ -300,7 +300,7 @@ class GnomADLDMatrix:
                 )
                 ld_indices_unaggregated.append(pop_ld_index)
             except Exception as e:
-                print(f"Failed to create LDIndex for population {pop}: {e}")
+                print(f"Failed to create LDIndex for population {pop}: {e}")  # noqa: T201
                 sys.exit(1)
 
         ld_index_unaggregated = (

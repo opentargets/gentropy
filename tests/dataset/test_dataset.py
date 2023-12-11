@@ -4,10 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
+from otg.dataset.dataset import Dataset
 from pyspark.sql import SparkSession
 from pyspark.sql.types import IntegerType, StructField, StructType
-
-from otg.dataset.dataset import Dataset
 
 
 @dataclass

@@ -204,30 +204,30 @@ class LocusToGeneModel:
             labelCol="label", predictionCol="prediction"
         )
 
-        print("Evaluating model...")
-        print(
+        print("Evaluating model...")  # noqa: T201
+        print(  # noqa: T201
             "... Area under ROC curve:",
             binary_evaluator.evaluate(
                 results, {binary_evaluator.metricName: "areaUnderROC"}
             ),
         )
-        print(
+        print(  # noqa: T201
             "... Area under Precision-Recall curve:",
             binary_evaluator.evaluate(
                 results, {binary_evaluator.metricName: "areaUnderPR"}
             ),
         )
-        print(
+        print(  # noqa: T201
             "... Accuracy:",
             multi_evaluator.evaluate(results, {multi_evaluator.metricName: "accuracy"}),
         )
-        print(
+        print(  # noqa: T201
             "... F1 score:",
             multi_evaluator.evaluate(results, {multi_evaluator.metricName: "f1"}),
         )
 
         if wandb_run_name:
-            print("Logging to W&B...")
+            print("Logging to W&B...")  # noqa: T201
             run = wandb.init(
                 project="otg_l2g", config=hyperparameters, name=wandb_run_name
             )

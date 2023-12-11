@@ -48,16 +48,16 @@ PYTHON_CLI = "cli.py"
 
 
 # Shared DAG construction parameters.
-shared_dag_args = dict(
-    owner="Open Targets Data Team",
-    retries=1,
-)
-shared_dag_kwargs = dict(
-    tags=["genetics_etl", "experimental"],
-    start_date=pendulum.now(tz="Europe/London").subtract(days=1),
-    schedule="@once",
-    catchup=False,
-)
+shared_dag_args = {
+    "owner": "Open Targets Data Team",
+    "retries": 1,
+}
+shared_dag_kwargs = {
+    "tags": ["genetics_etl", "experimental"],
+    "start_date": pendulum.now(tz="Europe/London").subtract(days=1),
+    "schedule": "@once",
+    "catchup": False,
+}
 
 
 def create_cluster(
@@ -108,7 +108,7 @@ def create_cluster(
     if num_local_ssds:
         for worker_section in ("worker_config", "secondary_worker_config"):
             # Create a disk config section if it does not exist.
-            cluster_config[worker_section].setdefault("disk_config", dict())
+            cluster_config[worker_section].setdefault("disk_config", {})
             # Specify the number of local SSDs.
             cluster_config[worker_section]["disk_config"][
                 "num_local_ssds"
@@ -287,7 +287,7 @@ def read_yaml_config(config_path: Path) -> Any:
         Any: Parsed YAML config file.
     """
     assert config_path.exists(), f"YAML config path {config_path} does not exist."
-    with open(config_path, "r") as config_file:
+    with open(config_path) as config_file:
         return yaml.safe_load(config_file)
 
 
@@ -348,8 +348,6 @@ def submit_pyspark_job_no_operator(
             },
         },
     }
-    res = job_client.submit_job(
+    job_client.submit_job(
         project_id=GCP_PROJECT, region=GCP_REGION, job=job_description
     )
-    job_id = res.reference.job_id
-    print(f"Submitted job ID {job_id}.")

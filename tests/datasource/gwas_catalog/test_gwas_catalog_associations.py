@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+from otg.dataset.variant_annotation import VariantAnnotation
+from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.types import LongType
-
-from otg.dataset.variant_annotation import VariantAnnotation
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 
 
 def test_study_locus_gwas_catalog_creation(

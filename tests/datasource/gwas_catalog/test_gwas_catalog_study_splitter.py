@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
-
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter

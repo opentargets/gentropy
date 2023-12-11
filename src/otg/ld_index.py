@@ -38,4 +38,4 @@ class LDIndexStep:
             .mode(self.session.write_mode)
             .parquet(self.ld_index_out)
         )
-        self.session.logger.info(f"LD index written to: {self.ld_index_out}")
+        self.session.logger.info(self.ld_index_out)

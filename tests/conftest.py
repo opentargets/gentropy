@@ -6,8 +6,6 @@ from pathlib import Path
 import dbldatagen as dg
 import hail as hl
 import pytest
-from pyspark.sql import DataFrame, SparkSession
-
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
 from otg.dataset.colocalisation import Colocalisation
@@ -31,6 +29,8 @@ from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
 from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
+from pyspark.sql import DataFrame, SparkSession
+
 from utils.spark import get_spark_testing_conf
 
 

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
-
 from otg.dataset.study_locus import StudyLocus
 from otg.method.clump import LDclumping
 

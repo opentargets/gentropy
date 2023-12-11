@@ -105,7 +105,7 @@ class LocusToGeneStep:
         Raises:
             ValueError: if run_mode is not one of "train" or "predict".
         """
-        print("Sci-kit learn version: ", sklearn.__version__)
+        print("Sci-kit learn version: ", sklearn.__version__)  # noqa: T201
         if self.run_mode not in ["train", "predict"]:
             raise ValueError(
                 f"run_mode must be one of 'train' or 'predict', got {self.run_mode}"
@@ -178,9 +178,7 @@ class LocusToGeneStep:
                     **self.hyperparameters,
                 )
                 model.save(self.model_path)
-                self.session.logger.info(
-                    f"Finished L2G step. L2G model saved to {self.model_path}"
-                )
+                self.session.logger.info(self.model_path)
 
         if self.run_mode == "predict":
             if not self.model_path or not self.predictions_path:
@@ -197,6 +195,4 @@ class LocusToGeneStep:
             predictions.df.write.mode(self.session.write_mode).parquet(
                 self.predictions_path
             )
-            self.session.logger.info(
-                f"Finished L2G step. L2G predictions saved to {self.predictions_path}"
-            )
+            self.session.logger.info(self.predictions_path)
