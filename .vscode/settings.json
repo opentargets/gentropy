@@ -1,6 +1,6 @@
 {
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -19,14 +19,11 @@
     }
   },
   "json.format.keepLines": true,
-  "isort.args": ["--profile", "black"],
   "autoDocstring.docstringFormat": "google",
   "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "mypy-type-checker.severity": {
     "error": "Information"
-  },
-  "ruff.fixAll": false,
-  "ruff.organizeImports": false
+  }
 }
