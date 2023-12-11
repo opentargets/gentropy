@@ -28,21 +28,24 @@ def filename_to_study_identifier(path: str) -> str:
     Returns:
         str: GWAS Catalog stuy accession.
 
+    Raises:
+        ValueError: If the path does not contain the GWAS Catalog study identifier.
+
     Examples:
         >>> filename_to_study_identifier("http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST006001-GCST007000/GCST006090/harmonised/29895819-GCST006090-HP_0000975.h.tsv.gz")
         'GCST006090'
         >>> filename_to_study_identifier("wrong/path")
         Traceback (most recent call last):
-        ...
-        AssertionError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
-        ...
+            ...
+        ValueError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
     """
     file_name = path.split("/")[-1]
     study_id_matches = re.search(r"(GCST\d+)", file_name)
 
-    assert (
-        study_id_matches is not None
-    ), f'Path ("{path}") does not contain GWAS Catalog study identifier.'
+    if not study_id_matches:
+        raise ValueError(
+            f'Path ("{path}") does not contain GWAS Catalog study identifier.'
+        )
 
     return study_id_matches[0]
 
