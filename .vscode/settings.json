@@ -1,14 +1,19 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "workbench.startupEditor": "readme",
   "terminal.integrated.fontFamily": "Fira Code",
   "terminal.integrated.defaultProfile.linux": "zsh",
   "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
   "editor.formatOnType": true,
-  "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
-  "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"]
+  "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "src/",
+    "tests/",
+    "--doctest-modules",
+    "--cov=src/"
+  ]
 }

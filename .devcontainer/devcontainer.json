@@ -11,12 +11,8 @@
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:1": {},
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.10"
-    },
     "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-    "ghcr.io/devcontainers-contrib/features/poetry:2": {}
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   },
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
@@ -49,19 +45,23 @@
       // Please keep this file in sync with settings in /.vscode/settings.json
       "settings": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "workbench.startupEditor": "readme",
         "terminal.integrated.fontFamily": "Fira Code",
         "terminal.integrated.defaultProfile.linux": "zsh",
         "editor.formatOnPaste": false,
         "editor.formatOnSave": true,
         "editor.formatOnType": true,
-        "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
-        "python.defaultInterpreterPath": "/workspaces/genetics_etl_python/.venv/bin/python",
-        "python.testing.pytestPath": "/workspaces/genetics_etl_python/.venv/bin/pytest"
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "src/",
+          "tests/",
+          "--doctest-modules",
+          "--cov=src/"
+        ]
       }
     }
   }

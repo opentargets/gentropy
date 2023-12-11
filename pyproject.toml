@@ -26,7 +26,6 @@ wandb = "^0.16.0"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^3.5.0"
-black = {version = "^22.12.0", allow-prereleases = true}
 mypy = "^1.7"
 pep8-naming = "^0.13.2"
 interrogate = "^1.5.0"
@@ -80,18 +79,19 @@ upload_to_release = false
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.isort]
-profile = "black"
-
 [tool.interrogate]
 fail-under = 95
 color = true
 exclude = ["dist"]
 
 [tool.pytest.ini_options]
-addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
+addopts = [
+    "-n=4",
+    "--doctest-modules",
+    "--import-mode=importlib"
+]
 pythonpath = [
-    ".",
+    "./src/",
     "./src/airflow/dags"
 ]
 
