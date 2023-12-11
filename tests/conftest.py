@@ -407,7 +407,8 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
             partitions=4,
             randomSeedMethod="hash_fieldname",
             name="summaryStats",
-        ).withSchema(ss_schema)
+        )
+        .withSchema(ss_schema)
         # Allowing missingness in effect allele frequency and enforce upper limit:
         .withColumnSpec(
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0

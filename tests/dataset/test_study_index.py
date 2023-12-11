@@ -62,12 +62,17 @@ def test_aggregate_and_map_ancestries__correctness(spark: SparkSession) -> None:
 
     # Asserting that the relative count go to 1.0
     assert (
-        df.select(
-            f.aggregate(
-                "parsedPopulation", f.lit(0.0), lambda y, x: y + x.relativeSampleSize
-            ).alias("sum")
-        ).collect()[0]["sum"]
-    ) == 1.0
+        (
+            df.select(
+                f.aggregate(
+                    "parsedPopulation",
+                    f.lit(0.0),
+                    lambda y, x: y + x.relativeSampleSize,
+                ).alias("sum")
+            ).collect()[0]["sum"]
+        )
+        == 1.0
+    )
 
 
 def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None:
@@ -122,11 +127,14 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
 
     # Asserting the number of aggregated sample size:
     assert (
-        df.filter(f.col("studyId") == "s1")
-        .select(
-            f.aggregate("test_output", f.lit(0.0), lambda y, x: x.sampleSize + y).alias(
-                "totalSamples"
+        (
+            df.filter(f.col("studyId") == "s1")
+            .select(
+                f.aggregate(
+                    "test_output", f.lit(0.0), lambda y, x: x.sampleSize + y
+                ).alias("totalSamples")
             )
+            .collect()[0]["totalSamples"]
         )
-        .collect()[0]["totalSamples"]
-    ) == 300.0
+        == 300.0
+    )
