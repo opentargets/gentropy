@@ -27,7 +27,6 @@ check: ## Lint and format code
 	@poetry run pydoclint --config=pyproject.toml src
 	@poetry run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
 	@echo "Formatting..."
-	@poetry run black src/otg .
 	@poetry run isort src/otg .
 
 test: ## Run tests
