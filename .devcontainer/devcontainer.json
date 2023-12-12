@@ -59,7 +59,7 @@
           "src/",
           "tests/",
           "--doctest-modules",
-          "--cov=src/"
+          "--no-cov"
         ]
       }
     }
