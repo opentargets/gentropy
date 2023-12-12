@@ -2794,7 +2794,7 @@
 
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">OpenTargetsL2GGoldStandard</span><span class="o">.</span><span class="n">as_l2g_gold_standard</span><span class="p">(</span><span class="n">gold_standard_curation</span><span class="p">,</span> <span class="n">v2g</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">filter_unique_associations</span><span class="p">(</span><span class="n">study_locus_overlap</span><span class="p">)</span>
+            <span class="c1"># .filter_unique_associations(study_locus_overlap)</span>
             <span class="o">.</span><span class="n">remove_false_negatives</span><span class="p">(</span><span class="n">interactions_df</span><span class="p">)</span>
         <span class="p">)</span>
 
@@ -3293,7 +3293,7 @@
 
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">OpenTargetsL2GGoldStandard</span><span class="o">.</span><span class="n">as_l2g_gold_standard</span><span class="p">(</span><span class="n">gold_standard_curation</span><span class="p">,</span> <span class="n">v2g</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">filter_unique_associations</span><span class="p">(</span><span class="n">study_locus_overlap</span><span class="p">)</span>
+        <span class="c1"># .filter_unique_associations(study_locus_overlap)</span>
         <span class="o">.</span><span class="n">remove_false_negatives</span><span class="p">(</span><span class="n">interactions_df</span><span class="p">)</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>

@@ -2570,19 +2570,19 @@
 
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">MISSING</span>
     <span class="n">variant_annotation_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
-    <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
+    <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
     <span class="n">variant_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">MISSING</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">VariantIndexStep</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run step.&quot;&quot;&quot;</span>
         <span class="c1"># Extract</span>
         <span class="n">va</span> <span class="o">=</span> <span class="n">VariantAnnotation</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variant_annotation_path</span><span class="p">)</span>
-        <span class="n">study_locus</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">study_locus_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">credible_set</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
 
         <span class="c1"># Transform</span>
-        <span class="n">vi</span> <span class="o">=</span> <span class="n">VariantIndex</span><span class="o">.</span><span class="n">from_variant_annotation</span><span class="p">(</span><span class="n">va</span><span class="p">,</span> <span class="n">study_locus</span><span class="p">)</span>
+        <span class="n">vi</span> <span class="o">=</span> <span class="n">VariantIndex</span><span class="o">.</span><span class="n">from_variant_annotation</span><span class="p">(</span><span class="n">va</span><span class="p">,</span> <span class="n">credible_set</span><span class="p">)</span>
 
         <span class="c1"># Load</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Writing variant index to: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variant_index_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>

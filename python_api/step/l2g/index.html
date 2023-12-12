@@ -2651,8 +2651,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/otg/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 25</span>
-<span class="normal"> 26</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 26</span>
 <span class="normal"> 27</span>
 <span class="normal"> 28</span>
 <span class="normal"> 29</span>
@@ -2828,7 +2827,13 @@
 <span class="normal">199</span>
 <span class="normal">200</span>
 <span class="normal">201</span>
-<span class="normal">202</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">LocusToGeneStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locus to gene step.</span>
 
@@ -2920,7 +2925,9 @@
         <span class="n">credible_set</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
-        <span class="n">studies</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">study_index_path</span><span class="p">)</span>
+        <span class="n">studies</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">study_index_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
         <span class="n">v2g</span> <span class="o">=</span> <span class="n">V2G</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variant_gene_path</span><span class="p">)</span>
         <span class="c1"># coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step</span>
 
@@ -2948,8 +2955,12 @@
 
             <span class="c1"># Join and fill null values with 0</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="p">(</span>
-                <span class="n">_df</span><span class="o">=</span><span class="n">gold_standards</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;sources&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span>
+                <span class="n">_df</span><span class="o">=</span><span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
+                        <span class="n">gold_standards</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
+                    <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
             <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
@@ -2974,7 +2985,7 @@
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Train model</span>
-                <span class="n">model</span> <span class="o">=</span> <span class="n">LocusToGeneTrainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
+                <span class="n">LocusToGeneTrainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
                     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
                     <span class="n">l2g_model</span><span class="o">=</span><span class="n">l2g_model</span><span class="p">,</span>
                     <span class="n">features_list</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">features_list</span><span class="p">),</span>
@@ -2983,7 +2994,6 @@
                     <span class="n">wandb_run_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wandb_run_name</span><span class="p">,</span>
                     <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">hyperparameters</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Finished L2G step. L2G model saved to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
