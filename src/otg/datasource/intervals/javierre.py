@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from otg.dataset.gene_index import GeneIndex
 
 
-class IntervalsJavierre(Intervals):
+class IntervalsJavierre:
     """Interval dataset from Javierre et al. 2016."""
 
     @staticmethod
@@ -37,7 +37,7 @@ class IntervalsJavierre(Intervals):
         javierre_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> IntervalsJavierre:
+    ) -> Intervals:
         """Parse Javierre et al. 2016 dataset.
 
         Args:
@@ -46,7 +46,7 @@ class IntervalsJavierre(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            IntervalsJavierre: Javierre et al. 2016 interval data
+            Intervals: Javierre et al. 2016 interval data
         """
         # Constant values:
         dataset_name = "javierre2016"
@@ -139,7 +139,7 @@ class IntervalsJavierre(Intervals):
         )
 
         # Joining back the data:
-        return cls(
+        return Intervals(
             _df=(
                 javierre_remapped.join(
                     unique_intervals_with_genes,
@@ -167,5 +167,5 @@ class IntervalsJavierre(Intervals):
                     f.lit(pmid).alias("pmid"),
                 )
             ),
-            _schema=cls.get_schema(),
+            _schema=Intervals.get_schema(),
         )

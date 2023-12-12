@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 from otg.dataset.variant_annotation import VariantAnnotation
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
+from otg.datasource.gwas_catalog.associations import (
+    GWASCatalogCuratedAssociationsParser,
+    StudyLocusGWASCatalog,
+)
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.types import LongType
 
 
 def test_study_locus_gwas_catalog_creation(
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
     """Test study locus creation with mock data."""
-    assert isinstance(mock_study_locus_gwas_catalog, GWASCatalogAssociations)
+    assert isinstance(mock_study_locus_gwas_catalog, StudyLocusGWASCatalog)
 
 
 def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
@@ -22,14 +25,14 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
         sample_gwas_catalog_associations.withColumn(
             # Perform all quality control checks:
             "qualityControls",
-            GWASCatalogAssociations._qc_all(
+            GWASCatalogCuratedAssociationsParser._qc_all(
                 f.array().alias("qualityControls"),
                 f.col("CHR_ID"),
                 f.col("CHR_POS"),
                 f.lit("A").alias("referenceAllele"),
                 f.lit("T").alias("referenceAllele"),
                 f.col("STRONGEST SNP-RISK ALLELE"),
-                *GWASCatalogAssociations._parse_pvalue(f.col("P-VALUE")),
+                *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
                 5e-8,
             ),
         ),
@@ -38,16 +41,16 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
 
 
 def test_qc_ambiguous_study(
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
     """Test qc ambiguous."""
     assert isinstance(
-        mock_study_locus_gwas_catalog._qc_ambiguous_study(), GWASCatalogAssociations
+        mock_study_locus_gwas_catalog.qc_ambiguous_study(), StudyLocusGWASCatalog
     )
 
 
 def test_qc_unresolved_ld(
-    mock_study_locus_gwas_catalog: GWASCatalogAssociations,
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
 ) -> None:
     """Test qc unresolved LD by making sure the flag is added when ldSet is null."""
     mock_study_locus_gwas_catalog.df = mock_study_locus_gwas_catalog.df.filter(
@@ -72,10 +75,10 @@ def test_study_locus_gwas_catalog_from_source(
 ) -> None:
     """Test study locus from gwas catalog mock data."""
     assert isinstance(
-        GWASCatalogAssociations.from_source(
+        GWASCatalogCuratedAssociationsParser.from_source(
             sample_gwas_catalog_associations, mock_variant_annotation
         ),
-        GWASCatalogAssociations,
+        StudyLocusGWASCatalog,
     )
 
 
@@ -85,7 +88,7 @@ def test__map_to_variant_annotation_variants(
 ) -> None:
     """Test mapping to variant annotation variants."""
     assert isinstance(
-        GWASCatalogAssociations._map_to_variant_annotation_variants(
+        GWASCatalogCuratedAssociationsParser._map_to_variant_annotation_variants(
             sample_gwas_catalog_associations.withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             ),

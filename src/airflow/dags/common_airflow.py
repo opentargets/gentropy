@@ -50,7 +50,7 @@ PYTHON_CLI = "cli.py"
 # Shared DAG construction parameters.
 shared_dag_args = {
     "owner": "Open Targets Data Team",
-    "retries": 1,
+    "retries": 0,
 }
 shared_dag_kwargs = {
     "tags": ["genetics_etl", "experimental"],
@@ -68,6 +68,7 @@ def create_cluster(
     num_preemptible_workers: int = 0,
     num_local_ssds: int = 1,
     autoscaling_policy: str = GCP_AUTOSCALING_POLICY,
+    master_disk_size: int = 500,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
@@ -79,6 +80,7 @@ def create_cluster(
         num_preemptible_workers (int): Number of preemptible worker nodes. Defaults to 0.
         num_local_ssds (int): How many local SSDs to attach to each worker node, both primary and secondary. Defaults to 1.
         autoscaling_policy (str): Name of the autoscaling policy to use. Defaults to GCP_AUTOSCALING_POLICY.
+        master_disk_size (int): Size of the master node's boot disk in GB. Defaults to 500.
 
     Returns:
         DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
@@ -89,7 +91,7 @@ def create_cluster(
         zone=GCP_ZONE,
         master_machine_type=master_machine_type,
         worker_machine_type=worker_machine_type,
-        master_disk_size=500,
+        master_disk_size=master_disk_size,
         worker_disk_size=500,
         num_preemptible_workers=num_preemptible_workers,
         num_workers=num_workers,
@@ -219,7 +221,7 @@ def submit_step(
         task_id = step_id
     return submit_pyspark_job(
         cluster_name=cluster_name,
-        task_id=step_id,
+        task_id=task_id,
         python_module_path=f"{INITIALISATION_BASE_PATH}/{PYTHON_CLI}",
         trigger_rule=trigger_rule,
         args=[f"step={step_id}"]
@@ -273,7 +275,6 @@ def delete_cluster(cluster_name: str) -> DataprocDeleteClusterOperator:
         cluster_name=cluster_name,
         region=GCP_REGION,
         trigger_rule=TriggerRule.ALL_DONE,
-        deferrable=True,
     )
 
 

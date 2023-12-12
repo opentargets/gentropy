@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from pyspark.sql.column import Column
 
 
-class EqtlCatalogueStudyIndex(StudyIndex):
+class EqtlCatalogueStudyIndex:
     """Study index dataset from eQTL Catalogue."""
 
     @staticmethod
@@ -92,21 +92,21 @@ class EqtlCatalogueStudyIndex(StudyIndex):
     def from_source(
         cls: type[EqtlCatalogueStudyIndex],
         eqtl_studies: DataFrame,
-    ) -> EqtlCatalogueStudyIndex:
+    ) -> StudyIndex:
         """Ingest study level metadata from eQTL Catalogue.
 
         Args:
             eqtl_studies (DataFrame): ingested but unprocessed eQTL Catalogue studies.
 
         Returns:
-            EqtlCatalogueStudyIndex: preliminary processed study index for eQTL Catalogue studies.
+            StudyIndex: preliminary processed study index for eQTL Catalogue studies.
         """
-        return EqtlCatalogueStudyIndex(
+        return StudyIndex(
             _df=eqtl_studies.select(*cls._all_attributes()).withColumn(
                 "ldPopulationStructure",
-                cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
+                StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
             ),
-            _schema=cls.get_schema(),
+            _schema=StudyIndex.get_schema(),
         )
 
     @classmethod
@@ -114,7 +114,7 @@ class EqtlCatalogueStudyIndex(StudyIndex):
         cls: type[EqtlCatalogueStudyIndex],
         study_index_df: DataFrame,
         summary_stats_df: DataFrame,
-    ) -> EqtlCatalogueStudyIndex:
+    ) -> StudyIndex:
         """Add a geneId column to the study index and explode.
 
         While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for
@@ -127,7 +127,7 @@ class EqtlCatalogueStudyIndex(StudyIndex):
             summary_stats_df (DataFrame): summary statistics dataframe for eQTL Catalogue data.
 
         Returns:
-            EqtlCatalogueStudyIndex: final study index for eQTL Catalogue studies.
+            StudyIndex: final study index for eQTL Catalogue studies.
         """
         partial_to_full_study_id = (
             summary_stats_df.select(f.col("studyId"))
@@ -148,4 +148,4 @@ class EqtlCatalogueStudyIndex(StudyIndex):
             .withColumn("geneId", f.regexp_extract(f.col("studyId"), r".*_([\_]+)", 1))
             .drop("fullStudyId")
         )
-        return EqtlCatalogueStudyIndex(_df=study_index_df, _schema=cls.get_schema())
+        return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())

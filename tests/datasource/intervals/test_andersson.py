@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 from otg.common.Liftover import LiftOverSpark
 from otg.dataset.gene_index import GeneIndex
+from otg.dataset.intervals import Intervals
 from otg.datasource.intervals.andersson import IntervalsAndersson
 from pyspark.sql import DataFrame, SparkSession
 
@@ -29,5 +30,5 @@ def test_andersson_intervals_from_source(
         IntervalsAndersson.parse(
             sample_intervals_andersson, mock_gene_index, liftover_chain_37_to_38
         ),
-        IntervalsAndersson,
+        Intervals,
     )

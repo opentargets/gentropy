@@ -25,6 +25,7 @@ with DAG(
         this_task = common.submit_step(
             cluster_name=CLUSTER_NAME,
             step_id=step_id,
+            task_id=step_id,
         )
         # Chain prerequisites.
         tasks[step_id] = this_task
