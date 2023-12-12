@@ -219,7 +219,7 @@ def submit_step(
         task_id = step_id
     return submit_pyspark_job(
         cluster_name=cluster_name,
-        task_id=step_id,
+        task_id=task_id,
         python_module_path=f"{INITIALISATION_BASE_PATH}/{PYTHON_CLI}",
         trigger_rule=trigger_rule,
         args=[f"step={step_id}"]
