@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import pyspark.sql.functions as f
 import sklearn
 from omegaconf import MISSING
 from xgboost.spark import SparkXGBClassifier
@@ -114,7 +115,9 @@ class LocusToGeneStep:
         credible_set = StudyLocus.from_parquet(
             self.session, self.credible_set_path, recursiveFileLookup=True
         )
-        studies = StudyIndex.from_parquet(self.session, self.study_index_path)
+        studies = StudyIndex.from_parquet(
+            self.session, self.study_index_path, recursiveFileLookup=True
+        )
         v2g = V2G.from_parquet(self.session, self.variant_gene_path)
         # coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step
 
@@ -142,8 +145,12 @@ class LocusToGeneStep:
 
             # Join and fill null values with 0
             data = L2GFeatureMatrix(
-                _df=gold_standards.df.drop("sources").join(
-                    fm.df, on=["studyLocusId", "geneId"], how="inner"
+                _df=fm.df.join(
+                    f.broadcast(
+                        gold_standards.df.drop("variantId", "studyId", "sources")
+                    ),
+                    on=["studyLocusId", "geneId"],
+                    how="inner",
                 ),
                 _schema=L2GFeatureMatrix.get_schema(),
             ).fill_na()
@@ -168,7 +175,7 @@ class LocusToGeneStep:
                 )
             else:
                 # Train model
-                model = LocusToGeneTrainer.train(
+                LocusToGeneTrainer.train(
                     data=data,
                     l2g_model=l2g_model,
                     features_list=list(self.features_list),
@@ -177,7 +184,6 @@ class LocusToGeneStep:
                     wandb_run_name=self.wandb_run_name,
                     **self.hyperparameters,
                 )
-                model.save(self.model_path)
                 self.session.logger.info(self.model_path)
 
         if self.run_mode == "predict":
