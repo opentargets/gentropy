@@ -13,7 +13,6 @@ from otg.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from otg.dataset.dataset import Dataset
-from otg.dataset.ld_index import LDIndex
 from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.method.clump import LDclumping
 
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex
 
 

@@ -321,6 +321,15 @@ def test_annotate_credible_sets(
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
 
 
+def test_annotate_ld(
+    mock_study_locus: StudyLocus, mock_study_index: StudyIndex, mock_ld_index: LDIndex
+) -> None:
+    """Test annotate_ld."""
+    assert isinstance(
+        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocus
+    )
+
+
 def test__qc_no_population(mock_study_locus: StudyLocus) -> None:
     """Test _qc_no_population."""
     assert isinstance(mock_study_locus._qc_no_population(), StudyLocus)
