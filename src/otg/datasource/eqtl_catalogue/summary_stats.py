@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class EqtlCatalogueSummaryStats(SummaryStatistics):
+class EqtlCatalogueSummaryStats:
     """Summary statistics dataset for eQTL Catalogue."""
 
     @staticmethod
@@ -49,14 +49,14 @@ class EqtlCatalogueSummaryStats(SummaryStatistics):
     def from_source(
         cls: type[EqtlCatalogueSummaryStats],
         summary_stats_df: DataFrame,
-    ) -> EqtlCatalogueSummaryStats:
+    ) -> SummaryStatistics:
         """Ingests all summary stats for all eQTL Catalogue studies.
 
         Args:
             summary_stats_df (DataFrame): an ingested but unprocessed summary statistics dataframe from eQTL Catalogue.
 
         Returns:
-            EqtlCatalogueSummaryStats: a processed summary statistics dataframe for eQTL Catalogue.
+            SummaryStatistics: a processed summary statistics dataframe for eQTL Catalogue.
         """
         processed_summary_stats_df = (
             summary_stats_df.select(
@@ -87,7 +87,7 @@ class EqtlCatalogueSummaryStats(SummaryStatistics):
         )
 
         # Initialise a summary statistics object.
-        return cls(
+        return SummaryStatistics(
             _df=processed_summary_stats_df,
-            _schema=cls.get_schema(),
+            _schema=SummaryStatistics.get_schema(),
         )

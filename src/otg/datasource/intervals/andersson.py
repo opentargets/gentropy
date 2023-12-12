@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from otg.dataset.gene_index import GeneIndex
 
 
-class IntervalsAndersson(Intervals):
+class IntervalsAndersson:
     """Interval dataset from Andersson et al. 2014."""
 
     @staticmethod
@@ -51,7 +51,7 @@ class IntervalsAndersson(Intervals):
         raw_anderson_df: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> IntervalsAndersson:
+    ) -> Intervals:
         """Parse Andersson et al. 2014 dataset.
 
         Args:
@@ -60,7 +60,7 @@ class IntervalsAndersson(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            IntervalsAndersson: Intervals dataset
+            Intervals: Intervals dataset
         """
         # Constant values:
         dataset_name = "andersson2014"
@@ -100,7 +100,7 @@ class IntervalsAndersson(Intervals):
             .orderBy("chrom", "start")
         )
 
-        return cls(
+        return Intervals(
             _df=(
                 # Lift over the intervals:
                 lift.convert_intervals(parsed_anderson_df, "chrom", "start", "end")
@@ -136,5 +136,5 @@ class IntervalsAndersson(Intervals):
                     f.lit(bio_feature).alias("biofeature"),
                 )
             ),
-            _schema=cls.get_schema(),
+            _schema=Intervals.get_schema(),
         )

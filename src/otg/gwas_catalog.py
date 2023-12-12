@@ -8,8 +8,10 @@ from omegaconf import MISSING
 from otg.common.session import Session
 from otg.dataset.ld_index import LDIndex
 from otg.dataset.variant_annotation import VariantAnnotation
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
+from otg.datasource.gwas_catalog.associations import (
+    GWASCatalogCuratedAssociationsParser,
+)
+from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
 from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
 from otg.method.ld import LDAnnotator
 from otg.method.pics import PICS
@@ -65,10 +67,10 @@ class GWASCatalogStep:
 
         # Transform
         study_index, study_locus = GWASCatalogStudySplitter.split(
-            GWASCatalogStudyIndex.from_source(
+            StudyIndexGWASCatalogParser.from_source(
                 catalog_studies, ancestry_lut, sumstats_lut
             ),
-            GWASCatalogAssociations.from_source(catalog_associations, va),
+            GWASCatalogCuratedAssociationsParser.from_source(catalog_associations, va),
         )
         study_locus_ld = LDAnnotator.ld_annotate(
             study_locus, study_index, ld_index
