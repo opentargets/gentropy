@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 import pytest
 
-from otg.dataset.study_index_gwas_catalog import StudyIndexGWASCatalog
-from otg.dataset.study_locus_gwas_catalog import StudyLocusGWASCatalog
+from otg.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
+from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
 
 if TYPE_CHECKING:

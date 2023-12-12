@@ -6,9 +6,11 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.types import LongType
 
-from otg.dataset.study_locus_gwas_catalog import StudyLocusGWASCatalog
 from otg.dataset.variant_annotation import VariantAnnotation
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
+from otg.datasource.gwas_catalog.associations import (
+    GWASCatalogCuratedAssociationsParser,
+    StudyLocusGWASCatalog,
+)
 
 
 def test_study_locus_gwas_catalog_creation(
@@ -24,14 +26,14 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
         sample_gwas_catalog_associations.withColumn(
             # Perform all quality control checks:
             "qualityControls",
-            GWASCatalogAssociations._qc_all(
+            GWASCatalogCuratedAssociationsParser._qc_all(
                 f.array().alias("qualityControls"),
                 f.col("CHR_ID"),
                 f.col("CHR_POS"),
                 f.lit("A").alias("referenceAllele"),
                 f.lit("T").alias("referenceAllele"),
                 f.col("STRONGEST SNP-RISK ALLELE"),
-                *GWASCatalogAssociations._parse_pvalue(f.col("P-VALUE")),
+                *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
                 5e-8,
             ),
         ),
@@ -74,7 +76,7 @@ def test_study_locus_gwas_catalog_from_source(
 ) -> None:
     """Test study locus from gwas catalog mock data."""
     assert isinstance(
-        GWASCatalogAssociations.from_source(
+        GWASCatalogCuratedAssociationsParser.from_source(
             sample_gwas_catalog_associations, mock_variant_annotation
         ),
         StudyLocusGWASCatalog,
@@ -87,7 +89,7 @@ def test__map_to_variant_annotation_variants(
 ) -> None:
     """Test mapping to variant annotation variants."""
     assert isinstance(
-        GWASCatalogAssociations._map_to_variant_annotation_variants(
+        GWASCatalogCuratedAssociationsParser._map_to_variant_annotation_variants(
             sample_gwas_catalog_associations.withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             ),

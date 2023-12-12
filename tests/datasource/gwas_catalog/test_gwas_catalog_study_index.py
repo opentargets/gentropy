@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from pyspark.sql import DataFrame
 
-from otg.dataset.study_index_gwas_catalog import (
+from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
+from otg.datasource.gwas_catalog.study_index_dataset import (
     StudyIndexGWASCatalog as StudyIndexGWASCatalogDataset,
 )
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
 
 
 def test_annotate_discovery_sample_sizes(
@@ -26,7 +26,7 @@ def test_annotate_discovery_sample_sizes(
 def test_parse_study_table(sample_gwas_catalog_studies: DataFrame) -> None:
     """Test parse study table."""
     assert isinstance(
-        GWASCatalogStudyIndex._parse_study_table(sample_gwas_catalog_studies),
+        StudyIndexGWASCatalogParser._parse_study_table(sample_gwas_catalog_studies),
         StudyIndexGWASCatalogDataset,
     )
 
@@ -54,7 +54,7 @@ def test_study_index_from_source(
 ) -> None:
     """Test study index from source."""
     assert isinstance(
-        GWASCatalogStudyIndex.from_source(
+        StudyIndexGWASCatalogParser.from_source(
             sample_gwas_catalog_studies,
             sample_gwas_catalog_ancestries_lut,
             sample_gwas_catalog_harmonised_sumstats_list,
