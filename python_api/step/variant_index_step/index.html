@@ -2553,9 +2553,7 @@
 <span class="normal">44</span>
 <span class="normal">45</span>
 <span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">47</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">VariantIndexStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run variant index step to only variants in study-locus sets.</span>
 
@@ -2584,8 +2582,6 @@
         <span class="c1"># Transform</span>
         <span class="n">vi</span> <span class="o">=</span> <span class="n">VariantIndex</span><span class="o">.</span><span class="n">from_variant_annotation</span><span class="p">(</span><span class="n">va</span><span class="p">,</span> <span class="n">credible_set</span><span class="p">)</span>
 
-        <span class="c1"># Load</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Writing variant index to: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variant_index_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="p">(</span>
             <span class="n">vi</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
