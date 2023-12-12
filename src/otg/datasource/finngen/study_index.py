@@ -33,22 +33,16 @@ class FinnGenStudyIndex(StudyIndex):
     def from_source(
         cls: type[FinnGenStudyIndex],
         spark: SparkSession,
-        finngen_studies_json: str = "",
     ) -> FinnGenStudyIndex:
         """This function ingests study level metadata from FinnGen.
 
         Args:
             spark (SparkSession): Spark session object.
-            finngen_studies_json (str): Path to the FinnGen study index JSON file.
 
         Returns:
             FinnGenStudyIndex: Parsed and annotated FinnGen study table.
         """
-        if finngen_studies_json != "":
-            with open(finngen_studies_json) as finngen_studies:
-                json_data = finngen_studies.read()
-        else:
-            json_data = urlopen(cls.finngen_phenotype_table_url).read().decode("utf-8")
+        json_data = urlopen(cls.finngen_phenotype_table_url).read().decode("utf-8")
         rdd = spark.sparkContext.parallelize([json_data])
         raw_df = spark.read.json(rdd)
         return FinnGenStudyIndex(
