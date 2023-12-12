@@ -2482,8 +2482,6 @@
 
 
   <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndex" href="../../../dataset/study_index/#otg.dataset.study_index.StudyIndex">StudyIndex</a></code></p>
 
   
       <p>Study index dataset from UKBiobank.</p>
@@ -2602,7 +2600,7 @@
 <span class="normal">107</span>
 <span class="normal">108</span>
 <span class="normal">109</span>
-<span class="normal">110</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">UKBiobankStudyIndex</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
+<span class="normal">110</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">UKBiobankStudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from UKBiobank.</span>
 
 <span class="sd">    The following information is extracted:</span>
@@ -2627,7 +2625,7 @@
     <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">UKBiobankStudyIndex</span><span class="p">],</span>
         <span class="n">ukbiobank_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UKBiobankStudyIndex</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;This function ingests study level metadata from UKBiobank.</span>
 
 <span class="sd">        The University of Michigan SAIGE analysis (N=1281) utilized PheCode derived phenotypes and a novel method that ensures accurate P values, even with highly unbalanced case-control ratios (Zhou et al., 2018).</span>
@@ -2638,9 +2636,9 @@
 <span class="sd">            ukbiobank_studies (DataFrame): UKBiobank study manifest file loaded in spark session.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            UKBiobankStudyIndex: Annotated UKBiobank study table.</span>
+<span class="sd">            StudyIndex: Annotated UKBiobank study table.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">UKBiobankStudyIndex</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">ukbiobank_studies</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
@@ -2694,10 +2692,10 @@
                 <span class="p">)</span>
                 <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                     <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span>
-                    <span class="bp">cls</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
+                    <span class="n">StudyIndex</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
                 <span class="p">)</span>
             <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="n">UKBiobankStudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2721,7 +2719,7 @@
 
 
 <h3 id="otg.datasource.ukbiobank.study_index.UKBiobankStudyIndex.from_source" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">ukbiobank_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UKBiobankStudyIndex</span></code>
+          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">ukbiobank_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2778,8 +2776,8 @@
     </thead>
     <tbody>
         <tr>
-<td><code>UKBiobankStudyIndex</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.datasource.ukbiobank.study_index.UKBiobankStudyIndex" href="#otg.datasource.ukbiobank.study_index.UKBiobankStudyIndex">UKBiobankStudyIndex</a></code>
+<td><code>StudyIndex</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndex" href="../../../dataset/study_index/#otg.dataset.study_index.StudyIndex">StudyIndex</a></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2871,7 +2869,7 @@
 <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">UKBiobankStudyIndex</span><span class="p">],</span>
     <span class="n">ukbiobank_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UKBiobankStudyIndex</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;This function ingests study level metadata from UKBiobank.</span>
 
 <span class="sd">    The University of Michigan SAIGE analysis (N=1281) utilized PheCode derived phenotypes and a novel method that ensures accurate P values, even with highly unbalanced case-control ratios (Zhou et al., 2018).</span>
@@ -2882,9 +2880,9 @@
 <span class="sd">        ukbiobank_studies (DataFrame): UKBiobank study manifest file loaded in spark session.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        UKBiobankStudyIndex: Annotated UKBiobank study table.</span>
+<span class="sd">        StudyIndex: Annotated UKBiobank study table.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">UKBiobankStudyIndex</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="n">ukbiobank_studies</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
@@ -2938,10 +2936,10 @@
             <span class="p">)</span>
             <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span>
-                <span class="bp">cls</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
+                <span class="n">StudyIndex</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
             <span class="p">)</span>
         <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="n">UKBiobankStudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>

@@ -2486,8 +2486,6 @@
 
 
   <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.summary_statistics.SummaryStatistics" href="../../../dataset/summary_statistics/#otg.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code></p>
 
   
       <p>Summary statistics dataset for eQTL Catalogue.</p>
@@ -2569,7 +2567,7 @@
 <span class="normal">91</span>
 <span class="normal">92</span>
 <span class="normal">93</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">EqtlCatalogueSummaryStats</span><span class="p">(</span><span class="n">SummaryStatistics</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">EqtlCatalogueSummaryStats</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Summary statistics dataset for eQTL Catalogue.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
@@ -2601,14 +2599,14 @@
     <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueSummaryStats</span><span class="p">],</span>
         <span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueSummaryStats</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Ingests all summary stats for all eQTL Catalogue studies.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            summary_stats_df (DataFrame): an ingested but unprocessed summary statistics dataframe from eQTL Catalogue.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            EqtlCatalogueSummaryStats: a processed summary statistics dataframe for eQTL Catalogue.</span>
+<span class="sd">            SummaryStatistics: a processed summary statistics dataframe for eQTL Catalogue.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">processed_summary_stats_df</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">summary_stats_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -2639,9 +2637,9 @@
         <span class="p">)</span>
 
         <span class="c1"># Initialise a summary statistics object.</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">SummaryStatistics</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="n">processed_summary_stats_df</span><span class="p">,</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2665,7 +2663,7 @@
 
 
 <h3 id="otg.datasource.eqtl_catalogue.summary_stats.EqtlCatalogueSummaryStats.from_source" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueSummaryStats</span></code>
+          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2720,8 +2718,8 @@
     </thead>
     <tbody>
         <tr>
-<td><code>EqtlCatalogueSummaryStats</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.datasource.eqtl_catalogue.summary_stats.EqtlCatalogueSummaryStats" href="#otg.datasource.eqtl_catalogue.summary_stats.EqtlCatalogueSummaryStats">EqtlCatalogueSummaryStats</a></code>
+<td><code>SummaryStatistics</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.summary_statistics.SummaryStatistics" href="../../../dataset/summary_statistics/#otg.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2783,14 +2781,14 @@
 <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueSummaryStats</span><span class="p">],</span>
     <span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueSummaryStats</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Ingests all summary stats for all eQTL Catalogue studies.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        summary_stats_df (DataFrame): an ingested but unprocessed summary statistics dataframe from eQTL Catalogue.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        EqtlCatalogueSummaryStats: a processed summary statistics dataframe for eQTL Catalogue.</span>
+<span class="sd">        SummaryStatistics: a processed summary statistics dataframe for eQTL Catalogue.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">processed_summary_stats_df</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">summary_stats_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -2821,9 +2819,9 @@
     <span class="p">)</span>
 
     <span class="c1"># Initialise a summary statistics object.</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">SummaryStatistics</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="n">processed_summary_stats_df</span><span class="p">,</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="n">_schema</span><span class="o">=</span><span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>

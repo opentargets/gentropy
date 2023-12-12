@@ -935,6 +935,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#otg.dataset.study_locus.StudyLocus.update_quality_flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      update_quality_flag()
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2613,6 +2622,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#otg.dataset.study_locus.StudyLocus.update_quality_flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      update_quality_flag()
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3188,7 +3206,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_update_quality_flag</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">update_quality_flag</span><span class="p">(</span>
         <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_text</span><span class="p">:</span> <span class="n">StudyLocusQualityCheck</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the provided quality control list with a new flag if condition is met.</span>
@@ -3427,7 +3445,7 @@
             <span class="p">)</span>
             <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
-                <span class="n">StudyLocus</span><span class="o">.</span><span class="n">_update_quality_flag</span><span class="p">(</span>
+                <span class="n">StudyLocus</span><span class="o">.</span><span class="n">update_quality_flag</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;is_lead_linked&quot;</span><span class="p">),</span>
                     <span class="n">StudyLocusQualityCheck</span><span class="o">.</span><span class="n">LD_CLUMPED</span><span class="p">,</span>
@@ -3447,7 +3465,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_update_quality_flag</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_quality_flag</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ldSet&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNull</span><span class="p">(),</span>
                 <span class="n">StudyLocusQualityCheck</span><span class="o">.</span><span class="n">UNRESOLVED_LD</span><span class="p">,</span>
@@ -3467,7 +3485,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_update_quality_flag</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_quality_flag</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNull</span><span class="p">(),</span>
                 <span class="n">StudyLocusQualityCheck</span><span class="o">.</span><span class="n">NO_POPULATION</span><span class="p">,</span>
@@ -4049,7 +4067,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
         <span class="p">)</span>
         <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
-            <span class="n">StudyLocus</span><span class="o">.</span><span class="n">_update_quality_flag</span><span class="p">(</span>
+            <span class="n">StudyLocus</span><span class="o">.</span><span class="n">update_quality_flag</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;is_lead_linked&quot;</span><span class="p">),</span>
                 <span class="n">StudyLocusQualityCheck</span><span class="o">.</span><span class="n">LD_CLUMPED</span><span class="p">,</span>
@@ -4547,6 +4565,153 @@ appearing on the right side.</p>
         <span class="p">)</span>
         <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
     <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h3 id="otg.dataset.study_locus.StudyLocus.update_quality_flag" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">update_quality_flag</span><span class="p">(</span><span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_text</span><span class="p">:</span> <span class="n">StudyLocusQualityCheck</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+<a href="#otg.dataset.study_locus.StudyLocus.update_quality_flag" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Update the provided quality control list with a new flag if condition is met.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>qc</code></td>
+          <td>
+                <code><span title="pyspark.sql.Column">Column</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Array column with the current list of qc flags.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>flag_condition</code></td>
+          <td>
+                <code><span title="pyspark.sql.Column">Column</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>This is a column of booleans, signing which row should be flagged</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>flag_text</code></td>
+          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.study_locus.StudyLocusQualityCheck" href="#otg.dataset.study_locus.StudyLocusQualityCheck">StudyLocusQualityCheck</a></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Text for the new quality control flag</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+<td><code>Column</code></td>          <td>
+                <code><span title="pyspark.sql.Column">Column</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Array column with the updated list of qc flags.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>src/otg/dataset/study_locus.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">update_quality_flag</span><span class="p">(</span>
+    <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_text</span><span class="p">:</span> <span class="n">StudyLocusQualityCheck</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update the provided quality control list with a new flag if condition is met.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        qc (Column): Array column with the current list of qc flags.</span>
+<span class="sd">        flag_condition (Column): This is a column of booleans, signing which row should be flagged</span>
+<span class="sd">        flag_text (StudyLocusQualityCheck): Text for the new quality control flag</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Column: Array column with the updated list of qc flags.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">qc</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">qc</span><span class="o">.</span><span class="n">isNull</span><span class="p">(),</span> <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">())</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">qc</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+        <span class="n">flag_condition</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">array_union</span><span class="p">(</span><span class="n">qc</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">flag_text</span><span class="o">.</span><span class="n">value</span><span class="p">))),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">qc</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>

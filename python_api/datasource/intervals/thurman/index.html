@@ -2500,8 +2500,6 @@
 
 
   <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code></p>
 
   
       <p>Interval dataset from Thurman et al. 2012.</p>
@@ -2594,7 +2592,7 @@
 <span class="normal">101</span>
 <span class="normal">102</span>
 <span class="normal">103</span>
-<span class="normal">104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">IntervalsThurman</span><span class="p">(</span><span class="n">Intervals</span><span class="p">):</span>
+<span class="normal">104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">IntervalsThurman</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Interval dataset from Thurman et al. 2012.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
@@ -2628,7 +2626,7 @@
         <span class="n">thurman_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
         <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsThurman</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the Thurman et al. 2012 dataset.</span>
 
 <span class="sd">        Args:</span>
@@ -2637,13 +2635,13 @@
 <span class="sd">            lift (LiftOverSpark): LiftOverSpark instance</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            IntervalsThurman: Interval dataset containing Thurman et al. 2012 data</span>
+<span class="sd">            Intervals: Interval dataset containing Thurman et al. 2012 data</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dataset_name</span> <span class="o">=</span> <span class="s2">&quot;thurman2012&quot;</span>
         <span class="n">experiment_type</span> <span class="o">=</span> <span class="s2">&quot;dhscor&quot;</span>
         <span class="n">pmid</span> <span class="o">=</span> <span class="s2">&quot;22955617&quot;</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">thurman_raw</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chrom&quot;</span><span class="p">),</span> <span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;chrom&quot;</span><span class="p">),</span>
@@ -2679,7 +2677,7 @@
                 <span class="p">)</span>
                 <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
             <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2703,7 +2701,7 @@
 
 
 <h3 id="otg.datasource.intervals.thurman.IntervalsThurman.parse" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">thurman_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsThurman</span></code>
+          <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">thurman_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2786,8 +2784,8 @@
     </thead>
     <tbody>
         <tr>
-<td><code>IntervalsThurman</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.datasource.intervals.thurman.IntervalsThurman" href="#otg.datasource.intervals.thurman.IntervalsThurman">IntervalsThurman</a></code>
+<td><code>Intervals</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2864,7 +2862,7 @@
     <span class="n">thurman_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
     <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsThurman</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse the Thurman et al. 2012 dataset.</span>
 
 <span class="sd">    Args:</span>
@@ -2873,13 +2871,13 @@
 <span class="sd">        lift (LiftOverSpark): LiftOverSpark instance</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        IntervalsThurman: Interval dataset containing Thurman et al. 2012 data</span>
+<span class="sd">        Intervals: Interval dataset containing Thurman et al. 2012 data</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">dataset_name</span> <span class="o">=</span> <span class="s2">&quot;thurman2012&quot;</span>
     <span class="n">experiment_type</span> <span class="o">=</span> <span class="s2">&quot;dhscor&quot;</span>
     <span class="n">pmid</span> <span class="o">=</span> <span class="s2">&quot;22955617&quot;</span>
 
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="n">thurman_raw</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chrom&quot;</span><span class="p">),</span> <span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;chrom&quot;</span><span class="p">),</span>
@@ -2915,7 +2913,7 @@
             <span class="p">)</span>
             <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
         <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>

@@ -2500,8 +2500,6 @@
 
 
   <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code></p>
 
   
       <p>Interval dataset from Jung et al. 2019.</p>
@@ -2593,7 +2591,7 @@
 <span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
-<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">IntervalsJung</span><span class="p">(</span><span class="n">Intervals</span><span class="p">):</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">IntervalsJung</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Interval dataset from Jung et al. 2019.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
@@ -2615,7 +2613,7 @@
         <span class="n">jung_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
         <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsJung</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the Jung et al. 2019 dataset.</span>
 
 <span class="sd">        Args:</span>
@@ -2624,14 +2622,14 @@
 <span class="sd">            lift (LiftOverSpark): LiftOverSpark instance</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            IntervalsJung: Interval dataset containing Jung et al. 2019 data</span>
+<span class="sd">            Intervals: Interval dataset containing Jung et al. 2019 data</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dataset_name</span> <span class="o">=</span> <span class="s2">&quot;jung2019&quot;</span>
         <span class="n">experiment_type</span> <span class="o">=</span> <span class="s2">&quot;pchic&quot;</span>
         <span class="n">pmid</span> <span class="o">=</span> <span class="s2">&quot;31501517&quot;</span>
 
         <span class="c1"># Lifting over the coordinates:</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">jung_raw</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                     <span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Interacting_fragment&quot;</span><span class="p">),</span> <span class="sa">r</span><span class="s2">&quot;\.&quot;</span><span class="p">)</span>
@@ -2677,7 +2675,7 @@
                 <span class="p">)</span>
                 <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span>
             <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2701,7 +2699,7 @@
 
 
 <h3 id="otg.datasource.intervals.jung.IntervalsJung.parse" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">jung_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsJung</span></code>
+          <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">jung_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2784,8 +2782,8 @@
     </thead>
     <tbody>
         <tr>
-<td><code>IntervalsJung</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.datasource.intervals.jung.IntervalsJung" href="#otg.datasource.intervals.jung.IntervalsJung">IntervalsJung</a></code>
+<td><code>Intervals</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2873,7 +2871,7 @@
     <span class="n">jung_raw</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
     <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsJung</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse the Jung et al. 2019 dataset.</span>
 
 <span class="sd">    Args:</span>
@@ -2882,14 +2880,14 @@
 <span class="sd">        lift (LiftOverSpark): LiftOverSpark instance</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        IntervalsJung: Interval dataset containing Jung et al. 2019 data</span>
+<span class="sd">        Intervals: Interval dataset containing Jung et al. 2019 data</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">dataset_name</span> <span class="o">=</span> <span class="s2">&quot;jung2019&quot;</span>
     <span class="n">experiment_type</span> <span class="o">=</span> <span class="s2">&quot;pchic&quot;</span>
     <span class="n">pmid</span> <span class="o">=</span> <span class="s2">&quot;31501517&quot;</span>
 
     <span class="c1"># Lifting over the coordinates:</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="n">jung_raw</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Interacting_fragment&quot;</span><span class="p">),</span> <span class="sa">r</span><span class="s2">&quot;\.&quot;</span><span class="p">)</span>
@@ -2935,7 +2933,7 @@
             <span class="p">)</span>
             <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span>
         <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>

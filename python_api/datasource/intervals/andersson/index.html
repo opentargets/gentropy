@@ -2500,8 +2500,6 @@
 
 
   <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code></p>
 
   
       <p>Interval dataset from Andersson et al. 2014.</p>
@@ -2627,7 +2625,7 @@
 <span class="normal">137</span>
 <span class="normal">138</span>
 <span class="normal">139</span>
-<span class="normal">140</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">IntervalsAndersson</span><span class="p">(</span><span class="n">Intervals</span><span class="p">):</span>
+<span class="normal">140</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">IntervalsAndersson</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Interval dataset from Andersson et al. 2014.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
@@ -2660,7 +2658,7 @@
         <span class="n">raw_anderson_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
         <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsAndersson</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse Andersson et al. 2014 dataset.</span>
 
 <span class="sd">        Args:</span>
@@ -2669,7 +2667,7 @@
 <span class="sd">            lift (LiftOverSpark): LiftOverSpark instance</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            IntervalsAndersson: Intervals dataset</span>
+<span class="sd">            Intervals: Intervals dataset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Constant values:</span>
         <span class="n">dataset_name</span> <span class="o">=</span> <span class="s2">&quot;andersson2014&quot;</span>
@@ -2709,7 +2707,7 @@
             <span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">)</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="c1"># Lift over the intervals:</span>
                 <span class="n">lift</span><span class="o">.</span><span class="n">convert_intervals</span><span class="p">(</span><span class="n">parsed_anderson_df</span><span class="p">,</span> <span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">)</span>
@@ -2745,7 +2743,7 @@
                     <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">bio_feature</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;biofeature&quot;</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2769,7 +2767,7 @@
 
 
 <h3 id="otg.datasource.intervals.andersson.IntervalsAndersson.parse" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">raw_anderson_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsAndersson</span></code>
+          <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">raw_anderson_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2852,8 +2850,8 @@
     </thead>
     <tbody>
         <tr>
-<td><code>IntervalsAndersson</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.datasource.intervals.andersson.IntervalsAndersson" href="#otg.datasource.intervals.andersson.IntervalsAndersson">IntervalsAndersson</a></code>
+<td><code>Intervals</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.intervals.Intervals" href="../../../dataset/intervals/#otg.dataset.intervals.Intervals">Intervals</a></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2964,7 +2962,7 @@
     <span class="n">raw_anderson_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
     <span class="n">lift</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalsAndersson</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse Andersson et al. 2014 dataset.</span>
 
 <span class="sd">    Args:</span>
@@ -2973,7 +2971,7 @@
 <span class="sd">        lift (LiftOverSpark): LiftOverSpark instance</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        IntervalsAndersson: Intervals dataset</span>
+<span class="sd">        Intervals: Intervals dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Constant values:</span>
     <span class="n">dataset_name</span> <span class="o">=</span> <span class="s2">&quot;andersson2014&quot;</span>
@@ -3013,7 +3011,7 @@
         <span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="c1"># Lift over the intervals:</span>
             <span class="n">lift</span><span class="o">.</span><span class="n">convert_intervals</span><span class="p">(</span><span class="n">parsed_anderson_df</span><span class="p">,</span> <span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">)</span>
@@ -3049,7 +3047,7 @@
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">bio_feature</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;biofeature&quot;</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>

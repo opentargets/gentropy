@@ -2431,8 +2431,6 @@
 
 
   <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndex" href="../../../dataset/study_index/#otg.dataset.study_index.StudyIndex">StudyIndex</a></code></p>
 
   
       <p>Study index dataset from eQTL Catalogue.</p>
@@ -2575,7 +2573,7 @@
 <span class="normal">148</span>
 <span class="normal">149</span>
 <span class="normal">150</span>
-<span class="normal">151</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EqtlCatalogueStudyIndex</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
+<span class="normal">151</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EqtlCatalogueStudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from eQTL Catalogue.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
@@ -2655,21 +2653,21 @@
     <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueStudyIndex</span><span class="p">],</span>
         <span class="n">eqtl_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Ingest study level metadata from eQTL Catalogue.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            eqtl_studies (DataFrame): ingested but unprocessed eQTL Catalogue studies.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            EqtlCatalogueStudyIndex: preliminary processed study index for eQTL Catalogue studies.</span>
+<span class="sd">            StudyIndex: preliminary processed study index for eQTL Catalogue studies.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="n">eqtl_studies</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="bp">cls</span><span class="o">.</span><span class="n">_all_attributes</span><span class="p">())</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span>
-                <span class="bp">cls</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
+                <span class="n">StudyIndex</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
             <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
@@ -2677,7 +2675,7 @@
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueStudyIndex</span><span class="p">],</span>
         <span class="n">study_index_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a geneId column to the study index and explode.</span>
 
 <span class="sd">        While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for</span>
@@ -2690,7 +2688,7 @@
 <span class="sd">            summary_stats_df (DataFrame): summary statistics dataframe for eQTL Catalogue data.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            EqtlCatalogueStudyIndex: final study index for eQTL Catalogue studies.</span>
+<span class="sd">            StudyIndex: final study index for eQTL Catalogue studies.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">partial_to_full_study_id</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">summary_stats_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">))</span>
@@ -2711,7 +2709,7 @@
             <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_extract</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span> <span class="sa">r</span><span class="s2">&quot;.*_([\_]+)&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
             <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;fullStudyId&quot;</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">study_index_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">study_index_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 </code></pre></div></td></tr></table></div>
             </details>
 
@@ -2734,7 +2732,7 @@
 
 
 <h3 id="otg.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex.add_gene_id_column" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">add_gene_id_column</span><span class="p">(</span><span class="n">study_index_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueStudyIndex</span></code>
+          <code class="highlight language-python"><span class="n">add_gene_id_column</span><span class="p">(</span><span class="n">study_index_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2807,8 +2805,8 @@ study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full stu
     </thead>
     <tbody>
         <tr>
-<td><code>EqtlCatalogueStudyIndex</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex" href="#otg.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex">EqtlCatalogueStudyIndex</a></code>
+<td><code>StudyIndex</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndex" href="../../../dataset/study_index/#otg.dataset.study_index.StudyIndex">StudyIndex</a></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2865,7 +2863,7 @@ study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full stu
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueStudyIndex</span><span class="p">],</span>
     <span class="n">study_index_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">summary_stats_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Add a geneId column to the study index and explode.</span>
 
 <span class="sd">    While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for</span>
@@ -2878,7 +2876,7 @@ study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full stu
 <span class="sd">        summary_stats_df (DataFrame): summary statistics dataframe for eQTL Catalogue data.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        EqtlCatalogueStudyIndex: final study index for eQTL Catalogue studies.</span>
+<span class="sd">        StudyIndex: final study index for eQTL Catalogue studies.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">partial_to_full_study_id</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">summary_stats_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">))</span>
@@ -2899,7 +2897,7 @@ study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full stu
         <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_extract</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span> <span class="sa">r</span><span class="s2">&quot;.*_([\_]+)&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;fullStudyId&quot;</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">study_index_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">study_index_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -2913,7 +2911,7 @@ study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full stu
 
 
 <h3 id="otg.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex.from_source" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">eqtl_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueStudyIndex</span></code>
+          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">eqtl_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2968,8 +2966,8 @@ study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full stu
     </thead>
     <tbody>
         <tr>
-<td><code>EqtlCatalogueStudyIndex</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex" href="#otg.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex">EqtlCatalogueStudyIndex</a></code>
+<td><code>StudyIndex</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.study_index.StudyIndex" href="../../../dataset/study_index/#otg.dataset.study_index.StudyIndex">StudyIndex</a></code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -3005,21 +3003,21 @@ study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full stu
 <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueStudyIndex</span><span class="p">],</span>
     <span class="n">eqtl_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Ingest study level metadata from eQTL Catalogue.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        eqtl_studies (DataFrame): ingested but unprocessed eQTL Catalogue studies.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        EqtlCatalogueStudyIndex: preliminary processed study index for eQTL Catalogue studies.</span>
+<span class="sd">        StudyIndex: preliminary processed study index for eQTL Catalogue studies.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="n">eqtl_studies</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="bp">cls</span><span class="o">.</span><span class="n">_all_attributes</span><span class="p">())</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
+            <span class="n">StudyIndex</span><span class="o">.</span><span class="n">aggregate_and_map_ancestries</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;discoverySamples&quot;</span><span class="p">)),</span>
         <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
