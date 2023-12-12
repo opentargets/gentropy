@@ -1997,6 +1997,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#otg.method.l2g.model.LocusToGeneModel.feature_name_map" class="md-nav__link">
+    <span class="md-ellipsis">
+      feature_name_map
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#otg.method.l2g.model.LocusToGeneModel.add_pipeline_stage" class="md-nav__link">
     <span class="md-ellipsis">
       add_pipeline_stage()
@@ -2033,6 +2042,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#otg.method.l2g.model.LocusToGeneModel.get_feature_importance" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_feature_importance()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#otg.method.l2g.model.LocusToGeneModel.get_param_grid" class="md-nav__link">
     <span class="md-ellipsis">
       get_param_grid()
@@ -2054,15 +2072,6 @@
   <a href="#otg.method.l2g.model.LocusToGeneModel.log_to_wandb" class="md-nav__link">
     <span class="md-ellipsis">
       log_to_wandb()
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#otg.method.l2g.model.LocusToGeneModel.plot_importance" class="md-nav__link">
-    <span class="md-ellipsis">
-      plot_importance()
     </span>
   </a>
   
@@ -2535,6 +2544,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#otg.method.l2g.model.LocusToGeneModel.feature_name_map" class="md-nav__link">
+    <span class="md-ellipsis">
+      feature_name_map
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#otg.method.l2g.model.LocusToGeneModel.add_pipeline_stage" class="md-nav__link">
     <span class="md-ellipsis">
       add_pipeline_stage()
@@ -2571,6 +2589,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#otg.method.l2g.model.LocusToGeneModel.get_feature_importance" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_feature_importance()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#otg.method.l2g.model.LocusToGeneModel.get_param_grid" class="md-nav__link">
     <span class="md-ellipsis">
       get_param_grid()
@@ -2592,15 +2619,6 @@
   <a href="#otg.method.l2g.model.LocusToGeneModel.log_to_wandb" class="md-nav__link">
     <span class="md-ellipsis">
       log_to_wandb()
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#otg.method.l2g.model.LocusToGeneModel.plot_importance" class="md-nav__link">
-    <span class="md-ellipsis">
-      plot_importance()
     </span>
   </a>
   
@@ -2672,8 +2690,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 26</span>
-<span class="normal"> 27</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 27</span>
 <span class="normal"> 28</span>
 <span class="normal"> 29</span>
 <span class="normal"> 30</span>
@@ -2922,7 +2939,53 @@
 <span class="normal">273</span>
 <span class="normal">274</span>
 <span class="normal">275</span>
-<span class="normal">276</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">LocusToGeneModel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrapper for the Locus to Gene classifier.&quot;&quot;&quot;</span>
 
@@ -2930,6 +2993,7 @@
     <span class="n">estimator</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">pipeline</span><span class="p">:</span> <span class="n">Pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span><span class="n">stages</span><span class="o">=</span><span class="p">[])</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">PipelineModel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">wandb_l2g_project_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;otg_l2g&quot;</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Post init that adds the model to the ML pipeline.&quot;&quot;&quot;</span>
@@ -2997,29 +3061,39 @@
             <span class="o">.</span><span class="n">setOutputCol</span><span class="p">(</span><span class="s2">&quot;features&quot;</span><span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">log_to_wandb</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
         <span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-        <span class="n">binary_evaluator</span><span class="p">:</span> <span class="n">BinaryClassificationEvaluator</span><span class="p">,</span>
-        <span class="n">multi_evaluator</span><span class="p">:</span> <span class="n">MulticlassClassificationEvaluator</span><span class="p">,</span>
+        <span class="n">training_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
+        <span class="n">evaluators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span>
+            <span class="n">BinaryClassificationEvaluator</span> <span class="o">|</span> <span class="n">MulticlassClassificationEvaluator</span>
+        <span class="p">],</span>
         <span class="n">wandb_run</span><span class="p">:</span> <span class="n">Run</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform evaluation of the model by applying it to a test set and tracking the results with W&amp;B.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log evaluation results and feature importance to W&amp;B.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            results (DataFrame): Dataframe containing the predictions</span>
-<span class="sd">            binary_evaluator (BinaryClassificationEvaluator): Binary evaluator</span>
-<span class="sd">            multi_evaluator (MulticlassClassificationEvaluator): Multiclass evaluator</span>
+<span class="sd">            training_data (L2GFeatureMatrix): Training data used for the model. If provided, the table and the number of positive and negative labels will be logged to W&amp;B</span>
+<span class="sd">            evaluators (list[BinaryClassificationEvaluator | MulticlassClassificationEvaluator]): List of Spark ML evaluators to use for evaluation</span>
 <span class="sd">            wandb_run (Run): W&amp;B run to log the results to</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">binary_wandb_evaluator</span> <span class="o">=</span> <span class="n">WandbEvaluator</span><span class="p">(</span>
-            <span class="n">spark_ml_evaluator</span><span class="o">=</span><span class="n">binary_evaluator</span><span class="p">,</span> <span class="n">wandb_run</span><span class="o">=</span><span class="n">wandb_run</span>
-        <span class="p">)</span>
-        <span class="n">binary_wandb_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-        <span class="n">multi_wandb_evaluator</span> <span class="o">=</span> <span class="n">WandbEvaluator</span><span class="p">(</span>
-            <span class="n">spark_ml_evaluator</span><span class="o">=</span><span class="n">multi_evaluator</span><span class="p">,</span> <span class="n">wandb_run</span><span class="o">=</span><span class="n">wandb_run</span>
-        <span class="p">)</span>
-        <span class="n">multi_wandb_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="c1">## Track evaluation metrics</span>
+        <span class="k">for</span> <span class="n">evaluator</span> <span class="ow">in</span> <span class="n">evaluators</span><span class="p">:</span>
+            <span class="n">wandb_evaluator</span> <span class="o">=</span> <span class="n">WandbEvaluator</span><span class="p">(</span>
+                <span class="n">spark_ml_evaluator</span><span class="o">=</span><span class="n">evaluator</span><span class="p">,</span> <span class="n">wandb_run</span><span class="o">=</span><span class="n">wandb_run</span>
+            <span class="p">)</span>
+            <span class="n">wandb_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="c1">## Track feature importance</span>
+        <span class="n">wandb_run</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;importances&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_feature_importance</span><span class="p">()})</span>
+        <span class="c1">## Track training set metadata</span>
+        <span class="n">gs_counts_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;goldStandard&quot;</span> <span class="o">+</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;goldStandardSet&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">capitalize</span><span class="p">():</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">training_data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;goldStandardSet&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">wandb_run</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">gs_counts_dict</span><span class="p">)</span>
+        <span class="n">training_table</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">dataframe</span><span class="o">=</span><span class="n">training_data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">toPandas</span><span class="p">())</span>
+        <span class="n">wandb_run</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;trainingSet&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">dataframe</span><span class="o">=</span><span class="n">training_table</span><span class="p">)})</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">load_from_disk</span><span class="p">(</span>
@@ -3088,6 +3162,7 @@
         <span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">hyperparameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">training_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform evaluation of the model predictions for the test set and track the results with W&amp;B.</span>
 
@@ -3095,6 +3170,7 @@
 <span class="sd">            results (DataFrame): Dataframe containing the predictions</span>
 <span class="sd">            hyperparameters (dict[str, Any]): Hyperparameters used for the model</span>
 <span class="sd">            wandb_run_name (str | None): Descriptive name for the run to be tracked with W&amp;B</span>
+<span class="sd">            training_data (L2GFeatureMatrix | None): Training data used for the model. If provided, the ratio of positive to negative labels will be logged to W&amp;B</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">binary_evaluator</span> <span class="o">=</span> <span class="n">BinaryClassificationEvaluator</span><span class="p">(</span>
             <span class="n">rawPredictionCol</span><span class="o">=</span><span class="s2">&quot;rawPrediction&quot;</span><span class="p">,</span> <span class="n">labelCol</span><span class="o">=</span><span class="s2">&quot;label&quot;</span>
@@ -3125,20 +3201,52 @@
             <span class="n">multi_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="p">{</span><span class="n">multi_evaluator</span><span class="o">.</span><span class="n">metricName</span><span class="p">:</span> <span class="s2">&quot;f1&quot;</span><span class="p">}),</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">wandb_run_name</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">wandb_run_name</span> <span class="ow">and</span> <span class="n">training_data</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Logging to W&amp;B...&quot;</span><span class="p">)</span>
             <span class="n">run</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
-                <span class="n">project</span><span class="o">=</span><span class="s2">&quot;otg_l2g&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">hyperparameters</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">wandb_run_name</span>
+                <span class="n">project</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wandb_l2g_project_name</span><span class="p">,</span>
+                <span class="n">config</span><span class="o">=</span><span class="n">hyperparameters</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">wandb_run_name</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">Run</span><span class="p">):</span>
-                <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">log_to_wandb</span><span class="p">(</span>
-                    <span class="n">results</span><span class="p">,</span> <span class="n">binary_evaluator</span><span class="p">,</span> <span class="n">multi_evaluator</span><span class="p">,</span> <span class="n">run</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_to_wandb</span><span class="p">(</span>
+                    <span class="n">results</span><span class="p">,</span> <span class="n">training_data</span><span class="p">,</span> <span class="p">[</span><span class="n">binary_evaluator</span><span class="p">,</span> <span class="n">multi_evaluator</span><span class="p">],</span> <span class="n">run</span>
                 <span class="p">)</span>
                 <span class="n">run</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">plot_importance</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot the feature importance of the model.&quot;&quot;&quot;</span>
-        <span class="c1"># xgb_plot_importance(self)  # FIXME: What is the attribute that stores the model?</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">feature_name_map</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a dictionary mapping encoded feature names to the original names.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, str]: Feature name map of the model</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model has not been fitted yet</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not fitted yet. `fit()` has to be called first.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">VectorAssembler</span><span class="p">):</span>
+            <span class="n">feature_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">getInputCols</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;f</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">feature_name</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">feature_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">feature_names</span><span class="p">)}</span>
+
+    <span class="k">def</span> <span class="nf">get_feature_importance</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return dictionary with relative importances of every feature in the model. Feature names are encoded and have to be mapped back to their original names.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, float]: Dictionary mapping feature names to their importance</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model has not been fitted yet or is not an XGBoost model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">SparkXGBClassifierModel</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Model type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2"> not supported for feature importance.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">importance_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_feature_importances</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_name_map</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">importance_map</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
     <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
@@ -3224,6 +3332,76 @@
           <td>
             <div class="doc-md-description">
               <p>An estimator object from Spark ML</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+
+<h3 id="otg.method.l2g.model.LocusToGeneModel.feature_name_map" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">feature_name_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#otg.method.l2g.model.LocusToGeneModel.feature_name_map" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Return a dictionary mapping encoded feature names to the original names.</p>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>dict[str, str]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>dict[str, str]: Feature name map of the model</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Raises:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>ValueError</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>If the model has not been fitted yet</p>
             </div>
           </td>
         </tr>
@@ -3319,19 +3497,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">174</span>
 <span class="normal">175</span>
 <span class="normal">176</span>
 <span class="normal">177</span>
@@ -3342,7 +3508,19 @@
 <span class="normal">182</span>
 <span class="normal">183</span>
 <span class="normal">184</span>
-<span class="normal">185</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">add_pipeline_stage</span><span class="p">(</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">add_pipeline_stage</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span> <span class="n">transformer</span><span class="p">:</span> <span class="n">Transformer</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocusToGeneModel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds a stage to the L2G pipeline.</span>
@@ -3379,7 +3557,7 @@
 
 
 <h3 id="otg.method.l2g.model.LocusToGeneModel.evaluate" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">hyperparameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+          <code class="highlight language-python"><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">hyperparameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">training_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#otg.method.l2g.model.LocusToGeneModel.evaluate" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3443,24 +3621,26 @@
               <em>required</em>
           </td>
         </tr>
+        <tr>
+          <td><code>training_data</code></td>
+          <td>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.l2g_feature_matrix.L2GFeatureMatrix" href="../../../dataset/l2g_feature_matrix/#otg.dataset.l2g_feature_matrix.L2GFeatureMatrix">L2GFeatureMatrix</a> | None</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Training data used for the model. If provided, the ratio of positive to negative labels will be logged to W&amp;B</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
     </tbody>
   </table>
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">199</span>
 <span class="normal">200</span>
 <span class="normal">201</span>
 <span class="normal">202</span>
@@ -3499,11 +3679,28 @@
 <span class="normal">235</span>
 <span class="normal">236</span>
 <span class="normal">237</span>
-<span class="normal">238</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
     <span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">hyperparameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">training_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform evaluation of the model predictions for the test set and track the results with W&amp;B.</span>
 
@@ -3511,6 +3708,7 @@
 <span class="sd">        results (DataFrame): Dataframe containing the predictions</span>
 <span class="sd">        hyperparameters (dict[str, Any]): Hyperparameters used for the model</span>
 <span class="sd">        wandb_run_name (str | None): Descriptive name for the run to be tracked with W&amp;B</span>
+<span class="sd">        training_data (L2GFeatureMatrix | None): Training data used for the model. If provided, the ratio of positive to negative labels will be logged to W&amp;B</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">binary_evaluator</span> <span class="o">=</span> <span class="n">BinaryClassificationEvaluator</span><span class="p">(</span>
         <span class="n">rawPredictionCol</span><span class="o">=</span><span class="s2">&quot;rawPrediction&quot;</span><span class="p">,</span> <span class="n">labelCol</span><span class="o">=</span><span class="s2">&quot;label&quot;</span>
@@ -3541,14 +3739,16 @@
         <span class="n">multi_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="p">{</span><span class="n">multi_evaluator</span><span class="o">.</span><span class="n">metricName</span><span class="p">:</span> <span class="s2">&quot;f1&quot;</span><span class="p">}),</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">wandb_run_name</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">wandb_run_name</span> <span class="ow">and</span> <span class="n">training_data</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Logging to W&amp;B...&quot;</span><span class="p">)</span>
         <span class="n">run</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
-            <span class="n">project</span><span class="o">=</span><span class="s2">&quot;otg_l2g&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">hyperparameters</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">wandb_run_name</span>
+            <span class="n">project</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wandb_l2g_project_name</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">hyperparameters</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">wandb_run_name</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">Run</span><span class="p">):</span>
-            <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">log_to_wandb</span><span class="p">(</span>
-                <span class="n">results</span><span class="p">,</span> <span class="n">binary_evaluator</span><span class="p">,</span> <span class="n">multi_evaluator</span><span class="p">,</span> <span class="n">run</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_to_wandb</span><span class="p">(</span>
+                <span class="n">results</span><span class="p">,</span> <span class="n">training_data</span><span class="p">,</span> <span class="p">[</span><span class="n">binary_evaluator</span><span class="p">,</span> <span class="n">multi_evaluator</span><span class="p">],</span> <span class="n">run</span>
             <span class="p">)</span>
             <span class="n">run</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
@@ -3647,33 +3847,33 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span>
-<span class="normal">93</span>
-<span class="normal">94</span>
-<span class="normal">95</span>
-<span class="normal">96</span>
-<span class="normal">97</span>
-<span class="normal">98</span>
-<span class="normal">99</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span> <span class="nf">features_vector_assembler</span><span class="p">(</span><span class="n">features_cols</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">VectorAssembler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Spark transformer to assemble the feature columns into a vector.</span>
 
@@ -3778,20 +3978,20 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">244</span>
-<span class="normal">245</span>
-<span class="normal">246</span>
-<span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span>
-<span class="normal">257</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
     <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocusToGeneModel</span><span class="p">:</span>
@@ -3805,6 +4005,111 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">feature_matrix</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h3 id="otg.method.l2g.model.LocusToGeneModel.get_feature_importance" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">get_feature_importance</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span></code>
+
+<a href="#otg.method.l2g.model.LocusToGeneModel.get_feature_importance" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Return dictionary with relative importances of every feature in the model. Feature names are encoded and have to be mapped back to their original names.</p>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>dict[str, float]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>dict[str, float]: Dictionary mapping feature names to their importance</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Raises:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>ValueError</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>If the model has not been fitted yet or is not an XGBoost model</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_feature_importance</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return dictionary with relative importances of every feature in the model. Feature names are encoded and have to be mapped back to their original names.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, float]: Dictionary mapping feature names to their importance</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the model has not been fitted yet or is not an XGBoost model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">SparkXGBClassifierModel</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Model type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2"> not supported for feature importance.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">importance_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_feature_importances</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_name_map</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">importance_map</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -3853,18 +4158,18 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_param_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_param_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the parameter grid for the model.</span>
 
 <span class="sd">    Returns:</span>
@@ -3972,20 +4277,20 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">load_from_disk</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">LocusToGeneModel</span><span class="p">],</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocusToGeneModel</span><span class="p">:</span>
@@ -4012,18 +4317,14 @@
 
 
 <h3 id="otg.method.l2g.model.LocusToGeneModel.log_to_wandb" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">log_to_wandb</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">binary_evaluator</span><span class="p">:</span> <span class="n">BinaryClassificationEvaluator</span><span class="p">,</span> <span class="n">multi_evaluator</span><span class="p">:</span> <span class="n">MulticlassClassificationEvaluator</span><span class="p">,</span> <span class="n">wandb_run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
-  
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
-  </span>
+          <code class="highlight language-python"><span class="n">log_to_wandb</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">training_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BinaryClassificationEvaluator</span> <span class="o">|</span> <span class="n">MulticlassClassificationEvaluator</span><span class="p">],</span> <span class="n">wandb_run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#otg.method.l2g.model.LocusToGeneModel.log_to_wandb" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
   <div class="doc doc-contents ">
   
-      <p>Perform evaluation of the model by applying it to a test set and tracking the results with W&amp;B.</p>
+      <p>Log evaluation results and feature importance to W&amp;B.</p>
 
 
 
@@ -4053,13 +4354,13 @@
           </td>
         </tr>
         <tr>
-          <td><code>binary_evaluator</code></td>
+          <td><code>training_data</code></td>
           <td>
-                <code><span title="pyspark.ml.evaluation.BinaryClassificationEvaluator">BinaryClassificationEvaluator</span></code>
+                <code><a class="autorefs autorefs-internal" title="otg.dataset.l2g_feature_matrix.L2GFeatureMatrix" href="../../../dataset/l2g_feature_matrix/#otg.dataset.l2g_feature_matrix.L2GFeatureMatrix">L2GFeatureMatrix</a></code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Binary evaluator</p>
+              <p>Training data used for the model. If provided, the table and the number of positive and negative labels will be logged to W&amp;B</p>
             </div>
           </td>
           <td>
@@ -4067,13 +4368,13 @@
           </td>
         </tr>
         <tr>
-          <td><code>multi_evaluator</code></td>
+          <td><code>evaluators</code></td>
           <td>
-                <code><span title="pyspark.ml.evaluation.MulticlassClassificationEvaluator">MulticlassClassificationEvaluator</span></code>
+                <code>list[<span title="pyspark.ml.evaluation.BinaryClassificationEvaluator">BinaryClassificationEvaluator</span> | <span title="pyspark.ml.evaluation.MulticlassClassificationEvaluator">MulticlassClassificationEvaluator</span>]</code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Multiclass evaluator</p>
+              <p>List of Spark ML evaluators to use for evaluation</p>
             </div>
           </td>
           <td>
@@ -4099,9 +4400,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">103</span>
 <span class="normal">104</span>
 <span class="normal">105</span>
 <span class="normal">106</span>
@@ -4121,56 +4420,51 @@
 <span class="normal">120</span>
 <span class="normal">121</span>
 <span class="normal">122</span>
-<span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">log_to_wandb</span><span class="p">(</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">log_to_wandb</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
     <span class="n">results</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-    <span class="n">binary_evaluator</span><span class="p">:</span> <span class="n">BinaryClassificationEvaluator</span><span class="p">,</span>
-    <span class="n">multi_evaluator</span><span class="p">:</span> <span class="n">MulticlassClassificationEvaluator</span><span class="p">,</span>
+    <span class="n">training_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
+    <span class="n">evaluators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span>
+        <span class="n">BinaryClassificationEvaluator</span> <span class="o">|</span> <span class="n">MulticlassClassificationEvaluator</span>
+    <span class="p">],</span>
     <span class="n">wandb_run</span><span class="p">:</span> <span class="n">Run</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform evaluation of the model by applying it to a test set and tracking the results with W&amp;B.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Log evaluation results and feature importance to W&amp;B.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        results (DataFrame): Dataframe containing the predictions</span>
-<span class="sd">        binary_evaluator (BinaryClassificationEvaluator): Binary evaluator</span>
-<span class="sd">        multi_evaluator (MulticlassClassificationEvaluator): Multiclass evaluator</span>
+<span class="sd">        training_data (L2GFeatureMatrix): Training data used for the model. If provided, the table and the number of positive and negative labels will be logged to W&amp;B</span>
+<span class="sd">        evaluators (list[BinaryClassificationEvaluator | MulticlassClassificationEvaluator]): List of Spark ML evaluators to use for evaluation</span>
 <span class="sd">        wandb_run (Run): W&amp;B run to log the results to</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">binary_wandb_evaluator</span> <span class="o">=</span> <span class="n">WandbEvaluator</span><span class="p">(</span>
-        <span class="n">spark_ml_evaluator</span><span class="o">=</span><span class="n">binary_evaluator</span><span class="p">,</span> <span class="n">wandb_run</span><span class="o">=</span><span class="n">wandb_run</span>
-    <span class="p">)</span>
-    <span class="n">binary_wandb_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-    <span class="n">multi_wandb_evaluator</span> <span class="o">=</span> <span class="n">WandbEvaluator</span><span class="p">(</span>
-        <span class="n">spark_ml_evaluator</span><span class="o">=</span><span class="n">multi_evaluator</span><span class="p">,</span> <span class="n">wandb_run</span><span class="o">=</span><span class="n">wandb_run</span>
-    <span class="p">)</span>
-    <span class="n">multi_wandb_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-          </details>
-  </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-
-
-<h3 id="otg.method.l2g.model.LocusToGeneModel.plot_importance" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">plot_importance</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
-
-<a href="#otg.method.l2g.model.LocusToGeneModel.plot_importance" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-  <div class="doc doc-contents ">
-  
-      <p>Plot the feature importance of the model.</p>
-
-          <details class="quote">
-            <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">240</span>
-<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">plot_importance</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot the feature importance of the model.&quot;&quot;&quot;</span>
+    <span class="c1">## Track evaluation metrics</span>
+    <span class="k">for</span> <span class="n">evaluator</span> <span class="ow">in</span> <span class="n">evaluators</span><span class="p">:</span>
+        <span class="n">wandb_evaluator</span> <span class="o">=</span> <span class="n">WandbEvaluator</span><span class="p">(</span>
+            <span class="n">spark_ml_evaluator</span><span class="o">=</span><span class="n">evaluator</span><span class="p">,</span> <span class="n">wandb_run</span><span class="o">=</span><span class="n">wandb_run</span>
+        <span class="p">)</span>
+        <span class="n">wandb_evaluator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="c1">## Track feature importance</span>
+    <span class="n">wandb_run</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;importances&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_feature_importance</span><span class="p">()})</span>
+    <span class="c1">## Track training set metadata</span>
+    <span class="n">gs_counts_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;goldStandard&quot;</span> <span class="o">+</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;goldStandardSet&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">capitalize</span><span class="p">():</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">training_data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;goldStandardSet&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="n">wandb_run</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">gs_counts_dict</span><span class="p">)</span>
+    <span class="n">training_table</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">dataframe</span><span class="o">=</span><span class="n">training_data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">toPandas</span><span class="p">())</span>
+    <span class="n">wandb_run</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;trainingSet&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">dataframe</span><span class="o">=</span><span class="n">training_table</span><span class="p">)})</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -4273,24 +4567,24 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span>
-<span class="normal">263</span>
-<span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
     <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -4386,9 +4680,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/method/l2g/model.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">53</span>
 <span class="normal">54</span>
 <span class="normal">55</span>
 <span class="normal">56</span>
@@ -4397,7 +4689,9 @@
 <span class="normal">59</span>
 <span class="normal">60</span>
 <span class="normal">61</span>
-<span class="normal">62</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Saves fitted pipeline model to disk.</span>
 
 <span class="sd">    Args:</span>
@@ -4455,7 +4749,15 @@
         <span class="label"> Contributors </span>
       </li>
       <li class="contributors-holder">
-        <ul class="contributors" data-bi-name="contributors"></ul>
+        <ul class="contributors" data-bi-name="contributors"><li>
+            <a
+              href="https://github.com/ireneisdoomed"
+              title="ireneisdoomed"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li></ul>
       </li>
     </ul>
   </small>
