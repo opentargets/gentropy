@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-class FinnGenStudyIndex(StudyIndex):
+class FinnGenStudyIndex:
     """Study index dataset from FinnGen.
 
     The following information is aggregated/extracted:
@@ -31,7 +31,7 @@ class FinnGenStudyIndex(StudyIndex):
         finngen_release_prefix: str,
         finngen_summary_stats_url_prefix: str,
         finngen_summary_stats_url_suffix: str,
-    ) -> FinnGenStudyIndex:
+    ) -> StudyIndex:
         """This function ingests study level metadata from FinnGen.
 
         Args:
@@ -41,9 +41,9 @@ class FinnGenStudyIndex(StudyIndex):
             finngen_summary_stats_url_suffix (str): URL prefix suffix for summary statistics location.
 
         Returns:
-            FinnGenStudyIndex: Parsed and annotated FinnGen study table.
+            StudyIndex: Parsed and annotated FinnGen study table.
         """
-        return FinnGenStudyIndex(
+        return StudyIndex(
             _df=finngen_studies.select(
                 f.concat(f.lit(f"{finngen_release_prefix}_"), f.col("phenocode")).alias(
                     "studyId"
@@ -73,7 +73,7 @@ class FinnGenStudyIndex(StudyIndex):
                 ).alias("summarystatsLocation"),
             ).withColumn(
                 "ldPopulationStructure",
-                cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
+                StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
             ),
-            _schema=cls.get_schema(),
+            _schema=StudyIndex.get_schema(),
         )

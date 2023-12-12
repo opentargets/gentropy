@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class GWASCatalogStudyIndex(StudyIndex):
-    """Study index from GWAS Catalog.
+class StudyIndexGWASCatalogParser:
+    """GWAS Catalog study index parser.
 
     The following information is harmonised from the GWAS Catalog:
 
@@ -58,7 +58,7 @@ class GWASCatalogStudyIndex(StudyIndex):
             ...        ).alias('discoverySampleSize')
             ...    )
             ...    .orderBy('studyId')
-            ...    .withColumn('discoverySampleSize', GWASCatalogStudyIndex._parse_discovery_samples(f.col('discoverySampleSize')))
+            ...    .withColumn('discoverySampleSize', StudyIndexGWASCatalogParser._parse_discovery_samples(f.col('discoverySampleSize')))
             ...    .select('discoverySampleSize')
             ...    .show(truncate=False)
             ... )
@@ -120,7 +120,7 @@ class GWASCatalogStudyIndex(StudyIndex):
                     exploded_ancestries.alias("ancestries"),
                     resolved_sample_count.alias("sample_count"),
                 ),
-                GWASCatalogStudyIndex._merge_ancestries_and_counts,
+                StudyIndexGWASCatalogParser._merge_ancestries_and_counts,
             ),
             f.array().cast(schema),
             lambda x, y: f.array_union(x, y),
@@ -130,7 +130,7 @@ class GWASCatalogStudyIndex(StudyIndex):
         return f.aggregate(
             parsed_sample_size,
             unique_ancestries,
-            GWASCatalogStudyIndex._normalize_ancestries,
+            StudyIndexGWASCatalogParser._normalize_ancestries,
         )
 
     @staticmethod
@@ -178,7 +178,7 @@ class GWASCatalogStudyIndex(StudyIndex):
             >>> data = [(12, ['African', 'European']),(12, ['African'])]
             >>> (
             ...     spark.createDataFrame(data, ['sample_count', 'ancestries'])
-            ...     .select(GWASCatalogStudyIndex._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
+            ...     .select(StudyIndexGWASCatalogParser._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
             ...     .show(truncate=False)
             ... )
             +-------------------------------+
@@ -202,7 +202,7 @@ class GWASCatalogStudyIndex(StudyIndex):
         )
 
     @staticmethod
-    def _parse_cohorts(raw_cohort: Column) -> Column:
+    def parse_cohorts(raw_cohort: Column) -> Column:
         """Return a list of unique cohort labels from pipe separated list if provided.
 
         Args:
@@ -213,7 +213,7 @@ class GWASCatalogStudyIndex(StudyIndex):
 
         Examples:
         >>> data = [('BioME|CaPS|Estonia|FHS|UKB|GERA|GERA|GERA',),(None,),]
-        >>> spark.createDataFrame(data, ['cohorts']).select(GWASCatalogStudyIndex._parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
+        >>> spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
         +--------------------------------------+
         |parsedCohorts                         |
         +--------------------------------------+
@@ -229,17 +229,17 @@ class GWASCatalogStudyIndex(StudyIndex):
 
     @classmethod
     def _parse_study_table(
-        cls: type[GWASCatalogStudyIndex], catalog_studies: DataFrame
-    ) -> GWASCatalogStudyIndex:
+        cls: type[StudyIndexGWASCatalogParser], catalog_studies: DataFrame
+    ) -> StudyIndexGWASCatalog:
         """Harmonise GWASCatalog study table with `StudyIndex` schema.
 
         Args:
             catalog_studies (DataFrame): GWAS Catalog study table
 
         Returns:
-            GWASCatalogStudyIndex: Parsed and annotated GWAS Catalog study table.
+            StudyIndexGWASCatalog: Parsed and annotated GWAS Catalog study table.
         """
-        return GWASCatalogStudyIndex(
+        return StudyIndexGWASCatalog(
             _df=catalog_studies.select(
                 f.coalesce(
                     f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
@@ -260,16 +260,16 @@ class GWASCatalogStudyIndex(StudyIndex):
                     "backgroundTraitFromSourceMappedIds"
                 ),
             ),
-            _schema=GWASCatalogStudyIndex.get_schema(),
+            _schema=StudyIndexGWASCatalog.get_schema(),
         )
 
     @classmethod
     def from_source(
-        cls: type[GWASCatalogStudyIndex],
+        cls: type[StudyIndexGWASCatalogParser],
         catalog_studies: DataFrame,
         ancestry_file: DataFrame,
         sumstats_lut: DataFrame,
-    ) -> GWASCatalogStudyIndex:
+    ) -> StudyIndexGWASCatalog:
         """Ingests study level metadata from the GWAS Catalog.
 
         Args:
@@ -278,26 +278,34 @@ class GWASCatalogStudyIndex(StudyIndex):
             sumstats_lut (DataFrame): GWAS Catalog summary statistics list.
 
         Returns:
-            GWASCatalogStudyIndex: Parsed and annotated GWAS Catalog study table.
+            StudyIndexGWASCatalog: Parsed and annotated GWAS Catalog study table.
         """
         # Read GWAS Catalogue raw data
         return (
             cls._parse_study_table(catalog_studies)
-            ._annotate_ancestries(ancestry_file)
-            ._annotate_sumstats_info(sumstats_lut)
-            ._annotate_discovery_sample_sizes()
+            .annotate_ancestries(ancestry_file)
+            .annotate_sumstats_info(sumstats_lut)
+            .annotate_discovery_sample_sizes()
         )
 
+
+@dataclass
+class StudyIndexGWASCatalog(StudyIndex):
+    """Study index dataset from GWAS Catalog.
+
+    A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
+    """
+
     def update_study_id(
-        self: GWASCatalogStudyIndex, study_annotation: DataFrame
-    ) -> GWASCatalogStudyIndex:
+        self: StudyIndexGWASCatalog, study_annotation: DataFrame
+    ) -> StudyIndexGWASCatalog:
         """Update studyId with a dataframe containing study.
 
         Args:
             study_annotation (DataFrame): Dataframe containing `updatedStudyId`, `traitFromSource`, `traitFromSourceMappedIds` and key column `studyId`.
 
         Returns:
-            GWASCatalogStudyIndex: Updated study table.
+            StudyIndexGWASCatalog: Updated study table.
         """
         self.df = (
             self._df.join(
@@ -332,9 +340,9 @@ class GWASCatalogStudyIndex(StudyIndex):
 
         return self
 
-    def _annotate_ancestries(
-        self: GWASCatalogStudyIndex, ancestry_lut: DataFrame
-    ) -> GWASCatalogStudyIndex:
+    def annotate_ancestries(
+        self: StudyIndexGWASCatalog, ancestry_lut: DataFrame
+    ) -> StudyIndexGWASCatalog:
         """Extracting sample sizes and ancestry information.
 
         This function parses the ancestry data. Also get counts for the europeans in the same
@@ -344,8 +352,12 @@ class GWASCatalogStudyIndex(StudyIndex):
             ancestry_lut (DataFrame): Ancestry table as downloaded from the GWAS Catalog
 
         Returns:
-            GWASCatalogStudyIndex: Slimmed and cleaned version of the ancestry annotation.
+            StudyIndexGWASCatalog: Slimmed and cleaned version of the ancestry annotation.
         """
+        from otg.datasource.gwas_catalog.study_index import (
+            StudyIndexGWASCatalogParser as GWASCatalogStudyIndexParser,
+        )
+
         ancestry = (
             ancestry_lut
             # Convert column headers to camelcase:
@@ -361,7 +373,9 @@ class GWASCatalogStudyIndex(StudyIndex):
         # Parsing cohort information:
         cohorts = ancestry_lut.select(
             f.col("STUDY ACCESSION").alias("studyId"),
-            self._parse_cohorts(f.col("COHORT(S)")).alias("cohorts"),
+            GWASCatalogStudyIndexParser.parse_cohorts(f.col("COHORT(S)")).alias(
+                "cohorts"
+            ),
         ).distinct()
 
         # Get a high resolution dataset on experimental stage:
@@ -379,7 +393,8 @@ class GWASCatalogStudyIndex(StudyIndex):
                 )
             )
             .withColumn(
-                "discoverySamples", self._parse_discovery_samples(f.col("initial"))
+                "discoverySamples",
+                GWASCatalogStudyIndexParser._parse_discovery_samples(f.col("initial")),
             )
             .withColumnRenamed("replication", "replicationSamples")
             # Mapping discovery stage ancestries to LD reference:
@@ -455,16 +470,16 @@ class GWASCatalogStudyIndex(StudyIndex):
         )
         return self
 
-    def _annotate_sumstats_info(
-        self: GWASCatalogStudyIndex, sumstats_lut: DataFrame
-    ) -> GWASCatalogStudyIndex:
+    def annotate_sumstats_info(
+        self: StudyIndexGWASCatalog, sumstats_lut: DataFrame
+    ) -> StudyIndexGWASCatalog:
         """Annotate summary stat locations.
 
         Args:
             sumstats_lut (DataFrame): listing GWAS Catalog summary stats paths
 
         Returns:
-            GWASCatalogStudyIndex: including `summarystatsLocation` and `hasSumstats` columns
+            StudyIndexGWASCatalog: including `summarystatsLocation` and `hasSumstats` columns
         """
         gwas_sumstats_base_uri = (
             "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/"
@@ -491,15 +506,15 @@ class GWASCatalogStudyIndex(StudyIndex):
         )
         return self
 
-    def _annotate_discovery_sample_sizes(
-        self: GWASCatalogStudyIndex,
-    ) -> GWASCatalogStudyIndex:
+    def annotate_discovery_sample_sizes(
+        self: StudyIndexGWASCatalog,
+    ) -> StudyIndexGWASCatalog:
         """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
         For some studies that measure quantitative traits, nCases and nControls can't be extracted. Therefore, we assume these are 0.
 
         Returns:
-            GWASCatalogStudyIndex: object with columns `nCases`, `nControls`, and `nSamples` per `studyId` correctly extracted.
+            StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `studyId` correctly extracted.
         """
         sample_size_lut = (
             self.df.select(

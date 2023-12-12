@@ -16,21 +16,21 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class FinnGenSummaryStats(SummaryStatistics):
+class FinnGenSummaryStats:
     """Summary statistics dataset for FinnGen."""
 
     @classmethod
     def from_source(
         cls: type[FinnGenSummaryStats],
         summary_stats_df: DataFrame,
-    ) -> FinnGenSummaryStats:
+    ) -> SummaryStatistics:
         """Ingests all summary statst for all FinnGen studies.
 
         Args:
             summary_stats_df (DataFrame): Raw summary statistics dataframe
 
         Returns:
-            FinnGenSummaryStats: Processed summary statistics dataset
+            SummaryStatistics: Processed summary statistics dataset
         """
         processed_summary_stats_df = (
             summary_stats_df
@@ -64,7 +64,7 @@ class FinnGenSummaryStats(SummaryStatistics):
         )
 
         # Initializing summary statistics object:
-        return cls(
+        return SummaryStatistics(
             _df=processed_summary_stats_df,
-            _schema=cls.get_schema(),
+            _schema=SummaryStatistics.get_schema(),
         )

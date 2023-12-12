@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from otg.dataset.gene_index import GeneIndex
 
 
-class IntervalsJung(Intervals):
+class IntervalsJung:
     """Interval dataset from Jung et al. 2019."""
 
     @staticmethod
@@ -37,7 +37,7 @@ class IntervalsJung(Intervals):
         jung_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> IntervalsJung:
+    ) -> Intervals:
         """Parse the Jung et al. 2019 dataset.
 
         Args:
@@ -46,14 +46,14 @@ class IntervalsJung(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            IntervalsJung: Interval dataset containing Jung et al. 2019 data
+            Intervals: Interval dataset containing Jung et al. 2019 data
         """
         dataset_name = "jung2019"
         experiment_type = "pchic"
         pmid = "31501517"
 
         # Lifting over the coordinates:
-        return cls(
+        return Intervals(
             _df=(
                 jung_raw.withColumn(
                     "interval", f.split(f.col("Interacting_fragment"), r"\.")
@@ -99,5 +99,5 @@ class IntervalsJung(Intervals):
                 )
                 .drop_duplicates()
             ),
-            _schema=cls.get_schema(),
+            _schema=Intervals.get_schema(),
         )
