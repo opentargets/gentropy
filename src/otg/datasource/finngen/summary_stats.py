@@ -14,7 +14,7 @@ from otg.dataset.summary_statistics import SummaryStatistics
 
 
 @dataclass
-class FinnGenSummaryStats(SummaryStatistics):
+class FinnGenSummaryStats:
     """Summary statistics dataset for FinnGen."""
 
     raw_schema: t.StructType = StructType(
@@ -40,7 +40,7 @@ class FinnGenSummaryStats(SummaryStatistics):
         cls: type[FinnGenSummaryStats],
         spark: SparkSession,
         raw_files: list[str],
-    ) -> FinnGenSummaryStats:
+    ) -> SummaryStatistics:
         """Ingests all summary statst for all FinnGen studies.
 
         Args:
@@ -48,7 +48,7 @@ class FinnGenSummaryStats(SummaryStatistics):
             raw_files (list[str]): Paths to raw summary statistics .gz files.
 
         Returns:
-            FinnGenSummaryStats: Processed summary statistics dataset
+            SummaryStatistics: Processed summary statistics dataset
         """
         processed_summary_stats_df = (
             spark.read.schema(cls.raw_schema)
@@ -85,7 +85,7 @@ class FinnGenSummaryStats(SummaryStatistics):
         )
 
         # Initializing summary statistics object:
-        return cls(
+        return SummaryStatistics(
             _df=processed_summary_stats_df,
-            _schema=cls.get_schema(),
+            _schema=SummaryStatistics.get_schema(),
         )

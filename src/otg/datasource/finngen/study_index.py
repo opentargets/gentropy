@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession
 from otg.dataset.study_index import StudyIndex
 
 
-class FinnGenStudyIndex(StudyIndex):
+class FinnGenStudyIndex:
     """Study index dataset from FinnGen.
 
     The following information is aggregated/extracted:
@@ -33,19 +33,19 @@ class FinnGenStudyIndex(StudyIndex):
     def from_source(
         cls: type[FinnGenStudyIndex],
         spark: SparkSession,
-    ) -> FinnGenStudyIndex:
+    ) -> StudyIndex:
         """This function ingests study level metadata from FinnGen.
 
         Args:
             spark (SparkSession): Spark session object.
 
         Returns:
-            FinnGenStudyIndex: Parsed and annotated FinnGen study table.
+            StudyIndex: Parsed and annotated FinnGen study table.
         """
         json_data = urlopen(cls.finngen_phenotype_table_url).read().decode("utf-8")
         rdd = spark.sparkContext.parallelize([json_data])
         raw_df = spark.read.json(rdd)
-        return FinnGenStudyIndex(
+        return StudyIndex(
             _df=raw_df.select(
                 f.concat(
                     f.lit(f"{cls.finngen_release_prefix}_"), f.col("phenocode")
@@ -66,6 +66,8 @@ class FinnGenStudyIndex(StudyIndex):
                         f.lit("Finnish").alias("ancestry"),
                     )
                 ).alias("discoverySamples"),
+                # Cohort label is consistent with GWAS Catalog curation.
+                f.array(f.lit("FinnGen")).alias("cohorts"),
                 f.concat(
                     f.lit(cls.finngen_summary_stats_url_prefix),
                     f.col("phenocode"),
@@ -73,7 +75,7 @@ class FinnGenStudyIndex(StudyIndex):
                 ).alias("summarystatsLocation"),
             ).withColumn(
                 "ldPopulationStructure",
-                cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
+                StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
             ),
-            _schema=cls.get_schema(),
+            _schema=StudyIndex.get_schema(),
         )

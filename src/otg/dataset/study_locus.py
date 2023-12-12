@@ -171,7 +171,7 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def _update_quality_flag(
+    def update_quality_flag(
         qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
     ) -> Column:
         """Update the provided quality control list with a new flag if condition is met.
@@ -410,7 +410,7 @@ class StudyLocus(Dataset):
             )
             .withColumn(
                 "qualityControls",
-                StudyLocus._update_quality_flag(
+                StudyLocus.update_quality_flag(
                     f.col("qualityControls"),
                     f.col("is_lead_linked"),
                     StudyLocusQualityCheck.LD_CLUMPED,
@@ -430,7 +430,7 @@ class StudyLocus(Dataset):
         """
         self.df = self.df.withColumn(
             "qualityControls",
-            self._update_quality_flag(
+            self.update_quality_flag(
                 f.col("qualityControls"),
                 f.col("ldSet").isNull(),
                 StudyLocusQualityCheck.UNRESOLVED_LD,
@@ -450,7 +450,7 @@ class StudyLocus(Dataset):
 
         self.df = self.df.withColumn(
             "qualityControls",
-            self._update_quality_flag(
+            self.update_quality_flag(
                 f.col("qualityControls"),
                 f.col("ldPopulationStructure").isNull(),
                 StudyLocusQualityCheck.NO_POPULATION,

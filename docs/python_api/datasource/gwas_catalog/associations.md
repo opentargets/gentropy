@@ -1,4 +1,9 @@
 ---
 title: Associations
 ---
-::: otg.datasource.gwas_catalog.associations.GWASCatalogAssociations
+
+::: otg.datasource.gwas_catalog.associations.GWASCatalogCuratedAssociationsParser
+
+---
+
+::: otg.datasource.gwas_catalog.associations.StudyLocusGWASCatalog
