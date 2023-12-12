@@ -19,16 +19,15 @@
     "source=devcontainer-bashhistory,target=/commandhistory,type=volume",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
   ],
+  "runArgs": ["-e", "GIT_EDITOR=code --wait"],
   "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
   "customizations": {
     "vscode": {
       // Please keep this file in sync with settings in /.vscode/extensions.json
       "extensions": [
         "charliermarsh.ruff",
-        "ms-python.isort",
         "ms-python.mypy-type-checker",
         "ms-python.python",
-        "charliermarsh.ruff",
         "esbenp.prettier-vscode",
         "mhutchie.git-graph",
         "eamodio.gitlens",
