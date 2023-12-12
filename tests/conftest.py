@@ -463,17 +463,6 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
-    """Sample FinnGen summary stats."""
-    # For reference, the sample file was generated with the following command:
-    # gsutil cat gs://finngen-public-data-r9/summary_stats/finngen_R9_AB1_ACTINOMYCOSIS.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz
-    # It's important for the test file to be named in exactly this way, because FinnGen study ID is populated based on input file name.
-    return spark.read.option("delimiter", "\t").csv(
-        "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz", header=True
-    )
-
-
-@pytest.fixture()
 def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
     """Sample eQTL Catalogue studies."""
     # For reference, the sample file was generated with the following command:

@@ -3,38 +3,59 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StringType, StructField, StructType
 
 from otg.common.utils import parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
-
-if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
 
 
 @dataclass
 class FinnGenSummaryStats:
     """Summary statistics dataset for FinnGen."""
 
+    raw_schema: t.StructType = StructType(
+        [
+            StructField("#chrom", StringType(), True),
+            StructField("pos", StringType(), True),
+            StructField("ref", StringType(), True),
+            StructField("alt", StringType(), True),
+            StructField("rsids", StringType(), True),
+            StructField("nearest_genes", StringType(), True),
+            StructField("pval", StringType(), True),
+            StructField("mlogp", StringType(), True),
+            StructField("beta", StringType(), True),
+            StructField("sebeta", StringType(), True),
+            StructField("af_alt", StringType(), True),
+            StructField("af_alt_cases", StringType(), True),
+            StructField("af_alt_controls", StringType(), True),
+        ]
+    )
+
     @classmethod
     def from_source(
         cls: type[FinnGenSummaryStats],
-        summary_stats_df: DataFrame,
+        spark: SparkSession,
+        raw_files: list[str],
     ) -> SummaryStatistics:
         """Ingests all summary statst for all FinnGen studies.
 
         Args:
-            summary_stats_df (DataFrame): Raw summary statistics dataframe
+            spark (SparkSession): Spark session object.
+            raw_files (list[str]): Paths to raw summary statistics .gz files.
 
         Returns:
             SummaryStatistics: Processed summary statistics dataset
         """
         processed_summary_stats_df = (
-            summary_stats_df
+            spark.read.schema(cls.raw_schema)
+            .option("delimiter", "\t")
+            .csv(raw_files, header=True)
             # Drop rows which don't have proper position.
+            .filter(f.col("pos").cast(t.IntegerType()).isNotNull())
             .select(
                 # From the full path, extracts just the filename, and converts to upper case to get the study ID.
                 f.upper(f.regexp_extract(f.input_file_name(), r"([^/]+)\.gz", 1)).alias(
