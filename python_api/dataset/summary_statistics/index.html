@@ -2709,10 +2709,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate study-locus from summary statistics by distance based clumping + collect locus.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            distance (int): Distance in base pairs to be used for clumping.</span>
+<span class="sd">            distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.</span>
 <span class="sd">            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.</span>
 <span class="sd">            baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.</span>
-<span class="sd">            locus_collect_distance (int | None): The distance to collect locus around semi-indices.</span>
+<span class="sd">            locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, locus is not collected.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            StudyLocus: Clumped study-locus containing variants based on window.</span>
@@ -3122,7 +3122,7 @@
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Distance in base pairs to be used for clumping.</p>
+              <p>Distance in base pairs to be used for clumping. Defaults to 500_000.</p>
             </div>
           </td>
           <td>
@@ -3164,7 +3164,7 @@
           </td>
           <td>
             <div class="doc-md-description">
-              <p>The distance to collect locus around semi-indices.</p>
+              <p>The distance to collect locus around semi-indices. If not provided, locus is not collected.</p>
             </div>
           </td>
           <td>
@@ -3242,10 +3242,10 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate study-locus from summary statistics by distance based clumping + collect locus.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        distance (int): Distance in base pairs to be used for clumping.</span>
+<span class="sd">        distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.</span>
 <span class="sd">        gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.</span>
 <span class="sd">        baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.</span>
-<span class="sd">        locus_collect_distance (int | None): The distance to collect locus around semi-indices.</span>
+<span class="sd">        locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, locus is not collected.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        StudyLocus: Clumped study-locus containing variants based on window.</span>

@@ -2496,7 +2496,9 @@
 
             <details class="quote">
               <summary>Source code in <code>src/otg/datasource/finngen/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">14</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
 <span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
@@ -2561,7 +2563,9 @@
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FinnGenStudyIndex</span><span class="p">:</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FinnGenStudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from FinnGen.</span>
 
 <span class="sd">    The following information is aggregated/extracted:</span>
@@ -2574,35 +2578,39 @@
 <span class="sd">    Some fields are also populated as constants, such as study type and the initial sample size.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">finngen_phenotype_table_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;https://r9.finngen.fi/api/phenos&quot;</span>
+    <span class="n">finngen_release_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;FINNGEN_R9&quot;</span>
+    <span class="n">finngen_summary_stats_url_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;gs://finngen-public-data-r9/summary_stats/finngen_R9_&quot;</span>
+    <span class="p">)</span>
+    <span class="n">finngen_summary_stats_url_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.gz&quot;</span>
+
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenStudyIndex</span><span class="p">],</span>
-        <span class="n">finngen_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-        <span class="n">finngen_release_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">finngen_summary_stats_url_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">finngen_summary_stats_url_suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;This function ingests study level metadata from FinnGen.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            finngen_studies (DataFrame): FinnGen raw study table</span>
-<span class="sd">            finngen_release_prefix (str): Release prefix pattern.</span>
-<span class="sd">            finngen_summary_stats_url_prefix (str): URL prefix for summary statistics location.</span>
-<span class="sd">            finngen_summary_stats_url_suffix (str): URL prefix suffix for summary statistics location.</span>
+<span class="sd">            spark (SparkSession): Spark session object.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            StudyIndex: Parsed and annotated FinnGen study table.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">json_data</span> <span class="o">=</span> <span class="n">urlopen</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_phenotype_table_url</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+        <span class="n">rdd</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sparkContext</span><span class="o">.</span><span class="n">parallelize</span><span class="p">([</span><span class="n">json_data</span><span class="p">])</span>
+        <span class="n">raw_df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">finngen_studies</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">finngen_release_prefix</span><span class="si">}</span><span class="s2">_&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
-                    <span class="s2">&quot;studyId&quot;</span>
-                <span class="p">),</span>
+            <span class="n">_df</span><span class="o">=</span><span class="n">raw_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_release_prefix</span><span class="si">}</span><span class="s2">_&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">)</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenostring&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;traitFromSource&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_cases&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;nCases&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_controls&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;nControls&quot;</span><span class="p">),</span>
                 <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_cases&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_controls&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;nSamples&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_release_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_release_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;gwas&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;hasSumstats&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;377,277 (210,870 females and 166,407 males)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
@@ -2617,9 +2625,9 @@
                 <span class="c1"># Cohort label is consistent with GWAS Catalog curation.</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;FinnGen&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;cohorts&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_summary_stats_url_prefix</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_summary_stats_url_prefix</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_summary_stats_url_suffix</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_summary_stats_url_suffix</span><span class="p">),</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;summarystatsLocation&quot;</span><span class="p">),</span>
             <span class="p">)</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span>
@@ -2649,7 +2657,7 @@
 
 
 <h3 id="otg.datasource.finngen.study_index.FinnGenStudyIndex.from_source" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">finngen_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">finngen_release_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">finngen_summary_stats_url_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">finngen_summary_stats_url_suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span></code>
+          <code class="highlight language-python"><span class="n">from_source</span><span class="p">(</span><span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2676,55 +2684,13 @@
     </thead>
     <tbody>
         <tr>
-          <td><code>finngen_studies</code></td>
+          <td><code>spark</code></td>
           <td>
-                <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+                <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>FinnGen raw study table</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr>
-          <td><code>finngen_release_prefix</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Release prefix pattern.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr>
-          <td><code>finngen_summary_stats_url_prefix</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>URL prefix for summary statistics location.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr>
-          <td><code>finngen_summary_stats_url_suffix</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>URL prefix suffix for summary statistics location.</p>
+              <p>Spark session object.</p>
             </div>
           </td>
           <td>
@@ -2760,12 +2726,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/datasource/finngen/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
 <span class="normal">33</span>
 <span class="normal">34</span>
 <span class="normal">35</span>
@@ -2812,35 +2773,34 @@
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenStudyIndex</span><span class="p">],</span>
-    <span class="n">finngen_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
-    <span class="n">finngen_release_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">finngen_summary_stats_url_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">finngen_summary_stats_url_suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;This function ingests study level metadata from FinnGen.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        finngen_studies (DataFrame): FinnGen raw study table</span>
-<span class="sd">        finngen_release_prefix (str): Release prefix pattern.</span>
-<span class="sd">        finngen_summary_stats_url_prefix (str): URL prefix for summary statistics location.</span>
-<span class="sd">        finngen_summary_stats_url_suffix (str): URL prefix suffix for summary statistics location.</span>
+<span class="sd">        spark (SparkSession): Spark session object.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        StudyIndex: Parsed and annotated FinnGen study table.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">json_data</span> <span class="o">=</span> <span class="n">urlopen</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_phenotype_table_url</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+    <span class="n">rdd</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sparkContext</span><span class="o">.</span><span class="n">parallelize</span><span class="p">([</span><span class="n">json_data</span><span class="p">])</span>
+    <span class="n">raw_df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="n">finngen_studies</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">finngen_release_prefix</span><span class="si">}</span><span class="s2">_&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
-                <span class="s2">&quot;studyId&quot;</span>
-            <span class="p">),</span>
+        <span class="n">_df</span><span class="o">=</span><span class="n">raw_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_release_prefix</span><span class="si">}</span><span class="s2">_&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenostring&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;traitFromSource&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_cases&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;nCases&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_controls&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;nControls&quot;</span><span class="p">),</span>
             <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_cases&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;num_controls&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;nSamples&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_release_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">),</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_release_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;gwas&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;hasSumstats&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;377,277 (210,870 females and 166,407 males)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
@@ -2855,9 +2815,9 @@
             <span class="c1"># Cohort label is consistent with GWAS Catalog curation.</span>
             <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;FinnGen&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;cohorts&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_summary_stats_url_prefix</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_summary_stats_url_prefix</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;phenocode&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_summary_stats_url_suffix</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">finngen_summary_stats_url_suffix</span><span class="p">),</span>
             <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;summarystatsLocation&quot;</span><span class="p">),</span>
         <span class="p">)</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span>
