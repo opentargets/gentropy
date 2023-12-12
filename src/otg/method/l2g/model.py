@@ -203,7 +203,7 @@ class LocusToGeneModel:
         wandb_run_name: str | None,
         training_data: L2GFeatureMatrix | None = None,
     ) -> None:
-        """Perform evaluation of the model by applying it to a test set and tracking the results with W&B.
+        """Perform evaluation of the model predictions for the test set and track the results with W&B.
 
         Args:
             results (DataFrame): Dataframe containing the predictions

@@ -32,9 +32,7 @@ class VariantAnnotationStep:
         variant_annotation = GnomADVariants().as_variant_annotation()
         # Write data partitioned by chromosome and position.
         (
-            variant_annotation.df.repartition(400, "chromosome")
-            .sortWithinPartitions("chromosome", "position")
-            .write.partitionBy("chromosome")
-            .mode(self.session.write_mode)
-            .parquet(self.variant_annotation_path)
+            variant_annotation.df.write.mode(self.session.write_mode).parquet(
+                self.variant_annotation_path
+            )
         )

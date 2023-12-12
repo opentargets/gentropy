@@ -26,19 +26,19 @@ class VariantIndexStep:
 
     session: Session = MISSING
     variant_annotation_path: str = MISSING
-    study_locus_path: str = MISSING
+    credible_set_path: str = MISSING
     variant_index_path: str = MISSING
 
     def __post_init__(self: VariantIndexStep) -> None:
         """Run step."""
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
-        study_locus = StudyLocus.from_parquet(
-            self.session, self.study_locus_path, recursiveFileLookup=True
+        credible_set = StudyLocus.from_parquet(
+            self.session, self.credible_set_path, recursiveFileLookup=True
         )
 
         # Transform
-        vi = VariantIndex.from_variant_annotation(va, study_locus)
+        vi = VariantIndex.from_variant_annotation(va, credible_set)
 
         # Load
         self.session.logger.info(f"Writing variant index to: {self.variant_index_path}")
