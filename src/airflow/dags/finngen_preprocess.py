@@ -63,7 +63,9 @@ with DAG(
     )
 
     (
-        common.create_cluster(CLUSTER_NAME, autoscaling_policy=AUTOSCALING)
+        common.create_cluster(
+            CLUSTER_NAME, autoscaling_policy=AUTOSCALING, master_disk_size=2000
+        )
         >> common.install_dependencies(CLUSTER_NAME)
         >> study_and_sumstats
         >> window_based_clumping

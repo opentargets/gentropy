@@ -66,6 +66,7 @@ def create_cluster(
     num_workers: int = 2,
     num_local_ssds: int = 1,
     autoscaling_policy: str = GCP_AUTOSCALING_POLICY,
+    master_disk_size: int = 500,
 ) -> DataprocCreateClusterOperator:
     """Generate an Airflow task to create a Dataproc cluster. Common parameters are reused, and varying parameters can be specified as needed.
 
@@ -76,6 +77,7 @@ def create_cluster(
         num_workers (int): Number of worker nodes. Defaults to 2.
         num_local_ssds (int): How many local SSDs to attach to each worker node, both primary and secondary. Defaults to 1.
         autoscaling_policy (str): Name of the autoscaling policy to use. Defaults to GCP_AUTOSCALING_POLICY.
+        master_disk_size (int): Size of the master node's boot disk in GB. Defaults to 500.
 
     Returns:
         DataprocCreateClusterOperator: Airflow task to create a Dataproc cluster.
@@ -86,7 +88,7 @@ def create_cluster(
         zone=GCP_ZONE,
         master_machine_type=master_machine_type,
         worker_machine_type=worker_machine_type,
-        master_disk_size=2000,
+        master_disk_size=master_disk_size,
         worker_disk_size=500,
         num_workers=num_workers,
         image_version=GCP_DATAPROC_IMAGE,
