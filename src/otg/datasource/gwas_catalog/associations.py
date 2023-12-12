@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class GWASCatalogAssociations(StudyLocus):
-    """Study-locus dataset derived from GWAS Catalog."""
+class GWASCatalogCuratedAssociationsParser:
+    """GWAS Catalog curated associations parser."""
 
     @staticmethod
     def _parse_pvalue(pvalue: Column) -> tuple[Column, Column]:
@@ -45,7 +45,7 @@ class GWASCatalogAssociations(StudyLocus):
             >>> import pyspark.sql.types as t
             >>> d = [("1.0"), ("0.5"), ("1E-20"), ("3E-3"), ("1E-1000")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.select('value',*GWASCatalogAssociations._parse_pvalue(f.col('value'))).show()
+            >>> df.select('value',*GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col('value'))).show()
             +-------+--------------+--------------+
             |  value|pValueMantissa|pValueExponent|
             +-------+--------------+--------------+
@@ -79,7 +79,7 @@ class GWASCatalogAssociations(StudyLocus):
             >>> import pyspark.sql.types as t
             >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease"), ("(progression)"), (""), (None)]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.withColumn('normalised', GWASCatalogAssociations._normalise_pvaluetext(f.col('value'))).show()
+            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._normalise_pvaluetext(f.col('value'))).show()
             +-------------------+----------+
             |              value|normalised|
             +-------------------+----------+
@@ -121,7 +121,7 @@ class GWASCatalogAssociations(StudyLocus):
             >>> import pyspark.sql.types as t
             >>> d = [("rs1234-A-G"), ("rs1234-A"), ("rs1234-A; rs1235-G")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.withColumn('normalised', GWASCatalogAssociations._normalise_risk_allele(f.col('value'))).show()
+            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._normalise_risk_allele(f.col('value'))).show()
             +------------------+----------+
             |             value|normalised|
             +------------------+----------+
@@ -180,12 +180,12 @@ class GWASCatalogAssociations(StudyLocus):
             f.col("CHR_ID").alias("chromosome"),
             f.col("CHR_POS").cast(IntegerType()).alias("position"),
             # List of all SNPs associated with the variant
-            GWASCatalogAssociations._collect_rsids(
+            GWASCatalogCuratedAssociationsParser._collect_rsids(
                 f.split(f.col("SNPS"), "; ").getItem(0),
                 f.col("SNP_ID_CURRENT"),
                 f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
             ).alias("rsIdsGwasCatalog"),
-            GWASCatalogAssociations._normalise_risk_allele(
+            GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
                 f.col("STRONGEST SNP-RISK ALLELE")
             ).alias("riskAllele"),
         )
@@ -218,18 +218,18 @@ class GWASCatalogAssociations(StudyLocus):
             )
             .withColumn(
                 "rsIdFilter",
-                GWASCatalogAssociations._flag_mappings_to_retain(
+                GWASCatalogCuratedAssociationsParser._flag_mappings_to_retain(
                     f.col("studyLocusId"),
-                    GWASCatalogAssociations._compare_rsids(
+                    GWASCatalogCuratedAssociationsParser._compare_rsids(
                         f.col("rsIdsGnomad"), f.col("rsIdsGwasCatalog")
                     ),
                 ),
             )
             .withColumn(
                 "concordanceFilter",
-                GWASCatalogAssociations._flag_mappings_to_retain(
+                GWASCatalogCuratedAssociationsParser._flag_mappings_to_retain(
                     f.col("studyLocusId"),
-                    GWASCatalogAssociations._check_concordance(
+                    GWASCatalogCuratedAssociationsParser._check_concordance(
                         f.col("riskAllele"),
                         f.col("referenceAllele"),
                         f.col("alternateAllele"),
@@ -281,7 +281,7 @@ class GWASCatalogAssociations(StudyLocus):
             ...    (4, [], []),
             ... ]
             >>> df = spark.createDataFrame(d, ['associationId', 'gnomad', 'gwas'])
-            >>> df.withColumn("rsid_matches", GWASCatalogAssociations._compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
+            >>> df.withColumn("rsid_matches", GWASCatalogCuratedAssociationsParser._compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
             +-------------+--------------+-------+------------+
             |associationId|        gnomad|   gwas|rsid_matches|
             +-------------+--------------+-------+------------+
@@ -324,7 +324,7 @@ class GWASCatalogAssociations(StudyLocus):
         ...    (3, True),
         ... ]
         >>> df = spark.createDataFrame(d, ['associationId', 'filter'])
-        >>> df.withColumn("isConcordant", GWASCatalogAssociations._flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
+        >>> df.withColumn("isConcordant", GWASCatalogCuratedAssociationsParser._flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
         +-------------+------+------------+
         |associationId|filter|isConcordant|
         +-------------+------+------------+
@@ -376,7 +376,7 @@ class GWASCatalogAssociations(StudyLocus):
             ...     (None, None, 'A'),
             ... ]
             >>> df = spark.createDataFrame(d, ['riskAllele', 'referenceAllele', 'alternateAllele'])
-            >>> df.withColumn("isConcordant", GWASCatalogAssociations._check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
+            >>> df.withColumn("isConcordant", GWASCatalogCuratedAssociationsParser._check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
             +----------+---------------+---------------+------------+
             |riskAllele|referenceAllele|alternateAllele|isConcordant|
             +----------+---------------+---------------+------------+
@@ -431,7 +431,7 @@ class GWASCatalogAssociations(StudyLocus):
         Examples:
             >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("revcom_allele", GWASCatalogAssociations._get_reverse_complement(f.col("allele"))).show()
+            >>> df.withColumn("revcom_allele", GWASCatalogCuratedAssociationsParser._get_reverse_complement(f.col("allele"))).show()
             +------+-------------+
             |allele|revcom_allele|
             +------+-------------+
@@ -469,7 +469,7 @@ class GWASCatalogAssociations(StudyLocus):
         Examples:
             >>> d = [{"risk": 'A', "reference": 'A'}, {"risk": 'A', "reference": 'T'}, {"risk": 'AT', "reference": 'TA'}, {"risk": 'AT', "reference": 'AT'}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("needs_harmonisation", GWASCatalogAssociations._effect_needs_harmonisation(f.col("risk"), f.col("reference"))).show()
+            >>> df.withColumn("needs_harmonisation", GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(f.col("risk"), f.col("reference"))).show()
             +---------+----+-------------------+
             |reference|risk|needs_harmonisation|
             +---------+----+-------------------+
@@ -483,7 +483,9 @@ class GWASCatalogAssociations(StudyLocus):
         """
         return (risk_allele == reference_allele) | (
             risk_allele
-            == GWASCatalogAssociations._get_reverse_complement(reference_allele)
+            == GWASCatalogCuratedAssociationsParser._get_reverse_complement(
+                reference_allele
+            )
         )
 
     @staticmethod
@@ -502,7 +504,7 @@ class GWASCatalogAssociations(StudyLocus):
         Examples:
             >>> d = [{"reference": 'A', "alternate": 'T'}, {"reference": 'AT', "alternate": 'AG'}, {"reference": 'AT', "alternate": 'AT'}, {"reference": 'CATATG', "alternate": 'CATATG'}, {"reference": '-', "alternate": None}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("is_palindromic", GWASCatalogAssociations._are_alleles_palindromic(f.col("reference"), f.col("alternate"))).show()
+            >>> df.withColumn("is_palindromic", GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(f.col("reference"), f.col("alternate"))).show()
             +---------+---------+--------------+
             |alternate|reference|is_palindromic|
             +---------+---------+--------------+
@@ -515,7 +517,9 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        revcomp = GWASCatalogAssociations._get_reverse_complement(alternate_allele)
+        revcomp = GWASCatalogCuratedAssociationsParser._get_reverse_complement(
+            alternate_allele
+        )
         return (
             f.when(reference_allele == revcomp, True)
             .when(revcomp.isNull(), False)
@@ -547,20 +551,20 @@ class GWASCatalogAssociations(StudyLocus):
         """
         return (
             f.when(
-                GWASCatalogAssociations._are_alleles_palindromic(
+                GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
                     reference_allele, alternate_allele
                 ),
                 None,
             )
             .when(
                 (
-                    GWASCatalogAssociations._effect_needs_harmonisation(
+                    GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
                         risk_allele, reference_allele
                     )
                     & confidence_interval.contains("increase")
                 )
                 | (
-                    ~GWASCatalogAssociations._effect_needs_harmonisation(
+                    ~GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
                         risk_allele, reference_allele
                     )
                     & confidence_interval.contains("decrease")
@@ -596,7 +600,7 @@ class GWASCatalogAssociations(StudyLocus):
             Column: The upper and lower bounds of the confidence interval for the beta coefficient.
         """
         zscore_95 = f.lit(1.96)
-        beta = GWASCatalogAssociations._harmonise_beta(
+        beta = GWASCatalogCuratedAssociationsParser._harmonise_beta(
             risk_allele,
             reference_allele,
             alternate_allele,
@@ -632,14 +636,14 @@ class GWASCatalogAssociations(StudyLocus):
         """
         return (
             f.when(
-                GWASCatalogAssociations._are_alleles_palindromic(
+                GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
                     reference_allele, alternate_allele
                 ),
                 None,
             )
             .when(
                 (
-                    GWASCatalogAssociations._effect_needs_harmonisation(
+                    GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
                         risk_allele, reference_allele
                     )
                     & ~confidence_interval.rlike("|".join(["decrease", "increase"]))
@@ -675,7 +679,7 @@ class GWASCatalogAssociations(StudyLocus):
             Column: The upper and lower bounds of the 95% confidence interval for the odds ratio.
         """
         zscore_95 = f.lit(1.96)
-        odds_ratio = GWASCatalogAssociations._harmonise_odds_ratio(
+        odds_ratio = GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(
             risk_allele,
             reference_allele,
             alternate_allele,
@@ -713,7 +717,7 @@ class GWASCatalogAssociations(StudyLocus):
         ...    ("Schizophrenia", "http://www.ebi.ac.uk/efo/MONDO_0005090", None)],
         ...    ["association_trait", "mapped_trait_uri", "pvalue_text"]
         ... )
-        >>> df.withColumn('substudy_description', GWASCatalogAssociations._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate=False)
+        >>> df.withColumn('substudy_description', GWASCatalogCuratedAssociationsParser._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate=False)
         +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
         |association_trait|mapped_trait_uri                                                         |pvalue_text      |substudy_description                      |
         +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
@@ -723,7 +727,7 @@ class GWASCatalogAssociations(StudyLocus):
         <BLANKLINE>
         """
         p_value_text = f.coalesce(
-            GWASCatalogAssociations._normalise_pvaluetext(pvalue_text),
+            GWASCatalogCuratedAssociationsParser._normalise_pvaluetext(pvalue_text),
             f.array(f.lit("no_pvalue_text")),
         )
         return f.concat_ws(
@@ -767,18 +771,22 @@ class GWASCatalogAssociations(StudyLocus):
         Returns:
             Column: Updated QC column with flag.
         """
-        qc = GWASCatalogAssociations._qc_variant_interactions(
+        qc = GWASCatalogCuratedAssociationsParser._qc_variant_interactions(
             qc, strongest_snp_risk_allele
         )
-        qc = GWASCatalogAssociations._qc_subsignificant_associations(
+        qc = GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(
             qc, p_value_mantissa, p_value_exponent, p_value_cutoff
         )
-        qc = GWASCatalogAssociations._qc_genomic_location(qc, chromosome, position)
-        qc = GWASCatalogAssociations._qc_variant_inconsistencies(
+        qc = GWASCatalogCuratedAssociationsParser._qc_genomic_location(
+            qc, chromosome, position
+        )
+        qc = GWASCatalogCuratedAssociationsParser._qc_variant_inconsistencies(
             qc, chromosome, position, strongest_snp_risk_allele
         )
-        qc = GWASCatalogAssociations._qc_unmapped_variants(qc, alternate_allele)
-        qc = GWASCatalogAssociations._qc_palindromic_alleles(
+        qc = GWASCatalogCuratedAssociationsParser._qc_unmapped_variants(
+            qc, alternate_allele
+        )
+        qc = GWASCatalogCuratedAssociationsParser._qc_palindromic_alleles(
             qc, reference_allele, alternate_allele
         )
         return qc
@@ -796,7 +804,7 @@ class GWASCatalogAssociations(StudyLocus):
         Returns:
             Column: Updated QC column with flag.
         """
-        return GWASCatalogAssociations._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             strongest_snp_risk_allele.contains(";"),
             StudyLocusQualityCheck.COMPOSITE_FLAG,
@@ -824,7 +832,7 @@ class GWASCatalogAssociations(StudyLocus):
             >>> import pyspark.sql.types as t
             >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
             >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
-            >>> df.withColumn('qc', GWASCatalogAssociations._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
+            >>> df.withColumn('qc', GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
             +------------------------+----------------+----------------+
             |qc                      |p_value_mantissa|p_value_exponent|
             +------------------------+----------------+----------------+
@@ -836,7 +844,7 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return StudyLocus._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
             < f.lit(-np.log10(pvalue_cutoff)),
@@ -861,7 +869,7 @@ class GWASCatalogAssociations(StudyLocus):
             >>> import pyspark.sql.types as t
             >>> d = [{'qc': None, 'chromosome': None, 'position': None}, {'qc': None, 'chromosome': '1', 'position': None}, {'qc': None, 'chromosome': None, 'position': 1}, {'qc': None, 'chromosome': '1', 'position': 1}]
             >>> df = spark.createDataFrame(d, schema=t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('chromosome', t.StringType()), t.StructField('position', t.IntegerType())]))
-            >>> df.withColumn('qc', GWASCatalogAssociations._qc_genomic_location(df.qc, df.chromosome, df.position)).show(truncate=False)
+            >>> df.withColumn('qc', GWASCatalogCuratedAssociationsParser._qc_genomic_location(df.qc, df.chromosome, df.position)).show(truncate=False)
             +----------------------------+----------+--------+
             |qc                          |chromosome|position|
             +----------------------------+----------+--------+
@@ -873,7 +881,7 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return StudyLocus._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             position.isNull() | chromosome.isNull(),
             StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG,
@@ -897,7 +905,7 @@ class GWASCatalogAssociations(StudyLocus):
         Returns:
             Column: Updated QC column with flag.
         """
-        return GWASCatalogAssociations._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             # Number of chromosomes does not correspond to the number of positions:
             (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";")))
@@ -925,7 +933,7 @@ class GWASCatalogAssociations(StudyLocus):
             >>> d = [{'alternate_allele': 'A', 'qc': None}, {'alternate_allele': None, 'qc': None}]
             >>> schema = t.StructType([t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
             >>> df = spark.createDataFrame(data=d, schema=schema)
-            >>> df.withColumn("new_qc", GWASCatalogAssociations._qc_unmapped_variants(f.col("qc"), f.col("alternate_allele"))).show()
+            >>> df.withColumn("new_qc", GWASCatalogCuratedAssociationsParser._qc_unmapped_variants(f.col("qc"), f.col("alternate_allele"))).show()
             +----------------+----+--------------------+
             |alternate_allele|  qc|              new_qc|
             +----------------+----+--------------------+
@@ -935,7 +943,7 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return GWASCatalogAssociations._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
             alternate_allele.isNull(),
             StudyLocusQualityCheck.NON_MAPPED_VARIANT_FLAG,
@@ -960,7 +968,7 @@ class GWASCatalogAssociations(StudyLocus):
             >>> schema = t.StructType([t.StructField('reference_allele', t.StringType(), True), t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
             >>> d = [{'reference_allele': 'A', 'alternate_allele': 'T', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'TA', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'AT', 'qc': None}]
             >>> df = spark.createDataFrame(data=d, schema=schema)
-            >>> df.withColumn("qc", GWASCatalogAssociations._qc_palindromic_alleles(f.col("qc"), f.col("reference_allele"), f.col("alternate_allele"))).show(truncate=False)
+            >>> df.withColumn("qc", GWASCatalogCuratedAssociationsParser._qc_palindromic_alleles(f.col("qc"), f.col("reference_allele"), f.col("alternate_allele"))).show(truncate=False)
             +----------------+----------------+---------------------------------------+
             |reference_allele|alternate_allele|qc                                     |
             +----------------+----------------+---------------------------------------+
@@ -971,9 +979,9 @@ class GWASCatalogAssociations(StudyLocus):
             <BLANKLINE>
 
         """
-        return StudyLocus._update_quality_flag(
+        return StudyLocus.update_quality_flag(
             qc,
-            GWASCatalogAssociations._are_alleles_palindromic(
+            GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
                 reference_allele, alternate_allele
             ),
             StudyLocusQualityCheck.PALINDROMIC_ALLELE_FLAG,
@@ -981,11 +989,11 @@ class GWASCatalogAssociations(StudyLocus):
 
     @classmethod
     def from_source(
-        cls: type[GWASCatalogAssociations],
+        cls: type[GWASCatalogCuratedAssociationsParser],
         gwas_associations: DataFrame,
         variant_annotation: VariantAnnotation,
         pvalue_threshold: float = 5e-8,
-    ) -> GWASCatalogAssociations:
+    ) -> StudyLocusGWASCatalog:
         """Read GWASCatalog associations.
 
         It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
@@ -997,30 +1005,32 @@ class GWASCatalogAssociations(StudyLocus):
             pvalue_threshold (float): P-value threshold for flagging associations
 
         Returns:
-            GWASCatalogAssociations: GWASCatalogAssociations dataset
+            StudyLocusGWASCatalog: GWASCatalogAssociations dataset
         """
-        return GWASCatalogAssociations(
+        return StudyLocusGWASCatalog(
             _df=gwas_associations.withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
                 # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
-                lambda df: GWASCatalogAssociations._map_to_variant_annotation_variants(
+                lambda df: GWASCatalogCuratedAssociationsParser._map_to_variant_annotation_variants(
                     df, variant_annotation
                 )
             )
             .withColumn(
                 # Perform all quality control checks:
                 "qualityControls",
-                GWASCatalogAssociations._qc_all(
+                GWASCatalogCuratedAssociationsParser._qc_all(
                     f.array().alias("qualityControls"),
                     f.col("CHR_ID"),
                     f.col("CHR_POS").cast(IntegerType()),
                     f.col("referenceAllele"),
                     f.col("alternateAllele"),
                     f.col("STRONGEST SNP-RISK ALLELE"),
-                    *GWASCatalogAssociations._parse_pvalue(f.col("P-VALUE")),
+                    *GWASCatalogCuratedAssociationsParser._parse_pvalue(
+                        f.col("P-VALUE")
+                    ),
                     pvalue_threshold,
                 ),
             )
@@ -1033,8 +1043,8 @@ class GWASCatalogAssociations(StudyLocus):
                 "position",
                 f.col("STUDY ACCESSION").alias("studyId"),
                 # beta value of the association
-                GWASCatalogAssociations._harmonise_beta(
-                    GWASCatalogAssociations._normalise_risk_allele(
+                GWASCatalogCuratedAssociationsParser._harmonise_beta(
+                    GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
                         f.col("STRONGEST SNP-RISK ALLELE")
                     ),
                     f.col("referenceAllele"),
@@ -1043,9 +1053,9 @@ class GWASCatalogAssociations(StudyLocus):
                     f.col("95% CI (TEXT)"),
                 ).alias("beta"),
                 # p-value of the association, string: split into exponent and mantissa.
-                *GWASCatalogAssociations._parse_pvalue(f.col("P-VALUE")),
+                *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
                 # Capturing phenotype granularity at the association level
-                GWASCatalogAssociations._concatenate_substudy_description(
+                GWASCatalogCuratedAssociationsParser._concatenate_substudy_description(
                     f.col("DISEASE/TRAIT"),
                     f.col("P-VALUE (TEXT)"),
                     f.col("MAPPED_TRAIT_URI"),
@@ -1053,19 +1063,27 @@ class GWASCatalogAssociations(StudyLocus):
                 # Quality controls (array of strings)
                 "qualityControls",
             ),
-            _schema=GWASCatalogAssociations.get_schema(),
+            _schema=StudyLocusGWASCatalog.get_schema(),
         )
 
+
+@dataclass
+class StudyLocusGWASCatalog(StudyLocus):
+    """Study locus Dataset for GWAS Catalog curated associations.
+
+    A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
+    """
+
     def update_study_id(
-        self: GWASCatalogAssociations, study_annotation: DataFrame
-    ) -> GWASCatalogAssociations:
+        self: StudyLocusGWASCatalog, study_annotation: DataFrame
+    ) -> StudyLocusGWASCatalog:
         """Update final studyId and studyLocusId with a dataframe containing study annotation.
 
         Args:
             study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
 
         Returns:
-            GWASCatalogAssociations: Updated study locus with new `studyId` and `studyLocusId`.
+            StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.
         """
         self.df = (
             self._df.join(
@@ -1079,11 +1097,11 @@ class GWASCatalogAssociations(StudyLocus):
         )
         return self
 
-    def _qc_ambiguous_study(self: GWASCatalogAssociations) -> GWASCatalogAssociations:
+    def qc_ambiguous_study(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
         """Flag associations with variants that can not be unambiguously associated with one study.
 
         Returns:
-            GWASCatalogAssociations: Updated study locus.
+            StudyLocusGWASCatalog: Updated study locus.
         """
         assoc_ambiguity_window = Window.partitionBy(
             f.col("studyId"), f.col("variantId")
@@ -1091,7 +1109,7 @@ class GWASCatalogAssociations(StudyLocus):
 
         self._df.withColumn(
             "qualityControls",
-            StudyLocus._update_quality_flag(
+            StudyLocus.update_quality_flag(
                 f.col("qualityControls"),
                 f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
                 StudyLocusQualityCheck.AMBIGUOUS_STUDY,

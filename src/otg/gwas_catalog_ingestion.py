@@ -7,8 +7,10 @@ from omegaconf import MISSING
 
 from otg.common.session import Session
 from otg.dataset.variant_annotation import VariantAnnotation
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
+from otg.datasource.gwas_catalog.associations import (
+    GWASCatalogCuratedAssociationsParser,
+)
+from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
 from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
 
 
@@ -58,10 +60,10 @@ class GWASCatalogIngestionStep:
 
         # Transform
         study_index, study_locus = GWASCatalogStudySplitter.split(
-            GWASCatalogStudyIndex.from_source(
+            StudyIndexGWASCatalogParser.from_source(
                 catalog_studies, ancestry_lut, sumstats_lut
             ),
-            GWASCatalogAssociations.from_source(catalog_associations, va),
+            GWASCatalogCuratedAssociationsParser.from_source(catalog_associations, va),
         )
 
         # Load
