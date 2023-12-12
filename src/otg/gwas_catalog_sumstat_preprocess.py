@@ -29,10 +29,6 @@ class GWASCatalogSumstatsPreprocessStep:
         self.session.logger.info(self.raw_sumstats_path)
         self.session.logger.info(self.out_sumstats_path)
 
-        self.session.logger.info(
-            f"Ingesting summary stats from: {self.raw_sumstats_path}"
-        )
-
         # Processing dataset:
         GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
             self.session.spark, self.raw_sumstats_path

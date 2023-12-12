@@ -5,6 +5,10 @@ from typing import Any
 
 import pyspark.sql.functions as f
 import pytest
+from otg.dataset.ld_index import LDIndex
+from otg.dataset.study_index import StudyIndex
+from otg.dataset.study_locus import CredibleInterval, StudyLocus
+from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
     ArrayType,
@@ -15,11 +19,6 @@ from pyspark.sql.types import (
     StructField,
     StructType,
 )
-
-from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import StudyIndex
-from otg.dataset.study_locus import CredibleInterval, StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
 
 
 def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:

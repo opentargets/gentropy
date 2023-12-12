@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
-from pyspark.sql import functions as f
-from pyspark.sql.types import LongType
-
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.datasource.gwas_catalog.associations import (
     GWASCatalogCuratedAssociationsParser,
     StudyLocusGWASCatalog,
 )
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
+from pyspark.sql.types import LongType
 
 
 def test_study_locus_gwas_catalog_creation(

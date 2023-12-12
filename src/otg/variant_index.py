@@ -40,8 +40,6 @@ class VariantIndexStep:
         # Transform
         vi = VariantIndex.from_variant_annotation(va, credible_set)
 
-        # Load
-        self.session.logger.info(f"Writing variant index to: {self.variant_index_path}")
         (
             vi.df.write.partitionBy("chromosome")
             .mode(self.session.write_mode)

@@ -5,15 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.ml import PipelineModel
-from pyspark.ml.tuning import ParamGridBuilder
-from xgboost.spark import SparkXGBClassifier
-
 from otg.dataset.l2g_feature import L2GFeature
 from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from otg.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
 from otg.method.l2g.model import LocusToGeneModel
 from otg.method.l2g.trainer import LocusToGeneTrainer
+from pyspark.ml import PipelineModel
+from pyspark.ml.tuning import ParamGridBuilder
+from xgboost.spark import SparkXGBClassifier
 
 if TYPE_CHECKING:
     from otg.dataset.colocalisation import Colocalisation

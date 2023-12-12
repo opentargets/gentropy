@@ -31,19 +31,10 @@ repos:
     rev: v0.1.6
     hooks:
       - id: ruff
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
         args:
-          [--add-import, from __future__ import annotations, --profile, black]
-
-  - repo: https://github.com/psf/black
-    rev: 23.11.0
-    hooks:
-      - id: black
-
+          - --fix
+      - id: ruff-format
+        files: ^((otg|utils|tests)/.+)?[^/]+\.py$
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.10.0
     hooks:

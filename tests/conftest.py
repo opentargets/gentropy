@@ -6,8 +6,6 @@ from pathlib import Path
 import dbldatagen as dg
 import hail as hl
 import pytest
-from pyspark.sql import DataFrame, SparkSession
-
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
 from otg.dataset.colocalisation import Colocalisation
@@ -26,6 +24,8 @@ from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 from otg.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
+from pyspark.sql import DataFrame, SparkSession
+
 from utils.spark import get_spark_testing_conf
 
 
@@ -357,7 +357,8 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
             partitions=4,
             randomSeedMethod="hash_fieldname",
             name="summaryStats",
-        ).withSchema(ss_schema)
+        )
+        .withSchema(ss_schema)
         # Allowing missingness in effect allele frequency and enforce upper limit:
         .withColumnSpec(
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0

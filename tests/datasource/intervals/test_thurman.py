@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import pytest
-from pyspark.sql import DataFrame, SparkSession
-
 from otg.common.Liftover import LiftOverSpark
 from otg.dataset.gene_index import GeneIndex
 from otg.dataset.intervals import Intervals
 from otg.datasource.intervals.thurman import IntervalsThurman
+from pyspark.sql import DataFrame, SparkSession
 
 
 @pytest.fixture(scope="module")

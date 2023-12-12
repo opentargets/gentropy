@@ -52,20 +52,20 @@ with DAG(
         raw_harmonised = ti.xcom_pull(
             task_ids="list_raw_harmonised", key="return_value"
         )
-        print("Number of raw harmonised files: ", len(raw_harmonised))
+        print("Number of raw harmonised files: ", len(raw_harmonised))  # noqa: T201
         to_do_list = []
         # Remove the ones that have been processed
         parquets = ti.xcom_pull(task_ids="list_harmonised_parquet", key="return_value")
-        print("Number of parquet files: ", len(parquets))
+        print("Number of parquet files: ", len(parquets))  # noqa: T201
         for path in raw_harmonised:
             match_result = re.search(
-                "raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", path
+                r"raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", path
             )
             if match_result:
                 study_id = match_result.group(2)
                 if f"harmonised/{study_id}.parquet/_SUCCESS" not in parquets:
                     to_do_list.append(path)
-        print("Number of jobs to submit: ", len(to_do_list))
+        print("Number of jobs to submit: ", len(to_do_list))  # noqa: T201
         ti.xcom_push(key="to_do_list", value=to_do_list)
 
     # Submit jobs to dataproc
@@ -78,18 +78,18 @@ with DAG(
         """
         ti = kwargs["ti"]
         todo = ti.xcom_pull(task_ids="create_to_do_list", key="to_do_list")
-        print("Number of jobs to submit: ", len(todo))
+        print("Number of jobs to submit: ", len(todo))  # noqa: T201
         for i in range(len(todo)):
             # Not to exceed default quota 400 jobs per minute
             if i > 0 and i % 399 == 0:
                 time.sleep(60)
             input_path = todo[i]
             match_result = re.search(
-                "raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", input_path
+                r"raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", input_path
             )
             if match_result:
                 study_id = match_result.group(2)
-            print("Submitting job for study: ", study_id)
+            print("Submitting job for study: ", study_id)  # noqa: T201
             common.submit_pyspark_job_no_operator(
                 cluster_name=CLUSTER_NAME,
                 step_id="gwas_catalog_sumstat_preprocess",

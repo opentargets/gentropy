@@ -1,9 +1,8 @@
 """Tests on LD index."""
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
-
 from otg.dataset.gene_index import GeneIndex
+from pyspark.sql import DataFrame
 
 
 def test_gene_index_creation(mock_gene_index: GeneIndex) -> None:
