@@ -37,7 +37,7 @@ colocalisation: ${datasets.outputs}/colocalisation
 v2g: ${datasets.outputs}/v2g
 ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.outputs}/catalog_study_index
-catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
+catalog_study_locus: ${datasets.study_locus}/catalog_curated
 finngen_study_index: ${datasets.outputs}/finngen_study_index
 finngen_summary_stats: ${datasets.outputs}/finngen_summary_stats
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
