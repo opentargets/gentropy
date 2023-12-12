@@ -35,8 +35,12 @@ class OverlapsIndexStep:
     def __post_init__(self: OverlapsIndexStep) -> None:
         """Run step."""
         # Extract
-        study_locus = StudyLocus.from_parquet(self.session, self.study_locus_path)
-        study_index = StudyIndex.from_parquet(self.session, self.study_index_path)
+        study_locus = StudyLocus.from_parquet(
+            self.session, self.study_locus_path, recursiveFileLookup=True
+        )
+        study_index = StudyIndex.from_parquet(
+            self.session, self.study_index_path, recursiveFileLookup=True
+        )
         # Transform
         overlaps_index = StudyLocusOverlap.from_associations(study_locus, study_index)
         # Load
