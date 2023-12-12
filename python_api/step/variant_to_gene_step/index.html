@@ -2714,9 +2714,7 @@
 <span class="normal">131</span>
 <span class="normal">132</span>
 <span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">V2GStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Variant-to-gene (V2G) step.</span>
 
@@ -2814,8 +2812,6 @@
         <span class="n">v2g_datasets</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">va_slimmed</span><span class="o">.</span><span class="n">get_distance_to_tss</span><span class="p">(</span><span class="n">gene_index_filtered</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_distance</span><span class="p">),</span>
             <span class="n">va_slimmed</span><span class="o">.</span><span class="n">get_most_severe_vep_v2g</span><span class="p">(</span><span class="n">vep_consequences</span><span class="p">,</span> <span class="n">gene_index_filtered</span><span class="p">),</span>
-            <span class="n">va_slimmed</span><span class="o">.</span><span class="n">get_polyphen_v2g</span><span class="p">(</span><span class="n">gene_index_filtered</span><span class="p">),</span>
-            <span class="n">va_slimmed</span><span class="o">.</span><span class="n">get_sift_v2g</span><span class="p">(</span><span class="n">gene_index_filtered</span><span class="p">),</span>
             <span class="n">va_slimmed</span><span class="o">.</span><span class="n">get_plof_v2g</span><span class="p">(</span><span class="n">gene_index_filtered</span><span class="p">),</span>
             <span class="n">intervals</span><span class="o">.</span><span class="n">v2g</span><span class="p">(</span><span class="n">vi</span><span class="p">),</span>
         <span class="p">]</span>

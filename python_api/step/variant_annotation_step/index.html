@@ -2523,9 +2523,7 @@
 <span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">38</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">VariantAnnotationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Variant annotation step.</span>
 
@@ -2547,11 +2545,9 @@
         <span class="n">variant_annotation</span> <span class="o">=</span> <span class="n">GnomADVariants</span><span class="p">()</span><span class="o">.</span><span class="n">as_variant_annotation</span><span class="p">()</span>
         <span class="c1"># Write data partitioned by chromosome and position.</span>
         <span class="p">(</span>
-            <span class="n">variant_annotation</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartition</span><span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variant_annotation_path</span><span class="p">)</span>
+            <span class="n">variant_annotation</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">variant_annotation_path</span>
+            <span class="p">)</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>

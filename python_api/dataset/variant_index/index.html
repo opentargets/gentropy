@@ -2628,7 +2628,7 @@
             <span class="s2">&quot;positionB37&quot;</span><span class="p">,</span>
             <span class="s2">&quot;alleleType&quot;</span><span class="p">,</span>
             <span class="s2">&quot;alleleFrequencies&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;cadd&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="n">va_slimmed</span> <span class="o">=</span> <span class="n">variant_annotation</span><span class="o">.</span><span class="n">filter_by_variant_df</span><span class="p">(</span>
             <span class="n">study_locus</span><span class="o">.</span><span class="n">unique_variants_in_locus</span><span class="p">()</span>
@@ -2818,7 +2818,7 @@
         <span class="s2">&quot;positionB37&quot;</span><span class="p">,</span>
         <span class="s2">&quot;alleleType&quot;</span><span class="p">,</span>
         <span class="s2">&quot;alleleFrequencies&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;cadd&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">va_slimmed</span> <span class="o">=</span> <span class="n">variant_annotation</span><span class="o">.</span><span class="n">filter_by_variant_df</span><span class="p">(</span>
         <span class="n">study_locus</span><span class="o">.</span><span class="n">unique_variants_in_locus</span><span class="p">()</span>
@@ -2929,9 +2929,16 @@
  |    |-- element: struct (containsNull = true)
  |    |    |-- populationName: string (nullable = true)
  |    |    |-- alleleFrequency: double (nullable = true)
- |-- cadd: struct (nullable = true)
- |    |-- phred: float (nullable = true)
- |    |-- raw: float (nullable = true)
+ |-- inSilicoPredictors: struct (nullable = false)
+ |    |-- cadd: struct (nullable = true)
+ |    |    |-- raw: float (nullable = true)
+ |    |    |-- phred: float (nullable = true)
+ |    |-- revelMax: double (nullable = true)
+ |    |-- spliceaiDsMax: float (nullable = true)
+ |    |-- pangolinLargestDs: double (nullable = true)
+ |    |-- phylop: double (nullable = true)
+ |    |-- siftMax: double (nullable = true)
+ |    |-- polyphenMax: double (nullable = true)
  |-- mostSevereConsequence: string (nullable = true)
  |-- rsIds: array (nullable = true)
  |    |-- element: string (containsNull = true)

@@ -954,27 +954,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g" class="md-nav__link">
-    <span class="md-ellipsis">
-      get_polyphen_v2g()
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#otg.dataset.variant_annotation.VariantAnnotation.get_schema" class="md-nav__link">
     <span class="md-ellipsis">
       get_schema()
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g" class="md-nav__link">
-    <span class="md-ellipsis">
-      get_sift_v2g()
     </span>
   </a>
   
@@ -2551,27 +2533,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g" class="md-nav__link">
-    <span class="md-ellipsis">
-      get_polyphen_v2g()
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#otg.dataset.variant_annotation.VariantAnnotation.get_schema" class="md-nav__link">
     <span class="md-ellipsis">
       get_schema()
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g" class="md-nav__link">
-    <span class="md-ellipsis">
-      get_sift_v2g()
     </span>
   </a>
   
@@ -2857,68 +2821,7 @@
 <span class="normal">221</span>
 <span class="normal">222</span>
 <span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span>
-<span class="normal">246</span>
-<span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span>
-<span class="normal">263</span>
-<span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span>
-<span class="normal">277</span>
-<span class="normal">278</span>
-<span class="normal">279</span>
-<span class="normal">280</span>
-<span class="normal">281</span>
-<span class="normal">282</span>
-<span class="normal">283</span>
-<span class="normal">284</span>
-<span class="normal">285</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">224</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">VariantAnnotation</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset with variant-level annotations.&quot;&quot;&quot;</span>
 
@@ -3031,67 +2934,6 @@
             <span class="o">.</span><span class="n">transform</span><span class="p">(</span>
                 <span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">get_record_with_maximum_value</span><span class="p">(</span>
                     <span class="n">df</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span> <span class="s2">&quot;score&quot;</span>
-                <span class="p">)</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="n">V2G</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">get_polyphen_v2g</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">:</span> <span class="n">VariantAnnotation</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a PolyPhen&#39;s predicted score on the transcript.</span>
-
-<span class="sd">        Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows:</span>
-<span class="sd">            - 0.0 to 0.15 -- Predicted to be benign.</span>
-<span class="sd">            - 0.15 to 1.0 -- Possibly damaging.</span>
-<span class="sd">            - 0.85 to 1.0 -- Predicted to be damaging.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            gene_index (GeneIndex | None): A gene index to filter by. Defaults to None.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            V2G: variant to gene assignments with their polyphen scores</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">V2G</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">get_transcript_consequence_df</span><span class="p">(</span><span class="n">gene_index</span><span class="p">)</span>
-                <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.polyphenScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
-                <span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                    <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.polyphenScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;vep&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datatypeId&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;polyphen&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
-                <span class="p">)</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="n">V2G</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">get_sift_v2g</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">VariantAnnotation</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a SIFT&#39;s predicted score on the transcript.</span>
-
-<span class="sd">        SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:</span>
-<span class="sd">            - 0.0 to 0.05 -- Likely to be deleterious.</span>
-<span class="sd">            - 0.05 to 1.0 -- Likely to be tolerated.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            gene_index (GeneIndex): A gene index to filter by.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            V2G: variant to gene assignments with their SIFT scores</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">V2G</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">get_transcript_consequence_df</span><span class="p">(</span><span class="n">gene_index</span><span class="p">)</span>
-                <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.siftScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
-                <span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                    <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s2">&quot;1 - transcriptConsequence.siftScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;vep&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datatypeId&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;sift&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">),</span>
             <span class="n">_schema</span><span class="o">=</span><span class="n">V2G</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
@@ -3395,52 +3237,52 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span>
-<span class="normal">246</span>
-<span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span>
-<span class="normal">263</span>
-<span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span>
-<span class="normal">277</span>
-<span class="normal">278</span>
-<span class="normal">279</span>
-<span class="normal">280</span>
-<span class="normal">281</span>
-<span class="normal">282</span>
-<span class="normal">283</span>
-<span class="normal">284</span>
-<span class="normal">285</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_distance_to_tss</span><span class="p">(</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_distance_to_tss</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">VariantAnnotation</span><span class="p">,</span>
     <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
     <span class="n">max_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
@@ -3739,45 +3581,45 @@
 
           <details class="quote">
             <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_plof_v2g</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">VariantAnnotation</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span><span class="p">:</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_plof_v2g</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">VariantAnnotation</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.</span>
 
 <span class="sd">    Optionally the trancript consequences can be reduced to the universe of a gene index.</span>
@@ -3812,149 +3654,6 @@
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;vep&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datatypeId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;loftee&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
-            <span class="p">)</span>
-        <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="n">V2G</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-    <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-          </details>
-  </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-
-
-<h3 id="otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">get_polyphen_v2g</span><span class="p">(</span><span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span></code>
-
-<a href="#otg.dataset.variant_annotation.VariantAnnotation.get_polyphen_v2g" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-  <div class="doc doc-contents ">
-  
-      <p>Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.</p>
-<p>Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows:
-    - 0.0 to 0.15 -- Predicted to be benign.
-    - 0.15 to 1.0 -- Possibly damaging.
-    - 0.85 to 1.0 -- Predicted to be damaging.</p>
-
-
-
-  <p><strong>Parameters:</strong></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr>
-          <td><code>gene_index</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a> | None</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A gene index to filter by. Defaults to None.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><strong>Returns:</strong></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr>
-<td><code>V2G</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>variant to gene assignments with their polyphen scores</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_polyphen_v2g</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">:</span> <span class="n">VariantAnnotation</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a PolyPhen&#39;s predicted score on the transcript.</span>
-
-<span class="sd">    Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows:</span>
-<span class="sd">        - 0.0 to 0.15 -- Predicted to be benign.</span>
-<span class="sd">        - 0.15 to 1.0 -- Possibly damaging.</span>
-<span class="sd">        - 0.85 to 1.0 -- Predicted to be damaging.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        gene_index (GeneIndex | None): A gene index to filter by. Defaults to None.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        V2G: variant to gene assignments with their polyphen scores</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">V2G</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">get_transcript_consequence_df</span><span class="p">(</span><span class="n">gene_index</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.polyphenScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
-            <span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.polyphenScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;vep&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datatypeId&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;polyphen&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">),</span>
         <span class="n">_schema</span><span class="o">=</span><span class="n">V2G</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
@@ -4026,142 +3725,6 @@
 <span class="sd">        StructType: Schema for the VariantAnnotation dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">parse_spark_schema</span><span class="p">(</span><span class="s2">&quot;variant_annotation.json&quot;</span><span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-          </details>
-  </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-
-
-<h3 id="otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">get_sift_v2g</span><span class="p">(</span><span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span></code>
-
-<a href="#otg.dataset.variant_annotation.VariantAnnotation.get_sift_v2g" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-  <div class="doc doc-contents ">
-  
-      <p>Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.</p>
-<p>SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:
-    - 0.0 to 0.05 -- Likely to be deleterious.
-    - 0.05 to 1.0 -- Likely to be tolerated.</p>
-
-
-
-  <p><strong>Parameters:</strong></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr>
-          <td><code>gene_index</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.dataset.gene_index.GeneIndex" href="../gene_index/#otg.dataset.gene_index.GeneIndex">GeneIndex</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>A gene index to filter by.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><strong>Returns:</strong></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr>
-<td><code>V2G</code></td>          <td>
-                <code><a class="autorefs autorefs-internal" title="otg.dataset.v2g.V2G" href="../variant_to_gene/#otg.dataset.v2g.V2G">V2G</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>variant to gene assignments with their SIFT scores</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>src/otg/dataset/variant_annotation.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">get_sift_v2g</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">VariantAnnotation</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V2G</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dataset with variant to gene assignments with a SIFT&#39;s predicted score on the transcript.</span>
-
-<span class="sd">    SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:</span>
-<span class="sd">        - 0.0 to 0.05 -- Likely to be deleterious.</span>
-<span class="sd">        - 0.05 to 1.0 -- Likely to be tolerated.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        gene_index (GeneIndex): A gene index to filter by.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        V2G: variant to gene assignments with their SIFT scores</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">V2G</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">get_transcript_consequence_df</span><span class="p">(</span><span class="n">gene_index</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.siftScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
-            <span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s2">&quot;1 - transcriptConsequence.siftScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;vep&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datatypeId&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;sift&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
-            <span class="p">)</span>
-        <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="n">V2G</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -4390,7 +3953,7 @@
  |-- variantId: string (nullable = false)
  |-- chromosome: string (nullable = false)
  |-- position: integer (nullable = false)
- |-- gnomad3VariantId: string (nullable = false)
+ |-- gnomadVariantId: string (nullable = false)
  |-- referenceAllele: string (nullable = false)
  |-- alternateAllele: string (nullable = false)
  |-- chromosomeB37: string (nullable = true)
@@ -4402,9 +3965,16 @@
  |    |-- element: struct (containsNull = true)
  |    |    |-- populationName: string (nullable = true)
  |    |    |-- alleleFrequency: double (nullable = true)
- |-- cadd: struct (nullable = true)
- |    |-- phred: float (nullable = true)
- |    |-- raw: float (nullable = true)
+ |-- inSilicoPredictors: struct (nullable = false)
+ |    |-- cadd: struct (nullable = true)
+ |    |    |-- raw: float (nullable = true)
+ |    |    |-- phred: float (nullable = true)
+ |    |-- revelMax: double (nullable = true)
+ |    |-- spliceaiDsMax: float (nullable = true)
+ |    |-- pangolinLargestDs: double (nullable = true)
+ |    |-- phylop: double (nullable = true)
+ |    |-- siftMax: double (nullable = true)
+ |    |-- polyphenMax: double (nullable = true)
  |-- vep: struct (nullable = false)
  |    |-- mostSevereConsequence: string (nullable = true)
  |    |-- transcriptConsequences: array (nullable = true)
@@ -4414,10 +3984,6 @@
  |    |    |    |    |-- element: string (containsNull = true)
  |    |    |    |-- geneId: string (nullable = true)
  |    |    |    |-- lof: string (nullable = true)
- |    |    |    |-- polyphenScore: double (nullable = true)
- |    |    |    |-- polyphenPrediction: string (nullable = true)
- |    |    |    |-- siftScore: double (nullable = true)
- |    |    |    |-- siftPrediction: string (nullable = true)
 </code></pre></div>
 <hr />
 <div class="md-source-file">

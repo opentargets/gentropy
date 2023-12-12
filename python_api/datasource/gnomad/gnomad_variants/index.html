@@ -2509,7 +2509,7 @@
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Path to gnomAD genomes hail table. Defaults to gnomAD's 3.1.2 release.</p>
+              <p>Path to gnomAD genomes hail table. Defaults to gnomAD's 4.0 release.</p>
             </div>
           </td>
         </tr>
@@ -2690,17 +2690,21 @@
 <span class="normal">162</span>
 <span class="normal">163</span>
 <span class="normal">164</span>
-<span class="normal">165</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">GnomADVariants</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GnomAD variants included in the GnomAD genomes dataset.</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        gnomad_genomes (str): Path to gnomAD genomes hail table. Defaults to gnomAD&#39;s 3.1.2 release.</span>
+<span class="sd">        gnomad_genomes (str): Path to gnomAD genomes hail table. Defaults to gnomAD&#39;s 4.0 release.</span>
 <span class="sd">        chain_hail_38_37 (str): Path to GRCh38 to GRCh37 chain file. Defaults to Hail&#39;s chain file.</span>
 <span class="sd">        populations (list[str]): List of populations to include. Defaults to all populations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">gnomad_genomes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gs://gcp-public-data--gnomad/release/3.1.2/ht/genomes/gnomad.genomes.v3.1.2.sites.ht&quot;</span>
+    <span class="n">gnomad_genomes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/&quot;</span>
     <span class="n">chain_hail_38_37</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gs://hail-common/references/grch38_to_grch37.over.chain.gz&quot;</span>
     <span class="n">populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span>
@@ -2713,7 +2717,7 @@
             <span class="s2">&quot;nfe&quot;</span><span class="p">,</span>  <span class="c1"># Non-Finnish European</span>
             <span class="s2">&quot;mid&quot;</span><span class="p">,</span>  <span class="c1"># Middle Eastern</span>
             <span class="s2">&quot;sas&quot;</span><span class="p">,</span>  <span class="c1"># South Asian</span>
-            <span class="s2">&quot;oth&quot;</span><span class="p">,</span>  <span class="c1"># Other</span>
+            <span class="s2">&quot;remaining&quot;</span><span class="p">,</span>  <span class="c1"># Other</span>
         <span class="p">]</span>
     <span class="p">)</span>
 
@@ -2771,7 +2775,7 @@
         <span class="k">return</span> <span class="n">VariantAnnotation</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">ht</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                    <span class="n">gnomad3VariantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">gnomadVariantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                         <span class="p">[</span>
                             <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
                             <span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">),</span>
@@ -2801,12 +2805,8 @@
                     <span class="n">alternateAllele</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                     <span class="n">rsIds</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span>
                     <span class="n">alleleType</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">allele_info</span><span class="o">.</span><span class="n">allele_type</span><span class="p">,</span>
-                    <span class="n">cadd</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
-                        <span class="n">phred</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">phred</span><span class="p">,</span>
-                        <span class="n">raw</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">raw_score</span><span class="p">,</span>
-                    <span class="p">),</span>
                     <span class="n">alleleFrequencies</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-                        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pop</span><span class="si">}</span><span class="s2">-adj&quot;</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">populations</span><span class="p">]</span>
+                        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pop</span><span class="si">}</span><span class="s2">_adj&quot;</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">populations</span><span class="p">]</span>
                     <span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
                         <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
                             <span class="n">populationName</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
@@ -2821,10 +2821,6 @@
                                 <span class="n">consequenceTerms</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">consequence_terms</span><span class="p">,</span>
                                 <span class="n">geneId</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">gene_id</span><span class="p">,</span>
                                 <span class="n">lof</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">lof</span><span class="p">,</span>
-                                <span class="n">polyphenScore</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">polyphen_score</span><span class="p">,</span>
-                                <span class="n">polyphenPrediction</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">polyphen_prediction</span><span class="p">,</span>
-                                <span class="n">siftScore</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">sift_score</span><span class="p">,</span>
-                                <span class="n">siftPrediction</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">sift_prediction</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="c1"># Only keeping canonical transcripts</span>
                             <span class="n">ht</span><span class="o">.</span><span class="n">vep</span><span class="o">.</span><span class="n">transcript_consequences</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
@@ -2832,6 +2828,18 @@
                                 <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">gene_symbol_source</span> <span class="o">==</span> <span class="s2">&quot;HGNC&quot;</span><span class="p">)</span>
                             <span class="p">),</span>
                         <span class="p">),</span>
+                    <span class="p">),</span>
+                    <span class="n">inSilicoPredictors</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                        <span class="n">cadd</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                            <span class="n">phred</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">phred</span><span class="p">,</span>
+                            <span class="n">raw</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">raw_score</span><span class="p">,</span>
+                        <span class="p">),</span>
+                        <span class="n">revelMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">revel_max</span><span class="p">,</span>
+                        <span class="n">spliceaiDsMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">spliceai_ds_max</span><span class="p">,</span>
+                        <span class="n">pangolinLargestDs</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">pangolin_largest_ds</span><span class="p">,</span>
+                        <span class="n">phylop</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">phylop</span><span class="p">,</span>
+                        <span class="n">siftMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">sift_max</span><span class="p">,</span>
+                        <span class="n">polyphenMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">polyphen_max</span><span class="p">,</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
                 <span class="o">.</span><span class="n">key_by</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">)</span>
@@ -3004,7 +3012,11 @@
 <span class="normal">162</span>
 <span class="normal">163</span>
 <span class="normal">164</span>
-<span class="normal">165</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">as_variant_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GnomADVariants</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VariantAnnotation</span><span class="p">:</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">as_variant_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GnomADVariants</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VariantAnnotation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate variant annotation dataset from gnomAD.</span>
 
 <span class="sd">    Some relevant modifications to the original dataset are:</span>
@@ -3035,7 +3047,7 @@
     <span class="k">return</span> <span class="n">VariantAnnotation</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="n">ht</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                <span class="n">gnomad3VariantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">gnomadVariantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="p">[</span>
                         <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
                         <span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">),</span>
@@ -3065,12 +3077,8 @@
                 <span class="n">alternateAllele</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">rsIds</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span>
                 <span class="n">alleleType</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">allele_info</span><span class="o">.</span><span class="n">allele_type</span><span class="p">,</span>
-                <span class="n">cadd</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
-                    <span class="n">phred</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">phred</span><span class="p">,</span>
-                    <span class="n">raw</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">raw_score</span><span class="p">,</span>
-                <span class="p">),</span>
                 <span class="n">alleleFrequencies</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-                    <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pop</span><span class="si">}</span><span class="s2">-adj&quot;</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">populations</span><span class="p">]</span>
+                    <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pop</span><span class="si">}</span><span class="s2">_adj&quot;</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">populations</span><span class="p">]</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
                     <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
                         <span class="n">populationName</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
@@ -3085,10 +3093,6 @@
                             <span class="n">consequenceTerms</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">consequence_terms</span><span class="p">,</span>
                             <span class="n">geneId</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">gene_id</span><span class="p">,</span>
                             <span class="n">lof</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">lof</span><span class="p">,</span>
-                            <span class="n">polyphenScore</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">polyphen_score</span><span class="p">,</span>
-                            <span class="n">polyphenPrediction</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">polyphen_prediction</span><span class="p">,</span>
-                            <span class="n">siftScore</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">sift_score</span><span class="p">,</span>
-                            <span class="n">siftPrediction</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">sift_prediction</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="c1"># Only keeping canonical transcripts</span>
                         <span class="n">ht</span><span class="o">.</span><span class="n">vep</span><span class="o">.</span><span class="n">transcript_consequences</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
@@ -3096,6 +3100,18 @@
                             <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">gene_symbol_source</span> <span class="o">==</span> <span class="s2">&quot;HGNC&quot;</span><span class="p">)</span>
                         <span class="p">),</span>
                     <span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">inSilicoPredictors</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                    <span class="n">cadd</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                        <span class="n">phred</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">phred</span><span class="p">,</span>
+                        <span class="n">raw</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">cadd</span><span class="o">.</span><span class="n">raw_score</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">revelMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">revel_max</span><span class="p">,</span>
+                    <span class="n">spliceaiDsMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">spliceai_ds_max</span><span class="p">,</span>
+                    <span class="n">pangolinLargestDs</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">pangolin_largest_ds</span><span class="p">,</span>
+                    <span class="n">phylop</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">phylop</span><span class="p">,</span>
+                    <span class="n">siftMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">sift_max</span><span class="p">,</span>
+                    <span class="n">polyphenMax</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">in_silico_predictors</span><span class="o">.</span><span class="n">polyphen_max</span><span class="p">,</span>
                 <span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">key_by</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">)</span>
