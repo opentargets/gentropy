@@ -338,15 +338,15 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
             expr='array(named_struct("alleleFrequency", rand(), "populationName", cast(rand() as string)))',
             percentNulls=0.1,
         )
-        .withColumnSpec(
-            "cadd",
-            expr='named_struct("phred", cast(rand() as float), "raw", cast(rand() as float))',
-            percentNulls=0.1,
-        )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
         .withColumnSpec(
             "vep",
-            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string), "polyphenPrediction", cast(rand() as string), "polyphenScore", cast(rand() as float), "siftPrediction", cast(rand() as string), "siftScore", cast(rand() as float))))',
+            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string))))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "inSilicoPredictors",
+            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
             percentNulls=0.1,
         )
     )
@@ -355,7 +355,7 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
 
 @pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
-    """Mock gene index."""
+    """Mock variant index."""
     vi_schema = VariantIndex.get_schema()
 
     data_spec = (
@@ -378,8 +378,8 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             percentNulls=0.1,
         )
         .withColumnSpec(
-            "cadd",
-            expr='named_struct("phred", cast(rand() AS float), "raw", cast(rand() AS float))',
+            "inSilicoPredictors",
+            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
             percentNulls=0.1,
         )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
