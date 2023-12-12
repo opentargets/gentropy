@@ -190,7 +190,7 @@ class LocusToGeneModel:
         hyperparameters: dict[str, Any],
         wandb_run_name: str | None,
     ) -> None:
-        """Perform evaluation of the model by applying it to a test set and tracking the results with W&B.
+        """Perform evaluation of the model predictions for the test set and track the results with W&B.
 
         Args:
             results (DataFrame): Dataframe containing the predictions
