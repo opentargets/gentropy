@@ -45,7 +45,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> import pyspark.sql.types as t
             >>> d = [("1.0"), ("0.5"), ("1E-20"), ("3E-3"), ("1E-1000")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.select('value',*GWASCatalogAssociations._parse_pvalue(f.col('value'))).show()
+            >>> df.select('value',*GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col('value'))).show()
             +-------+--------------+--------------+
             |  value|pValueMantissa|pValueExponent|
             +-------+--------------+--------------+
@@ -79,7 +79,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> import pyspark.sql.types as t
             >>> d = [("European Ancestry"), ("African ancestry"), ("Alzheimer’s Disease"), ("(progression)"), (""), (None)]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.withColumn('normalised', GWASCatalogAssociations._normalise_pvaluetext(f.col('value'))).show()
+            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._normalise_pvaluetext(f.col('value'))).show()
             +-------------------+----------+
             |              value|normalised|
             +-------------------+----------+
@@ -121,7 +121,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> import pyspark.sql.types as t
             >>> d = [("rs1234-A-G"), ("rs1234-A"), ("rs1234-A; rs1235-G")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.withColumn('normalised', GWASCatalogAssociations._normalise_risk_allele(f.col('value'))).show()
+            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._normalise_risk_allele(f.col('value'))).show()
             +------------------+----------+
             |             value|normalised|
             +------------------+----------+
@@ -281,7 +281,7 @@ class GWASCatalogCuratedAssociationsParser:
             ...    (4, [], []),
             ... ]
             >>> df = spark.createDataFrame(d, ['associationId', 'gnomad', 'gwas'])
-            >>> df.withColumn("rsid_matches", GWASCatalogAssociations._compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
+            >>> df.withColumn("rsid_matches", GWASCatalogCuratedAssociationsParser._compare_rsids(f.col("gnomad"),f.col('gwas'))).show()
             +-------------+--------------+-------+------------+
             |associationId|        gnomad|   gwas|rsid_matches|
             +-------------+--------------+-------+------------+
@@ -324,7 +324,7 @@ class GWASCatalogCuratedAssociationsParser:
         ...    (3, True),
         ... ]
         >>> df = spark.createDataFrame(d, ['associationId', 'filter'])
-        >>> df.withColumn("isConcordant", GWASCatalogAssociations._flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
+        >>> df.withColumn("isConcordant", GWASCatalogCuratedAssociationsParser._flag_mappings_to_retain(f.col("associationId"),f.col('filter'))).show()
         +-------------+------+------------+
         |associationId|filter|isConcordant|
         +-------------+------+------------+
@@ -376,7 +376,7 @@ class GWASCatalogCuratedAssociationsParser:
             ...     (None, None, 'A'),
             ... ]
             >>> df = spark.createDataFrame(d, ['riskAllele', 'referenceAllele', 'alternateAllele'])
-            >>> df.withColumn("isConcordant", GWASCatalogAssociations._check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
+            >>> df.withColumn("isConcordant", GWASCatalogCuratedAssociationsParser._check_concordance(f.col("riskAllele"),f.col('referenceAllele'), f.col('alternateAllele'))).show()
             +----------+---------------+---------------+------------+
             |riskAllele|referenceAllele|alternateAllele|isConcordant|
             +----------+---------------+---------------+------------+
@@ -431,7 +431,7 @@ class GWASCatalogCuratedAssociationsParser:
         Examples:
             >>> d = [{"allele": 'A'}, {"allele": 'T'},{"allele": 'G'}, {"allele": 'C'},{"allele": 'AC'}, {"allele": 'GTaatc'},{"allele": '?'}, {"allele": None}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("revcom_allele", GWASCatalogAssociations._get_reverse_complement(f.col("allele"))).show()
+            >>> df.withColumn("revcom_allele", GWASCatalogCuratedAssociationsParser._get_reverse_complement(f.col("allele"))).show()
             +------+-------------+
             |allele|revcom_allele|
             +------+-------------+
@@ -469,7 +469,7 @@ class GWASCatalogCuratedAssociationsParser:
         Examples:
             >>> d = [{"risk": 'A', "reference": 'A'}, {"risk": 'A', "reference": 'T'}, {"risk": 'AT', "reference": 'TA'}, {"risk": 'AT', "reference": 'AT'}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("needs_harmonisation", GWASCatalogAssociations._effect_needs_harmonisation(f.col("risk"), f.col("reference"))).show()
+            >>> df.withColumn("needs_harmonisation", GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(f.col("risk"), f.col("reference"))).show()
             +---------+----+-------------------+
             |reference|risk|needs_harmonisation|
             +---------+----+-------------------+
@@ -504,7 +504,7 @@ class GWASCatalogCuratedAssociationsParser:
         Examples:
             >>> d = [{"reference": 'A', "alternate": 'T'}, {"reference": 'AT', "alternate": 'AG'}, {"reference": 'AT', "alternate": 'AT'}, {"reference": 'CATATG', "alternate": 'CATATG'}, {"reference": '-', "alternate": None}]
             >>> df = spark.createDataFrame(d)
-            >>> df.withColumn("is_palindromic", GWASCatalogAssociations._are_alleles_palindromic(f.col("reference"), f.col("alternate"))).show()
+            >>> df.withColumn("is_palindromic", GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(f.col("reference"), f.col("alternate"))).show()
             +---------+---------+--------------+
             |alternate|reference|is_palindromic|
             +---------+---------+--------------+
@@ -717,7 +717,7 @@ class GWASCatalogCuratedAssociationsParser:
         ...    ("Schizophrenia", "http://www.ebi.ac.uk/efo/MONDO_0005090", None)],
         ...    ["association_trait", "mapped_trait_uri", "pvalue_text"]
         ... )
-        >>> df.withColumn('substudy_description', GWASCatalogAssociations._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate=False)
+        >>> df.withColumn('substudy_description', GWASCatalogCuratedAssociationsParser._concatenate_substudy_description(df.association_trait, df.pvalue_text, df.mapped_trait_uri)).show(truncate=False)
         +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
         |association_trait|mapped_trait_uri                                                         |pvalue_text      |substudy_description                      |
         +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
@@ -832,7 +832,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> import pyspark.sql.types as t
             >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
             >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
-            >>> df.withColumn('qc', GWASCatalogAssociations._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
+            >>> df.withColumn('qc', GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
             +------------------------+----------------+----------------+
             |qc                      |p_value_mantissa|p_value_exponent|
             +------------------------+----------------+----------------+
@@ -869,7 +869,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> import pyspark.sql.types as t
             >>> d = [{'qc': None, 'chromosome': None, 'position': None}, {'qc': None, 'chromosome': '1', 'position': None}, {'qc': None, 'chromosome': None, 'position': 1}, {'qc': None, 'chromosome': '1', 'position': 1}]
             >>> df = spark.createDataFrame(d, schema=t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('chromosome', t.StringType()), t.StructField('position', t.IntegerType())]))
-            >>> df.withColumn('qc', GWASCatalogAssociations._qc_genomic_location(df.qc, df.chromosome, df.position)).show(truncate=False)
+            >>> df.withColumn('qc', GWASCatalogCuratedAssociationsParser._qc_genomic_location(df.qc, df.chromosome, df.position)).show(truncate=False)
             +----------------------------+----------+--------+
             |qc                          |chromosome|position|
             +----------------------------+----------+--------+
@@ -933,7 +933,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> d = [{'alternate_allele': 'A', 'qc': None}, {'alternate_allele': None, 'qc': None}]
             >>> schema = t.StructType([t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
             >>> df = spark.createDataFrame(data=d, schema=schema)
-            >>> df.withColumn("new_qc", GWASCatalogAssociations._qc_unmapped_variants(f.col("qc"), f.col("alternate_allele"))).show()
+            >>> df.withColumn("new_qc", GWASCatalogCuratedAssociationsParser._qc_unmapped_variants(f.col("qc"), f.col("alternate_allele"))).show()
             +----------------+----+--------------------+
             |alternate_allele|  qc|              new_qc|
             +----------------+----+--------------------+
@@ -968,7 +968,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> schema = t.StructType([t.StructField('reference_allele', t.StringType(), True), t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
             >>> d = [{'reference_allele': 'A', 'alternate_allele': 'T', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'TA', 'qc': None}, {'reference_allele': 'AT', 'alternate_allele': 'AT', 'qc': None}]
             >>> df = spark.createDataFrame(data=d, schema=schema)
-            >>> df.withColumn("qc", GWASCatalogAssociations._qc_palindromic_alleles(f.col("qc"), f.col("reference_allele"), f.col("alternate_allele"))).show(truncate=False)
+            >>> df.withColumn("qc", GWASCatalogCuratedAssociationsParser._qc_palindromic_alleles(f.col("qc"), f.col("reference_allele"), f.col("alternate_allele"))).show(truncate=False)
             +----------------+----------------+---------------------------------------+
             |reference_allele|alternate_allele|qc                                     |
             +----------------+----------------+---------------------------------------+
