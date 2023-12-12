@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from otg.dataset.gene_index import GeneIndex
 
 
-class IntervalsThurman(Intervals):
+class IntervalsThurman:
     """Interval dataset from Thurman et al. 2012."""
 
     @staticmethod
@@ -49,7 +49,7 @@ class IntervalsThurman(Intervals):
         thurman_raw: DataFrame,
         gene_index: GeneIndex,
         lift: LiftOverSpark,
-    ) -> IntervalsThurman:
+    ) -> Intervals:
         """Parse the Thurman et al. 2012 dataset.
 
         Args:
@@ -58,13 +58,13 @@ class IntervalsThurman(Intervals):
             lift (LiftOverSpark): LiftOverSpark instance
 
         Returns:
-            IntervalsThurman: Interval dataset containing Thurman et al. 2012 data
+            Intervals: Interval dataset containing Thurman et al. 2012 data
         """
         dataset_name = "thurman2012"
         experiment_type = "dhscor"
         pmid = "22955617"
 
-        return cls(
+        return Intervals(
             _df=(
                 thurman_raw.select(
                     f.regexp_replace(f.col("chrom"), "chr", "").alias("chrom"),
@@ -100,5 +100,5 @@ class IntervalsThurman(Intervals):
                 )
                 .distinct()
             ),
-            _schema=cls.get_schema(),
+            _schema=Intervals.get_schema(),
         )
