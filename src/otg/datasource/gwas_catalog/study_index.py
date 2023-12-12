@@ -58,7 +58,7 @@ class StudyIndexGWASCatalogParser:
             ...        ).alias('discoverySampleSize')
             ...    )
             ...    .orderBy('studyId')
-            ...    .withColumn('discoverySampleSize', GWASCatalogStudyIndex._parse_discovery_samples(f.col('discoverySampleSize')))
+            ...    .withColumn('discoverySampleSize', StudyIndexGWASCatalogParser._parse_discovery_samples(f.col('discoverySampleSize')))
             ...    .select('discoverySampleSize')
             ...    .show(truncate=False)
             ... )
@@ -178,7 +178,7 @@ class StudyIndexGWASCatalogParser:
             >>> data = [(12, ['African', 'European']),(12, ['African'])]
             >>> (
             ...     spark.createDataFrame(data, ['sample_count', 'ancestries'])
-            ...     .select(GWASCatalogStudyIndex._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
+            ...     .select(StudyIndexGWASCatalogParser._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
             ...     .show(truncate=False)
             ... )
             +-------------------------------+
@@ -213,7 +213,7 @@ class StudyIndexGWASCatalogParser:
 
         Examples:
         >>> data = [('BioME|CaPS|Estonia|FHS|UKB|GERA|GERA|GERA',),(None,),]
-        >>> spark.createDataFrame(data, ['cohorts']).select(GWASCatalogStudyIndex.parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
+        >>> spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
         +--------------------------------------+
         |parsedCohorts                         |
         +--------------------------------------+
