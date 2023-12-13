@@ -93,6 +93,26 @@ class L2GFeatureMatrix(Dataset):
         """
         return parse_spark_schema("l2g_feature_matrix.json")
 
+    def calculate_feature_missingness_rate(
+        self: L2GFeatureMatrix,
+    ) -> dict[str, float]:
+        """Calculate the proportion of missing values in each feature.
+
+        Returns:
+            dict[str, float]: Dictionary of feature names and their missingness rate.
+
+        Raises:
+            ValueError: If no features are found.
+        """
+        total_count = self._df.count()
+        if not self.features_list:
+            raise ValueError("No features found")
+
+        return {
+            feature: (self._df.filter(self._df[feature].isNull()).count() / total_count)
+            for feature in self.features_list
+        }
+
     def fill_na(
         self: L2GFeatureMatrix, value: float = 0.0, subset: list[str] | None = None
     ) -> L2GFeatureMatrix:

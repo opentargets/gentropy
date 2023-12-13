@@ -125,14 +125,19 @@ class LocusToGeneModel:
             wandb_evaluator.evaluate(results)
         ## Track feature importance
         wandb_run.log({"importances": self.get_feature_importance()})
-        ## Track training set metadata
+        ## Track training set
+        training_table = wandb.Table(dataframe=training_data.df.toPandas())
+        wandb_run.log({"trainingSet": training_table})
+        # Count number of positive and negative labels
         gs_counts_dict = {
             "goldStandard" + row["goldStandardSet"].capitalize(): row["count"]
             for row in training_data.df.groupBy("goldStandardSet").count().collect()
         }
         wandb_run.log(gs_counts_dict)
-        training_table = wandb.Table(dataframe=training_data.df.toPandas())
-        wandb_run.log({"trainingSet": training_table})
+        # Missingness rates
+        wandb_run.log(
+            "missingnessRates", training_data.calculate_feature_missingness_rate()
+        )
 
     @classmethod
     def load_from_disk(
