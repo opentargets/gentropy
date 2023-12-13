@@ -60,7 +60,7 @@ pytest-xdist = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.18.1"
-ipykernel = "^6.19.0"
+ipykernel = "^6.27.1"
 google-cloud-dataproc = "^5.8.0"
 apache-airflow = "^2.7.3"
 apache-airflow-providers-google = "^10.12.0"
