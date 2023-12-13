@@ -132,7 +132,7 @@ class LocusToGeneModel:
         }
         wandb_run.log(gs_counts_dict)
         training_table = wandb.Table(dataframe=training_data.df.toPandas())
-        wandb_run.log({"trainingSet": wandb.Table(dataframe=training_table)})
+        wandb_run.log({"trainingSet": training_table})
 
     @classmethod
     def load_from_disk(
