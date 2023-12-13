@@ -2,11 +2,9 @@
 name: Test & pre-release
 
 on:
-  pull_request:
-    types:
-      - opened
+  push:
     branches:
-      - "release/**"
+      - release/*
 
 jobs:
   test:
