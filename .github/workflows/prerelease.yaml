@@ -53,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: push
     needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release/*' && !contains(github.event.head_commit.message, 'chore(release):')
     permissions:
       # https://docs.github.com/en/rest/overview/permissions-required-for-github-apps?apiVersion=2022-11-28#metadata
       id-token: write

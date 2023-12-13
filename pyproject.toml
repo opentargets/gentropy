@@ -66,13 +66,13 @@ apache-airflow-providers-google = "^10.11.1"
 pydoclint = "^0.3.8"
 python-semantic-release = "^8.3.0"
 
-[tool.semantic_release.branches.release]
+[tool.semantic_release.branches.prerelease]
 match = "(release/*)"
 prerelease = true
 version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 upload_to_pypi = false
-upload_to_release = false
+upload_to_release = true
 build_command = "pip install poetry && poetry build"
 
 [build-system]
