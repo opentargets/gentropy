@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "otgenetics"
-version = "0.0.1"
+version = "0.0.0"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache License v2"
@@ -66,11 +66,11 @@ apache-airflow-providers-google = "^10.11.1"
 pydoclint = "^0.3.8"
 python-semantic-release = "^8.3.0"
 
-[tool.semantic_release]
-branch = "main"
+[tool.semantic_release.branches.release]
+match = "(release/*)"
+pre_release = "rc"
 version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
-major_on_zero = true
 upload_to_pypi = false
 upload_to_release = false
 build_command = "pip install poetry && poetry build"
