@@ -125,14 +125,19 @@ class LocusToGeneModel:
             wandb_evaluator.evaluate(results)
         ## Track feature importance
         wandb_run.log({"importances": self.get_feature_importance()})
-        ## Track training set metadata
+        ## Track training set
+        training_table = wandb.Table(dataframe=training_data.df.toPandas())
+        wandb_run.log({"trainingSet": training_table})
+        # Count number of positive and negative labels
         gs_counts_dict = {
             "goldStandard" + row["goldStandardSet"].capitalize(): row["count"]
             for row in training_data.df.groupBy("goldStandardSet").count().collect()
         }
         wandb_run.log(gs_counts_dict)
-        training_table = wandb.Table(dataframe=training_data.df.toPandas())
-        wandb_run.log({"trainingSet": wandb.Table(dataframe=training_table)})
+        # Missingness rates
+        wandb_run.log(
+            {"missingnessRates": training_data.calculate_feature_missingness_rate()}
+        )
 
     @classmethod
     def load_from_disk(
@@ -218,30 +223,7 @@ class LocusToGeneModel:
             labelCol="label", predictionCol="prediction"
         )
 
-        print("Evaluating model...")  # noqa: T201
-        print(  # noqa: T201
-            "... Area under ROC curve:",
-            binary_evaluator.evaluate(
-                results, {binary_evaluator.metricName: "areaUnderROC"}
-            ),
-        )
-        print(  # noqa: T201
-            "... Area under Precision-Recall curve:",
-            binary_evaluator.evaluate(
-                results, {binary_evaluator.metricName: "areaUnderPR"}
-            ),
-        )
-        print(  # noqa: T201
-            "... Accuracy:",
-            multi_evaluator.evaluate(results, {multi_evaluator.metricName: "accuracy"}),
-        )
-        print(  # noqa: T201
-            "... F1 score:",
-            multi_evaluator.evaluate(results, {multi_evaluator.metricName: "f1"}),
-        )
-
         if wandb_run_name and training_data:
-            print("Logging to W&B...")  # noqa: T201
             run = wandb.init(
                 project=self.wandb_l2g_project_name,
                 config=hyperparameters,
