@@ -21,11 +21,25 @@ if TYPE_CHECKING:
 
 @dataclass
 class L2GFeatureMatrix(Dataset):
-    """Dataset with features for Locus to Gene prediction."""
+    """Dataset with features for Locus to Gene prediction.
+
+    Attributes:
+        features_list (list[str] | None): List of features to use. If None, all possible features are used.
+    """
+
+    features_list: list[str] | None = None
+
+    def __post_init__(self: L2GFeatureMatrix) -> None:
+        """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used."""
+        fixed_cols = ["studyLocusId", "geneId", "goldStandardSet"]
+        self.features_list = self.features_list or [
+            col for col in self._df.columns if col not in fixed_cols
+        ]
 
     @classmethod
     def generate_features(
         cls: Type[L2GFeatureMatrix],
+        features_list: list[str],
         study_locus: StudyLocus,
         study_index: StudyIndex,
         variant_gene: V2G,
@@ -34,6 +48,7 @@ class L2GFeatureMatrix(Dataset):
         """Generate features from the OTG datasets.
 
         Args:
+            features_list (list[str]): List of features to generate
             study_locus (StudyLocus): Study locus dataset
             study_index (StudyIndex): Study index dataset
             variant_gene (V2G): Variant to gene dataset
@@ -65,6 +80,7 @@ class L2GFeatureMatrix(Dataset):
                     fm, ["studyLocusId", "geneId"], "featureName", "featureValue"
                 ),
                 _schema=cls.get_schema(),
+                features_list=features_list,
             )
         raise ValueError("L2G Feature matrix is empty")
 
@@ -93,18 +109,19 @@ class L2GFeatureMatrix(Dataset):
         return self
 
     def select_features(
-        self: L2GFeatureMatrix, features_list: list[str]
+        self: L2GFeatureMatrix, features_list: list[str] | None
     ) -> L2GFeatureMatrix:
         """Select a subset of features from the feature matrix.
 
         Args:
-            features_list (list[str]): List of features to select
+            features_list (list[str] | None): List of features to select
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
         """
-        fixed_rows = ["studyLocusId", "geneId", "goldStandardSet"]
-        self.df = self._df.select(fixed_rows + features_list)
+        features_list = features_list or self.features_list
+        fixed_cols = ["studyLocusId", "geneId", "goldStandardSet"]
+        self.df = self._df.select(fixed_cols + features_list)  # type: ignore
         return self
 
     def train_test_split(
