@@ -1,5 +1,7 @@
-name: tests
+name: Checks
+
 on: [push]
+
 jobs:
   test:
     runs-on: ubuntu-latest
