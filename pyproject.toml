@@ -68,7 +68,7 @@ python-semantic-release = "^8.3.0"
 
 [tool.semantic_release.branches.release]
 match = "(release/*)"
-pre_release = "rc"
+prerelease = true
 version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 upload_to_pypi = false
