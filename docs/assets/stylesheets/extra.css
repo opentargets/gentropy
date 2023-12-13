@@ -1,79 +1,75 @@
 .metadata {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    margin-bottom: 15px;
-    color: #999;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  margin-bottom: 15px;
+  color: #999;
 }
 
 .metadata.page-metadata .contributors-text {
-    margin-right: 5px;
-    display: inline-block;
+  margin-right: 5px;
+  display: inline-block;
 }
 
 .metadata.page-metadata {
-    display: flex !important;
-    flex-direction: row;
-    align-items: center;
-    font-size: 1.2em;
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  font-size: 1.2em;
 }
-
 
 .metadata.page-metadata li {
-    list-style: none;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 0 !important;
+  list-style: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0 !important;
 }
-
 
 .metadata.page-metadata li .icon {
-    width: 1.1rem;
-    height: 1.1rem;
-    margin-right: 2px;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-right: 2px;
 }
-
 
 .metadata.page-metadata li .icon svg {
-    fill: #999;
+  fill: #999;
 }
 
-
 .page-metadata .contributors-holder {
-    margin: 0 !important;
-    margin-left: 1em;
+  margin: 0 !important;
+  margin-left: 1em;
 }
 
 .page-metadata .contributors {
-    margin-right: 5px;
-    display: inline-block;
-    list-style: none;
-    display: flex;
-    flex-direction: row;
+  margin-right: 5px;
+  display: inline-block;
+  list-style: none;
+  display: flex;
+  flex-direction: row;
 }
 
 .page-metadata .contributors li {
-    display: inline-flex;
-    margin: 0 !important;
-    padding: 0 !important;
+  display: inline-flex;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .page-metadata .contributors li img {
-    border-radius: 50%;
-    filter: grayscale(100%);
-    -webkit-filter: grayscale(100%);
-    opacity: 0.8;
-    vertical-align: middle;
-    width: 1.6rem;
-    transition: all 0.2s ease-in-out;
+  border-radius: 50%;
+  filter: grayscale(100%);
+  -webkit-filter: grayscale(100%);
+  opacity: 0.8;
+  vertical-align: middle;
+  width: 1.6rem;
+  transition: all 0.2s ease-in-out;
 }
 
 .page-metadata .contributors li img:hover {
-    opacity: 1;
-    filter: grayscale(0%);
-    -webkit-filter: grayscale(0%);
-    vertical-align: middle;
-    transform: scale(1.2);
+  opacity: 1;
+  filter: grayscale(0%);
+  -webkit-filter: grayscale(0%);
+  vertical-align: middle;
+  transform: scale(1.2);
 }

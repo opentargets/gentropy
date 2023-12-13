@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pytest
-
 from otg.dataset.summary_statistics import SummaryStatistics
 from otg.datasource.gwas_catalog.summary_statistics import GWASCatalogSummaryStatistics
 

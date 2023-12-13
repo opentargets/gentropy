@@ -6,8 +6,6 @@ from pathlib import Path
 import dbldatagen as dg
 import hail as hl
 import pytest
-from pyspark.sql import DataFrame, SparkSession
-
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
 from otg.dataset.colocalisation import Colocalisation
@@ -24,13 +22,10 @@ from otg.dataset.summary_statistics import SummaryStatistics
 from otg.dataset.v2g import V2G
 from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
-from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
-from otg.datasource.finngen.study_index import FinnGenStudyIndex
-from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
-from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
+from otg.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
+from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
+from pyspark.sql import DataFrame, SparkSession
+
 from utils.spark import get_spark_testing_conf
 
 
@@ -146,56 +141,11 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
 
 
 @pytest.fixture()
-def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
+def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
     """Mock GWASCatalogStudyIndex dataset."""
-    return GWASCatalogStudyIndex(
+    return StudyIndexGWASCatalog(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
-    """Mock FinnGenStudyIndex dataset."""
-    return FinnGenStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
-    """Mock FinnGenSummaryStats dataset."""
-    return FinnGenSummaryStats(
-        _df=mock_summary_statistics_data(spark),
-        _schema=SummaryStatistics.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueStudyIndex:
-    """Mock EqtlCatalogueStudyIndex dataset."""
-    return EqtlCatalogueStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_summary_stats_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueSummaryStats:
-    """Mock EqtlCatalogueSummaryStats dataset."""
-    return EqtlCatalogueSummaryStats(
-        _df=mock_summary_statistics_data(spark),
-        _schema=SummaryStatistics.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_ukbiobank(spark: SparkSession) -> UKBiobankStudyIndex:
-    """Mock StudyIndexUKBiobank dataset."""
-    return UKBiobankStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=UKBiobankStudyIndex.get_schema(),
+        _schema=StudyIndexGWASCatalog.get_schema(),
     )
 
 
@@ -259,11 +209,11 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
 
 
 @pytest.fixture()
-def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
+def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocusGWASCatalog:
     """Mock study_locus dataset."""
-    return GWASCatalogAssociations(
+    return StudyLocusGWASCatalog(
         _df=mock_study_locus_data(spark),
-        _schema=GWASCatalogAssociations.get_schema(),
+        _schema=StudyLocusGWASCatalog.get_schema(),
     )
 
 
@@ -338,15 +288,15 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
             expr='array(named_struct("alleleFrequency", rand(), "populationName", cast(rand() as string)))',
             percentNulls=0.1,
         )
-        .withColumnSpec(
-            "cadd",
-            expr='named_struct("phred", cast(rand() as float), "raw", cast(rand() as float))',
-            percentNulls=0.1,
-        )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
         .withColumnSpec(
             "vep",
-            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string), "polyphenPrediction", cast(rand() as string), "polyphenScore", cast(rand() as float), "siftPrediction", cast(rand() as string), "siftScore", cast(rand() as float))))',
+            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string))))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "inSilicoPredictors",
+            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
             percentNulls=0.1,
         )
     )
@@ -355,7 +305,7 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
 
 @pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
-    """Mock gene index."""
+    """Mock variant index."""
     vi_schema = VariantIndex.get_schema()
 
     data_spec = (
@@ -378,8 +328,8 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             percentNulls=0.1,
         )
         .withColumnSpec(
-            "cadd",
-            expr='named_struct("phred", cast(rand() AS float), "raw", cast(rand() AS float))',
+            "inSilicoPredictors",
+            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
             percentNulls=0.1,
         )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
@@ -407,7 +357,8 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
             partitions=4,
             randomSeedMethod="hash_fieldname",
             name="summaryStats",
-        ).withSchema(ss_schema)
+        )
+        .withSchema(ss_schema)
         # Allowing missingness in effect allele frequency and enforce upper limit:
         .withColumnSpec(
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
@@ -510,17 +461,6 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
         json_data = finngen_studies.read()
         rdd = spark.sparkContext.parallelize([json_data])
         return spark.read.json(rdd)
-
-
-@pytest.fixture()
-def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
-    """Sample FinnGen summary stats."""
-    # For reference, the sample file was generated with the following command:
-    # gsutil cat gs://finngen-public-data-r9/summary_stats/finngen_R9_AB1_ACTINOMYCOSIS.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz
-    # It's important for the test file to be named in exactly this way, because FinnGen study ID is populated based on input file name.
-    return spark.read.option("delimiter", "\t").csv(
-        "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz", header=True
-    )
 
 
 @pytest.fixture()

@@ -15,20 +15,6 @@ def test_variant_index_creation(mock_variant_annotation: VariantAnnotation) -> N
     assert isinstance(mock_variant_annotation, VariantAnnotation)
 
 
-def test_get_polyphen_v2g(
-    mock_variant_annotation: VariantAnnotation, mock_gene_index: GeneIndex
-) -> None:
-    """Test get_polyphen_v2g with mock variant annotation."""
-    assert isinstance(mock_variant_annotation.get_polyphen_v2g(mock_gene_index), V2G)
-
-
-def test_get_sift_v2g(
-    mock_variant_annotation: VariantAnnotation, mock_gene_index: GeneIndex
-) -> None:
-    """Test get_sift_v2g with mock variant annotation."""
-    assert isinstance(mock_variant_annotation.get_sift_v2g(mock_gene_index), V2G)
-
-
 def test_get_plof_v2g(
     mock_variant_annotation: VariantAnnotation, mock_gene_index: GeneIndex
 ) -> None:

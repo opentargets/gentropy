@@ -136,67 +136,6 @@ class VariantAnnotation(Dataset):
             _schema=V2G.get_schema(),
         )
 
-    def get_polyphen_v2g(
-        self: VariantAnnotation, gene_index: GeneIndex | None = None
-    ) -> V2G:
-        """Creates a dataset with variant to gene assignments with a PolyPhen's predicted score on the transcript.
-
-        Polyphen informs about the probability that a substitution is damaging.The score can be interpreted as follows:
-            - 0.0 to 0.15 -- Predicted to be benign.
-            - 0.15 to 1.0 -- Possibly damaging.
-            - 0.85 to 1.0 -- Predicted to be damaging.
-
-        Args:
-            gene_index (GeneIndex | None): A gene index to filter by. Defaults to None.
-
-        Returns:
-            V2G: variant to gene assignments with their polyphen scores
-        """
-        return V2G(
-            _df=(
-                self.get_transcript_consequence_df(gene_index)
-                .filter(f.col("transcriptConsequence.polyphenScore").isNotNull())
-                .select(
-                    "variantId",
-                    "chromosome",
-                    "geneId",
-                    f.col("transcriptConsequence.polyphenScore").alias("score"),
-                    f.lit("vep").alias("datatypeId"),
-                    f.lit("polyphen").alias("datasourceId"),
-                )
-            ),
-            _schema=V2G.get_schema(),
-        )
-
-    def get_sift_v2g(self: VariantAnnotation, gene_index: GeneIndex) -> V2G:
-        """Creates a dataset with variant to gene assignments with a SIFT's predicted score on the transcript.
-
-        SIFT informs about the probability that a substitution is tolerated. The score can be interpreted as follows:
-            - 0.0 to 0.05 -- Likely to be deleterious.
-            - 0.05 to 1.0 -- Likely to be tolerated.
-
-        Args:
-            gene_index (GeneIndex): A gene index to filter by.
-
-        Returns:
-            V2G: variant to gene assignments with their SIFT scores
-        """
-        return V2G(
-            _df=(
-                self.get_transcript_consequence_df(gene_index)
-                .filter(f.col("transcriptConsequence.siftScore").isNotNull())
-                .select(
-                    "variantId",
-                    "chromosome",
-                    "geneId",
-                    f.expr("1 - transcriptConsequence.siftScore").alias("score"),
-                    f.lit("vep").alias("datatypeId"),
-                    f.lit("sift").alias("datasourceId"),
-                )
-            ),
-            _schema=V2G.get_schema(),
-        )
-
     def get_plof_v2g(self: VariantAnnotation, gene_index: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
 
