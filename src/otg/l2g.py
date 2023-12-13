@@ -137,6 +137,7 @@ class LocusToGeneStep:
             )
 
             fm = L2GFeatureMatrix.generate_features(
+                features_list=self.features_list,
                 study_locus=credible_set,
                 study_index=studies,
                 variant_gene=v2g,
@@ -193,6 +194,7 @@ class LocusToGeneStep:
                 )
             predictions = L2GPrediction.from_credible_set(
                 self.model_path,
+                self.features_list,
                 credible_set,
                 studies,
                 v2g,
