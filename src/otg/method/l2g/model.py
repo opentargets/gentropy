@@ -136,7 +136,7 @@ class LocusToGeneModel:
         wandb_run.log(gs_counts_dict)
         # Missingness rates
         wandb_run.log(
-            "missingnessRates", training_data.calculate_feature_missingness_rate()
+            {"missingnessRates": training_data.calculate_feature_missingness_rate()}
         )
 
     @classmethod
