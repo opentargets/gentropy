@@ -3,7 +3,8 @@
     "charliermarsh.ruff",
     "ms-python.mypy-type-checker",
     "ms-python.python",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml"
   ],
   "unwantedRecommendations": ["ms-python.flake8"]
 }
