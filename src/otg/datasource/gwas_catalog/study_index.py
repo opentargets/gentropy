@@ -392,21 +392,25 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         # Create expression how to update/create quality controls dataset:
         qualityControls_expression = (
-            f.col("upateQualityControls")
+            f.array(f.col("upateQualityControls"))
             if "qualityControls" not in columns
             else f.when(
                 f.col("upateQualityControls").isNotNull(),
-                f.array_union(f.col("qualityControls"), f.col("upateQualityControls")),
+                f.array_union(
+                    f.col("qualityControls"), f.array(f.col("upateQualityControls"))
+                ),
             ).otherwise(f.col("qualityControls"))
         )
 
         # Create expression how to update/create analysis flag:
         analysis_expression = (
-            f.col("upateAnalysisFlags")
+            f.array(f.col("upateAnalysisFlags"))
             if "analysisFlags" not in columns
             else f.when(
                 f.col("upateAnalysisFlags").isNotNull(),
-                f.array_union(f.col("analysisFlags"), f.col("upateAnalysisFlags")),
+                f.array_union(
+                    f.col("analysisFlags"), f.array(f.col("upateAnalysisFlags"))
+                ),
             ).otherwise(f.col("analysisFlags"))
         )
 
@@ -417,7 +421,9 @@ class StudyIndexGWASCatalog(StudyIndex):
         curated_df = (
             self.df.join(curation_table, on="studyId", how="left")
             # Updating study type:
-            .withColumn("type", f.coalesce(f.col("updateStudyType"), f.col("type")))
+            .withColumn(
+                "studyType", f.coalesce(f.col("updateStudyType"), f.col("studyType"))
+            )
             # Updating quality controls:
             .withColumn("qualityControls", qualityControls_expression)
             # Updating quality controls:
@@ -449,7 +455,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 .withColumn("updateStudyType", f.lit(None).cast(t.StringType()))
                 .withColumn("upateAnalysisFlags", f.array([]).cast(t.StringType()))
                 .withColumn("upateQualityControls", f.array([]).cast(t.StringType()))
-                .withColumn("isCurated", f.lit(False))
+                .withColumn("isCurated", f.lit(False).cast(t.BooleanType()))
             )
         else:
             studies = (
@@ -470,7 +476,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.coalesce(f.col("isCurated"), f.lit(False)).alias("isCurated"),
                 # These fields are there to help curation, but should not be included in the curation table:
                 "publicationTitle",
-                "firstAuthor",
+                "publicationFirstAuthor",
                 "traitFromSource",
             )
         )
