@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex
 
 
@@ -170,7 +171,7 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def _update_quality_flag(
+    def update_quality_flag(
         qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
     ) -> Column:
         """Update the provided quality control list with a new flag if condition is met.
@@ -368,6 +369,22 @@ class StudyLocus(Dataset):
         )
         return self
 
+    def annotate_ld(
+        self: StudyLocus, study_index: StudyIndex, ld_index: LDIndex
+    ) -> StudyLocus:
+        """Annotate LD information to study-locus.
+
+        Args:
+            study_index (StudyIndex): Study index to resolve ancestries.
+            ld_index (LDIndex): LD index to resolve LD information.
+
+        Returns:
+            StudyLocus: Study locus annotated with ld information from LD index.
+        """
+        from otg.method.ld import LDAnnotator
+
+        return LDAnnotator.ld_annotate(self, study_index, ld_index)
+
     def clump(self: StudyLocus) -> StudyLocus:
         """Perform LD clumping of the studyLocus.
 
@@ -393,7 +410,7 @@ class StudyLocus(Dataset):
             )
             .withColumn(
                 "qualityControls",
-                StudyLocus._update_quality_flag(
+                StudyLocus.update_quality_flag(
                     f.col("qualityControls"),
                     f.col("is_lead_linked"),
                     StudyLocusQualityCheck.LD_CLUMPED,
@@ -413,7 +430,7 @@ class StudyLocus(Dataset):
         """
         self.df = self.df.withColumn(
             "qualityControls",
-            self._update_quality_flag(
+            self.update_quality_flag(
                 f.col("qualityControls"),
                 f.col("ldSet").isNull(),
                 StudyLocusQualityCheck.UNRESOLVED_LD,
@@ -433,7 +450,7 @@ class StudyLocus(Dataset):
 
         self.df = self.df.withColumn(
             "qualityControls",
-            self._update_quality_flag(
+            self.update_quality_flag(
                 f.col("qualityControls"),
                 f.col("ldPopulationStructure").isNull(),
                 StudyLocusQualityCheck.NO_POPULATION,

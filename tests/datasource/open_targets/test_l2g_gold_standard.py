@@ -4,11 +4,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.sql import DataFrame
-
 from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.dataset.v2g import V2G
 from otg.datasource.open_targets.l2g_gold_standard import OpenTargetsL2GGoldStandard
+from pyspark.sql import DataFrame
 
 if TYPE_CHECKING:
     from pyspark.sql.session import SparkSession

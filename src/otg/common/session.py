@@ -164,7 +164,6 @@ class Log4j:
             message (str): Error message to write to log
         """
         self.logger.error(message)
-        return None
 
     def warn(self: Log4j, message: str) -> None:
         """Log a warning.
@@ -172,8 +171,7 @@ class Log4j:
         Args:
             message (str): Warning messsage to write to log
         """
-        self.logger.warn(message)
-        return None
+        self.logger.warning(message)
 
     def info(self: Log4j, message: str) -> None:
         """Log information.
@@ -182,4 +180,3 @@ class Log4j:
             message (str): Information message to write to log
         """
         self.logger.info(message)
-        return None

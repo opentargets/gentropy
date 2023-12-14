@@ -13,7 +13,6 @@ from pyspark.sql.types import StructType
 
 if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
-
     from otg.dataset.gene_index import GeneIndex
     from otg.dataset.v2g import V2G
 

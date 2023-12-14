@@ -44,6 +44,7 @@ class L2GPrediction(Dataset):
     def from_credible_set(
         cls: Type[L2GPrediction],
         model_path: str,
+        features_list: list[str],
         study_locus: StudyLocus,
         study_index: StudyIndex,
         v2g: V2G,
@@ -53,6 +54,7 @@ class L2GPrediction(Dataset):
 
         Args:
             model_path (str): Path to the fitted model
+            features_list (list[str]): List of features to use for the model
             study_locus (StudyLocus): Study locus dataset
             study_index (StudyIndex): Study index dataset
             v2g (V2G): Variant to gene dataset
@@ -61,6 +63,7 @@ class L2GPrediction(Dataset):
             L2GPrediction: L2G dataset
         """
         fm = L2GFeatureMatrix.generate_features(
+            features_list=features_list,
             study_locus=study_locus,
             study_index=study_index,
             variant_gene=v2g,
@@ -71,8 +74,9 @@ class L2GPrediction(Dataset):
             _df=(
                 LocusToGeneModel.load_from_disk(
                     model_path,
-                    features_list=fm.df.drop("studyLocusId", "geneId").columns,
-                ).predict(fm)
+                    features_list=features_list,
+                )
+                .predict(fm)
                 # the probability of the positive class is the second element inside the probability array
                 # - this is selected as the L2G probability
                 .select(

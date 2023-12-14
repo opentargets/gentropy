@@ -115,8 +115,6 @@ class V2GStep:
         v2g_datasets = [
             va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
             va_slimmed.get_most_severe_vep_v2g(vep_consequences, gene_index_filtered),
-            va_slimmed.get_polyphen_v2g(gene_index_filtered),
-            va_slimmed.get_sift_v2g(gene_index_filtered),
             va_slimmed.get_plof_v2g(gene_index_filtered),
             intervals.v2g(vi),
         ]

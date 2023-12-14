@@ -1,3 +1,3 @@
 _target_: otg.pics.PICSStep
-study_locus_ld_annotated_in: ${datasets.from_sumstats_study_locus}
-picsed_study_locus_out: ${datasets.from_sumstats_pics}
+study_locus_ld_annotated_in: ???
+picsed_study_locus_out: ???

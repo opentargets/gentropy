@@ -167,7 +167,7 @@ class WandbEvaluator(Evaluator):
         evaluator_type = type(spark_ml_evaluator)
         for metric in self.metrics[evaluator_type]:
             if "ByLabel" in metric and label_values == []:
-                print(
+                print(  # noqa: T201
                     "no label_values for the target have been provided and will be determined by the dataset.  This could take some time"
                 )
                 label_values = [

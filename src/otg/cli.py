@@ -13,7 +13,7 @@ def main(cfg: DictConfig) -> None:
     Args:
         cfg (DictConfig): hydra configuration object
     """
-    print(OmegaConf.to_yaml(cfg))
+    print(OmegaConf.to_yaml(cfg))  # noqa: T201
     # Initialise and run step
     instantiate(cfg.step)
 

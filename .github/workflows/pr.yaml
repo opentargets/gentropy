@@ -1,17 +1,17 @@
-name: docs
-on:
+name: Checks
+
+"on":
   push:
-    branches:
-      - main
+
 jobs:
-  docs:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.8
       - name: Install and configure Poetry
@@ -26,10 +26,21 @@ jobs:
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Validate project dependencies
+        run: poetry check
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
       - name: Install library
-        run: poetry install --without tests --no-interaction
-      - name: Publish docs
-        run: poetry run mkdocs gh-deploy --force
+        run: poetry install --no-interaction
+      - name: Check dependencies
+        run: poetry run deptry .
+      - name: Run tests
+        run: poetry run pytest
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          verbose: true

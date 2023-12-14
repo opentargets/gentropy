@@ -3,10 +3,12 @@ title: Study Locus
 ---
 
 ::: otg.dataset.study_locus.StudyLocus
-___
+
+---
 
 ::: otg.dataset.study_locus.StudyLocusQualityCheck
-___
+
+---
 
 ::: otg.dataset.study_locus.CredibleInterval
 

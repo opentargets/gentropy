@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
-
 from otg.dataset.summary_statistics import SummaryStatistics
 from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
+from pyspark.sql import DataFrame
 
 
 def test_eqtl_catalogue_summary_stats_from_source(

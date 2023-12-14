@@ -1,43 +1,29 @@
 {
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll": false,
-      "source.organizeImports": true
+      "source.fixAll": "never",
+      "source.organizeImports": "explicit"
     }
   },
-  "python.terminal.launchArgs": [
-    "-m",
-    "IPython",
-    "--no-autoindent"
-  ],
+  "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
   "[jsonc]": {
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": "explicit"
     }
   },
   "json.format.keepLines": true,
-  "isort.args": [
-    "--profile",
-    "black"
-  ],
   "autoDocstring.docstringFormat": "google",
-  "python.testing.pytestArgs": [
-    ".",
-    "--doctest-modules",
-    "--cov=src/"
-  ],
+  "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "mypy-type-checker.severity": {
     "error": "Information"
-  },
-  "ruff.fixAll": false,
-  "ruff.organizeImports": false
+  }
 }

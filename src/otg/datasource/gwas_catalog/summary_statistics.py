@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,39 @@ from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
+
+
+def filename_to_study_identifier(path: str) -> str:
+    """Extract GWAS Catalog study identifier from path.
+
+    There's an expectation that the filename has to have the GCST accession of the study.
+
+    Args:
+        path(str): filename of the harmonized summary statistics.
+
+    Returns:
+        str: GWAS Catalog stuy accession.
+
+    Raises:
+        ValueError: If the path does not contain the GWAS Catalog study identifier.
+
+    Examples:
+        >>> filename_to_study_identifier("http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST006001-GCST007000/GCST006090/harmonised/29895819-GCST006090-HP_0000975.h.tsv.gz")
+        'GCST006090'
+        >>> filename_to_study_identifier("wrong/path")
+        Traceback (most recent call last):
+            ...
+        ValueError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
+    """
+    file_name = path.split("/")[-1]
+    study_id_matches = re.search(r"(GCST\d+)", file_name)
+
+    if not study_id_matches:
+        raise ValueError(
+            f'Path ("{path}") does not contain GWAS Catalog study identifier.'
+        )
+
+    return study_id_matches[0]
 
 
 @dataclass
@@ -39,10 +73,9 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             GWASCatalogSummaryStatistics: Summary statistics object.
         """
         sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True).withColumn(
+            # Parsing GWAS Catalog study identifier from filename:
             "studyId",
-            f.upper(
-                f.regexp_extract(f.input_file_name(), r"(GCST\d+)\.h\.tsv\.gz$", 1)
-            ),
+            f.lit(filename_to_study_identifier(sumstats_file)),
         )
 
         # Parsing variant id fields:
@@ -108,8 +141,12 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             else f.lit(None)
         ).cast(t.DoubleType())
 
-        # Standard error is mandatory but called differently in the new format:
-        standard_error = f.col("standard_error").cast(t.DoubleType())
+        # Does the file have standard error column?
+        standard_error = (
+            f.col("standard_error")
+            if "standard_error" in sumstats_df.columns
+            else f.lit(None)
+        ).cast(t.DoubleType())
 
         # Processing columns of interest:
         processed_sumstats_df = (
