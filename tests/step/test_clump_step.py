@@ -20,7 +20,7 @@ class TestClumpStep:
             clumped_study_locus_path = Path(temp_dir, "GCST005523_chr18_clumped")
             ClumpStep(
                 session=session,
-                input_path="tests/data_samples/GCST005523_chr18.parquet",
+                input_path="tests/data_samples/sumstats_sample",
                 clumped_study_locus_path=str(clumped_study_locus_path),
             )
             assert Path(clumped_study_locus_path).exists(), "Output directory exists."

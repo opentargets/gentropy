@@ -62,22 +62,27 @@ class ClumpStep:
                 study_index=study_index, ld_index=ld_index
             ).clump()
         else:
-            # Generate a list of study identifiers that we want to ingest:
-            study_ids_to_ingest = [
-                row["studyId"]
-                for row in (
-                    study_index.df.filter(
-                        # Exclude problematic studies:
-                        (f.size(f.col("qualityControls")) == 0)
-                        &
-                        # Exclude qtl studies:
-                        (f.col("type") == "gwas")
+            if self.study_index_path is not None:
+                # Generate a list of study identifiers that we want to ingest:
+                study_ids_to_ingest = [
+                    row["studyId"]
+                    for row in (
+                        StudyIndex.from_parquet(self.session, self.study_index_path)
+                        .df.filter(
+                            # Exclude problematic studies:
+                            (f.size(f.col("qualityControls")) == 0)
+                            &
+                            # Exclude qtl studies:
+                            (f.col("type") == "gwas")
+                        )
+                        .select("studyId")
+                        .distinct()
+                        .collect()
                     )
-                    .select("studyId")
-                    .distinct()
-                    .collect()
-                )
-            ]
+                ]
+            else:
+                study_ids_to_ingest = ["*"]
+
             sumstats = SummaryStatistics.from_parquet(
                 self.session,
                 [f"{self.input_path}/{study_id}" for study_id in study_ids_to_ingest],
