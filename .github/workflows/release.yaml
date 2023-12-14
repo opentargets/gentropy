@@ -11,7 +11,7 @@ name: Release
           Leave empty for auto-detect based on commit messages.
         type: choice
         options:
-          - '' # auto-detect
+          - "" # auto-detect
           - major # force major
           - minor # force minor
           - patch # force patch
