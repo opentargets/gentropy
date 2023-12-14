@@ -1,12 +1,20 @@
 [tool.poetry]
 name = "otgenetics"
+# !! version is managed by semantic_release
 version = "0.0.0"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
-license = "Apache License v2"
+license = "Apache-2.0"
+readme = "README.md"
+documentation = "https://opentargets.github.io/genetics_etl_python/"
+repository = "https://github.com/opentargets/genetics_etl_python"
 packages = [
     { include = "otg", from = "src"},
 ]
+
+[tool.poetry.urls]
+"Bug Tracker" = "http://github.com/opentargets/issues"
+"Funding" = "https://www.opentargets.org"
 
 [tool.poetry.scripts]
 otg = "otg.cli:main"
@@ -68,15 +76,36 @@ pydoclint = "^0.3.8"
 prettier = "^0.0.7"
 deptry = "^0.12.0"
 python-semantic-release = "^8.3.0"
+yamllint = "^1.33.0"
 
-[tool.semantic_release.branches.prerelease]
-match = "(release/*)"
-prerelease = true
+[tool.semantic_release]
+logging_use_named_masks = true
+commit_author = "opentargets <opentargets>"
+build_command = "pip install poetry && poetry build"
+assets = []
 version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 upload_to_pypi = false
 upload_to_release = true
-build_command = "pip install poetry && poetry build"
+
+[tool.semantic_release.branches.main]
+match = "(main|master)"
+prerelease = false
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+
+[tool.semantic_release.changelog]
+changelog_file = "CHANGELOG.md"
+exclude_commit_patterns = [
+  "chore\\(release\\):",
+]
+
+[tool.semantic_release.branches."step"]
+match = "(build|chore|ci|docs|feat|fix|perf|style|refactor|test)"
+prerelease = true
+prerelease_token = "alpha"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
