@@ -1,6 +1,7 @@
 name: Checks
 
-on: [push]
+"on":
+  push:
 
 jobs:
   test:

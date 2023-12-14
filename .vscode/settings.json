@@ -4,8 +4,8 @@
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll": false,
-      "source.organizeImports": true
+      "source.fixAll": "never",
+      "source.organizeImports": "explicit"
     }
   },
   "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
@@ -15,7 +15,7 @@
     "editor.detectIndentation": false,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": "explicit"
     }
   },
   "json.format.keepLines": true,
