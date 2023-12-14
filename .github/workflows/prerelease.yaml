@@ -1,7 +1,6 @@
----
 name: Test & pre-release
 
-on:
+"on":
   push:
     branches:
       - release/*

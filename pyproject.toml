@@ -68,6 +68,7 @@ pydoclint = "^0.3.8"
 prettier = "^0.0.7"
 deptry = "^0.12.0"
 python-semantic-release = "^8.3.0"
+yamllint = "^1.33.0"
 
 [tool.semantic_release.branches.prerelease]
 match = "(release/*)"
