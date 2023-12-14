@@ -2,7 +2,7 @@ name: Release
 
 "on":
   push:
-    branches: ["main", "master"]
+    branches: ["main", "master", "release/**"]
 
 concurrency:
   group: deploy
@@ -110,7 +110,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v
         with:
           python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - name: Install and configure Poetry
