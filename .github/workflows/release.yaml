@@ -3,36 +3,6 @@ name: Release
 "on":
   push:
     branches: ["main", "master"]
-  workflow_dispatch:
-    inputs:
-      release_force:
-        description: |
-          Force release be one of: [major | minor | patch]
-          Leave empty for auto-detect based on commit messages.
-        type: choice
-        options:
-          - "" # auto-detect
-          - major # force major
-          - minor # force minor
-          - patch # force patch
-        default: ""
-        required: false
-      prerelease_token:
-        description: |
-          'The "prerelease identifier" to use as a prefix for the "prerelease" \
-           part of a semver. Like the rc in `1.2.0-rc.8`.'
-        type: choice
-        options:
-          - rc
-          - beta
-          - alpha
-        default: rc
-        required: false
-      prerelease:
-        description: "Is a pre-release"
-        type: boolean
-        default: false
-        required: false
 
 concurrency:
   group: deploy
@@ -81,7 +51,7 @@ jobs:
 
   Release:
     needs: Test
-    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
     permissions:
       # NOTE: this enables trusted publishing.
@@ -121,21 +91,19 @@ jobs:
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
-
       - name: Python Semantic Release
-        id: release
-        # see https://python-semantic-release.readthedocs.io/en/latest/automatic-releases/github-actions.html
-        # see https://github.com/python-semantic-release/python-semantic-release
-        uses: python-semantic-release/python-semantic-release@v8.5.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          force: ${{ github.event.inputs.release_force }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-          prerelease_token: ${{ github.event.inputs.prerelease_token }}
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "action@github.com"
+          poetry run semantic-release --noop publish -D commit_author="github-actions <action@github.com>"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PyPI_TOKEN: ${{secrets.PyPI_TOKEN}}
 
   Documentation:
     needs: Release
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
         with:
