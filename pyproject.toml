@@ -89,8 +89,8 @@ upload_to_release = true
 match = "(main|master)"
 prerelease = false
 
-[tool.semantic_release.branches."0.x.x"]
-match = "0.x.x"
+[tool.semantic_release.branches."release"]
+match = "release/*"
 prerelease = true
 prerelease_token = "rc"
 
