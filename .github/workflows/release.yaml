@@ -91,7 +91,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.OTG_ETL_RELEASE }}
@@ -139,6 +139,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.OTG_ETL_RELEASE }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
