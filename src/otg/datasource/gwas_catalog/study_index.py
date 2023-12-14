@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.sql import SparkFiles
+from pyspark import SparkFiles
 
 from otg.common.session import Session
 from otg.common.spark_helpers import column2camel_case
