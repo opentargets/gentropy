@@ -6,13 +6,46 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql import SparkFiles
 
+from otg.common.session import Session
 from otg.common.spark_helpers import column2camel_case
 from otg.common.utils import parse_efos
 from otg.dataset.study_index import StudyIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
+
+
+def read_curation_table(
+    curation_path: str | None, session: Session
+) -> DataFrame | None:
+    """Read curation table if path or URL is given.
+
+    Curation itself is fully optional everything should work without it.
+
+    Args:
+        curation_path (str | None): Optionally given path the curation tsv.
+        session (Session): OTG session object
+
+    Returns:
+        DataFrame | None: if curation was provided,
+    """
+    # If no curation path provided, we are returning none:
+    if curation_path is None:
+        return None
+    # Read curation from the web:
+    elif curation_path.startswith("http"):
+        # Registering file:
+        session.spark.sparkContext.addFile(curation_path)
+
+        # Reading file:
+        return session.spark.read.csv(
+            SparkFiles.get(curation_path.split("/")[-1]), sep="\t", header=True
+        )
+    # Read curation from file:
+    else:
+        return session.spark.read.csv(curation_path, sep="\t", header=True)
 
 
 @dataclass
@@ -339,6 +372,108 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
 
         return self
+
+    def annotate_from_study_curation(
+        self: StudyIndexGWASCatalog, curation_table: DataFrame | None
+    ) -> StudyIndexGWASCatalog:
+        """Annotating study index with curation.
+
+        Args:
+            curation_table (DataFrame | None): Curated GWAS Catalog studies with summary statistics
+
+        Returns:
+            StudyIndexGWASCatalog: Updated study index
+        """
+        if curation_table is None:
+            return self
+
+        # Get a list of columns from the original dataset:
+        columns = self.df.columns
+
+        # Create expression how to update/create quality controls dataset:
+        qualityControls_expression = (
+            f.col("upateQualityControls")
+            if "qualityControls" not in columns
+            else f.when(
+                f.col("upateQualityControls").isNotNull(),
+                f.array_union(f.col("qualityControls"), f.col("upateQualityControls")),
+            ).otherwise(f.col("qualityControls"))
+        )
+
+        # Create expression how to update/create analysis flag:
+        analysis_expression = (
+            f.col("upateAnalysisFlags")
+            if "analysisFlags" not in columns
+            else f.when(
+                f.col("upateAnalysisFlags").isNotNull(),
+                f.array_union(f.col("analysisFlags"), f.col("upateAnalysisFlags")),
+            ).otherwise(f.col("analysisFlags"))
+        )
+
+        # Updating columns list. We might or might not list columns twice, but that doesn't matter, unique set will generated:
+        columns = list(set(columns + ["qualityControls", "analysisFlags"]))
+
+        # If we got curation, we have to do a bit of a logic:
+        curated_df = (
+            self.df.join(curation_table, on="studyId", how="left")
+            # Updating study type:
+            .withColumn("type", f.coalesce(f.col("updateStudyType"), f.col("type")))
+            # Updating quality controls:
+            .withColumn("qualityControls", qualityControls_expression)
+            # Updating quality controls:
+            .withColumn("analysisFlags", analysis_expression)
+            # Dropping curation columns:
+            .select(*columns)
+        )
+        return StudyIndexGWASCatalog(
+            _df=curated_df, _schema=StudyIndexGWASCatalog.get_schema()
+        )
+
+    def extract_studies_for_curation(
+        self: StudyIndexGWASCatalog, curation: DataFrame | None
+    ) -> DataFrame:
+        """Extract studies for curation.
+
+        Args:
+            curation (DataFrame | None): Dataframe with curation.
+
+        Returns:
+            DataFrame: Updated curation table. New studies are have the `isCurated` False.
+        """
+        if curation is None:
+            studies = (
+                self.df
+                # Keep only studies with summary statistics:
+                .filter(f.col("hasSumstats"))
+                # Adding columns expected in the curation table:
+                .withColumn("updateStudyType", f.lit(None).cast(t.StringType()))
+                .withColumn("upateAnalysisFlags", f.array([]).cast(t.StringType()))
+                .withColumn("upateQualityControls", f.array([]).cast(t.StringType()))
+                .withColumn("isCurated", f.lit(False))
+            )
+        else:
+            studies = (
+                self.df
+                # Keep only studies with summary statistics:
+                .filter(f.col("hasSumstats")).join(curation, on="studyId", how="left")
+            )
+
+        # if curation is present:
+        return (
+            studies
+            # Select columns:
+            .select(
+                "studyId",
+                "upateAnalysisFlags",
+                "updateStudyType",
+                "upateAnalysisFlags",
+                f.coalesce(f.col("isCurated"), f.lit(False)).alias("isCurated"),
+                # These fields are there to help curation, but should not be included in the curation table:
+                "publicationTitle",
+                "firstAuthor",
+                "traitFromSource",
+            )
+        )
 
     def annotate_ancestries(
         self: StudyIndexGWASCatalog, ancestry_lut: DataFrame

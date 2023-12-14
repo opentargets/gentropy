@@ -10,7 +10,10 @@ from otg.dataset.variant_annotation import VariantAnnotation
 from otg.datasource.gwas_catalog.associations import (
     GWASCatalogCuratedAssociationsParser,
 )
-from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
+from otg.datasource.gwas_catalog.study_index import (
+    StudyIndexGWASCatalogParser,
+    read_curation_table,
+)
 from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
 
 
@@ -37,6 +40,7 @@ class GWASCatalogIngestionStep:
     catalog_ancestry_files: list[str] = MISSING
     catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
+    gwas_catalog_study_curation_file: str = MISSING
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
@@ -57,12 +61,15 @@ class GWASCatalogIngestionStep:
         catalog_associations = self.session.spark.read.csv(
             self.catalog_associations_file, sep="\t", header=True
         ).persist()
+        gwas_catalog_study_curation = read_curation_table(
+            self.gwas_catalog_study_curation_file, self.session
+        )
 
         # Transform
         study_index, study_locus = GWASCatalogStudySplitter.split(
             StudyIndexGWASCatalogParser.from_source(
                 catalog_studies, ancestry_lut, sumstats_lut
-            ),
+            ).annotate_from_study_curation(gwas_catalog_study_curation),
             GWASCatalogCuratedAssociationsParser.from_source(catalog_associations, va),
         )
 

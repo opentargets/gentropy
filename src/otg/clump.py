@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from omegaconf import MISSING
+from pyspark.sql import functions as f
 
 from otg.common.session import Session
 from otg.dataset.ld_index import LDIndex
@@ -61,8 +62,26 @@ class ClumpStep:
                 study_index=study_index, ld_index=ld_index
             ).clump()
         else:
+            # Generate a list of study identifiers that we want to ingest:
+            study_ids_to_ingest = [
+                row["studyId"]
+                for row in (
+                    study_index.df.filter(
+                        # Exclude problematic studies:
+                        (f.size(f.col("qualityControls")) == 0)
+                        &
+                        # Exclude qtl studies:
+                        (f.col("type") == "gwas")
+                    )
+                    .select("studyId")
+                    .distinct()
+                    .collect()
+                )
+            ]
             sumstats = SummaryStatistics.from_parquet(
-                self.session, self.input_path, recursiveFileLookup=True
+                self.session,
+                [f"{self.input_path}/{study_id}" for study_id in study_ids_to_ingest],
+                recursiveFileLookup=True,
             ).coalesce(4000)
             clumped_study_locus = sumstats.window_based_clumping(
                 locus_collect_distance=self.locus_collect_distance
