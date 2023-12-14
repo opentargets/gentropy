@@ -38,6 +38,9 @@ concurrency:
   group: deploy
   cancel-in-progress: false # prevent hickups with semantic-release
 
+env:
+  PYTHON_VERSION_DEFAULT: "3.10.8"
+
 jobs:
   Test:
     runs-on: ubuntu-latest
@@ -48,7 +51,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.10.8
+          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
@@ -62,7 +65,7 @@ jobs:
           path: .venv
           key: |
             venv-${{ runner.os }}-\
-            ${{ steps.setup-python.outputs.python-version }}-\
+            ${{ env.PYTHON_VERSION_DEFAULT }}-\
             ${{ hashFiles('**/poetry.lock') }}
       - name: Validate project dependencies
         run: poetry check
@@ -93,10 +96,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.OTG_ETL_RELEASE }}
 
-      - name: Set up Python 3.8
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
@@ -110,7 +113,7 @@ jobs:
           path: .venv
           key: |
             venv-${{ runner.os }}-\
-            ${{ steps.setup-python.outputs.python-version }}-\
+            ${{ env.PYTHON_VERSION_DEFAULT }}-\
             ${{ hashFiles('**/poetry.lock') }}
       - name: Validate project dependencies
         run: poetry check
@@ -139,7 +142,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10.8
+          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
@@ -153,7 +156,7 @@ jobs:
           path: .venv
           key: |
             venv-${{ runner.os }}-\
-            ${{ steps.setup-python.outputs.python-version }}-\
+            ${{ env.PYTHON_VERSION_DEFAULT }}-\
             ${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
