@@ -91,6 +91,21 @@ upload_to_release = true
 match = "(main|master)"
 prerelease = false
 
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+
+[tool.semantic_release.changelog]
+changelog_file = "CHANGELOG.md"
+exclude_commit_patterns = [
+  "chore\\(release\\):",
+]
+
+[tool.semantic_release.branches."step"]
+match = "(build|chore|ci|docs|feat|fix|perf|style|refactor|test)"
+prerelease = true
+prerelease_token = "alpha"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
