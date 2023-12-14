@@ -11,11 +11,10 @@ name: Release
           Leave empty for auto-detect based on commit messages.
         type: choice
         options:
-          # single quotes are required
-          - ''  # auto-detect
-          - major  # force major
-          - minor  # force minor
-          - patch  # force patch
+          - "" # auto-detect
+          - major # force major
+          - minor # force minor
+          - patch # force patch
         default: ""
         required: false
       prerelease_token:
@@ -37,7 +36,7 @@ name: Release
 
 concurrency:
   group: deploy
-  cancel-in-progress: false  # prevent hickups with semantic-release
+  cancel-in-progress: false # prevent hickups with semantic-release
 
 jobs:
   Test:
