@@ -2829,7 +2829,9 @@
 <span class="normal">201</span>
 <span class="normal">202</span>
 <span class="normal">203</span>
-<span class="normal">204</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">LocusToGeneStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locus to gene step.</span>
 
@@ -2943,6 +2945,7 @@
             <span class="p">)</span>
 
             <span class="n">fm</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">generate_features</span><span class="p">(</span>
+                <span class="n">features_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_list</span><span class="p">,</span>
                 <span class="n">study_locus</span><span class="o">=</span><span class="n">credible_set</span><span class="p">,</span>
                 <span class="n">study_index</span><span class="o">=</span><span class="n">studies</span><span class="p">,</span>
                 <span class="n">variant_gene</span><span class="o">=</span><span class="n">v2g</span><span class="p">,</span>
@@ -2999,6 +3002,7 @@
                 <span class="p">)</span>
             <span class="n">predictions</span> <span class="o">=</span> <span class="n">L2GPrediction</span><span class="o">.</span><span class="n">from_credible_set</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">features_list</span><span class="p">,</span>
                 <span class="n">credible_set</span><span class="p">,</span>
                 <span class="n">studies</span><span class="p">,</span>
                 <span class="n">v2g</span><span class="p">,</span>

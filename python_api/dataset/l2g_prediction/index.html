@@ -2591,7 +2591,11 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="normal">82</span>
 <span class="normal">83</span>
 <span class="normal">84</span>
-<span class="normal">85</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">L2GPrediction</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset that contains the Locus to Gene predictions.</span>
 
@@ -2613,6 +2617,7 @@ confidence of the prediction that a gene is causal to an association.</p>
     <span class="k">def</span> <span class="nf">from_credible_set</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">L2GPrediction</span><span class="p">],</span>
         <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
         <span class="n">v2g</span><span class="p">:</span> <span class="n">V2G</span><span class="p">,</span>
@@ -2622,6 +2627,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 
 <span class="sd">        Args:</span>
 <span class="sd">            model_path (str): Path to the fitted model</span>
+<span class="sd">            features_list (list[str]): List of features to use for the model</span>
 <span class="sd">            study_locus (StudyLocus): Study locus dataset</span>
 <span class="sd">            study_index (StudyIndex): Study index dataset</span>
 <span class="sd">            v2g (V2G): Variant to gene dataset</span>
@@ -2630,6 +2636,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="sd">            L2GPrediction: L2G dataset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">fm</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">generate_features</span><span class="p">(</span>
+            <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span><span class="p">,</span>
             <span class="n">study_locus</span><span class="o">=</span><span class="n">study_locus</span><span class="p">,</span>
             <span class="n">study_index</span><span class="o">=</span><span class="n">study_index</span><span class="p">,</span>
             <span class="n">variant_gene</span><span class="o">=</span><span class="n">v2g</span><span class="p">,</span>
@@ -2640,8 +2647,9 @@ confidence of the prediction that a gene is causal to an association.</p>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_disk</span><span class="p">(</span>
                     <span class="n">model_path</span><span class="p">,</span>
-                    <span class="n">features_list</span><span class="o">=</span><span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+                    <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
                 <span class="c1"># the probability of the positive class is the second element inside the probability array</span>
                 <span class="c1"># - this is selected as the L2G probability</span>
                 <span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -2674,7 +2682,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 
 
 <h3 id="otg.dataset.l2g_prediction.L2GPrediction.from_credible_set" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">from_credible_set</span><span class="p">(</span><span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">v2g</span><span class="p">:</span> <span class="n">V2G</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span></code>
+          <code class="highlight language-python"><span class="n">from_credible_set</span><span class="p">(</span><span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">v2g</span><span class="p">:</span> <span class="n">V2G</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -2708,6 +2716,20 @@ confidence of the prediction that a gene is causal to an association.</p>
           <td>
             <div class="doc-md-description">
               <p>Path to the fitted model</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>features_list</code></td>
+          <td>
+                <code>list[str]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>List of features to use for the model</p>
             </div>
           </td>
           <td>
@@ -2827,10 +2849,15 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="normal">82</span>
 <span class="normal">83</span>
 <span class="normal">84</span>
-<span class="normal">85</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_credible_set</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">L2GPrediction</span><span class="p">],</span>
     <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
     <span class="n">v2g</span><span class="p">:</span> <span class="n">V2G</span><span class="p">,</span>
@@ -2840,6 +2867,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_path (str): Path to the fitted model</span>
+<span class="sd">        features_list (list[str]): List of features to use for the model</span>
 <span class="sd">        study_locus (StudyLocus): Study locus dataset</span>
 <span class="sd">        study_index (StudyIndex): Study index dataset</span>
 <span class="sd">        v2g (V2G): Variant to gene dataset</span>
@@ -2848,6 +2876,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="sd">        L2GPrediction: L2G dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">fm</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">generate_features</span><span class="p">(</span>
+        <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span><span class="p">,</span>
         <span class="n">study_locus</span><span class="o">=</span><span class="n">study_locus</span><span class="p">,</span>
         <span class="n">study_index</span><span class="o">=</span><span class="n">study_index</span><span class="p">,</span>
         <span class="n">variant_gene</span><span class="o">=</span><span class="n">v2g</span><span class="p">,</span>
@@ -2858,8 +2887,9 @@ confidence of the prediction that a gene is causal to an association.</p>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_disk</span><span class="p">(</span>
                 <span class="n">model_path</span><span class="p">,</span>
-                <span class="n">features_list</span><span class="o">=</span><span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+                <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
             <span class="c1"># the probability of the positive class is the second element inside the probability array</span>
             <span class="c1"># - this is selected as the L2G probability</span>
             <span class="o">.</span><span class="n">select</span><span class="p">(</span>
