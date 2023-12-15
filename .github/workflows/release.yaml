@@ -48,17 +48,27 @@ jobs:
             venv-${{ runner.os }}-\
             ${{ env.PYTHON_VERSION_DEFAULT }}-\
             ${{ hashFiles('**/poetry.lock') }}
+
       - name: Validate project dependencies
         run: poetry check
+
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
+
       - name: Python Semantic Release
-        run: |
-          poetry run semantic-release publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # PyPI_TOKEN: ${{secrets.PyPI_TOKEN}}
+        id: release
+        uses: python-semantic-release/python-semantic-release@v8.3.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish package distributions to GitHub Releases
+        if: steps.release.outputs.released == 'true'
+        # see https://github.com/python-semantic-release/upload-to-gh-release
+        uses: python-semantic-release/upload-to-gh-release@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.release.outputs.tag }}
 
   Documentation:
     needs: Release
