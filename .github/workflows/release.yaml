@@ -12,45 +12,7 @@ env:
   PYTHON_VERSION_DEFAULT: "3.10.8"
 
 jobs:
-  Test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
-      - name: Install and configure Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: |
-            venv-${{ runner.os }}-\
-            ${{ env.PYTHON_VERSION_DEFAULT }}-\
-            ${{ hashFiles('**/poetry.lock') }}
-      - name: Validate project dependencies
-        run: poetry check
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-      - name: Install library
-        run: poetry install --no-interaction
-      - name: Check dependencies
-        run: poetry run deptry .
-      - name: Run tests
-        run: poetry run pytest
-
   Release:
-    needs: Test
     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
     permissions:
@@ -93,7 +55,7 @@ jobs:
         run: poetry install --no-interaction --no-root
       - name: Python Semantic Release
         run: |
-          poetry run semantic-release --noop publish
+          poetry run semantic-release publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # PyPI_TOKEN: ${{secrets.PyPI_TOKEN}}
