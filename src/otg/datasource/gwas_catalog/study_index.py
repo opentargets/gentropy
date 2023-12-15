@@ -392,7 +392,10 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         # Create expression how to update/create quality controls dataset:
         qualityControls_expression = (
-            f.array(f.col("upateQualityControls"))
+            f.when(
+                f.col("upateQualityControls").isNotNull(),
+                f.array(f.col("upateQualityControls")),
+            ).otherwise(f.array())
             if "qualityControls" not in columns
             else f.when(
                 f.col("upateQualityControls").isNotNull(),
@@ -404,7 +407,10 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         # Create expression how to update/create analysis flag:
         analysis_expression = (
-            f.array(f.col("upateAnalysisFlags"))
+            f.when(
+                f.col("upateAnalysisFlags").isNotNull(),
+                f.array(f.col("upateAnalysisFlags")),
+            ).otherwise(f.array())
             if "analysisFlags" not in columns
             else f.when(
                 f.col("upateAnalysisFlags").isNotNull(),
@@ -453,8 +459,8 @@ class StudyIndexGWASCatalog(StudyIndex):
                 .filter(f.col("hasSumstats"))
                 # Adding columns expected in the curation table:
                 .withColumn("updateStudyType", f.lit(None).cast(t.StringType()))
-                .withColumn("upateAnalysisFlags", f.array([]).cast(t.StringType()))
-                .withColumn("upateQualityControls", f.array([]).cast(t.StringType()))
+                .withColumn("upateAnalysisFlags", f.array().cast(t.StringType()))
+                .withColumn("upateQualityControls", f.array().cast(t.StringType()))
                 .withColumn("isCurated", f.lit(False).cast(t.BooleanType()))
             )
         else:

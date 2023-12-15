@@ -103,9 +103,102 @@ class TestGWASCatalogStudyCuration:
         ), f"When applied curation data, the size of the returned data was not as expected ({return_count} vs {expected_count})."
 
     # Test updated type
+    @staticmethod
+    def test_curation__type_update(
+        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
+    ) -> None:
+        """Test for making sure the study type got updated."""
+        curated = mock_gwas_study_index.annotate_from_study_curation(
+            mock_study_curation
+        )
+
+        # Expected studyIds:
+        expected = [
+            row["studyId"]
+            for row in (
+                mock_study_curation.filter(f.col("updateStudyType").isNotNull())
+                .select("studyId")
+                .distinct()
+                .collect()
+            )
+        ]
+
+        observed = [
+            row["studyId"]
+            for row in (
+                curated.df.filter(f.col("studyType") != "foo")
+                .select("studyId")
+                .distinct()
+                .collect()
+            )
+        ]
+
+        assert expected == observed
 
     # Test update qc flag
+    @staticmethod
+    def test_curation__quality_controls(
+        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
+    ) -> None:
+        """Test for making sure the study type got updated."""
+        curated = mock_gwas_study_index.annotate_from_study_curation(
+            mock_study_curation
+        )
+
+        # Expected studyIds:
+        expected = [
+            row["studyId"]
+            for row in (
+                mock_study_curation.filter(f.col("upateQualityControls").isNotNull())
+                .select("studyId")
+                .distinct()
+                .collect()
+            )
+        ]
+
+        observed = [
+            row["studyId"]
+            for row in (
+                curated.df.filter(f.size(f.col("qualityControls")) > 0)
+                .select("studyId")
+                .distinct()
+                .collect()
+            )
+        ]
+
+        assert expected == observed
 
     # Test updated method flag
+    @staticmethod
+    def test_curation__analysis_flags(
+        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
+    ) -> None:
+        """Test for making sure the study type got updated."""
+        curated = mock_gwas_study_index.annotate_from_study_curation(
+            mock_study_curation
+        )
+
+        # Expected studyIds:
+        expected = [
+            row["studyId"]
+            for row in (
+                mock_study_curation.filter(f.col("upateAnalysisFlags").isNotNull())
+                .select("studyId")
+                .distinct()
+                .collect()
+            )
+        ]
+
+        observed = [
+            row["studyId"]
+            for row in (
+                curated.df.filter(f.size(f.col("analysisFlags")) > 0)
+                .select("studyId")
+                .distinct()
+                .collect()
+            )
+        ]
+
+        assert expected == observed
 
     # Test
