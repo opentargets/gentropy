@@ -156,3 +156,41 @@ class StudyIndex(Dataset):
             .distinct()
             .collect()
         ]
+
+    def is_qtl(self: StudyIndex) -> Column:
+        """Return booleans indicating if a study is a qtl.
+
+        Returns:
+            Column: Boolean columns with true values for QTL studies.
+        """
+        return f.when(self.df.studyType.endswith("qtl"), f.lit(True)).otherwise(
+            f.lit(False)
+        )
+
+    def is_gwas(self: StudyIndex) -> Column:
+        """Return booleans indicating if a study is a gwas.
+
+        Returns:
+            Column: Boolean columns with true values for GWAS studies.
+        """
+        return f.when(self.df.studyType == "gwas", f.lit(True)).otherwise(f.lit(False))
+
+    def has_mapped_trait(self: StudyIndex) -> Column:
+        """Return booleans indicating if a study has mapped disease.
+
+        Returns:
+            Column: Boolean columns with true values studies with mapped disease (EFO).
+        """
+        return f.when(
+            f.size(self.df.traitFromSourceMappedIds) > 0, f.lit(True)
+        ).otherwise(f.lit(False))
+
+    def is_quality_flagged(self: StudyIndex) -> Column:
+        """Return booleans indicating if a study flagged due to quality issues.
+
+        Returns:
+            Column: Boolean columns with true values with no quality issues.
+        """
+        return f.when(f.size(self.df.qualityControls) == 0, f.lit(True)).otherwise(
+            f.lit(False)
+        )
