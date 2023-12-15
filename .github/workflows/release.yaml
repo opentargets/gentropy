@@ -93,9 +93,7 @@ jobs:
         run: poetry install --no-interaction --no-root
       - name: Python Semantic Release
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "action@github.com"
-          poetry run semantic-release --noop publish -D commit_author="github-actions <action@github.com>"
+          poetry run semantic-release --noop publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # PyPI_TOKEN: ${{secrets.PyPI_TOKEN}}
@@ -110,7 +108,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Python
-        uses: actions/setup-python@v
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - name: Install and configure Poetry
