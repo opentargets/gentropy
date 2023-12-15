@@ -3,35 +3,6 @@ name: Release
 "on":
   push:
     branches: ["main", "master", "release/**"]
-  workflow_dispatch:
-    inputs:
-      release_force:
-        # see https://python-semantic-release.readthedocs.io/en/latest/github-action.html#command-line-options
-        description: |
-          Force release be one of: [major | minor | patch]
-          Leave empty for auto-detect based on commit messages.
-        type: choice
-        options:
-          - "" # auto - no force
-          - major # force major
-          - minor # force minor
-          - patch # force patch
-        default: ""
-        required: false
-      prerelease_token:
-        description: 'The "prerelease identifier" to use as a prefix for the "prerelease" part of a semver. Like the rc in `1.2.0-rc.8`.'
-        type: choice
-        options:
-          - rc
-          - beta
-          - alpha
-        default: rc
-        required: false
-      prerelease:
-        description: "Is a pre-release"
-        type: boolean
-        default: false
-        required: false
 
 concurrency:
   group: deploy
@@ -90,9 +61,6 @@ jobs:
         uses: python-semantic-release/python-semantic-release@v8.3.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          force: ${{ github.event.inputs.release_force }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-          prerelease_token: ${{ github.event.inputs.prerelease_token }}
 
       - name: Publish package distributions to GitHub Releases
         if: steps.release.outputs.released == 'true'
