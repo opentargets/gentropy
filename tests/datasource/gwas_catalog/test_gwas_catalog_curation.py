@@ -202,3 +202,5 @@ class TestGWASCatalogStudyCuration:
         assert expected == observed
 
     # Test
+    # @staticmethod
+    # def test_curation__
