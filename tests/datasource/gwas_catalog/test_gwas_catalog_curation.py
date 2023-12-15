@@ -7,9 +7,10 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pytest
 from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
+from pyspark.sql import DataFrame
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import SparkSession
 
 
 class TestGWASCatalogStudyCuration:
@@ -104,7 +105,7 @@ class TestGWASCatalogStudyCuration:
 
     # Test updated type
     @staticmethod
-    def test_curation__type_update(
+    def test_curation__study_type_update(
         mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
     ) -> None:
         """Test for making sure the study type got updated."""
@@ -201,6 +202,51 @@ class TestGWASCatalogStudyCuration:
 
         assert expected == observed
 
-    # Test
-    # @staticmethod
-    # def test_curation__
+    # Test curation extraction:
+    @staticmethod
+    def test_extract_curation__return_type(
+        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
+    ) -> None:
+        """Testing if the extracted curation table has the right type."""
+        assert isinstance(
+            mock_gwas_study_index.extract_studies_for_curation(mock_study_curation),
+            DataFrame,
+        )
+        # we don't need to have existing curation:
+        assert isinstance(
+            mock_gwas_study_index.extract_studies_for_curation(None),
+            DataFrame,
+        )
+
+    @staticmethod
+    def test_extract_curation__rows(
+        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
+    ) -> None:
+        """Testing if the extracted curation table has the right type."""
+        new_curation_count = mock_gwas_study_index.extract_studies_for_curation(
+            mock_study_curation
+        ).count()
+        new_empty_count = mock_gwas_study_index.extract_studies_for_curation(
+            mock_study_curation
+        ).count()
+        expected_count = mock_gwas_study_index.df.filter(f.col("hasSumstats")).count()
+        assert new_curation_count == expected_count
+        assert new_empty_count == expected_count
+
+    @staticmethod
+    def test_extract_curation__new_studies_to_curate(
+        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
+    ) -> None:
+        """Testing if the extracted curation table has the right type."""
+        new_curation_count = (
+            mock_gwas_study_index.extract_studies_for_curation(mock_study_curation)
+            .filter(~f.col("isCurated"))
+            .count()
+        )
+        new_empty_count = (
+            mock_gwas_study_index.extract_studies_for_curation(None)
+            .filter(~f.col("isCurated"))
+            .count()
+        )
+        assert new_curation_count == 2
+        assert new_empty_count == 6
