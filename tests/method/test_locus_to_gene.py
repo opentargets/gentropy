@@ -133,3 +133,12 @@ class TestStudyLocusFactory:
         assert isinstance(
             tss_distance, L2GFeature
         ), "Unexpected model type returned from _get_tss_distance_features"
+
+    def test_get_vep_features(
+        self: TestStudyLocusFactory, mock_study_locus: StudyLocus, mock_v2g: V2G
+    ) -> None:
+        """Test the function that extracts the VEP features."""
+        vep_features = StudyLocusFactory._get_vep_features(mock_study_locus, mock_v2g)
+        assert isinstance(
+            vep_features, L2GFeature
+        ), "Unexpected model type returned from _get_vep_features"
