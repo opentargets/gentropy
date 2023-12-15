@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from omegaconf import MISSING
-from pyspark.sql import functions as f
 
 from otg.common.session import Session
 from otg.dataset.ld_index import LDIndex
@@ -64,22 +63,9 @@ class ClumpStep:
         else:
             if self.study_index_path is not None:
                 # Generate a list of study identifiers that we want to ingest:
-                study_ids_to_ingest = [
-                    row["studyId"]
-                    for row in (
-                        StudyIndex.from_parquet(self.session, self.study_index_path)
-                        .df.filter(
-                            # Exclude problematic studies:
-                            (f.size(f.col("qualityControls")) == 0)
-                            &
-                            # Exclude qtl studies:
-                            (f.col("type") == "gwas")
-                        )
-                        .select("studyId")
-                        .distinct()
-                        .collect()
-                    )
-                ]
+                study_ids_to_ingest = StudyIndex.from_parquet(
+                    self.session, self.study_index_path
+                ).get_eligible_gwas_study_ids()
             else:
                 study_ids_to_ingest = ["*"]
 

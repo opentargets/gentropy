@@ -139,3 +139,20 @@ class StudyIndex(Dataset):
             DataFrame: A dataframe containing `studyId` and `studyType` columns.
         """
         return self.df.select("studyId", "studyType")
+
+    def get_eligible_gwas_study_ids(self: StudyIndex) -> list[str]:
+        """Get a list of study identifiers eligible for ingestion.
+
+        Currently the eligibility criteria is to have `gwas` as study type and have no quality controls flag.
+
+        Returns:
+            list[str]: list of study identifiers.
+        """
+        return [
+            row["studyId"]
+            for row in self.df.filter(
+                (f.col("studyType") == "gwas") & (f.size(f.col("qualityControls")) == 0)
+            )
+            .distinct()
+            .collect()
+        ]

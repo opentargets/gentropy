@@ -33,6 +33,7 @@ class GWASCatalogIngestionStep:
         ld_populations (list): List of populations to include.
         catalog_studies_out (str): Output GWAS catalog studies path.
         catalog_associations_out (str): Output GWAS catalog associations path.
+        gwas_catalog_study_curation_file (str | None): file of the curation table. Optional.
     """
 
     session: Session = MISSING
@@ -40,7 +41,7 @@ class GWASCatalogIngestionStep:
     catalog_ancestry_files: list[str] = MISSING
     catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
-    gwas_catalog_study_curation_file: str = MISSING
+    gwas_catalog_study_curation_file: str | None = None
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
