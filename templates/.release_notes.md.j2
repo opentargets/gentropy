@@ -1,0 +1,7 @@
+## What's Changed
+{% for type_, commits in release["elements"] | dictsort %}
+### {{ type_ | capitalize }}
+{%- if type_ != "unknown" %}
+{% for commit in commits %}
+* {{ commit.descriptions[0] }} by {{commit.commit.author.name}} in [`{{ commit.short_hash }}`]({{ commit.hexsha | commit_hash_url }})
+{%- endfor %}{% endif %}{% endfor %}
