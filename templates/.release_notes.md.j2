@@ -7,5 +7,5 @@
 ### {{ add_emoji(type_) }} {{ type_ | capitalize }}
 {%- if type_ != "unknown" %}
 {% for commit in commits %}
-- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
+- {{ commit_content(commit.commit.summary) }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {%- endfor %}{% endif %}{% endfor %}

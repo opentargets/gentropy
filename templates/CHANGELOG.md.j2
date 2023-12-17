@@ -10,9 +10,9 @@
 {% for type_, commits in context.history.unreleased | dictsort %}
 ### add_emoji({{type_}}) {{ type_ | capitalize }}
 {% for commit in commits %}{% if type_ != "unknown" %}
-- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
+- {{ commit_content(commit.commit.summary) }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {% else %}
-- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
+- {{ commit_content(commit.commit.summary) }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {% endif %}{% endfor %}{% endfor %}{% endif %}
 
 {# RELEASED #}
@@ -21,7 +21,7 @@
 {% for type_, commits in release["elements"] | dictsort %}
 ### {{ add_emoji(type_) }} {{ type_ | capitalize }}
 {% for commit in commits %}{% if type_ != "unknown" %}
-- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
+- {{ commit_content(commit.commit.summary) }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {% else %}
-- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
+- {{ commit_content(commit.commit.summary) }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {% endif %}{% endfor %}{% endfor %}{% endfor %}
