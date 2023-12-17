@@ -1,25 +1,27 @@
+{% macro add_emoji(commit_type) %}{% if commit_type == "feature" %}✨{% elif commit_type == "fix" %}🐛{% elif commit_type == "documentation" %}📖{% elif commit_type == "style" %}🎨{% elif commit_type == "refactor" %}♻️{% elif commit_type == "test" %}✅{% elif commit_type == "chore" %}🚀{% elif commit_type == "performance" %}⚡️{% elif commit_type == "ci" %}👷‍♂️{% elif commit_type == "build" %}🏗{% elif commit_type == "breaking" %}💥{% elif commit_type == "unknown" %}🤷‍♂️{% elif commit_type == "revert" %}⏪{% else %}🤷‍♂️{% endif %}{% endmacro %}
+
+{% macro commit_scope(commit_summary) %}{{ commit_summary.split(":")[0] }}{% endmacro %}
+{% macro commit_content(commit_summary) %}{{ commit_summary.split(":")[1] }}{% endmacro %}
 # CHANGELOG
 {% if context.history.unreleased | length > 0 %}
 
 {# UNRELEASED #}
 ## Unreleased
 {% for type_, commits in context.history.unreleased | dictsort %}
-### {{ type_ | capitalize }}
+### add_emoji({{type_}}) {{ type_ | capitalize }}
 {% for commit in commits %}{% if type_ != "unknown" %}
-* {{ commit.commit.message.rstrip() }} ([`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}))
+- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {% else %}
-* {{ commit.commit.message.rstrip() }} ([`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}))
-{% endif %}{% endfor %}{% endfor %}
-
-{% endif %}
+- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
+{% endif %}{% endfor %}{% endfor %}{% endif %}
 
 {# RELEASED #}
 {% for version, release in context.history.released.items() %}
 ## {{ version.as_tag() }} ({{ release.tagged_date.strftime("%Y-%m-%d") }})
 {% for type_, commits in release["elements"] | dictsort %}
-### {{ type_ | capitalize }}
+### {{ add_emoji(type_) }} {{ type_ | capitalize }}
 {% for commit in commits %}{% if type_ != "unknown" %}
-* {{ commit.commit.message.rstrip() }} ([`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}))
+- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {% else %}
-* {{ commit.commit.message.rstrip() }} ([`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}))
+- {{ commit_content(commit.commit.summary) }} {{ commit.commit.summary }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
 {% endif %}{% endfor %}{% endfor %}{% endfor %}
