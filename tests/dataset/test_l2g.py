@@ -149,3 +149,27 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
     )
 
     assert observed_df.collect() == expected_df.collect()
+
+
+def test_calculate_feature_missingness_rate(spark: SparkSession) -> None:
+    """Test L2GFeatureMatrix.calculate_feature_missingness_rate."""
+    fm = L2GFeatureMatrix(
+        _df=spark.createDataFrame(
+            [
+                (1, "gene1", 100.0, None),
+                (2, "gene2", 1000.0, 0.0),
+            ],
+            "studyLocusId LONG, geneId STRING, distanceTssMean DOUBLE, distanceTssMinimum DOUBLE",
+        ),
+        _schema=L2GFeatureMatrix.get_schema(),
+    )
+
+    expected_missingness = {"distanceTssMean": 0.0, "distanceTssMinimum": 1.0}
+    observed_missingness = fm.calculate_feature_missingness_rate()
+    assert isinstance(observed_missingness, dict)
+    assert len(observed_missingness) == len(
+        fm.features_list  # type: ignore
+    ), "Missing features in the missingness rate dictionary."
+    assert (
+        observed_missingness == expected_missingness
+    ), "Missingness rate is incorrect."
