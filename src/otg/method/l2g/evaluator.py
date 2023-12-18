@@ -11,7 +11,6 @@ from pyspark.ml.evaluation import (
     MulticlassClassificationEvaluator,
 )
 from pyspark.ml.param import Param, Params, TypeConverters
-
 from wandb.sdk.wandb_run import Run
 
 if TYPE_CHECKING:
