@@ -291,6 +291,7 @@ class StudyLocusFactory(StudyLocus):
                 on="variantInLocusId",
             )
             .select("studyLocusId", "variantId", "studyId", "geneId", "score")
+            .distinct()
             .persist()
         )
 
@@ -312,6 +313,6 @@ class StudyLocusFactory(StudyLocus):
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
-            ),
+            ).filter(f.col("featureValue").isNotNull()),
             _schema=L2GFeature.get_schema(),
         )
