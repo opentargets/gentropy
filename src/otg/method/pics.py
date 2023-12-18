@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from otg.dataset.study_locus import StudyLocus
+from otg.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
@@ -236,6 +236,14 @@ class PICS:
                         _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")).cast(
                             picsed_study_locus_schema
                         ),
+                    ),
+                )
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.size("locus") == 0,
+                        StudyLocusQualityCheck.EMPTY_LOCUS,
                     ),
                 )
                 # Rename tagVariantId to variantId

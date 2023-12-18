@@ -37,6 +37,7 @@ class StudyLocusQualityCheck(Enum):
         AMBIGUOUS_STUDY (str): Association with ambiguous study
         UNRESOLVED_LD (str): Variant not found in LD reference
         LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
+        EMPTY_LOCUS (str): Unable to calculate PIPs with the provided data
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -49,6 +50,7 @@ class StudyLocusQualityCheck(Enum):
     UNRESOLVED_LD = "Variant not found in LD reference"
     LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
+    EMPTY_LOCUS = "Unable to calculate PIPs with the provided data"
 
 
 class CredibleInterval(Enum):
