@@ -246,7 +246,10 @@ class PICS:
                         StudyLocusQualityCheck.EMPTY_LOCUS,
                     ),
                 )
-                # Rename tagVariantId to variantId
+                .withColumn(
+                    "finemappingMethod",
+                    f.coalesce(f.col("finemappingMethod"), f.lit("pics")),
+                )
                 .drop("neglog_pvalue")
             ),
             _schema=StudyLocus.get_schema(),
