@@ -4,7 +4,6 @@ from __future__ import annotations
 import itertools
 from typing import TYPE_CHECKING, Any, Dict
 
-import wandb
 from pyspark import keyword_only
 from pyspark.ml.evaluation import (
     BinaryClassificationEvaluator,
@@ -13,9 +12,10 @@ from pyspark.ml.evaluation import (
 )
 from pyspark.ml.param import Param, Params, TypeConverters
 
+from wandb.sdk.wandb_run import Run
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
-    from wandb.wandb_run import Run
 
 
 class WandbEvaluator(Evaluator):
@@ -124,11 +124,11 @@ class WandbEvaluator(Evaluator):
         """
         return self.getOrDefault(self.spark_ml_evaluator)
 
-    def getwandb_run(self: WandbEvaluator) -> wandb.sdk.wandb_run.Run:
+    def getwandb_run(self: WandbEvaluator) -> Run:
         """Get the wandb_run parameter.
 
         Returns:
-            wandb.sdk.wandb_run.Run: Wandb run object.
+            Run: Wandb run object.
         """
         return self.getOrDefault(self.wandb_run)
 
