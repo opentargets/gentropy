@@ -109,7 +109,12 @@ class L2GFeatureMatrix(Dataset):
             raise ValueError("No features found")
 
         return {
-            feature: (self._df.filter(self._df[feature].isNull()).count() / total_count)
+            feature: (
+                self._df.filter(
+                    (self._df[feature].isNull()) | (self._df[feature] == 0)
+                ).count()
+                / total_count
+            )
             for feature in self.features_list
         }
 
