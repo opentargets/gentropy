@@ -127,7 +127,7 @@ class PICS:
             ...     Row(variantId="var2", r2Overall=None),
             ... ]
             >>> PICS._finemap(ld_set_with_no_r2, lead_neglog_p=10.0, k=6.4)
-            [{'variantId': 'var1', 'r2Overall': None}, {'variantId': 'var2', 'r2Overall': None}]
+            []
         """
         if ld_set is None:
             return None
@@ -146,7 +146,6 @@ class PICS:
                 or not lead_neglog_p
             ):
                 # If PICS cannot be calculated, we'll return the original credible set
-                new_credible_set.append(tag_dict)
                 continue
 
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
