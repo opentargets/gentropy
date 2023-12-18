@@ -194,3 +194,11 @@ class StudyIndex(Dataset):
         return f.when(f.size(self.df.qualityControls) == 0, f.lit(True)).otherwise(
             f.lit(False)
         )
+
+    def has_summarystats(self: StudyIndex) -> Column:
+        """Return booleans indicating if a study has summary harmonized summary statistics.
+
+        Returns:
+            Column: Boolean columns with true values for studies with summary statistics.
+        """
+        return f.when(self.df.hasSumstats, f.lit(True)).otherwise(f.lit(False))

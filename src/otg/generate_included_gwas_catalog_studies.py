@@ -1,0 +1,169 @@
+"""Step to process GWAS Catalog associations and study table."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from omegaconf import MISSING
+from pyspark.sql import functions as f
+
+from otg.common.session import Session
+from otg.dataset.variant_annotation import VariantAnnotation
+from otg.datasource.gwas_catalog.associations import (
+    GWASCatalogCuratedAssociationsParser,
+)
+from otg.datasource.gwas_catalog.study_index import (
+    StudyIndexGWASCatalog,
+    StudyIndexGWASCatalogParser,
+    read_curation_table,
+)
+from otg.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
+
+if TYPE_CHECKING:
+    from pyspark.sql import Column, DataFrame
+
+
+@dataclass
+class GWASCatalogInclusionGenerator:
+    """GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables.
+
+    Attributes:
+        session (Session): Session object.
+        catalog_study_files (list[str]): List of raw GWAS catalog studies file.
+        catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
+        catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
+        catalog_associations_file (str): Raw GWAS catalog associations file.
+        variant_annotation_path (str): Input variant annotation path.
+        catalog_studies_out (str): Output GWAS catalog studies path.
+        catalog_associations_out (str): Output GWAS catalog associations path.
+        gwas_catalog_study_curation_file (str | None): file of the curation table. Optional.
+    """
+
+    session: Session = MISSING
+    # Paths to input datasets:
+    catalog_study_files: list[str] = MISSING
+    catalog_ancestry_files: list[str] = MISSING
+    catalog_sumstats_lut: list[str] = MISSING
+    catalog_associations_file: str = MISSING
+    gwas_catalog_study_curation_file: str | None = None
+    variant_annotation_path: str = MISSING
+    # Input for filtering:
+    filter_set: str = MISSING
+    # Parameters for output:
+    whitelist_studies_out_path: str = MISSING
+    blacklist_studies_out_path: str = MISSING
+
+    @staticmethod
+    def flag_eligible_studies(
+        study_index: StudyIndexGWASCatalog, filter_set: str
+    ) -> DataFrame:
+        """Apply filter on GWAS Catalog studies based on the provided criteria.
+
+        Args:
+            study_index (StudyIndexGWASCatalog): complete study index to be filtered based on the provided filter set
+            filter_set (str): name of the filter set to be applied.
+
+        Raises:
+            ValueError: if the provided filter set is not in the accepted values.
+
+        Returns:
+            DataFrame: filtered dataframe containing only eligible studies.
+        """
+        filters: dict[str, Column] = {
+            # Filters applied on studies for ingesting curated associations:
+            "curated": (study_index.is_gwas() & study_index.has_mapped_trait()),
+            # Filters applied on studies for ingesting summary statistics:
+            "summary_stats": (
+                study_index.is_gwas()
+                & study_index.has_mapped_trait()
+                & (~study_index.is_quality_flagged())
+                & study_index.has_summarystats()
+            ),
+        }
+
+        if filter_set not in filters:
+            raise ValueError(
+                f'Wrong value as filter set ({filter_set}). Accepted: {",".join(filters.keys())}'
+            )
+
+        # Applying the relevant filter to the study:
+        return study_index.df.select(
+            "studyId",
+            "studyType",
+            "traitFromSource",
+            "traitFromSourceMappedId",
+            "qualityControls",
+            "hasSumstats",
+            f.when(filters[filter_set], f.lit(True))
+            .otherwise(f.lit(False))
+            .alias("isEligible"),
+        )
+
+    @staticmethod
+    def process_harmonised_list(studies: list[str], session: Session) -> DataFrame:
+        """Generate spark dataframe from the provided list.
+
+        Args:
+            studies (list[str]): list of path pointing to harmonised summary statistics.
+            session (Session): session
+
+        Returns:
+            DataFrame: column name is consistent with original implementatin
+        """
+        return session.spark.createDataFrame([{"_c0": path} for path in studies])
+
+    def get_gwas_catalog_study_index(
+        self: GWASCatalogInclusionGenerator,
+    ) -> StudyIndexGWASCatalog:
+        """Return GWAS Catalog study index.
+
+        Returns:
+            StudyIndexGWASCatalog: Completely processed and fully annotated study index.
+        """
+        # Extract
+        va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
+        catalog_studies = self.session.spark.read.csv(
+            self.catalog_study_files, sep="\t", header=True
+        )
+        ancestry_lut = self.session.spark.read.csv(
+            self.catalog_ancestry_files, sep="\t", header=True
+        )
+        sumstats_lut = self.process_harmonised_list(
+            self.catalog_sumstats_lut, self.session
+        )
+        catalog_associations = self.session.spark.read.csv(
+            self.catalog_associations_file, sep="\t", header=True
+        ).persist()
+        gwas_catalog_study_curation = read_curation_table(
+            self.gwas_catalog_study_curation_file, self.session
+        )
+
+        # Transform
+        study_index, study_locus = GWASCatalogStudySplitter.split(
+            StudyIndexGWASCatalogParser.from_source(
+                catalog_studies,
+                ancestry_lut,
+                sumstats_lut,
+            ).annotate_from_study_curation(gwas_catalog_study_curation),
+            GWASCatalogCuratedAssociationsParser.from_source(catalog_associations, va),
+        )
+
+        return study_index
+
+    def __post_init__(self: GWASCatalogInclusionGenerator) -> None:
+        """Run step."""
+        # Create study index:
+        study_index = self.get_gwas_catalog_study_index()
+
+        # Get study indices for inclusion:
+        flagged_studies = self.flag_eligible_studies(study_index, self.filter_set)
+
+        # Output inclusion list:
+        flagged_studies.filter(f.col("isEligible")).select("studyId").write.mode(
+            self.session.write_mode
+        ).parquet(self.whitelist_studies_out_path)
+
+        # Output exclusion list:
+        flagged_studies.filter(~f.col("isEligible")).write.mode(
+            self.session.write_mode
+        ).parquet(self.blacklist_studies_out_path)
