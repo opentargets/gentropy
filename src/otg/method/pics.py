@@ -145,7 +145,7 @@ class PICS:
                 or tag_dict["r2Overall"] < 0.5
                 or not lead_neglog_p
             ):
-                # If PICS cannot be calculated, we'll return the original credible set
+                # If PICS cannot be calculated, we drop the variant from the credible set
                 continue
 
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
@@ -221,6 +221,9 @@ class PICS:
             lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
             picsed_ldset_schema,
         )
+        non_picsable_expr = (
+            f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
+        )
         return StudyLocus(
             _df=(
                 associations.df
@@ -242,8 +245,8 @@ class PICS:
                     "qualityControls",
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
-                        f.size("locus") == 0,
-                        StudyLocusQualityCheck.EMPTY_LOCUS,
+                        non_picsable_expr,
+                        StudyLocusQualityCheck.UNPICSABLE,
                     ),
                 )
                 .withColumn(
