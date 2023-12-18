@@ -12,4 +12,18 @@ title: FinnGen
   }
 </style>
 
-FinnGen is a research project in genomics and personalized medicine. It is large public-private partnership that has collected and analysed genome and health data from 500,000 Finnish biobank donors to understand the genetic basis of diseases. FinnGen is a now expanding into understanding the progression and biological mechanisms of diseases. FinnGen provides a world-class resource for further breakthroughs in disease prevention, diagnosis, and treatment and a outlook into our genetic make-up.
+[FinnGen](https://www.finngen.fi/en) is a research project in genomics and personalized medicine, representing a large public-private partnership. The project has collected and analyzed genome and health data from 500,000 Finnish biobank donors to understand the genetic basis of diseases. FinnGen is now expanding its focus to comprehend the progression and biological mechanisms of diseases. This initiative provides a world-class resource for further breakthroughs in disease prevention, diagnosis, and treatment, offering insights into our genetic makeup.
+
+We utilize data from FinnGen R9 (May 11, 2023, release):
+
+- Total sample size: 377,277 (210,870 females and 166,407 males)
+
+- Total number of variants analyzed: 20,175,454 variants
+
+- Number of disease endpoints (phenotypes) available: 2,272 endpoints
+
+The data was accessed from [here](<https://console.cloud.google.com/storage/browser/finngen-public-data-r9/summary_stats?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&prefix=&forceOnObjectsSortingFiltering=false>).
+
+Additionally, we ingested Fine Mapping results produced by the FinnGen team using SuSiE. The data was accessed from [here](<https://console.cloud.google.com/storage/browser/finngen-public-data-r9/finemapping?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&prefix=&forceOnObjectsSortingFiltering=false>).
+
+For a comprehensive understanding of the dataset and methods, refer to [Kurki et al., 2023](https://www.nature.com/articles/s41586-022-05473-8).
