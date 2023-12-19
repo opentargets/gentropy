@@ -246,7 +246,7 @@ class PICS:
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
                         non_picsable_expr,
-                        StudyLocusQualityCheck.UNPICSABLE,
+                        StudyLocusQualityCheck.NOT_QUALIFYING_LD_BLOCK,
                     ),
                 )
                 .withColumn(
