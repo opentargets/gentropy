@@ -45,7 +45,7 @@ class TestFinemap:
             f.when(f.col("ldSet").isNull(), f.array()).otherwise(f.col("ldSet")),
         ).filter(f.size("ldSet") == 0)
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
-        qc_flag = "Unable to calculate PIPs with the provided data"
+        qc_flag = "LD block does not contain variants at the required R^2 threshold"
         assert (
             qc_flag in observed_df.collect()[0]["qualityControls"]
         ), "Empty locus QC flag is missing."
