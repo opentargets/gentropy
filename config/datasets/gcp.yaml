@@ -46,5 +46,7 @@ finngen_summary_stats: ${datasets.summary_statistics}/finngen
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 ukbiobank_study_index: ${datasets.study_index}/ukbiobank
+eqtl_catalogue_study_index_out: ${datasets.study_index}/eqtl_catalogue
+eqtl_catalogue_summary_stats_out: ${datasets.outputs}/preprocess/eqtl_catalogue/summary_stats
 l2g_model: ${datasets.outputs}/l2g_model
 l2g_predictions: ${datasets.outputs}/l2g_predictions
