@@ -7,7 +7,7 @@ title: GWAS Catalog
   <h1>GWAS Catalog</h1>
 </div>
 
-The [GWAS Catalog](https://www.ebi.ac.uk/gwas/) is a comprehensive resource that aims to provide a curated collection of Genome-Wide Association Studies (GWAS) across various traits and diseases in humans.
+The [GWAS Catalog](https://www.ebi.ac.uk/gwas/) is a comprehensive resource that aims to provide a curated collection of Genome-Wide Association Studies (GWAS) (including harmonized full GWAS summary statistics) across various traits and diseases in humans.
 
 It serves as a valuable repository of genetic associations identified in diverse populations, offering insights into the genetic basis of complex traits and diseases.
 
