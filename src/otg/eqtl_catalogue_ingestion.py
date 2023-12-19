@@ -12,7 +12,7 @@ from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStat
 
 
 @dataclass
-class EqtlCatalogueStep:
+class EqtlCatalogueIngestionStep:
     """eQTL Catalogue ingestion step.
 
     Attributes:
@@ -28,7 +28,7 @@ class EqtlCatalogueStep:
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_summary_stats_out: str = MISSING
 
-    def __post_init__(self: EqtlCatalogueStep) -> None:
+    def __post_init__(self: EqtlCatalogueIngestionStep) -> None:
         """Run step."""
         # Fetch study index.
         df = self.session.spark.read.option("delimiter", "\t").csv(
