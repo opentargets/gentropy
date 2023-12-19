@@ -1,6 +1,10 @@
 name: Checks
 
-on: [push]
+"on":
+  pull_request:
+
+env:
+  PYTHON_VERSION_DEFAULT: "3.10.8"
 
 jobs:
   test:
@@ -24,7 +28,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION_DEFAULT }}-${{ hashFiles('**/poetry.lock') }}
       - name: Validate project dependencies
         run: poetry check
       - name: Install dependencies
