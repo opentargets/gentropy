@@ -12,13 +12,13 @@ from pyspark.ml.evaluation import (
 )
 from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.tuning import ParamGridBuilder
+from wandb.data_types import Table
+from wandb.sdk import init as wandb_init
+from wandb.wandb_run import Run
 from xgboost.spark.core import SparkXGBClassifierModel
 
 from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from otg.method.l2g.evaluator import WandbEvaluator
-from wandb.data_types import Table
-from wandb.sdk import init as wandb_init
-from wandb.wandb_run import Run
 
 if TYPE_CHECKING:
     from pyspark.ml import Transformer
