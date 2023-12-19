@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Type
 
-import wandb
 from pyspark.ml import Pipeline, PipelineModel
 from pyspark.ml.evaluation import (
     BinaryClassificationEvaluator,
@@ -13,6 +12,8 @@ from pyspark.ml.evaluation import (
 )
 from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.tuning import ParamGridBuilder
+from wandb.data_types import Table
+from wandb.sdk import init as wandb_init
 from wandb.wandb_run import Run
 from xgboost.spark.core import SparkXGBClassifierModel
 
@@ -126,7 +127,7 @@ class LocusToGeneModel:
         ## Track feature importance
         wandb_run.log({"importances": self.get_feature_importance()})
         ## Track training set
-        training_table = wandb.Table(dataframe=training_data.df.toPandas())
+        training_table = Table(dataframe=training_data.df.toPandas())
         wandb_run.log({"trainingSet": training_table})
         # Count number of positive and negative labels
         gs_counts_dict = {
@@ -224,7 +225,7 @@ class LocusToGeneModel:
         )
 
         if wandb_run_name and training_data:
-            run = wandb.init(
+            run = wandb_init(
                 project=self.wandb_l2g_project_name,
                 config=hyperparameters,
                 name=wandb_run_name,
