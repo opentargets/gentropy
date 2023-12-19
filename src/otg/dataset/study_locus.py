@@ -50,7 +50,7 @@ class StudyLocusQualityCheck(Enum):
     UNRESOLVED_LD = "Variant not found in LD reference"
     LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
-    UNPICSABLE = "Unable to calculate PIPs with the provided data"
+    NOT_QUALIFYING_LD_BLOCK = "LD block does not contain variants at the required R^2 threshold"
 
 
 class CredibleInterval(Enum):
