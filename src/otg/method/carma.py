@@ -49,14 +49,14 @@ class CARMA:
                 - B_list: A dataframe containing the marginal likelihoods and the corresponding model space.
                 - Outliers: A list of outlier SNPs.
         """
-        t0 = pd.Timestamp.now()
+        # t0 = pd.Timestamp.now()
 
         p_snp = len(z)
         epsilon_list = epsilon_threshold * p_snp
         all_epsilon_threshold = epsilon_threshold * p_snp
 
-        print("ordering pizza...")
-        print(f"N SNPs is {p_snp}")
+        # print("ordering pizza...")
+        # print(f"N SNPs is {p_snp}")
         # Zero step
         all_C_list = CARMA._MCS_modified(
             z=z,
@@ -71,9 +71,9 @@ class CARMA:
             outlier_BF_index=outlier_BF_index,
         )
 
-        t1 = pd.Timestamp.now() - t0
-        print(f"Zero step is finished in {round(t1.total_seconds(), 2)} sec")
-        print(f"Expecting to finish in {round(t1.total_seconds()*all_iter, 2)} sec")
+        # t1 = pd.Timestamp.now() - t0
+        # print(f"Zero step is finished in {round(t1.total_seconds(), 2)} sec")
+        # print(f"Expecting to finish in {round(t1.total_seconds()*all_iter, 2)} sec")
 
         # Main steps
         for _ in range(0, all_iter):
@@ -113,10 +113,10 @@ class CARMA:
             "Outliers": all_C_list["conditional_S_list"],
         }
 
-        print("pizza ordered!")
-        t1 = pd.Timestamp.now() - t0
+        # print("pizza ordered!")
+        # t1 = pd.Timestamp.now() - t0
 
-        print(f"FM time is {round(t1.total_seconds(), 2)} sec")
+        # print(f"FM time is {round(t1.total_seconds(), 2)} sec")
 
         return results_list
 
@@ -134,6 +134,14 @@ class CARMA:
 
         Returns:
             float: The marginal likelihood of a model.
+
+        Examples:
+            >>> zSigmaz_S = 0.1
+            >>> tau = 1 / 0.05**2
+            >>> p_S = 3
+            >>> det_S = 0.1
+            >>> CARMA._ind_normal_sigma_fixed_marginal_fun_indi(zSigmaz_S, tau, p_S, det_S)
+            10.188489367158997
         """
         return p_S / 2.0 * np.log(tau) - 0.5 * np.log(det_S) + zSigmaz_S / 2.0
 
@@ -156,6 +164,15 @@ class CARMA:
 
         Returns:
             float: The marginal likelihood of a model.
+
+        Examples:
+            >>> index_vec_input = np.array([1, 2])
+            >>> Sigma = np.array([[1, 0.5, 0.2], [0.5, 1, 0.3], [0.2, 0.3, 1]])
+            >>> z = np.array([0.1, 0.2, 0.3])
+            >>> tau = 1 / 0.05**2
+            >>> p_S = 3
+            >>> CARMA._ind_Normal_fixed_sigma_marginal_external(index_vec_input, Sigma, z, tau, p_S)
+            0.25645084397625834
         """
         index_vec = index_vec_input - 1
         Sigma_S = Sigma[np.ix_(index_vec, index_vec)]
@@ -232,19 +249,40 @@ class CARMA:
 
         Returns:
             np.ndarray: The concatenated and sorted array.
+
+        Examples:
+            >>> S_sub = np.array([3, 4])
+            >>> y = np.array([1, 2])
+            >>> CARMA._add_function(S_sub, y)
+           array([[1, 2, 3],
+                [1, 2, 4]])
         """
         return np.array([np.sort(np.concatenate(([x], y))) for x in S_sub])
 
     @staticmethod
-    def _set_gamma_func_base(S: np.ndarray, p: int) -> dict[int, np.ndarray]:
+    def _set_gamma_func_base(S: Any, p: int) -> dict[int, np.ndarray]:
         """Creates a dictionary of sets of configurations assuming no conditional set.
 
         Args:
-            S (np.ndarray): The input set.
+            S (Any): The input set.
             p (int): The number of SNPs.
 
         Returns:
             dict[int, np.ndarray]: A dictionary of sets of configurations.
+
+        Examples:
+        >>> S = [0,1]
+        >>> p = 4
+        >>> CARMA._set_gamma_func_base(S, p)
+        {0: array([[0],
+        [1]]),
+        1: array([[0, 1, 2],
+                [0, 1, 3]]),
+        2: array([[0, 2],
+                [0, 3],
+                [1, 2],
+                [1, 3]])}
+
         """
         set_gamma: dict[int, Any] = {}
 
@@ -264,24 +302,35 @@ class CARMA:
             S = np.sort(S)
             set_gamma[0] = np.array(list(combinations(S, len(S) - 1)))
             set_gamma[1] = CARMA._add_function(S_sub, S)
-            xs = np.vstack([CARMA._add_function(S_sub, row) for row in set_gamma[1]])
+            xs = np.vstack([CARMA._add_function(S_sub, row) for row in set_gamma[0]])
             set_gamma[2] = xs
 
         return set_gamma
 
     @staticmethod
     def _set_gamma_func_conditional(
-        input_S: np.ndarray, condition_index: list[int], p: int
+        input_S: Any, condition_index: list[int], p: int
     ) -> dict[int, np.ndarray]:
         """Creates a dictionary of sets of configurations assuming conditional set.
 
         Args:
-            input_S (np.ndarray): The input set.
+            input_S (Any): The input set.
             condition_index (list[int]): The conditional set.
             p (int): The number of SNPs.
 
         Returns:
             dict[int, np.ndarray]: A dictionary of sets of configurations.
+
+        Examples:
+        >>> input_S = [0,1,2]
+        >>> condition_index = [2]
+        >>> p = 4
+        >>> CARMA._set_gamma_func_conditional(input_S, condition_index, p)
+            {0: array([[0],
+            [1]]),
+            1: array([[0, 1, 3]]),
+            2: array([[0, 3],
+            [1, 3]])}
         """
         set_gamma: dict[int, Any] = {}
         S = np.setdiff1d(input_S, condition_index)
@@ -322,6 +371,17 @@ class CARMA:
 
         Returns:
             dict[int, np.ndarray]: A dictionary of sets of configurations.
+
+        Examples:
+        >>> input_S = [0,1,2]
+        >>> condition_index=[2]
+        >>> p = 4
+        >>> CARMA._set_gamma_func(input_S, p, condition_index)
+            {0: array([[0],
+                    [1]]),
+            1: array([[0, 1, 3]]),
+            2: array([[0, 3],
+                    [1, 3]])}
         """
         if condition_index is None:
             results = CARMA._set_gamma_func_base(input_S, p)
@@ -338,6 +398,11 @@ class CARMA:
 
         Returns:
             str: The comma-separated string.
+
+        Examples:
+        >>> x = np.array([1,2,3])
+        >>> CARMA._index_fun_internal(x)
+            '1,2,3'
         """
         y = np.sort(x)
         y = y.astype(str)
@@ -352,6 +417,11 @@ class CARMA:
 
         Returns:
             np.ndarray: The comma-separated string.
+
+        Examples:
+        >>> y = np.array([[1,2,3],[4,5,6]])
+        >>> CARMA._index_fun(y)
+            array(['1,2,3', '4,5,6'], dtype='<U5')
         """
         return np.array([CARMA._index_fun_internal(x) for x in y])
 
@@ -378,6 +448,17 @@ class CARMA:
 
         Returns:
             float: The estimated matrix shrinkage parameter.
+
+        Examples:
+        >>> x = 0.5
+        >>> Sigma = np.array([[1, 0.5, 0.2], [0.5, 1, 0.3], [0.2, 0.3, 1]])
+        >>> modi_ld_S = np.array([[1, 0.5], [0.5, 1]])
+        >>> test_S = np.array([1, 2])
+        >>> z = np.array([0.1, 0.2, 0.3])
+        >>> outlier_tau = 1 / 0.05**2
+        >>> outlier_likelihood = CARMA._outlier_ind_Normal_marginal_external
+        >>> CARMA._ridge_fun(x, Sigma, modi_ld_S, test_S, z, outlier_tau, outlier_likelihood)
+            6.0148633041884345
         """
         temp_Sigma = Sigma.copy()
         temp_ld_S = x * modi_ld_S + (1 - x) * np.eye(len(modi_ld_S))
@@ -401,6 +482,13 @@ class CARMA:
 
         Returns:
             float: The estimated prior.
+
+        Examples:
+        >>> t = "1,2,3"
+        >>> lambda_val = 1
+        >>> p = 4
+        >>> CARMA._prior_dist(t, lambda_val, p)
+            -3.1780538303479444
         """
         index_array = t.split(",")
         dim_model = len(index_array)
@@ -424,6 +512,14 @@ class CARMA:
 
         Returns:
             np.ndarray: The posterior inclusion probabilities (PIPs) for all SNPs.
+
+        Examples:
+        >>> likeli = pd.DataFrame([10, 10, 5,11,0], columns=['likeli']).squeeze()
+        >>> model_space = pd.DataFrame(['0', '1', '2','0,1',''], columns=['config']).squeeze()
+        >>> p = 3
+        >>> num_causal = 2
+        >>> CARMA._PIP_func(likeli, model_space, p, num_causal)
+            array([0.7869271, 0.7869271, 0.001426 ])
         """
         likeli = likeli.reset_index(drop=True)
         model_space = model_space.reset_index(drop=True)
@@ -462,7 +558,7 @@ class CARMA:
         return result_prob
 
     @staticmethod
-    def _MCS_modified(
+    def _MCS_modified(  # noqa: C901
         z: np.ndarray,
         ld_matrix: np.ndarray,
         Max_Model_Dim: int = 10_000,
