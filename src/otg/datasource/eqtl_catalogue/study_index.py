@@ -158,7 +158,7 @@ class EqtlCatalogueStudyIndex:
             study_index_df.join(partial_to_full_study_id, "studyId", "inner")
             .withColumn("fullStudyId", f.explode("fullStudyIdList"))
             .drop("fullStudyIdList")
-            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r".*_([\_]+)", 1))
+            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r"(.*)_[^_]+", 1))
             .drop("fullStudyId")
         )
         return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())
