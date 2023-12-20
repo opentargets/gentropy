@@ -51,8 +51,14 @@ class EqtlCatalogueStudyIndex:
             ).alias("traitFromSourceMappedIds"),
         ]
         sample_attributes = [
-            f.lit(838).cast("long").alias("nSamples"),
-            f.lit("838 (281 females and 557 males)").alias("initialSampleSize"),
+            f.when(
+                f.col("study").startswith("GTEx"),
+                f.lit(838).cast("long"),
+            ).alias("nSamples"),
+            f.when(
+                f.col("study").startswith("GTEx"),
+                f.lit("838 (281 females and 557 males)"),
+            ).alias("initialSampleSize"),
             f.array(
                 f.struct(
                     f.lit(715).cast("long").alias("sampleSize"),
@@ -92,16 +98,30 @@ class EqtlCatalogueStudyIndex:
                         f.lit(0.02).alias("relativeSampleSize"),
                     ),
                 ),
-            ),
+            ).alias("ldPopulationStructure"),
         ]
         publication_attributes = [
-            f.lit("32913098").alias("pubmedId"),
-            f.lit(
-                "The GTEx Consortium atlas of genetic regulatory effects across human tissues"
+            f.when(
+                f.col("study").startswith("GTEx"),
+                f.lit("32913098"),
+            ).alias("pubmedId"),
+            f.when(
+                f.col("study").startswith("GTEx"),
+                f.lit(
+                    "The GTEx Consortium atlas of genetic regulatory effects across human tissues"
+                ),
             ).alias("publicationTitle"),
-            f.lit("GTEx Consortium").alias("publicationFirstAuthor"),
-            f.lit("2020-09-11").alias("publicationDate"),
-            f.lit("Science").alias("publicationJournal"),
+            f.when(
+                f.col("study").startswith("GTEx"),
+                f.lit("GTEx Consortium"),
+            ).alias("publicationFirstAuthor"),
+            f.when(
+                f.col("study").startswith("GTEx"),
+                f.lit("2020-09-11"),
+            ).alias("publicationDate"),
+            f.when(f.col("study").startswith("GTEx"), f.lit("Science")).alias(
+                "publicationJournal"
+            ),
         ]
         return (
             study_attributes
