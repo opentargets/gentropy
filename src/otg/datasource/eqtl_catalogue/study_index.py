@@ -71,6 +71,28 @@ class EqtlCatalogueStudyIndex:
                     f.lit("Hispanic or Latino").alias("ancestry"),
                 ),
             ).alias("discoverySamples"),
+            # LD population structure
+            f.when(
+                f.col("study").startswith("GTEx"),
+                f.array(
+                    f.struct(
+                        f.lit("nfe").alias("ldPopulation"),
+                        f.lit(0.85).alias("relativeSampleSize"),
+                    ),
+                    f.struct(
+                        f.lit("afr").alias("ldPopulation"),
+                        f.lit(0.12).alias("relativeSampleSize"),
+                    ),
+                    f.struct(
+                        f.lit("eas").alias("ldPopulation"),
+                        f.lit(0.01).alias("relativeSampleSize"),
+                    ),
+                    f.struct(
+                        f.lit("amr").alias("ldPopulation"),
+                        f.lit(0.02).alias("relativeSampleSize"),
+                    ),
+                ),
+            ),
         ]
         publication_attributes = [
             f.lit("32913098").alias("pubmedId"),
