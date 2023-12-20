@@ -39,28 +39,27 @@ class FinnGenSummaryStats:
     def from_source(
         cls: type[FinnGenSummaryStats],
         spark: SparkSession,
-        raw_files: list[str],
+        raw_file: str,
     ) -> SummaryStatistics:
         """Ingests all summary statst for all FinnGen studies.
 
         Args:
             spark (SparkSession): Spark session object.
-            raw_files (list[str]): Paths to raw summary statistics .gz files.
+            raw_file (str): Path to raw summary statistics .gz files.
 
         Returns:
             SummaryStatistics: Processed summary statistics dataset
         """
+        study_id = raw_file.split("/")[-1].split(".")[0].upper()
         processed_summary_stats_df = (
             spark.read.schema(cls.raw_schema)
             .option("delimiter", "\t")
-            .csv(raw_files, header=True)
+            .csv(raw_file, header=True)
             # Drop rows which don't have proper position.
             .filter(f.col("pos").cast(t.IntegerType()).isNotNull())
             .select(
                 # From the full path, extracts just the filename, and converts to upper case to get the study ID.
-                f.upper(f.regexp_extract(f.input_file_name(), r"([^/]+)\.gz", 1)).alias(
-                    "studyId"
-                ),
+                f.lit(study_id).alias("studyId"),
                 # Add variant information.
                 f.concat_ws(
                     "_",
@@ -82,6 +81,9 @@ class FinnGenSummaryStats:
             .filter(
                 f.col("pos").cast(t.IntegerType()).isNotNull() & (f.col("beta") != 0)
             )
+            # Average ~20Mb partitions with 30 partitions per study
+            .repartitionByRange(30, "chromosome", "position")
+            .sortWithinPartitions("chromosome", "position")
         )
 
         # Initializing summary statistics object:
