@@ -1,6 +1,6 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
+APP_NAME ?= $$(cat pyproject.toml| grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
 CLEAN_VERSION_NO := $(shell echo "$(VERSION_NO)" | tr -cd '[:alnum:]')
 BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/
@@ -35,8 +35,7 @@ build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
 	@poetry run mkdocs serve
 
-create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies for development purposes
-	@${MAKE} build
+create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
@@ -49,8 +48,7 @@ create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies f
 		--optional-components=JUPYTER \
 		--enable-component-gateway
 
-make update-dev-cluster: ## Reinstalls the package on the dev-cluster
-	@${MAKE} build
+make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_VERSION_NO}" \
@@ -61,7 +59,6 @@ make update-dev-cluster: ## Reinstalls the package on the dev-cluster
 build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
-	@rm -rf ./dist
 	@poetry build
 	@tar -czf dist/config.tar.gz config/
 	@echo "Uploading to Dataproc"
