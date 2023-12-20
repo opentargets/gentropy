@@ -5,6 +5,8 @@ from pathlib import Path
 
 import dbldatagen as dg
 import hail as hl
+import numpy as np
+import pandas as pd
 import pytest
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
@@ -609,3 +611,15 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
     ).withSchema(schema)
 
     return L2GPrediction(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def sample_data_for_carma() -> list[np.ndarray]:
+    """Sample data for fine-mapping by CARMA."""
+    ld = pd.read_csv("tests/data_samples/01_test_ld.csv", header=None)
+    ld = np.array(ld)
+    z = pd.read_csv("tests/data_samples/01_test_z.csv")
+    z = np.array(z.iloc[:, 1])
+    pips = pd.read_csv("tests/data_samples/01_test_PIPs.txt")
+    pips = np.array(pips.iloc[:, 0])
+    return [ld, z, pips]
