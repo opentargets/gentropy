@@ -168,11 +168,11 @@ class CARMA:
         Examples:
             >>> index_vec_input = np.array([1, 2])
             >>> Sigma = np.array([[1, 0.5, 0.2], [0.5, 1, 0.3], [0.2, 0.3, 1]])
-            >>> z = np.array([0.1, 0.2, 0.3])
-            >>> tau = 1 / 0.05**2
-            >>> p_S = 3
+            >>> z = np.array([10, 11, 10])
+            >>> tau = 1
+            >>> p_S = 2
             >>> CARMA._ind_Normal_fixed_sigma_marginal_external(index_vec_input, Sigma, z, tau, p_S)
-            0.25645084397625834
+            43.60578874667551
         """
         index_vec = index_vec_input - 1
         Sigma_S = Sigma[np.ix_(index_vec, index_vec)]
@@ -254,8 +254,8 @@ class CARMA:
             >>> S_sub = np.array([3, 4])
             >>> y = np.array([1, 2])
             >>> CARMA._add_function(S_sub, y)
-           array([[1, 2, 3],
-                [1, 2, 4]])
+            array([[1, 2, 3],
+                   [1, 2, 4]])
         """
         return np.array([np.sort(np.concatenate(([x], y))) for x in S_sub])
 
@@ -275,13 +275,11 @@ class CARMA:
         >>> p = 4
         >>> CARMA._set_gamma_func_base(S, p)
         {0: array([[0],
-        [1]]),
-        1: array([[0, 1, 2],
-                [0, 1, 3]]),
-        2: array([[0, 2],
-                [0, 3],
-                [1, 2],
-                [1, 3]])}
+               [1]]), 1: array([[0, 1, 2],
+               [0, 1, 3]]), 2: array([[0, 2],
+               [0, 3],
+               [1, 2],
+               [1, 3]])}
 
         """
         set_gamma: dict[int, Any] = {}
@@ -326,11 +324,9 @@ class CARMA:
         >>> condition_index = [2]
         >>> p = 4
         >>> CARMA._set_gamma_func_conditional(input_S, condition_index, p)
-            {0: array([[0],
-            [1]]),
-            1: array([[0, 1, 3]]),
-            2: array([[0, 3],
-            [1, 3]])}
+        {0: array([[0],
+               [1]]), 1: array([[0, 1, 3]]), 2: array([[0, 3],
+               [1, 3]])}
         """
         set_gamma: dict[int, Any] = {}
         S = np.setdiff1d(input_S, condition_index)
@@ -377,11 +373,9 @@ class CARMA:
         >>> condition_index=[2]
         >>> p = 4
         >>> CARMA._set_gamma_func(input_S, p, condition_index)
-            {0: array([[0],
-                    [1]]),
-            1: array([[0, 1, 3]]),
-            2: array([[0, 3],
-                    [1, 3]])}
+        {0: array([[0],
+               [1]]), 1: array([[0, 1, 3]]), 2: array([[0, 3],
+               [1, 3]])}
         """
         if condition_index is None:
             results = CARMA._set_gamma_func_base(input_S, p)
@@ -402,7 +396,7 @@ class CARMA:
         Examples:
         >>> x = np.array([1,2,3])
         >>> CARMA._index_fun_internal(x)
-            '1,2,3'
+        '1,2,3'
         """
         y = np.sort(x)
         y = y.astype(str)
@@ -421,7 +415,7 @@ class CARMA:
         Examples:
         >>> y = np.array([[1,2,3],[4,5,6]])
         >>> CARMA._index_fun(y)
-            array(['1,2,3', '4,5,6'], dtype='<U5')
+        array(['1,2,3', '4,5,6'], dtype='<U5')
         """
         return np.array([CARMA._index_fun_internal(x) for x in y])
 
@@ -458,7 +452,7 @@ class CARMA:
         >>> outlier_tau = 1 / 0.05**2
         >>> outlier_likelihood = CARMA._outlier_ind_Normal_marginal_external
         >>> CARMA._ridge_fun(x, Sigma, modi_ld_S, test_S, z, outlier_tau, outlier_likelihood)
-            6.0148633041884345
+        6.0148633041884345
         """
         temp_Sigma = Sigma.copy()
         temp_ld_S = x * modi_ld_S + (1 - x) * np.eye(len(modi_ld_S))
@@ -488,7 +482,7 @@ class CARMA:
         >>> lambda_val = 1
         >>> p = 4
         >>> CARMA._prior_dist(t, lambda_val, p)
-            -3.1780538303479444
+        -3.1780538303479444
         """
         index_array = t.split(",")
         dim_model = len(index_array)
@@ -519,7 +513,7 @@ class CARMA:
         >>> p = 3
         >>> num_causal = 2
         >>> CARMA._PIP_func(likeli, model_space, p, num_causal)
-            array([0.7869271, 0.7869271, 0.001426 ])
+        array([0.7869271, 0.7869271, 0.001426 ])
         """
         likeli = likeli.reset_index(drop=True)
         model_space = model_space.reset_index(drop=True)
@@ -590,6 +584,15 @@ class CARMA:
             dict[str, Any]: A dictionary containing the following results:
                 - B_list: A dataframe containing the marginal likelihoods and the corresponding model space.
                 - conditional_S_list: A list of outliers.
+
+        Examples:
+        >>> z = np.array([0.1, 0.2, 0.3])
+        >>> ld_matrix = np.array([[1, 0.5, 0.2], [0.5, 1, 0.3], [0.2, 0.3, 1]])
+        >>> Max_Model_Dim = 10_000
+        >>> lambda_val = 1
+
+        >>> num_causal = 10
+        >>> outlier_switch = True
         """
         p = len(z)
         marginal_likelihood = CARMA._ind_Normal_fixed_sigma_marginal_external
