@@ -17,6 +17,6 @@ For detailed information on specific genetic associations, their significance, a
 
 Within our analyses, we leverage two different types of studies from the GWAS Catalog:
 
-1. **Studies with (full) GWAS summary stats:** currently 25,569 studies.
+1. **Studies with (full) GWAS summary stats**
 
-2. **Studies with top hits only - GWAS curated studies:** currently ~50,000 studies. Called "Associations".
+2. **Studies with top hits only - GWAS curated studies**
