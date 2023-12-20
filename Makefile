@@ -35,8 +35,7 @@ build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
 	@poetry run mkdocs serve
 
-create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies for development purposes
-	@${MAKE} build
+create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
@@ -49,8 +48,7 @@ create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies f
 		--optional-components=JUPYTER \
 		--enable-component-gateway
 
-make update-dev-cluster: ## Reinstalls the package on the dev-cluster
-	@${MAKE} build
+make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_VERSION_NO}" \
