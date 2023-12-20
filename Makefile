@@ -61,7 +61,6 @@ make update-dev-cluster: ## Reinstalls the package on the dev-cluster
 build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
-	@rm -rf ./dist
 	@poetry build
 	@tar -czf dist/config.tar.gz config/
 	@echo "Uploading to Dataproc"
