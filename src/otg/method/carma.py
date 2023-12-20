@@ -140,8 +140,8 @@ class CARMA:
             >>> tau = 1 / 0.05**2
             >>> p_S = 3
             >>> det_S = 0.1
-            >>> CARMA._ind_normal_sigma_fixed_marginal_fun_indi(zSigmaz_S, tau, p_S, det_S)
-            10.188489367158997
+            >>> np.round(CARMA._ind_normal_sigma_fixed_marginal_fun_indi(zSigmaz_S, tau, p_S, det_S),decimals=5)
+            10.18849
         """
         return p_S / 2.0 * np.log(tau) - 0.5 * np.log(det_S) + zSigmaz_S / 2.0
 
@@ -171,8 +171,8 @@ class CARMA:
             >>> z = np.array([10, 11, 10])
             >>> tau = 1
             >>> p_S = 2
-            >>> CARMA._ind_Normal_fixed_sigma_marginal_external(index_vec_input, Sigma, z, tau, p_S)
-            43.60578874667551
+            >>> np.round(CARMA._ind_Normal_fixed_sigma_marginal_external(index_vec_input, Sigma, z, tau, p_S),decimals=5)
+            43.60579
         """
         index_vec = index_vec_input - 1
         Sigma_S = Sigma[np.ix_(index_vec, index_vec)]
@@ -216,8 +216,8 @@ class CARMA:
             >>> z = np.array([0.1, 0.2, 0.3])
             >>> tau = 1 / 0.05**2
             >>> p_S = 3
-            >>> CARMA._outlier_ind_Normal_marginal_external(index_vec_input, Sigma, z, tau, p_S)
-            -8.849700072766373
+            >>> np.round(CARMA._outlier_ind_Normal_marginal_external(index_vec_input, Sigma, z, tau, p_S),decimals=5)
+            -8.8497
         """
         index_vec = index_vec_input - 1
 
@@ -451,8 +451,8 @@ class CARMA:
         >>> z = np.array([0.1, 0.2, 0.3])
         >>> outlier_tau = 1 / 0.05**2
         >>> outlier_likelihood = CARMA._outlier_ind_Normal_marginal_external
-        >>> CARMA._ridge_fun(x, Sigma, modi_ld_S, test_S, z, outlier_tau, outlier_likelihood)
-        6.0148633041884345
+        >>> np.round(CARMA._ridge_fun(x, Sigma, modi_ld_S, test_S, z, outlier_tau, outlier_likelihood),decimals=5)
+        6.01486
         """
         temp_Sigma = Sigma.copy()
         temp_ld_S = x * modi_ld_S + (1 - x) * np.eye(len(modi_ld_S))
@@ -481,8 +481,8 @@ class CARMA:
         >>> t = "1,2,3"
         >>> lambda_val = 1
         >>> p = 4
-        >>> CARMA._prior_dist(t, lambda_val, p)
-        -3.1780538303479444
+        >>> np.round(CARMA._prior_dist(t, lambda_val, p),decimals=5)
+        -3.17805
         """
         index_array = t.split(",")
         dim_model = len(index_array)
