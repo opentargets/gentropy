@@ -10,7 +10,6 @@ CLUSTER_NAME = "otg-preprocess"
 
 ALL_STEPS = [
     "finngen",
-    "eqtl_catalogue",
     "ld_index",
     "variant_annotation",
     "ukbiobank",

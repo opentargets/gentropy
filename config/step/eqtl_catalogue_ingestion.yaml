@@ -1,4 +1,4 @@
-_target_: otg.eqtl_catalogue.EqtlCatalogueStep
+_target_: otg.eqtl_catalogue.EqtlCatalogueIngestionStep
 eqtl_catalogue_paths_imported: ${datasets.eqtl_catalogue_paths_imported}
 eqtl_catalogue_study_index_out: ${datasets.eqtl_catalogue_study_index_out}
 eqtl_catalogue_summary_stats_out: ${datasets.eqtl_catalogue_summary_stats_out}
