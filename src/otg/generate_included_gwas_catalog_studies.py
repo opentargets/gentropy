@@ -40,28 +40,30 @@ class GWASCatalogInclusionGenerator:
     """
 
     session: Session = MISSING
-    # Paths to input datasets:
+    # GWAS Catalog sources:
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: list[str] = MISSING
     catalog_associations_file: str = MISSING
+    # Custom curation:
     gwas_catalog_study_curation_file: str | None = None
+    # GnomAD source:
     variant_annotation_path: str = MISSING
-    # Input for filtering:
-    filter_set: str = MISSING
-    # Parameters for output:
-    whitelist_studies_out_path: str = MISSING
-    blacklist_studies_out_path: str = MISSING
+    # Dynamic sources:
+    harmonised_studies: str = MISSING
+    criteria: str = MISSING
+    # Output:
+    inclusion_list_path: str = MISSING
+    exclusion_list_path: str = MISSING
 
     @staticmethod
     def flag_eligible_studies(
-        study_index: StudyIndexGWASCatalog, filter_set: str
+        study_index: StudyIndexGWASCatalog, criteria: str
     ) -> DataFrame:
         """Apply filter on GWAS Catalog studies based on the provided criteria.
 
         Args:
             study_index (StudyIndexGWASCatalog): complete study index to be filtered based on the provided filter set
-            filter_set (str): name of the filter set to be applied.
+            criteria (str): name of the filter set to be applied.
 
         Raises:
             ValueError: if the provided filter set is not in the accepted values.
@@ -81,9 +83,9 @@ class GWASCatalogInclusionGenerator:
             ),
         }
 
-        if filter_set not in filters:
+        if criteria not in filters:
             raise ValueError(
-                f'Wrong value as filter set ({filter_set}). Accepted: {",".join(filters.keys())}'
+                f'Wrong value as filter set ({criteria}). Accepted: {",".join(filters.keys())}'
             )
 
         # Applying the relevant filter to the study:
@@ -94,7 +96,7 @@ class GWASCatalogInclusionGenerator:
             "traitFromSourceMappedId",
             "qualityControls",
             "hasSumstats",
-            f.when(filters[filter_set], f.lit(True))
+            f.when(filters[criteria], f.lit(True))
             .otherwise(f.lit(False))
             .alias("isEligible"),
         )
@@ -128,8 +130,8 @@ class GWASCatalogInclusionGenerator:
         ancestry_lut = self.session.spark.read.csv(
             self.catalog_ancestry_files, sep="\t", header=True
         )
-        sumstats_lut = self.process_harmonised_list(
-            self.catalog_sumstats_lut, self.session
+        sumstats_lut = self.session.spark.read.csv(
+            self.harmonised_studies, sep="\t", header=True
         )
         catalog_associations = self.session.spark.read.csv(
             self.catalog_associations_file, sep="\t", header=True
@@ -156,14 +158,14 @@ class GWASCatalogInclusionGenerator:
         study_index = self.get_gwas_catalog_study_index()
 
         # Get study indices for inclusion:
-        flagged_studies = self.flag_eligible_studies(study_index, self.filter_set)
+        flagged_studies = self.flag_eligible_studies(study_index, self.criteria)
 
         # Output inclusion list:
         flagged_studies.filter(f.col("isEligible")).select("studyId").write.mode(
             self.session.write_mode
-        ).parquet(self.whitelist_studies_out_path)
+        ).parquet(self.inclusion_list_path)
 
         # Output exclusion list:
         flagged_studies.filter(~f.col("isEligible")).write.mode(
             self.session.write_mode
-        ).parquet(self.blacklist_studies_out_path)
+        ).parquet(self.exclusion_list_path)

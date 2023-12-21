@@ -36,7 +36,7 @@ class ClumpStep:
     clumped_study_locus_path: str = MISSING
     study_index_path: str | None = field(default=None)
     ld_index_path: str | None = field(default=None)
-
+    inclusion_list_path: str | None = field(default=None)
     locus_collect_distance: int | None = field(default=None)
 
     def __post_init__(self: ClumpStep) -> None:
@@ -48,6 +48,7 @@ class ClumpStep:
         input_cols = self.session.spark.read.parquet(
             self.input_path, recursiveFileLookup=True
         ).columns
+        # Processing study locus:
         if "studyLocusId" in input_cols:
             if self.study_index_path is None or self.ld_index_path is None:
                 raise ValueError(
@@ -60,20 +61,27 @@ class ClumpStep:
             clumped_study_locus = study_locus.annotate_ld(
                 study_index=study_index, ld_index=ld_index
             ).clump()
+        # Processing summary statistics:
         else:
-            if self.study_index_path is not None:
+            if self.inclusion_list_path is not None:
                 # Generate a list of study identifiers that we want to ingest:
-                study_ids_to_ingest = StudyIndex.from_parquet(
-                    self.session, self.study_index_path
-                ).get_eligible_gwas_study_ids()
+                study_ids_to_ingest = [
+                    f'{self.input_path}/{row["studyI"]}'
+                    for row in self.session.spark.read.parquet(
+                        self.inclusion_list_path
+                    ).collect()
+                ]
             else:
-                study_ids_to_ingest = ["*"]
+                # If no inclusion list is provided, read all summary stats in folder:
+                study_ids_to_ingest = [self.input_path]
 
+            # Reading a list of summary stats:
             sumstats = SummaryStatistics.from_parquet(
                 self.session,
-                [f"{self.input_path}/{study_id}" for study_id in study_ids_to_ingest],
+                *study_ids_to_ingest,
                 recursiveFileLookup=True,
             ).coalesce(4000)
+
             clumped_study_locus = sumstats.window_based_clumping(
                 locus_collect_distance=self.locus_collect_distance
             )

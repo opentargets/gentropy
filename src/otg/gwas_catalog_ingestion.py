@@ -45,6 +45,7 @@ class GWASCatalogIngestionStep:
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
+    inclusion_list_path: str | None = None
 
     def __post_init__(self: GWASCatalogIngestionStep) -> None:
         """Run step."""
@@ -73,6 +74,15 @@ class GWASCatalogIngestionStep:
             ).annotate_from_study_curation(gwas_catalog_study_curation),
             GWASCatalogCuratedAssociationsParser.from_source(catalog_associations, va),
         )
+
+        # if inclusion list is provided apply filter:
+        if self.inclusion_list_path:
+            inclusion_list = self.session.spark.read.csv(
+                self.catalog_sumstats_lut, sep="\t", header=True
+            )
+
+            study_index = study_index.apply_inclusion_list(inclusion_list)
+            study_locus = study_locus.apply_inclusion_list(inclusion_list)
 
         # Load
         study_index.df.write.mode(self.session.write_mode).parquet(

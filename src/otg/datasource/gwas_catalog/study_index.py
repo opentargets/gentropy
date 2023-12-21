@@ -697,3 +697,19 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
         self.df = self.df.join(sample_size_lut, on="studyId", how="left")
         return self
+
+    def apply_inclusion_list(
+        self: StudyIndexGWASCatalog, inclusion_list: DataFrame
+    ) -> StudyIndexGWASCatalog:
+        """Restricting GWAS Catalog studies based on a list of accpected study ids.
+
+        Args:
+            inclusion_list (DataFrame): List of accepted GWAS Catalog study identifiers
+
+        Returns:
+            StudyIndexGWASCatalog: Filtered dataset.
+        """
+        return StudyIndexGWASCatalog(
+            _df=self.df.join(inclusion_list, on="studyId", how="inner"),
+            _schema=StudyIndexGWASCatalog.get_schema(),
+        )
