@@ -17,7 +17,7 @@ class TestCARMA:
         z = sample_data_for_carma[1]
         pips = sample_data_for_carma[2]
         _l = CARMA.CARMA_spike_slab_noEM(z=z, ld=ld)
-        assert np.allclose(np.round(np.corrcoef(_l["PIPs"], pips)[0, 1], decimals=1), 1)
+        assert np.allclose(np.round(np.corrcoef(_l["PIPs"], pips)[0, 1], decimals=2), 1)
 
     def test_CARMA_spike_slab_noEM_outliers(
         self: TestCARMA, sample_data_for_carma: list[np.ndarray]
@@ -53,4 +53,4 @@ class TestCARMA:
             p=21,
             num_causal=10,
         )
-        assert np.allclose(np.round(np.corrcoef(l1_pips, pips)[0, 1], decimals=1), 1)
+        assert np.allclose(np.round(np.corrcoef(l1_pips, pips)[0, 1], decimals=2), 1)
