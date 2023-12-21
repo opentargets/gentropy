@@ -123,12 +123,12 @@ class EqtlCatalogueStudyIndex:
         return static_study_attributes + tissue_attributes + dynamic_study_attributes
 
     @classmethod
-    def add_gene_id_column(
+    def add_gene_to_study_id(
         cls: type[EqtlCatalogueStudyIndex],
         study_index_df: DataFrame,
         summary_stats_df: DataFrame,
     ) -> StudyIndex:
-        """Add a geneId column to the study index and explode.
+        """Update the studyId to include gene information from summary statistics. A geneId column is also added.
 
         While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for
         an expression of a _particular gene_ in a particular study.  At this stage we have a study index with partial
@@ -156,10 +156,12 @@ class EqtlCatalogueStudyIndex:
         )
         study_index_df = (
             study_index_df.join(partial_to_full_study_id, "studyId", "inner")
-            .withColumn("fullStudyId", f.explode("fullStudyIdList"))
-            .drop("fullStudyIdList")
+            .drop("studyId")
+            # Explode the list of full study IDs into separate rows
+            .withColumn("studyId", f.explode("fullStudyIdList"))
+            # Add geneId column
             .withColumn("geneId", f.regexp_extract(f.col("studyId"), r"(.*)_[^_]+", 1))
-            .drop("fullStudyId")
+            .drop("fullStudyIdList")
         )
         return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())
 
