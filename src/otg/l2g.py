@@ -66,7 +66,11 @@ class LocusToGeneStep:
             # average distance of all tagging variants to gene TSS
             "distanceTssMean",
             # # minimum distance of all tagging variants to gene TSS
-            # "distanceTssMinimum",
+            "distanceTssMinimum",
+            # # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
+            "vepMaximumNeighborhood",
+            # # maximum vep consequence score of the locus 95% credible set split by gene
+            "vepMaximum",
             # # max clpp for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocClppLocalMaximum",
             # # max clpp for each (study, locus) aggregating over all eQTLs

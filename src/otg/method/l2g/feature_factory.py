@@ -14,6 +14,8 @@ from otg.dataset.l2g_feature import L2GFeature
 from otg.dataset.study_locus import CredibleInterval, StudyLocus
 
 if TYPE_CHECKING:
+    from pyspark.sql import Column, DataFrame
+
     from otg.dataset.colocalisation import Colocalisation
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.v2g import V2G
@@ -230,5 +232,129 @@ class StudyLocusFactory(StudyLocus):
                 var_name="featureName",
                 value_name="featureValue",
             ),
+            _schema=L2GFeature.get_schema(),
+        )
+
+    @staticmethod
+    def _get_vep_features(
+        credible_set: StudyLocus,
+        v2g: V2G,
+    ) -> L2GFeature:
+        """Get the maximum VEP score for all variants in a locus's 95% credible set.
+
+        This informs about functional impact of the variants in the locus. For more information on variant consequences, see: https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html
+        Two metrics: max VEP score per study locus and gene, and max VEP score per study locus.
+
+
+        Args:
+            credible_set (StudyLocus): Study locus dataset with the associations to be annotated
+            v2g (V2G): V2G dataset with the variant/gene relationships and their consequences
+
+        Returns:
+            L2GFeature: Stores the features with the max VEP score.
+        """
+
+        def _aggregate_vep_feature(
+            df: DataFrame,
+            aggregation_expr: Column,
+            aggregation_cols: list[str],
+            feature_name: str,
+        ) -> DataFrame:
+            """Extracts the maximum or average VEP score after grouping by the given columns. Different aggregations return different predictive annotations.
+
+            If the group_cols include "geneId", the maximum/mean VEP score per gene is returned.
+            Otherwise, the maximum/mean VEP score for all genes in the neighborhood of the locus is returned.
+
+            Args:
+                df (DataFrame): DataFrame with the VEP scores for each variant in a studyLocus
+                aggregation_expr (Column): Aggregation expression to apply
+                aggregation_cols (list[str]): Columns to group by
+                feature_name (str): Name of the feature to be returned
+
+            Returns:
+                DataFrame: DataFrame with the maximum VEP score per locus or per locus/gene
+            """
+            if "geneId" in aggregation_cols:
+                return df.groupBy(aggregation_cols).agg(
+                    aggregation_expr.alias(feature_name)
+                )
+            return (
+                df.groupBy(aggregation_cols)
+                .agg(
+                    aggregation_expr.alias(feature_name),
+                    f.collect_set("geneId").alias("geneId"),
+                )
+                .withColumn("geneId", f.explode("geneId"))
+            )
+
+        credible_set_w_variant_consequences = (
+            credible_set.filter_credible_set(CredibleInterval.IS95)
+            .df.withColumn("variantInLocusId", f.explode(f.col("locus.variantId")))
+            .withColumn(
+                "variantInLocusPosteriorProbability",
+                f.explode(f.col("locus.posteriorProbability")),
+            )
+            .join(
+                # Join with V2G to get variant consequences
+                v2g.df.filter(
+                    f.col("datasourceId") == "variantConsequence"
+                ).withColumnRenamed("variantId", "variantInLocusId"),
+                on="variantInLocusId",
+            )
+            .withColumn(
+                "weightedScore",
+                f.col("score") * f.col("variantInLocusPosteriorProbability"),
+            )
+            .select(
+                "studyLocusId",
+                "variantId",
+                "studyId",
+                "geneId",
+                "score",
+                "weightedScore",
+            )
+            .distinct()
+            .persist()
+        )
+
+        return L2GFeature(
+            _df=convert_from_wide_to_long(
+                reduce(
+                    lambda x, y: x.unionByName(y, allowMissingColumns=True),
+                    [
+                        # Calculate overall max VEP score for all genes in the vicinity
+                        credible_set_w_variant_consequences.transform(
+                            _aggregate_vep_feature,
+                            f.max("score"),
+                            ["studyLocusId"],
+                            "vepMaximumNeighbourhood",
+                        ),
+                        # Calculate overall max VEP score per gene
+                        credible_set_w_variant_consequences.transform(
+                            _aggregate_vep_feature,
+                            f.max("score"),
+                            ["studyLocusId", "geneId"],
+                            "vepMaximum",
+                        ),
+                        # Calculate mean VEP score for all genes in the vicinity
+                        credible_set_w_variant_consequences.transform(
+                            _aggregate_vep_feature,
+                            f.mean("weightedScore"),
+                            ["studyLocusId"],
+                            "vepMeanNeighbourhood",
+                        ),
+                        # Calculate mean VEP score per gene
+                        credible_set_w_variant_consequences.transform(
+                            _aggregate_vep_feature,
+                            f.mean("weightedScore"),
+                            ["studyLocusId", "geneId"],
+                            "vepMean",
+                        ),
+                    ],
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ).filter(f.col("featureValue").isNotNull()),
             _schema=L2GFeature.get_schema(),
         )
