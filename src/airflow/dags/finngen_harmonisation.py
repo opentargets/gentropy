@@ -73,5 +73,5 @@ with DAG(
         )
         >> common.install_dependencies(CLUSTER_NAME)
         >> submit_jobs()
-        # >> common.delete_cluster(CLUSTER_NAME)
+        >> common.delete_cluster(CLUSTER_NAME)
     )
