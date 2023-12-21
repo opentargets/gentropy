@@ -11,12 +11,12 @@ CLUSTER_NAME = "otg-preprocess-finngen"
 AUTOSCALING = "finngen-preprocess"
 
 RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX"
-SUMSTATS = "{RELEASEBUCKET}/summary_statistics/finngen"
+SUMSTATS = f"{RELEASEBUCKET}/summary_statistics/finngen"
 WINDOWBASED_CLUMPED = (
-    "{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/finngen"
+    f"{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/finngen"
 )
-LD_CLUMPED = "{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/finngen"
-PICSED = "{RELEASEBUCKET}/credible_set/from_sumstats_study_locus/finngen"
+LD_CLUMPED = f"{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/finngen"
+PICSED = f"{RELEASEBUCKET}/credible_set/from_sumstats_study_locus/finngen"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -24,10 +24,10 @@ with DAG(
     default_args=common.shared_dag_args,
     **common.shared_dag_kwargs,
 ):
-    study_and_sumstats = common.submit_step(
+    study_index = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="finngen",
-        task_id="finngen_sumstats_and_study_index",
+        step_id="finngen_studies",
+        task_id="finngen_studies",
     )
 
     window_based_clumping = common.submit_step(
@@ -35,8 +35,8 @@ with DAG(
         step_id="clump",
         task_id="finngen_window_based_clumping",
         other_args=[
-            "step.input_path={SUMSTATS}",
-            "step.clumped_study_locus_path={WINDOWBASED_CLUMPED}",
+            f"step.input_path={SUMSTATS}",
+            f"step.clumped_study_locus_path={WINDOWBASED_CLUMPED}",
         ],
     )
     ld_clumping = common.submit_step(
@@ -44,8 +44,10 @@ with DAG(
         step_id="clump",
         task_id="finngen_ld_clumping",
         other_args=[
-            "step.input_path={WINDOWBASED_CLUMPED}",
-            "step.clumped_study_locus_path={LD_CLUMPED}",
+            f"step.input_path={WINDOWBASED_CLUMPED}",
+            f"step.ld_index_path={RELEASEBUCKET}/ld_index",
+            f"step.study_index_path={RELEASEBUCKET}/study_index/finngen",
+            f"step.clumped_study_locus_path={LD_CLUMPED}",
         ],
         trigger_rule=TriggerRule.ALL_DONE,
     )
@@ -64,10 +66,13 @@ with DAG(
 
     (
         common.create_cluster(
-            CLUSTER_NAME, autoscaling_policy=AUTOSCALING, master_disk_size=2000
+            CLUSTER_NAME,
+            autoscaling_policy=AUTOSCALING,
+            master_disk_size=2000,
+            num_workers=6,
         )
         >> common.install_dependencies(CLUSTER_NAME)
-        >> study_and_sumstats
+        >> study_index
         >> window_based_clumping
         >> ld_clumping
         >> pics
