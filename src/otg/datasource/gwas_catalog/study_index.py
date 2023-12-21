@@ -70,7 +70,7 @@ class StudyIndexGWASCatalogParser:
             +--------------------------------------------+
             <BLANKLINE>
         """
-        # To initialize return objects for aggregate functions, schema has to be definied:
+        # To initialize return objects for aggregate functions, schema has to be defined:
         schema = t.ArrayType(
             t.StructType(
                 [
@@ -96,7 +96,7 @@ class StudyIndexGWASCatalogParser:
             ),
             lambda ancestry: f.struct(
                 ancestry.alias("ancestry"),
-                f.lit(0).cast(t.LongType()).alias("sampleSize"),
+                f.lit(0).alias("sampleSize"),
             ),
         )
 
@@ -155,7 +155,7 @@ class StudyIndexGWASCatalogParser:
                 f.struct(
                     a.ancestry.alias("ancestry"),
                     (a.sampleSize + ancestry.sampleSize)
-                    .cast(t.LongType())
+                    .cast(t.IntegerType())
                     .alias("sampleSize"),
                 ),
             ).otherwise(a),
@@ -387,7 +387,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                     f.struct(
                         f.col("broadAncestralCategory").alias("ancestry"),
                         f.col("numberOfIndividuals")
-                        .cast(t.LongType())
+                        .cast(t.IntegerType())
                         .alias("sampleSize"),
                     )
                 )
@@ -543,9 +543,9 @@ class StudyIndexGWASCatalog(StudyIndex):
             # Aggregating sample sizes for all ancestries:
             .groupBy("studyId")  # studyId has not been split yet
             .agg(
-                f.sum("nCases").alias("nCases"),
-                f.sum("nControls").alias("nControls"),
-                f.sum("sampleSize").alias("nSamples"),
+                f.sum("nCases").cast("integer").alias("nCases"),
+                f.sum("nControls").cast("integer").alias("nControls"),
+                f.sum("sampleSize").cast("integer").alias("nSamples"),
             )
         )
         self.df = self.df.join(sample_size_lut, on="studyId", how="left")

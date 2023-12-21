@@ -51,9 +51,11 @@ class FinnGenStudyIndex:
                     f.lit(f"{cls.finngen_release_prefix}_"), f.col("phenocode")
                 ).alias("studyId"),
                 f.col("phenostring").alias("traitFromSource"),
-                f.col("num_cases").alias("nCases"),
-                f.col("num_controls").alias("nControls"),
-                (f.col("num_cases") + f.col("num_controls")).alias("nSamples"),
+                f.col("num_cases").cast("integer").alias("nCases"),
+                f.col("num_controls").cast("integer").alias("nControls"),
+                (f.col("num_cases") + f.col("num_controls"))
+                .cast("integer")
+                .alias("nSamples"),
                 f.lit(cls.finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
@@ -62,7 +64,7 @@ class FinnGenStudyIndex:
                 ),
                 f.array(
                     f.struct(
-                        f.lit(377277).cast("long").alias("sampleSize"),
+                        f.lit(377277).cast("integer").alias("sampleSize"),
                         f.lit("Finnish").alias("ancestry"),
                     )
                 ).alias("discoverySamples"),
