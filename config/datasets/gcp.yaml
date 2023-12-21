@@ -24,7 +24,6 @@ catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-11-24a.txt
 ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study_manifest.190430.tsv
 l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
-finngen_phenotype_table_url: https://r9.finngen.fi/api/phenos
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 
 # Output datasets
