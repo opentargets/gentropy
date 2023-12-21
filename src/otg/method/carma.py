@@ -20,7 +20,7 @@ class CARMA:
         ld: np.ndarray,
         lambda_val: float = 1,
         Max_Model_Dim: int = 200_000,
-        all_iter: int = 3,
+        all_iter: int = 1,
         all_inner_iter: int = 10,
         epsilon_threshold: float = 1e-5,
         num_causal: int = 10,
