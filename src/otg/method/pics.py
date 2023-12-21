@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from otg.dataset.study_locus import StudyLocus
+from otg.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
@@ -127,7 +127,7 @@ class PICS:
             ...     Row(variantId="var2", r2Overall=None),
             ... ]
             >>> PICS._finemap(ld_set_with_no_r2, lead_neglog_p=10.0, k=6.4)
-            [{'variantId': 'var1', 'r2Overall': None}, {'variantId': 'var2', 'r2Overall': None}]
+            []
         """
         if ld_set is None:
             return None
@@ -145,8 +145,7 @@ class PICS:
                 or tag_dict["r2Overall"] < 0.5
                 or not lead_neglog_p
             ):
-                # If PICS cannot be calculated, we'll return the original credible set
-                new_credible_set.append(tag_dict)
+                # If PICS cannot be calculated, we drop the variant from the credible set
                 continue
 
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
@@ -222,6 +221,9 @@ class PICS:
             lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
             picsed_ldset_schema,
         )
+        non_picsable_expr = (
+            f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
+        )
         return StudyLocus(
             _df=(
                 associations.df
@@ -239,7 +241,18 @@ class PICS:
                         ),
                     ),
                 )
-                # Rename tagVariantId to variantId
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        non_picsable_expr,
+                        StudyLocusQualityCheck.NOT_QUALIFYING_LD_BLOCK,
+                    ),
+                )
+                .withColumn(
+                    "finemappingMethod",
+                    f.coalesce(f.col("finemappingMethod"), f.lit("pics")),
+                )
                 .drop("neglog_pvalue")
             ),
             _schema=StudyLocus.get_schema(),
