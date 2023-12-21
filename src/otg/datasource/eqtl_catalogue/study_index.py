@@ -160,7 +160,7 @@ class EqtlCatalogueStudyIndex:
             # Explode the list of full study IDs into separate rows
             .withColumn("studyId", f.explode("fullStudyIdList"))
             # Add geneId column
-            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r"(.*)_[^_]+", 1))
+            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r"([^_]+)$", 1))
             .drop("fullStudyIdList")
         )
         return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())
