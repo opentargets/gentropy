@@ -281,6 +281,16 @@ class CARMA:
                [1, 2],
                [1, 3]])}
 
+        >>> S = [0]
+        >>> p = 2
+        >>> CARMA._set_gamma_func_base(S, p)
+        {0: None, 1: array([[0, 1]]), 2: array([[1]])}
+
+        >>> S = []
+        >>> p = 2
+        >>> CARMA._set_gamma_func_base(S, p)
+        {0: None, 1: array([[0],
+               [1]]), 2: None}
         """
         set_gamma: dict[int, Any] = {}
 
