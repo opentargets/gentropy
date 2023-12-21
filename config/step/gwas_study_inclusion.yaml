@@ -1,16 +1,10 @@
 _target_: otg.generate_included_gwas_catalog_studies.GWASCatalogInclusionGenerator
-
-# GWAS Catalog sources:
 catalog_study_files: ${datasets.catalog_studies}
 catalog_ancestry_files: ${datasets.catalog_ancestries}
 catalog_associations_file: ${datasets.catalog_associations}
-# GnomAD source:
 variant_annotation_path: ${datasets.variant_annotation}
-# Curation:
 gwas_catalog_study_curation_file: ${datasets.gwas_catalog_study_curation}
-# Dynamic sources:
 harmonised_studies: ???
 criteria: ???
-# output:
 inclusion_list_path: ???
 exclusion_list_path: ???
