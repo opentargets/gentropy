@@ -16,21 +16,26 @@ CLUSTER_NAME = "otg-preprocess-gwascatalog"
 AUTOSCALING = "otg-preprocess-gwascatalog"
 
 RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX"
+RELEASEBUCKET_NAME = "genetics_etl_python_playground"
 SUMMARY_STATS_BUCKET_NAME = "open-targets-gwas-summary-stats"
 SUMSTATS = "gs://open-targets-gwas-summary-stats/harmonised"
 MANIFESTS_PATH = f"{RELEASEBUCKET}/manifests/"
 
 
-def python_operator_callable(concatenated_studies: str) -> None:
+def upload_harmonized_study_list(
+    concatenated_studies: str, bucket_name: str, object_name: str
+) -> None:
     """This function uploads file to GCP.
 
     Args:
         concatenated_studies (str): Concatenated list of harmonized summary statistics.
+        bucket_name (str): Bucket name
+        object_name (str): Name of the object
     """
     hook = GCSHook(gcp_conn_id="google_cloud_default")
     hook.upload(
-        bucket_name="genetics_etl_python_playground",
-        object_name="output/python_etl/parquet/XX.XX/manifests/harmonised_sumstats.txt",
+        bucket_name=bucket_name,
+        object_name=object_name,
         data=concatenated_studies,
         encoding="utf-8",
     )
@@ -71,9 +76,11 @@ with DAG(
     )
     upload_task = PythonOperator(
         task_id="uploader",
-        python_callable=python_operator_callable,
+        python_callable=upload_harmonized_study_list,
         op_kwargs={
-            "concatenated_studies": '{{ "\n".join(ti.xcom_pull( key="return_value", task_ids="list_harmonised_parquet")) }}'
+            "concatenated_studies": '{{ "\n".join(ti.xcom_pull( key="return_value", task_ids="list_harmonised_parquet")) }}',
+            "bucket_name": RELEASEBUCKET_NAME,
+            "object_name": "output/python_etl/parquet/XX.XX/manifests/harmonised_sumstats.txt",
         },
     )
 
@@ -83,18 +90,18 @@ with DAG(
         task_id="catalog_sumstats_inclusion_list",
         other_args=[
             "step.criteria=summary_stats",
-            f"step.harmonised_studies={MANIFESTS_PATH}harmonised_sumstats.txt",
             f"step.inclusion_list_path={MANIFESTS_PATH}manifest_sumstats",
             f"step.exclusion_list_path={MANIFESTS_PATH}exclusion_sumstats",
+            f"step.harmonised_study_file={MANIFESTS_PATH}harmonised_sumstats.txt",
         ],
     )
 
     (
         # common.create_cluster(
         #     CLUSTER_NAME, autoscaling_policy=AUTOSCALING, num_workers=5
-        # )
-        # common.install_dependencies(CLUSTER_NAME)
-        # >> list_harmonised_sumstats
-        # >> upload_task
-        calculate_inclusion_list_sumstats
+        # ) >>
+        common.install_dependencies(CLUSTER_NAME)
+        >> list_harmonised_sumstats
+        >> upload_task
+        >> calculate_inclusion_list_sumstats
     )

@@ -610,8 +610,9 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         parsed_ancestry_lut = ancestry_stages.join(
             europeans_deconvoluted, on="studyId", how="outer"
+        ).select(
+            "studyId", "discoverySamples", "ldPopulationStructure", "replicationSamples"
         )
-
         self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left").join(
             cohorts, on="studyId", how="left"
         )
@@ -639,13 +640,12 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.regexp_replace(f.col("_c0"), r"^\.\/", ""),
             ),
         ).select(
-            f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)\/", 1).alias(
+            f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)", 1).alias(
                 "studyId"
             ),
             "summarystatsLocation",
             f.lit(True).alias("hasSumstats"),
         )
-
         self.df = (
             self.df.drop("hasSumstats")
             .join(parsed_sumstats_lut, on="studyId", how="left")

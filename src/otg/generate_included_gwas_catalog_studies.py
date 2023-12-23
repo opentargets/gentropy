@@ -49,7 +49,7 @@ class GWASCatalogInclusionGenerator:
     # GnomAD source:
     variant_annotation_path: str = MISSING
     # Dynamic sources:
-    harmonised_studies: str = MISSING
+    harmonised_study_file: str = MISSING
     criteria: str = MISSING
     # Output:
     inclusion_list_path: str = MISSING
@@ -93,7 +93,7 @@ class GWASCatalogInclusionGenerator:
             "studyId",
             "studyType",
             "traitFromSource",
-            "traitFromSourceMappedId",
+            "traitFromSourceMappedIds",
             "qualityControls",
             "hasSumstats",
             f.when(filters[criteria], f.lit(True))
@@ -125,13 +125,13 @@ class GWASCatalogInclusionGenerator:
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
         catalog_studies = self.session.spark.read.csv(
-            self.catalog_study_files, sep="\t", header=True
+            list(self.catalog_study_files), sep="\t", header=True
         )
         ancestry_lut = self.session.spark.read.csv(
-            self.catalog_ancestry_files, sep="\t", header=True
+            list(self.catalog_ancestry_files), sep="\t", header=True
         )
         sumstats_lut = self.session.spark.read.csv(
-            self.harmonised_studies, sep="\t", header=True
+            self.harmonised_study_file, sep="\t", header=False
         )
         catalog_associations = self.session.spark.read.csv(
             self.catalog_associations_file, sep="\t", header=True
@@ -161,11 +161,13 @@ class GWASCatalogInclusionGenerator:
         flagged_studies = self.flag_eligible_studies(study_index, self.criteria)
 
         # Output inclusion list:
-        flagged_studies.filter(f.col("isEligible")).select("studyId").write.mode(
-            self.session.write_mode
-        ).parquet(self.inclusion_list_path)
+        eligible = (
+            flagged_studies.filter(f.col("isEligible")).select("studyId").persist()
+        )
+        eligible.write.mode(self.session.write_mode).parquet(self.inclusion_list_path)
+        # print(f"Eligible studies: {eligible.count()}")
 
         # Output exclusion list:
-        flagged_studies.filter(~f.col("isEligible")).write.mode(
-            self.session.write_mode
-        ).parquet(self.exclusion_list_path)
+        excluded = flagged_studies.filter(~f.col("isEligible")).persist()
+        excluded.write.mode(self.session.write_mode).parquet(self.exclusion_list_path)
+        # print(f"Excluded studies: {excluded.count()}")
