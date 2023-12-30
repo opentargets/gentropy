@@ -51,23 +51,23 @@ class EqtlCatalogueStudyIndex:
             ).alias("traitFromSourceMappedIds"),
         ]
         sample_attributes = [
-            f.lit(838).cast("long").alias("nSamples"),
+            f.lit(838).cast("integer").alias("nSamples"),
             f.lit("838 (281 females and 557 males)").alias("initialSampleSize"),
             f.array(
                 f.struct(
-                    f.lit(715).cast("long").alias("sampleSize"),
+                    f.lit(715).cast("integer").alias("sampleSize"),
                     f.lit("European American").alias("ancestry"),
                 ),
                 f.struct(
-                    f.lit(103).cast("long").alias("sampleSize"),
+                    f.lit(103).cast("integer").alias("sampleSize"),
                     f.lit("African American").alias("ancestry"),
                 ),
                 f.struct(
-                    f.lit(12).cast("long").alias("sampleSize"),
+                    f.lit(12).cast("integer").alias("sampleSize"),
                     f.lit("Asian American").alias("ancestry"),
                 ),
                 f.struct(
-                    f.lit(16).cast("long").alias("sampleSize"),
+                    f.lit(16).cast("integer").alias("sampleSize"),
                     f.lit("Hispanic or Latino").alias("ancestry"),
                 ),
             ).alias("discoverySamples"),

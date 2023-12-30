@@ -1,3 +1,0 @@
-_target_: otg.finngen.FinnGenStep
-finngen_study_index_out: ${datasets.finngen_study_index}
-finngen_summary_stats_out: ${datasets.finngen_summary_stats}

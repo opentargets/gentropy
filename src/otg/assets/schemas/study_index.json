@@ -89,19 +89,19 @@
     },
     {
       "name": "nCases",
-      "type": "long",
+      "type": "integer",
       "nullable": true,
       "metadata": {}
     },
     {
       "name": "nControls",
-      "type": "long",
+      "type": "integer",
       "nullable": true,
       "metadata": {}
     },
     {
       "name": "nSamples",
-      "type": "long",
+      "type": "integer",
       "nullable": true,
       "metadata": {}
     },
@@ -150,7 +150,7 @@
           "fields": [
             {
               "name": "sampleSize",
-              "type": "long",
+              "type": "integer",
               "nullable": true,
               "metadata": {}
             },
@@ -176,7 +176,7 @@
           "fields": [
             {
               "name": "sampleSize",
-              "type": "long",
+              "type": "integer",
               "nullable": true,
               "metadata": {}
             },

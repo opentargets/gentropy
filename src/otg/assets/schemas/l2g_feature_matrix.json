@@ -32,6 +32,18 @@
     },
     {
       "metadata": {},
+      "name": "vepMaximumNeighborhood",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "vepMaximum",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
       "name": "eqtlColocClppLocalMaximum",
       "nullable": true,
       "type": "double"
