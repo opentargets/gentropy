@@ -102,7 +102,7 @@ def create_cluster(
             "CONFIGTAR": CONFIG_TAG,
             "PACKAGE": PACKAGE_WHEEL,
         },
-        idle_delete_ttl=None,
+        idle_delete_ttl=30 * 60,  # In seconds.
         autoscaling_policy=f"projects/{GCP_PROJECT}/regions/{GCP_REGION}/autoscalingPolicies/{autoscaling_policy}",
     ).make()
 
