@@ -628,10 +628,18 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         Returns:
             StudyIndexGWASCatalog: including `summarystatsLocation` and `hasSumstats` columns
+
+        Raises:
+            ValueError: if the sumstats_lut table doesn't have the right columns
         """
         gwas_sumstats_base_uri = (
             "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/"
         )
+
+        if "_c0" not in sumstats_lut.columns:
+            raise ValueError(
+                f'Sumstats look-up table needs to have `_c0` column. However it has: {",".join(sumstats_lut.columns)}'
+            )
 
         parsed_sumstats_lut = sumstats_lut.withColumn(
             "summarystatsLocation",
@@ -640,9 +648,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.regexp_replace(f.col("_c0"), r"^\.\/", ""),
             ),
         ).select(
-            f.regexp_extract(f.col("summarystatsLocation"), r"\/(GCST\d+)", 1).alias(
-                "studyId"
-            ),
+            self._parse_gwas_catalog_study_id("summarystatsLocation").alias("studyId"),
             "summarystatsLocation",
             f.lit(True).alias("hasSumstats"),
         )
@@ -713,3 +719,25 @@ class StudyIndexGWASCatalog(StudyIndex):
             _df=self.df.join(inclusion_list, on="studyId", how="inner"),
             _schema=StudyIndexGWASCatalog.get_schema(),
         )
+
+    @staticmethod
+    def _parse_gwas_catalog_study_id(sumstats_path_column: str) -> Column:
+        """Extract GWAS Catalog study accession from the summary statistics path.
+
+        Args:
+            sumstats_path_column (str): column *name* for the summary statistics path
+
+        Returns:
+            Column: GWAS Catalog study accession.
+
+        Examples:
+            >>> data = [
+            ... ('./GCST90086001-GCST90087000/GCST90086758/harmonised/35078996-GCST90086758-EFO_0007937.h.tsv.gz',),
+            ...    ('gs://open-targets-gwas-summary-stats/harmonised/GCST000568.parquet/',),
+            ...    (None,)
+            ... ]
+            >>> spark.createDataFrame(data, ['testColumn']).select(StudyIndexGWASCatalog._parse_gwas_catalog_study_id('testColumn').alias('accessions')).collect()
+            [Row(accessions='GCST90086758'), Row(accessions='GCST000568'), Row(accessions=None)]
+        """
+        accesions = f.expr(rf"regexp_extract_all({sumstats_path_column}, '(GCST\\d+)')")
+        return accesions[f.size(accesions) - 1]

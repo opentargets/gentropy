@@ -66,11 +66,11 @@ class ClumpStep:
             if self.inclusion_list_path is not None:
                 # Generate a list of study identifiers that we want to ingest:
                 study_ids_to_ingest = [
-                    f'{self.input_path}/{row["studyI"]}'
+                    f'{self.input_path}/{row["studyId"]}.parquet'
                     for row in self.session.spark.read.parquet(
                         self.inclusion_list_path
                     ).collect()
-                ]
+                ][0:100]
             else:
                 # If no inclusion list is provided, read all summary stats in folder:
                 study_ids_to_ingest = [self.input_path]
@@ -78,7 +78,7 @@ class ClumpStep:
             # Reading a list of summary stats:
             sumstats = SummaryStatistics.from_parquet(
                 self.session,
-                *study_ids_to_ingest,
+                study_ids_to_ingest,
                 recursiveFileLookup=True,
             ).coalesce(4000)
 

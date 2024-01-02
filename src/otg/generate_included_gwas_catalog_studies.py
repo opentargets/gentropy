@@ -73,7 +73,7 @@ class GWASCatalogInclusionGenerator:
         """
         filters: dict[str, Column] = {
             # Filters applied on studies for ingesting curated associations:
-            "curated": (study_index.is_gwas() & study_index.has_mapped_trait()),
+            "curation": (study_index.is_gwas() & study_index.has_mapped_trait()),
             # Filters applied on studies for ingesting summary statistics:
             "summary_stats": (
                 study_index.is_gwas()

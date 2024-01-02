@@ -29,11 +29,11 @@ class GWASCatalogIngestionStep:
         catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
         catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
         catalog_associations_file (str): Raw GWAS catalog associations file.
+        gwas_catalog_study_curation_file (str | None): file of the curation table. Optional.
         variant_annotation_path (str): Input variant annotation path.
-        ld_populations (list): List of populations to include.
         catalog_studies_out (str): Output GWAS catalog studies path.
         catalog_associations_out (str): Output GWAS catalog associations path.
-        gwas_catalog_study_curation_file (str | None): file of the curation table. Optional.
+        inclusion_list_path (str | None): optional inclusion list (parquet)
     """
 
     session: Session = MISSING
@@ -52,10 +52,10 @@ class GWASCatalogIngestionStep:
         # Extract
         va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
         catalog_studies = self.session.spark.read.csv(
-            self.catalog_study_files, sep="\t", header=True
+            list(self.catalog_study_files), sep="\t", header=True
         )
         ancestry_lut = self.session.spark.read.csv(
-            self.catalog_ancestry_files, sep="\t", header=True
+            list(self.catalog_ancestry_files), sep="\t", header=True
         )
         sumstats_lut = self.session.spark.read.csv(
             self.catalog_sumstats_lut, sep="\t", header=False
@@ -77,8 +77,8 @@ class GWASCatalogIngestionStep:
 
         # if inclusion list is provided apply filter:
         if self.inclusion_list_path:
-            inclusion_list = self.session.spark.read.csv(
-                self.catalog_sumstats_lut, sep="\t", header=True
+            inclusion_list = self.session.spark.read.parquet(
+                self.inclusion_list_path, sep="\t", header=True
             )
 
             study_index = study_index.apply_inclusion_list(inclusion_list)

@@ -191,9 +191,13 @@ class StudyIndex(Dataset):
         Returns:
             Column: Boolean columns with true values with no quality issues.
         """
-        return f.when(f.size(self.df.qualityControls) == 0, f.lit(True)).otherwise(
-            f.lit(False)
-        )
+        # Testing for the presence of the qualityControls column:
+        if "qualityControls" not in self.df.columns:
+            return f.lit(False)
+        else:
+            return f.when(f.size(self.df.qualityControls) == 0, f.lit(False)).otherwise(
+                f.lit(True)
+            )
 
     def has_summarystats(self: StudyIndex) -> Column:
         """Return booleans indicating if a study has summary harmonized summary statistics.
