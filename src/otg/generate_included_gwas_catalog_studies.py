@@ -31,12 +31,13 @@ class GWASCatalogInclusionGenerator:
         session (Session): Session object.
         catalog_study_files (list[str]): List of raw GWAS catalog studies file.
         catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-        catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
         catalog_associations_file (str): Raw GWAS catalog associations file.
         variant_annotation_path (str): Input variant annotation path.
-        catalog_studies_out (str): Output GWAS catalog studies path.
-        catalog_associations_out (str): Output GWAS catalog associations path.
         gwas_catalog_study_curation_file (str | None): file of the curation table. Optional.
+        harmonised_study_file (str): file with the list of all successfully harmonized summary statistics.
+        criteria (str): inclusion criteria depending on the dataset ("summary_stats" or "curation")
+        inclusion_list_path (str): output file name of the list of study identifiers that can be ingested.
+        exclusion_list_path (str): output file name of the list of study identifiers that excluded from ingestion.
     """
 
     session: Session = MISSING
