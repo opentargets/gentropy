@@ -77,105 +77,6 @@ class StudyLocus(Dataset):
     """
 
     @staticmethod
-    def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
-        """Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.
-
-        Args:
-            credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
-
-        Returns:
-            DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
-        """
-        # Reduce columns to the minimum to reduce the size of the dataframe
-        credset_to_overlap = credset_to_overlap.select(
-            "studyLocusId", "studyType", "chromosome", "tagVariantId"
-        )
-        return (
-            credset_to_overlap.alias("left")
-            .filter(f.col("studyType") == "gwas")
-            # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-            .join(
-                credset_to_overlap.alias("right"),
-                on=[
-                    f.col("left.chromosome") == f.col("right.chromosome"),
-                    f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                    (f.col("right.studyType") != "gwas")
-                    | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
-                ],
-                how="inner",
-            )
-            .select(
-                f.col("left.studyLocusId").alias("leftStudyLocusId"),
-                f.col("right.studyLocusId").alias("rightStudyLocusId"),
-                f.col("left.chromosome").alias("chromosome"),
-                f.col("left.tagVariantId").alias("overlappingVariantId"),
-            )
-            .distinct()
-            .repartition("chromosome")
-            .persist()
-        )
-
-    @staticmethod
-    def _align_overlapping_tags(
-        loci_to_overlap: DataFrame, peak_overlaps: DataFrame
-    ) -> StudyLocusOverlap:
-        """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
-
-        Args:
-            loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
-            peak_overlaps (DataFrame): containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
-
-        Returns:
-            StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
-        """
-        # Complete information about all tags in the left study-locus of the overlap
-        stats_cols = [
-            "logABF",
-            "posteriorProbability",
-            "beta",
-            "pValueMantissa",
-            "pValueExponent",
-        ]
-        overlapping_left = loci_to_overlap.select(
-            f.col("chromosome"),
-            f.col("tagVariantId"),
-            f.col("studyLocusId").alias("leftStudyLocusId"),
-            *[f.col(col).alias(f"left_{col}") for col in stats_cols],
-        ).join(peak_overlaps, on=["chromosome", "leftStudyLocusId"], how="inner")
-
-        # Complete information about all tags in the right study-locus of the overlap
-        overlapping_right = loci_to_overlap.select(
-            f.col("chromosome"),
-            f.col("tagVariantId"),
-            f.col("studyLocusId").alias("rightStudyLocusId"),
-            *[f.col(col).alias(f"right_{col}") for col in stats_cols],
-        ).join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
-
-        # Include information about all tag variants in both study-locus aligned by tag variant id
-        overlaps = overlapping_left.join(
-            overlapping_right,
-            on=[
-                "chromosome",
-                "rightStudyLocusId",
-                "leftStudyLocusId",
-                "tagVariantId",
-            ],
-            how="outer",
-        ).select(
-            "leftStudyLocusId",
-            "rightStudyLocusId",
-            "chromosome",
-            "tagVariantId",
-            f.struct(
-                *[f"left_{e}" for e in stats_cols] + [f"right_{e}" for e in stats_cols]
-            ).alias("statistics"),
-        )
-        return StudyLocusOverlap(
-            _df=overlaps,
-            _schema=StudyLocusOverlap.get_schema(),
-        )
-
-    @staticmethod
     def update_quality_flag(
         qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
     ) -> Column:
@@ -264,26 +165,15 @@ class StudyLocus(Dataset):
         """
         loci_to_overlap = (
             self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
-            .withColumn("locus", f.explode("locus"))
-            .select(
-                "studyLocusId",
-                "studyType",
-                "chromosome",
-                f.col("locus.variantId").alias("tagVariantId"),
-                f.col("locus.logABF").alias("logABF"),
-                f.col("locus.posteriorProbability").alias("posteriorProbability"),
-                f.col("locus.pValueMantissa").alias("pValueMantissa"),
-                f.col("locus.pValueExponent").alias("pValueExponent"),
-                f.col("locus.beta").alias("beta"),
+            .withColumn(
+                "variants_in_locus", f.transform(f.col("locus"), lambda x: x.variantId)
             )
             .persist()
         )
-
-        # overlapping study-locus
-        peak_overlaps = self._overlapping_peaks(loci_to_overlap)
-
-        # study-locus overlap by aligning overlapping variants
-        return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
+        return StudyLocusOverlap(
+            _df=self._find_overlaps(loci_to_overlap),
+            _schema=StudyLocusOverlap.get_schema(),
+        )
 
     def unique_variants_in_locus(self: StudyLocus) -> DataFrame:
         """All unique variants collected in a `StudyLocus` dataframe.
@@ -424,6 +314,69 @@ class StudyLocus(Dataset):
             .drop("is_lead_linked")
         )
         return self
+
+    @classmethod
+    def _find_overlaps(
+        cls: type[StudyLocus],
+        loci_to_overlap: DataFrame,
+    ) -> DataFrame:
+        """Calculate overlapping study-locus.
+
+        Args:
+            loci_to_overlap (DataFrame): Study-locus to overlap. The dataframe contains the type of study and the variants comprised in the locus.
+
+        Returns:
+            DataFrame: Pairs of overlapping studyLocusIds. leftLocus and rightLocus are arrays of structs containing the common variants and their statistics.
+        """
+        return (
+            loci_to_overlap.filter(f.col("studyType") == "gwas")
+            .alias("left")
+            # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
+            .join(
+                loci_to_overlap.alias("right"),
+                on=[
+                    f.col("left.chromosome") == f.col("right.chromosome"),
+                    (f.col("right.studyType") != "gwas")
+                    | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+                ],
+                how="inner",
+            )
+            # Filter out pairs of study-locus that do not share any variant
+            .withColumn(
+                "overlapping_variants_in_locus",
+                f.array_intersect(
+                    f.col("left.variants_in_locus"),
+                    f.col("right.variants_in_locus"),
+                ),
+            )
+            .filter(f.size(f.col("overlapping_variants_in_locus")) > 0)
+            # Filter both locus to only contain overlapping variants
+            .withColumn(
+                "leftLocus",
+                f.filter(
+                    f.col("left.locus"),
+                    lambda tag: f.array_contains(
+                        f.col("overlapping_variants_in_locus"), tag.variantId
+                    ),
+                ),
+            )
+            .withColumn(
+                "rightLocus",
+                f.filter(
+                    f.col("right.locus"),
+                    lambda tag: f.array_contains(
+                        f.col("overlapping_variants_in_locus"), tag.variantId
+                    ),
+                ),
+            )
+            .select(
+                f.col("left.chromosome").alias("chromosome"),
+                f.col("left.studyLocusId").alias("leftStudyLocusId"),
+                f.col("right.studyLocusId").alias("rightStudyLocusId"),
+                "leftLocus",
+                "rightLocus",
+            )
+        )
 
     def _qc_unresolved_ld(
         self: StudyLocus,
