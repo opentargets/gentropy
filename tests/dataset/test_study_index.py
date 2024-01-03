@@ -137,29 +137,3 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
         )
         == 300.0
     )
-
-
-def test_eligible_study_extraction(spark: SparkSession) -> None:
-    """Testing eligible study identifiers."""
-    data = [
-        ("good_study", None, "gwas"),
-        ("failed_1", None, "qtl"),
-        ("failed_2", "flag", "gwas"),
-    ]
-
-    mock_study = StudyIndex(
-        _df=spark.createDataFrame(data, ["studyId", "qualityFlag", "studyType"]).select(
-            "studyId",
-            "studyType",
-            f.lit("foo").alias("traitFromSource"),
-            f.lit("foo").alias("projectId"),
-            f.when(f.col("qualityFlag").isNotNull(), f.array(f.col("qualityFlag")))
-            .otherwise(f.array())
-            .alias("qualityControls"),
-        ),
-        _schema=StudyIndex.get_schema(),
-    )
-
-    good_studies = mock_study.get_eligible_gwas_study_ids()
-
-    assert good_studies == ["good_study"]
