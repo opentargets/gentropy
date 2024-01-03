@@ -140,64 +140,41 @@ class StudyIndex(Dataset):
         """
         return self.df.select("studyId", "studyType")
 
-    def get_eligible_gwas_study_ids(self: StudyIndex) -> list[str]:
-        """Get a list of study identifiers eligible for ingestion.
-
-        Currently the eligibility criteria is to have `gwas` as study type and have no quality controls flag.
-
-        Returns:
-            list[str]: list of study identifiers.
-        """
-        return [
-            row["studyId"]
-            for row in self.df.filter(
-                (f.col("studyType") == "gwas") & (f.size(f.col("qualityControls")) == 0)
-            )
-            .distinct()
-            .collect()
-        ]
-
     def is_qtl(self: StudyIndex) -> Column:
-        """Return booleans indicating if a study is a qtl.
+        """Return boolean columns with true values for QTL studies.
 
         Returns:
-            Column: Boolean columns with true values for QTL studies.
+            Column:
         """
-        return f.when(self.df.studyType.endswith("qtl"), f.lit(True)).otherwise(
-            f.lit(False)
-        )
+        return self.df.studyType.endswith("qtl")
 
     def is_gwas(self: StudyIndex) -> Column:
-        """Return booleans indicating if a study is a gwas.
+        """Return boolean columns with true values for GWAS studies.
 
         Returns:
-            Column: Boolean columns with true values for GWAS studies.
+            Column:
         """
-        return f.when(self.df.studyType == "gwas", f.lit(True)).otherwise(f.lit(False))
+        return self.df.studyType == "gwas"
 
     def has_mapped_trait(self: StudyIndex) -> Column:
-        """Return booleans indicating if a study has mapped disease.
+        """Return boolean column indicating if a study has mapped disease.
 
         Returns:
-            Column: Boolean columns with true values studies with mapped disease (EFO).
+            Column:
         """
-        return f.when(
-            f.size(self.df.traitFromSourceMappedIds) > 0, f.lit(True)
-        ).otherwise(f.lit(False))
+        return f.size(self.df.traitFromSourceMappedIds) > 0
 
     def is_quality_flagged(self: StudyIndex) -> Column:
         """Return booleans indicating if a study flagged due to quality issues.
 
         Returns:
-            Column: Boolean columns with true values with no quality issues.
+            Column:
         """
         # Testing for the presence of the qualityControls column:
         if "qualityControls" not in self.df.columns:
             return f.lit(False)
         else:
-            return f.when(f.size(self.df.qualityControls) == 0, f.lit(False)).otherwise(
-                f.lit(True)
-            )
+            return f.size(self.df.qualityControls) != 0
 
     def has_summarystats(self: StudyIndex) -> Column:
         """Return booleans indicating if a study has summary harmonized summary statistics.
@@ -205,4 +182,4 @@ class StudyIndex(Dataset):
         Returns:
             Column: Boolean columns with true values for studies with summary statistics.
         """
-        return f.when(self.df.hasSumstats, f.lit(True)).otherwise(f.lit(False))
+        return self.df.hasSumstats

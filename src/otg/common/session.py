@@ -128,10 +128,10 @@ class Session:
         schema: StructType,
         **kwargs: bool | float | int | str | None,
     ) -> DataFrame:
-        """Reads parquet dataset with a provided schema.
+        """Reads parquet dataset (provided as a single path or a list of paths) with a provided schema.
 
         Args:
-            path (str | list[str]): parquet dataset path
+            path (str | list[str]): path to the parquet dataset
             schema (StructType): Spark schema
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.parquet
 

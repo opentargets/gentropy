@@ -165,9 +165,7 @@ class GWASCatalogInclusionGenerator:
             flagged_studies.filter(f.col("isEligible")).select("studyId").persist()
         )
         eligible.write.mode(self.session.write_mode).parquet(self.inclusion_list_path)
-        # print(f"Eligible studies: {eligible.count()}")
 
         # Output exclusion list:
         excluded = flagged_studies.filter(~f.col("isEligible")).persist()
         excluded.write.mode(self.session.write_mode).parquet(self.exclusion_list_path)
-        # print(f"Excluded studies: {excluded.count()}")

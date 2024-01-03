@@ -26,7 +26,7 @@ def read_curation_table(
 
     Args:
         curation_path (str | None): Optionally given path the curation tsv.
-        session (Session): OTG session object
+        session (Session): session object
 
     Returns:
         DataFrame | None: if curation was provided,
@@ -40,12 +40,22 @@ def read_curation_table(
         session.spark.sparkContext.addFile(curation_path)
 
         # Reading file:
-        return session.spark.read.csv(
+        curation_df = session.spark.read.csv(
             SparkFiles.get(curation_path.split("/")[-1]), sep="\t", header=True
         )
     # Read curation from file:
     else:
-        return session.spark.read.csv(curation_path, sep="\t", header=True)
+        curation_df = session.spark.read.csv(curation_path, sep="\t", header=True)
+    return curation_df.select(
+        "studyId",
+        "studyType",
+        f.when(f.col("analysisFlag").isNotNull(), f.array(f.col("analysisFlag")))
+        .otherwise(f.array())
+        .alias("analysisFlags"),
+        f.when(f.col("qualityControl").isNotNull(), f.array(f.col("qualityControl")))
+        .otherwise(f.array())
+        .alias("qualityControls"),
+    )
 
 
 @dataclass
@@ -384,38 +394,41 @@ class StudyIndexGWASCatalog(StudyIndex):
         Returns:
             StudyIndexGWASCatalog: Updated study index
         """
+        # Providing curation table is optional. However once this method is called, the quality and studyFlag columns are added.
         if curation_table is None:
             return self
 
         # Get a list of columns from the original dataset:
         columns = self.df.columns
 
+        # Adding prefix to columns in the curation table:
+        curation_table = curation_table.select(
+            [
+                f"curation_{column}" if column != "studyId" else column
+                for column in curation_table.columns
+            ]
+        )
+
         # Create expression how to update/create quality controls dataset:
         qualityControls_expression = (
-            f.when(
-                f.col("upateQualityControls").isNotNull(),
-                f.array(f.col("upateQualityControls")),
-            ).otherwise(f.array())
+            f.col("curation_qualityControls")
             if "qualityControls" not in columns
             else f.when(
-                f.col("upateQualityControls").isNotNull(),
+                f.col("curation_qualityControls").isNotNull(),
                 f.array_union(
-                    f.col("qualityControls"), f.array(f.col("upateQualityControls"))
+                    f.col("qualityControls"), f.array(f.col("curation_qualityControls"))
                 ),
             ).otherwise(f.col("qualityControls"))
         )
 
         # Create expression how to update/create analysis flag:
         analysis_expression = (
-            f.when(
-                f.col("upateAnalysisFlags").isNotNull(),
-                f.array(f.col("upateAnalysisFlags")),
-            ).otherwise(f.array())
+            f.col("curation_analysisFlags")
             if "analysisFlags" not in columns
             else f.when(
-                f.col("upateAnalysisFlags").isNotNull(),
+                f.col("curation_analysisFlags").isNotNull(),
                 f.array_union(
-                    f.col("analysisFlags"), f.array(f.col("upateAnalysisFlags"))
+                    f.col("analysisFlags"), f.array(f.col("curation_analysisFlags"))
                 ),
             ).otherwise(f.col("analysisFlags"))
         )
@@ -423,12 +436,12 @@ class StudyIndexGWASCatalog(StudyIndex):
         # Updating columns list. We might or might not list columns twice, but that doesn't matter, unique set will generated:
         columns = list(set(columns + ["qualityControls", "analysisFlags"]))
 
-        # If we got curation, we have to do a bit of a logic:
+        # Based on the curation table, columns needs to be updated:
         curated_df = (
             self.df.join(curation_table, on="studyId", how="left")
             # Updating study type:
             .withColumn(
-                "studyType", f.coalesce(f.col("updateStudyType"), f.col("studyType"))
+                "studyType", f.coalesce(f.col("curation_studyType"), f.col("studyType"))
             )
             # Updating quality controls:
             .withColumn("qualityControls", qualityControls_expression)
@@ -451,39 +464,51 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         Returns:
             DataFrame: Updated curation table. New studies are have the `isCurated` False.
+
+        - **studyId** - GCST study accession to identify study.
+        - **analysisFlag** - applied statistical method authors used that might have downstream implication in interpreting the associations discovered by the study.
+        - **studyType** - sometimes, curation required to override the automatic assumption of the type of a study.
+        - **qualityControl** - annotation on issues that prevent the study from ingestion (eg. `failing summary statistics QC`).
+        - **isCurated** - boolean flag indicating if the study went through curation.
         """
         if curation is None:
-            studies = (
+            return (
                 self.df
-                # Keep only studies with summary statistics:
+                # Curation only applyed on studies with summary statistics:
                 .filter(f.col("hasSumstats"))
-                # Adding columns expected in the curation table:
-                .withColumn("updateStudyType", f.lit(None).cast(t.StringType()))
-                .withColumn("upateAnalysisFlags", f.array().cast(t.StringType()))
-                .withColumn("upateQualityControls", f.array().cast(t.StringType()))
+                # Adding columns expected in the curation table - array columns aready flattened:
+                .withColumn("studyType", f.lit(None).cast(t.StringType()))
+                .withColumn("analysisFlags", f.lit(None).cast(t.StringType()))
+                .withColumn("qualityControls", f.lit(None).cast(t.StringType()))
                 .withColumn("isCurated", f.lit(False).cast(t.BooleanType()))
             )
-        else:
-            studies = (
-                self.df
-                # Keep only studies with summary statistics:
-                .filter(f.col("hasSumstats")).join(curation, on="studyId", how="left")
-            )
 
-        # if curation is present:
+        # Adding prefix to columns in the curation table:
+        curation = curation.select(
+            [
+                f"curation_{column}" if column != "studyId" else column
+                for column in curation.columns
+            ]
+        )
+
         return (
-            studies
-            # Select columns:
+            self.df
+            # Curation only applyed on studies with summary statistics:
+            .filter(f.col("hasSumstats"))
+            .join(curation, on="studyId", how="left")
             .select(
                 "studyId",
-                "upateAnalysisFlags",
-                "updateStudyType",
-                "upateAnalysisFlags",
-                f.coalesce(f.col("isCurated"), f.lit(False)).alias("isCurated"),
-                # These fields are there to help curation, but should not be included in the curation table:
-                "publicationTitle",
-                "publicationFirstAuthor",
-                "traitFromSource",
+                # Propagate existing curation - array columns are being flattened:
+                f.col("curation_studyType").alias("studyType"),
+                f.array_join(f.col("curation_analysisFlags"), "|").alias(
+                    "analysisFlags"
+                ),
+                f.array_join(f.col("curation_qualityControls"), "|").alias(
+                    "qualityControls"
+                ),
+                f.coalesce(f.col("curation_isCurated"), f.lit(False)).alias(
+                    "isCurated"
+                ),
             )
         )
 
