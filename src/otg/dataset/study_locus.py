@@ -50,7 +50,9 @@ class StudyLocusQualityCheck(Enum):
     UNRESOLVED_LD = "Variant not found in LD reference"
     LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
-    NOT_QUALIFYING_LD_BLOCK = "LD block does not contain variants at the required R^2 threshold"
+    NOT_QUALIFYING_LD_BLOCK = (
+        "LD block does not contain variants at the required R^2 threshold"
+    )
 
 
 class CredibleInterval(Enum):
@@ -106,6 +108,7 @@ class StudyLocus(Dataset):
                 f.col("left.studyLocusId").alias("leftStudyLocusId"),
                 f.col("right.studyLocusId").alias("rightStudyLocusId"),
                 f.col("left.chromosome").alias("chromosome"),
+                f.col("left.tagVariantId").alias("overlappingVariantId"),
             )
             .distinct()
             .repartition("chromosome")
