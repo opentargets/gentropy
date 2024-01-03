@@ -117,7 +117,6 @@ class L2GGoldStandard(Dataset):
         Returns:
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.
         """
-        squared_overlaps = study_locus_overlap._convert_to_square_matrix()
         unique_associations = (
             self.df.alias("left")
             # identify all the study loci that point to the same gene
@@ -127,20 +126,28 @@ class L2GGoldStandard(Dataset):
             )
             # identify all the study loci that have an overlapping variant
             .join(
-                squared_overlaps.df.alias("right"),
-                (f.col("left.studyLocusId") == f.col("right.leftStudyLocusId"))
-                & (f.col("left.variantId") == f.col("right.tagVariantId")),
+                study_locus_overlap.df.select(
+                    "leftStudyLocusId",
+                    "rightStudyLocusId",
+                    f.col("leftLocus.variantId").alias("overlappingVariants"),
+                ).alias("right"),
+                (
+                    (f.col("left.studyLocusId") == f.col("right.leftStudyLocusId"))
+                    | (f.col("left.studyLocusId") == f.col("right.rightStudyLocusId"))
+                ),
                 "left",
             )
             .withColumn(
                 "overlaps",
-                f.when(f.col("right.tagVariantId").isNotNull(), f.lit(True)).otherwise(
-                    f.lit(False)
+                f.coalesce(
+                    f.array_contains(f.col("overlappingVariants"), f.col("variantId")),
+                    f.lit(False),
                 ),
             )
             # drop redundant rows: where the variantid overlaps and the gene is "explained" by more than one study locus
             .filter(~((f.size("sl_same_gene") > 1) & (f.col("overlaps") == 1)))
             .select(*self.df.columns)
+            .distinct()
         )
         return L2GGoldStandard(_df=unique_associations, _schema=self.get_schema())
 

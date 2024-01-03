@@ -67,8 +67,23 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
     )
 
     mock_sl_overlap_df = spark.createDataFrame(
-        [(1, 2, "variant2"), (1, 4, "variant4")],
-        "leftStudyLocusId LONG, rightStudyLocusId LONG, tagVariantId STRING",
+        [
+            {
+                "leftStudyLocusId": 1,
+                "rightStudyLocusId": 2,
+                "chromosome": "X",
+                "leftLocus": [{"variantId": "variant2"}],
+                "rightLocus": [{"variantId": "variant2"}],
+            },
+            {
+                "leftStudyLocusId": 1,
+                "rightStudyLocusId": 4,
+                "chromosome": "X",
+                "leftLocus": [{"variantId": "variant4"}],
+                "rightLocus": [{"variantId": "variant4"}],
+            },
+        ],
+        schema=StudyLocusOverlap.get_schema(),
     )
 
     expected_df = spark.createDataFrame(
@@ -85,7 +100,7 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
     )
     mock_sl_overlap = StudyLocusOverlap(
         _df=mock_sl_overlap_df, _schema=StudyLocusOverlap.get_schema()
-    )._convert_to_square_matrix()
+    )
 
     observed_df = mock_l2g_gs.filter_unique_associations(mock_sl_overlap).df
 

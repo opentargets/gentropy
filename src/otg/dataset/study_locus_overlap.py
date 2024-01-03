@@ -47,20 +47,3 @@ class StudyLocusOverlap(Dataset):
             StudyLocusOverlap: Study-locus overlap dataset
         """
         return study_locus.find_overlaps(study_index)
-
-    def _convert_to_square_matrix(self: StudyLocusOverlap) -> StudyLocusOverlap:
-        """Convert the dataset to a square matrix.
-
-        Returns:
-            StudyLocusOverlap: Square matrix of the dataset
-        """
-        return StudyLocusOverlap(
-            _df=self.df.unionByName(
-                self.df.selectExpr(
-                    "leftStudyLocusId as rightStudyLocusId",
-                    "rightStudyLocusId as leftStudyLocusId",
-                    "tagVariantId",
-                )
-            ).distinct(),
-            _schema=self.get_schema(),
-        )
