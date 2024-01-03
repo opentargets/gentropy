@@ -13,10 +13,8 @@ from otg.datasource.gwas_catalog.study_index import (
 
 
 @dataclass
-class GWASCatalogIngestionStep:
-    """GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables.
-
-    !!!note This step currently only processes the GWAS Catalog curated list of top hits.
+class GWASCatalogStudyCurationStep:
+    """Create an updated curation table for GWAS Catalog study table.
 
     Attributes:
         session (Session): Session object.
@@ -24,10 +22,8 @@ class GWASCatalogIngestionStep:
         catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
         catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
         catalog_associations_file (str): Raw GWAS catalog associations file.
-        variant_annotation_path (str): Input variant annotation path.
-        ld_populations (list): List of populations to include.
-        catalog_studies_out (str): Output GWAS catalog studies path.
-        catalog_associations_out (str): Output GWAS catalog associations path.
+        gwas_catalog_study_curation_file (str | None): Path to the original curation table. Optinal
+        gwas_catalog_study_curation_out (str): Path for the updated curation table.
     """
 
     session: Session = MISSING
@@ -35,12 +31,10 @@ class GWASCatalogIngestionStep:
     catalog_ancestry_files: list[str] = MISSING
     catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
-    gwas_catalog_study_curation_file: str = MISSING
-    variant_annotation_path: str = MISSING
-    catalog_studies_out: str = MISSING
+    gwas_catalog_study_curation_file: str | None = MISSING
     gwas_catalog_study_curation_out: str = MISSING
 
-    def __post_init__(self: GWASCatalogIngestionStep) -> None:
+    def __post_init__(self: GWASCatalogStudyCurationStep) -> None:
         """Run step."""
         catalog_studies = self.session.spark.read.csv(
             self.catalog_study_files, sep="\t", header=True

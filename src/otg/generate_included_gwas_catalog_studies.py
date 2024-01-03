@@ -97,9 +97,7 @@ class GWASCatalogInclusionGenerator:
             "traitFromSourceMappedIds",
             "qualityControls",
             "hasSumstats",
-            f.when(filters[criteria], f.lit(True))
-            .otherwise(f.lit(False))
-            .alias("isEligible"),
+            filters[criteria].alias("isEligible"),
         )
 
     @staticmethod
