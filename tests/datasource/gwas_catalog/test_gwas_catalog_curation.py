@@ -51,15 +51,15 @@ class TestGWASCatalogStudyCuration:
         curation_data = [
             ("s2", None, None, None, True),  # Good study
             ("s3", "pQTL", None, None, True),  # Update type
-            ("s4", None, "analysis 1", None, True),  # Add analysis flag
-            ("s5", None, None, "QC flag", True),  # Add analysis flag
+            ("s4", None, ["analysis 1"], None, True),  # Add analysis flag
+            ("s5", None, None, ["QC flag"], True),  # Add analysis flag
         ]
 
         curation_columns = [
             "studyId",
-            "updateStudyType",
-            "upateAnalysisFlags",
-            "upateQualityControls",
+            "studyType",
+            "analysisFlags",
+            "qualityControls",
             "isCurated",
         ]
         return spark.createDataFrame(curation_data, curation_columns)
@@ -117,7 +117,7 @@ class TestGWASCatalogStudyCuration:
         expected = [
             row["studyId"]
             for row in (
-                mock_study_curation.filter(f.col("updateStudyType").isNotNull())
+                mock_study_curation.filter(f.col("studyType").isNotNull())
                 .select("studyId")
                 .distinct()
                 .collect()
@@ -150,7 +150,7 @@ class TestGWASCatalogStudyCuration:
         expected = [
             row["studyId"]
             for row in (
-                mock_study_curation.filter(f.col("upateQualityControls").isNotNull())
+                mock_study_curation.filter(f.col("qualityControls").isNotNull())
                 .select("studyId")
                 .distinct()
                 .collect()
@@ -183,7 +183,7 @@ class TestGWASCatalogStudyCuration:
         expected = [
             row["studyId"]
             for row in (
-                mock_study_curation.filter(f.col("upateAnalysisFlags").isNotNull())
+                mock_study_curation.filter(f.col("analysisFlags").isNotNull())
                 .select("studyId")
                 .distinct()
                 .collect()

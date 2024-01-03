@@ -90,13 +90,13 @@ with DAG(
         # Run LD-annotation and clumping on curated data:
         curation_ld_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="clump",
+            step_id="ld_based_clumping",
             task_id="catalog_curation_ld_clumping",
             other_args=[
-                f"step.input_path={RELEASEBUCKET}/study_locus/catalog_curated",
+                f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/catalog_curated",
                 f"step.ld_index_path={RELEASEBUCKET}/ld_index",
                 f"step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                f"step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
+                f"step.clumped_study_locus_output_path={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
             ],
         )
 
@@ -139,11 +139,11 @@ with DAG(
         # Run window-based clumping:
         summary_stats_window_based_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="clump",
+            step_id="window_based_clumping",
             task_id="catalog_sumstats_window_clumping",
             other_args=[
-                f"step.input_path={SUMSTATS}",
-                f"step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
+                f"step.summary_statistics_input_path={SUMSTATS}",
+                f"step.study_locus_output_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
                 f"step.inclusion_list_path={MANIFESTS_PATH}manifest_sumstats",
             ],
         )
@@ -151,13 +151,13 @@ with DAG(
         # Run LD based clumping:
         summary_stats_ld_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="clump",
+            step_id="ld_based_clumping",
             task_id="catalog_sumstats_ld_clumping",
             other_args=[
-                f"step.input_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
+                f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
                 f"step.ld_index_path={RELEASEBUCKET}/ld_index",
                 f"step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                f"step.clumped_study_locus_path={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
+                f"step.clumped_study_locus_output_path={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
             ],
         )
 
@@ -172,7 +172,7 @@ with DAG(
             ],
         )
 
-        # Order of steps:
+        # Order of steps within the group:
         (
             summary_stats_calculate_inclusion_list
             >> summary_stats_window_based_clumping
@@ -184,7 +184,7 @@ with DAG(
     (
         # common.create_cluster(
         #     CLUSTER_NAME, autoscaling_policy=AUTOSCALING, num_workers=5
-        # )
+        # ) >>
         common.install_dependencies(CLUSTER_NAME)
         >> list_harmonised_sumstats
         >> upload_task

@@ -403,8 +403,10 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         # Adding prefix to columns in the curation table:
         curation_table = curation_table.select(
-            [
-                f"curation_{column}" if column != "studyId" else column
+            *[
+                f.col(column).alias(f"curation_{column}")
+                if column != "studyId"
+                else f.col(column)
                 for column in curation_table.columns
             ]
         )
@@ -485,8 +487,10 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         # Adding prefix to columns in the curation table:
         curation = curation.select(
-            [
-                f"curation_{column}" if column != "studyId" else column
+            *[
+                f.col(column).alias(f"curation_{column}")
+                if column != "studyId"
+                else f.col(column)
                 for column in curation.columns
             ]
         )
