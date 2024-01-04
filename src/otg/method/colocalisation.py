@@ -185,32 +185,41 @@ class Coloc:
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
-                overlapping_signals.df
+                overlapping_signals.df.withColumn("leftSignal", f.explode("leftLocus"))
+                .withColumn("rightSignal", f.explode("rightLocus"))
+                .select(
+                    "leftStudyLocusId",
+                    "rightStudyLocusId",
+                    "chromosome",
+                    f.col("leftSignal.variantId").alias("variantId"),
+                    f.col("leftSignal.logABF").alias("leftLogABF"),
+                    f.col("rightSignal.logABF").alias("rightLogABF"),
+                )
                 # Before summing log_abf columns nulls need to be filled with 0:
-                .fillna(0, subset=["statistics.left_logABF", "statistics.right_logABF"])
+                .fillna(0, subset=["leftLogABF", "rightLogABF"])
                 # Sum of log_abfs for each pair of signals
                 .withColumn(
-                    "sum_log_abf",
-                    f.col("statistics.left_logABF") + f.col("statistics.right_logABF"),
+                    "sumLogABF",
+                    f.col("leftLogABF") + f.col("rightLogABF"),
                 )
                 # Group by overlapping peak and generating dense vectors of log_abf:
                 .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId")
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("statistics.left_logABF"))
-                    ).alias("left_logABF"),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("statistics.right_logABF"))
-                    ).alias("right_logABF"),
-                    fml.array_to_vector(f.collect_list(f.col("sum_log_abf"))).alias(
-                        "sum_log_abf"
+                    fml.array_to_vector(f.collect_list(f.col("leftLogABF"))).alias(
+                        "leftLogABFs"
+                    ),
+                    fml.array_to_vector(f.collect_list(f.col("rightLogABF"))).alias(
+                        "rightLogABFs"
+                    ),
+                    fml.array_to_vector(f.collect_list(f.col("sumLogABF"))).alias(
+                        "sumLogABFs"
                     ),
                 )
-                .withColumn("logsum1", logsum(f.col("left_logABF")))
-                .withColumn("logsum2", logsum(f.col("right_logABF")))
-                .withColumn("logsum12", logsum(f.col("sum_log_abf")))
-                .drop("left_logABF", "right_logABF", "sum_log_abf")
+                .withColumn("logsum1", logsum(f.col("leftLogABFs")))
+                .withColumn("logsum2", logsum(f.col("rightLogABFs")))
+                .withColumn("logsum12", logsum(f.col("sumLogABFs")))
+                .drop("leftLogABFs", "rightLogABFs", "sumLogABFs")
                 # Add priors
                 # priorc1 Prior on variant being causal for trait 1
                 .withColumn("priorc1", f.lit(priorc1))
