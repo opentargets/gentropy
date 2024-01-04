@@ -55,6 +55,7 @@ def read_curation_table(
         f.when(f.col("qualityControl").isNotNull(), f.array(f.col("qualityControl")))
         .otherwise(f.array())
         .alias("qualityControls"),
+        f.col("isCurated").cast(t.BooleanType()),
     )
 
 
@@ -510,9 +511,12 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.array_join(f.col("curation_qualityControls"), "|").alias(
                     "qualityControls"
                 ),
-                f.coalesce(f.col("curation_isCurated"), f.lit(False)).alias(
-                    "isCurated"
-                ),
+                f.coalesce(f.col("curation_isCurated"), f.lit(False))
+                .cast(t.StringType())
+                .alias("isCurated"),
+                "pubmedId",
+                "publicationTitle",
+                "traitFromSource",
             )
         )
 

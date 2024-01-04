@@ -21,7 +21,6 @@ class GWASCatalogStudyCurationStep:
         catalog_study_files (list[str]): List of raw GWAS catalog studies file.
         catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
         catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
-        catalog_associations_file (str): Raw GWAS catalog associations file.
         gwas_catalog_study_curation_file (str | None): Path to the original curation table. Optinal
         gwas_catalog_study_curation_out (str): Path for the updated curation table.
     """
@@ -30,17 +29,16 @@ class GWASCatalogStudyCurationStep:
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
     catalog_sumstats_lut: str = MISSING
-    catalog_associations_file: str = MISSING
     gwas_catalog_study_curation_file: str | None = MISSING
     gwas_catalog_study_curation_out: str = MISSING
 
     def __post_init__(self: GWASCatalogStudyCurationStep) -> None:
         """Run step."""
         catalog_studies = self.session.spark.read.csv(
-            self.catalog_study_files, sep="\t", header=True
+            list(self.catalog_study_files), sep="\t", header=True
         )
         ancestry_lut = self.session.spark.read.csv(
-            self.catalog_ancestry_files, sep="\t", header=True
+            list(self.catalog_ancestry_files), sep="\t", header=True
         )
         sumstats_lut = self.session.spark.read.csv(
             self.catalog_sumstats_lut, sep="\t", header=False

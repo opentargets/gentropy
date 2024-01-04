@@ -64,60 +64,60 @@ with DAG(
         },
     )
 
-    # Processing curated GWAS Catalog top-bottom:
-    with TaskGroup(group_id="curation_processing") as curation_processing:
-        # Generate inclusion list:
-        curation_calculate_inclusion_list = common.submit_step(
-            cluster_name=CLUSTER_NAME,
-            step_id="gwas_study_inclusion",
-            task_id="catalog_curation_inclusion_list",
-            other_args=[
-                "step.criteria=curation",
-                f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation",
-                f"step.exclusion_list_path={MANIFESTS_PATH}exclusion_curation",
-                f"step.harmonised_study_file={MANIFESTS_PATH}harmonised_sumstats.txt",
-            ],
-        )
+    # # Processing curated GWAS Catalog top-bottom:
+    # with TaskGroup(group_id="curation_processing") as curation_processing:
+    #     # Generate inclusion list:
+    #     curation_calculate_inclusion_list = common.submit_step(
+    #         cluster_name=CLUSTER_NAME,
+    #         step_id="gwas_study_inclusion",
+    #         task_id="catalog_curation_inclusion_list",
+    #         other_args=[
+    #             "step.criteria=curation",
+    #             f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation",
+    #             f"step.exclusion_list_path={MANIFESTS_PATH}exclusion_curation",
+    #             f"step.harmonised_study_file={MANIFESTS_PATH}harmonised_sumstats.txt",
+    #         ],
+    #     )
 
-        # Ingest curated associations from GWAS Catalog:
-        curation_ingest_data = common.submit_step(
-            cluster_name=CLUSTER_NAME,
-            step_id="gwas_catalog_ingestion",
-            task_id="ingest_curated_gwas_catalog_data",
-            other_args=[f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation"],
-        )
+    #     # Ingest curated associations from GWAS Catalog:
+    #     curation_ingest_data = common.submit_step(
+    #         cluster_name=CLUSTER_NAME,
+    #         step_id="gwas_catalog_ingestion",
+    #         task_id="ingest_curated_gwas_catalog_data",
+    #         other_args=[f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation"],
+    #     )
 
-        # Run LD-annotation and clumping on curated data:
-        curation_ld_clumping = common.submit_step(
-            cluster_name=CLUSTER_NAME,
-            step_id="ld_based_clumping",
-            task_id="catalog_curation_ld_clumping",
-            other_args=[
-                f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/catalog_curated",
-                f"step.ld_index_path={RELEASEBUCKET}/ld_index",
-                f"step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                f"step.clumped_study_locus_output_path={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
-            ],
-        )
+    #     # Run LD-annotation and clumping on curated data:
+    #     curation_ld_clumping = common.submit_step(
+    #         cluster_name=CLUSTER_NAME,
+    #         step_id="ld_based_clumping",
+    #         task_id="catalog_curation_ld_clumping",
+    #         other_args=[
+    #             f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/catalog_curated",
+    #             f"step.ld_index_path={RELEASEBUCKET}/ld_index",
+    #             f"step.study_index_path={RELEASEBUCKET}/study_index/catalog",
+    #             f"step.clumped_study_locus_output_path={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
+    #         ],
+    #     )
 
-        # Do PICS based finemapping:
-        curation_pics = common.submit_step(
-            cluster_name=CLUSTER_NAME,
-            step_id="pics",
-            task_id="catalog_curation_pics",
-            other_args=[
-                f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
-                f"step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/catalog_curated",
-            ],
-        )
+    #     # Do PICS based finemapping:
+    #     curation_pics = common.submit_step(
+    #         cluster_name=CLUSTER_NAME,
+    #         step_id="pics",
+    #         task_id="catalog_curation_pics",
+    #         other_args=[
+    #             f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
+    #             f"step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/catalog_curated",
+    #         ],
+    #     )
 
-        # Define order of steps:
-        (
-            curation_calculate_inclusion_list
-            >> curation_ingest_data
-            >> curation_ld_clumping
-            >> curation_pics
-        )
+    #     # Define order of steps:
+    #     (
+    #         curation_calculate_inclusion_list
+    #         >> curation_ingest_data
+    #         >> curation_ld_clumping
+    #         >> curation_pics
+    #     )
 
     # Processing summary statistics from GWAS Catalog:
     with TaskGroup(
@@ -188,6 +188,6 @@ with DAG(
         common.install_dependencies(CLUSTER_NAME)
         >> list_harmonised_sumstats
         >> upload_task
-        >> curation_processing
+        # >> curation_processing
         >> summary_satistics_processing
     )
