@@ -93,27 +93,9 @@ def test__find_overlaps(
                             t.StructField(
                                 "pValueExponent", t.IntegerType(), nullable=True
                             ),
-                            t.StructField(
-                                "pValueMantissaConditioned",
-                                t.FloatType(),
-                                nullable=True,
-                            ),
-                            t.StructField(
-                                "pValueExponentConditioned",
-                                t.IntegerType(),
-                                nullable=True,
-                            ),
                             t.StructField("beta", t.DoubleType(), nullable=True),
                             t.StructField(
                                 "standardError", t.DoubleType(), nullable=True
-                            ),
-                            t.StructField(
-                                "betaConditioned", t.DoubleType(), nullable=True
-                            ),
-                            t.StructField(
-                                "standardErrorConditioned",
-                                t.DoubleType(),
-                                nullable=True,
                             ),
                             t.StructField("r2Overall", t.DoubleType(), nullable=True),
                         ]
