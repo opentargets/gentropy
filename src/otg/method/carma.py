@@ -53,8 +53,6 @@ class CARMA:
         epsilon_list = epsilon_threshold * p_snp
         all_epsilon_threshold = epsilon_threshold * p_snp
 
-        # print("ordering pizza...")
-        # print(f"N SNPs is {p_snp}")
         # Zero step
         all_C_list = CARMA._MCS_modified(
             z=z,
