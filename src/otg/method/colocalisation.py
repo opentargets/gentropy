@@ -68,11 +68,27 @@ class ECaviar:
         """
         return Colocalisation(
             _df=(
-                overlapping_signals.df.withColumn(
+                overlapping_signals.df
+                # explode every overlapping variant
+                .withColumn("leftSignal", f.explode("leftLocus"))
+                .withColumn("rightSignal", f.explode("rightLocus"))
+                .select(
+                    "leftStudyLocusId",
+                    "rightStudyLocusId",
+                    "chromosome",
+                    f.col("leftSignal.variantId").alias("variantId"),
+                    f.col("leftSignal.posteriorProbability").alias(
+                        "leftPosteriorProbability"
+                    ),
+                    f.col("rightSignal.posteriorProbability").alias(
+                        "rightPosteriorProbability"
+                    ),
+                )
+                .withColumn(
                     "clpp",
                     ECaviar._get_clpp(
-                        f.col("statistics.left_posteriorProbability"),
-                        f.col("statistics.right_posteriorProbability"),
+                        f.col("leftPosteriorProbability"),
+                        f.col("rightPosteriorProbability"),
                     ),
                 )
                 .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
