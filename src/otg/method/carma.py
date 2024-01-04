@@ -105,10 +105,6 @@ class CARMA:
             "Outliers": all_C_list["conditional_S_list"],
         }
 
-        # print("pizza ordered!")
-        # t1 = pd.Timestamp.now() - t0
-
-        # print(f"FM time is {round(t1.total_seconds(), 2)} sec")
 
         return results_list
 
