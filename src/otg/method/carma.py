@@ -67,10 +67,6 @@ class CARMA:
             outlier_BF_index=outlier_BF_index,
         )
 
-        # t1 = pd.Timestamp.now() - t0
-        # print(f"Zero step is finished in {round(t1.total_seconds(), 2)} sec")
-        # print(f"Expecting to finish in {round(t1.total_seconds()*all_iter, 2)} sec")
-
         # Main steps
         for _ in range(0, all_iter):
             ac1 = all_C_list["B_list"]["set_gamma_margin"]
