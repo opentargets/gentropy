@@ -49,8 +49,6 @@ class CARMA:
                 - B_list: A dataframe containing the marginal likelihoods and the corresponding model space.
                 - Outliers: A list of outlier SNPs.
         """
-        # t0 = pd.Timestamp.now()
-
         p_snp = len(z)
         epsilon_list = epsilon_threshold * p_snp
         all_epsilon_threshold = epsilon_threshold * p_snp
