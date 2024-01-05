@@ -65,6 +65,7 @@ class L2GFeatureMatrix(Dataset):
             #     study_locus, study_index, colocalisation
             # ).df,
             StudyLocusFactory._get_tss_distance_features(study_locus, variant_gene).df,
+            StudyLocusFactory._get_vep_features(study_locus, variant_gene).df,
         ]:
             fm = reduce(
                 lambda x, y: x.unionByName(y),
@@ -109,7 +110,12 @@ class L2GFeatureMatrix(Dataset):
             raise ValueError("No features found")
 
         return {
-            feature: (self._df.filter(self._df[feature].isNull()).count() / total_count)
+            feature: (
+                self._df.filter(
+                    (self._df[feature].isNull()) | (self._df[feature] == 0)
+                ).count()
+                / total_count
+            )
             for feature in self.features_list
         }
 

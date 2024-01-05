@@ -1,0 +1,2 @@
+_target_: otg.finngen_studies.FinnGenStudiesStep
+finngen_study_index_out: ${datasets.finngen_study_index}

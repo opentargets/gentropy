@@ -5,6 +5,8 @@ from pathlib import Path
 
 import dbldatagen as dg
 import hail as hl
+import numpy as np
+import pandas as pd
 import pytest
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
@@ -192,7 +194,7 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("finemappingMethod", percentNulls=0.1)
         .withColumnSpec(
             "locus",
-            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logABF", rand(), "posteriorProbability", rand(), "variantId", cast(rand() as string), "beta", rand(), "standardError", rand(), "betaConditioned", rand(), "standardErrorConditioned", rand(), "r2Overall", rand(), "pValueMantissaConditioned", rand(), "pValueExponentConditioned", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
+            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logABF", rand(), "posteriorProbability", rand(), "variantId", cast(rand() as string), "beta", rand(), "standardError", rand(), "r2Overall", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
             percentNulls=0.1,
         )
     )
@@ -609,3 +611,15 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
     ).withSchema(schema)
 
     return L2GPrediction(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def sample_data_for_carma() -> list[np.ndarray]:
+    """Sample data for fine-mapping by CARMA."""
+    ld = pd.read_csv("tests/data_samples/01_test_ld.csv", header=None)
+    ld = np.array(ld)
+    z = pd.read_csv("tests/data_samples/01_test_z.csv")
+    z = np.array(z.iloc[:, 1])
+    pips = pd.read_csv("tests/data_samples/01_test_PIPs.txt")
+    pips = np.array(pips.iloc[:, 0])
+    return [ld, z, pips]
