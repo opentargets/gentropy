@@ -1,4 +1,6 @@
-_target_: otg.gwas_catalog.GWASCatalogStep
+defaults:
+  - gwas_catalog_ingestion
+
 catalog_study_files: ${datasets.catalog_studies}
 catalog_ancestry_files: ${datasets.catalog_ancestries}
 catalog_associations_file: ${datasets.catalog_associations}

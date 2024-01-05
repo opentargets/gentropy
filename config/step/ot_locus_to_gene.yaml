@@ -1,4 +1,5 @@
-_target_: otg.l2g.LocusToGeneStep
+defaults:
+  - locus_to_gene
 
 session:
   extended_spark_conf:

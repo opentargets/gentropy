@@ -1,4 +1,0 @@
-_target_: otg.common.session.Session
-spark_uri: local[*]
-hail_home: ???
-write_mode: errorifexists

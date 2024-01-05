@@ -1,4 +1,6 @@
-_target_: otg.clump.ClumpStep
+defaults:
+  - clump
+
 input_path: ???
 ld_index_path: null
 study_index_path: null

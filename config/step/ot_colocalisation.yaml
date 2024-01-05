@@ -1,3 +1,5 @@
-_target_: otg.colocalisation.ColocalisationStep
+defaults:
+  - colocalisation
+
 study_locus_path: ${datasets.study_locus}
 coloc_path: ${datasets.colocalisation}

@@ -1,35 +1,31 @@
 """Step to generate gene index dataset."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from omegaconf import MISSING
-
 from otg.common.session import Session
 from otg.datasource.open_targets.target import OpenTargetsTarget
 
 
-@dataclass
 class GeneIndexStep:
     """Gene index step.
 
     This step generates a gene index dataset from an Open Targets Platform target dataset.
-
-    Attributes:
-        session (Session): Session object.
-        target_path (str): Open targets Platform target dataset path.
-        gene_index_path (str): Output gene index path.
     """
 
-    session: Session = MISSING
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
+    def __init__(
+        self,
+        session: Session,
+        target_path: str,
+        gene_index_path: str,
+    ) -> None:
+        """Initialize step.
 
-    def __post_init__(self: GeneIndexStep) -> None:
-        """Run step."""
-        # Extract
-        platform_target = self.session.spark.read.parquet(self.target_path)
+        Args:
+            session (Session): Session object.
+            target_path (str): Input Open Targets Platform target dataset path.
+            gene_index_path (str): Output gene index dataset path.
+        """
+        platform_target = session.spark.read.parquet(target_path)
         # Transform
         gene_index = OpenTargetsTarget.as_gene_index(platform_target)
         # Load
-        gene_index.df.write.mode(self.session.write_mode).parquet(self.gene_index_path)
+        gene_index.df.write.mode(session.write_mode).parquet(gene_index_path)
