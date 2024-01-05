@@ -15,4 +15,4 @@
     - "ot_gwas_catalog"
     - "ot_variant_index"
     - "ot_variant_to_gene"
-    - "ot_overlaps"
+    - "ot_study_locus_overlap"
