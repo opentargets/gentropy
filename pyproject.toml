@@ -79,7 +79,7 @@ yamllint = "^1.33.0"
 
 [tool.semantic_release]
 logging_use_named_masks = true
-build_command = "poetry build"
+build_command = "pip install poetry && poetry build"
 assets = []
 version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
