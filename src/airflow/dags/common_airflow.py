@@ -43,7 +43,7 @@ INITIALISATION_EXECUTABLE_FILE = [
 
 # CLI configuration.
 CLUSTER_CONFIG_DIR = "/config"
-CONFIG_NAME = "config"
+CONFIG_NAME = "ot_config"
 PYTHON_CLI = "cli.py"
 
 

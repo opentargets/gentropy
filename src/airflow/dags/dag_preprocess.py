@@ -9,11 +9,10 @@ from airflow.models.dag import DAG
 CLUSTER_NAME = "otg-preprocess"
 
 ALL_STEPS = [
-    "finngen",
-    "eqtl_catalogue",
-    "ld_index",
-    "variant_annotation",
-    "ukbiobank",
+    "ot_eqtl_catalogue",
+    "ot_ld_index",
+    "ot_variant_annotation",
+    "ot_ukbiobank",
 ]
 
 

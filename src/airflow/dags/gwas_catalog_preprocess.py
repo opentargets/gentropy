@@ -23,7 +23,7 @@ with DAG(
     with TaskGroup(group_id="summary_stats_preprocessing") as summary_stats_group:
         summary_stats_window_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="clump",
+            step_id="ot_clump",
             task_id="catalog_sumstats_window_clumping",
             other_args=[
                 f"step.input_path={SUMSTATS}",
@@ -32,7 +32,7 @@ with DAG(
         )
         summary_stats_ld_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="clump",
+            step_id="ot_clump",
             task_id="catalog_sumstats_ld_clumping",
             other_args=[
                 f"step.input_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
@@ -44,7 +44,7 @@ with DAG(
         )
         summary_stats_pics = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="pics",
+            step_id="ot_pics",
             task_id="catalog_sumstats_pics",
             other_args=[
                 "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
@@ -63,7 +63,7 @@ with DAG(
 
         curation_ld_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="clump",
+            step_id="ot_clump",
             task_id="catalog_curation_ld_clumping",
             other_args=[
                 "step.input_path={RELEASEBUCKET}/study_locus/catalog_curated",
@@ -76,7 +76,7 @@ with DAG(
 
         curation_pics = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="pics",
+            step_id="ot_pics",
             task_id="catalog_curation_pics",
             other_args=[
                 "step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
