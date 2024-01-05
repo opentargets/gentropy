@@ -25,9 +25,9 @@ class ClumpStep:
         session: Session,
         input_path: str,
         clumped_study_locus_path: str,
-        study_index_path: Optional[str],
-        ld_index_path: Optional[str],
-        locus_collect_distance: Optional[int],
+        study_index_path: Optional[str] = None,
+        ld_index_path: Optional[str] = None,
+        locus_collect_distance: Optional[int] = None,
     ) -> None:
         """Run the clumping step.
 
