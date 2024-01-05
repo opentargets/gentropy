@@ -75,6 +75,7 @@ prettier = "^0.0.7"
 deptry = "^0.12.0"
 python-semantic-release = "^8.5.1"
 yamllint = "^1.33.0"
+pytest-mock = "^3.12.0"
 
 [tool.semantic_release]
 logging_use_named_masks = true
