@@ -16,7 +16,7 @@ WINDOWBASED_CLUMPED = (
     f"{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_window_clumped/finngen"
 )
 LD_CLUMPED = f"{RELEASEBUCKET}/study_locus/from_sumstats_study_locus_ld_clumped/finngen"
-PICSED = f"{RELEASEBUCKET}/credible_set/from_sumstats_study_locus/finngen"
+PICSED = f"{RELEASEBUCKET}/credible_set/from_sumstats/finngen"
 
 with DAG(
     dag_id=Path(__file__).stem,
