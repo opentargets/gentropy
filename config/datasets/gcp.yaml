@@ -25,6 +25,9 @@ ukbiobank_manifest: gs://genetics-portal-input/ukb_phenotypes/neale2_saige_study
 l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
+finngen_finemapping_results_url: gs://genetics-portal-dev-analysis/xg1/Finngen_finemapping_r9_subset
+finngen_finemapping_summaries_url: gs://genetics-portal-dev-analysis/xg1/full_credset_summary.csv
+finngen_release_prefix: "finngen_R9_"
 
 # Output datasets
 gene_index: ${datasets.outputs}/gene_index
@@ -42,6 +45,7 @@ catalog_study_index: ${datasets.study_index}/catalog
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 finngen_study_index: ${datasets.study_index}/finngen
 finngen_summary_stats: ${datasets.summary_statistics}/finngen
+finngen_finemapping_out: gs://genetics-portal-dev-analysis/xg1/cs_centric_fm_catalog
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 ukbiobank_study_index: ${datasets.study_index}/ukbiobank
