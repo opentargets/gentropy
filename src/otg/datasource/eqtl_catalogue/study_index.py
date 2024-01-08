@@ -142,24 +142,21 @@ class EqtlCatalogueStudyIndex:
         Returns:
             StudyIndex: final study index for eQTL Catalogue studies.
         """
-        partial_to_full_study_id = (
-            summary_stats_df.select(
-                f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
-                f.regexp_extract(f.col("studyId"), r"^(.*)_ENSG\d+", 1).alias(
-                    "studyId"
-                ),  # PROJECT_QTLGROUP
-            )
-            .groupBy("studyId")
-            .agg(f.collect_list("fullStudyId").alias("fullStudyIdList"))
-        )
+        partial_to_full_study_id = summary_stats_df.select(
+            f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
+            f.regexp_extract(f.col("studyId"), r"^(.*)_ENSG\d+", 1).alias(
+                "studyId"
+            ),  # PROJECT_QTLGROUP
+        ).distinct()
         study_index_df = (
-            study_index_df.join(partial_to_full_study_id, "studyId", "inner")
+            partial_to_full_study_id.join(
+                f.broadcast(study_index_df), "studyId", "inner"
+            )
+            # Change studyId to fullStudyId
             .drop("studyId")
-            # Explode the list of full study IDs into separate rows
-            .withColumn("studyId", f.explode("fullStudyIdList"))
+            .withColumnRenamed("fullStudyId", "studyId")
             # Add geneId column
             .withColumn("geneId", f.regexp_extract(f.col("studyId"), r"([^_]+)$", 1))
-            .drop("fullStudyIdList")
         )
         return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())
 
