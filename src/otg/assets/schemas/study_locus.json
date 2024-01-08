@@ -26,6 +26,12 @@
     },
     {
       "metadata": {},
+      "name": "region",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
       "name": "studyId",
       "nullable": false,
       "type": "string"
@@ -81,6 +87,18 @@
       "name": "finemappingMethod",
       "nullable": true,
       "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "credibleSetIndex",
+      "nullable": true,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "credibleSetlog10BF",
+      "nullable": true,
+      "type": "double"
     },
     {
       "metadata": {},
