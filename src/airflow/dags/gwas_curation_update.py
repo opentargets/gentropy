@@ -27,6 +27,7 @@ with DAG(
 
     # DAG description:
     (
-        # common.create_cluster(CLUSTER_NAME, num_workers=2) >>
-        common.install_dependencies(CLUSTER_NAME) >> update_gwas_curation
+        common.create_cluster(CLUSTER_NAME, num_workers=2)
+        >> common.install_dependencies(CLUSTER_NAME)
+        >> update_gwas_curation
     )

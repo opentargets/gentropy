@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
-OTG_VERSION = "0.0.394857"
+OTG_VERSION = "0.0.0"
 
 # Cloud configuration.
 GCP_PROJECT = "open-targets-genetics-dev"

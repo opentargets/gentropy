@@ -1,4 +1,4 @@
-"""Step to process GWAS Catalog associations and study table."""
+"""Step to update GWAS Catalog study curation file based on newly released GWAS Catalog dataset."""
 from __future__ import annotations
 
 from dataclasses import dataclass

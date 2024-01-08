@@ -399,7 +399,6 @@ class StudyIndexGWASCatalog(StudyIndex):
         if curation_table is None:
             return self
 
-        # Get a list of columns from the original dataset:
         columns = self.df.columns
 
         # Adding prefix to columns in the curation table:
@@ -448,9 +447,9 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
             # Updating quality controls:
             .withColumn("qualityControls", qualityControls_expression)
-            # Updating quality controls:
+            # Updating study annotation flags:
             .withColumn("analysisFlags", analysis_expression)
-            # Dropping curation columns:
+            # Dropping columns coming from the curation table:
             .select(*columns)
         )
         return StudyIndexGWASCatalog(
@@ -467,13 +466,8 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         Returns:
             DataFrame: Updated curation table. New studies are have the `isCurated` False.
-
-        - **studyId** - GCST study accession to identify study.
-        - **analysisFlag** - applied statistical method authors used that might have downstream implication in interpreting the associations discovered by the study.
-        - **studyType** - sometimes, curation required to override the automatic assumption of the type of a study.
-        - **qualityControl** - annotation on issues that prevent the study from ingestion (eg. `failing summary statistics QC`).
-        - **isCurated** - boolean flag indicating if the study went through curation.
         """
+        # If no curation table provided, assume all studies needs curation:
         if curation is None:
             return (
                 self.df
@@ -483,7 +477,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 .withColumn("studyType", f.lit(None).cast(t.StringType()))
                 .withColumn("analysisFlags", f.lit(None).cast(t.StringType()))
                 .withColumn("qualityControls", f.lit(None).cast(t.StringType()))
-                .withColumn("isCurated", f.lit(False).cast(t.BooleanType()))
+                .withColumn("isCurated", f.lit(False).cast(t.StringType()))
             )
 
         # Adding prefix to columns in the curation table:
@@ -511,9 +505,11 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.array_join(f.col("curation_qualityControls"), "|").alias(
                     "qualityControls"
                 ),
+                # This boolean flag needs to be casted to string, because saving to tsv would fail otherwise:
                 f.coalesce(f.col("curation_isCurated"), f.lit(False))
                 .cast(t.StringType())
                 .alias("isCurated"),
+                # The following columns are propagated to make curation easier:
                 "pubmedId",
                 "publicationTitle",
                 "traitFromSource",
@@ -740,7 +736,7 @@ class StudyIndexGWASCatalog(StudyIndex):
     def apply_inclusion_list(
         self: StudyIndexGWASCatalog, inclusion_list: DataFrame
     ) -> StudyIndexGWASCatalog:
-        """Restricting GWAS Catalog studies based on a list of accpected study ids.
+        """Restricting GWAS Catalog studies based on a list of accepted study identifiers.
 
         Args:
             inclusion_list (DataFrame): List of accepted GWAS Catalog study identifiers

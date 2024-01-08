@@ -141,34 +141,34 @@ class StudyIndex(Dataset):
         return self.df.select("studyId", "studyType")
 
     def is_qtl(self: StudyIndex) -> Column:
-        """Return boolean columns with true values for QTL studies.
+        """Return a boolean column with true values for QTL studies.
 
         Returns:
-            Column:
+            Column: True if the study is a QTL study.
         """
         return self.df.studyType.endswith("qtl")
 
     def is_gwas(self: StudyIndex) -> Column:
-        """Return boolean columns with true values for GWAS studies.
+        """Return a boolean column with true values for GWAS studies.
 
         Returns:
-            Column:
+            Column: True if the study is a GWAS study.
         """
         return self.df.studyType == "gwas"
 
     def has_mapped_trait(self: StudyIndex) -> Column:
-        """Return boolean column indicating if a study has mapped disease.
+        """Return a boolean column indicating if a study has mapped disease.
 
         Returns:
-            Column:
+            Column: True if the study has mapped disease.
         """
         return f.size(self.df.traitFromSourceMappedIds) > 0
 
     def is_quality_flagged(self: StudyIndex) -> Column:
-        """Return booleans indicating if a study flagged due to quality issues.
+        """Return a boolean column indicating if a study is flagged due to quality issues.
 
         Returns:
-            Column:
+            Column: True if the study is flagged.
         """
         # Testing for the presence of the qualityControls column:
         if "qualityControls" not in self.df.columns:
@@ -177,9 +177,9 @@ class StudyIndex(Dataset):
             return f.size(self.df.qualityControls) != 0
 
     def has_summarystats(self: StudyIndex) -> Column:
-        """Return booleans indicating if a study has summary harmonized summary statistics.
+        """Return a boolean column indicating if a study has harmonized summary statistics.
 
         Returns:
-            Column: Boolean columns with true values for studies with summary statistics.
+            Column: True if the study has harmonized summary statistics.
         """
         return self.df.hasSumstats

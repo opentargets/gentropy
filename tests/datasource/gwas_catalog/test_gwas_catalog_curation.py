@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 import pytest
 from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame
@@ -33,6 +34,7 @@ class TestGWASCatalogStudyCuration:
             "traitFromSource",
             "publicationTitle",
             "publicationFirstAuthor",
+            "pubmedId",
         ]
         return StudyIndexGWASCatalog(
             _df=(
@@ -62,7 +64,11 @@ class TestGWASCatalogStudyCuration:
             "qualityControls",
             "isCurated",
         ]
-        return spark.createDataFrame(curation_data, curation_columns)
+        return (
+            spark.createDataFrame(curation_data, curation_columns)
+            .withColumn("isCurated", f.col("isCurated").cast(t.BooleanType()))
+            .persist()
+        )
 
     @staticmethod
     def test_curation__return_type(
@@ -73,13 +79,13 @@ class TestGWASCatalogStudyCuration:
         assert isinstance(
             mock_gwas_study_index.annotate_from_study_curation(None),
             StudyIndexGWASCatalog,
-        ), f"When applied None to curation function the returned type was: {type(mock_gwas_study_index.annotate_from_study_curation(None))}"
+        ), f"Applying curation without curation table should yield a study table, but got: {type(mock_gwas_study_index.annotate_from_study_curation(None))}"
 
         # Return type should work:
         assert isinstance(
             mock_gwas_study_index.annotate_from_study_curation(mock_study_curation),
             StudyIndexGWASCatalog,
-        ), f"When applied None to curation function the returned type was: {type(mock_gwas_study_index.annotate_from_study_curation(mock_study_curation))}"
+        ), f"Applying curation should return a study table, however got: {type(mock_gwas_study_index.annotate_from_study_curation(mock_study_curation))}"
 
     @staticmethod
     def test_curation__returned_rows(
@@ -240,12 +246,12 @@ class TestGWASCatalogStudyCuration:
         """Testing if the extracted curation table has the right type."""
         new_curation_count = (
             mock_gwas_study_index.extract_studies_for_curation(mock_study_curation)
-            .filter(~f.col("isCurated"))
+            .filter(f.lower(f.col("isCurated")) == "false")
             .count()
         )
         new_empty_count = (
             mock_gwas_study_index.extract_studies_for_curation(None)
-            .filter(~f.col("isCurated"))
+            .filter(f.lower(f.col("isCurated")) == "false")
             .count()
         )
         assert new_curation_count == 2

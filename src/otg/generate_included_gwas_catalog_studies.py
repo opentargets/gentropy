@@ -1,4 +1,4 @@
-"""Step to process GWAS Catalog associations and study table."""
+"""Step to generate an GWAS Catalog study identifier inclusion and exclusion list."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class GWASCatalogInclusionGenerator:
-    """GWAS Catalog ingestion step to extract GWASCatalog Study and StudyLocus tables.
+    """Generate GWAS Catalog studies eligible for ingestion based on curation and the provided criteria.
 
     Attributes:
         session (Session): Session object.
