@@ -51,7 +51,7 @@ mkdocs-git-revision-date-localized-plugin = "^1.2.2"
 mkdocs-autolinks-plugin = "^0.7.1"
 mkdocs-awesome-pages-plugin = "^2.9.2"
 mkdocs-exclude = "^1.0.2"
-mkdocs-git-committers-plugin-2 = "^2.2.2"
+mkdocs-git-committers-plugin-2 = "^2.2.3"
 lxml = "^4.9.3"
 pymdown-extensions = "^10.5"
 
@@ -79,7 +79,7 @@ yamllint = "^1.33.0"
 
 [tool.semantic_release]
 logging_use_named_masks = true
-build_command = "poetry build"
+build_command = "pip install poetry && poetry build"
 assets = []
 version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
