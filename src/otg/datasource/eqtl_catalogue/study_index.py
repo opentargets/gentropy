@@ -143,11 +143,9 @@ class EqtlCatalogueStudyIndex:
             StudyIndex: final study index for eQTL Catalogue studies.
         """
         partial_to_full_study_id = (
-            summary_stats_df.select(f.col("studyId"))
-            .distinct()
-            .select(
+            summary_stats_df.select(
                 f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
-                f.regexp_extract(f.col("studyId"), r"(.*)_[\_]+", 1).alias(
+                f.regexp_extract(f.col("studyId"), r"^(.*)_ENSG\d+", 1).alias(
                     "studyId"
                 ),  # PROJECT_QTLGROUP
             )
