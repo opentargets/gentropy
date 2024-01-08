@@ -4810,13 +4810,13 @@ mkdocs = "*"
 
 [[package]]
 name = "mkdocs-git-committers-plugin-2"
-version = "2.2.2"
+version = "2.2.3"
 description = "An MkDocs plugin to create a list of contributors on the page. The git-committers plugin will seed the template context with a list of GitHub or GitLab committers and other useful GIT info such as last modified date"
 optional = false
 python-versions = ">=3.8,<4"
 files = [
-    {file = "mkdocs-git-committers-plugin-2-2.2.2.tar.gz", hash = "sha256:87a241624116e1c6245034ca2ee3f247e4500589e75f19f71d352b052a8630d8"},
-    {file = "mkdocs_git_committers_plugin_2-2.2.2-py3-none-any.whl", hash = "sha256:73545bdc813ecad609681f876e4f9305f8878c1aeb01a5e92d0e21d7d02ad87e"},
+    {file = "mkdocs-git-committers-plugin-2-2.2.3.tar.gz", hash = "sha256:e0dddef4e3e321d97bcb83123fd963a839d9f9fa801c3125efeb6544bd8b247c"},
+    {file = "mkdocs_git_committers_plugin_2-2.2.3-py3-none-any.whl", hash = "sha256:0f20d61a9315174f30d5a0266d4a457d3d88909ca5c5bd7d0e0dd2e1841f2af0"},
 ]
 
 [package.dependencies]
@@ -4843,13 +4843,13 @@ pytz = "*"
 
 [[package]]
 name = "mkdocs-material"
-version = "9.5.2"
+version = "9.5.3"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mkdocs_material-9.5.2-py3-none-any.whl", hash = "sha256:6ed0fbf4682491766f0ec1acc955db6901c2fd424c7ab343964ef51b819741f5"},
-    {file = "mkdocs_material-9.5.2.tar.gz", hash = "sha256:ca8b9cd2b3be53e858e5a1a45ac9668bd78d95d77a30288bb5ebc1a31db6184c"},
+    {file = "mkdocs_material-9.5.3-py3-none-any.whl", hash = "sha256:76c93a8525cceb0b395b9cedab3428bf518cf6439adef2b940f1c1574b775d89"},
+    {file = "mkdocs_material-9.5.3.tar.gz", hash = "sha256:5899219f422f0a6de784232d9d40374416302ffae3c160cacc72969fcc1ee372"},
 ]
 
 [package.dependencies]
@@ -4857,7 +4857,7 @@ babel = ">=2.10,<3.0"
 colorama = ">=0.4,<1.0"
 jinja2 = ">=3.0,<4.0"
 markdown = ">=3.2,<4.0"
-mkdocs = ">=1.5.3,<2.0"
+mkdocs = ">=1.5.3,<1.6.0"
 mkdocs-material-extensions = ">=1.3,<2.0"
 paginate = ">=0.5,<1.0"
 pygments = ">=2.16,<3.0"
@@ -8485,4 +8485,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "8132758e0409632a8e8448a97e79670bcdae63c72ce60c94e16e904e8f30a4cd"
+content-hash = "25a036f8d4029294357379b9dfc29c71c52f3b40d135d59c076b4e83f856613a"
