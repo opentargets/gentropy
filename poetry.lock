@@ -4810,13 +4810,13 @@ mkdocs = "*"
 
 [[package]]
 name = "mkdocs-git-committers-plugin-2"
-version = "2.2.2"
+version = "2.2.3"
 description = "An MkDocs plugin to create a list of contributors on the page. The git-committers plugin will seed the template context with a list of GitHub or GitLab committers and other useful GIT info such as last modified date"
 optional = false
 python-versions = ">=3.8,<4"
 files = [
-    {file = "mkdocs-git-committers-plugin-2-2.2.2.tar.gz", hash = "sha256:87a241624116e1c6245034ca2ee3f247e4500589e75f19f71d352b052a8630d8"},
-    {file = "mkdocs_git_committers_plugin_2-2.2.2-py3-none-any.whl", hash = "sha256:73545bdc813ecad609681f876e4f9305f8878c1aeb01a5e92d0e21d7d02ad87e"},
+    {file = "mkdocs-git-committers-plugin-2-2.2.3.tar.gz", hash = "sha256:e0dddef4e3e321d97bcb83123fd963a839d9f9fa801c3125efeb6544bd8b247c"},
+    {file = "mkdocs_git_committers_plugin_2-2.2.3-py3-none-any.whl", hash = "sha256:0f20d61a9315174f30d5a0266d4a457d3d88909ca5c5bd7d0e0dd2e1841f2af0"},
 ]
 
 [package.dependencies]
@@ -8485,4 +8485,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "8132758e0409632a8e8448a97e79670bcdae63c72ce60c94e16e904e8f30a4cd"
+content-hash = "25a036f8d4029294357379b9dfc29c71c52f3b40d135d59c076b4e83f856613a"
