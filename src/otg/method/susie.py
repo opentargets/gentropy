@@ -23,26 +23,26 @@ class SUSIE:
     def susie(  # noqa: C901
         z: np.ndarray,
         meansq: np.ndarray,
-        n: int,
-        L: int,
-        LD: np.ndarray,
-        V: np.ndarray,
-        Dsq: np.ndarray,
-        est_ssq: bool,
-        ssq: np.ndarray,
-        ssq_range: tuple[float, float],
-        pi0: np.ndarray,
-        est_sigmasq: bool,
-        est_tausq: bool,
-        sigmasq: float,
-        tausq: float,
-        sigmasq_range: tuple[float, float],
-        tausq_range: tuple[float, float],
-        PIP: np.ndarray,
-        mu: np.ndarray,
+        n: int = 100000,
+        L: int = 10,
+        LD: np.ndarray | None = None,
+        V: np.ndarray | None = None,
+        Dsq: np.ndarray | None = None,
+        est_ssq: bool = True,
+        ssq: np.ndarray | None = None,
+        ssq_range: tuple[float, float] | None = None,
+        pi0: np.ndarray | None = None,
+        est_sigmasq: bool = True,
+        est_tausq: bool = True,
+        sigmasq: float = 1,
+        tausq: float = 0,
+        sigmasq_range: tuple[float, float] | None = None,
+        tausq_range: tuple[float, float] | None = None,
+        PIP: np.ndarray | None = None,
+        mu: np.ndarray | None = None,
         method: str = "moments",
         maxiter: int = 100,
-        PIP_tol: float = 1e-3,
+        PIP_tol: float = 0.001,
     ) -> dict[str, Any]:
         """Susie with random effects.
 
@@ -51,21 +51,21 @@ class SUSIE:
             meansq (np.ndarray): average squared magnitude of y (equal to ||y||^2/n)
             n (int): sample size
             L (int): number of modeled causal effects
-            LD (np.ndarray): LD matrix (equal to X'X/n)
-            V (np.ndarray): precomputed p x p matrix of eigenvectors of X'X
-            Dsq (np.ndarray): precomputed length-p vector of eigenvalues of X'X
+            LD (np.ndarray | None): LD matrix (equal to X'X/n)
+            V (np.ndarray | None): precomputed p x p matrix of eigenvectors of X'X
+            Dsq (np.ndarray | None): precomputed length-p vector of eigenvalues of X'X
             est_ssq (bool): estimate prior effect size variances s^2 using MLE
-            ssq (np.ndarray): length-L initialization s^2 for each effect
-            ssq_range (tuple[float, float]): lower and upper bounds for each s^2, if estimated
-            pi0 (np.ndarray): length-p vector of prior causal probability for each SNP; must sum to 1
+            ssq (np.ndarray | None): length-L initialization s^2 for each effect
+            ssq_range (tuple[float, float] | None): lower and upper bounds for each s^2, if estimated
+            pi0 (np.ndarray | None): length-p vector of prior causal probability for each SNP; must sum to 1
             est_sigmasq (bool): estimate variance sigma^2
             est_tausq (bool): estimate both variances sigma^2 and tau^2
             sigmasq (float): initial value for sigma^2
             tausq (float): initial value for tau^2
-            sigmasq_range (tuple[float, float]): lower and upper bounds for sigma^2, if estimated using MLE
-            tausq_range (tuple[float, float]): lower and upper bounds for tau^2, if estimated using MLE
-            PIP (np.ndarray): p x L initializations of PIPs
-            mu (np.ndarray): p x L initializations of mu
+            sigmasq_range (tuple[float, float] | None): lower and upper bounds for sigma^2, if estimated using MLE
+            tausq_range (tuple[float, float] | None): lower and upper bounds for tau^2, if estimated using MLE
+            PIP (np.ndarray | None): p x L initializations of PIPs
+            mu (np.ndarray | None): p x L initializations of mu
             method (str): one of {'moments','MLE'}
             maxiter (int): maximum number of SuSiE iterations
             PIP_tol (float): convergence threshold for PIP difference between iterations
@@ -187,9 +187,9 @@ class SUSIE:
                         yty,
                         est_sigmasq,
                         est_tausq,
+                        it,
                         sigmasq_range,
                         tausq_range,
-                        it,
                     )
                 else:
                     raise RuntimeError("Unsupported variance estimation method")
@@ -296,9 +296,9 @@ class SUSIE:
         yty: float,
         est_sigmasq: bool,
         est_tausq: bool,
-        sigmasq_range: tuple[float, float],
-        tausq_range: tuple[float, float],
         it: int,
+        sigmasq_range: tuple[float, float] | None = None,
+        tausq_range: tuple[float, float] | None = None,
     ) -> tuple[float, float]:
         """Subroutine to estimate sigma^2, tau^2 using MLE.
 
@@ -315,9 +315,9 @@ class SUSIE:
             yty (float): precomputed y'y
             est_sigmasq (bool): estimate variance sigma^2
             est_tausq (bool): estimate both variances sigma^2 and tau^2
-            sigmasq_range (tuple[float, float]): lower and upper bounds for sigma^2, if estimated using MLE
-            tausq_range (tuple[float, float]): lower and upper bounds for tau^2, if estimated using MLE
             it (int): iteration number
+            sigmasq_range (tuple[float, float] | None): lower and upper bounds for sigma^2, if estimated using MLE
+            tausq_range (tuple[float, float] | None): lower and upper bounds for tau^2, if estimated using MLE
 
         Returns:
             tuple[float, float]: (sigmasq,tausq) tuple of updated variances
