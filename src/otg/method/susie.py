@@ -9,6 +9,7 @@ import numpy as np
 import scipy.linalg
 import scipy.special
 from scipy.optimize import minimize, minimize_scalar
+from scipy.special import logsumexp
 
 
 @dataclass
@@ -80,6 +81,7 @@ class SUSIE:
                 sigmasq -- final value of sigma^2
                 tausq -- final value of tau^2
                 alpha -- length-p array of posterior means of infinitesimal effects
+                lbf -- length-p array of log-Bayes-factors for each CS
 
         Raises:
             RuntimeError: if missing LD
@@ -206,6 +208,11 @@ class SUSIE:
         XtOmegaXb = V.dot(V.T.dot(b) * Dsq / var)
         XtOmegar = XtOmegay - XtOmegaXb
         alpha = tausq * XtOmegar
+
+        priors = np.log(np.repeat(1 / p, p))
+        lbf_cs = np.apply_along_axis(
+            lambda x: logsumexp(x + priors), axis=0, arr=lbf_variable
+        )
         return {
             "PIP": PIP,
             "mu": mu,
@@ -215,6 +222,7 @@ class SUSIE:
             "sigmasq": sigmasq,
             "tausq": tausq,
             "alpha": alpha,
+            "lbf": lbf_cs,
         }
 
     @staticmethod
