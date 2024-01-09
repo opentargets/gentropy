@@ -1,3 +1,4 @@
+# pylint: disable=unsubscriptable-object
 """Datasource ingestion: FinnGen Finemapping results (SuSIE) to studyLocus object."""
 
 from __future__ import annotations
@@ -8,40 +9,43 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.sql import Window
+from pyspark.sql import SparkSession, Window
 
 from otg.common.utils import parse_pvalue
-from otg.dataset.summary_statistics import SummaryStatistics
+from otg.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    pass
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
 
 @dataclass
-class FinnGenFinemapping(SummaryStatistics):
+class FinnGenFinemapping:
     """SuSIE finemapping dataset for FinnGen."""
 
     @classmethod
     def from_finngen_susie_finemapping(
         cls: type[FinnGenFinemapping],
-        finngen_finemapping_df: DataFrame,
-        finngen_finemapping_summaries: DataFrame,
+        spark: SparkSession,
+        finngen_finemapping_df: str | list[str],
+        finngen_finemapping_summaries: str,
         finngen_release_prefix: str,
-    ) -> FinnGenFinemapping:
+    ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
         Args:
-            finngen_finemapping_df (DataFrame): SuSIE finemapping output for one FinnGen study.
-            finngen_finemapping_summaries (DataFrame): SuSIE finemapping summaries for one FinnGen study.
+            spark (SparkSession): Spark session object.
+            finngen_finemapping_df (str | list[str]): SuSIE finemapping output filename(s).
+            finngen_finemapping_summaries (str): filename of SuSIE finemapping summaries.
             finngen_release_prefix (str): FinnGen study prefix.
 
         Returns:
-            FinnGenFinemapping: Processed SuSIE finemapping output in StudyLocus format.
+            StudyLocus: Processed SuSIE finemapping output in StudyLocus format.
         """
         processed_finngen_finemapping_df = (
-            finngen_finemapping_df
+            spark.read.option("delimiter", "\t")
+            .csv(finngen_finemapping_df, header=True)
             # Drop rows which don't have proper position.
             .filter(f.col("position").cast(t.IntegerType()).isNotNull())
             # Drop non credible set SNPs:
@@ -54,8 +58,7 @@ class FinnGenFinemapping(SummaryStatistics):
                 f.col("region"),
                 # Add variant information.
                 f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
-                f.col("prob").alias("posteriorProbability"),
-                f.col("cs").alias("credibleSetIndex"),
+                f.col("cs").cast("integer").alias("credibleSetIndex"),
                 f.regexp_replace(f.col("chromosome"), "^chr", "")
                 .cast(t.StringType())
                 .alias("chromosome"),
@@ -68,6 +71,7 @@ class FinnGenFinemapping(SummaryStatistics):
                 f.col("beta").cast("double"),
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
+                f.lit("SuSie").cast("string").alias("finemappingMethod"),
                 f.col("alpha1").cast("double").alias("alpha_1"),
                 f.col("alpha2").cast("double").alias("alpha_2"),
                 f.col("alpha3").cast("double").alias("alpha_3"),
@@ -91,7 +95,8 @@ class FinnGenFinemapping(SummaryStatistics):
             )
             .withColumn(
                 "posteriorProbability",
-                f.when(f.col("credibleSetIndex") == 1, f.col("alpha_1")).otherwise(
+                f.when(f.col("credibleSetIndex") == 1, f.col("alpha_1"))
+                .otherwise(
                     f.when(f.col("credibleSetIndex") == 2, f.col("alpha_2")).otherwise(
                         f.when(
                             f.col("credibleSetIndex") == 3, f.col("alpha_3")
@@ -129,7 +134,8 @@ class FinnGenFinemapping(SummaryStatistics):
                             )
                         )
                     )
-                ),
+                )
+                .cast("double"),
             )
             .drop(
                 "alpha_1",
@@ -144,8 +150,9 @@ class FinnGenFinemapping(SummaryStatistics):
                 "alpha_10",
             )
             .withColumn(
-                "lbf",
-                f.when(f.col("credibleSetIndex") == 1, f.col("lbf_1")).otherwise(
+                "logABF",
+                f.when(f.col("credibleSetIndex") == 1, f.col("lbf_1"))
+                .otherwise(
                     f.when(f.col("credibleSetIndex") == 2, f.col("lbf_2")).otherwise(
                         f.when(
                             f.col("credibleSetIndex") == 3, f.col("lbf_3")
@@ -183,7 +190,8 @@ class FinnGenFinemapping(SummaryStatistics):
                             )
                         )
                     )
-                ),
+                )
+                .cast("double"),
             )
             .drop(
                 "lbf_1",
@@ -201,16 +209,20 @@ class FinnGenFinemapping(SummaryStatistics):
 
         # drop credible sets where lbf < 2. Except when there's only one credible set in region:
 
-        finngen_finemapping_summaries = (
-            finngen_finemapping_summaries.filter(
-                (f.col("cs_log10bf") > 2) | (f.col("cs") == 1)
-            )
+        finngen_finemapping_summaries_df = (
+            spark.read.csv(finngen_finemapping_summaries, header=True)
+            .filter((f.col("cs_log10bf") > 2) | (f.col("cs") == 1))
             .withColumn("studyId", f.concat(f.lit("finngen_r9_"), f.col("trait")))
-            .select("studyId", "region", f.col("cs").alias("credibleSetIndex"))
+            .select(
+                "studyId",
+                "region",
+                f.col("cs").cast("integer").alias("credibleSetIndex"),
+                f.col("cs_log10bf").cast("double").alias("credibleSetlog10BF"),
+            )
         )
 
         processed_finngen_finemapping_df = processed_finngen_finemapping_df.join(
-            finngen_finemapping_summaries,
+            finngen_finemapping_summaries_df,
             on=["studyId", "region", "credibleSetIndex"],
             how="inner",
         )
@@ -250,7 +262,7 @@ class FinnGenFinemapping(SummaryStatistics):
             .agg(
                 f.collect_list("variantId").alias("variantId"),
                 f.collect_list("posteriorProbability").alias("posteriorProbability"),
-                f.collect_list("lbf").alias("lbf"),
+                f.collect_list("logABF").alias("logABF"),
                 f.collect_list("pValueMantissa").alias("pValueMantissa"),
                 f.collect_list("pValueExponent").alias("pValueExponent"),
                 f.collect_list("beta").alias("beta"),
@@ -260,11 +272,13 @@ class FinnGenFinemapping(SummaryStatistics):
                 "studyId",
                 "region",
                 "credibleSetIndex",
+                "credibleSetlog10BF",
+                "finemappingMethod",
                 f.array(
                     f.struct(
                         f.col("variantId"),
                         f.col("posteriorProbability"),
-                        f.col("lbf"),
+                        f.col("logABF"),
                         f.col("pValueMantissa"),
                         f.col("pValueExponent"),
                         f.col("beta"),
@@ -273,9 +287,12 @@ class FinnGenFinemapping(SummaryStatistics):
                 ).alias("locus"),
             )
             .join(toploci_df, on=["studyId", "region", "credibleSetIndex"], how="inner")
+        ).withColumn(
+            "studyLocusId",
+            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
         )
 
-        return cls(
+        return StudyLocus(
             _df=processed_finngen_finemapping_df,
-            _schema=cls.get_schema(),
-        )
+            _schema=StudyLocus.get_schema(),
+        ).annotate_credible_sets()
