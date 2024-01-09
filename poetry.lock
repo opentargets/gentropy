@@ -458,51 +458,51 @@ openlineage = ["apache-airflow-providers-openlineage"]
 
 [[package]]
 name = "apache-airflow-providers-google"
-version = "10.12.0"
+version = "10.13.1"
 description = "Provider package apache-airflow-providers-google for Apache Airflow"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "apache_airflow_providers_google-10.12.0-py3-none-any.whl", hash = "sha256:a79c845382e672eab30757dfcd62cee8de5ac766e2d38558e1eb3e5fc1b00990"},
-    {file = "apache_airflow_providers_google-10.12.0.tar.gz", hash = "sha256:cedfd906b054036c2d0de40b9ecfa70d45828945b47313c37e9722ba275a9028"},
+    {file = "apache_airflow_providers_google-10.13.1-py3-none-any.whl", hash = "sha256:16c8d5a58346740fb1c9a0feddefd3849a20e70f0f28d6a1f862d5fd7618b894"},
+    {file = "apache_airflow_providers_google-10.13.1.tar.gz", hash = "sha256:880388d26c9c01ecc3526dc15d21a79388a01093435ac3a3aa811a990d4ffe84"},
 ]
 
 [package.dependencies]
-apache-airflow = ">=2.5.0"
+apache-airflow = ">=2.6.0"
 apache-airflow-providers-common-sql = ">=1.7.2"
 asgiref = ">=3.5.2"
 gcloud-aio-auth = ">=4.0.0,<5.0.0"
 gcloud-aio-bigquery = ">=6.1.2"
-gcloud-aio-storage = "*"
-gcsfs = ">=2023.9.2"
+gcloud-aio-storage = ">=9.0.0"
+gcsfs = ">=2023.10.0"
 google-ads = ">=22.1.0"
 google-api-core = ">=2.11.0"
 google-api-python-client = ">=1.6.0"
 google-auth = ">=1.0.0"
 google-auth-httplib2 = ">=0.0.1"
 google-cloud-aiplatform = ">=1.22.1"
-google-cloud-automl = ">=2.11.0"
+google-cloud-automl = ">=2.12.0"
 google-cloud-batch = ">=0.13.0"
-google-cloud-bigquery-datatransfer = ">=3.11.0"
+google-cloud-bigquery-datatransfer = ">=3.13.0"
 google-cloud-bigtable = ">=2.17.0"
-google-cloud-build = ">=3.13.0"
+google-cloud-build = ">=3.22.0"
 google-cloud-compute = ">=1.10.0"
 google-cloud-container = ">=2.17.4"
 google-cloud-datacatalog = ">=3.11.1"
-google-cloud-dataflow-client = ">=0.8.2"
+google-cloud-dataflow-client = ">=0.8.6"
 google-cloud-dataform = ">=0.5.0"
-google-cloud-dataplex = ">=1.4.2"
-google-cloud-dataproc = ">=5.5.0"
+google-cloud-dataplex = ">=1.10.0"
+google-cloud-dataproc = ">=5.8.0"
 google-cloud-dataproc-metastore = ">=1.12.0"
 google-cloud-dlp = ">=3.12.0"
 google-cloud-kms = ">=2.15.0"
 google-cloud-language = ">=2.9.0"
 google-cloud-logging = ">=3.5.0"
 google-cloud-memcache = ">=1.7.0"
-google-cloud-monitoring = ">=2.14.1"
-google-cloud-orchestration-airflow = ">=1.7.0"
+google-cloud-monitoring = ">=2.18.0"
+google-cloud-orchestration-airflow = ">=1.10.0"
 google-cloud-os-login = ">=2.9.1"
-google-cloud-pubsub = ">=2.15.0"
+google-cloud-pubsub = ">=2.19.0"
 google-cloud-redis = ">=2.12.0"
 google-cloud-run = ">=0.9.0"
 google-cloud-secret-manager = ">=2.16.0"
@@ -2497,18 +2497,18 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.1 || >4.21.1,<4
 
 [[package]]
 name = "google-cloud-automl"
-version = "2.11.3"
+version = "2.12.0"
 description = "Google Cloud Automl API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-automl-2.11.3.tar.gz", hash = "sha256:55ca909fbc36b13a431ca7e78b0930b045c36bc60857e1b58e56cf3aef0d565d"},
-    {file = "google_cloud_automl-2.11.3-py2.py3-none-any.whl", hash = "sha256:9f92c4ca4b0e0f6f31fb0676a6a9e6afd5685fd484bdc9c67beba052bbab2352"},
+    {file = "google-cloud-automl-2.12.0.tar.gz", hash = "sha256:22f7a61e04b4a9b03d504ef2db6683df462a032da53fe3fbb2c36f525074abb5"},
+    {file = "google_cloud_automl-2.12.0-py2.py3-none-any.whl", hash = "sha256:e20e9aec2f368bda29b039d8109384379a6cd9410ac5ee81acdab3afbf89ad8e"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
-proto-plus = ">=1.22.0,<2.0.0dev"
+proto-plus = ">=1.22.3,<2.0.0dev"
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [package.extras]
@@ -2566,18 +2566,18 @@ tqdm = ["tqdm (>=4.7.4,<5.0.0dev)"]
 
 [[package]]
 name = "google-cloud-bigquery-datatransfer"
-version = "3.12.1"
+version = "3.13.0"
 description = "Google Cloud Bigquery Datatransfer API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-bigquery-datatransfer-3.12.1.tar.gz", hash = "sha256:b845a74081ace32c9bbae93382b02a69db8560a356f61fd6a2e5f63334958148"},
-    {file = "google_cloud_bigquery_datatransfer-3.12.1-py2.py3-none-any.whl", hash = "sha256:cb24e51155fb221cfc09f2a5b047f2dc8dbb1d106b84463c1300af0a6dcc7bae"},
+    {file = "google-cloud-bigquery-datatransfer-3.13.0.tar.gz", hash = "sha256:27a845cb22605a512c05ce28c2890d2ef97ad4edfc9817af555a73d8024ec3ba"},
+    {file = "google_cloud_bigquery_datatransfer-3.13.0-py2.py3-none-any.whl", hash = "sha256:f8a73ba135fc6f6df4516187b5d88c7d1fcd68ecb1b0ed259ff55b89c5a0974a"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
-proto-plus = ">=1.22.0,<2.0.0dev"
+proto-plus = ">=1.22.3,<2.0.0dev"
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [[package]]
@@ -2624,19 +2624,19 @@ libcst = ["libcst (>=0.2.5)"]
 
 [[package]]
 name = "google-cloud-build"
-version = "3.20.1"
+version = "3.22.0"
 description = "Google Cloud Build API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-build-3.20.1.tar.gz", hash = "sha256:4588bfe36638c54dfb752f6cf6a0b216acd2f98c1dacde9e5e820e0c1b1eba1b"},
-    {file = "google_cloud_build-3.20.1-py2.py3-none-any.whl", hash = "sha256:b11112cea6b700902d2a52deee27fba172d9244dbc2ba5d51bbfcd146b5f28f4"},
+    {file = "google-cloud-build-3.22.0.tar.gz", hash = "sha256:72a8330c31108cc47ce510956196a98c158eeecd796004928bf239a2e1ea300e"},
+    {file = "google_cloud_build-3.22.0-py2.py3-none-any.whl", hash = "sha256:b2906d59d02066f859a5e3a0ef9437dffc08f11a1f0f9381c92c986c73ab7ae0"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
 grpc-google-iam-v1 = ">=0.12.4,<1.0.0dev"
-proto-plus = ">=1.22.0,<2.0.0dev"
+proto-plus = ">=1.22.3,<2.0.0dev"
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [[package]]
@@ -2708,18 +2708,18 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4
 
 [[package]]
 name = "google-cloud-dataflow-client"
-version = "0.8.5"
+version = "0.8.6"
 description = "Google Cloud Dataflow Client API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-dataflow-client-0.8.5.tar.gz", hash = "sha256:076a8218df39a0ab2d0d46bba1c696a35c62af70ed19360f1e83d0b41ec558c4"},
-    {file = "google_cloud_dataflow_client-0.8.5-py2.py3-none-any.whl", hash = "sha256:39b22249b4ce3b00c1960424a0e1e9d5f78452e0d634242eceb5809f4e21773e"},
+    {file = "google-cloud-dataflow-client-0.8.6.tar.gz", hash = "sha256:8753fff57edf640a984015dbd6b3a0f427a779244f9b0ad8981f77d82272798a"},
+    {file = "google_cloud_dataflow_client-0.8.6-py2.py3-none-any.whl", hash = "sha256:2d7a6e0586f50421567252283c330dd81cecafa139a12c6021e9da0ca2bf619c"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
-proto-plus = ">=1.22.0,<2.0.0dev"
+proto-plus = ">=1.22.3,<2.0.0dev"
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [[package]]
@@ -2741,19 +2741,19 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4
 
 [[package]]
 name = "google-cloud-dataplex"
-version = "1.7.0"
+version = "1.11.0"
 description = "Google Cloud Dataplex API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-dataplex-1.7.0.tar.gz", hash = "sha256:4de1bb230f201974ae98bc4be2b814cf741aee3069b05c88902082c06b449f1f"},
-    {file = "google_cloud_dataplex-1.7.0-py2.py3-none-any.whl", hash = "sha256:95f015b78f557e52f4723539a62fd5e8018c16abfef662e8fb0a1d9b2673f3b5"},
+    {file = "google-cloud-dataplex-1.11.0.tar.gz", hash = "sha256:c71b16166e03a04386d2379754912d2ea081ad8fb9dd7547a65d91ee2f2cd4b4"},
+    {file = "google_cloud_dataplex-1.11.0-py2.py3-none-any.whl", hash = "sha256:92f616319fbd1fe03b1e9a401930c927edc22795002dd600d42cbe8a3c7cc1dd"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
 grpc-google-iam-v1 = ">=0.12.4,<1.0.0dev"
-proto-plus = ">=1.22.0,<2.0.0dev"
+proto-plus = ">=1.22.3,<2.0.0dev"
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [[package]]
@@ -2877,37 +2877,37 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4
 
 [[package]]
 name = "google-cloud-monitoring"
-version = "2.16.0"
-description = "Stackdriver Monitoring API client library"
+version = "2.18.0"
+description = "Google Cloud Monitoring API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-monitoring-2.16.0.tar.gz", hash = "sha256:3d1851009312ada5e8abf20ff761af8474b753060ab6e0b7d6ec47bc11f2b136"},
-    {file = "google_cloud_monitoring-2.16.0-py2.py3-none-any.whl", hash = "sha256:5e7a7161ca48b534e4f9b62f2e210364f7a1cde1ac21503089a0daedfa079441"},
-]
-
-[package.dependencies]
-google-api-core = {version = ">=1.33.2,<2.0.dev0 || >=2.8.dev0,<3.0.0dev", extras = ["grpc"]}
-proto-plus = ">=1.22.0,<2.0.0dev"
-protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
-
-[package.extras]
-pandas = ["pandas (>=0.17.1)"]
-
-[[package]]
-name = "google-cloud-orchestration-airflow"
-version = "1.9.2"
-description = "Google Cloud Orchestration Airflow API client library"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "google-cloud-orchestration-airflow-1.9.2.tar.gz", hash = "sha256:78c7cb164259c8bac9dd99ae9af9d2b4af933d3fbcd30895441479a36c5513b2"},
-    {file = "google_cloud_orchestration_airflow-1.9.2-py2.py3-none-any.whl", hash = "sha256:fb1801bd11f63c94614c0f9f7a9e1ec846ffabd487a3fa4b7ee62ff784b46d29"},
+    {file = "google-cloud-monitoring-2.18.0.tar.gz", hash = "sha256:06cc1d7fb75c5e50b54bcc004941ea4b20a7a9f09ed7e6e753514fd8c436096a"},
+    {file = "google_cloud_monitoring-2.18.0-py2.py3-none-any.whl", hash = "sha256:548a1ac0b88c38694e14e1359e89c7eb19b27423906f456bb590f3f0962bb562"},
 ]
 
 [package.dependencies]
 google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
-proto-plus = ">=1.22.0,<2.0.0dev"
+proto-plus = ">=1.22.3,<2.0.0dev"
+protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
+
+[package.extras]
+pandas = ["pandas (>=0.23.2)"]
+
+[[package]]
+name = "google-cloud-orchestration-airflow"
+version = "1.10.0"
+description = "Google Cloud Orchestration Airflow API client library"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "google-cloud-orchestration-airflow-1.10.0.tar.gz", hash = "sha256:2aa88b4882d3c5dd0f7ecc572d37972d51f2cf69530783c524344d018de0b1bf"},
+    {file = "google_cloud_orchestration_airflow-1.10.0-py2.py3-none-any.whl", hash = "sha256:363e22e3b52316eb556899ffb3b1d2122bb4fce3937e4f7cef42202ec1a15e20"},
+]
+
+[package.dependencies]
+google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
+proto-plus = ">=1.22.3,<2.0.0dev"
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [[package]]
@@ -2928,13 +2928,13 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4
 
 [[package]]
 name = "google-cloud-pubsub"
-version = "2.18.4"
+version = "2.19.0"
 description = "Google Cloud Pub/Sub API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-pubsub-2.18.4.tar.gz", hash = "sha256:32eb61fd4c1dc6c842f594d69d9afa80544e3b327aa640a164eb6fb0201eaf2d"},
-    {file = "google_cloud_pubsub-2.18.4-py2.py3-none-any.whl", hash = "sha256:f32144ad9ed32331a80a2f8379a3ca7526bbc01e7bd76de2e8ab52e492d21f50"},
+    {file = "google-cloud-pubsub-2.19.0.tar.gz", hash = "sha256:6a98c33f7eb5f7de2ae52efa059b2b5f75b2ccd9f0f11f2edcefdda8d14e425c"},
+    {file = "google_cloud_pubsub-2.19.0-py2.py3-none-any.whl", hash = "sha256:0cc444e5b2220a703106668829315a724cfb4304d6772725035993bb2fc81388"},
 ]
 
 [package.dependencies]
@@ -3959,13 +3959,13 @@ tests = ["pytest", "pytest-cov", "pytest-mock"]
 
 [[package]]
 name = "ipykernel"
-version = "6.27.1"
+version = "6.28.0"
 description = "IPython Kernel for Jupyter"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "ipykernel-6.27.1-py3-none-any.whl", hash = "sha256:dab88b47f112f9f7df62236511023c9bdeef67abc73af7c652e4ce4441601686"},
-    {file = "ipykernel-6.27.1.tar.gz", hash = "sha256:7d5d594b6690654b4d299edba5e872dc17bb7396a8d0609c97cb7b8a1c605de6"},
+    {file = "ipykernel-6.28.0-py3-none-any.whl", hash = "sha256:c6e9a9c63a7f4095c0a22a79f765f079f9ec7be4f2430a898ddea889e8665661"},
+    {file = "ipykernel-6.28.0.tar.gz", hash = "sha256:69c11403d26de69df02225916f916b37ea4b9af417da0a8c827f84328d88e5f3"},
 ]
 
 [package.dependencies]
@@ -3979,7 +3979,7 @@ matplotlib-inline = ">=0.1"
 nest-asyncio = "*"
 packaging = "*"
 psutil = "*"
-pyzmq = ">=20"
+pyzmq = ">=24"
 tornado = ">=6.1"
 traitlets = ">=5.4.0"
 
@@ -6374,13 +6374,13 @@ files = [
 
 [[package]]
 name = "pymdown-extensions"
-version = "10.5"
+version = "10.7"
 description = "Extension pack for Python Markdown."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pymdown_extensions-10.5-py3-none-any.whl", hash = "sha256:1f0ca8bb5beff091315f793ee17683bc1390731f6ac4c5eb01e27464b80fe879"},
-    {file = "pymdown_extensions-10.5.tar.gz", hash = "sha256:1b60f1e462adbec5a1ed79dac91f666c9c0d241fa294de1989f29d20096cfd0b"},
+    {file = "pymdown_extensions-10.7-py3-none-any.whl", hash = "sha256:6ca215bc57bc12bf32b414887a68b810637d039124ed9b2e5bd3325cbb2c050c"},
+    {file = "pymdown_extensions-10.7.tar.gz", hash = "sha256:c0d64d5cf62566f59e6b2b690a4095c931107c250a8c8e1351c1de5f6b036deb"},
 ]
 
 [package.dependencies]
@@ -8485,4 +8485,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.8"
-content-hash = "25a036f8d4029294357379b9dfc29c71c52f3b40d135d59c076b4e83f856613a"
+content-hash = "1b102acdb411ec5a9a7a8ffb5b65f54bf3b62fe021c2096330d82cb69e36dfa5"
