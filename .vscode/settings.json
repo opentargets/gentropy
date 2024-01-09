@@ -1,6 +1,6 @@
 {
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -8,7 +8,7 @@
       "source.organizeImports": "explicit"
     }
   },
-  "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
+  "python.terminal.launchArgs": [ "-m", "IPython", "--no-autoindent" ],
   "[jsonc]": {
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
@@ -20,10 +20,12 @@
   },
   "json.format.keepLines": true,
   "autoDocstring.docstringFormat": "google",
-  "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
+  "python.testing.pytestArgs": [ ".", "--doctest-modules", "--cov=src/" ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "mypy-type-checker.severity": {
     "error": "Information"
-  }
+  },
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true
 }
