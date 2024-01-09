@@ -53,7 +53,7 @@ mkdocs-awesome-pages-plugin = "^2.9.2"
 mkdocs-exclude = "^1.0.2"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
 lxml = "^4.9.3"
-pymdown-extensions = "^10.5"
+pymdown-extensions = "^10.7"
 
 
 [tool.poetry.group.tests.dependencies]
@@ -67,7 +67,7 @@ pytest-xdist = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.19.0"
-ipykernel = "^6.27.1"
+ipykernel = "^6.28.0"
 google-cloud-dataproc = "^5.8.0"
 apache-airflow = "^2.8.0"
 apache-airflow-providers-google = "^10.13.1"
