@@ -1,6 +1,6 @@
 {
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -25,7 +25,5 @@
   "python.testing.pytestEnabled": true,
   "mypy-type-checker.severity": {
     "error": "Information"
-  },
-  "python.analysis.typeCheckingMode": "basic",
-  "python.analysis.autoImportCompletions": true
+  }
 }
