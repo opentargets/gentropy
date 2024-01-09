@@ -157,11 +157,22 @@ class ColocalisationFactory:
             )
             nbh_dfs.append(neighbourhood_max)
 
-        wide_dfs = reduce(
-            lambda x, y: x.unionByName(y, allowMissingColumns=True),
-            local_dfs + nbh_dfs,
-            colocalising_study_locus.limit(0),
-        ).drop("right_studyType", "coloc_score", "coloc_local_max")
+        wide_dfs = (
+            reduce(
+                lambda x, y: x.unionByName(y, allowMissingColumns=True),
+                local_dfs + nbh_dfs,
+                colocalising_study_locus.limit(0),
+            )
+            .groupBy("studyLocusId", "geneId")
+            .agg(
+                f.first("eqtlColocClppMaximum", ignorenulls=True).alias(
+                    "eqtlColocClppMaximum"
+                ),
+                f.first("eqtlColocClppMaximumNeighborhood", ignorenulls=True).alias(
+                    "eqtlColocClppMaximumNeighborhood"
+                ),
+            )
+        )
 
         return L2GFeature(
             _df=convert_from_wide_to_long(
