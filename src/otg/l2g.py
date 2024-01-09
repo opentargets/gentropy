@@ -10,8 +10,7 @@ from omegaconf import MISSING
 from xgboost.spark import SparkXGBClassifier
 
 from otg.common.session import Session
-
-# from otg.dataset.colocalisation import Colocalisation
+from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.dataset.l2g_prediction import L2GPrediction
@@ -71,26 +70,26 @@ class LocusToGeneStep:
             "vepMaximumNeighborhood",
             # # maximum vep consequence score of the locus 95% credible set split by gene
             "vepMaximum",
-            # # max clpp for each (study, locus, gene) aggregating over all eQTLs
-            # "eqtlColocClppLocalMaximum",
-            # # max clpp for each (study, locus) aggregating over all eQTLs
-            # "eqtlColocClppNeighborhoodMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all eQTLs
+            "eqtlColocClppMaximum",
+            # max clpp for each (study, locus) aggregating over all eQTLs
+            "eqtlColocClppNeighborhoodMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all pQTLs
+            "pqtlColocClppMaximum",
+            # max clpp for each (study, locus) aggregating over all pQTLs
+            "pqtlColocClppNeighborhoodMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all sQTLs
+            "sqtlColocClppMaximum",
+            # max clpp for each (study, locus) aggregating over all sQTLs
+            "sqtlColocClppNeighborhoodMaximum",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
             # "eqtlColocLlrNeighborhoodMaximum",
-            # # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocClppLocalMaximum",
-            # # max clpp for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocClppNeighborhoodMaximum",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
             # "pqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
             # "pqtlColocLlrNeighborhoodMaximum",
-            # # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocClppLocalMaximum",
-            # # max clpp for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocClppNeighborhoodMaximum",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
             # "sqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
@@ -123,7 +122,7 @@ class LocusToGeneStep:
             self.session, self.study_index_path, recursiveFileLookup=True
         )
         v2g = V2G.from_parquet(self.session, self.variant_gene_path)
-        # coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step
+        coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path)
 
         if self.run_mode == "train":
             # Process gold standard and L2G features
@@ -145,7 +144,7 @@ class LocusToGeneStep:
                 study_locus=credible_set,
                 study_index=studies,
                 variant_gene=v2g,
-                # colocalisation=coloc,
+                colocalisation=coloc,
             )
 
             # Join and fill null values with 0
@@ -197,12 +196,7 @@ class LocusToGeneStep:
                     "model_path and predictions_path must be set for predict mode."
                 )
             predictions = L2GPrediction.from_credible_set(
-                self.model_path,
-                self.features_list,
-                credible_set,
-                studies,
-                v2g,
-                # coloc
+                self.model_path, self.features_list, credible_set, studies, v2g, coloc
             )
             predictions.df.write.mode(self.session.write_mode).parquet(
                 self.predictions_path

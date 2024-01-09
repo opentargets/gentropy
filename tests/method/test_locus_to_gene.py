@@ -95,14 +95,14 @@ class TestColocalisationFactory:
         colocalisation_method: str,
     ) -> None:
         """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus."""
-        coloc_llr = ColocalisationFactory._get_max_coloc_per_study_locus(
+        coloc_features = ColocalisationFactory._get_max_coloc_per_study_locus(
             mock_study_locus,
             mock_study_index,
             mock_colocalisation,
             colocalisation_method,
         )
         assert isinstance(
-            coloc_llr, L2GFeature
+            coloc_features, L2GFeature
         ), "Unexpected model type returned from _get_max_coloc_per_study_locus"
 
     def test_get_coloc_features(
