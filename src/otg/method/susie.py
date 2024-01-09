@@ -22,7 +22,7 @@ class SUSIE:
     @staticmethod
     def susie(  # noqa: C901
         z: np.ndarray,
-        meansq: np.ndarray,
+        meansq: np.ndarray = 1,
         n: int = 100000,
         L: int = 10,
         LD: np.ndarray | None = None,
