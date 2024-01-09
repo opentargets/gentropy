@@ -22,7 +22,7 @@ class SUSIE:
     @staticmethod
     def susie(  # noqa: C901
         z: np.ndarray,
-        meansq: np.ndarray = 1,
+        meansq: float = 1,
         n: int = 100000,
         L: int = 10,
         LD: np.ndarray | None = None,
@@ -48,7 +48,7 @@ class SUSIE:
 
         Args:
             z (np.ndarray): vector of z-scores (equal to X'y/sqrt(n))
-            meansq (np.ndarray): average squared magnitude of y (equal to ||y||^2/n)
+            meansq (float): average squared magnitude of y (equal to ||y||^2/n)
             n (int): sample size
             L (int): number of modeled causal effects
             LD (np.ndarray | None): LD matrix (equal to X'X/n)
