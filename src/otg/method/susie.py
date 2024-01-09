@@ -30,7 +30,7 @@ class SUSIE:
         Dsq: np.ndarray | None = None,
         est_ssq: bool = True,
         ssq: np.ndarray | None = None,
-        ssq_range: tuple[float, float] | None = None,
+        ssq_range: tuple[float, float] = (0, 1),
         pi0: np.ndarray | None = None,
         est_sigmasq: bool = True,
         est_tausq: bool = True,
@@ -56,7 +56,7 @@ class SUSIE:
             Dsq (np.ndarray | None): precomputed length-p vector of eigenvalues of X'X
             est_ssq (bool): estimate prior effect size variances s^2 using MLE
             ssq (np.ndarray | None): length-L initialization s^2 for each effect
-            ssq_range (tuple[float, float] | None): lower and upper bounds for each s^2, if estimated
+            ssq_range (tuple[float, float]): lower and upper bounds for each s^2, if estimated
             pi0 (np.ndarray | None): length-p vector of prior causal probability for each SNP; must sum to 1
             est_sigmasq (bool): estimate variance sigma^2
             est_tausq (bool): estimate both variances sigma^2 and tau^2
