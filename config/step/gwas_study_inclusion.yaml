@@ -1,4 +1,4 @@
-_target_: otg.generate_included_gwas_catalog_studies.GWASCatalogInclusionGenerator
+_target_: otg.gwas_catalog_study_inclusion.GWASCatalogInclusionGenerator
 catalog_study_files: ${datasets.catalog_studies}
 catalog_ancestry_files: ${datasets.catalog_ancestries}
 catalog_associations_file: ${datasets.catalog_associations}

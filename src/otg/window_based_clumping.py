@@ -36,7 +36,7 @@ class WindowBasedClumpingStep:
                 for row in self.session.spark.read.parquet(
                     self.inclusion_list_path
                 ).collect()
-            ][1:100]
+            ]
         else:
             # If no inclusion list is provided, read all summary stats in folder:
             study_ids_to_ingest = [self.summary_statistics_input_path]
