@@ -128,7 +128,9 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("nControls", percentNulls=0.1)
         .withColumnSpec("nSamples", percentNulls=0.1)
         .withColumnSpec("summarystatsLocation", percentNulls=0.1)
-        .withColumnSpec("studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl"])
+        .withColumnSpec(
+            "studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl", "gwas"]
+        )
     )
     return data_spec.build()
 
@@ -571,17 +573,17 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
         .withSchema(schema)
         .withColumnSpec("distanceTssMean", percentNulls=0.1)
         .withColumnSpec("distanceTssMinimum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppMaximum", percentNulls=0.1)
         .withColumnSpec("eqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrMaximum", percentNulls=0.1)
         .withColumnSpec("eqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppMaximum", percentNulls=0.1)
         .withColumnSpec("pqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrMaximum", percentNulls=0.1)
         .withColumnSpec("pqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppMaximum", percentNulls=0.1)
         .withColumnSpec("sqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrLocalMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrMaximum", percentNulls=0.1)
         .withColumnSpec("sqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
         .withColumnSpec(
             "goldStandardSet", percentNulls=0.0, values=["positive", "negative"]

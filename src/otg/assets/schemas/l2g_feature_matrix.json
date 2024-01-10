@@ -68,7 +68,7 @@
     },
     {
       "metadata": {},
-      "name": "eqtlColocLlrLocalMaximum",
+      "name": "eqtlColocLlrMaximum",
       "nullable": true,
       "type": "float"
     },
@@ -80,7 +80,7 @@
     },
     {
       "metadata": {},
-      "name": "pqtlColocClppLocalMaximum",
+      "name": "pqtlColocClppMaximum",
       "nullable": true,
       "type": "float"
     },
@@ -92,7 +92,7 @@
     },
     {
       "metadata": {},
-      "name": "pqtlColocLlrLocalMaximum",
+      "name": "pqtlColocLlrMaximum",
       "nullable": true,
       "type": "float"
     },
@@ -104,7 +104,7 @@
     },
     {
       "metadata": {},
-      "name": "sqtlColocClppLocalMaximum",
+      "name": "sqtlColocClppMaximum",
       "nullable": true,
       "type": "float"
     },
@@ -116,7 +116,7 @@
     },
     {
       "metadata": {},
-      "name": "sqtlColocLlrLocalMaximum",
+      "name": "sqtlColocLlrMaximum",
       "nullable": true,
       "type": "float"
     },
