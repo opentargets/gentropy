@@ -96,46 +96,15 @@ class FinnGenFinemapping:
             .withColumn(
                 "posteriorProbability",
                 f.when(f.col("credibleSetIndex") == 1, f.col("alpha_1"))
-                .otherwise(
-                    f.when(f.col("credibleSetIndex") == 2, f.col("alpha_2")).otherwise(
-                        f.when(
-                            f.col("credibleSetIndex") == 3, f.col("alpha_3")
-                        ).otherwise(
-                            f.when(
-                                f.col("credibleSetIndex") == 4, f.col("alpha_4")
-                            ).otherwise(
-                                f.when(
-                                    f.col("credibleSetIndex") == 5, f.col("alpha_5")
-                                ).otherwise(
-                                    f.when(
-                                        f.col("credibleSetIndex") == 6, f.col("alpha_6")
-                                    ).otherwise(
-                                        f.when(
-                                            f.col("credibleSetIndex") == 7,
-                                            f.col("alpha_7"),
-                                        ).otherwise(
-                                            f.when(
-                                                f.col("credibleSetIndex") == 8,
-                                                f.col("alpha_8"),
-                                            ).otherwise(
-                                                f.when(
-                                                    f.col("credibleSetIndex") == 9,
-                                                    f.col("alpha_9"),
-                                                ).otherwise(
-                                                    f.when(
-                                                        f.col("credibleSetIndex") == 10,
-                                                        f.col("alpha_10"),
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-                .cast("double"),
+                .when(f.col("credibleSetIndex") == 2, f.col("alpha_2"))
+                .when(f.col("credibleSetIndex") == 3, f.col("alpha_3"))
+                .when(f.col("credibleSetIndex") == 4, f.col("alpha_4"))
+                .when(f.col("credibleSetIndex") == 5, f.col("alpha_5"))
+                .when(f.col("credibleSetIndex") == 6, f.col("alpha_6"))
+                .when(f.col("credibleSetIndex") == 7, f.col("alpha_7"))
+                .when(f.col("credibleSetIndex") == 8, f.col("alpha_8"))
+                .when(f.col("credibleSetIndex") == 9, f.col("alpha_9"))
+                .when(f.col("credibleSetIndex") == 10, f.col("alpha_10")),
             )
             .drop(
                 "alpha_1",
@@ -152,46 +121,15 @@ class FinnGenFinemapping:
             .withColumn(
                 "logABF",
                 f.when(f.col("credibleSetIndex") == 1, f.col("lbf_1"))
-                .otherwise(
-                    f.when(f.col("credibleSetIndex") == 2, f.col("lbf_2")).otherwise(
-                        f.when(
-                            f.col("credibleSetIndex") == 3, f.col("lbf_3")
-                        ).otherwise(
-                            f.when(
-                                f.col("credibleSetIndex") == 4, f.col("lbf_4")
-                            ).otherwise(
-                                f.when(
-                                    f.col("credibleSetIndex") == 5, f.col("lbf_5")
-                                ).otherwise(
-                                    f.when(
-                                        f.col("credibleSetIndex") == 6, f.col("lbf_6")
-                                    ).otherwise(
-                                        f.when(
-                                            f.col("credibleSetIndex") == 7,
-                                            f.col("lbf_7"),
-                                        ).otherwise(
-                                            f.when(
-                                                f.col("credibleSetIndex") == 8,
-                                                f.col("lbf_8"),
-                                            ).otherwise(
-                                                f.when(
-                                                    f.col("credibleSetIndex") == 9,
-                                                    f.col("lbf_9"),
-                                                ).otherwise(
-                                                    f.when(
-                                                        f.col("credibleSetIndex") == 10,
-                                                        f.col("lbf_10"),
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-                .cast("double"),
+                .when(f.col("credibleSetIndex") == 2, f.col("lbf_2"))
+                .when(f.col("credibleSetIndex") == 3, f.col("lbf_3"))
+                .when(f.col("credibleSetIndex") == 4, f.col("lbf_4"))
+                .when(f.col("credibleSetIndex") == 5, f.col("lbf_5"))
+                .when(f.col("credibleSetIndex") == 6, f.col("lbf_6"))
+                .when(f.col("credibleSetIndex") == 7, f.col("lbf_7"))
+                .when(f.col("credibleSetIndex") == 8, f.col("lbf_8"))
+                .when(f.col("credibleSetIndex") == 9, f.col("lbf_9"))
+                .when(f.col("credibleSetIndex") == 10, f.col("lbf_10")),
             )
             .drop(
                 "lbf_1",
@@ -207,11 +145,11 @@ class FinnGenFinemapping:
             )
         )
 
-        # drop credible sets where lbf < 2. Except when there's only one credible set in region:
-
+        # drop credible sets where logbf < 2. Except when there's only one credible set in region:
+        # 0.8685889638065036 corresponds to np.log10(np.exp(2)), to match the orginal threshold in publication.
         finngen_finemapping_summaries_df = (
             spark.read.csv(finngen_finemapping_summaries, header=True)
-            .filter((f.col("cs_log10bf") > 2) | (f.col("cs") == 1))
+            .filter((f.col("cs_log10bf") > 0.8685889638065036) | (f.col("cs") == 1))
             .withColumn("studyId", f.concat(f.lit("finngen_r9_"), f.col("trait")))
             .select(
                 "studyId",
