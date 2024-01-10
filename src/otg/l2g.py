@@ -16,7 +16,6 @@ from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.dataset.l2g_prediction import L2GPrediction
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.v2g import V2G
 from otg.method.l2g.model import LocusToGeneModel
 from otg.method.l2g.trainer import LocusToGeneTrainer
@@ -57,7 +56,6 @@ class LocusToGeneStep:
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
-    study_locus_overlap_path: str = MISSING
     gold_standard_curation_path: str = MISSING
     gene_interactions_path: str = MISSING
     features_list: list[str] = field(
@@ -73,27 +71,27 @@ class LocusToGeneStep:
             # max clpp for each (study, locus, gene) aggregating over all eQTLs
             "eqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all eQTLs
-            "eqtlColocClppNeighborhoodMaximum",
+            "eqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            "pqtlColocClppMaximum",
+            # "pqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all pQTLs
-            "pqtlColocClppNeighborhoodMaximum",
+            # "pqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            "sqtlColocClppMaximum",
+            # "sqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all sQTLs
-            "sqtlColocClppNeighborhoodMaximum",
+            # "sqtlColocClppMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            # "eqtlColocLlrNeighborhoodMaximum",
+            # "eqtlColocLlpMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
             # "pqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocLlrNeighborhoodMaximum",
+            # "pqtlColocLlpMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
             # "sqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocLlrNeighborhoodMaximum",
+            # "sqtlColocLlpMaximumNeighborhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -126,11 +124,31 @@ class LocusToGeneStep:
 
         if self.run_mode == "train":
             # Process gold standard and L2G features
-            study_locus_overlap = StudyLocusOverlap.from_parquet(
-                self.session, self.study_locus_overlap_path
-            )
             gs_curation = self.session.spark.read.json(self.gold_standard_curation_path)
             interactions = self.session.spark.read.parquet(self.gene_interactions_path)
+            study_locus_overlap = StudyLocus(
+                # We just extract overlaps of associations in the gold standard. This parsing is a duplication of the one in the gold standard curation,
+                # but we need to do it here to be able to parse gold standards later
+                _df=credible_set.df.join(
+                    f.broadcast(
+                        gs_curation.select(
+                            StudyLocus.assign_study_locus_id(
+                                f.col("association_info.otg_id"),  # studyId
+                                f.concat_ws(  # variantId
+                                    "_",
+                                    f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                                    f.col("sentinel_variant.locus_GRCh38.position"),
+                                    f.col("sentinel_variant.alleles.reference"),
+                                    f.col("sentinel_variant.alleles.alternative"),
+                                ),
+                            ).alias("studyLocusId"),
+                        )
+                    ),
+                    "studyLocusId",
+                    "inner",
+                ),
+                _schema=StudyLocus.get_schema(),
+            ).find_overlaps(studies)
 
             gold_standards = L2GGoldStandard.from_otg_curation(
                 gold_standard_curation=gs_curation,
