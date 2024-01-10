@@ -451,7 +451,7 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 def sample_summary_satistics(spark: SparkSession) -> SummaryStatistics:
     """Sample GWAS raw associations sample data."""
     return SummaryStatistics(
-        _df=spark.read.parquet("tests/data_samples/GCST005523_chr18.parquet"),
+        _df=spark.read.parquet("tests/data_samples/sumstats_sample"),
         _schema=SummaryStatistics.get_schema(),
     )
 

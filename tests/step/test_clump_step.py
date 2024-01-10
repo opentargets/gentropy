@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from otg.clump import ClumpStep
+from otg.window_based_clumping import WindowBasedClumpingStep
 
 if TYPE_CHECKING:
     from otg.common.session import Session
@@ -18,9 +18,9 @@ class TestClumpStep:
         """Test clump step on summary statistics writes results to a temporary directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
             clumped_study_locus_path = Path(temp_dir, "GCST005523_chr18_clumped")
-            ClumpStep(
+            WindowBasedClumpingStep(
                 session=session,
-                input_path="tests/data_samples/GCST005523_chr18.parquet",
-                clumped_study_locus_path=str(clumped_study_locus_path),
+                summary_statistics_input_path="tests/data_samples/sumstats_sample",
+                study_locus_output_path=str(clumped_study_locus_path),
             )
             assert Path(clumped_study_locus_path).exists(), "Output directory exists."

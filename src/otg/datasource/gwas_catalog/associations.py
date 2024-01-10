@@ -1116,3 +1116,19 @@ class StudyLocusGWASCatalog(StudyLocus):
             ),
         )
         return self
+
+    def apply_inclusion_list(
+        self: StudyLocusGWASCatalog, inclusion_list: DataFrame
+    ) -> StudyLocusGWASCatalog:
+        """Restricting GWAS Catalog studies based on a list of accpected study ids.
+
+        Args:
+            inclusion_list (DataFrame): List of accepted GWAS Catalog study identifiers
+
+        Returns:
+            StudyLocusGWASCatalog: Filtered dataset.
+        """
+        return StudyLocusGWASCatalog(
+            _df=self.df.join(inclusion_list, on="studyId", how="inner"),
+            _schema=StudyLocusGWASCatalog.get_schema(),
+        )

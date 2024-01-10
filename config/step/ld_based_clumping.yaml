@@ -1,0 +1,5 @@
+_target_: otg.ld_based_clumping.LdBasedClumpingStep
+study_locus_input_path: ???
+ld_index_path: ???
+study_index_path: ???
+clumped_study_locus_output_path: ???
