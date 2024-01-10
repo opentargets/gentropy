@@ -1,5 +1,4 @@
-defaults:
-  - colocalisation
-
-study_locus_path: ${datasets.study_locus}
+_target_: otg.colocalisation.ColocalisationStep
+credible_set_path: ${datasets.study_locus}
+study_index_path: ${datasets.study_index}
 coloc_path: ${datasets.colocalisation}

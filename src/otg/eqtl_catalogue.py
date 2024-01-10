@@ -44,7 +44,7 @@ class EqtlCatalogueStep:
         summary_stats_df = EqtlCatalogueSummaryStats.from_source(summary_stats_df).df
 
         # Add geneId column to the study index.
-        study_index_df = EqtlCatalogueStudyIndex.add_gene_id_column(
+        study_index_df = EqtlCatalogueStudyIndex.add_gene_to_study_id(
             study_index_df,
             summary_stats_df,
         ).df
