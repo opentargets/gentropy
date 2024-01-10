@@ -353,7 +353,7 @@ class StudyLocusFactory(StudyLocus):
                             _aggregate_vep_feature,
                             f.max("score"),
                             ["studyLocusId"],
-                            "vepMaximumNeighbourhood",
+                            "vepMaximumNeighborhood",
                         ),
                         # Calculate overall max VEP score per gene
                         credible_set_w_variant_consequences.transform(
@@ -367,7 +367,7 @@ class StudyLocusFactory(StudyLocus):
                             _aggregate_vep_feature,
                             f.mean("weightedScore"),
                             ["studyLocusId"],
-                            "vepMeanNeighbourhood",
+                            "vepMeanNeighborhood",
                         ),
                         # Calculate mean VEP score per gene
                         credible_set_w_variant_consequences.transform(
