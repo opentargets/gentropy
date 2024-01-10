@@ -194,6 +194,26 @@
       "metadata": {}
     },
     {
+      "name": "qualityControls",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "analysisFlags",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "summarystatsLocation",
       "type": "string",
       "nullable": true,
