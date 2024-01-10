@@ -1,7 +1,7 @@
 """Study Index for eQTL Catalogue data source."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Type
 
 import pyspark.sql.functions as f
 
@@ -15,22 +15,81 @@ if TYPE_CHECKING:
 class EqtlCatalogueStudyIndex:
     """Study index dataset from eQTL Catalogue."""
 
-    @staticmethod
-    def _all_attributes() -> List[Column]:
+    study_config = {
+        "GTEx_V8": {
+            "nSamples": 838,
+            "initialSampleSize": "838 (281 females and 557 males)",
+            "discoverySamples": [
+                {"sampleSize": 715, "ancestry": "European American"},
+                {"sampleSize": 103, "ancestry": "African American"},
+                {"sampleSize": 12, "ancestry": "Asian American"},
+                {"sampleSize": 16, "ancestry": "Hispanic or Latino"},
+            ],
+            "ldPopulationStructure": [
+                {"ldPopulation": "nfe", "relativeSampleSize": 0.85},
+                {"ldPopulation": "afr", "relativeSampleSize": 0.12},
+                {"ldPopulation": "eas", "relativeSampleSize": 0.01},
+                {"ldPopulation": "amr", "relativeSampleSize": 0.02},
+            ],
+            "pubmedId": "32913098",
+            "publicationTitle": "The GTEx Consortium atlas of genetic regulatory effects across human tissues",
+            "publicationFirstAuthor": "GTEx Consortium",
+            "publicationDate": "2020-09-11",
+            "publicationJournal": "Science",
+        },
+    }
+
+    @classmethod
+    def get_study_attribute(
+        cls: Type[EqtlCatalogueStudyIndex], attribute_key: str
+    ) -> Column:
+        """Returns a Column expression that dynamically assigns the attribute based on the study.
+
+        Args:
+            attribute_key (str): The attribute key to assign.
+
+        Returns:
+            Column: The dynamically assigned attribute.
+
+        Raises:
+            ValueError: If the attribute key is not known for the study.
+        """
+        study_column = f.col("study")
+        for study, config in cls.study_config.items():
+            attribute_value = config.get(attribute_key)
+            if attribute_value is None:
+                raise ValueError(
+                    f"Unknown attribute key {attribute_key} for study {study}"
+                )
+            # Convert list of dicts to array of structs
+            if isinstance(attribute_value, list) and isinstance(
+                attribute_value[0], dict
+            ):
+                struct_fields = [
+                    f.struct(*[f.lit(value).alias(key) for key, value in item.items()])
+                    for item in attribute_value
+                ]
+                attribute_value = f.array(struct_fields)
+            # Convert dict to struct
+            elif isinstance(attribute_value, dict):
+                attribute_value = f.struct(
+                    *[f.lit(value).alias(key) for key, value in attribute_value.items()]
+                )
+        return f.when(study_column == study, attribute_value).alias(attribute_key)
+
+    @classmethod
+    def _all_attributes(cls: Type[EqtlCatalogueStudyIndex]) -> list[Column]:
         """A helper function to return all study index attribute expressions.
 
         Returns:
-            List[Column]: all study index attribute expressions.
+            list[Column]: A list of all study index attribute expressions.
         """
-        study_attributes = [
-            # Project ID, example: "GTEx_V8".
-            f.col("study").alias("projectId"),
-            # Partial study ID, example: "GTEx_V8_Adipose_Subcutaneous". This ID will be converted to final only when
-            # summary statistics are parsed, because it must also include a gene ID.
-            f.concat(f.col("study"), f.lit("_"), f.col("qtl_group")).alias("studyId"),
-            # Summary stats location.
+        study_column = f.col("study")
+
+        static_study_attributes = [
+            study_column.alias("projectId"),
+            f.concat(study_column, f.lit("_"), f.col("qtl_group")).alias("studyId"),
             f.col("ftp_path").alias("summarystatsLocation"),
-            # Constant value fields.
             f.lit(True).alias("hasSumstats"),
             f.lit("eqtl").alias("studyType"),
         ]
@@ -50,43 +109,56 @@ class EqtlCatalogueStudyIndex:
                 )
             ).alias("traitFromSourceMappedIds"),
         ]
-        sample_attributes = [
-            f.lit(838).cast("integer").alias("nSamples"),
-            f.lit("838 (281 females and 557 males)").alias("initialSampleSize"),
-            f.array(
-                f.struct(
-                    f.lit(715).cast("integer").alias("sampleSize"),
-                    f.lit("European American").alias("ancestry"),
-                ),
-                f.struct(
-                    f.lit(103).cast("integer").alias("sampleSize"),
-                    f.lit("African American").alias("ancestry"),
-                ),
-                f.struct(
-                    f.lit(12).cast("integer").alias("sampleSize"),
-                    f.lit("Asian American").alias("ancestry"),
-                ),
-                f.struct(
-                    f.lit(16).cast("integer").alias("sampleSize"),
-                    f.lit("Hispanic or Latino").alias("ancestry"),
-                ),
-            ).alias("discoverySamples"),
+        dynamic_study_attributes = [
+            cls.get_study_attribute("nSamples"),
+            cls.get_study_attribute("initialSampleSize"),
+            cls.get_study_attribute("discoverySamples"),
+            cls.get_study_attribute("ldPopulationStructure"),
+            cls.get_study_attribute("pubmedId"),
+            cls.get_study_attribute("publicationTitle"),
+            cls.get_study_attribute("publicationFirstAuthor"),
+            cls.get_study_attribute("publicationDate"),
+            cls.get_study_attribute("publicationJournal"),
         ]
-        publication_attributes = [
-            f.lit("32913098").alias("pubmedId"),
-            f.lit(
-                "The GTEx Consortium atlas of genetic regulatory effects across human tissues"
-            ).alias("publicationTitle"),
-            f.lit("GTEx Consortium").alias("publicationFirstAuthor"),
-            f.lit("2020-09-11").alias("publicationDate"),
-            f.lit("Science").alias("publicationJournal"),
-        ]
-        return (
-            study_attributes
-            + tissue_attributes
-            + sample_attributes
-            + publication_attributes
+        return static_study_attributes + tissue_attributes + dynamic_study_attributes
+
+    @classmethod
+    def add_gene_to_study_id(
+        cls: type[EqtlCatalogueStudyIndex],
+        study_index_df: DataFrame,
+        summary_stats_df: DataFrame,
+    ) -> StudyIndex:
+        """Update the studyId to include gene information from summary statistics. A geneId column is also added.
+
+        While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for
+        an expression of a _particular gene_ in a particular study.  At this stage we have a study index with partial
+        study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full study IDs like
+        "PROJECT_QTLGROUP_GENEID", so we need to perform a merge and explosion to obtain our final study index.
+
+        Args:
+            study_index_df (DataFrame): preliminary study index for eQTL Catalogue studies.
+            summary_stats_df (DataFrame): summary statistics dataframe for eQTL Catalogue data.
+
+        Returns:
+            StudyIndex: final study index for eQTL Catalogue studies.
+        """
+        partial_to_full_study_id = summary_stats_df.select(
+            f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
+            f.regexp_extract(f.col("studyId"), r"^(.*)_ENSG\d+", 1).alias(
+                "studyId"
+            ),  # PROJECT_QTLGROUP
+        ).distinct()
+        study_index_df = (
+            partial_to_full_study_id.join(
+                f.broadcast(study_index_df), "studyId", "inner"
+            )
+            # Change studyId to fullStudyId
+            .drop("studyId")
+            .withColumnRenamed("fullStudyId", "studyId")
+            # Add geneId column
+            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r"([^_]+)$", 1))
         )
+        return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())
 
     @classmethod
     def from_source(
@@ -102,50 +174,6 @@ class EqtlCatalogueStudyIndex:
             StudyIndex: preliminary processed study index for eQTL Catalogue studies.
         """
         return StudyIndex(
-            _df=eqtl_studies.select(*cls._all_attributes()).withColumn(
-                "ldPopulationStructure",
-                StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
-            ),
+            _df=eqtl_studies.select(*cls._all_attributes()),
             _schema=StudyIndex.get_schema(),
         )
-
-    @classmethod
-    def add_gene_id_column(
-        cls: type[EqtlCatalogueStudyIndex],
-        study_index_df: DataFrame,
-        summary_stats_df: DataFrame,
-    ) -> StudyIndex:
-        """Add a geneId column to the study index and explode.
-
-        While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for
-        an expression of a _particular gene_ in a particular study.  At this stage we have a study index with partial
-        study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full study IDs like
-        "PROJECT_QTLGROUP_GENEID", so we need to perform a merge and explosion to obtain our final study index.
-
-        Args:
-            study_index_df (DataFrame): preliminary study index for eQTL Catalogue studies.
-            summary_stats_df (DataFrame): summary statistics dataframe for eQTL Catalogue data.
-
-        Returns:
-            StudyIndex: final study index for eQTL Catalogue studies.
-        """
-        partial_to_full_study_id = (
-            summary_stats_df.select(f.col("studyId"))
-            .distinct()
-            .select(
-                f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
-                f.regexp_extract(f.col("studyId"), r"(.*)_[\_]+", 1).alias(
-                    "studyId"
-                ),  # PROJECT_QTLGROUP
-            )
-            .groupBy("studyId")
-            .agg(f.collect_list("fullStudyId").alias("fullStudyIdList"))
-        )
-        study_index_df = (
-            study_index_df.join(partial_to_full_study_id, "studyId", "inner")
-            .withColumn("fullStudyId", f.explode("fullStudyIdList"))
-            .drop("fullStudyIdList")
-            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r".*_([\_]+)", 1))
-            .drop("fullStudyId")
-        )
-        return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())
