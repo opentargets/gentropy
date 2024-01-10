@@ -31,19 +31,6 @@ class StepConfig:
 
 
 @dataclass
-class ClumpStep(StepConfig):
-    """Clump step configuration."""
-
-    input_path: str = MISSING
-    clumped_study_locus_path: str = MISSING
-    study_index_path: str | None = field(default=None)
-    ld_index_path: str | None = field(default=None)
-    locus_collect_distance: int | None = field(default=None)
-
-    _target_: str = "otg.clump.ClumpStep"
-
-
-@dataclass
 class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
@@ -66,6 +53,34 @@ class GeneIndexConfig(StepConfig):
 
 
 @dataclass
+class GWASCatalogStudyCurationConfig(StepConfig):
+    """GWAS Catalog study curation step configuration."""
+
+    catalog_study_files: list[str] = MISSING
+    catalog_ancestry_files: list[str] = MISSING
+    catalog_sumstats_lut: str = MISSING
+    gwas_catalog_study_curation_out: str = MISSING
+    gwas_catalog_study_curation_file: str = MISSING
+    _target_: str = "otg.gwas_catalog_study_curation.GWASCatalogStudyCurationStep"
+
+
+@dataclass
+class GWASCatalogStudyInclusionConfig(StepConfig):
+    """GWAS Catalog study inclusion step configuration."""
+
+    catalog_study_files: list[str] = MISSING
+    catalog_ancestry_files: list[str] = MISSING
+    catalog_associations_file: str = MISSING
+    gwas_catalog_study_curation_file: str = MISSING
+    variant_annotation_path: str = MISSING
+    harmonised_study_file: str = MISSING
+    criteria: str = MISSING
+    inclusion_list_path: str = MISSING
+    exclusion_list_path: str = MISSING
+    _target_: str = "otg.gwas_catalog_study_inclusion.GWASCatalogStudyInclusionStep"
+
+
+@dataclass
 class GWASCatalogIngestionConfig(StepConfig):
     """GWAS Catalog ingestion step configuration."""
 
@@ -76,6 +91,8 @@ class GWASCatalogIngestionConfig(StepConfig):
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
+    gwas_catalog_study_curation_file: str | None = None
+    inclusion_list_path: str | None = None
     _target_: str = "otg.gwas_catalog_ingestion.GWASCatalogIngestionStep"
 
 
@@ -127,6 +144,17 @@ class LDIndexConfig(StepConfig):
     min_r2: float = 0.5
     ld_index_out: str = MISSING
     _target_: str = "otg.ld_index.LDIndexStep"
+
+
+@dataclass
+class LDBasedClumpingConfig(StepConfig):
+    """LD based clumping step configuration."""
+
+    study_locus_input_path: str = MISSING
+    study_index_path: str = MISSING
+    ld_index_path: str = MISSING
+    clumped_study_locus_output_path: str = MISSING
+    _target_: str = "otg.ld_based_clumping.LDBasedClumpingStep"
 
 
 @dataclass
@@ -273,6 +301,18 @@ class V2GConfig(StepConfig):
 
 
 @dataclass
+class WindowBasedClumpingStep(StepConfig):
+    """Window-based clumping step configuration."""
+
+    summary_statistics_input_path: str = MISSING
+    study_locus_output_path: str = MISSING
+    inclusion_list_path: str = MISSING
+    locus_collect_distance: str | None = None
+
+    _target_: str = "otg.clump.WindowBasedClumpingStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -287,10 +327,19 @@ def register_config() -> None:
     cs = ConfigStore.instance()
     cs.store(name="config", node=Config)
     cs.store(group="step/session", name="session", node=SessionConfig)
-    cs.store(group="step", name="clump", node=ClumpStep)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
     cs.store(group="step", name="gene_index", node=GeneIndexConfig)
+    cs.store(
+        group="step",
+        name="gwas_catalog_study_curation",
+        node=GWASCatalogStudyCurationConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_study_inclusion",
+        node=GWASCatalogStudyInclusionConfig,
+    )
     cs.store(
         group="step", name="gwas_catalog_ingestion", node=GWASCatalogIngestionConfig
     )
@@ -299,6 +348,7 @@ def register_config() -> None:
         name="gwas_catalog_sumstat_preprocess",
         node=GWASCatalogSumstatsPreprocessConfig,
     )
+    cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
     cs.store(group="step", name="finngen_studies", node=FinngenStudiesConfig)
@@ -313,3 +363,4 @@ def register_config() -> None:
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=V2GConfig)
+    cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStep)

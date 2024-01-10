@@ -1,8 +1,0 @@
-defaults:
-  - clump
-
-input_path: ???
-ld_index_path: null
-study_index_path: null
-locus_collect_distance: null
-clumped_study_locus_path: ???

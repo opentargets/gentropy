@@ -99,7 +99,6 @@ with DAG(
                 ],
             )
 
-    # list_inputs >>
     (
         [list_inputs, list_outputs]
         >> create_to_do_list()
