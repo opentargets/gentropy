@@ -252,6 +252,8 @@ class FinnGenFinemapping:
                 "standardError",
                 "region",
                 "credibleSetIndex",
+                "finemappingMethod",
+                "credibleSetlog10BF",
             )
         )
 
@@ -260,31 +262,25 @@ class FinnGenFinemapping:
                 "studyId", "region", "credibleSetIndex"
             )
             .agg(
-                f.collect_list("variantId").alias("variantId"),
-                f.collect_list("posteriorProbability").alias("posteriorProbability"),
-                f.collect_list("logABF").alias("logABF"),
-                f.collect_list("pValueMantissa").alias("pValueMantissa"),
-                f.collect_list("pValueExponent").alias("pValueExponent"),
-                f.collect_list("beta").alias("beta"),
-                f.collect_list("standardError").alias("standardError"),
+                f.collect_list(
+                    f.struct(
+                        f.col("variantId").cast("string").alias("variantId"),
+                        f.col("posteriorProbability")
+                        .cast("double")
+                        .alias("posteriorProbability"),
+                        f.col("logABF").cast("double").alias("logABF"),
+                        f.col("pValueMantissa").cast("float").alias("pValueMantissa"),
+                        f.col("pValueExponent").cast("integer").alias("pValueExponent"),
+                        f.col("beta").cast("double").alias("beta"),
+                        f.col("standardError").cast("double").alias("standardError"),
+                    )
+                ).alias("locus"),
             )
             .select(
                 "studyId",
                 "region",
                 "credibleSetIndex",
-                "credibleSetlog10BF",
-                "finemappingMethod",
-                f.array(
-                    f.struct(
-                        f.col("variantId"),
-                        f.col("posteriorProbability"),
-                        f.col("logABF"),
-                        f.col("pValueMantissa"),
-                        f.col("pValueExponent"),
-                        f.col("beta"),
-                        f.col("standardError"),
-                    )
-                ).alias("locus"),
+                "locus",
             )
             .join(toploci_df, on=["studyId", "region", "credibleSetIndex"], how="inner")
         ).withColumn(
