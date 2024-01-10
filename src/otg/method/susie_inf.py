@@ -13,7 +13,7 @@ from scipy.special import logsumexp
 
 
 @dataclass
-class SUSIE:
+class SUSIE_inf:
     """SuSiE fine-mapping of a study locus from fine-mapping-inf package.
 
     Note: code copied from fine-mapping-inf package as a placeholder
@@ -21,7 +21,7 @@ class SUSIE:
     """
 
     @staticmethod
-    def susie(  # noqa: C901
+    def susie_inf(  # noqa: C901
         z: np.ndarray,
         meansq: float = 1,
         n: int = 100000,
@@ -160,7 +160,7 @@ class SUSIE:
             # Update variance components
             if est_sigmasq or est_tausq:
                 if method == "moments":
-                    (sigmasq, tausq) = SUSIE._MoM(
+                    (sigmasq, tausq) = SUSIE_inf._MoM(
                         PIP,
                         mu,
                         omega,
@@ -176,7 +176,7 @@ class SUSIE:
                         est_tausq,
                     )
                 elif method == "MLE":
-                    (sigmasq, tausq) = SUSIE._MLE(
+                    (sigmasq, tausq) = SUSIE_inf._MLE(
                         PIP,
                         mu,
                         omega,
@@ -394,3 +394,66 @@ class SUSIE:
             if res.success:
                 sigmasq = res.x
         return sigmasq, tausq
+
+    @staticmethod
+    def cred_inf(
+        PIP: np.ndarray,
+        n: int,
+        coverage: float = 0.9,
+        purity: float = 0.5,
+        LD: np.ndarray | None = None,
+        V: np.ndarray | None = None,
+        Dsq: np.ndarray | None = None,
+        dedup: bool = True,
+    ) -> list[Any]:
+        """Compute credible sets from single-effect PIPs.
+
+        Args:
+            PIP (np.ndarray): p x L matrix of PIPs
+            n (int): sample size
+            coverage (float): coverage of credible sets
+            purity (float): purity of credible sets
+            LD (np.ndarray | None): LD matrix (equal to X'X/n)
+            V (np.ndarray | None): precomputed p x p matrix of eigenvectors of X'X
+            Dsq (np.ndarray | None): precomputed length-p vector of eigenvalues of X'X
+            dedup (bool): whether to deduplicate credible sets
+
+        Returns:
+            list[Any]: list of L lists of SNP indices in each credible set
+
+        Raises:
+            RuntimeError: if missing inputs for purity filtering
+        """
+        if (V is None or Dsq is None or n is None) and LD is None:
+            raise RuntimeError("Missing inputs for purity filtering")
+        # Compute credible sets
+        cred = []
+        for i in range(PIP.shape[1]):
+            sortinds = np.argsort(PIP[:, i])[::-1]
+            ind = min(np.nonzero(np.cumsum(PIP[sortinds, i]) >= coverage)[0])
+            credset = sortinds[: (ind + 1)]
+            # Filter by purity
+            if len(credset) == 1:
+                cred.append(list(credset))
+                continue
+            if len(credset) < 100:
+                rows = credset
+            else:
+                np.random.seed(123)
+                rows = np.random.choice(credset, size=100, replace=False)
+            if LD is not None:
+                LDloc = LD[np.ix_(rows, rows)]
+            elif V is not None and Dsq is not None:
+                LDloc = (V[rows, :] * Dsq).dot(V[rows, :].T) / n
+            else:
+                raise ValueError("Both LD and V, Dsq cannot be None")
+            if np.min(np.abs(LDloc)) > purity:
+                cred.append(sorted(credset))
+        if dedup:
+            cred = list(
+                map(
+                    list,
+                    sorted(set(map(tuple, cred)), key=list(map(tuple, cred)).index),
+                )
+            )
+        return cred
