@@ -10,8 +10,8 @@ from pyspark.sql.window import Window
 if TYPE_CHECKING:
     from pyspark.sql import Column
 
+    from otg.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
     from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
-    from otg.datasource.gwas_catalog.study_locus_dataset import StudyLocusGWASCatalog
 
 
 class GWASCatalogStudySplitter:
