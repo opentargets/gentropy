@@ -72,14 +72,14 @@ class Dataset(ABC):
     def from_parquet(
         cls: type[Self],
         session: Session,
-        path: str,
+        path: str | list[str],
         **kwargs: bool | float | int | str | None,
     ) -> Self:
-        """Reads a parquet file into a Dataset with a given schema.
+        """Reads parquet into a Dataset with a given schema.
 
         Args:
             session (Session): Spark session
-            path (str): Path to the parquet file
+            path (str | list[str]): Path to the parquet dataset
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.parquet
 
         Returns:
@@ -89,7 +89,7 @@ class Dataset(ABC):
             ValueError: Parquet file is empty
         """
         schema = cls.get_schema()
-        df = session.read_parquet(path=path, schema=schema, **kwargs)
+        df = session.read_parquet(path, schema=schema, **kwargs)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
         return cls(_df=df, _schema=schema)

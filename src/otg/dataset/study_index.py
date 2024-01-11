@@ -139,3 +139,47 @@ class StudyIndex(Dataset):
             DataFrame: A dataframe containing `studyId` and `studyType` columns.
         """
         return self.df.select("studyId", "studyType")
+
+    def is_qtl(self: StudyIndex) -> Column:
+        """Return a boolean column with true values for QTL studies.
+
+        Returns:
+            Column: True if the study is a QTL study.
+        """
+        return self.df.studyType.endswith("qtl")
+
+    def is_gwas(self: StudyIndex) -> Column:
+        """Return a boolean column with true values for GWAS studies.
+
+        Returns:
+            Column: True if the study is a GWAS study.
+        """
+        return self.df.studyType == "gwas"
+
+    def has_mapped_trait(self: StudyIndex) -> Column:
+        """Return a boolean column indicating if a study has mapped disease.
+
+        Returns:
+            Column: True if the study has mapped disease.
+        """
+        return f.size(self.df.traitFromSourceMappedIds) > 0
+
+    def is_quality_flagged(self: StudyIndex) -> Column:
+        """Return a boolean column indicating if a study is flagged due to quality issues.
+
+        Returns:
+            Column: True if the study is flagged.
+        """
+        # Testing for the presence of the qualityControls column:
+        if "qualityControls" not in self.df.columns:
+            return f.lit(False)
+        else:
+            return f.size(self.df.qualityControls) != 0
+
+    def has_summarystats(self: StudyIndex) -> Column:
+        """Return a boolean column indicating if a study has harmonized summary statistics.
+
+        Returns:
+            Column: True if the study has harmonized summary statistics.
+        """
+        return self.df.hasSumstats
