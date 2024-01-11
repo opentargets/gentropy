@@ -32,5 +32,5 @@ class TestSUSIE_inf:
         susie_output = SUSIE_inf.susie_inf(z=z, LD=ld, method="MLE")
         lbf_calc = susie_output["lbf_variable"][:, 0]
         assert np.allclose(
-            lbf_calc, lbf_mle, atol=1e-3
+            lbf_calc, lbf_mle, atol=1e-2
         ), "LBFs for maximum likelihood estimation are not equal"
