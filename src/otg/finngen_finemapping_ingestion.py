@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import glob
 from dataclasses import dataclass
 
 from omegaconf import MISSING
@@ -32,10 +33,17 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
         """Run FinnGen finemapping ingestion step."""
         # Read finemapping outputs from the URL.
 
+        finngen_finemapping_results_url = glob.glob(
+            self.finngen_finemapping_results_url
+        )
+        finngen_finemapping_summaries = glob.glob(
+            self.finngen_finemapping_summaries_url
+        )
+
         finngen_finemapping_df = FinnGenFinemapping.from_finngen_susie_finemapping(
             spark=self.session.spark,
-            finngen_finemapping_df=self.finngen_finemapping_results_url,
-            finngen_finemapping_summaries=self.finngen_finemapping_results_url,
+            finngen_finemapping_df=finngen_finemapping_results_url,
+            finngen_finemapping_summaries=finngen_finemapping_summaries,
             finngen_release_prefix=self.finngen_release_prefix,
         ).df
 

@@ -28,16 +28,16 @@ class FinnGenFinemapping:
     def from_finngen_susie_finemapping(
         cls: type[FinnGenFinemapping],
         spark: SparkSession,
-        finngen_finemapping_df: str,
-        finngen_finemapping_summaries: str,
+        finngen_finemapping_df: (str | list[str]),
+        finngen_finemapping_summaries: (str | list[str]),
         finngen_release_prefix: str,
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
         Args:
             spark (SparkSession): Spark session object.
-            finngen_finemapping_df (str): SuSIE finemapping output filename(s).
-            finngen_finemapping_summaries (str): filename of SuSIE finemapping summaries.
+            finngen_finemapping_df (str | list[str]): SuSIE finemapping output filename(s).
+            finngen_finemapping_summaries (str | list[str]): filename of SuSIE finemapping summaries.
             finngen_release_prefix (str): FinnGen study prefix.
 
         Returns:
