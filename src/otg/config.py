@@ -1,25 +1,22 @@
 """Interface for application configuration."""
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
-
-defaults_list = ["_self_", {"step": MISSING}]
 
 
 @dataclass
 class SessionConfig:
     """Session configuration."""
 
-    # _target_: str = "otg.common.session.Session"
+    start_hail: bool = False
     write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
-    hail_home: Optional[str] = None
-    start_hail: bool = False
-    extended_spark_conf: Optional[dict[str, str]] = None
+    hail_home: str = os.path.dirname(hail_location)
+    extended_spark_conf: dict[str, str] | None = None
     _target_: str = "otg.common.session.Session"
 
 
@@ -27,7 +24,10 @@ class SessionConfig:
 class StepConfig:
     """Base step configuration."""
 
-    session: SessionConfig = SessionConfig()
+    session: SessionConfig
+    defaults: List[Any] = field(
+        default_factory=lambda: [{"session": "base_session"}, "_self_"]
+    )
 
 
 @dataclass
@@ -138,8 +138,10 @@ class FinngenSumstatPreprocessConfig(StepConfig):
 class LDIndexConfig(StepConfig):
     """LD index step configuration."""
 
-    session: SessionConfig = SessionConfig(
-        start_hail=True, hail_home=os.path.dirname(hail_location)
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
     )
     min_r2: float = 0.5
     ld_index_out: str = MISSING
@@ -161,6 +163,11 @@ class LDBasedClumpingConfig(StepConfig):
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "extended_spark_conf": {"spark.dynamicAllocation.enabled": "false"}
+        }
+    )
     run_mode: str = MISSING
     model_path: str = MISSING
     predictions_path: str = MISSING
@@ -215,7 +222,7 @@ class LocusToGeneConfig(StepConfig):
     )
     wandb_run_name: str | None = None
     perform_cross_validation: bool = False
-    _target_: str = "otg.locus_to_gene.LocusToGeneStep"
+    _target_: str = "otg.l2g.LocusToGeneStep"
 
 
 @dataclass
@@ -250,8 +257,10 @@ class UKBiobankConfig(StepConfig):
 class VariantAnnotationConfig(StepConfig):
     """Variant annotation step configuration."""
 
-    session: SessionConfig = SessionConfig(
-        start_hail=True, hail_home=os.path.dirname(hail_location)
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
     )
     variant_annotation_path: str = MISSING
     _target_: str = "otg.variant_annotation.VariantAnnotationStep"
@@ -317,7 +326,7 @@ class Config:
     """Application configuration."""
 
     # this is unfortunately verbose due to @dataclass limitations
-    defaults: List[Any] = field(default_factory=lambda: defaults_list)
+    defaults: List[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 
@@ -326,7 +335,7 @@ def register_config() -> None:
     """Register configuration."""
     cs = ConfigStore.instance()
     cs.store(name="config", node=Config)
-    cs.store(group="step/session", name="session", node=SessionConfig)
+    cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
     cs.store(group="step", name="gene_index", node=GeneIndexConfig)

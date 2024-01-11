@@ -1,7 +1,7 @@
 """Step to run Locus to Gene either for inference or for training."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import pyspark.sql.functions as f
 import sklearn
@@ -39,7 +39,7 @@ class LocusToGeneStep:
         gene_interactions_path: str,
         features_list: list[str],
         hyperparameters: dict[str, Any],
-        wandb_run_name: Optional[str] = None,
+        wandb_run_name: str | None = None,
         perform_cross_validation: bool = False,
     ) -> None:
         """Run step.
@@ -58,7 +58,7 @@ class LocusToGeneStep:
             gene_interactions_path (str): Path to gene interactions Parquet files.
             features_list (list[str]): List of features to use.
             hyperparameters (dict[str, Any]): Hyperparameters for the model.
-            wandb_run_name (Optional[str]): Name of the run to be tracked on W&B.
+            wandb_run_name (str | None): Name of the run to be tracked on W&B.
             perform_cross_validation (bool): Whether to perform cross validation.
 
         Raises:

@@ -1,6 +1,5 @@
 defaults:
-  - session
+  - base_session
 
 spark_uri: yarn
-hail_home: /opt/conda/miniconda3/lib/python3.10/site-packages/hail
 write_mode: errorifexists
