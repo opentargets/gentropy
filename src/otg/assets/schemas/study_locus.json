@@ -136,7 +136,7 @@
             },
             {
               "metadata": {},
-              "name": "logABF",
+              "name": "logBF",
               "nullable": true,
               "type": "double"
             },

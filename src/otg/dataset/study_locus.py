@@ -50,7 +50,9 @@ class StudyLocusQualityCheck(Enum):
     UNRESOLVED_LD = "Variant not found in LD reference"
     LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
-    NOT_QUALIFYING_LD_BLOCK = "LD block does not contain variants at the required R^2 threshold"
+    NOT_QUALIFYING_LD_BLOCK = (
+        "LD block does not contain variants at the required R^2 threshold"
+    )
 
 
 class CredibleInterval(Enum):
@@ -119,7 +121,7 @@ class StudyLocus(Dataset):
         """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
 
         Args:
-            loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
+            loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logBF` and `posteriorProbability` columns.
             peak_overlaps (DataFrame): containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
 
         Returns:
@@ -127,7 +129,7 @@ class StudyLocus(Dataset):
         """
         # Complete information about all tags in the left study-locus of the overlap
         stats_cols = [
-            "logABF",
+            "logBF",
             "posteriorProbability",
             "beta",
             "pValueMantissa",
@@ -267,7 +269,7 @@ class StudyLocus(Dataset):
                 "studyType",
                 "chromosome",
                 f.col("locus.variantId").alias("tagVariantId"),
-                f.col("locus.logABF").alias("logABF"),
+                f.col("locus.logBF").alias("logBF"),
                 f.col("locus.posteriorProbability").alias("posteriorProbability"),
                 f.col("locus.pValueMantissa").alias("pValueMantissa"),
                 f.col("locus.pValueExponent").alias("pValueExponent"),
