@@ -628,8 +628,7 @@ def sample_data_for_carma() -> list[np.ndarray]:
 @pytest.fixture()
 def sample_data_for_susie_inf() -> list[np.ndarray]:
     """Sample data for fine-mapping by SuSiE-inf."""
-    ld = pd.read_csv("tests/data_samples/01_test_ld.csv", header=None)
-    ld = np.array(ld)
+    ld = np.loadtxt("tests/data_samples/01_test_ld.csv", delimiter=",")
     z = pd.read_csv("tests/data_samples/01_test_z.csv")
     z = np.array(z.iloc[:, 1])
     lbf_moments = np.loadtxt("tests/data_samples/01_test_lbf_moments.csv")
