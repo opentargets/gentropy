@@ -16,6 +16,8 @@ def test_main_no_step(mocker: MockerFixture) -> None:
         "finngen_sumstat_preprocess",
         "gene_index",
         "gwas_catalog_ingestion",
+        "gwas_catalog_study_curation",
+        "gwas_catalog_study_inclusion",
         "gwas_catalog_sumstat_preprocess",
         "ld_based_clumping",
         "ld_index",
