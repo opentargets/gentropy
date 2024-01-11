@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "otgenetics"
 # !! version is managed by semantic_release
-version = "0.0.0+dc.susiemethod"
+version = "0.0.0"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache-2.0"
@@ -67,7 +67,7 @@ pytest-xdist = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.19.0"
-ipykernel = "^6.28.0"
+ipykernel = "^6.27.1"
 google-cloud-dataproc = "^5.8.0"
 apache-airflow = "^2.8.0"
 apache-airflow-providers-google = "^10.13.1"
