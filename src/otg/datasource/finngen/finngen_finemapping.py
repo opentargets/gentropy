@@ -148,7 +148,8 @@ class FinnGenFinemapping:
         # drop credible sets where logbf < 2. Except when there's only one credible set in region:
         # 0.8685889638065036 corresponds to np.log10(np.exp(2)), to match the orginal threshold in publication.
         finngen_finemapping_summaries_df = (
-            spark.read.csv(finngen_finemapping_summaries, header=True)
+            spark.read.option("delimiter", "\t")
+            .csv(finngen_finemapping_summaries, header=True)
             .filter((f.col("cs_log10bf") > 0.8685889638065036) | (f.col("cs") == 1))
             .withColumn("studyId", f.concat(f.lit("finngen_r9_"), f.col("trait")))
             .select(
