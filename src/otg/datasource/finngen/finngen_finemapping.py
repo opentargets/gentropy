@@ -119,7 +119,7 @@ class FinnGenFinemapping:
                 "alpha_10",
             )
             .withColumn(
-                "logABF",
+                "logBF",
                 f.when(f.col("credibleSetIndex") == 1, f.col("lbf_1"))
                 .when(f.col("credibleSetIndex") == 2, f.col("lbf_2"))
                 .when(f.col("credibleSetIndex") == 3, f.col("lbf_3"))
@@ -206,7 +206,7 @@ class FinnGenFinemapping:
                         f.col("posteriorProbability")
                         .cast("double")
                         .alias("posteriorProbability"),
-                        f.col("logABF").cast("double").alias("logABF"),
+                        f.col("logBF").cast("double").alias("logBF"),
                         f.col("pValueMantissa").cast("float").alias("pValueMantissa"),
                         f.col("pValueExponent").cast("integer").alias("pValueExponent"),
                         f.col("beta").cast("double").alias("beta"),
