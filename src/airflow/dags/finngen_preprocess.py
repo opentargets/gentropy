@@ -32,22 +32,22 @@ with DAG(
 
     window_based_clumping = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="clump",
+        step_id="window_based_clumping",
         task_id="finngen_window_based_clumping",
         other_args=[
-            f"step.input_path={SUMSTATS}",
-            f"step.clumped_study_locus_path={WINDOWBASED_CLUMPED}",
+            f"step.summary_statistics_input_path={SUMSTATS}",
+            f"step.study_locus_output_path={WINDOWBASED_CLUMPED}",
         ],
     )
     ld_clumping = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="clump",
+        step_id="ld_based_clumping",
         task_id="finngen_ld_clumping",
         other_args=[
-            f"step.input_path={WINDOWBASED_CLUMPED}",
+            f"step.study_locus_input_path={WINDOWBASED_CLUMPED}",
             f"step.ld_index_path={RELEASEBUCKET}/ld_index",
             f"step.study_index_path={RELEASEBUCKET}/study_index/finngen",
-            f"step.clumped_study_locus_path={LD_CLUMPED}",
+            f"step.clumped_study_locus_output_path={LD_CLUMPED}",
         ],
         trigger_rule=TriggerRule.ALL_DONE,
     )
