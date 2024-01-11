@@ -398,7 +398,7 @@ class SUSIE_inf:
     @staticmethod
     def cred_inf(
         PIP: np.ndarray,
-        n: int,
+        n: int = 100_000,
         coverage: float = 0.9,
         purity: float = 0.5,
         LD: np.ndarray | None = None,
