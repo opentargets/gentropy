@@ -26,7 +26,7 @@ l2g_gold_standard_curation: ${datasets.inputs}/l2g/gold_standard/curation.json
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 finngen_finemapping_results_url: gs://genetics-portal-dev-analysis/xg1/Finngen_finemapping_r10
-finngen_finemapping_summaries_url: gs://genetics-portal-dev-analysis/xg1/Finngen_susie_credset_summary_r10.csv
+finngen_finemapping_summaries_url: gs://genetics-portal-dev-analysis/xg1/Finngen_susie_credset_summary_r10.tsv
 finngen_release_prefix: "finngen_R10_"
 
 # Output datasets
