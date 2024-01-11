@@ -45,6 +45,7 @@ class FinnGenFinemapping:
         """
         processed_finngen_finemapping_df = (
             spark.read.option("delimiter", "\t")
+            .option("compression", "gzip")
             .csv(finngen_finemapping_df, header=True)
             # Drop rows which don't have proper position.
             .filter(f.col("position").cast(t.IntegerType()).isNotNull())
