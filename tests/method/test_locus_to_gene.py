@@ -55,7 +55,7 @@ class TestLocusToGeneTrainer:
             best_model, LocusToGeneModel
         ), "Unexpected model type returned from cross_validate"
         # Check that the best model's hyperparameters are among those in the param_grid
-        assert best_model.model.getOrDefault("learning_rate") in [
+        assert best_model.model.getOrDefault("learning_rate") in [  # type: ignore
             0.1,
             0.01,
         ], "Unexpected learning rate in the best model"
