@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, Type
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import convert_from_long_to_wide
 from otg.dataset.dataset import Dataset
-from otg.method.l2g.feature_factory import StudyLocusFactory
+from otg.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    # from otg.dataset.colocalisation import Colocalisation
+    from otg.dataset.colocalisation import Colocalisation
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.study_locus import StudyLocus
     from otg.dataset.v2g import V2G
@@ -43,7 +43,7 @@ class L2GFeatureMatrix(Dataset):
         study_locus: StudyLocus,
         study_index: StudyIndex,
         variant_gene: V2G,
-        # colocalisation: Colocalisation,
+        colocalisation: Colocalisation,
     ) -> L2GFeatureMatrix:
         """Generate features from the OTG datasets.
 
@@ -52,6 +52,7 @@ class L2GFeatureMatrix(Dataset):
             study_locus (StudyLocus): Study locus dataset
             study_index (StudyIndex): Study index dataset
             variant_gene (V2G): Variant to gene dataset
+            colocalisation (Colocalisation): Colocalisation dataset
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
@@ -61,9 +62,9 @@ class L2GFeatureMatrix(Dataset):
         """
         if features_dfs := [
             # Extract features
-            # ColocalisationFactory._get_coloc_features(
-            #     study_locus, study_index, colocalisation
-            # ).df,
+            ColocalisationFactory._get_coloc_features(
+                study_locus, study_index, colocalisation
+            ).df,
             StudyLocusFactory._get_tss_distance_features(study_locus, variant_gene).df,
             StudyLocusFactory._get_vep_features(study_locus, variant_gene).df,
         ]:
