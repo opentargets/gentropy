@@ -1,6 +1,0 @@
-defaults:
-  - overlaps
-
-study_locus_path: ${datasets.outputs}/credible_set
-study_index_path: ${datasets.outputs}/study_index
-overlaps_index_out: ${datasets.outputs}/study_locus_overlap
