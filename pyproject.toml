@@ -117,6 +117,7 @@ extend_exclude = ["src/conftest.py", "src/airflow", "src/utils"]
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["gentropy"]
+DEP003 = ["gentropy"]
 
 [tool.interrogate]
 fail-under = 95
