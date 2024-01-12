@@ -1,12 +1,13 @@
 """Test the command-line interface (CLI)."""
+from unittest.mock import patch
+
 import pytest
 from hydra.errors import ConfigCompositionException
 from omegaconf.errors import MissingMandatoryValue
 from otg.cli import main
-from pytest_mock import MockerFixture
 
 
-def test_main_no_step(mocker: MockerFixture) -> None:
+def test_main_no_step() -> None:
     """Test the main function of the CLI without a valid step."""
     override_key = "step"
     available_steps = [
@@ -33,15 +34,15 @@ def test_main_no_step(mocker: MockerFixture) -> None:
     opts = "\n\t".join(available_steps)
     expected = f"You must specify '{override_key}', e.g, {override_key}=<OPTION>\nAvailable options:\n\t{opts}"
 
-    with pytest.raises(ConfigCompositionException, match=expected):
-        mocker.patch("sys.argv", ["cli.py"])
+    with patch("sys.argv", ["cli.py"]), pytest.raises(
+        ConfigCompositionException, match=expected
+    ):
         main()
 
 
-def test_main_step(mocker: MockerFixture) -> None:
-    """Test the main function of the CLI with a valid step."""
-    with pytest.raises(
+def test_main_step() -> None:
+    """Test the main function of the CLI complains about mandatory values."""
+    with patch("sys.argv", ["cli.py", "step=gene_index"]), pytest.raises(
         MissingMandatoryValue, match="Missing mandatory value: step.target_path"
     ):
-        mocker.patch("sys.argv", ["cli.py", "step=gene_index"])
         main()
