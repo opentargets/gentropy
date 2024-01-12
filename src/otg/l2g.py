@@ -75,7 +75,17 @@ class LocusToGeneStep:
         v2g = V2G.from_parquet(session, variant_gene_path)
         coloc = Colocalisation.from_parquet(session, colocalisation_path)
 
-        if run_mode == "train":
+        if run_mode == "predict":
+            if not model_path or not predictions_path:
+                raise ValueError(
+                    "model_path and predictions_path must be set for predict mode."
+                )
+            predictions = L2GPrediction.from_credible_set(
+                model_path, features_list, credible_set, studies, v2g, coloc
+            )
+            predictions.df.write.mode(session.write_mode).parquet(predictions_path)
+            session.logger.info(predictions_path)
+        elif run_mode == "train":
             # Process gold standard and L2G features
             gs_curation = session.spark.read.json(gold_standard_curation_path)
             interactions = session.spark.read.parquet(gene_interactions_path)
@@ -160,14 +170,3 @@ class LocusToGeneStep:
                     **hyperparameters,
                 )
                 session.logger.info(model_path)
-
-        if run_mode == "predict":
-            if not model_path or not predictions_path:
-                raise ValueError(
-                    "model_path and predictions_path must be set for predict mode."
-                )
-            predictions = L2GPrediction.from_credible_set(
-                model_path, features_list, credible_set, studies, v2g, coloc
-            )
-            predictions.df.write.mode(session.write_mode).parquet(predictions_path)
-            session.logger.info(predictions_path)

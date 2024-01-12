@@ -49,7 +49,7 @@ class L2GPrediction(Dataset):
         v2g: V2G,
         coloc: Colocalisation,
     ) -> L2GPrediction:
-        """Initialise L2G from feature matrix.
+        """Extract L2G predictions for a set of credible sets derived from GWAS.
 
         Args:
             model_path (str): Path to the fitted model
@@ -62,9 +62,17 @@ class L2GPrediction(Dataset):
         Returns:
             L2GPrediction: L2G dataset
         """
+        gwas_study_locus = StudyLocus(
+            _df=study_locus.df.join(
+                study_index.study_type_lut().filter(f.col("studyType") == "gwas"),
+                on="studyId",
+                how="inner",
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
         fm = L2GFeatureMatrix.generate_features(
             features_list=features_list,
-            study_locus=study_locus,
+            study_locus=gwas_study_locus,
             study_index=study_index,
             variant_gene=v2g,
             colocalisation=coloc,
