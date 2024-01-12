@@ -228,31 +228,12 @@ class LocusToGeneConfig(StepConfig):
 
 
 @dataclass
-class OverlapsIndexConfig(StepConfig):
-    """Overlaps step configuration."""
-
-    study_locus_path: str = MISSING
-    study_index_path: str = MISSING
-    overlaps_index_out: str = MISSING
-    _target_: str = "gentropy.overlaps.OverlapsIndexStep"
-
-
-@dataclass
 class PICSConfig(StepConfig):
     """PICS step configuration."""
 
     study_locus_ld_annotated_in: str = MISSING
     picsed_study_locus_out: str = MISSING
     _target_: str = "gentropy.pics.PICSStep"
-
-
-@dataclass
-class UKBiobankConfig(StepConfig):
-    """UKBiobank step configuration."""
-
-    ukbiobank_manifest: str = MISSING
-    ukbiobank_study_index_out: str = MISSING
-    _target_: str = "gentropy.ukbiobank.UKBiobankStep"
 
 
 @dataclass
@@ -368,9 +349,7 @@ def register_config() -> None:
         name="finngen_sumstat_preprocess",
         node=FinngenSumstatPreprocessConfig,
     )
-    cs.store(group="step", name="overlaps", node=OverlapsIndexConfig)
     cs.store(group="step", name="pics", node=PICSConfig)
-    cs.store(group="step", name="ukbiobank", node=UKBiobankConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=V2GConfig)
