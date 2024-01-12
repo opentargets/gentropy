@@ -2,4 +2,4 @@
 title: Colocalisation
 ---
 
-::: otg.colocalisation.ColocalisationStep
+::: gentropy.colocalisation.ColocalisationStep

@@ -5,20 +5,20 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from otg.dataset.colocalisation import Colocalisation
-from otg.dataset.l2g_feature import L2GFeature
-from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from otg.dataset.study_index import StudyIndex
-from otg.dataset.study_locus import StudyLocus
-from otg.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
-from otg.method.l2g.model import LocusToGeneModel
-from otg.method.l2g.trainer import LocusToGeneTrainer
+from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
+from gentropy.method.l2g.model import LocusToGeneModel
+from gentropy.method.l2g.trainer import LocusToGeneTrainer
 from pyspark.ml import PipelineModel
 from pyspark.ml.tuning import ParamGridBuilder
 from xgboost.spark import SparkXGBClassifier
 
 if TYPE_CHECKING:
-    from otg.dataset.v2g import V2G
+    from gentropy.dataset.v2g import V2G
     from pyspark.sql import SparkSession
 
 

@@ -2,4 +2,4 @@
 title: L2G Model
 ---
 
-::: otg.method.l2g.model.LocusToGeneModel
+::: gentropy.method.l2g.model.LocusToGeneModel

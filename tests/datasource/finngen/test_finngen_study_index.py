@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from otg.dataset.study_index import StudyIndex
-from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
 from pyspark.sql import SparkSession
 
 

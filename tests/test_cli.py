@@ -2,9 +2,9 @@
 from unittest.mock import patch
 
 import pytest
+from gentropy.cli import main
 from hydra.errors import ConfigCompositionException
 from omegaconf.errors import MissingMandatoryValue
-from otg.cli import main
 
 
 def test_main_no_step() -> None:

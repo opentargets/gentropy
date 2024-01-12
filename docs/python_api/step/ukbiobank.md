@@ -2,4 +2,4 @@
 title: UK Biobank
 ---
 
-::: otg.ukbiobank.UKBiobankStep
+::: gentropy.ukbiobank.UKBiobankStep

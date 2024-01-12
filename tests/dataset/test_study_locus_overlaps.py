@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.types as t
 import pytest
-from otg.dataset.study_locus import StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
-    from otg.dataset.study_index import StudyIndex
+    from gentropy.dataset.study_index import StudyIndex
     from pyspark.sql import SparkSession
 
 

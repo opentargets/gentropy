@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from otg.common.session import Log4j, Session
+from gentropy.common.session import Log4j, Session
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession

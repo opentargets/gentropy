@@ -2,4 +2,4 @@
 title: Jung et al.
 ---
 
-::: otg.datasource.intervals.jung.IntervalsJung
+::: gentropy.datasource.intervals.jung.IntervalsJung

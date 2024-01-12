@@ -2,7 +2,7 @@
 title: Intervals
 ---
 
-::: otg.dataset.intervals.Intervals
+::: gentropy.dataset.intervals.Intervals
 
 ## Schema
 

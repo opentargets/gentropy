@@ -2,4 +2,4 @@
 title: Coloc
 ---
 
-::: otg.method.colocalisation.Coloc
+::: gentropy.method.colocalisation.Coloc

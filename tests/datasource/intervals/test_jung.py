@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import pytest
-from otg.common.Liftover import LiftOverSpark
-from otg.dataset.gene_index import GeneIndex
-from otg.dataset.intervals import Intervals
-from otg.datasource.intervals.jung import IntervalsJung
+from gentropy.common.Liftover import LiftOverSpark
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.intervals import Intervals
+from gentropy.datasource.intervals.jung import IntervalsJung
 from pyspark.sql import DataFrame, SparkSession
 
 

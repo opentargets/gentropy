@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from otg.dataset.study_locus import StudyLocus
-from otg.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.summary_statistics import SummaryStatistics
 from pyspark.sql import types as t
 
 if TYPE_CHECKING:

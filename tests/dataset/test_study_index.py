@@ -1,7 +1,7 @@
 """Test study index dataset."""
 from __future__ import annotations
 
-from otg.dataset.study_index import StudyIndex
+from gentropy.dataset.study_index import StudyIndex
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 

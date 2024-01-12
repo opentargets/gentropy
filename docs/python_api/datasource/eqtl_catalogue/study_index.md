@@ -2,4 +2,4 @@
 title: Study Index
 ---
 
-::: otg.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex
+::: gentropy.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex

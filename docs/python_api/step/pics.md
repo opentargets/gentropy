@@ -2,4 +2,4 @@
 title: PICS
 ---
 
-::: otg.pics.PICSStep
+::: gentropy.pics.PICSStep
