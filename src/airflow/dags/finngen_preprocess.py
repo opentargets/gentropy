@@ -26,7 +26,7 @@ with DAG(
 ):
     study_index = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="finngen_studies",
+        step_id="ot_finngen_studies",
         task_id="finngen_studies",
     )
 
@@ -54,7 +54,7 @@ with DAG(
 
     pics = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="pics",
+        step_id="ot_pics",
         task_id="finngen_pics",
         other_args=[
             f"step.study_locus_ld_annotated_in={LD_CLUMPED}",

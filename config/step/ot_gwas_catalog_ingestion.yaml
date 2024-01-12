@@ -1,10 +1,12 @@
-_target_: otg.gwas_catalog_study_inclusion.GWASCatalogInclusionGenerator
+defaults:
+  - gwas_catalog_ingestion
+
 catalog_study_files: ${datasets.catalog_studies}
 catalog_ancestry_files: ${datasets.catalog_ancestries}
 catalog_associations_file: ${datasets.catalog_associations}
+catalog_sumstats_lut: ${datasets.catalog_sumstats_lut}
 variant_annotation_path: ${datasets.variant_annotation}
+catalog_studies_out: ${datasets.catalog_study_index}
+catalog_associations_out: ${datasets.catalog_study_locus}
 gwas_catalog_study_curation_file: ${datasets.gwas_catalog_study_curation}
-harmonised_study_file: ???
-criteria: ???
 inclusion_list_path: ???
-exclusion_list_path: ???

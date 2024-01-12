@@ -1,6 +1,0 @@
-_target_: otg.ld_index.LDIndexStep
-
-session:
-  start_hail: true
-
-ld_index_out: ${datasets.ld_index}

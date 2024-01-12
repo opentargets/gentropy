@@ -1,6 +1,0 @@
-_target_: otg.variant_annotation.VariantAnnotationStep
-
-session:
-  start_hail: true
-
-variant_annotation_path: ${datasets.variant_annotation}

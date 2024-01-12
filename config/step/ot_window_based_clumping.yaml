@@ -1,5 +1,6 @@
-_target_: otg.window_based_clumping.WindowBasedClumpingStep
+defaults:
+  - window_based_clumping
+
 summary_statistics_input_path: ???
 study_locus_output_path: ???
 inclusion_list_path: ???
-locus_collect_distance: null
