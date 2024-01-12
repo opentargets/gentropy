@@ -8,14 +8,12 @@ import sklearn
 from xgboost.spark import SparkXGBClassifier
 
 from otg.common.session import Session
-
-# from otg.dataset.colocalisation import Colocalisation
+from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from otg.dataset.l2g_gold_standard import L2GGoldStandard
 from otg.dataset.l2g_prediction import L2GPrediction
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
 from otg.dataset.v2g import V2G
 from otg.method.l2g.model import LocusToGeneModel
 from otg.method.l2g.trainer import LocusToGeneTrainer
@@ -34,7 +32,6 @@ class LocusToGeneStep:
         variant_gene_path: str,
         colocalisation_path: str,
         study_index_path: str,
-        study_locus_overlap_path: str,
         gold_standard_curation_path: str,
         gene_interactions_path: str,
         features_list: list[str],
@@ -53,7 +50,6 @@ class LocusToGeneStep:
             variant_gene_path (str): Path to variant to gene Parquet files.
             colocalisation_path (str): Path to colocalisation Parquet files.
             study_index_path (str): Path to study index Parquet files.
-            study_locus_overlap_path (str): Path to study locus overlap Parquet files.
             gold_standard_curation_path (str): Path to gold standard curation JSON files.
             gene_interactions_path (str): Path to gene interactions Parquet files.
             features_list (list[str]): List of features to use.
@@ -77,15 +73,35 @@ class LocusToGeneStep:
             session, study_index_path, recursiveFileLookup=True
         )
         v2g = V2G.from_parquet(session, variant_gene_path)
-        # coloc = Colocalisation.from_parquet(self.session, self.colocalisation_path) # TODO: run step
+        coloc = Colocalisation.from_parquet(session, colocalisation_path)
 
         if run_mode == "train":
             # Process gold standard and L2G features
-            study_locus_overlap = StudyLocusOverlap.from_parquet(
-                session, study_locus_overlap_path
-            )
             gs_curation = session.spark.read.json(gold_standard_curation_path)
             interactions = session.spark.read.parquet(gene_interactions_path)
+            study_locus_overlap = StudyLocus(
+                # We just extract overlaps of associations in the gold standard. This parsing is a duplication of the one in the gold standard curation,
+                # but we need to do it here to be able to parse gold standards later
+                _df=credible_set.df.join(
+                    f.broadcast(
+                        gs_curation.select(
+                            StudyLocus.assign_study_locus_id(
+                                f.col("association_info.otg_id"),  # studyId
+                                f.concat_ws(  # variantId
+                                    "_",
+                                    f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                                    f.col("sentinel_variant.locus_GRCh38.position"),
+                                    f.col("sentinel_variant.alleles.reference"),
+                                    f.col("sentinel_variant.alleles.alternative"),
+                                ),
+                            ).alias("studyLocusId"),
+                        )
+                    ),
+                    "studyLocusId",
+                    "inner",
+                ),
+                _schema=StudyLocus.get_schema(),
+            ).find_overlaps(studies)
 
             gold_standards = L2GGoldStandard.from_otg_curation(
                 gold_standard_curation=gs_curation,
@@ -99,7 +115,7 @@ class LocusToGeneStep:
                 study_locus=credible_set,
                 study_index=studies,
                 variant_gene=v2g,
-                # colocalisation=coloc,
+                colocalisation=coloc,
             )
 
             # Join and fill null values with 0
@@ -151,12 +167,7 @@ class LocusToGeneStep:
                     "model_path and predictions_path must be set for predict mode."
                 )
             predictions = L2GPrediction.from_credible_set(
-                model_path,
-                features_list,
-                credible_set,
-                studies,
-                v2g,
-                # coloc
+                model_path, features_list, credible_set, studies, v2g, coloc
             )
             predictions.df.write.mode(session.write_mode).parquet(predictions_path)
             session.logger.info(predictions_path)

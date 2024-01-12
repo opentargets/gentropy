@@ -10,7 +10,6 @@ credible_set_path: ${datasets.credible_set}
 variant_gene_path: ${datasets.v2g}
 colocalisation_path: ${datasets.colocalisation}
 study_index_path: ${datasets.study_index}
-study_locus_overlap_path: ${datasets.study_locus_overlap}
 gold_standard_curation_path: ${datasets.l2g_gold_standard_curation}
 gene_interactions_path: ${datasets.gene_interactions}
 hyperparameters:

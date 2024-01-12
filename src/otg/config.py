@@ -184,34 +184,34 @@ class LocusToGeneConfig(StepConfig):
             "distanceTssMean",
             # # minimum distance of all tagging variants to gene TSS
             "distanceTssMinimum",
-            # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
+            # # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
             "vepMaximumNeighborhood",
-            # maximum vep consequence score of the locus 95% credible set split by gene
+            # # maximum vep consequence score of the locus 95% credible set split by gene
             "vepMaximum",
-            # # max clpp for each (study, locus, gene) aggregating over all eQTLs
-            # "eqtlColocClppLocalMaximum",
-            # # max clpp for each (study, locus) aggregating over all eQTLs
-            # "eqtlColocClppNeighborhoodMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all eQTLs
+            "eqtlColocClppMaximum",
+            # max clpp for each (study, locus) aggregating over all eQTLs
+            "eqtlColocClppMaximumNeighborhood",
+            # max clpp for each (study, locus, gene) aggregating over all pQTLs
+            # "pqtlColocClppMaximum",
+            # max clpp for each (study, locus) aggregating over all pQTLs
+            # "pqtlColocClppMaximumNeighborhood",
+            # max clpp for each (study, locus, gene) aggregating over all sQTLs
+            # "sqtlColocClppMaximum",
+            # max clpp for each (study, locus) aggregating over all sQTLs
+            # "sqtlColocClppMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            # "eqtlColocLlrNeighborhoodMaximum",
-            # # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocClppLocalMaximum",
-            # # max clpp for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocClppNeighborhoodMaximum",
+            # "eqtlColocLlpMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
             # "pqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocLlrNeighborhoodMaximum",
-            # # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocClppLocalMaximum",
-            # # max clpp for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocClppNeighborhoodMaximum",
+            # "pqtlColocLlpMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
             # "sqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocLlrNeighborhoodMaximum",
+            # "sqtlColocLlpMaximumNeighborhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
