@@ -1,0 +1,4 @@
+defaults:
+  - variant_annotation
+
+variant_annotation_path: ${datasets.variant_annotation}

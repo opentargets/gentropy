@@ -2,35 +2,26 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from omegaconf import MISSING
-
 from otg.common.session import Session
 from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
 
 
-@dataclass
 class FinnGenSumstatPreprocessStep:
-    """FinnGen sumstats preprocessing.
+    """FinnGen sumstats preprocessing."""
 
-    Attributes:
-        session (Session): Session object.
-        finngen_study_index_out (str): Output path for the FinnGen study index dataset.
-        finngen_summary_stats_out (str): Output path for the FinnGen summary statistics.
-    """
+    def __init__(
+        self, session: Session, raw_sumstats_path: str, out_sumstats_path: str
+    ) -> None:
+        """Run FinnGen summary stats preprocessing step.
 
-    session: Session = MISSING
-    raw_sumstats_path: str = MISSING
-    out_sumstats_path: str = MISSING
-
-    def __post_init__(self: FinnGenSumstatPreprocessStep) -> None:
-        """Run step."""
+        Args:
+            session (Session): Session object.
+            raw_sumstats_path (str): Input raw summary stats path.
+            out_sumstats_path (str): Output summary stats path.
+        """
         # Process summary stats.
         (
-            FinnGenSummaryStats.from_source(
-                self.session.spark, raw_file=self.raw_sumstats_path
-            )
-            .df.write.mode(self.session.write_mode)
-            .parquet(self.out_sumstats_path)
+            FinnGenSummaryStats.from_source(session.spark, raw_file=raw_sumstats_path)
+            .df.write.mode(session.write_mode)
+            .parquet(out_sumstats_path)
         )

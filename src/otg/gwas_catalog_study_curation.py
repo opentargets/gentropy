@@ -1,10 +1,6 @@
 """Step to update GWAS Catalog study curation file based on newly released GWAS Catalog dataset."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from omegaconf import MISSING
-
 from otg.common.session import Session
 from otg.datasource.gwas_catalog.study_index import (
     StudyIndexGWASCatalogParser,
@@ -12,39 +8,39 @@ from otg.datasource.gwas_catalog.study_index import (
 )
 
 
-@dataclass
 class GWASCatalogStudyCurationStep:
-    """Create an updated curation table for GWAS Catalog study table.
+    """Annotate GWAS Catalog studies with additional curation and create a curation backlog."""
 
-    Attributes:
-        session (Session): Session object.
-        catalog_study_files (list[str]): List of raw GWAS catalog studies file.
-        catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-        catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
-        gwas_catalog_study_curation_file (str | None): Path to the original curation table. Optinal
-        gwas_catalog_study_curation_out (str): Path for the updated curation table.
-    """
+    def __init__(
+        self,
+        session: Session,
+        catalog_study_files: list[str],
+        catalog_ancestry_files: list[str],
+        catalog_sumstats_lut: str,
+        gwas_catalog_study_curation_out: str,
+        gwas_catalog_study_curation_file: str | None,
+    ) -> None:
+        """Run step to annotate and create backlog.
 
-    session: Session = MISSING
-    catalog_study_files: list[str] = MISSING
-    catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
-    gwas_catalog_study_curation_file: str | None = MISSING
-    gwas_catalog_study_curation_out: str = MISSING
-
-    def __post_init__(self: GWASCatalogStudyCurationStep) -> None:
-        """Run step."""
-        catalog_studies = self.session.spark.read.csv(
-            list(self.catalog_study_files), sep="\t", header=True
+        Args:
+            session (Session): Session object.
+            catalog_study_files (list[str]): List of raw GWAS catalog studies file.
+            catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
+            catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
+            gwas_catalog_study_curation_out (str): Path for the updated curation table.
+            gwas_catalog_study_curation_file (str | None): Path to the original curation table. Optinal
+        """
+        catalog_studies = session.spark.read.csv(
+            list(catalog_study_files), sep="\t", header=True
         )
-        ancestry_lut = self.session.spark.read.csv(
-            list(self.catalog_ancestry_files), sep="\t", header=True
+        ancestry_lut = session.spark.read.csv(
+            list(catalog_ancestry_files), sep="\t", header=True
         )
-        sumstats_lut = self.session.spark.read.csv(
-            self.catalog_sumstats_lut, sep="\t", header=False
+        sumstats_lut = session.spark.read.csv(
+            catalog_sumstats_lut, sep="\t", header=False
         )
         gwas_catalog_study_curation = read_curation_table(
-            self.gwas_catalog_study_curation_file, self.session
+            gwas_catalog_study_curation_file, session
         )
 
         # Process GWAS Catalog studies and get list of studies for curation:
@@ -58,5 +54,5 @@ class GWASCatalogStudyCurationStep:
             .extract_studies_for_curation(gwas_catalog_study_curation)
             # Save table:
             .toPandas()
-            .to_csv(self.gwas_catalog_study_curation_out, sep="\t", index=False)
+            .to_csv(gwas_catalog_study_curation_out, sep="\t", index=False)
         )
