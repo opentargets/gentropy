@@ -1,0 +1,4 @@
+defaults:
+  - finngen_studies
+
+finngen_study_index_out: ${datasets.finngen_study_index}

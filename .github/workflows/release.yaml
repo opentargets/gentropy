@@ -1,0 +1,101 @@
+name: Release
+
+"on":
+  push:
+    branches: ["main", "master", "release/**"]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false # prevent hickups with semantic-release
+
+env:
+  PYTHON_VERSION_DEFAULT: "3.10.8"
+
+jobs:
+  Release:
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):')
+    runs-on: ubuntu-latest
+    permissions:
+      # NOTE: this enables trusted publishing.
+      # See https://github.com/pypa/gh-action-pypi-publish/tree/release/v1#trusted-publishing
+      # and https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: opentargets/genetics_etl_python
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: |
+            venv-${{ runner.os }}-\
+            ${{ env.PYTHON_VERSION_DEFAULT }}-\
+            ${{ hashFiles('**/poetry.lock') }}
+
+      - name: Validate project dependencies
+        run: poetry check
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Python Semantic Release
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "action@github.com"
+          poetry run semantic-release publish
+        env:
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+  Documentation:
+    needs: Release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: |
+            venv-${{ runner.os }}-\
+            ${{ env.PYTHON_VERSION_DEFAULT }}-\
+            ${{ hashFiles('**/poetry.lock') }}
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+      - name: Install library
+        run: poetry install --without tests --no-interaction
+      - name: Publish docs
+        run: poetry run mkdocs gh-deploy --force

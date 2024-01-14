@@ -2,21 +2,52 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from otg.common.utils import (
-    calculate_confidence_interval,
-    convert_odds_ratio_to_beta,
-    parse_pvalue,
-)
+from otg.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
+from otg.common.utils import convert_odds_ratio_to_beta, parse_pvalue
 from otg.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import SparkSession
+
+
+def filename_to_study_identifier(path: str) -> str:
+    """Extract GWAS Catalog study identifier from path.
+
+    There's an expectation that the filename has to have the GCST accession of the study.
+
+    Args:
+        path(str): filename of the harmonized summary statistics.
+
+    Returns:
+        str: GWAS Catalog stuy accession.
+
+    Raises:
+        ValueError: If the path does not contain the GWAS Catalog study identifier.
+
+    Examples:
+        >>> filename_to_study_identifier("http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST006001-GCST007000/GCST006090/harmonised/29895819-GCST006090-HP_0000975.h.tsv.gz")
+        'GCST006090'
+        >>> filename_to_study_identifier("wrong/path")
+        Traceback (most recent call last):
+            ...
+        ValueError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
+    """
+    file_name = path.split("/")[-1]
+    study_id_matches = re.search(r"(GCST\d+)", file_name)
+
+    if not study_id_matches:
+        raise ValueError(
+            f'Path ("{path}") does not contain GWAS Catalog study identifier.'
+        )
+
+    return study_id_matches[0]
 
 
 @dataclass
@@ -26,59 +57,134 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
     @classmethod
     def from_gwas_harmonized_summary_stats(
         cls: type[GWASCatalogSummaryStatistics],
-        sumstats_df: DataFrame,
-        study_id: str,
+        spark: SparkSession,
+        sumstats_file: str,
     ) -> GWASCatalogSummaryStatistics:
         """Create summary statistics object from summary statistics flatfile, harmonized by the GWAS Catalog.
 
+        Things got slightly complicated given the GWAS Catalog harmonization pipelines changed recently so we had to accomodate to
+        both formats.
+
         Args:
-            sumstats_df (DataFrame): Harmonized dataset read as a spark dataframe from GWAS Catalog.
-            study_id (str): GWAS Catalog study accession.
+            spark (SparkSession): spark session
+            sumstats_file (str): list of GWAS Catalog summary stat files, with study ids in them.
 
         Returns:
             GWASCatalogSummaryStatistics: Summary statistics object.
         """
-        # The effect allele frequency is an optional column, we have to test if it is there:
-        allele_frequency_expression = (
-            f.col("hm_effect_allele_frequency").cast(t.FloatType())
-            if "hm_effect_allele_frequency" in sumstats_df.columns
-            else f.lit(None)
+        sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True).withColumn(
+            # Parsing GWAS Catalog study identifier from filename:
+            "studyId",
+            f.lit(filename_to_study_identifier(sumstats_file)),
         )
+
+        # Parsing variant id fields:
+        chromosome = (
+            f.col("hm_chrom")
+            if "hm_chrom" in sumstats_df.columns
+            else f.col("chromosome")
+        ).cast(t.StringType())
+        position = (
+            f.col("hm_pos")
+            if "hm_pos" in sumstats_df.columns
+            else f.col("base_pair_location")
+        ).cast(t.IntegerType())
+        ref_allele = (
+            f.col("hm_other_allele")
+            if "hm_other_allele" in sumstats_df.columns
+            else f.col("other_allele")
+        )
+        alt_allele = (
+            f.col("hm_effect_allele")
+            if "hm_effect_allele" in sumstats_df.columns
+            else f.col("effect_allele")
+        )
+
+        # Parsing p-value (get a tuple with mantissa and exponent):
+        p_value_expression = (
+            parse_pvalue(f.col("p_value"))
+            if "p_value" in sumstats_df.columns
+            else neglog_pvalue_to_mantissa_and_exponent(f.col("neg_log_10_p_value"))
+        )
+
+        # The effect allele frequency is an optional column, we have to test if it is there:
+        allele_frequency = (
+            f.col("effect_allele_frequency")
+            if "effect_allele_frequency" in sumstats_df.columns
+            else f.lit(None)
+        ).cast(t.FloatType())
+
+        # Do we have sample size? This expression captures 99.7% of sample size columns.
+        sample_size = (f.col("n") if "n" in sumstats_df.columns else f.lit(None)).cast(
+            t.IntegerType()
+        )
+
+        # Depending on the input, we might have beta, but the column might not be there at all also old format calls differently:
+        beta_expression = (
+            f.col("hm_beta")
+            if "hm_beta" in sumstats_df.columns
+            else f.col("beta")
+            if "beta" in sumstats_df.columns
+            # If no column, create one:
+            else f.lit(None)
+        ).cast(t.DoubleType())
+
+        # We might have odds ratio or hazard ratio, wich are basically the same:
+        odds_ratio_expression = (
+            f.col("hm_odds_ratio")
+            if "hm_odds_ratio" in sumstats_df.columns
+            else f.col("odds_ratio")
+            if "odds_ratio" in sumstats_df.columns
+            else f.col("hazard_ratio")
+            if "hazard_ratio" in sumstats_df.columns
+            # If no column, create one:
+            else f.lit(None)
+        ).cast(t.DoubleType())
+
+        # Does the file have standard error column?
+        standard_error = (
+            f.col("standard_error")
+            if "standard_error" in sumstats_df.columns
+            else f.lit(None)
+        ).cast(t.DoubleType())
 
         # Processing columns of interest:
         processed_sumstats_df = (
             sumstats_df
             # Dropping rows which doesn't have proper position:
-            .filter(f.col("hm_pos").cast(t.IntegerType()).isNotNull())
             .select(
-                # Adding study identifier:
-                f.lit(study_id).cast(t.StringType()).alias("studyId"),
+                "studyId",
                 # Adding variant identifier:
-                f.col("hm_variant_id").alias("variantId"),
-                f.col("hm_chrom").alias("chromosome"),
-                f.col("hm_pos").cast(t.IntegerType()).alias("position"),
+                f.concat_ws(
+                    "_",
+                    chromosome,
+                    position,
+                    ref_allele,
+                    alt_allele,
+                ).alias("variantId"),
+                chromosome.alias("chromosome"),
+                position.alias("position"),
                 # Parsing p-value mantissa and exponent:
-                *parse_pvalue(f.col("p_value")),
+                *p_value_expression,
                 # Converting/calculating effect and confidence interval:
                 *convert_odds_ratio_to_beta(
-                    f.col("hm_beta").cast(t.DoubleType()),
-                    f.col("hm_odds_ratio").cast(t.DoubleType()),
-                    f.col("standard_error").cast(t.DoubleType()),
+                    beta_expression,
+                    odds_ratio_expression,
+                    standard_error,
                 ),
-                allele_frequency_expression.alias("effectAlleleFrequencyFromSource"),
+                allele_frequency.alias("effectAlleleFrequencyFromSource"),
+                sample_size.alias("sampleSize"),
             )
-            # The previous select expression generated the necessary fields for calculating the confidence intervals:
-            .select(
-                "*",
-                *calculate_confidence_interval(
-                    f.col("pValueMantissa"),
-                    f.col("pValueExponent"),
-                    f.col("beta"),
-                    f.col("standardError"),
-                ),
+            .filter(
+                # Dropping associations where no harmonized position is available:
+                f.col("position").isNotNull()
+                &
+                # We are not interested in associations with zero effect:
+                (f.col("beta") != 0)
             )
-            .repartition(200, "chromosome")
-            .sortWithinPartitions("position")
+            .orderBy(f.col("chromosome"), f.col("position"))
+            # median study size is 200Mb, max is 2.6Gb
+            .repartition(20)
         )
 
         # Initializing summary statistics object:

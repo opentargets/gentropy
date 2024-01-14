@@ -99,20 +99,20 @@ class Coloc:
     | H<sub>3</sub> | both traits are associated, but have different single causal variants |
     | H<sub>4</sub> | both traits are associated and share the same single causal variant   |
 
-    !!! warning "Approximate Bayes factors required"
-        Coloc requires the availability of approximate Bayes factors (ABF) for each variant in the credible set (`logABF` column).
+    !!! warning "Bayes factors required"
+        Coloc requires the availability of Bayes factors (BF) for each variant in the credible set (`logBF` column).
 
     """
 
     @staticmethod
-    def _get_logsum(log_abf: NDArray[np.float64]) -> float:
+    def _get_logsum(log_bf: NDArray[np.float64]) -> float:
         """Calculates logsum of vector.
 
         This function calculates the log of the sum of the exponentiated
         logs taking out the max, i.e. insuring that the sum is not Inf
 
         Args:
-            log_abf (NDArray[np.float64]): log approximate bayes factor
+            log_bf (NDArray[np.float64]): log bayes factor
 
         Returns:
             float: logsum
@@ -122,16 +122,16 @@ class Coloc:
             >>> round(Coloc._get_logsum(l), 6)
             1.476557
         """
-        themax = np.max(log_abf)
-        result = themax + np.log(np.sum(np.exp(log_abf - themax)))
+        themax = np.max(log_bf)
+        result = themax + np.log(np.sum(np.exp(log_bf - themax)))
         return float(result)
 
     @staticmethod
-    def _get_posteriors(all_abfs: NDArray[np.float64]) -> DenseVector:
+    def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
         """Calculate posterior probabilities for each hypothesis.
 
         Args:
-            all_abfs (NDArray[np.float64]): h0-h4 bayes factors
+            all_bfs (NDArray[np.float64]): h0-h4 bayes factors
 
         Returns:
             DenseVector: Posterior
@@ -141,9 +141,9 @@ class Coloc:
             >>> Coloc._get_posteriors(l)
             DenseVector([0.279, 0.2524, 0.2401, 0.2284])
         """
-        diff = all_abfs - Coloc._get_logsum(all_abfs)
-        abfs_posteriors = np.exp(diff)
-        return Vectors.dense(abfs_posteriors)
+        diff = all_bfs - Coloc._get_logsum(all_bfs)
+        bfs_posteriors = np.exp(diff)
+        return Vectors.dense(bfs_posteriors)
 
     @classmethod
     def colocalise(
@@ -170,31 +170,31 @@ class Coloc:
         return Colocalisation(
             _df=(
                 overlapping_signals.df
-                # Before summing log_abf columns nulls need to be filled with 0:
-                .fillna(0, subset=["statistics.left_logABF", "statistics.right_logABF"])
-                # Sum of log_abfs for each pair of signals
+                # Before summing log_BF columns nulls need to be filled with 0:
+                .fillna(0, subset=["statistics.left_logBF", "statistics.right_logBF"])
+                # Sum of log_BFs for each pair of signals
                 .withColumn(
-                    "sum_log_abf",
-                    f.col("statistics.left_logABF") + f.col("statistics.right_logABF"),
+                    "sum_log_bf",
+                    f.col("statistics.left_logBF") + f.col("statistics.right_logBF"),
                 )
-                # Group by overlapping peak and generating dense vectors of log_abf:
+                # Group by overlapping peak and generating dense vectors of log_BF:
                 .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId")
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
                     fml.array_to_vector(
-                        f.collect_list(f.col("statistics.left_logABF"))
-                    ).alias("left_logABF"),
+                        f.collect_list(f.col("statistics.left_logBF"))
+                    ).alias("left_logBF"),
                     fml.array_to_vector(
-                        f.collect_list(f.col("statistics.right_logABF"))
-                    ).alias("right_logABF"),
-                    fml.array_to_vector(f.collect_list(f.col("sum_log_abf"))).alias(
-                        "sum_log_abf"
+                        f.collect_list(f.col("statistics.right_logBF"))
+                    ).alias("right_logBF"),
+                    fml.array_to_vector(f.collect_list(f.col("sum_log_bf"))).alias(
+                        "sum_log_bf"
                     ),
                 )
-                .withColumn("logsum1", logsum(f.col("left_logABF")))
-                .withColumn("logsum2", logsum(f.col("right_logABF")))
-                .withColumn("logsum12", logsum(f.col("sum_log_abf")))
-                .drop("left_logABF", "right_logABF", "sum_log_abf")
+                .withColumn("logsum1", logsum(f.col("left_logBF")))
+                .withColumn("logsum2", logsum(f.col("right_logBF")))
+                .withColumn("logsum12", logsum(f.col("sum_log_bf")))
+                .drop("left_logBF", "right_logBF", "sum_log_bf")
                 # Add priors
                 # priorc1 Prior on variant being causal for trait 1
                 .withColumn("priorc1", f.lit(priorc1))
@@ -203,9 +203,9 @@ class Coloc:
                 # priorc12 Prior on variant being causal for traits 1 and 2
                 .withColumn("priorc12", f.lit(priorc12))
                 # h0-h2
-                .withColumn("lH0abf", f.lit(0))
-                .withColumn("lH1abf", f.log(f.col("priorc1")) + f.col("logsum1"))
-                .withColumn("lH2abf", f.log(f.col("priorc2")) + f.col("logsum2"))
+                .withColumn("lH0bf", f.lit(0))
+                .withColumn("lH1bf", f.log(f.col("priorc1")) + f.col("logsum1"))
+                .withColumn("lH2bf", f.log(f.col("priorc2")) + f.col("logsum2"))
                 # h3
                 .withColumn("sumlogsum", f.col("logsum1") + f.col("logsum2"))
                 # exclude null H3/H4s: due to sumlogsum == logsum12
@@ -222,33 +222,33 @@ class Coloc:
                     ),
                 )
                 .withColumn(
-                    "lH3abf",
+                    "lH3bf",
                     f.log(f.col("priorc1"))
                     + f.log(f.col("priorc2"))
                     + f.col("logdiff"),
                 )
                 .drop("right_logsum", "left_logsum", "sumlogsum", "max", "logdiff")
                 # h4
-                .withColumn("lH4abf", f.log(f.col("priorc12")) + f.col("logsum12"))
+                .withColumn("lH4bf", f.log(f.col("priorc12")) + f.col("logsum12"))
                 # cleaning
                 .drop(
                     "priorc1", "priorc2", "priorc12", "logsum1", "logsum2", "logsum12"
                 )
                 # posteriors
                 .withColumn(
-                    "allABF",
+                    "allBF",
                     fml.array_to_vector(
                         f.array(
-                            f.col("lH0abf"),
-                            f.col("lH1abf"),
-                            f.col("lH2abf"),
-                            f.col("lH3abf"),
-                            f.col("lH4abf"),
+                            f.col("lH0bf"),
+                            f.col("lH1bf"),
+                            f.col("lH2bf"),
+                            f.col("lH3bf"),
+                            f.col("lH4bf"),
                         )
                     ),
                 )
                 .withColumn(
-                    "posteriors", fml.vector_to_array(posteriors(f.col("allABF")))
+                    "posteriors", fml.vector_to_array(posteriors(f.col("allBF")))
                 )
                 .withColumn("h0", f.col("posteriors").getItem(0))
                 .withColumn("h1", f.col("posteriors").getItem(1))
@@ -260,13 +260,13 @@ class Coloc:
                 # clean up
                 .drop(
                     "posteriors",
-                    "allABF",
+                    "allBF",
                     "h4h3",
-                    "lH0abf",
-                    "lH1abf",
-                    "lH2abf",
-                    "lH3abf",
-                    "lH4abf",
+                    "lH0bf",
+                    "lH1bf",
+                    "lH2bf",
+                    "lH3bf",
+                    "lH4bf",
                 )
                 .withColumn("colocalisationMethod", f.lit("COLOC"))
             ),

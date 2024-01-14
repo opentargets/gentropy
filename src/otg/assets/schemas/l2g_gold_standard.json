@@ -8,6 +8,18 @@
       "metadata": {}
     },
     {
+      "name": "variantId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
       "name": "geneId",
       "type": "string",
       "nullable": false,
@@ -22,7 +34,7 @@
     {
       "metadata": {},
       "name": "sources",
-      "nullable": false,
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": "string",

@@ -1,12 +1,9 @@
 """Step to generate variant annotation dataset."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from functools import reduce
-from typing import Dict, List
 
 import pyspark.sql.functions as f
-from omegaconf import MISSING
 
 from otg.common.Liftover import LiftOverSpark
 from otg.common.session import Session
@@ -17,7 +14,6 @@ from otg.dataset.variant_annotation import VariantAnnotation
 from otg.dataset.variant_index import VariantIndex
 
 
-@dataclass
 class V2GStep:
     """Variant-to-gene (V2G) step.
 
@@ -41,42 +37,41 @@ class V2GStep:
         v2g_path (str): Output V2G path.
     """
 
-    session: Session = MISSING
-    variant_index_path: str = MISSING
-    variant_annotation_path: str = MISSING
-    gene_index_path: str = MISSING
-    vep_consequences_path: str = MISSING
-    liftover_chain_file_path: str = MISSING
-    liftover_max_length_difference: int = 100
-    max_distance: int = 500_000
-    approved_biotypes: List[str] = field(
-        default_factory=lambda: [
-            "protein_coding",
-            "3prime_overlapping_ncRNA",
-            "antisense",
-            "bidirectional_promoter_lncRNA",
-            "IG_C_gene",
-            "IG_D_gene",
-            "IG_J_gene",
-            "IG_V_gene",
-            "lincRNA",
-            "macro_lncRNA",
-            "non_coding",
-            "sense_intronic",
-            "sense_overlapping",
-        ]
-    )
-    intervals: Dict[str, str] = field(default_factory=dict)
-    v2g_path: str = MISSING
+    def __init__(
+        self,
+        session: Session,
+        variant_index_path: str,
+        variant_annotation_path: str,
+        gene_index_path: str,
+        vep_consequences_path: str,
+        liftover_chain_file_path: str,
+        approved_biotypes: list[str],
+        interval_sources: dict[str, str],
+        v2g_path: str,
+        max_distance: int = 500_000,
+        liftover_max_length_difference: int = 100,
+    ) -> None:
+        """Run Variant-to-gene (V2G) step.
 
-    def __post_init__(self: V2GStep) -> None:
-        """Run step."""
+        Args:
+            session (Session): Session object.
+            variant_index_path (str): Input variant index path.
+            variant_annotation_path (str): Input variant annotation path.
+            gene_index_path (str): Input gene index path.
+            vep_consequences_path (str): Input VEP consequences path.
+            liftover_chain_file_path (str): Path to GRCh37 to GRCh38 chain file.
+            approved_biotypes (list[str]): List of approved biotypes.
+            interval_sources (dict[str, str]): Dictionary of interval sources.
+            v2g_path (str): Output V2G path.
+            max_distance (int): Maximum distance to consider.
+            liftover_max_length_difference (int): Maximum length difference for liftover.
+        """
         # Read
-        gene_index = GeneIndex.from_parquet(self.session, self.gene_index_path)
-        vi = VariantIndex.from_parquet(self.session, self.variant_index_path).persist()
-        va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
-        vep_consequences = self.session.spark.read.csv(
-            self.vep_consequences_path, sep="\t", header=True
+        gene_index = GeneIndex.from_parquet(session, gene_index_path)
+        vi = VariantIndex.from_parquet(session, variant_index_path).persist()
+        va = VariantAnnotation.from_parquet(session, variant_annotation_path)
+        vep_consequences = session.spark.read.csv(
+            vep_consequences_path, sep="\t", header=True
         ).select(
             f.element_at(f.split("Accession", r"/"), -1).alias(
                 "variantFunctionalConsequenceId"
@@ -88,12 +83,12 @@ class V2GStep:
         # Transform
         lift = LiftOverSpark(
             # lift over variants to hg38
-            self.liftover_chain_file_path,
-            self.liftover_max_length_difference,
+            liftover_chain_file_path,
+            liftover_max_length_difference,
         )
         gene_index_filtered = gene_index.filter_by_biotypes(
             # Filter gene index by approved biotypes to define V2G gene universe
-            list(self.approved_biotypes)
+            list(approved_biotypes)
         )
         va_slimmed = va.filter_by_variant_df(
             # Variant annotation reduced to the variant index to define V2G variant universe
@@ -105,18 +100,16 @@ class V2GStep:
                 # create interval instances by parsing each source
                 [
                     Intervals.from_source(
-                        self.session.spark, source_name, source_path, gene_index, lift
+                        session.spark, source_name, source_path, gene_index, lift
                     ).df
-                    for source_name, source_path in self.intervals.items()
+                    for source_name, source_path in interval_sources.items()
                 ],
             ),
             _schema=Intervals.get_schema(),
         )
         v2g_datasets = [
-            va_slimmed.get_distance_to_tss(gene_index_filtered, self.max_distance),
+            va_slimmed.get_distance_to_tss(gene_index_filtered, max_distance),
             va_slimmed.get_most_severe_vep_v2g(vep_consequences, gene_index_filtered),
-            va_slimmed.get_polyphen_v2g(gene_index_filtered),
-            va_slimmed.get_sift_v2g(gene_index_filtered),
             va_slimmed.get_plof_v2g(gene_index_filtered),
             intervals.v2g(vi),
         ]
@@ -131,6 +124,6 @@ class V2GStep:
         # Load
         (
             v2g.df.write.partitionBy("chromosome")
-            .mode(self.session.write_mode)
-            .parquet(self.v2g_path)
+            .mode(session.write_mode)
+            .parquet(v2g_path)
         )

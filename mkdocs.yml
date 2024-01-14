@@ -1,19 +1,22 @@
 site_name: Open Targets Genetics
 
 nav:
-  - installation.md
-  - usage.md
+  - Home: index.md
+  - Installation: installation.md
+  - ... | howto/**
+  - Roadmap: roadmap.md
   - ... | development/**
   - ... | python_api/**
 
 plugins:
   - search
-  - awesome-pages
+  - awesome-pages:
+      collapse_single_pages: true
   - mkdocstrings:
       handlers:
         python:
           options:
-            filters: ["!^_", "!__new__"]
+            filters: ["!^_", "!__new__", "__init__"]
             show_signature_annotations: true
             show_root_heading: true
   - section-index
@@ -23,8 +26,6 @@ plugins:
       exclude:
         - index.md
   - autolinks
-  - minify:
-      minify_html: true
   - exclude:
       glob:
         - assets/schemas/*
@@ -43,9 +44,12 @@ markdown_extensions:
   - pymdownx.superfences
   - toc:
       permalink: true
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
 
 hooks:
-  - src/scripts/schemadocs.py
+  - src/utils/schemadocs.py
 
 repo_name: opentargets/genetics_etl_python
 repo_url: https://github.com/opentargets/genetics_etl_python

@@ -38,36 +38,6 @@
     },
     {
       "metadata": {},
-      "name": "oddsRatio",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "oddsRatioConfidenceIntervalLower",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "oddsRatioConfidenceIntervalUpper",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "betaConfidenceIntervalLower",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "betaConfidenceIntervalUpper",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
       "name": "pValueMantissa",
       "nullable": true,
       "type": "float"
@@ -111,6 +81,12 @@
       "name": "finemappingMethod",
       "nullable": true,
       "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "sampleSize",
+      "nullable": true,
+      "type": "integer"
     },
     {
       "metadata": {},
@@ -160,7 +136,7 @@
             },
             {
               "metadata": {},
-              "name": "logABF",
+              "name": "logBF",
               "nullable": true,
               "type": "double"
             },
@@ -190,18 +166,6 @@
             },
             {
               "metadata": {},
-              "name": "pValueMantissaConditioned",
-              "nullable": true,
-              "type": "float"
-            },
-            {
-              "metadata": {},
-              "name": "pValueExponentConditioned",
-              "nullable": true,
-              "type": "integer"
-            },
-            {
-              "metadata": {},
               "name": "beta",
               "nullable": true,
               "type": "double"
@@ -209,18 +173,6 @@
             {
               "metadata": {},
               "name": "standardError",
-              "nullable": true,
-              "type": "double"
-            },
-            {
-              "metadata": {},
-              "name": "betaConditioned",
-              "nullable": true,
-              "type": "double"
-            },
-            {
-              "metadata": {},
-              "name": "standardErrorConditioned",
               "nullable": true,
               "type": "double"
             },

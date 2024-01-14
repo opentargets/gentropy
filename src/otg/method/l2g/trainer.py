@@ -53,6 +53,7 @@ class LocusToGeneTrainer:
                 results=model.predict(test),
                 hyperparameters=hyperparams,
                 wandb_run_name=wandb_run_name,
+                training_data=train,
             )
         if model_path:
             l2g_model.save(model_path)

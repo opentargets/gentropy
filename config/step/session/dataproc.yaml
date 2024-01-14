@@ -1,4 +1,5 @@
-_target_: otg.common.session.Session
+defaults:
+  - base_session
+
 spark_uri: yarn
-hail_home: /opt/conda/miniconda3/lib/python3.10/site-packages/hail
-write_mode: overwrite
+write_mode: errorifexists

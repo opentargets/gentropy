@@ -58,7 +58,7 @@ class VariantIndex(Dataset):
             "positionB37",
             "alleleType",
             "alleleFrequencies",
-            "cadd",
+            "inSilicoPredictors",
         ]
         va_slimmed = variant_annotation.filter_by_variant_df(
             study_locus.unique_variants_in_locus()

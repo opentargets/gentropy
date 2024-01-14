@@ -2,22 +2,11 @@
 
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
-
 from otg.dataset.study_index import StudyIndex
 from otg.datasource.finngen.study_index import FinnGenStudyIndex
+from pyspark.sql import SparkSession
 
 
-def test_finngen_study_index_from_source(
-    sample_finngen_studies: DataFrame,
-) -> None:
+def test_finngen_study_index_from_source(spark: SparkSession) -> None:
     """Test study index from source."""
-    assert isinstance(
-        FinnGenStudyIndex.from_source(
-            sample_finngen_studies,
-            "FINNGEN_R9_",
-            "https://storage.googleapis.com/finngen-public-data-r9/summary_stats/finngen_R9_",
-            ".gz",
-        ),
-        StudyIndex,
-    )
+    assert isinstance(FinnGenStudyIndex.from_source(spark), StudyIndex)

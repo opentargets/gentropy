@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, Type
 from otg.common.schemas import parse_spark_schema
 from otg.common.spark_helpers import convert_from_long_to_wide
 from otg.dataset.dataset import Dataset
-from otg.method.l2g.feature_factory import StudyLocusFactory
+from otg.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    # from otg.dataset.colocalisation import Colocalisation
+    from otg.dataset.colocalisation import Colocalisation
     from otg.dataset.study_index import StudyIndex
     from otg.dataset.study_locus import StudyLocus
     from otg.dataset.v2g import V2G
@@ -21,22 +21,38 @@ if TYPE_CHECKING:
 
 @dataclass
 class L2GFeatureMatrix(Dataset):
-    """Dataset with features for Locus to Gene prediction."""
+    """Dataset with features for Locus to Gene prediction.
+
+    Attributes:
+        features_list (list[str] | None): List of features to use. If None, all possible features are used.
+    """
+
+    features_list: list[str] | None = None
+
+    def __post_init__(self: L2GFeatureMatrix) -> None:
+        """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used."""
+        fixed_cols = ["studyLocusId", "geneId", "goldStandardSet"]
+        self.features_list = self.features_list or [
+            col for col in self._df.columns if col not in fixed_cols
+        ]
 
     @classmethod
     def generate_features(
         cls: Type[L2GFeatureMatrix],
+        features_list: list[str],
         study_locus: StudyLocus,
         study_index: StudyIndex,
         variant_gene: V2G,
-        # colocalisation: Colocalisation,
+        colocalisation: Colocalisation,
     ) -> L2GFeatureMatrix:
         """Generate features from the OTG datasets.
 
         Args:
+            features_list (list[str]): List of features to generate
             study_locus (StudyLocus): Study locus dataset
             study_index (StudyIndex): Study index dataset
             variant_gene (V2G): Variant to gene dataset
+            colocalisation (Colocalisation): Colocalisation dataset
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
@@ -46,10 +62,11 @@ class L2GFeatureMatrix(Dataset):
         """
         if features_dfs := [
             # Extract features
-            # ColocalisationFactory._get_coloc_features(
-            #     study_locus, study_index, colocalisation
-            # ).df,
+            ColocalisationFactory._get_coloc_features(
+                study_locus, study_index, colocalisation
+            ).df,
             StudyLocusFactory._get_tss_distance_features(study_locus, variant_gene).df,
+            StudyLocusFactory._get_vep_features(study_locus, variant_gene).df,
         ]:
             fm = reduce(
                 lambda x, y: x.unionByName(y),
@@ -65,6 +82,7 @@ class L2GFeatureMatrix(Dataset):
                     fm, ["studyLocusId", "geneId"], "featureName", "featureValue"
                 ),
                 _schema=cls.get_schema(),
+                features_list=features_list,
             )
         raise ValueError("L2G Feature matrix is empty")
 
@@ -76,6 +94,31 @@ class L2GFeatureMatrix(Dataset):
             StructType: Schema for the L2gFeatureMatrix dataset
         """
         return parse_spark_schema("l2g_feature_matrix.json")
+
+    def calculate_feature_missingness_rate(
+        self: L2GFeatureMatrix,
+    ) -> dict[str, float]:
+        """Calculate the proportion of missing values in each feature.
+
+        Returns:
+            dict[str, float]: Dictionary of feature names and their missingness rate.
+
+        Raises:
+            ValueError: If no features are found.
+        """
+        total_count = self._df.count()
+        if not self.features_list:
+            raise ValueError("No features found")
+
+        return {
+            feature: (
+                self._df.filter(
+                    (self._df[feature].isNull()) | (self._df[feature] == 0)
+                ).count()
+                / total_count
+            )
+            for feature in self.features_list
+        }
 
     def fill_na(
         self: L2GFeatureMatrix, value: float = 0.0, subset: list[str] | None = None
@@ -93,18 +136,19 @@ class L2GFeatureMatrix(Dataset):
         return self
 
     def select_features(
-        self: L2GFeatureMatrix, features_list: list[str]
+        self: L2GFeatureMatrix, features_list: list[str] | None
     ) -> L2GFeatureMatrix:
         """Select a subset of features from the feature matrix.
 
         Args:
-            features_list (list[str]): List of features to select
+            features_list (list[str] | None): List of features to select
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
         """
-        fixed_rows = ["studyLocusId", "geneId", "goldStandardSet"]
-        self.df = self._df.select(fixed_rows + features_list)
+        features_list = features_list or self.features_list
+        fixed_cols = ["studyLocusId", "geneId", "goldStandardSet"]
+        self.df = self._df.select(fixed_cols + features_list)  # type: ignore
         return self
 
     def train_test_split(

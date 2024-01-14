@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import MinMaxScaler, VectorAssembler
 from pyspark.ml.functions import vector_to_array
-from pyspark.sql import Window
+from pyspark.sql import Row, Window
 from pyspark.sql.types import FloatType
 from scipy.stats import norm
 
@@ -250,6 +250,38 @@ def normalise_column(
     )
 
 
+def neglog_pvalue_to_mantissa_and_exponent(p_value: Column) -> tuple[Column, Column]:
+    """Computing p-value mantissa and exponent based on the negative 10 based logarithm of the p-value.
+
+    Args:
+        p_value (Column): Neg-log p-value (string)
+
+    Returns:
+        tuple[Column, Column]: mantissa and exponent of the p-value
+
+    Examples:
+        >>> (
+        ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b')], ['negLogPv', 'label'])
+        ... .select('negLogPv',*neglog_pvalue_to_mantissa_and_exponent(f.col('negLogPv')))
+        ... .show()
+        ... )
+        +--------+------------------+--------------+
+        |negLogPv|    pValueMantissa|pValueExponent|
+        +--------+------------------+--------------+
+        |    4.56|  3.63078054770101|            -5|
+        | 2109.23|1.6982436524618154|         -2110|
+        +--------+------------------+--------------+
+        <BLANKLINE>
+    """
+    exponent: Column = f.ceil(p_value)
+    mantissa: Column = f.pow(f.lit(10), (p_value - exponent + f.lit(1)))
+
+    return (
+        mantissa.cast(t.DoubleType()).alias("pValueMantissa"),
+        (-1 * exponent).cast(t.IntegerType()).alias("pValueExponent"),
+    )
+
+
 def calculate_neglog_pvalue(
     p_value_mantissa: Column, p_value_exponent: Column
 ) -> Column:
@@ -373,3 +405,29 @@ def pivot_df(
             ],
         )
     )
+
+
+def get_value_from_row(row: Row, column: str) -> Any:
+    """Extract index value from a row if exists.
+
+    Args:
+        row (Row): One row from a dataframe
+        column (str): column label we want to extract.
+
+    Returns:
+        Any: value of the column in the row
+
+    Raises:
+        ValueError: if the column is not in the row
+
+    Examples:
+        >>> get_value_from_row(Row(geneName="AR", chromosome="X"), "chromosome")
+        'X'
+        >>> get_value_from_row(Row(geneName="AR", chromosome="X"), "disease")
+        Traceback (most recent call last):
+        ...
+        ValueError: Column disease not found in row Row(geneName='AR', chromosome='X')
+    """
+    if column not in row:
+        raise ValueError(f"Column {column} not found in row {row}")
+    return row[column]

@@ -45,7 +45,11 @@ class Session:
             .getOrCreate()
         )
         self.logger = Log4j(self.spark)
+
         self.write_mode = write_mode
+
+        self.hail_home = hail_home
+        self.start_hail = start_hail
 
     def _default_config(self: Session) -> SparkConf:
         """Default spark configuration.
@@ -75,9 +79,14 @@ class Session:
 
         Returns:
             SparkConf: Hail specific Spark configuration.
+
+        Raises:
+            ValueError: If Hail home is not specified but Hail is requested.
         """
         if not start_hail:
             return SparkConf()
+        if not hail_home:
+            raise ValueError("Hail home must be specified to start Hail.")
         return (
             SparkConf()
             .set("spark.jars", f"{hail_home}/backend/hail-all-spark.jar")
@@ -87,8 +96,6 @@ class Session:
             .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
             .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
-            .set("spark.sql.files.openCostInBytes", "50gb")
-            .set("spark.sql.files.maxPartitionBytes", "50gb")
         )
 
     def _create_merged_config(
@@ -110,41 +117,40 @@ class Session:
         all_settings = (
             self._default_config().getAll()
             + self._hail_config(start_hail, hail_home).getAll()
-            + list(extended_spark_conf.items())
-            if extended_spark_conf
-            else []
         )
+        if extended_spark_conf:
+            all_settings += list(extended_spark_conf.items())
         return SparkConf().setAll(all_settings)
 
     def read_parquet(
         self: Session,
-        path: str,
+        path: str | list[str],
         schema: StructType,
         **kwargs: bool | float | int | str | None,
     ) -> DataFrame:
-        """Reads parquet dataset with a provided schema.
+        """Reads parquet dataset (provided as a single path or a list of paths) with a provided schema.
 
         Args:
-            path (str): parquet dataset path
+            path (str | list[str]): path to the parquet dataset
             schema (StructType): Spark schema
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.parquet
 
         Returns:
             DataFrame: Dataframe with provided schema
         """
-        return self.spark.read.schema(schema).parquet(path, **kwargs)
+        path = [path] if isinstance(path, str) else path
+        return self.spark.read.schema(schema).parquet(*path, **kwargs)
 
 
 class Log4j:
-    """Log4j logger class.
+    """Log4j logger class."""
 
-    This class provides a wrapper around the Log4j logging system.
+    def __init__(self, spark: SparkSession) -> None:
+        """Log4j logger class. This class provides a wrapper around the Log4j logging system.
 
-    Args:
-        spark (SparkSession): The Spark session used to access Spark context and Log4j logging.
-    """
-
-    def __init__(self, spark: SparkSession) -> None:  # noqa: D107
+        Args:
+            spark (SparkSession): The Spark session used to access Spark context and Log4j logging.
+        """
         # get spark app details with which to prefix all messages
         log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
         self.logger = log4j.Logger.getLogger(__name__)
@@ -159,7 +165,6 @@ class Log4j:
             message (str): Error message to write to log
         """
         self.logger.error(message)
-        return None
 
     def warn(self: Log4j, message: str) -> None:
         """Log a warning.
@@ -167,8 +172,7 @@ class Log4j:
         Args:
             message (str): Warning messsage to write to log
         """
-        self.logger.warn(message)
-        return None
+        self.logger.warning(message)
 
     def info(self: Log4j, message: str) -> None:
         """Log information.
@@ -177,4 +181,3 @@ class Log4j:
             message (str): Information message to write to log
         """
         self.logger.info(message)
-        return None

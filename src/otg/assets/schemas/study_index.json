@@ -89,19 +89,29 @@
     },
     {
       "name": "nCases",
-      "type": "long",
+      "type": "integer",
       "nullable": true,
       "metadata": {}
     },
     {
       "name": "nControls",
-      "type": "long",
+      "type": "integer",
       "nullable": true,
       "metadata": {}
     },
     {
       "name": "nSamples",
-      "type": "long",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "cohorts",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
       "nullable": true,
       "metadata": {}
     },
@@ -140,7 +150,7 @@
           "fields": [
             {
               "name": "sampleSize",
-              "type": "long",
+              "type": "integer",
               "nullable": true,
               "metadata": {}
             },
@@ -166,7 +176,7 @@
           "fields": [
             {
               "name": "sampleSize",
-              "type": "long",
+              "type": "integer",
               "nullable": true,
               "metadata": {}
             },
@@ -179,6 +189,26 @@
           ]
         },
         "containsNull": false
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "qualityControls",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "analysisFlags",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
       },
       "nullable": true,
       "metadata": {}

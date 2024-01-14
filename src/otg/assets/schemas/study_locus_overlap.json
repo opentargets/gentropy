@@ -15,7 +15,7 @@
     {
       "metadata": {},
       "name": "chromosome",
-      "nullable": false,
+      "nullable": true,
       "type": "string"
     },
     {
@@ -27,7 +27,7 @@
     {
       "metadata": {},
       "name": "statistics",
-      "nullable": false,
+      "nullable": true,
       "type": {
         "fields": [
           {
@@ -68,13 +68,13 @@
           },
           {
             "metadata": {},
-            "name": "left_logABF",
+            "name": "left_logBF",
             "nullable": true,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "right_logABF",
+            "name": "right_logBF",
             "nullable": true,
             "type": "double"
           },

@@ -1,53 +1,46 @@
-"""Step to generate variant annotation dataset."""
+"""Step to generate colocalisation results."""
 from __future__ import annotations
-
-from dataclasses import dataclass
-
-from omegaconf import MISSING
 
 from otg.common.session import Session
 from otg.dataset.study_index import StudyIndex
 from otg.dataset.study_locus import CredibleInterval, StudyLocus
-from otg.method.colocalisation import Coloc, ECaviar
+from otg.method.colocalisation import ECaviar
 
 
-@dataclass
 class ColocalisationStep:
     """Colocalisation step.
 
-    This workflow runs colocalization analyses that assess the degree to which independent signals of the association share the same causal variant in a region of the genome, typically limited by linkage disequilibrium (LD).
-
-    Attributes:
-        session (Session): Session object.
-        study_locus_path (DictConfig): Input Study-locus path.
-        coloc_path (DictConfig): Output Colocalisation path.
-        priorc1 (float): Prior on variant being causal for trait 1.
-        priorc2 (float): Prior on variant being causal for trait 2.
-        priorc12 (float): Prior on variant being causal for traits 1 and 2.
+    This workflow runs colocalisation analyses that assess the degree to which independent signals of the association share the same causal variant in a region of the genome, typically limited by linkage disequilibrium (LD).
     """
 
-    session: Session = MISSING
-    study_locus_path: str = MISSING
-    study_index_path: str = MISSING
-    coloc_path: str = MISSING
-    priorc1: float = 1e-4
-    priorc2: float = 1e-4
-    priorc12: float = 1e-5
+    def __init__(
+        self,
+        session: Session,
+        credible_set_path: str,
+        study_index_path: str,
+        coloc_path: str,
+    ) -> None:
+        """Run Colocalisation step.
 
-    def __post_init__(self: ColocalisationStep) -> None:
-        """Run step."""
-        # Study-locus information
-        sl = StudyLocus.from_parquet(self.session, self.study_locus_path)
-        si = StudyIndex.from_parquet(self.session, self.study_index_path)
-
-        # Study-locus overlaps for 95% credible sets
-        sl_overlaps = sl.filter_credible_set(CredibleInterval.IS95).find_overlaps(si)
-
-        coloc_results = Coloc.colocalise(
-            sl_overlaps, self.priorc1, self.priorc2, self.priorc12
+        Args:
+            session (Session): Session object.
+            credible_set_path (str): Input credible sets path.
+            study_index_path (str): Input study index path.
+            coloc_path (str): Output Colocalisation path.
+        """
+        # Extract
+        credible_set = StudyLocus.from_parquet(
+            session, credible_set_path, recursiveFileLookup=True
         )
-        ecaviar_results = ECaviar.colocalise(sl_overlaps)
+        si = StudyIndex.from_parquet(
+            session, study_index_path, recursiveFileLookup=True
+        )
 
-        coloc_results.df.unionByName(ecaviar_results.df, allowMissingColumns=True)
+        # Transform
+        overlaps = credible_set.filter_credible_set(
+            CredibleInterval.IS95
+        ).find_overlaps(si)
+        ecaviar_results = ECaviar.colocalise(overlaps)
 
-        coloc_results.df.write.mode(self.session.write_mode).parquet(self.coloc_path)
+        # Load
+        ecaviar_results.df.write.mode(session.write_mode).parquet(coloc_path)

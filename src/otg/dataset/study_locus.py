@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from otg.dataset.ld_index import LDIndex
     from otg.dataset.study_index import StudyIndex
 
 
@@ -36,6 +37,7 @@ class StudyLocusQualityCheck(Enum):
         AMBIGUOUS_STUDY (str): Association with ambiguous study
         UNRESOLVED_LD (str): Variant not found in LD reference
         LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
+        UNPICSABLE (str): Unable to calculate PIPs with the provided data
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -48,6 +50,9 @@ class StudyLocusQualityCheck(Enum):
     UNRESOLVED_LD = "Variant not found in LD reference"
     LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
+    NOT_QUALIFYING_LD_BLOCK = (
+        "LD block does not contain variants at the required R^2 threshold"
+    )
 
 
 class CredibleInterval(Enum):
@@ -116,7 +121,7 @@ class StudyLocus(Dataset):
         """Align overlapping tags in pairs of overlapping study-locus, keeping all tags in both loci.
 
         Args:
-            loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logABF` and `posteriorProbability` columns.
+            loci_to_overlap (DataFrame): containing `studyLocusId`, `studyType`, `chromosome`, `tagVariantId`, `logBF` and `posteriorProbability` columns.
             peak_overlaps (DataFrame): containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
 
         Returns:
@@ -124,7 +129,7 @@ class StudyLocus(Dataset):
         """
         # Complete information about all tags in the left study-locus of the overlap
         stats_cols = [
-            "logABF",
+            "logBF",
             "posteriorProbability",
             "beta",
             "pValueMantissa",
@@ -170,7 +175,7 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def _update_quality_flag(
+    def update_quality_flag(
         qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
     ) -> Column:
         """Update the provided quality control list with a new flag if condition is met.
@@ -202,16 +207,17 @@ class StudyLocus(Dataset):
 
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(*[f.col("variantId"), f.col("studyId")])).show()
-            +----------+----------+--------------------+
-            |   studyId| variantId|      study_locus_id|
-            +----------+----------+--------------------+
-            |GCST000001|1_1000_A_C| 7437284926964690765|
-            |GCST000002|1_1000_A_C|-7653912547667845377|
-            +----------+----------+--------------------+
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"))).show()
+            +----------+----------+-------------------+
+            |   studyId| variantId|     study_locus_id|
+            +----------+----------+-------------------+
+            |GCST000001|1_1000_A_C|1553357789130151995|
+            |GCST000002|1_1000_A_C|-415050894682709184|
+            +----------+----------+-------------------+
             <BLANKLINE>
         """
-        return f.xxhash64(*[study_id_col, variant_id_col]).alias("studyLocusId")
+        variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
+        return f.xxhash64(study_id_col, variant_id_col).alias("studyLocusId")
 
     @classmethod
     def get_schema(cls: type[StudyLocus]) -> StructType:
@@ -263,7 +269,7 @@ class StudyLocus(Dataset):
                 "studyType",
                 "chromosome",
                 f.col("locus.variantId").alias("tagVariantId"),
-                f.col("locus.logABF").alias("logABF"),
+                f.col("locus.logBF").alias("logBF"),
                 f.col("locus.posteriorProbability").alias("posteriorProbability"),
                 f.col("locus.pValueMantissa").alias("pValueMantissa"),
                 f.col("locus.pValueExponent").alias("pValueExponent"),
@@ -367,6 +373,22 @@ class StudyLocus(Dataset):
         )
         return self
 
+    def annotate_ld(
+        self: StudyLocus, study_index: StudyIndex, ld_index: LDIndex
+    ) -> StudyLocus:
+        """Annotate LD information to study-locus.
+
+        Args:
+            study_index (StudyIndex): Study index to resolve ancestries.
+            ld_index (LDIndex): LD index to resolve LD information.
+
+        Returns:
+            StudyLocus: Study locus annotated with ld information from LD index.
+        """
+        from otg.method.ld import LDAnnotator
+
+        return LDAnnotator.ld_annotate(self, study_index, ld_index)
+
     def clump(self: StudyLocus) -> StudyLocus:
         """Perform LD clumping of the studyLocus.
 
@@ -392,7 +414,7 @@ class StudyLocus(Dataset):
             )
             .withColumn(
                 "qualityControls",
-                StudyLocus._update_quality_flag(
+                StudyLocus.update_quality_flag(
                     f.col("qualityControls"),
                     f.col("is_lead_linked"),
                     StudyLocusQualityCheck.LD_CLUMPED,
@@ -412,7 +434,7 @@ class StudyLocus(Dataset):
         """
         self.df = self.df.withColumn(
             "qualityControls",
-            self._update_quality_flag(
+            self.update_quality_flag(
                 f.col("qualityControls"),
                 f.col("ldSet").isNull(),
                 StudyLocusQualityCheck.UNRESOLVED_LD,
@@ -432,7 +454,7 @@ class StudyLocus(Dataset):
 
         self.df = self.df.withColumn(
             "qualityControls",
-            self._update_quality_flag(
+            self.update_quality_flag(
                 f.col("qualityControls"),
                 f.col("ldPopulationStructure").isNull(),
                 StudyLocusQualityCheck.NO_POPULATION,

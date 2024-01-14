@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-class UKBiobankStudyIndex(StudyIndex):
+class UKBiobankStudyIndex:
     """Study index dataset from UKBiobank.
 
     The following information is extracted:
@@ -36,7 +36,7 @@ class UKBiobankStudyIndex(StudyIndex):
     def from_source(
         cls: type[UKBiobankStudyIndex],
         ukbiobank_studies: DataFrame,
-    ) -> UKBiobankStudyIndex:
+    ) -> StudyIndex:
         """This function ingests study level metadata from UKBiobank.
 
         The University of Michigan SAIGE analysis (N=1281) utilized PheCode derived phenotypes and a novel method that ensures accurate P values, even with highly unbalanced case-control ratios (Zhou et al., 2018).
@@ -47,9 +47,9 @@ class UKBiobankStudyIndex(StudyIndex):
             ukbiobank_studies (DataFrame): UKBiobank study manifest file loaded in spark session.
 
         Returns:
-            UKBiobankStudyIndex: Annotated UKBiobank study table.
+            StudyIndex: Annotated UKBiobank study table.
         """
-        return UKBiobankStudyIndex(
+        return StudyIndex(
             _df=(
                 ukbiobank_studies.select(
                     f.col("code").alias("studyId"),
@@ -76,10 +76,10 @@ class UKBiobankStudyIndex(StudyIndex):
                         "publicationJournal"
                     ),
                     f.col("n_total").cast("string").alias("initialSampleSize"),
-                    f.col("n_cases").cast("long").alias("nCases"),
+                    f.col("n_cases").cast("integer").alias("nCases"),
                     f.array(
                         f.struct(
-                            f.col("n_total").cast("long").alias("sampleSize"),
+                            f.col("n_total").cast("integer").alias("sampleSize"),
                             f.concat(f.lit("European="), f.col("n_total")).alias(
                                 "ancestry"
                             ),
@@ -103,8 +103,8 @@ class UKBiobankStudyIndex(StudyIndex):
                 )
                 .withColumn(
                     "ldPopulationStructure",
-                    cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
+                    StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
                 )
             ),
-            _schema=UKBiobankStudyIndex.get_schema(),
+            _schema=StudyIndex.get_schema(),
         )
