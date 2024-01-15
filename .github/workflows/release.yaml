@@ -12,9 +12,9 @@ env:
   PYTHON_VERSION_DEFAULT: "3.10.8"
 
 jobs:
-  Release:
-    if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):')
+  release:
     runs-on: ubuntu-latest
+    concurrency: release
     permissions:
       # NOTE: this enables trusted publishing.
       # See https://github.com/pypa/gh-action-pypi-publish/tree/release/v1#trusted-publishing
@@ -29,43 +29,21 @@ jobs:
           repository: opentargets/genetics_etl_python
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
-      - name: Install and configure Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: |
-            venv-${{ runner.os }}-\
-            ${{ env.PYTHON_VERSION_DEFAULT }}-\
-            ${{ hashFiles('**/poetry.lock') }}
-
-      - name: Validate project dependencies
-        run: poetry check
-
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-
       - name: Python Semantic Release
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "action@github.com"
-          poetry run semantic-release publish
-        env:
-          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        id: semrelease
+        uses: python-semantic-release/python-semantic-release@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  Documentation:
-    needs: Release
+      - name: Publish package to GitHub Release
+        uses: python-semantic-release/upload-to-gh-release@main
+        if: ${{ steps.semrelease.outputs.released }} == 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.semrelease.outputs.tag }}
+
+  documentation:
+    needs: release
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
