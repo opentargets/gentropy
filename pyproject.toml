@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "otgenetics"
 # !! version is managed by semantic_release
-version = "0.1.0-rc.1"
+version = "0.1.0-rc.2"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache-2.0"
