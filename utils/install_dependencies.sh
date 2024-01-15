@@ -10,9 +10,14 @@ if ! command -v pyenv &>/dev/null; then
 fi
 
 echo "Activating Pyenv environment with a Python version required for the project..."
-PYTHON_VERSION=$(grep '^python = ".*"' pyproject.toml | cut -d'"' -f2)
-pyenv install --skip-existing $PYTHON_VERSION
-pyenv shell $PYTHON_VERSION
+if [ -f ".python-version" ]; then
+    PYTHON_VERSION=$(cat .python-version)
+    pyenv install --skip-existing $PYTHON_VERSION
+    pyenv shell $PYTHON_VERSION
+else
+    echo ".python-version file not found."
+    exit 1
+fi
 
 if ! command -v poetry &>/dev/null; then
     echo "Installing Poetry, a tool to manage Python dependencies..."
