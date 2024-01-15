@@ -128,7 +128,9 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("nControls", percentNulls=0.1)
         .withColumnSpec("nSamples", percentNulls=0.1)
         .withColumnSpec("summarystatsLocation", percentNulls=0.1)
-        .withColumnSpec("studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl"])
+        .withColumnSpec(
+            "studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl", "gwas"]
+        )
     )
     return data_spec.build()
 
@@ -194,7 +196,7 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("finemappingMethod", percentNulls=0.1)
         .withColumnSpec(
             "locus",
-            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logABF", rand(), "posteriorProbability", rand(), "variantId", cast(rand() as string), "beta", rand(), "standardError", rand(), "r2Overall", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
+            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logBF", rand(), "posteriorProbability", rand(), "variantId", cast(rand() as string), "beta", rand(), "standardError", rand(), "r2Overall", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
             percentNulls=0.1,
         )
     )
@@ -449,7 +451,7 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 def sample_summary_satistics(spark: SparkSession) -> SummaryStatistics:
     """Sample GWAS raw associations sample data."""
     return SummaryStatistics(
-        _df=spark.read.parquet("tests/data_samples/GCST005523_chr18.parquet"),
+        _df=spark.read.parquet("tests/data_samples/sumstats_sample"),
         _schema=SummaryStatistics.get_schema(),
     )
 
@@ -571,18 +573,18 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
         .withSchema(schema)
         .withColumnSpec("distanceTssMean", percentNulls=0.1)
         .withColumnSpec("distanceTssMinimum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
         .withColumnSpec(
             "goldStandardSet", percentNulls=0.0, values=["positive", "negative"]
         )

@@ -1,0 +1,4 @@
+defaults:
+  - ld_index
+
+ld_index_out: ${datasets.ld_index}

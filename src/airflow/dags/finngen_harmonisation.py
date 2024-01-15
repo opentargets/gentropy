@@ -53,7 +53,7 @@ with DAG(
             print("Submitting job for study: ", study_id)  # noqa: T201
             common.submit_pyspark_job_no_operator(
                 cluster_name=CLUSTER_NAME,
-                step_id="finngen_sumstat_preprocess",
+                step_id="ot_finngen_sumstat_preprocess",
                 other_args=[
                     f"step.raw_sumstats_path=gs://{SUMMARY_STATS_BUCKET_NAME}/{input_path}",
                     f"step.out_sumstats_path={SUMSTATS_PARQUET}/{study_id}.parquet",

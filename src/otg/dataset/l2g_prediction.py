@@ -9,8 +9,7 @@ import pyspark.sql.functions as f
 from pyspark.ml.functions import vector_to_array
 
 from otg.common.schemas import parse_spark_schema
-
-# from otg.dataset.colocalisation import Colocalisation
+from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.dataset import Dataset
 from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from otg.dataset.study_index import StudyIndex
@@ -48,9 +47,9 @@ class L2GPrediction(Dataset):
         study_locus: StudyLocus,
         study_index: StudyIndex,
         v2g: V2G,
-        # coloc: Colocalisation,
+        coloc: Colocalisation,
     ) -> L2GPrediction:
-        """Initialise L2G from feature matrix.
+        """Extract L2G predictions for a set of credible sets derived from GWAS.
 
         Args:
             model_path (str): Path to the fitted model
@@ -58,16 +57,25 @@ class L2GPrediction(Dataset):
             study_locus (StudyLocus): Study locus dataset
             study_index (StudyIndex): Study index dataset
             v2g (V2G): Variant to gene dataset
+            coloc (Colocalisation): Colocalisation dataset
 
         Returns:
             L2GPrediction: L2G dataset
         """
+        gwas_study_locus = StudyLocus(
+            _df=study_locus.df.join(
+                study_index.study_type_lut().filter(f.col("studyType") == "gwas"),
+                on="studyId",
+                how="inner",
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
         fm = L2GFeatureMatrix.generate_features(
             features_list=features_list,
-            study_locus=study_locus,
+            study_locus=gwas_study_locus,
             study_index=study_index,
             variant_gene=v2g,
-            # colocalisation=coloc,
+            colocalisation=coloc,
         ).fill_na()
         return L2GPrediction(
             # Load and apply fitted model

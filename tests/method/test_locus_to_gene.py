@@ -5,8 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from otg.dataset.colocalisation import Colocalisation
 from otg.dataset.l2g_feature import L2GFeature
 from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from otg.dataset.study_index import StudyIndex
+from otg.dataset.study_locus import StudyLocus
 from otg.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
 from otg.method.l2g.model import LocusToGeneModel
 from otg.method.l2g.trainer import LocusToGeneTrainer
@@ -15,10 +18,8 @@ from pyspark.ml.tuning import ParamGridBuilder
 from xgboost.spark import SparkXGBClassifier
 
 if TYPE_CHECKING:
-    from otg.dataset.colocalisation import Colocalisation
-    from otg.dataset.study_index import StudyIndex
-    from otg.dataset.study_locus import StudyLocus
     from otg.dataset.v2g import V2G
+    from pyspark.sql import SparkSession
 
 
 @pytest.fixture(scope="module")
@@ -94,16 +95,101 @@ class TestColocalisationFactory:
         mock_colocalisation: Colocalisation,
         colocalisation_method: str,
     ) -> None:
-        """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus."""
-        coloc_llr = ColocalisationFactory._get_max_coloc_per_study_locus(
+        """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus returns the right data type."""
+        coloc_features = ColocalisationFactory._get_max_coloc_per_study_locus(
             mock_study_locus,
             mock_study_index,
             mock_colocalisation,
             colocalisation_method,
         )
         assert isinstance(
-            coloc_llr, L2GFeature
+            coloc_features, L2GFeature
         ), "Unexpected model type returned from _get_max_coloc_per_study_locus"
+
+    def test_get_max_coloc_per_study_locus_semantic(
+        self: TestColocalisationFactory,
+        spark: SparkSession,
+    ) -> None:
+        """Test logic of the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus."""
+        # Prepare mock datasets based on 2 associations
+        credset = StudyLocus(
+            _df=spark.createDataFrame(
+                # 2 associations with a common variant in the locus
+                [
+                    {
+                        "studyLocusId": 1,
+                        "variantId": "lead1",
+                        "studyId": "study1",  # this is a GWAS
+                        "locus": [
+                            {"variantId": "commonTag", "posteriorProbability": 0.9},
+                        ],
+                        "chromosome": "1",
+                    },
+                    {
+                        "studyLocusId": 2,
+                        "variantId": "lead2",
+                        "studyId": "study2",  # this is a eQTL study
+                        "locus": [
+                            {"variantId": "commonTag", "posteriorProbability": 0.9},
+                        ],
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        studies = StudyIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyId": "study1",
+                        "studyType": "gwas",
+                        "traitFromSource": "trait1",
+                        "projectId": "project1",
+                    },
+                    {
+                        "studyId": "study2",
+                        "studyType": "eqtl",
+                        "geneId": "gene1",
+                        "traitFromSource": "trait2",
+                        "projectId": "project2",
+                    },
+                ]
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+        coloc = Colocalisation(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "leftStudyLocusId": 1,
+                        "rightStudyLocusId": 2,
+                        "chromosome": "1",
+                        "colocalisationMethod": "eCAVIAR",
+                        "numberColocalisingVariants": 1,
+                        "clpp": 0.81,  # 0.9*0.9
+                    }
+                ]
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
+        expected_coloc_features_df = spark.createDataFrame(
+            [
+                (1, "gene1", "eqtlColocClppMaximum", 0.81),
+                (1, "gene1", "eqtlColocClppMaximumNeighborhood", -4.0),
+            ],
+            L2GFeature.get_schema(),
+        )
+        # Test
+        coloc_features = ColocalisationFactory._get_max_coloc_per_study_locus(
+            credset,
+            studies,
+            coloc,
+            "eCAVIAR",
+        )
+        assert coloc_features.df.collect() == expected_coloc_features_df.collect()
 
     def test_get_coloc_features(
         self: TestColocalisationFactory,
