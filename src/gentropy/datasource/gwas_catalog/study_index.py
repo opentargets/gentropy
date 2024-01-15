@@ -49,10 +49,12 @@ def read_curation_table(
     return curation_df.select(
         "studyId",
         "studyType",
-        f.when(f.col("analysisFlag").isNotNull(), f.array(f.col("analysisFlag")))
+        f.when(f.col("analysisFlag").isNotNull(), f.split(f.col("analysisFlag"), r"\|"))
         .otherwise(f.array())
         .alias("analysisFlags"),
-        f.when(f.col("qualityControl").isNotNull(), f.array(f.col("qualityControl")))
+        f.when(
+            f.col("qualityControl").isNotNull(), f.split(f.col("qualityControl"), r"\|")
+        )
         .otherwise(f.array())
         .alias("qualityControls"),
         f.col("isCurated").cast(t.BooleanType()),
@@ -475,8 +477,8 @@ class StudyIndexGWASCatalog(StudyIndex):
                 .filter(f.col("hasSumstats"))
                 # Adding columns expected in the curation table - array columns aready flattened:
                 .withColumn("studyType", f.lit(None).cast(t.StringType()))
-                .withColumn("analysisFlags", f.lit(None).cast(t.StringType()))
-                .withColumn("qualityControls", f.lit(None).cast(t.StringType()))
+                .withColumn("analysisFlag", f.lit(None).cast(t.StringType()))
+                .withColumn("qualityControl", f.lit(None).cast(t.StringType()))
                 .withColumn("isCurated", f.lit(False).cast(t.StringType()))
             )
 
@@ -500,10 +502,10 @@ class StudyIndexGWASCatalog(StudyIndex):
                 # Propagate existing curation - array columns are being flattened:
                 f.col("curation_studyType").alias("studyType"),
                 f.array_join(f.col("curation_analysisFlags"), "|").alias(
-                    "analysisFlags"
+                    "analysisFlag"
                 ),
                 f.array_join(f.col("curation_qualityControls"), "|").alias(
-                    "qualityControls"
+                    "qualityControl"
                 ),
                 # This boolean flag needs to be casted to string, because saving to tsv would fail otherwise:
                 f.coalesce(f.col("curation_isCurated"), f.lit(False))
