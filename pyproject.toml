@@ -61,7 +61,7 @@ pytest-cov = "^4.1.0"
 pytest-sugar = "^0.9.5"
 dbldatagen = "^0.3.1"
 pyparsing = "^3.1.1"
-pytest = "^7.4.2"
+pytest = "^7.4.4"
 pytest-xdist = "^3.5.0"
 
 
