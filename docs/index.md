@@ -29,4 +29,4 @@ Ingestion and analysis of genetic and functional genomic data for the identifica
 
 This project is still in experimental phase. Please refer to the [roadmap section](roadmap.md) for more information.
 
-For all development information, including running the code, troubleshooting, or contributing, see the [development section](./development/).
+For all development information, including running the code, troubleshooting, or contributing, see the [development section](development/_development.md).

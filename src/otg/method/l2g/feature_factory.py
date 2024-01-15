@@ -51,17 +51,17 @@ class ColocalisationFactory:
             )
         if colocalisation_method == "COLOC":
             coloc_score_col_name = "log2h4h3"
-            coloc_feature_col_template = "max_coloc_llr"
+            coloc_feature_col_template = "ColocLlrMaximum"
 
         elif colocalisation_method == "eCAVIAR":
             coloc_score_col_name = "clpp"
-            coloc_feature_col_template = "max_coloc_clpp"
+            coloc_feature_col_template = "ColocClppMaximum"
 
         colocalising_study_locus = (
             study_locus.df.select("studyLocusId", "studyId")
             # annotate studyLoci with overlapping IDs on the left - to just keep GWAS associations
             .join(
-                colocalisation._df.selectExpr(
+                colocalisation.df.selectExpr(
                     "leftStudyLocusId as studyLocusId",
                     "rightStudyLocusId",
                     "colocalisationMethod",
@@ -80,7 +80,7 @@ class ColocalisationFactory:
             )
             .join(
                 f.broadcast(
-                    studies._df.selectExpr(
+                    studies.df.selectExpr(
                         "studyId as right_studyId",
                         "studyType as right_studyType",
                         "geneId",
@@ -96,57 +96,93 @@ class ColocalisationFactory:
             .select("studyLocusId", "right_studyType", "geneId", "coloc_score")
         )
 
-        # Max LLR calculation per studyLocus AND type of QTL
+        # Max PP calculation per studyLocus AND type of QTL
         local_max = get_record_with_maximum_value(
             colocalising_study_locus,
             ["studyLocusId", "right_studyType", "geneId"],
             "coloc_score",
-        )
+        ).persist()
+
+        intercept = 0.0001
         neighbourhood_max = (
-            get_record_with_maximum_value(
-                colocalising_study_locus,
-                ["studyLocusId", "right_studyType"],
-                "coloc_score",
+            (
+                local_max.selectExpr(
+                    "studyLocusId", "coloc_score as coloc_local_max", "geneId"
+                )
+                .join(
+                    # Add maximum in the neighborhood
+                    get_record_with_maximum_value(
+                        colocalising_study_locus.withColumnRenamed(
+                            "coloc_score", "coloc_neighborhood_max"
+                        ),
+                        ["studyLocusId", "right_studyType"],
+                        "coloc_neighborhood_max",
+                    ).drop("geneId"),
+                    on="studyLocusId",
+                )
+                .withColumn(
+                    f"{coloc_feature_col_template}Neighborhood",
+                    f.log10(
+                        f.abs(
+                            f.col("coloc_local_max")
+                            - f.col("coloc_neighborhood_max")
+                            + f.lit(intercept)
+                        )
+                    ),
+                )
             )
-            .join(
-                local_max.selectExpr("studyLocusId", "coloc_score as coloc_local_max"),
-                on="studyLocusId",
-                how="inner",
-            )
-            .withColumn(
-                f"{coloc_feature_col_template}_nbh",
-                f.col("coloc_local_max") - f.col("coloc_score"),
-            )
+            .drop("coloc_neighborhood_max", "coloc_local_max")
+            .persist()
         )
 
         # Split feature per molQTL
         local_dfs = []
         nbh_dfs = []
-        for qtl_type in ["eqtl", "sqtl", "pqtl"]:
-            local_max = local_max.filter(
-                f.col("right_studyType") == qtl_type
-            ).withColumnRenamed(
-                "coloc_score", f"{qtl_type}_{coloc_feature_col_template}_local"
+        qtl_types: list[str] = (
+            colocalising_study_locus.select("right_studyType")
+            .distinct()
+            .toPandas()["right_studyType"]
+            .tolist()
+        ) or ["eqtl", "pqtl", "sqtl"]
+        for qtl_type in qtl_types:
+            filtered_local_max = (
+                local_max.filter(f.col("right_studyType") == qtl_type)
+                .withColumnRenamed(
+                    "coloc_score",
+                    f"{qtl_type}{coloc_feature_col_template}",
+                )
+                .drop("right_studyType")
             )
-            local_dfs.append(local_max)
+            local_dfs.append(filtered_local_max)
 
-            neighbourhood_max = neighbourhood_max.filter(
-                f.col("right_studyType") == qtl_type
-            ).withColumnRenamed(
-                f"{coloc_feature_col_template}_nbh",
-                f"{qtl_type}_{coloc_feature_col_template}_nbh",
+            filtered_neighbourhood_max = (
+                neighbourhood_max.filter(f.col("right_studyType") == qtl_type)
+                .withColumnRenamed(
+                    f"{coloc_feature_col_template}Neighborhood",
+                    f"{qtl_type}{coloc_feature_col_template}Neighborhood",
+                )
+                .drop("right_studyType")
             )
-            nbh_dfs.append(neighbourhood_max)
+            nbh_dfs.append(filtered_neighbourhood_max)
 
         wide_dfs = reduce(
             lambda x, y: x.unionByName(y, allowMissingColumns=True),
             local_dfs + nbh_dfs,
-            colocalising_study_locus.limit(0),
         )
 
         return L2GFeature(
             _df=convert_from_wide_to_long(
-                wide_dfs,
+                wide_dfs.groupBy("studyLocusId", "geneId").agg(
+                    *(
+                        f.first(f.col(c), ignorenulls=True).alias(c)
+                        for c in wide_dfs.columns
+                        if c
+                        not in [
+                            "studyLocusId",
+                            "geneId",
+                        ]
+                    )
+                ),
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
@@ -160,6 +196,8 @@ class ColocalisationFactory:
     ) -> L2GFeature:
         """Calls _get_max_coloc_per_study_locus for both methods and concatenates the results.
 
+        !!! note "Colocalisation features are only available for the eCAVIAR results for now."
+
         Args:
             study_locus (StudyLocus): Study locus dataset
             studies (StudyIndex): Study index dataset
@@ -168,12 +206,6 @@ class ColocalisationFactory:
         Returns:
             L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
         """
-        coloc_llr = ColocalisationFactory._get_max_coloc_per_study_locus(
-            study_locus,
-            studies,
-            colocalisation,
-            "COLOC",
-        )
         coloc_clpp = ColocalisationFactory._get_max_coloc_per_study_locus(
             study_locus,
             studies,
@@ -182,7 +214,7 @@ class ColocalisationFactory:
         )
 
         return L2GFeature(
-            _df=coloc_llr.df.unionByName(coloc_clpp.df, allowMissingColumns=True),
+            _df=coloc_clpp.df,
             _schema=L2GFeature.get_schema(),
         )
 
@@ -327,7 +359,7 @@ class StudyLocusFactory(StudyLocus):
                             _aggregate_vep_feature,
                             f.max("score"),
                             ["studyLocusId"],
-                            "vepMaximumNeighbourhood",
+                            "vepMaximumNeighborhood",
                         ),
                         # Calculate overall max VEP score per gene
                         credible_set_w_variant_consequences.transform(
@@ -341,7 +373,7 @@ class StudyLocusFactory(StudyLocus):
                             _aggregate_vep_feature,
                             f.mean("weightedScore"),
                             ["studyLocusId"],
-                            "vepMeanNeighbourhood",
+                            "vepMeanNeighborhood",
                         ),
                         # Calculate mean VEP score per gene
                         credible_set_w_variant_consequences.transform(

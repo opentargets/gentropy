@@ -1,10 +1,8 @@
 """Step to generate an GWAS Catalog study identifier inclusion and exclusion list."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from omegaconf import MISSING
 from pyspark.sql import functions as f
 
 from otg.common.session import Session
@@ -23,38 +21,8 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
 
-@dataclass
-class GWASCatalogInclusionGenerator:
-    """Generate GWAS Catalog studies eligible for ingestion based on curation and the provided criteria.
-
-    Attributes:
-        session (Session): Session object.
-        catalog_study_files (list[str]): List of raw GWAS catalog studies file.
-        catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-        catalog_associations_file (str): Raw GWAS catalog associations file.
-        variant_annotation_path (str): Input variant annotation path.
-        gwas_catalog_study_curation_file (str | None): file of the curation table. Optional.
-        harmonised_study_file (str): file with the list of all successfully harmonized summary statistics.
-        criteria (str): inclusion criteria depending on the dataset ("summary_stats" or "curation")
-        inclusion_list_path (str): output file name of the list of study identifiers that can be ingested.
-        exclusion_list_path (str): output file name of the list of study identifiers that excluded from ingestion.
-    """
-
-    session: Session = MISSING
-    # GWAS Catalog sources:
-    catalog_study_files: list[str] = MISSING
-    catalog_ancestry_files: list[str] = MISSING
-    catalog_associations_file: str = MISSING
-    # Custom curation:
-    gwas_catalog_study_curation_file: str | None = None
-    # GnomAD source:
-    variant_annotation_path: str = MISSING
-    # Dynamic sources:
-    harmonised_study_file: str = MISSING
-    criteria: str = MISSING
-    # Output:
-    inclusion_list_path: str = MISSING
-    exclusion_list_path: str = MISSING
+class GWASCatalogStudyInclusionGenerator:
+    """GWAS Catalog study eligibility for ingestion based on curation and the provided criteria."""
 
     @staticmethod
     def flag_eligible_studies(
@@ -113,34 +81,50 @@ class GWASCatalogInclusionGenerator:
         """
         return session.spark.createDataFrame([{"_c0": path} for path in studies])
 
+    @staticmethod
     def get_gwas_catalog_study_index(
-        self: GWASCatalogInclusionGenerator,
+        session: Session,
+        variant_annotation_path: str,
+        catalog_study_files: list[str],
+        catalog_ancestry_files: list[str],
+        harmonised_study_file: str,
+        catalog_associations_file: str,
+        gwas_catalog_study_curation_file: str,
     ) -> StudyIndexGWASCatalog:
         """Return GWAS Catalog study index.
+
+        Args:
+            session (Session): Session object.
+            variant_annotation_path (str): Input variant annotation path.
+            catalog_study_files (list[str]): List of raw GWAS catalog studies file.
+            catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
+            harmonised_study_file (str): GWAS Catalog summary statistics lookup table.
+            catalog_associations_file (str): Raw GWAS catalog associations file.
+            gwas_catalog_study_curation_file (str): file of the curation table. Optional.
 
         Returns:
             StudyIndexGWASCatalog: Completely processed and fully annotated study index.
         """
         # Extract
-        va = VariantAnnotation.from_parquet(self.session, self.variant_annotation_path)
-        catalog_studies = self.session.spark.read.csv(
-            list(self.catalog_study_files), sep="\t", header=True
+        va = VariantAnnotation.from_parquet(session, variant_annotation_path)
+        catalog_studies = session.spark.read.csv(
+            list(catalog_study_files), sep="\t", header=True
         )
-        ancestry_lut = self.session.spark.read.csv(
-            list(self.catalog_ancestry_files), sep="\t", header=True
+        ancestry_lut = session.spark.read.csv(
+            list(catalog_ancestry_files), sep="\t", header=True
         )
-        sumstats_lut = self.session.spark.read.csv(
-            self.harmonised_study_file, sep="\t", header=False
+        sumstats_lut = session.spark.read.csv(
+            harmonised_study_file, sep="\t", header=False
         )
-        catalog_associations = self.session.spark.read.csv(
-            self.catalog_associations_file, sep="\t", header=True
+        catalog_associations = session.spark.read.csv(
+            catalog_associations_file, sep="\t", header=True
         ).persist()
         gwas_catalog_study_curation = read_curation_table(
-            self.gwas_catalog_study_curation_file, self.session
+            gwas_catalog_study_curation_file, session
         )
 
         # Transform
-        study_index, study_locus = GWASCatalogStudySplitter.split(
+        study_index, _ = GWASCatalogStudySplitter.split(
             StudyIndexGWASCatalogParser.from_source(
                 catalog_studies,
                 ancestry_lut,
@@ -151,20 +135,53 @@ class GWASCatalogInclusionGenerator:
 
         return study_index
 
-    def __post_init__(self: GWASCatalogInclusionGenerator) -> None:
-        """Run step."""
+    def __init__(
+        self,
+        session: Session,
+        catalog_study_files: list[str],
+        catalog_ancestry_files: list[str],
+        catalog_associations_file: str,
+        gwas_catalog_study_curation_file: str,
+        variant_annotation_path: str,
+        harmonised_study_file: str,
+        criteria: str,
+        inclusion_list_path: str,
+        exclusion_list_path: str,
+    ) -> None:
+        """Run step.
+
+        Args:
+            session (Session): Session object.
+            catalog_study_files (list[str]): List of raw GWAS catalog studies file.
+            catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
+            catalog_associations_file (str): Raw GWAS catalog associations file.
+            gwas_catalog_study_curation_file (str): file of the curation table. Optional.
+            variant_annotation_path (str): Input variant annotation path.
+            harmonised_study_file (str): GWAS Catalog summary statistics lookup table.
+            criteria (str): name of the filter set to be applied.
+            inclusion_list_path (str): Output path for the inclusion list.
+            exclusion_list_path (str): Output path for the exclusion list.
+        """
         # Create study index:
-        study_index = self.get_gwas_catalog_study_index()
+        study_index = self.get_gwas_catalog_study_index(
+            session,
+            variant_annotation_path,
+            catalog_study_files,
+            catalog_ancestry_files,
+            harmonised_study_file,
+            catalog_associations_file,
+            gwas_catalog_study_curation_file,
+        )
 
         # Get study indices for inclusion:
-        flagged_studies = self.flag_eligible_studies(study_index, self.criteria)
+        flagged_studies = self.flag_eligible_studies(study_index, criteria)
 
         # Output inclusion list:
         eligible = (
             flagged_studies.filter(f.col("isEligible")).select("studyId").persist()
         )
-        eligible.write.mode(self.session.write_mode).parquet(self.inclusion_list_path)
+        eligible.write.mode(session.write_mode).parquet(inclusion_list_path)
 
         # Output exclusion list:
         excluded = flagged_studies.filter(~f.col("isEligible")).persist()
-        excluded.write.mode(self.session.write_mode).parquet(self.exclusion_list_path)
+        excluded.write.mode(session.write_mode).parquet(exclusion_list_path)
