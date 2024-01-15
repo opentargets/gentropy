@@ -44,7 +44,7 @@ ruff = "^0.1.8"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3"
-mkdocstrings-python = "^1.7.5"
+mkdocstrings-python = "^1.8.0"
 mkdocs-material = "*"
 mkdocs-section-index = "^0.3.4"
 mkdocs-git-revision-date-localized-plugin = "^1.2.2"
