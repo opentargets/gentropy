@@ -190,4 +190,5 @@ with DAG(
         >> upload_task
         >> curation_processing
         >> summary_satistics_processing
+        >> common.delete_cluster(CLUSTER_NAME)
     )
