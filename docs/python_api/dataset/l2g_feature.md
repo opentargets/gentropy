@@ -2,7 +2,7 @@
 title: L2G Feature
 ---
 
-::: gentropy.method.l2g.feature_factory.L2GFeature
+::: oxygen.method.l2g.feature_factory.L2GFeature
 
 ## Schema
 

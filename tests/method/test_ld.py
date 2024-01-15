@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.method.ld import LDAnnotator
+from oxygen.dataset.study_locus import StudyLocus
+from oxygen.method.ld import LDAnnotator
 from pyspark.sql import Row
 
 if TYPE_CHECKING:
-    from gentropy.dataset.ld_index import LDIndex
-    from gentropy.dataset.study_index import StudyIndex
+    from oxygen.dataset.ld_index import LDIndex
+    from oxygen.dataset.study_index import StudyIndex
     from pyspark.sql import SparkSession
 
 

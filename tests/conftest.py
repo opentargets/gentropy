@@ -8,24 +8,24 @@ import hail as hl
 import numpy as np
 import pandas as pd
 import pytest
-from gentropy.common.Liftover import LiftOverSpark
-from gentropy.common.session import Session
-from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.gene_index import GeneIndex
-from gentropy.dataset.intervals import Intervals
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.l2g_prediction import L2GPrediction
-from gentropy.dataset.ld_index import LDIndex
-from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.dataset.summary_statistics import SummaryStatistics
-from gentropy.dataset.v2g import V2G
-from gentropy.dataset.variant_annotation import VariantAnnotation
-from gentropy.dataset.variant_index import VariantIndex
-from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
-from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
+from oxygen.common.Liftover import LiftOverSpark
+from oxygen.common.session import Session
+from oxygen.dataset.colocalisation import Colocalisation
+from oxygen.dataset.gene_index import GeneIndex
+from oxygen.dataset.intervals import Intervals
+from oxygen.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from oxygen.dataset.l2g_gold_standard import L2GGoldStandard
+from oxygen.dataset.l2g_prediction import L2GPrediction
+from oxygen.dataset.ld_index import LDIndex
+from oxygen.dataset.study_index import StudyIndex
+from oxygen.dataset.study_locus import StudyLocus
+from oxygen.dataset.study_locus_overlap import StudyLocusOverlap
+from oxygen.dataset.summary_statistics import SummaryStatistics
+from oxygen.dataset.v2g import V2G
+from oxygen.dataset.variant_annotation import VariantAnnotation
+from oxygen.dataset.variant_index import VariantIndex
+from oxygen.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
+from oxygen.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame, SparkSession
 
 from utils.spark import get_spark_testing_conf
@@ -51,7 +51,7 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
 
 @pytest.fixture()
 def session() -> Session:
-    """Return gentropy Session object."""
+    """Return oxygen Session object."""
     return Session()
 
 

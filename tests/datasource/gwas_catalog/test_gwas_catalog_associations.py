@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from gentropy.dataset.variant_annotation import VariantAnnotation
-from gentropy.datasource.gwas_catalog.associations import (
+from oxygen.dataset.variant_annotation import VariantAnnotation
+from oxygen.datasource.gwas_catalog.associations import (
     GWASCatalogCuratedAssociationsParser,
     StudyLocusGWASCatalog,
 )

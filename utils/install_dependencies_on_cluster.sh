@@ -59,7 +59,7 @@ function main() {
     PACKAGENAME=$(basename ${PACKAGE})
 
     echo "Uninstalling previous version if it exists"
-    pip uninstall -y gentropy
+    pip uninstall -y oxygen
     echo "Install package..."
     run_with_retry pip install --upgrade ${PACKAGENAME}
 

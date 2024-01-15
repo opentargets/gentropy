@@ -58,5 +58,5 @@ def on_pre_build(config: MkdocsConfig) -> None:
     generate_schema_assets(
         spark=spark,
         assets_dir=assets_dir,
-        schema_dir="src/gentropy/assets/schemas",
+        schema_dir="src/oxygen/assets/schemas",
     )

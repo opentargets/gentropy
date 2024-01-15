@@ -2,4 +2,4 @@
 title: Gene Index
 ---
 
-::: gentropy.gene_index.GeneIndexStep
+::: oxygen.gene_index.GeneIndexStep

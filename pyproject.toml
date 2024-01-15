@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "gentropy"
+name = "oxygen"
 # !! version is managed by semantic_release
 version = "0.0.0"
 description = "Open targets Genetics Portal Python ETL"
@@ -8,14 +8,14 @@ license = "Apache-2.0"
 readme = "README.md"
 documentation = "https://opentargets.github.io/genetics_etl_python/"
 repository = "https://github.com/opentargets/genetics_etl_python"
-packages = [{ include = "gentropy", from = "src" }]
+packages = [{ include = "oxygen", from = "src" }]
 
 [tool.poetry.urls]
 "Bug Tracker" = "http://github.com/opentargets/issues"
 "Funding" = "https://www.opentargets.org"
 
 [tool.poetry.scripts]
-gentropy = "gentropy.cli:main"
+oxygen = "oxygen.cli:main"
 
 [tool.poetry.dependencies]
 python = "3.10.8"
@@ -81,7 +81,7 @@ yamllint = "^1.33.0"
 logging_use_named_masks = true
 build_command = "pip install poetry && poetry build"
 assets = []
-version_variable = ["src/gentropy/__init__.py:__version__"]
+version_variable = ["src/oxygen/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 upload_to_pypi = false
 upload_to_release = true
@@ -116,8 +116,8 @@ build-backend = "poetry.core.masonry.api"
 extend_exclude = ["src/conftest.py", "src/airflow", "src/utils"]
 
 [tool.deptry.per_rule_ignores]
-DEP001 = ["gentropy"]
-DEP003 = ["gentropy"]
+DEP001 = ["oxygen"]
+DEP003 = ["oxygen"]
 
 [tool.interrogate]
 fail-under = 95

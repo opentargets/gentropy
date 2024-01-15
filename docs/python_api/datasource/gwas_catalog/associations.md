@@ -2,8 +2,8 @@
 title: Associations
 ---
 
-::: gentropy.datasource.gwas_catalog.associations.GWASCatalogCuratedAssociationsParser
+::: oxygen.datasource.gwas_catalog.associations.GWASCatalogCuratedAssociationsParser
 
 ---
 
-::: gentropy.datasource.gwas_catalog.associations.StudyLocusGWASCatalog
+::: oxygen.datasource.gwas_catalog.associations.StudyLocusGWASCatalog

@@ -2,4 +2,4 @@
 title: Window-based clumping
 ---
 
-::: gentropy.window_based_clumping.WindowBasedClumpingStep
+::: oxygen.window_based_clumping.WindowBasedClumpingStep

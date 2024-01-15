@@ -4,10 +4,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from gentropy.dataset.gene_index import GeneIndex
+    from oxygen.dataset.gene_index import GeneIndex
 
-from gentropy.dataset.v2g import V2G
-from gentropy.dataset.variant_annotation import VariantAnnotation
+from oxygen.dataset.v2g import V2G
+from oxygen.dataset.variant_annotation import VariantAnnotation
 
 
 def test_variant_index_creation(mock_variant_annotation: VariantAnnotation) -> None:

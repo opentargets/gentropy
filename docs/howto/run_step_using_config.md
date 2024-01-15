@@ -45,5 +45,5 @@ The configuration file should contain the parameters you want to use to run the 
 Once you have created the configuration file, you can run your own new `my_gene_index`:
 
 ```bash
-gentropy step=my_gene_index --config-dir=config --config-name=my_config
+oxygen step=my_gene_index --config-dir=config --config-name=my_config
 ```

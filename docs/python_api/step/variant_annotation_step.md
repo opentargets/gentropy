@@ -2,4 +2,4 @@
 title: Variant Annotation
 ---
 
-::: gentropy.variant_annotation.VariantAnnotationStep
+::: oxygen.variant_annotation.VariantAnnotationStep

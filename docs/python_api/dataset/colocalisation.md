@@ -2,7 +2,7 @@
 title: Colocalisation
 ---
 
-::: gentropy.dataset.colocalisation.Colocalisation
+::: oxygen.dataset.colocalisation.Colocalisation
 
 ## Schema
 

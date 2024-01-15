@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gentropy.dataset.v2g import V2G
+from oxygen.dataset.v2g import V2G
 
 if TYPE_CHECKING:
-    from gentropy.dataset.intervals import Intervals
-    from gentropy.dataset.variant_index import VariantIndex
+    from oxygen.dataset.intervals import Intervals
+    from oxygen.dataset.variant_index import VariantIndex
 
 
 def test_interval_v2g_creation(

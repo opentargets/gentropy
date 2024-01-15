@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.method.colocalisation import Coloc, ECaviar
+from oxygen.dataset.colocalisation import Colocalisation
+from oxygen.method.colocalisation import Coloc, ECaviar
 
 if TYPE_CHECKING:
-    from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+    from oxygen.dataset.study_locus_overlap import StudyLocusOverlap
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:

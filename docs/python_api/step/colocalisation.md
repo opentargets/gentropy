@@ -2,4 +2,4 @@
 title: Colocalisation
 ---
 
-::: gentropy.colocalisation.ColocalisationStep
+::: oxygen.colocalisation.ColocalisationStep

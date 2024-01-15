@@ -2,4 +2,4 @@
 title: LD Matrix
 ---
 
-::: gentropy.datasource.gnomad.ld.GnomADLDMatrix
+::: oxygen.datasource.gnomad.ld.GnomADLDMatrix

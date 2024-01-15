@@ -17,4 +17,4 @@ This is a simplified version of CARMA with the following features:
 7. No functional annotations.
 8. Removed unnecessary parameters.
 
-:::gentropy.method.carma.CARMA
+:::oxygen.method.carma.CARMA

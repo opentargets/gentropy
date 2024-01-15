@@ -2,4 +2,4 @@
 title: Dataset
 ---
 
-::: gentropy.dataset.dataset.Dataset
+::: oxygen.dataset.dataset.Dataset

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from gentropy.dataset.summary_statistics import SummaryStatistics
-from gentropy.datasource.finngen.summary_stats import FinnGenSummaryStats
+from oxygen.dataset.summary_statistics import SummaryStatistics
+from oxygen.datasource.finngen.summary_stats import FinnGenSummaryStats
 from pyspark.sql import SparkSession
 
 

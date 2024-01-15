@@ -2,4 +2,4 @@
 title: Andersson et al.
 ---
 
-::: gentropy.datasource.intervals.andersson.IntervalsAndersson
+::: oxygen.datasource.intervals.andersson.IntervalsAndersson

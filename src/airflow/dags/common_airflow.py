@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
-GENTROPY_VERSION = "0.0.0"
+oxygen_VERSION = "0.0.0"
 
 # Cloud configuration.
 GCP_PROJECT = "open-targets-genetics-dev"
@@ -30,12 +30,10 @@ GCP_AUTOSCALING_POLICY = "otg-etl"
 
 # Cluster init configuration.
 INITIALISATION_BASE_PATH = (
-    f"gs://genetics_etl_python_playground/initialisation/{GENTROPY_VERSION}"
+    f"gs://genetics_etl_python_playground/initialisation/{oxygen_VERSION}"
 )
 CONFIG_TAG = f"{INITIALISATION_BASE_PATH}/config.tar.gz"
-PACKAGE_WHEEL = (
-    f"{INITIALISATION_BASE_PATH}/gentropy-{GENTROPY_VERSION}-py3-none-any.whl"
-)
+PACKAGE_WHEEL = f"{INITIALISATION_BASE_PATH}/oxygen-{oxygen_VERSION}-py3-none-any.whl"
 INITIALISATION_EXECUTABLE_FILE = [
     f"{INITIALISATION_BASE_PATH}/install_dependencies_on_cluster.sh"
 ]
@@ -208,7 +206,7 @@ def submit_step(
 
     Args:
         cluster_name (str): Name of the cluster.
-        step_id (str): Name of the step in gentropy.
+        step_id (str): Name of the step in oxygen.
         task_id (str): Name of the task. Defaults to step_id.
         trigger_rule (TriggerRule): Trigger rule for the task. Defaults to TriggerRule.ALL_SUCCESS.
         other_args (Optional[list[str]]): Other arguments to pass to the CLI step. Defaults to None.
@@ -247,7 +245,7 @@ def install_dependencies(cluster_name: str) -> DataprocSubmitJobOperator:
         job_type="pig_job",
         job_specification={
             "jar_file_uris": [
-                f"gs://genetics_etl_python_playground/initialisation/{GENTROPY_VERSION}/install_dependencies_on_cluster.sh"
+                f"gs://genetics_etl_python_playground/initialisation/{oxygen_VERSION}/install_dependencies_on_cluster.sh"
             ],
             "query_list": {
                 "queries": [

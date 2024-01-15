@@ -1,7 +1,7 @@
 """Test study locus overlap dataset."""
 from __future__ import annotations
 
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from oxygen.dataset.study_locus_overlap import StudyLocusOverlap
 from pyspark.sql import SparkSession
 
 

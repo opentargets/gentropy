@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
-from gentropy.common.spark_helpers import (
+from oxygen.common.spark_helpers import (
     get_record_with_maximum_value,
     get_record_with_minimum_value,
     order_array_of_structs_by_field,

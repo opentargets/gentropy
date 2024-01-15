@@ -2,4 +2,4 @@
 title: LD-based clumping
 ---
 
-::: gentropy.ld_based_clumping.LdBasedClumpingStep
+::: oxygen.ld_based_clumping.LdBasedClumpingStep

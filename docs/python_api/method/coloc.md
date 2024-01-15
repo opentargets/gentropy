@@ -2,4 +2,4 @@
 title: Coloc
 ---
 
-::: gentropy.method.colocalisation.Coloc
+::: oxygen.method.colocalisation.Coloc

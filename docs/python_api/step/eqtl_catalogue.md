@@ -2,4 +2,4 @@
 title: eQTL Catalogue
 ---
 
-::: gentropy.eqtl_catalogue.EqtlCatalogueStep
+::: oxygen.eqtl_catalogue.EqtlCatalogueStep

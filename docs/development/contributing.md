@@ -76,8 +76,8 @@ For more details on each of these steps, see the sections below.
 
 ### Classes
 
-- Dataset class in `src/gentropy/datasource/STEP` (example: `src/gentropy/datasource/finngen/study_index.py` → `FinnGenStudyIndex`)
-- Step main running class in `src/gentropy/STEP.py` (example: `src/gentropy/finngen.py`)
+- Dataset class in `src/oxygen/datasource/STEP` (example: `src/oxygen/datasource/finngen/study_index.py` → `FinnGenStudyIndex`)
+- Step main running class in `src/oxygen/STEP.py` (example: `src/oxygen/finngen.py`)
 
 ### Tests
 

@@ -2,15 +2,15 @@
 title: Study Locus
 ---
 
-::: gentropy.dataset.study_locus.StudyLocus
+::: oxygen.dataset.study_locus.StudyLocus
 
 ---
 
-::: gentropy.dataset.study_locus.StudyLocusQualityCheck
+::: oxygen.dataset.study_locus.StudyLocusQualityCheck
 
 ---
 
-::: gentropy.dataset.study_locus.CredibleInterval
+::: oxygen.dataset.study_locus.CredibleInterval
 
 ## Schema
 

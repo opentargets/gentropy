@@ -5,10 +5,10 @@ from typing import Any
 
 import pyspark.sql.functions as f
 import pytest
-from gentropy.dataset.ld_index import LDIndex
-from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from oxygen.dataset.ld_index import LDIndex
+from oxygen.dataset.study_index import StudyIndex
+from oxygen.dataset.study_locus import CredibleInterval, StudyLocus
+from oxygen.dataset.study_locus_overlap import StudyLocusOverlap
 from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
     ArrayType,

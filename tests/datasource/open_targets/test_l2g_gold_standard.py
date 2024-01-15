@@ -4,9 +4,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.v2g import V2G
-from gentropy.datasource.open_targets.l2g_gold_standard import (
+from oxygen.dataset.l2g_gold_standard import L2GGoldStandard
+from oxygen.dataset.v2g import V2G
+from oxygen.datasource.open_targets.l2g_gold_standard import (
     OpenTargetsL2GGoldStandard,
 )
 from pyspark.sql import DataFrame

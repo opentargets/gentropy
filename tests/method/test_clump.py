@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.method.clump import LDclumping
+from oxygen.dataset.study_locus import StudyLocus
+from oxygen.method.clump import LDclumping
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession

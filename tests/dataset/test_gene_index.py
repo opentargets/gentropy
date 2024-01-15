@@ -1,7 +1,7 @@
 """Tests on LD index."""
 from __future__ import annotations
 
-from gentropy.dataset.gene_index import GeneIndex
+from oxygen.dataset.gene_index import GeneIndex
 from pyspark.sql import DataFrame
 
 

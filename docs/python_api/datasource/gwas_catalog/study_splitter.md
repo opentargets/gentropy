@@ -2,4 +2,4 @@
 title: Study Splitter
 ---
 
-::: gentropy.datasource.gwas_catalog.study_splitter.GWASCatalogStudySplitter
+::: oxygen.datasource.gwas_catalog.study_splitter.GWASCatalogStudySplitter

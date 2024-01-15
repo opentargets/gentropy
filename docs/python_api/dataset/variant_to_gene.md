@@ -2,7 +2,7 @@
 title: Variant-to-gene
 ---
 
-::: gentropy.dataset.v2g.V2G
+::: oxygen.dataset.v2g.V2G
 
 ## Schema
 

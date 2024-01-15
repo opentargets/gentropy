@@ -5,10 +5,10 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from gentropy.window_based_clumping import WindowBasedClumpingStep
+from oxygen.window_based_clumping import WindowBasedClumpingStep
 
 if TYPE_CHECKING:
-    from gentropy.common.session import Session
+    from oxygen.common.session import Session
 
 
 class TestClumpStep:

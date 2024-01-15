@@ -2,4 +2,4 @@
 title: PICS
 ---
 
-:::gentropy.method.pics.PICS
+:::oxygen.method.pics.PICS

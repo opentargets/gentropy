@@ -2,7 +2,7 @@
 title: L2G Feature Matrix
 ---
 
-::: gentropy.dataset.l2g_feature_matrix.L2GFeatureMatrix
+::: oxygen.dataset.l2g_feature_matrix.L2GFeatureMatrix
 
 ## Schema
 

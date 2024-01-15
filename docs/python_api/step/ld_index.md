@@ -2,4 +2,4 @@
 title: LD Index
 ---
 
-::: gentropy.ld_index.LDIndexStep
+::: oxygen.ld_index.LDIndexStep

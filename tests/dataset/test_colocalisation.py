@@ -1,7 +1,7 @@
 """Test colocalisation dataset."""
 from __future__ import annotations
 
-from gentropy.dataset.colocalisation import Colocalisation
+from oxygen.dataset.colocalisation import Colocalisation
 
 
 def test_colocalisation_creation(mock_colocalisation: Colocalisation) -> None:

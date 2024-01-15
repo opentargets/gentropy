@@ -2,4 +2,4 @@
 title: GWAS Catalog
 ---
 
-::: gentropy.gwas_catalog_ingestion.GWASCatalogIngestionStep
+::: oxygen.gwas_catalog_ingestion.GWASCatalogIngestionStep

@@ -2,7 +2,7 @@
 title: L2G Prediction
 ---
 
-::: gentropy.dataset.l2g_prediction.L2GPrediction
+::: oxygen.dataset.l2g_prediction.L2GPrediction
 
 ## Schema
 

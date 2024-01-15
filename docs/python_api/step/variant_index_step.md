@@ -2,4 +2,4 @@
 title: Variant Index
 ---
 
-::: gentropy.variant_index.VariantIndexStep
+::: oxygen.variant_index.VariantIndexStep

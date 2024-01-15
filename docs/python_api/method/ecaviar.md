@@ -2,4 +2,4 @@
 title: eCAVIAR
 ---
 
-:::gentropy.method.colocalisation.ECaviar
+:::oxygen.method.colocalisation.ECaviar

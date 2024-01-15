@@ -2,4 +2,4 @@
 title: Study Index
 ---
 
-::: gentropy.datasource.finngen.study_index.FinnGenStudyIndex
+::: oxygen.datasource.finngen.study_index.FinnGenStudyIndex

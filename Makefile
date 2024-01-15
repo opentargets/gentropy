@@ -22,7 +22,7 @@ setup-dev: ## Setup development environment
 
 check: ## Lint and format code
 	@echo "Linting API..."
-	@poetry run ruff src/gentropy .
+	@poetry run ruff src/oxygen .
 	@echo "Linting docstrings..."
 	@poetry run pydoclint --config=pyproject.toml src
 	@poetry run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
@@ -43,7 +43,7 @@ create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependen
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/install_dependencies_on_cluster.sh \
-		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/gentropy-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
+		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/oxygen-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
 		--single-node \
 		--optional-components=JUPYTER \
 		--enable-component-gateway
@@ -62,7 +62,7 @@ build: clean ## Build Python package with dependencies
 	@poetry build
 	@tar -czf dist/config.tar.gz config/
 	@echo "Uploading to Dataproc"
-	@gsutil cp src/gentropy/cli.py ${BUCKET_NAME}
+	@gsutil cp src/oxygen/cli.py ${BUCKET_NAME}
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl ${BUCKET_NAME}
 	@gsutil cp ./dist/config.tar.gz ${BUCKET_NAME}
 	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}

@@ -2,7 +2,7 @@
 title: Study Locus Overlap
 ---
 
-::: gentropy.dataset.study_locus_overlap.StudyLocusOverlap
+::: oxygen.dataset.study_locus_overlap.StudyLocusOverlap
 
 ## Schema
 

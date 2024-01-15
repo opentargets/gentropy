@@ -2,4 +2,4 @@
 title: W&B evaluator
 ---
 
-::: gentropy.method.l2g.evaluator.WandbEvaluator
+::: oxygen.method.l2g.evaluator.WandbEvaluator

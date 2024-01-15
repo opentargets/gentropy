@@ -2,7 +2,7 @@
 title: L2G Gold Standard
 ---
 
-::: gentropy.dataset.l2g_gold_standard.L2GGoldStandard
+::: oxygen.dataset.l2g_gold_standard.L2GGoldStandard
 
 ## Schema
 
