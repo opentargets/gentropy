@@ -90,8 +90,8 @@ match = "(main|master)"
 prerelease = false
 
 [tool.semantic_release.branches."release"]
-match = "il-reorder-release-template"
-prerelease = false
+match = "release/*"
+prerelease = true
 prerelease_token = "rc"
 
 [tool.semantic_release.publish]
