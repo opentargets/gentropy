@@ -7,7 +7,7 @@
 {%- if type_ in release["elements"] %}
 ### {{ add_emoji(type_) }} {{ type_ | capitalize }}
 {% for commit in release["elements"][type_] %}
-{% set scope = commit_scope(commit.commit.summary).split("(")[1] | replace(")", "") | default ("", true) %}
+{%- set scope = commit_scope(commit.commit.summary).split("(")[1] | replace(")", "") | default ("", true) %}
 - {% if scope %}\[**{{ scope }}**\]{%endif%}{{ commit_content(commit.commit.summary) }} [\@{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}})
 {%- endfor %}
 {% endif %}
