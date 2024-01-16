@@ -2,12 +2,13 @@
 {% macro commit_scope(commit_summary) %}{{ commit_summary.split(":")[0] }}{% endmacro %}
 {% macro commit_content(commit_summary) %}{{ commit_summary.split(":")[1] }}{% endmacro %}
 ## What's Changed
-{% set order = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"] %}
-{% for type_ in order %}
-    {% if type_ in release["elements"] %}
-        ### {{ add_emoji(type_) }} {{ type_ | capitalize }}
-        {% for commit in release["elements"][type_] %}
-            - {{ commit_content(commit.commit.summary) }} - [`{{ commit.commit.hexsha[:7] }}`]({{ commit.commit.hexsha | commit_hash_url }}) ([{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}}))
-        {% endfor %}
-    {% endif %}
+{% set order = ["breaking", "feature", "fix", "documentation", "style", "refactor", "performance", "test", "build", "ci", "chore", "revert"] %}
+{%- for type_ in order %}
+{%- if type_ in release["elements"] %}
+### {{ add_emoji(type_) }} {{ type_ | capitalize }}
+{% for commit in release["elements"][type_] %}
+{% set scope = commit_scope(commit.commit.summary).split("(")[1] | replace(")", "") | default ("", true) %}
+- {% if scope %}\[**{{ scope }}**\]{%endif%}{{ commit_content(commit.commit.summary) }} [\@{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}})
+{%- endfor %}
+{% endif %}
 {% endfor %}
