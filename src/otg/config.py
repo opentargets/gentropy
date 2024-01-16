@@ -135,6 +135,17 @@ class FinngenSumstatPreprocessConfig(StepConfig):
 
 
 @dataclass
+class FinngenFinemappingIngestionConfig(StepConfig):
+    """FinnGen finemapping ingestion step configuration."""
+
+    finngen_finemapping_results_url: str = MISSING
+    finngen_finemapping_summaries_url: str = MISSING
+    finngen_finemapping_out: str = MISSING
+    finngen_release_prefix: str = MISSING
+    _target_: str = "otg.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
+
+
+@dataclass
 class LDIndexConfig(StepConfig):
     """LD index step configuration."""
 
@@ -346,6 +357,11 @@ def register_config() -> None:
         group="step",
         name="finngen_sumstat_preprocess",
         node=FinngenSumstatPreprocessConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_finemapping_ingestion",
+        node=FinngenFinemappingIngestionConfig,
     )
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
