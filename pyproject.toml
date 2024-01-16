@@ -81,7 +81,6 @@ yamllint = "^1.33.0"
 logging_use_named_masks = true
 build_command = "pip install poetry && poetry build"
 assets = []
-version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 upload_to_pypi = false
 upload_to_release = true
@@ -91,8 +90,8 @@ match = "(main|master)"
 prerelease = false
 
 [tool.semantic_release.branches."release"]
-match = "release/*"
-prerelease = true
+match = "il-reorder-release-template"
+prerelease = false
 prerelease_token = "rc"
 
 [tool.semantic_release.publish]
