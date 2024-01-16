@@ -69,7 +69,7 @@ with DAG(
         # Generate inclusion list:
         curation_calculate_inclusion_list = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="gwas_study_inclusion",
+            step_id="ot_gwas_catalog_study_inclusion",
             task_id="catalog_curation_inclusion_list",
             other_args=[
                 "step.criteria=curation",
@@ -82,7 +82,7 @@ with DAG(
         # Ingest curated associations from GWAS Catalog:
         curation_ingest_data = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="gwas_catalog_ingestion",
+            step_id="ot_gwas_catalog_ingestion",
             task_id="ingest_curated_gwas_catalog_data",
             other_args=[f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation"],
         )
@@ -90,7 +90,7 @@ with DAG(
         # Run LD-annotation and clumping on curated data:
         curation_ld_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="ld_based_clumping",
+            step_id="ot_ld_based_clumping",
             task_id="catalog_curation_ld_clumping",
             other_args=[
                 f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/catalog_curated",
@@ -103,7 +103,7 @@ with DAG(
         # Do PICS based finemapping:
         curation_pics = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="pics",
+            step_id="ot_pics",
             task_id="catalog_curation_pics",
             other_args=[
                 f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
@@ -126,7 +126,7 @@ with DAG(
         # Generate inclusion study lists:
         summary_stats_calculate_inclusion_list = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="gwas_study_inclusion",
+            step_id="ot_gwas_catalog_study_inclusion",
             task_id="catalog_sumstats_inclusion_list",
             other_args=[
                 "step.criteria=summary_stats",
@@ -139,7 +139,7 @@ with DAG(
         # Run window-based clumping:
         summary_stats_window_based_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="window_based_clumping",
+            step_id="ot_window_based_clumping",
             task_id="catalog_sumstats_window_clumping",
             other_args=[
                 f"step.summary_statistics_input_path={SUMSTATS}",
@@ -151,7 +151,7 @@ with DAG(
         # Run LD based clumping:
         summary_stats_ld_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="ld_based_clumping",
+            step_id="ot_ld_based_clumping",
             task_id="catalog_sumstats_ld_clumping",
             other_args=[
                 f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
@@ -164,7 +164,7 @@ with DAG(
         # Run PICS finemapping:
         summary_stats_pics = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="pics",
+            step_id="ot_pics",
             task_id="catalog_sumstats_pics",
             other_args=[
                 f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
@@ -190,4 +190,5 @@ with DAG(
         >> upload_task
         >> curation_processing
         >> summary_satistics_processing
+        >> common.delete_cluster(CLUSTER_NAME)
     )

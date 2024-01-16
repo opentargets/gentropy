@@ -26,8 +26,29 @@ with DAG(
 ):
     finngen_finemapping = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="finngen_finemapping_ingestion",
-        task_id="finngen_finemapping_ingestion",
+        step_id="ot_finngen_studies",
+        task_id="finngen_studies",
+    )
+
+    window_based_clumping = common.submit_step(
+        cluster_name=CLUSTER_NAME,
+        step_id="window_based_clumping",
+        task_id="finngen_window_based_clumping",
+        other_args=[
+            f"step.summary_statistics_input_path={SUMSTATS}",
+            f"step.study_locus_output_path={WINDOWBASED_CLUMPED}",
+        ],
+    )
+    ld_clumping = common.submit_step(
+        cluster_name=CLUSTER_NAME,
+        step_id="ld_based_clumping",
+        task_id="finngen_ld_clumping",
+        other_args=[
+            f"step.study_locus_input_path={WINDOWBASED_CLUMPED}",
+            f"step.ld_index_path={RELEASEBUCKET}/ld_index",
+            f"step.study_index_path={RELEASEBUCKET}/study_index/finngen",
+            f"step.clumped_study_locus_output_path={LD_CLUMPED}",
+        ],
         trigger_rule=TriggerRule.ALL_DONE,
     )
     # with TaskGroup(
@@ -39,39 +60,17 @@ with DAG(
     #         task_id="finngen_studies",
     #     )
 
-    #     window_based_clumping = common.submit_step(
-    #         cluster_name=CLUSTER_NAME,
-    #         step_id="clump",
-    #         task_id="finngen_window_based_clumping",
-    #         other_args=[
-    #             f"step.input_path={SUMSTATS}",
-    #             f"step.clumped_study_locus_path={WINDOWBASED_CLUMPED}",
-    #         ],
-    #     )
-    #     ld_clumping = common.submit_step(
-    #         cluster_name=CLUSTER_NAME,
-    #         step_id="clump",
-    #         task_id="finngen_ld_clumping",
-    #         other_args=[
-    #             f"step.input_path={WINDOWBASED_CLUMPED}",
-    #             f"step.ld_index_path={RELEASEBUCKET}/ld_index",
-    #             f"step.study_index_path={RELEASEBUCKET}/study_index/finngen",
-    #             f"step.clumped_study_locus_path={LD_CLUMPED}",
-    #         ],
-    #         trigger_rule=TriggerRule.ALL_DONE,
-    #     )
-
-    #     pics = common.submit_step(
-    #         cluster_name=CLUSTER_NAME,
-    #         step_id="pics",
-    #         task_id="finngen_pics",
-    #         other_args=[
-    #             f"step.study_locus_ld_annotated_in={LD_CLUMPED}",
-    #             f"step.picsed_study_locus_out={PICSED}",
-    #         ],
-    #         # This allows to attempt running the task when above step fails do to failifexists
-    #         trigger_rule=TriggerRule.ALL_DONE,
-    #     )
+    pics = common.submit_step(
+        cluster_name=CLUSTER_NAME,
+        step_id="ot_pics",
+        task_id="finngen_pics",
+        other_args=[
+            f"step.study_locus_ld_annotated_in={LD_CLUMPED}",
+            f"step.picsed_study_locus_out={PICSED}",
+        ],
+        # This allows to attempt running the task when above step fails do to failifexists
+        trigger_rule=TriggerRule.ALL_DONE,
+    )
 
     #     # Define order of steps:
     #     (study_index >> window_based_clumping >> ld_clumping >> pics)
