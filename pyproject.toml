@@ -13,6 +13,7 @@ packages = [{ include = "gentropy", from = "src" }]
 [tool.poetry.urls]
 "Bug Tracker" = "http://github.com/opentargets/issues"
 "Funding" = "https://www.opentargets.org"
+"Documentation" = "https://opentargets.github.io/gentropy/"
 
 [tool.poetry.scripts]
 gentropy = "gentropy.cli:main"
