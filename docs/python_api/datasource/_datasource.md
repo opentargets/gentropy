@@ -4,7 +4,7 @@ title: Data Source
 
 # Data Source
 
-This section contains information about the data sources used in Open Targets Genetics.
+This section contains information about the data sources used in Open Targets Gentropy.
 
 We use GnomAD v4.0 as a source for variant annotation and GnomAD v2.1.1 as a source for linkage disequilibrium (LD) information (described in the **GnomAD** section).
 

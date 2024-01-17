@@ -100,6 +100,7 @@ class Coloc:
     | H<sub>4</sub> | both traits are associated and share the same single causal variant   |
 
     !!! warning "Bayes factors required"
+
         Coloc requires the availability of Bayes factors (BF) for each variant in the credible set (`logBF` column).
 
     """
