@@ -4,11 +4,14 @@
   prerequisites:
     - "ot_variant_index"
     - "ot_gene_index"
+- id: "ot_colocalisation"
 - id: "ot_locus_to_gene_train"
   prerequisites:
     - "ot_variant_index"
     - "ot_variant_to_gene"
+    - "ot_colocalisation"
 - id: "ot_locus_to_gene_predict"
   prerequisites:
     - "ot_variant_index"
     - "ot_variant_to_gene"
+    - "ot_colocalisation"
