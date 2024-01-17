@@ -164,7 +164,11 @@ class LocusToGeneConfig(StepConfig):
 
     session: Any = field(
         default_factory=lambda: {
-            "extended_spark_conf": {"spark.dynamicAllocation.enabled": "false"}
+            "extended_spark_conf": {
+                "spark.dynamicAllocation.enabled": "false",
+                "spark.driver.memory": "48g",
+                "spark.executor.memory": "48g",
+            }
         }
     )
     run_mode: str = MISSING
