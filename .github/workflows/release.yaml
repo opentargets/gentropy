@@ -2,7 +2,7 @@ name: Release
 
 "on":
   push:
-    branches: ["main", "master", "release/**"]
+    branches: ["main", "release/**"]
 
 concurrency:
   group: deploy
@@ -41,6 +41,16 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.semrelease.outputs.tag }}
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: ${{ steps.semrelease.outputs.released }} == 'true' && github.ref == 'refs/heads/main'
+
+      - name: Publish package distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: ${{ steps.semrelease.outputs.released }} == 'true' && github.ref != 'refs/heads/main'
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
   documentation:
     needs: release
