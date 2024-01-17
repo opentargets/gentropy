@@ -6,7 +6,7 @@ hide:
 ---
 
 <p align="center">
-  <img width="460" height="300" src="assets/imgs/Open_Targets_Genetics_Portal_Logo_v2_font.svg">
+  <img width="460" height="300" src="assets/imgs/gentropy.svg">
 </p>
 <style>
   .md-typeset h1,
