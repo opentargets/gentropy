@@ -153,6 +153,9 @@
 ### 👷‍♂️ Ci
 
 
+-  more complex setup with independent jobs (#427) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
 -  pypi and testpypi functionalities (#423) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
 
 
@@ -165,6 +168,12 @@
 -  new changelog and release notes templates  (#357) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
 
 ### 🚀 Chore
+
+
+-  merge dev [\@David Ochoa](mailto:dogcaesar@gmail.com)
+
+
+-  updaing configs to the propsed release folder structure (#425) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
 
 
 -  update pre-commit hook versions (#411) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
