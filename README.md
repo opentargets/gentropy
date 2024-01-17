@@ -20,13 +20,11 @@ pip install gentropy
 
 For alternative ways to install the package visit the [Documentation](https://opentargets.github.io/gentropy/installation/)
 
-
 ## References
 
 - [Documentation](https://opentargets.github.io/gentropy/)
 - [Issue tracker](https://github.com/opentargets/issues/issues)
 
-
 ## About Open Targets
 
-Open Targets is a pre-competitive, public-private partnership that uses human genetics and genomics data to systematically identify and prioritise drug targets. Through large-scale genomic experiments and the development of innovative computational techniques, the partnership aims to help researchers select the best targets for the development of new therapies. For more information, visit the Open Targets  [website](https://www.opentargets.org).
+Open Targets is a pre-competitive, public-private partnership that uses human genetics and genomics data to systematically identify and prioritise drug targets. Through large-scale genomic experiments and the development of innovative computational techniques, the partnership aims to help researchers select the best targets for the development of new therapies. For more information, visit the Open Targets [website](https://www.opentargets.org).
