@@ -13,7 +13,7 @@
 {% for commit in context.history.unreleased[type_] %}
 {% set scope = commit_scope(commit.commit.summary).split("(")[1] | replace(")", "") | default ("", true) %}
 - {% if scope %}\[**{{ scope }}**\]{%endif%}{{ commit_content(commit.commit.summary) }} [\@{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}})
-{% endfor %}{% endif %}{% endfor %}
+{% endfor %}{% endif %}{% endfor %}{% endif %}
 
 {# RELEASED #}
 {% for version, release in context.history.released.items() %}
@@ -24,4 +24,4 @@
 {% for commit in release["elements"][type_] %}
 {% set scope = commit_scope(commit.commit.summary).split("(")[1] | replace(")", "") | default ("", true) %}
 - {% if scope %}\[**{{ scope }}**\]{%endif%}{{ commit_content(commit.commit.summary) }} [\@{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}})
-{% endfor %}{% endif %}{% endfor %}
+{% endfor %}{% endif %}{% endfor %}{% endfor %}
