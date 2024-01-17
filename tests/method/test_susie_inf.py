@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from otg.method.susie_inf import SUSIE_inf
+from gentropy.method.susie_inf import SUSIE_inf
 
 
 class TestSUSIE_inf:
