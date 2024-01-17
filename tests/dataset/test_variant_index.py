@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from otg.dataset.variant_index import VariantIndex
+from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
-    from otg.dataset.study_locus import StudyLocus
-    from otg.dataset.variant_annotation import VariantAnnotation
+    from gentropy.dataset.study_locus import StudyLocus
+    from gentropy.dataset.variant_annotation import VariantAnnotation
 
 
 def test_variant_index_creation(mock_variant_index: VariantIndex) -> None:

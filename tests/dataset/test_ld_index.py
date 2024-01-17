@@ -1,7 +1,7 @@
 """Tests on LD index."""
 from __future__ import annotations
 
-from otg.dataset.ld_index import LDIndex
+from gentropy.dataset.ld_index import LDIndex
 
 
 def test_ld_index_creation(mock_ld_index: LDIndex) -> None:

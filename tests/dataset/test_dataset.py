@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from otg.dataset.dataset import Dataset
+from gentropy.dataset.dataset import Dataset
 from pyspark.sql import SparkSession
 from pyspark.sql.types import IntegerType, StructField, StructType
 

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from otg.dataset.l2g_gold_standard import L2GGoldStandard
-from otg.dataset.l2g_prediction import L2GPrediction
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession

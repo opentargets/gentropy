@@ -2,7 +2,7 @@
 title: Variant annotation
 ---
 
-::: otg.dataset.variant_annotation.VariantAnnotation
+::: gentropy.dataset.variant_annotation.VariantAnnotation
 
 ## Schema
 

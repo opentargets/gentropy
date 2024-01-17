@@ -2,4 +2,4 @@
 title: FinnGen Studies
 ---
 
-::: otg.finngen_studies.FinnGenStudiesStep
+::: gentropy.finngen_studies.FinnGenStudiesStep

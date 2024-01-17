@@ -2,4 +2,4 @@
 title: LDAnnotator
 ---
 
-:::otg.method.ld.LDAnnotator
+:::gentropy.method.ld.LDAnnotator

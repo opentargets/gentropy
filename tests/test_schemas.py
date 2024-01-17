@@ -13,10 +13,10 @@ from pyspark.sql.types import StructType
 
 if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
-    from otg.dataset.gene_index import GeneIndex
-    from otg.dataset.v2g import V2G
+    from gentropy.dataset.gene_index import GeneIndex
+    from gentropy.dataset.v2g import V2G
 
-SCHEMA_DIR = "src/otg/assets/schemas"
+SCHEMA_DIR = "src/gentropy/assets/schemas"
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
