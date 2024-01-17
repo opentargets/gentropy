@@ -178,8 +178,8 @@ class LocusToGeneConfig(StepConfig):
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
-    gold_standard_curation_path: str = MISSING
-    gene_interactions_path: str = MISSING
+    gold_standard_curation_path: str | None = None
+    gene_interactions_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
             # average distance of all tagging variants to gene TSS
