@@ -34,7 +34,7 @@ class StepConfig:
 class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
-    study_locus_path: str = MISSING
+    credible_set_path: str = MISSING
     study_index_path: str = MISSING
     coloc_path: str = MISSING
     priorc1: float = 1e-4
@@ -260,7 +260,7 @@ class VariantIndexConfig(StepConfig):
 
 
 @dataclass
-class V2GConfig(StepConfig):
+class VariantToGeneConfig(StepConfig):
     """V2G step configuration."""
 
     variant_index_path: str = MISSING
@@ -352,5 +352,5 @@ def register_config() -> None:
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
-    cs.store(group="step", name="variant_to_gene", node=V2GConfig)
+    cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStep)
