@@ -1,9 +1,10 @@
 # Release specific configuration:
 release_version: "24.01"
+dev_version: XX.XX
 release_folder: gs://genetics_etl_python_playground/releases/${datasets.release_version}
 
 inputs: gs://genetics_etl_python_playground/input
-outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.version}
+outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.dev_version}
 
 # Input datasets
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
@@ -28,7 +29,6 @@ gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 
 # Output datasets
-gene_index: ${datasets.outputs}/gene_index
 variant_annotation: ${datasets.outputs}/variant_annotation
 study_locus: ${datasets.outputs}/study_locus
 summary_statistics: ${datasets.outputs}/summary_statistics
@@ -51,4 +51,5 @@ colocalisation: ${datasets.release_folder}/colocalisation
 study_index: ${datasets.release_folder}/study_index
 variant_index: ${datasets.release_folder}/variant_index
 credible_set: ${datasets.release_folder}/credible_set
+gene_index: ${datasets.release_folder}/gene_index
 v2g: ${datasets.release_folder}/variant_to_gene
