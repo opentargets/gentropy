@@ -6,8 +6,8 @@ description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache-2.0"
 readme = "README.md"
-documentation = "https://opentargets.github.io/genetics_etl_python/"
-repository = "https://github.com/opentargets/genetics_etl_python"
+documentation = "https://opentargets.github.io/gentropy/"
+repository = "https://github.com/opentargets/gentropy"
 packages = [{ include = "gentropy", from = "src" }]
 
 [tool.poetry.urls]

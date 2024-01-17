@@ -31,7 +31,7 @@ plugins:
         - assets/schemas/*
   # Show git commiters in the footer
   - git-committers:
-      repository: opentargets/genetics_etl_python
+      repository: opentargets/gentropy
       branch: main
 
 markdown_extensions:
@@ -51,8 +51,8 @@ markdown_extensions:
 hooks:
   - src/utils/schemadocs.py
 
-repo_name: opentargets/genetics_etl_python
-repo_url: https://github.com/opentargets/genetics_etl_python
+repo_name: opentargets/gentropy
+repo_url: https://github.com/opentargets/gentropy
 
 theme:
   name: "material"
@@ -90,7 +90,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/genetics_etl_python
+      link: https://github.com/gentropy
 
 extra_css:
   - assets/stylesheets/extra.css
