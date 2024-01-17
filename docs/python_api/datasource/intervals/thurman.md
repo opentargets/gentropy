@@ -2,4 +2,4 @@
 title: Thurman et al.
 ---
 
-::: otg.datasource.intervals.thurman.IntervalsThurman
+::: gentropy.datasource.intervals.thurman.IntervalsThurman

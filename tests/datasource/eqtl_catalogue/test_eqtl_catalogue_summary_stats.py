@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from otg.dataset.summary_statistics import SummaryStatistics
-from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
 from pyspark.sql import DataFrame
 
 

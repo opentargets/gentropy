@@ -2,4 +2,4 @@
 title: eCAVIAR
 ---
 
-:::otg.method.colocalisation.ECaviar
+:::gentropy.method.colocalisation.ECaviar

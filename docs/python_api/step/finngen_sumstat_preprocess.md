@@ -2,4 +2,4 @@
 title: FinnGen Preprocess Summary Stats
 ---
 
-::: otg.finngen_sumstat_preprocess.FinnGenSumstatPreprocessStep
+::: gentropy.finngen_sumstat_preprocess.FinnGenSumstatPreprocessStep

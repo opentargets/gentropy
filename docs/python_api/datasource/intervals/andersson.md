@@ -2,4 +2,4 @@
 title: Andersson et al.
 ---
 
-::: otg.datasource.intervals.andersson.IntervalsAndersson
+::: gentropy.datasource.intervals.andersson.IntervalsAndersson

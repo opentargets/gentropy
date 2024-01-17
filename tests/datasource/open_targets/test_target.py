@@ -1,8 +1,8 @@
 """Test Open Targets target data source."""
 from __future__ import annotations
 
-from otg.dataset.gene_index import GeneIndex
-from otg.datasource.open_targets.target import OpenTargetsTarget
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.datasource.open_targets.target import OpenTargetsTarget
 from pyspark.sql import DataFrame
 
 

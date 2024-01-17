@@ -2,7 +2,7 @@
 title: Variant-to-gene
 ---
 
-::: otg.dataset.v2g.V2G
+::: gentropy.dataset.v2g.V2G
 
 ## Schema
 

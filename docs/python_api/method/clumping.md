@@ -8,4 +8,4 @@ Clumping is a commonly used post-processing method that allows for identificatio
 
 We have implemented 2 clumping methods:
 
-::: otg.method.clump.LDclumping
+::: gentropy.method.clump.LDclumping
