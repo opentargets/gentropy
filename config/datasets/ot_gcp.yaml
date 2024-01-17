@@ -7,15 +7,25 @@ outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${dataset
 
 ## Datasets:
 gwas_catalog_dataset: gs://gwas_catalog_data
-catalog_associations: ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-associations_ontology-annotated.tsv
-catalog_studies:
-  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-download-studies.tsv
-  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-unpublished-studies.tsv
-catalog_ancestries:
-  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-download-ancestries.tsv
-  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-unpublished-ancestries.tsv
-catalog_sumstats_lut: ${datasets.gwas_catalog_dataset}/curated_inputs/harmonised_list.txt
-gwas_catalog_study_curation: ${datasets.gwas_catalog_dataset}/manifest/GWAS_Catalog_study_curation.tsv
+# Ingestion input files:
+gwas_catalog_associations: ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_associations_ontology_annotated.tsv
+gwas_catalog_studies:
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_download_studies.tsv
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_unpublished_studies.tsv
+gwas_catalog_ancestries:
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_download_ancestries.tsv
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_unpublished_ancestries.tsv
+gwas_catalog_sumstats_lut: ${datasets.gwas_catalog_dataset}/curated_inputs/harmonised_list.txt
+gwas_catalog_study_curation: ${datasets.gwas_catalog_dataset}/manifest/gwas_catalog_study_curation.tsv
+# Harmonised summary statistics list:
+gwas_catalog_summary_stats_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_harmonised_sumstats_list.txt
+# Inclusion lists:
+gwas_catalog_curated_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_curated_included_studies.tsv
+gwas_catalog_summary_satistics_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_summary_statistics_included_studies.tsv
+# Ingestion output folders:
+gwas_catalog_study_index: ${datasets.gwas_catalog_dataset}/gwas_catalog_study_index
+gwas_catalog_study_locus_folder: ${datasets.gwas_catalog_dataset}/gwas_catalog_study_locus_datasets
+gwas_catalog_credible_set_folder: ${datasets.gwas_catalog_dataset}/gwas_catalog_credible_set_datasets
 
 # Input datasets
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain

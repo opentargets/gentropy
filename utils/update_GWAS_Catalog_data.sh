@@ -23,24 +23,43 @@ logging(){
     echo "${log_prompt} $@" >> ${LOG_FILE}
 }
 
+upload_file_to_gcp(){
+    FILENAME=${1}
+    TARGET=${2}
+    # Test if file exists:
+    if [ ! -f ${FILENAME} ]; then
+        logging "File ${FILENAME} does not exist."
+        return
+    fi
+
+    logging "Copying ${FILENAME} to GCP..."
+    gsutil -mq cp file://$(pwd)/${FILENAME} ${TARGET}
+
+    # Test if file was successfully uploaded:
+    if [ $? -ne 0 ]; then
+        logging "File ${FILENAME} failed to upload."
+    fi
+}
+
 # Resources:
 export BASE_URL=ftp://ftp.ebi.ac.uk/pub/databases/gwas
 export RELEASE_INFO_URL=https://www.ebi.ac.uk/gwas/api/search/stats
 export GCP_TARGET=gs://gwas_catalog_data
-export LOG_FILE=GWAS_Catalog_curated_data_update.log
+export LOG_FILE=gwas_catalog_data_update.log
 
 export GWAS_CATALOG_STUDY_CURATION_URL=https://raw.githubusercontent.com/opentargets/curation/master/genetics/GWAS_Catalog_study_curation.tsv
 
-ASSOCIATION_FILE=gwas-catalog-associations_ontology-annotated.tsv
-PUBLISHED_STUDIES_FILE=gwas-catalog-download-studies.tsv
-PUBLISHED_ANCESTRIES_FILE=gwas-catalog-download-ancestries.tsv
-UNPUBLISHED_STUDIES_FILE=gwas-catalog-unpublished-studies.tsv
-UNPUBLISHED_ANCESTRIES_FILE=gwas-catalog-unpublished-ancestries.tsv
+ASSOCIATION_FILE=gwas_catalog_associations_ontology_annotated.tsv
+PUBLISHED_STUDIES_FILE=gwas_catalog_download_studies.tsv
+PUBLISHED_ANCESTRIES_FILE=gwas_catalog_download_ancestries.tsv
+UNPUBLISHED_STUDIES_FILE=gwas_catalog_unpublished_studies.tsv
+UNPUBLISHED_ANCESTRIES_FILE=gwas_catalog_unpublished_ancestries.tsv
 HARMONISED_LIST_FILE=harmonised_list.txt
+GWAS_CATALOG_STUDY_CURATION_FILE=gwas_catalog_study_curation.tsv
 
 # Remove log file if exists:
 if [ -f ${LOG_FILE} ]; then
-    rm update_GWAS_Catalog_data.log
+    rm -rf ${LOG_FILE}
 fi
 
 logging "Extracing data from: ${BASE_URL}"
@@ -79,17 +98,19 @@ logging "File ${UNPUBLISHED_ANCESTRIES_FILE} saved."
 wget -q ${BASE_URL}/summary_statistics/harmonised_list.txt -O ${HARMONISED_LIST_FILE}
 logging "File ${HARMONISED_LIST_FILE} saved."
 
-wget -q ${GWAS_CATALOG_STUDY_CURATION_URL} -O GWAS_Catalog_study_curation.tsv
+wget -q ${GWAS_CATALOG_STUDY_CURATION_URL} -O ${GWAS_CATALOG_STUDY_CURATION_FILE}
 logging "In-house GWAS Catalog study curation file fetched from GitHub."
 
 logging "Copying files to GCP..."
-gsutil -mq cp file://$(pwd)/${ASSOCIATION_FILE} ${GCP_TARGET}/curated_inputs/
-gsutil -mq cp file://$(pwd)/${PUBLISHED_STUDIES_FILE} ${GCP_TARGET}/curated_inputs/
-gsutil -mq cp file://$(pwd)/${PUBLISHED_ANCESTRIES_FILE} ${GCP_TARGET}/curated_inputs/
-gsutil -mq cp file://$(pwd)/${HARMONISED_LIST_FILE} ${GCP_TARGET}/curated_inputs/
-gsutil -mq cp file://$(pwd)/${UNPUBLISHED_STUDIES_FILE} ${GCP_TARGET}/curated_inputs/
-gsutil -mq cp file://$(pwd)/${UNPUBLISHED_ANCESTRIES_FILE} ${GCP_TARGET}/curated_inputs/
-gsutil -mq cp file://$(pwd)/${GWAS_CATALOG_STUDY_CURATION_URL} ${GCP_TARGET}/manifests/
+
+upload_file_to_gcp ${ASSOCIATION_FILE} ${GCP_TARGET}/curated_inputs/
+upload_file_to_gcp ${PUBLISHED_STUDIES_FILE} ${GCP_TARGET}/curated_inputs/
+upload_file_to_gcp ${PUBLISHED_ANCESTRIES_FILE} ${GCP_TARGET}/curated_inputs/
+upload_file_to_gcp ${HARMONISED_LIST_FILE} ${GCP_TARGET}/curated_inputs/
+upload_file_to_gcp ${UNPUBLISHED_STUDIES_FILE} ${GCP_TARGET}/curated_inputs/
+upload_file_to_gcp ${UNPUBLISHED_ANCESTRIES_FILE} ${GCP_TARGET}/curated_inputs/
+upload_file_to_gcp ${GWAS_CATALOG_STUDY_CURATION_FILE} ${GCP_TARGET}/manifests/
+
 
 logging "Files successfully uploaded."
 logging "Removing local files..."
@@ -98,9 +119,10 @@ rm ${ASSOCIATION_FILE} \
     ${PUBLISHED_ANCESTRIES_FILE} \
     ${HARMONISED_LIST_FILE} \
     ${UNPUBLISHED_STUDIES_FILE} \
-    ${UNPUBLISHED_ANCESTRIES_FILE}
+    ${UNPUBLISHED_ANCESTRIES_FILE} \
+    ${GWAS_CATALOG_STUDY_CURATION_FILE}
 
 # Uploading log file to GCP manifest folder:
 logging "Uploading log file to GCP manifest folder..."
-gsutil -mq cp file://$(pwd)/${LOG_FILE} ${GCP_TARGET}/manifests/
+upload_file_to_gcp ${LOG_FILE} ${GCP_TARGET}/manifests/
 cat $LOG_FILE
