@@ -2,7 +2,7 @@
 title: LD Index
 ---
 
-::: otg.dataset.ld_index.LDIndex
+::: gentropy.dataset.ld_index.LDIndex
 
 ## Schema
 

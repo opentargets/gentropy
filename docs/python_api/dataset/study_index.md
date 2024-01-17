@@ -2,7 +2,7 @@
 title: Study Index
 ---
 
-::: otg.dataset.study_index.StudyIndex
+::: gentropy.dataset.study_index.StudyIndex
 
 ## Schema
 

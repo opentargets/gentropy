@@ -2,4 +2,4 @@
 title: Javierre et al.
 ---
 
-::: otg.datasource.intervals.javierre.IntervalsJavierre
+::: gentropy.datasource.intervals.javierre.IntervalsJavierre

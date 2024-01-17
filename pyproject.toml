@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "otgenetics"
+name = "gentropy"
 # !! version is managed by semantic_release
 version = "0.0.0"
 description = "Open targets Genetics Portal Python ETL"
@@ -8,14 +8,14 @@ license = "Apache-2.0"
 readme = "README.md"
 documentation = "https://opentargets.github.io/genetics_etl_python/"
 repository = "https://github.com/opentargets/genetics_etl_python"
-packages = [{ include = "otg", from = "src" }]
+packages = [{ include = "gentropy", from = "src" }]
 
 [tool.poetry.urls]
 "Bug Tracker" = "http://github.com/opentargets/issues"
 "Funding" = "https://www.opentargets.org"
 
 [tool.poetry.scripts]
-otg = "otg.cli:main"
+gentropy = "gentropy.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.10, <3.11"
@@ -115,7 +115,8 @@ build-backend = "poetry.core.masonry.api"
 extend_exclude = ["src/conftest.py", "src/airflow", "src/utils"]
 
 [tool.deptry.per_rule_ignores]
-DEP001 = ["otg"]
+DEP001 = ["gentropy"]
+DEP003 = ["gentropy"]
 
 [tool.interrogate]
 fail-under = 95

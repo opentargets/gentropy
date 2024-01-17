@@ -8,24 +8,24 @@ import hail as hl
 import numpy as np
 import pandas as pd
 import pytest
-from otg.common.Liftover import LiftOverSpark
-from otg.common.session import Session
-from otg.dataset.colocalisation import Colocalisation
-from otg.dataset.gene_index import GeneIndex
-from otg.dataset.intervals import Intervals
-from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from otg.dataset.l2g_gold_standard import L2GGoldStandard
-from otg.dataset.l2g_prediction import L2GPrediction
-from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import StudyIndex
-from otg.dataset.study_locus import StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
-from otg.dataset.summary_statistics import SummaryStatistics
-from otg.dataset.v2g import V2G
-from otg.dataset.variant_annotation import VariantAnnotation
-from otg.dataset.variant_index import VariantIndex
-from otg.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
-from otg.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
+from gentropy.common.Liftover import LiftOverSpark
+from gentropy.common.session import Session
+from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.intervals import Intervals
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.v2g import V2G
+from gentropy.dataset.variant_annotation import VariantAnnotation
+from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
+from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame, SparkSession
 
 from utils.spark import get_spark_testing_conf
@@ -51,7 +51,7 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
 
 @pytest.fixture()
 def session() -> Session:
-    """Return OTG Session object."""
+    """Return gentropy Session object."""
     return Session()
 
 

@@ -2,7 +2,7 @@
 title: L2G Feature
 ---
 
-::: otg.method.l2g.feature_factory.L2GFeature
+::: gentropy.method.l2g.feature_factory.L2GFeature
 
 ## Schema
 

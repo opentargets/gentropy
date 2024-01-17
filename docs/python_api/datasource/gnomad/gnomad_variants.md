@@ -2,4 +2,4 @@
 title: Variants
 ---
 
-::: otg.datasource.gnomad.variants.GnomADVariants
+::: gentropy.datasource.gnomad.variants.GnomADVariants

@@ -2,8 +2,8 @@
 title: Study Index
 ---
 
-::: otg.datasource.gwas_catalog.study_index.StudyIndexGWASCatalogParser
+::: gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalogParser
 
 ---
 
-::: otg.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog
+::: gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog

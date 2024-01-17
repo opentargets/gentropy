@@ -2,7 +2,7 @@
 title: Gene Index
 ---
 
-::: otg.dataset.gene_index.GeneIndex
+::: gentropy.dataset.gene_index.GeneIndex
 
 ## Schema
 

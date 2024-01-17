@@ -2,4 +2,4 @@
 title: Dataset
 ---
 
-::: otg.dataset.dataset.Dataset
+::: gentropy.dataset.dataset.Dataset

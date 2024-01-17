@@ -2,4 +2,4 @@
 title: LD Index
 ---
 
-::: otg.ld_index.LDIndexStep
+::: gentropy.ld_index.LDIndexStep

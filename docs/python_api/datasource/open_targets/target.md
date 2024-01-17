@@ -2,4 +2,4 @@
 title: Target
 ---
 
-::: otg.datasource.open_targets.target.OpenTargetsTarget
+::: gentropy.datasource.open_targets.target.OpenTargetsTarget

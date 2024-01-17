@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pyspark.sql.functions as f
-from otg.dataset.study_locus import StudyLocus
-from otg.method.pics import PICS
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.method.pics import PICS
 from pyspark.sql import Row
 
 

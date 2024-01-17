@@ -2,7 +2,7 @@
 title: Summary Statistics
 ---
 
-::: otg.dataset.summary_statistics.SummaryStatistics
+::: gentropy.dataset.summary_statistics.SummaryStatistics
 
 ## Schema
 

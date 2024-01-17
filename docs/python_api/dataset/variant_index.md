@@ -2,7 +2,7 @@
 title: Variant index
 ---
 
-::: otg.dataset.variant_index.VariantIndex
+::: gentropy.dataset.variant_index.VariantIndex
 
 ## Schema
 

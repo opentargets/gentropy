@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from otg.method.carma import CARMA
+from gentropy.method.carma import CARMA
 
 
 class TestCARMA:
