@@ -19,18 +19,40 @@ SUMMARY_STATS_BUCKET_NAME = "open-targets-gwas-summary-stats"
 SUMSTATS = "gs://open-targets-gwas-summary-stats/harmonised"
 MANIFESTS_PATH = f"{RELEASEBUCKET}/manifests/"
 
+
 # Setting up bucket name and output object names:
 GWAS_CATALOG_BUCKET_NAME = "gwas_catalog_data"
-HARMONISED_SUMSTATS_LIST_OBJECT_NAME = "manifests/harmonised_sumstats.txt"
+HARMONISED_SUMSTATS_PREFIX = "harmonised_summary_statistics"
+
+# The name of the manifest files have to be consistent with the config file:
+HARMONISED_SUMSTATS_LIST_OBJECT_NAME = (
+    "manifests/gwas_catalog_harmonised_sumstats_list.txt"
+)
 HARMONISED_SUMSTATS_LIST_FULL_NAME = (
     f"gs://{GWAS_CATALOG_BUCKET_NAME}/{HARMONISED_SUMSTATS_LIST_OBJECT_NAME}"
 )
 CURATION_INCLUSION_NAME = (
-    f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_curation_inclusion"
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_curated_included_studies"
 )
 CURATION_EXCLUSION_NAME = (
-    f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_curation_exclusion"
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_curation_excluded_studies"
 )
+SUMMARY_STATISTICS_INCLUSION_NAME = f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_summary_statistics_included_studies"
+SUMMARY_STATISTICS_EXCLUSION_NAME = f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_summary_statistics_excluded_studies"
+
+# Study index:
+STUDY_INDEX = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_index"
+
+# Study loci:
+CURATED_STUDY_LOCI = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_curated_associations"
+CURATED_LD_CLUMPED = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_curated_associations_ld_clumped"
+
+# Credible sets:
+CURATED_CREDIBLE_SETS = (
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/credible_set_datasets/gwas_catalog_curated"
+)
+
+## Other input required:
 
 
 def upload_harmonized_study_list(
@@ -62,7 +84,7 @@ with DAG(
     list_harmonised_sumstats = GCSListObjectsOperator(
         task_id="list_harmonised_parquet",
         bucket=SUMMARY_STATS_BUCKET_NAME,
-        prefix="harmonised_summary_statistics",
+        prefix=HARMONISED_SUMSTATS_PREFIX,
         match_glob="**/_SUCCESS",
     )
 
@@ -106,10 +128,9 @@ with DAG(
             step_id="ot_ld_based_clumping",
             task_id="catalog_curation_ld_clumping",
             other_args=[
-                f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/catalog_curated",
-                f"step.ld_index_path={RELEASEBUCKET}/ld_index",
-                f"step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                f"step.clumped_study_locus_output_path={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
+                f"step.study_locus_input_path={CURATED_STUDY_LOCI}",
+                f"step.study_index_path={STUDY_INDEX}",
+                f"step.clumped_study_locus_output_path={CURATED_LD_CLUMPED}",
             ],
         )
 
@@ -119,8 +140,8 @@ with DAG(
             step_id="ot_pics",
             task_id="catalog_curation_pics",
             other_args=[
-                f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
-                f"step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/catalog_curated",
+                f"step.study_locus_ld_annotated_in={CURATED_LD_CLUMPED}",
+                f"step.picsed_study_locus_out={CURATED_CREDIBLE_SETS}",
             ],
         )
 

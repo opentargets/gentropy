@@ -20,8 +20,8 @@ gwas_catalog_study_curation: ${datasets.gwas_catalog_dataset}/manifest/gwas_cata
 # Harmonised summary statistics list:
 gwas_catalog_summary_stats_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_harmonised_sumstats_list.txt
 # Inclusion lists:
-gwas_catalog_curated_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_curated_included_studies.tsv
-gwas_catalog_summary_satistics_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_summary_statistics_included_studies.tsv
+gwas_catalog_curated_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_curated_included_studies
+gwas_catalog_summary_satistics_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_summary_statistics_included_studies
 # Ingestion output folders:
 gwas_catalog_study_index: ${datasets.gwas_catalog_dataset}/gwas_catalog_study_index
 gwas_catalog_study_locus_folder: ${datasets.gwas_catalog_dataset}/gwas_catalog_study_locus_datasets
