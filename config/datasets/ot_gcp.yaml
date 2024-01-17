@@ -5,6 +5,18 @@ release_folder: gs://genetics_etl_python_playground/releases/${datasets.release_
 inputs: gs://genetics_etl_python_playground/input
 outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.version}
 
+## Datasets:
+gwas_catalog_dataset: gs://gwas_catalog_data
+catalog_associations: ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-associations_ontology-annotated.tsv
+catalog_studies:
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-download-studies.tsv
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-unpublished-studies.tsv
+catalog_ancestries:
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-download-ancestries.tsv
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas-catalog-unpublished-ancestries.tsv
+catalog_sumstats_lut: ${datasets.gwas_catalog_dataset}/curated_inputs/harmonised_list.txt
+gwas_catalog_study_curation: ${datasets.gwas_catalog_dataset}/manifest/GWAS_Catalog_study_curation.tsv
+
 # Input datasets
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
 target_index: ${datasets.inputs}/v2g_input/targets_correct_tss
@@ -13,16 +25,6 @@ anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associ
 javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
 jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
 thurman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e110_r2023-12-21.tsv
-catalog_studies:
-  # To get a complete representation of all GWAS Catalog studies, we need to
-  # ingest the list of unpublished studies from a different file.
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2023-12-21.tsv
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-unpublished-studies-r2023-12-21.tsv
-catalog_ancestries:
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2023-12-21.tsv
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-unpublished-ancestries-r2023-12-21.tsv
-catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-12-21.txt
 
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
@@ -37,7 +39,7 @@ study_locus_overlap: ${datasets.outputs}/study_locus_overlap
 ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.study_index}/catalog
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
-gwas_catalog_study_curation: ${datasets.inputs}/v2d/GWAS_Catalog_study_curation.tsv
+
 finngen_study_index: ${datasets.study_index}/finngen
 finngen_summary_stats: ${datasets.summary_statistics}/finngen
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats

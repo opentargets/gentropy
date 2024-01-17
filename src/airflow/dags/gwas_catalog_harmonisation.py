@@ -14,7 +14,7 @@ from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
 CLUSTER_NAME = "otg-gwascatalog-harmonisation"
 AUTOSCALING = "gwascatalog-harmonisation"
 
-SUMMARY_STATS_BUCKET_NAME = "open-targets-gwas-summary-stats"
+SUMMARY_STATS_BUCKET_NAME = "gwas_catalog_data"
 
 with DAG(
     dag_id=Path(__file__).stem,

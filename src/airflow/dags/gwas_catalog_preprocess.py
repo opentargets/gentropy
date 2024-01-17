@@ -19,6 +19,19 @@ SUMMARY_STATS_BUCKET_NAME = "open-targets-gwas-summary-stats"
 SUMSTATS = "gs://open-targets-gwas-summary-stats/harmonised"
 MANIFESTS_PATH = f"{RELEASEBUCKET}/manifests/"
 
+# Setting up bucket name and output object names:
+GWAS_CATALOG_BUCKET_NAME = "gwas_catalog_data"
+HARMONISED_SUMSTATS_LIST_OBJECT_NAME = "manifests/harmonised_sumstats.txt"
+HARMONISED_SUMSTATS_LIST_FULL_NAME = (
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/{HARMONISED_SUMSTATS_LIST_OBJECT_NAME}"
+)
+CURATION_INCLUSION_NAME = (
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_curation_inclusion"
+)
+CURATION_EXCLUSION_NAME = (
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/gwas_catalog_curation_exclusion"
+)
+
 
 def upload_harmonized_study_list(
     concatenated_studies: str, bucket_name: str, object_name: str
@@ -49,7 +62,7 @@ with DAG(
     list_harmonised_sumstats = GCSListObjectsOperator(
         task_id="list_harmonised_parquet",
         bucket=SUMMARY_STATS_BUCKET_NAME,
-        prefix="harmonised",
+        prefix="harmonised_summary_statistics",
         match_glob="**/_SUCCESS",
     )
 
@@ -59,8 +72,8 @@ with DAG(
         python_callable=upload_harmonized_study_list,
         op_kwargs={
             "concatenated_studies": '{{ "\n".join(ti.xcom_pull( key="return_value", task_ids="list_harmonised_parquet")) }}',
-            "bucket_name": RELEASEBUCKET_NAME,
-            "object_name": "output/python_etl/parquet/XX.XX/manifests/harmonised_sumstats.txt",
+            "bucket_name": GWAS_CATALOG_BUCKET_NAME,
+            "object_name": HARMONISED_SUMSTATS_LIST_OBJECT_NAME,
         },
     )
 
@@ -73,9 +86,9 @@ with DAG(
             task_id="catalog_curation_inclusion_list",
             other_args=[
                 "step.criteria=curation",
-                f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation",
-                f"step.exclusion_list_path={MANIFESTS_PATH}exclusion_curation",
-                f"step.harmonised_study_file={MANIFESTS_PATH}harmonised_sumstats.txt",
+                f"step.inclusion_list_path={CURATION_INCLUSION_NAME}",
+                f"step.exclusion_list_path={CURATION_EXCLUSION_NAME}",
+                f"step.harmonised_study_file={HARMONISED_SUMSTATS_LIST_FULL_NAME}",
             ],
         )
 
@@ -84,7 +97,7 @@ with DAG(
             cluster_name=CLUSTER_NAME,
             step_id="ot_gwas_catalog_ingestion",
             task_id="ingest_curated_gwas_catalog_data",
-            other_args=[f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation"],
+            other_args=[f"step.inclusion_list_path={CURATION_INCLUSION_NAME}"],
         )
 
         # Run LD-annotation and clumping on curated data:
@@ -130,9 +143,9 @@ with DAG(
             task_id="catalog_sumstats_inclusion_list",
             other_args=[
                 "step.criteria=summary_stats",
-                f"step.inclusion_list_path={MANIFESTS_PATH}manifest_sumstats",
-                f"step.exclusion_list_path={MANIFESTS_PATH}exclusion_sumstats",
-                f"step.harmonised_study_file={MANIFESTS_PATH}harmonised_sumstats.txt",
+                f"step.inclusion_list_path=gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/manifest_sumstats",
+                f"step.exclusion_list_path=gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/exclusion_sumstats",
+                f"step.harmonised_study_file=gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/harmonised_sumstats.txt",
             ],
         )
 
