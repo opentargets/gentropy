@@ -153,6 +153,9 @@
 ### 👷‍♂️ Ci
 
 
+-  remove unnecessary steps (#428) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
 -  more complex setup with independent jobs (#427) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
 
 
