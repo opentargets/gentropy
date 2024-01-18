@@ -132,7 +132,60 @@ class LDAnnotator:
                             f.col("ldPopulationStructure").isNotNull(),
                             cls._calculate_weighted_r_overall(f.col("ldSet")),
                         ),
-                    ).drop("ldPopulationStructure")
+                    )
+                    .drop("ldPopulationStructure")
+                ),
+                _schema=StudyLocus.get_schema(),
+            )
+            ._qc_no_population()
+            ._qc_unresolved_ld()
+        )
+
+
+class LDMatrix:
+    """Class to extract LD matrix from GnomAD."""
+
+    @classmethod
+    def matrix_extract(
+        cls: type[LDMatrix],
+        associations: StudyLocus,
+        studies: StudyIndex,
+        ld_index: LDIndex,
+    ) -> StudyLocus:
+        """Extract LD matrix for a set of studyLocus.
+
+        This function:
+            1. Annotates study locus with population structure information from the study index
+            2. Joins the LD index to the StudyLocus
+            3. Adds the population size of the study to each rValues entry in the ldSet
+            4. Calculates the overall R weighted by the ancestry proportions in every given study.
+
+        Args:
+            associations (StudyLocus): Dataset to be LD annotated
+            studies (StudyIndex): Dataset with study information
+            ld_index (LDIndex): Dataset with LD information for every variant present in LD matrix
+
+        Returns:
+            StudyLocus: including additional column with LD matrix.
+        """
+        return (
+            StudyLocus(
+                _df=(
+                    associations.df
+                    # Annotate study locus with population structure from study index
+                    .join(
+                        studies.df.select(
+                            "studyId", f.explode("ldPopulationStructure")
+                        ),
+                        on="studyId",
+                        how="left",
+                    )
+                    # Bring LD information from LD Index
+                    .join(
+                        ld_index.df,
+                        on=["variantId", "chromosome"],
+                        how="left",
+                    )
                 ),
                 _schema=StudyLocus.get_schema(),
             )
