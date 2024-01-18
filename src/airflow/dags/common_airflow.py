@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
-GENTROPY_VERSION = "0.0.0"
+GENTROPY_VERSION = "0.0.69"
 
 # Cloud configuration.
 GCP_PROJECT = "open-targets-genetics-dev"
@@ -251,6 +251,8 @@ def install_dependencies(cluster_name: str) -> DataprocSubmitJobOperator:
             ],
             "query_list": {
                 "queries": [
+                    "sh echo cicaful",
+                    "sh pwd",
                     "sh chmod 750 ${PWD}/install_dependencies_on_cluster.sh",
                     "sh ${PWD}/install_dependencies_on_cluster.sh",
                 ]
