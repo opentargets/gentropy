@@ -184,12 +184,16 @@ class LocusToGeneConfig(StepConfig):
         default_factory=lambda: [
             # average distance of all tagging variants to gene TSS
             "distanceTssMean",
-            # # minimum distance of all tagging variants to gene TSS
+            # minimum distance of all tagging variants to gene TSS
             "distanceTssMinimum",
-            # # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
+            # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
             "vepMaximumNeighborhood",
-            # # maximum vep consequence score of the locus 95% credible set split by gene
+            # maximum vep consequence score of the locus 95% credible set split by gene
             "vepMaximum",
+            # mean vep consequence score of the locus 95% credible set among all genes in the vicinity
+            "vepMeanNeighborhood",
+            # mean vep consequence score of the locus 95% credible set split by gene
+            "vepMean",
             # max clpp for each (study, locus, gene) aggregating over all eQTLs
             "eqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all eQTLs
