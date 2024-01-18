@@ -14,7 +14,9 @@ from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
 CLUSTER_NAME = "otg-gwascatalog-harmonisation"
 AUTOSCALING = "gwascatalog-harmonisation"
 
-SUMMARY_STATS_BUCKET_NAME = "open-targets-gwas-summary-stats"
+SUMMARY_STATS_BUCKET_NAME = "gwas_catalog_data"
+RAW_SUMMARY_STATISTICS_PREFIX = "raw_summary_statistics"
+HARMONISED_SUMMARY_STATISTICS_PREFIX = "harmonised_summary_statistics"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -26,14 +28,14 @@ with DAG(
     list_inputs = GCSListObjectsOperator(
         task_id="list_raw_harmonised",
         bucket=SUMMARY_STATS_BUCKET_NAME,
-        prefix="raw-harmonised",
+        prefix=RAW_SUMMARY_STATISTICS_PREFIX,
         match_glob="**/*.h.tsv.gz",
     )
     # List parquet files that have been previously processed
     list_outputs = GCSListObjectsOperator(
         task_id="list_harmonised_parquet",
         bucket=SUMMARY_STATS_BUCKET_NAME,
-        prefix="harmonised",
+        prefix=HARMONISED_SUMMARY_STATISTICS_PREFIX,
         match_glob="**/_SUCCESS",
     )
 
@@ -59,11 +61,15 @@ with DAG(
         print("Number of parquet files: ", len(parquets))  # noqa: T201
         for path in raw_harmonised:
             match_result = re.search(
-                r"raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", path
+                rf"{RAW_SUMMARY_STATISTICS_PREFIX}/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz",
+                path,
             )
             if match_result:
                 study_id = match_result.group(2)
-                if f"harmonised/{study_id}.parquet/_SUCCESS" not in parquets:
+                if (
+                    f"{HARMONISED_SUMMARY_STATISTICS_PREFIX}/{study_id}.parquet/_SUCCESS"
+                    not in parquets
+                ):
                     to_do_list.append(path)
         print("Number of jobs to submit: ", len(to_do_list))  # noqa: T201
         ti.xcom_push(key="to_do_list", value=to_do_list)
@@ -85,7 +91,8 @@ with DAG(
                 time.sleep(60)
             input_path = todo[i]
             match_result = re.search(
-                r"raw-harmonised/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz", input_path
+                rf"{RAW_SUMMARY_STATISTICS_PREFIX}/(.*)/(GCST\d+)/harmonised/(.*)\.h\.tsv\.gz",
+                input_path,
             )
             if match_result:
                 study_id = match_result.group(2)
@@ -95,7 +102,7 @@ with DAG(
                 step_id="ot_gwas_catalog_sumstat_preprocess",
                 other_args=[
                     f"step.raw_sumstats_path=gs://{SUMMARY_STATS_BUCKET_NAME}/{input_path}",
-                    f"step.out_sumstats_path=gs://{SUMMARY_STATS_BUCKET_NAME}/harmonised/{study_id}.parquet",
+                    f"step.out_sumstats_path=gs://{SUMMARY_STATS_BUCKET_NAME}/{HARMONISED_SUMMARY_STATISTICS_PREFIX}/{study_id}.parquet",
                 ],
             )
 
