@@ -8,7 +8,7 @@ title: Contributing guidelines
 
 The steps in this section only ever need to be done once on any particular system.
 
-Google Cloud configuration:
+For Google Cloud configuration:
 
 1. Install Google Cloud SDK: https://cloud.google.com/sdk/docs/install.
 

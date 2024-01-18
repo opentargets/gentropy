@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class Dataset(ABC):
-    """Open Targets Genetics Dataset.
+    """Open Targets Gentropy Dataset.
 
     `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `schemas` module.
     """
