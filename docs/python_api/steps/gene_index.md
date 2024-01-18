@@ -1,5 +1,5 @@
 ---
-title: Gene Index
+title: gene_index
 ---
 
 ::: gentropy.gene_index.GeneIndexStep
