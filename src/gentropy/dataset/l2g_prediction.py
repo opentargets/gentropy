@@ -69,6 +69,16 @@ class L2GPrediction(Dataset):
             variant_gene=v2g,
             colocalisation=coloc,
         ).fill_na()
+
+        gwas_fm = L2GFeatureMatrix(
+            _df=(
+                fm.df.join(
+                    study_locus.filter_by_study_type("gwas", study_index).df,
+                    on="studyLocusId",
+                )
+            ),
+            _schema=cls.get_schema(),
+        )
         return L2GPrediction(
             # Load and apply fitted model
             _df=(
@@ -76,7 +86,7 @@ class L2GPrediction(Dataset):
                     model_path,
                     features_list=features_list,
                 )
-                .predict(fm)
+                .predict(gwas_fm)
                 # the probability of the positive class is the second element inside the probability array
                 # - this is selected as the L2G probability
                 .select(
