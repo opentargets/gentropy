@@ -185,6 +185,7 @@ class PICS:
         """Run PICS on a study locus.
 
         !!! info "Study locus needs to be LD annotated"
+
             The study locus needs to be LD annotated before PICS can be calculated.
 
         Args:

@@ -2,7 +2,7 @@
 name = "gentropy"
 # !! version is managed by semantic_release
 version = "0.0.0"
-description = "Open targets Genetics Portal Python ETL"
+description = "Open Targets python framework for post-GWAS analysis"
 authors = ["Open Targets core team"]
 license = "Apache-2.0"
 readme = "README.md"

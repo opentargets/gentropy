@@ -1,9 +1,32 @@
 # Release specific configuration:
 release_version: "24.01"
+version: "XX.XX"
 release_folder: gs://genetics_etl_python_playground/releases/${datasets.release_version}
 
 inputs: gs://genetics_etl_python_playground/input
 outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.version}
+
+## Datasets:
+gwas_catalog_dataset: gs://gwas_catalog_data
+# Ingestion input files:
+gwas_catalog_associations: ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_associations_ontology_annotated.tsv
+gwas_catalog_studies:
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_download_studies.tsv
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_unpublished_studies.tsv
+gwas_catalog_ancestries:
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_download_ancestries.tsv
+  - ${datasets.gwas_catalog_dataset}/curated_inputs/gwas_catalog_unpublished_ancestries.tsv
+gwas_catalog_sumstats_lut: ${datasets.gwas_catalog_dataset}/curated_inputs/harmonised_list.txt
+gwas_catalog_study_curation: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_study_curation.tsv
+# Harmonised summary statistics list:
+gwas_catalog_summary_stats_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_harmonised_sumstats_list.txt
+# Inclusion lists:
+gwas_catalog_curated_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_curated_included_studies
+gwas_catalog_summary_satistics_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_summary_statistics_included_studies
+# Ingestion output folders:
+gwas_catalog_study_index: ${datasets.gwas_catalog_dataset}/study_index
+gwas_catalog_study_locus_folder: ${datasets.gwas_catalog_dataset}/study_locus_datasets
+gwas_catalog_credible_set_folder: ${datasets.gwas_catalog_dataset}/credible_set_datasets
 
 # Input datasets
 chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
@@ -13,16 +36,6 @@ anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associ
 javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
 jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
 thurman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-catalog_associations: ${datasets.inputs}/v2d/gwas_catalog_v1.0.2-associations_e110_r2023-12-21.tsv
-catalog_studies:
-  # To get a complete representation of all GWAS Catalog studies, we need to
-  # ingest the list of unpublished studies from a different file.
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-studies-r2023-12-21.tsv
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-unpublished-studies-r2023-12-21.tsv
-catalog_ancestries:
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-ancestries-r2023-12-21.tsv
-  - ${datasets.inputs}/v2d/gwas-catalog-v1.0.3-unpublished-ancestries-r2023-12-21.tsv
-catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-12-21.txt
 
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
@@ -41,7 +54,7 @@ susie_finemapping: ${datasets.outputs}/finngen_susie_finemapping
 ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.study_index}/catalog
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
-gwas_catalog_study_curation: ${datasets.inputs}/v2d/GWAS_Catalog_study_curation.tsv
+
 finngen_study_index: ${datasets.study_index}/finngen
 finngen_summary_stats: ${datasets.summary_statistics}/finngen
 finngen_finemapping_out: ${datasets.susie_finemapping}/finngen_susie_processed

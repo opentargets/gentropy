@@ -78,7 +78,7 @@ class GWASCatalogStudyInclusionConfig(StepConfig):
     inclusion_list_path: str = MISSING
     exclusion_list_path: str = MISSING
     _target_: str = (
-        "gentropy.gwas_catalog_study_inclusion.GWASCatalogStudyInclusionStep"
+        "gentropy.gwas_catalog_study_inclusion.GWASCatalogStudyInclusionGenerator"
     )
 
 
@@ -301,7 +301,7 @@ class WindowBasedClumpingStep(StepConfig):
     inclusion_list_path: str = MISSING
     locus_collect_distance: str | None = None
 
-    _target_: str = "gentropy.clump.WindowBasedClumpingStep"
+    _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
 
 
 @dataclass
