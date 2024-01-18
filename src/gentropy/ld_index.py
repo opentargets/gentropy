@@ -11,6 +11,7 @@ class LDIndexStep:
     """LD index step.
 
     !!! warning "This step is resource intensive"
+
         Suggested params: high memory machine, 5TB of boot disk, no SSDs.
     """
 
