@@ -5,7 +5,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10527086.svg)](https://doi.org/10.5281/zenodo.10527086)
 
 <p align="center">
-  <img width="800" height="600" src="https://raw.githubusercontent.com/opentargets/gentropy/dev/docs/assets/imgs/gentropy.svg">
+  <img width=100% height=250px src="https://raw.githubusercontent.com/opentargets/gentropy/dev/docs/assets/imgs/gentropy.svg">
 </p>
 
 Open Targets Gentropy is a Python package to facilitate the interpretation and analysis of GWAS and functional genomic studies for target identification. The package contains a toolkit for the harmonisation, statistical analysis and prioritisation of genetic signals to assist drug discovery.
