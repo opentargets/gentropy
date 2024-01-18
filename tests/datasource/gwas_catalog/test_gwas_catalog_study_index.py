@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from otg.datasource.gwas_catalog.study_index import (
+from gentropy.datasource.gwas_catalog.study_index import (
     StudyIndexGWASCatalog,
     StudyIndexGWASCatalogParser,
 )

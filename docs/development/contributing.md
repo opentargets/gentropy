@@ -8,7 +8,7 @@ title: Contributing guidelines
 
 The steps in this section only ever need to be done once on any particular system.
 
-Google Cloud configuration:
+For Google Cloud configuration:
 
 1. Install Google Cloud SDK: https://cloud.google.com/sdk/docs/install.
 
@@ -76,8 +76,8 @@ For more details on each of these steps, see the sections below.
 
 ### Classes
 
-- Dataset class in `src/otg/datasource/STEP` (example: `src/otg/datasource/finngen/study_index.py` → `FinnGenStudyIndex`)
-- Step main running class in `src/otg/STEP.py` (example: `src/otg/finngen.py`)
+- Dataset class in `src/gentropy/datasource/STEP` (example: `src/gentropy/datasource/finngen/study_index.py` → `FinnGenStudyIndex`)
+- Step main running class in `src/gentropy/STEP.py` (example: `src/gentropy/finngen.py`)
 
 ### Tests
 

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from otg.dataset.v2g import V2G
+from gentropy.dataset.v2g import V2G
 
 if TYPE_CHECKING:
-    from otg.dataset.gene_index import GeneIndex
+    from gentropy.dataset.gene_index import GeneIndex
 
 
 def test_v2g_creation(mock_v2g: V2G) -> None:

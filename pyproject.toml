@@ -1,21 +1,22 @@
 [tool.poetry]
-name = "otgenetics"
+name = "gentropy"
 # !! version is managed by semantic_release
 version = "0.0.0"
-description = "Open targets Genetics Portal Python ETL"
+description = "Open Targets python framework for post-GWAS analysis"
 authors = ["Open Targets core team"]
 license = "Apache-2.0"
 readme = "README.md"
-documentation = "https://opentargets.github.io/genetics_etl_python/"
-repository = "https://github.com/opentargets/genetics_etl_python"
-packages = [{ include = "otg", from = "src" }]
+documentation = "https://opentargets.github.io/gentropy/"
+repository = "https://github.com/opentargets/gentropy"
+packages = [{ include = "gentropy", from = "src" }]
 
 [tool.poetry.urls]
 "Bug Tracker" = "http://github.com/opentargets/issues"
 "Funding" = "https://www.opentargets.org"
+"Documentation" = "https://opentargets.github.io/gentropy/"
 
 [tool.poetry.scripts]
-otg = "otg.cli:main"
+gentropy = "gentropy.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.10, <3.11"
@@ -52,7 +53,7 @@ mkdocs-autolinks-plugin = "^0.7.1"
 mkdocs-awesome-pages-plugin = "^2.9.2"
 mkdocs-exclude = "^1.0.2"
 mkdocs-git-committers-plugin-2 = "^2.2.3"
-lxml = "^4.9.3"
+lxml = "^5.1.0"
 pymdown-extensions = "^10.7"
 
 
@@ -81,7 +82,6 @@ yamllint = "^1.33.0"
 logging_use_named_masks = true
 build_command = "pip install poetry && poetry build"
 assets = []
-version_variable = ["src/otg/__init__.py:__version__"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 upload_to_pypi = false
 upload_to_release = true
@@ -116,7 +116,8 @@ build-backend = "poetry.core.masonry.api"
 extend_exclude = ["src/conftest.py", "src/airflow", "src/utils"]
 
 [tool.deptry.per_rule_ignores]
-DEP001 = ["otg"]
+DEP001 = ["gentropy"]
+DEP003 = ["gentropy"]
 
 [tool.interrogate]
 fail-under = 95

@@ -7,8 +7,8 @@ from typing import Any
 
 import hail as hl
 import pytest
-from otg.dataset.pairwise_ld import PairwiseLD
-from otg.datasource.gnomad.ld import GnomADLDMatrix
+from genotropy.dataset.pairwise_ld import PairwiseLD
+from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 

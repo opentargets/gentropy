@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from otg.dataset.summary_statistics import SummaryStatistics
-from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.datasource.finngen.summary_stats import FinnGenSummaryStats
 from pyspark.sql import SparkSession
 
 
