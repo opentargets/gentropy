@@ -22,7 +22,7 @@ MANIFESTS_PATH = f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/"
 
 # The name of the manifest files have to be consistent with the config file:
 HARMONISED_SUMSTATS_LIST_OBJECT_NAME = (
-    "manifests/gwas_catalog_harmonised_sumstats_list.txt"
+    "manifests/gwas_catalog_harmonised_summary_statistics_list.txt"
 )
 HARMONISED_SUMSTATS_LIST_FULL_NAME = (
     f"gs://{GWAS_CATALOG_BUCKET_NAME}/{HARMONISED_SUMSTATS_LIST_OBJECT_NAME}"
