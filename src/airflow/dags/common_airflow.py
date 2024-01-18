@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
-GENTROPY_VERSION = "0.0.0"
+GENTROPY_VERSION = "0.1.0"
 
 # Cloud configuration.
 GCP_PROJECT = "open-targets-genetics-dev"
@@ -61,7 +61,7 @@ shared_dag_kwargs = {
 
 def create_cluster(
     cluster_name: str,
-    master_machine_type: str = "n1-highmem-8",
+    master_machine_type: str = "n1-highmem-16",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
     num_preemptible_workers: int = 0,
@@ -302,10 +302,8 @@ def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> A
         Any: Airflow DAG.
     """
     return (
-        create_cluster(cluster_name)
-        >> install_dependencies(cluster_name)
-        >> tasks
-        >> delete_cluster(cluster_name)
+        create_cluster(cluster_name) >> install_dependencies(cluster_name) >> tasks
+        # >> delete_cluster(cluster_name)
     )
 
 
