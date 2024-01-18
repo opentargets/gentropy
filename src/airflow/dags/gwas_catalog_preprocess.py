@@ -153,8 +153,8 @@ with DAG(
 
     # Processing summary statistics from GWAS Catalog:
     with TaskGroup(
-        group_id="summary_satistics_processing"
-    ) as summary_satistics_processing:
+        group_id="summary_statistics_processing"
+    ) as summary_statistics_processing:
         # Generate inclusion study lists:
         summary_stats_calculate_inclusion_list = common.submit_step(
             cluster_name=CLUSTER_NAME,
@@ -220,6 +220,6 @@ with DAG(
         >> list_harmonised_sumstats
         >> upload_task
         >> curation_processing
-        >> summary_satistics_processing
+        >> summary_statistics_processing
         >> common.delete_cluster(CLUSTER_NAME)
     )
