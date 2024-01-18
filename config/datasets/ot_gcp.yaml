@@ -26,6 +26,9 @@ catalog_sumstats_lut: ${datasets.inputs}/v2d/harmonised_list-r2023-12-21.txt
 
 gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
+finngen_finemapping_results_url: ${datasets.inputs}/Finngen_susie_finemapping_r10/full
+finngen_finemapping_summaries_url: ${datasets.inputs}/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv
+finngen_release_prefix: "FINNGEN_R10_"
 
 # Output datasets
 gene_index: ${datasets.outputs}/gene_index
@@ -33,6 +36,7 @@ variant_annotation: ${datasets.outputs}/variant_annotation
 study_locus: ${datasets.outputs}/study_locus
 summary_statistics: ${datasets.outputs}/summary_statistics
 study_locus_overlap: ${datasets.outputs}/study_locus_overlap
+susie_finemapping: ${datasets.outputs}/finngen_susie_finemapping
 
 ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.study_index}/catalog
@@ -40,6 +44,7 @@ catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 gwas_catalog_study_curation: ${datasets.inputs}/v2d/GWAS_Catalog_study_curation.tsv
 finngen_study_index: ${datasets.study_index}/finngen
 finngen_summary_stats: ${datasets.summary_statistics}/finngen
+finngen_finemapping_out: ${datasets.susie_finemapping}/finngen_susie_processed
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 

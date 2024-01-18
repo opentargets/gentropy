@@ -1,0 +1,7 @@
+defaults:
+  - finngen_finemapping_ingestion
+
+finngen_finemapping_results_url: ${datasets.finngen_finemapping_results_url}
+finngen_finemapping_summaries_url: ${datasets.finngen_finemapping_summaries_url}
+finngen_release_prefix: ${datasets.finngen_release_prefix}
+finngen_finemapping_out: ${datasets.finngen_finemapping_out}
