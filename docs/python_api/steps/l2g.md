@@ -1,5 +1,5 @@
 ---
-title: Locus-to-gene (L2G)
+title: locus_to_gene
 ---
 
 ::: gentropy.l2g.LocusToGeneStep

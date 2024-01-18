@@ -1,5 +1,5 @@
 ---
-title: Apply in-house curation on GWAS Catalog studies
+title: gwas_catalog_study_curation
 ---
 
 ::: gentropy.gwas_catalog_study_curation.GWASCatalogStudyCurationStep
