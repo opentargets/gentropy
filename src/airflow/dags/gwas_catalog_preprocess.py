@@ -13,11 +13,44 @@ from airflow.utils.task_group import TaskGroup
 CLUSTER_NAME = "otg-preprocess-gwascatalog"
 AUTOSCALING = "otg-preprocess-gwascatalog"
 
-RELEASEBUCKET = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX"
-RELEASEBUCKET_NAME = "genetics_etl_python_playground"
-SUMMARY_STATS_BUCKET_NAME = "open-targets-gwas-summary-stats"
-SUMSTATS = "gs://open-targets-gwas-summary-stats/harmonised"
-MANIFESTS_PATH = f"{RELEASEBUCKET}/manifests/"
+# Setting up bucket name and output object names:
+GWAS_CATALOG_BUCKET_NAME = "gwas_catalog_data"
+HARMONISED_SUMSTATS_PREFIX = "harmonised_summary_statistics"
+
+# Manifest paths:
+MANIFESTS_PATH = f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/"
+
+# The name of the manifest files have to be consistent with the config file:
+HARMONISED_SUMSTATS_LIST_OBJECT_NAME = (
+    "manifests/gwas_catalog_harmonised_sumstats_list.txt"
+)
+HARMONISED_SUMSTATS_LIST_FULL_NAME = (
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/{HARMONISED_SUMSTATS_LIST_OBJECT_NAME}"
+)
+CURATION_INCLUSION_NAME = f"{MANIFESTS_PATH}/gwas_catalog_curated_included_studies"
+CURATION_EXCLUSION_NAME = f"{MANIFESTS_PATH}/gwas_catalog_curation_excluded_studies"
+SUMMARY_STATISTICS_INCLUSION_NAME = (
+    f"{MANIFESTS_PATH}/gwas_catalog_summary_statistics_included_studies"
+)
+SUMMARY_STATISTICS_EXCLUSION_NAME = (
+    f"{MANIFESTS_PATH}/gwas_catalog_summary_statistics_excluded_studies"
+)
+
+# Study index:
+STUDY_INDEX = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_index"
+
+# Study loci:
+CURATED_STUDY_LOCI = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_curated_associations"
+CURATED_LD_CLUMPED = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_curated_associations_ld_clumped"
+WINDOW_BASED_CLUMPED = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_summary_stats_window_clumped"
+LD_BASED_CLUMPED = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_summary_stats_ld_clumped"
+# Credible sets:
+CURATED_CREDIBLE_SETS = (
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/credible_set_datasets/gwas_catalog_curated"
+)
+SUMMARY_STATISTICS_CREDIBLE_SETS = (
+    f"gs://{GWAS_CATALOG_BUCKET_NAME}/credible_set_datasets/gwas_catalog_summary_stats"
+)
 
 
 def upload_harmonized_study_list(
@@ -48,8 +81,8 @@ with DAG(
     # Getting list of folders (each a gwas study with summary statistics)
     list_harmonised_sumstats = GCSListObjectsOperator(
         task_id="list_harmonised_parquet",
-        bucket=SUMMARY_STATS_BUCKET_NAME,
-        prefix="harmonised",
+        bucket=GWAS_CATALOG_BUCKET_NAME,
+        prefix=HARMONISED_SUMSTATS_PREFIX,
         match_glob="**/_SUCCESS",
     )
 
@@ -59,8 +92,8 @@ with DAG(
         python_callable=upload_harmonized_study_list,
         op_kwargs={
             "concatenated_studies": '{{ "\n".join(ti.xcom_pull( key="return_value", task_ids="list_harmonised_parquet")) }}',
-            "bucket_name": RELEASEBUCKET_NAME,
-            "object_name": "output/python_etl/parquet/XX.XX/manifests/harmonised_sumstats.txt",
+            "bucket_name": GWAS_CATALOG_BUCKET_NAME,
+            "object_name": HARMONISED_SUMSTATS_LIST_OBJECT_NAME,
         },
     )
 
@@ -73,9 +106,9 @@ with DAG(
             task_id="catalog_curation_inclusion_list",
             other_args=[
                 "step.criteria=curation",
-                f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation",
-                f"step.exclusion_list_path={MANIFESTS_PATH}exclusion_curation",
-                f"step.harmonised_study_file={MANIFESTS_PATH}harmonised_sumstats.txt",
+                f"step.inclusion_list_path={CURATION_INCLUSION_NAME}",
+                f"step.exclusion_list_path={CURATION_EXCLUSION_NAME}",
+                f"step.harmonised_study_file={HARMONISED_SUMSTATS_LIST_FULL_NAME}",
             ],
         )
 
@@ -84,7 +117,7 @@ with DAG(
             cluster_name=CLUSTER_NAME,
             step_id="ot_gwas_catalog_ingestion",
             task_id="ingest_curated_gwas_catalog_data",
-            other_args=[f"step.inclusion_list_path={MANIFESTS_PATH}manifest_curation"],
+            other_args=[f"step.inclusion_list_path={CURATION_INCLUSION_NAME}"],
         )
 
         # Run LD-annotation and clumping on curated data:
@@ -93,10 +126,9 @@ with DAG(
             step_id="ot_ld_based_clumping",
             task_id="catalog_curation_ld_clumping",
             other_args=[
-                f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/catalog_curated",
-                f"step.ld_index_path={RELEASEBUCKET}/ld_index",
-                f"step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                f"step.clumped_study_locus_output_path={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
+                f"step.study_locus_input_path={CURATED_STUDY_LOCI}",
+                f"step.study_index_path={STUDY_INDEX}",
+                f"step.clumped_study_locus_output_path={CURATED_LD_CLUMPED}",
             ],
         )
 
@@ -106,8 +138,8 @@ with DAG(
             step_id="ot_pics",
             task_id="catalog_curation_pics",
             other_args=[
-                f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/catalog_curated",
-                f"step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/catalog_curated",
+                f"step.study_locus_ld_annotated_in={CURATED_LD_CLUMPED}",
+                f"step.picsed_study_locus_out={CURATED_CREDIBLE_SETS}",
             ],
         )
 
@@ -130,9 +162,9 @@ with DAG(
             task_id="catalog_sumstats_inclusion_list",
             other_args=[
                 "step.criteria=summary_stats",
-                f"step.inclusion_list_path={MANIFESTS_PATH}manifest_sumstats",
-                f"step.exclusion_list_path={MANIFESTS_PATH}exclusion_sumstats",
-                f"step.harmonised_study_file={MANIFESTS_PATH}harmonised_sumstats.txt",
+                f"step.inclusion_list_path={SUMMARY_STATISTICS_INCLUSION_NAME}",
+                f"step.exclusion_list_path={SUMMARY_STATISTICS_EXCLUSION_NAME}",
+                f"step.harmonised_study_file={HARMONISED_SUMSTATS_LIST_FULL_NAME}",
             ],
         )
 
@@ -142,9 +174,9 @@ with DAG(
             step_id="ot_window_based_clumping",
             task_id="catalog_sumstats_window_clumping",
             other_args=[
-                f"step.summary_statistics_input_path={SUMSTATS}",
-                f"step.study_locus_output_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
-                f"step.inclusion_list_path={MANIFESTS_PATH}manifest_sumstats",
+                f"step.summary_statistics_input_path=gs://{GWAS_CATALOG_BUCKET_NAME}/{HARMONISED_SUMSTATS_PREFIX}",
+                f"step.inclusion_list_path={SUMMARY_STATISTICS_INCLUSION_NAME}",
+                f"step.study_locus_output_path={WINDOW_BASED_CLUMPED}",
             ],
         )
 
@@ -154,10 +186,9 @@ with DAG(
             step_id="ot_ld_based_clumping",
             task_id="catalog_sumstats_ld_clumping",
             other_args=[
-                f"step.study_locus_input_path={RELEASEBUCKET}/study_locus/window_clumped/from_sumstats/catalog",
-                f"step.ld_index_path={RELEASEBUCKET}/ld_index",
-                f"step.study_index_path={RELEASEBUCKET}/study_index/catalog",
-                f"step.clumped_study_locus_output_path={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
+                f"step.study_locus_input_path={WINDOW_BASED_CLUMPED}",
+                f"step.study_index_path={STUDY_INDEX}",
+                f"step.clumped_study_locus_output_path={LD_BASED_CLUMPED}",
             ],
         )
 
@@ -167,8 +198,8 @@ with DAG(
             step_id="ot_pics",
             task_id="catalog_sumstats_pics",
             other_args=[
-                f"step.study_locus_ld_annotated_in={RELEASEBUCKET}/study_locus/ld_clumped/from_sumstats/catalog",
-                f"step.picsed_study_locus_out={RELEASEBUCKET}/credible_set/from_sumstats/catalog",
+                f"step.study_locus_ld_annotated_in={LD_BASED_CLUMPED}",
+                f"step.picsed_study_locus_out={SUMMARY_STATISTICS_CREDIBLE_SETS}",
             ],
         )
 
