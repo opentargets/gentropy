@@ -247,9 +247,11 @@ class StudyLocus(Dataset):
             raise ValueError(
                 f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
             )
-        new_df = self.df.join(
-            study_index.study_type_lut(), on="studyId", how="inner"
-        ).filter(f.col("studyType") == study_type)
+        new_df = (
+            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            .filter(f.col("studyType") == study_type)
+            .drop("studyType")
+        )
         return StudyLocus(
             _df=new_df,
             _schema=self._schema,
