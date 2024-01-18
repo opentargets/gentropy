@@ -8,6 +8,49 @@
 
 
 
+## v0.1.0-rc.3 (2024-01-18)
+### 🐛 Fix
+
+
+-  logo css [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+### 📖 Documentation
+
+
+-  fix step name (#438) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  docs ammendments (#437) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  several enhancements on docs including index and installation (#433) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  release documentation preparation (#432) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  update index.md [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  update README.md (#431) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  gentropy hero image (#430) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  documentation link (#429) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+### 🚀 Chore
+
+
+-  merge dev [\@David Ochoa](mailto:dogcaesar@gmail.com)
+
+
+-  improvements to generate 2401 data release (#436) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  tidying up gwas catalog ingestion and process configuration (#426) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
 ## v0.1.0-rc.2 (2024-01-17)
 ### ✨ Feature
 
