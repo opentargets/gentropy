@@ -4,4 +4,4 @@ title: Step
 
 # Step
 
-TBC
+This section provides description for the `Step` class. Each `Step` uses its own set of Methods.
