@@ -81,7 +81,7 @@ class LocusToGeneStep:
                     "model_path and predictions_path must be set for predict mode."
                 )
             predictions = L2GPrediction.from_credible_set(
-                model_path, features_list, credible_set, studies, v2g, coloc
+                model_path, list(features_list), credible_set, studies, v2g, coloc
             )
             predictions.df.write.mode(session.write_mode).parquet(predictions_path)
             session.logger.info(predictions_path)
