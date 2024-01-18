@@ -1,0 +1,6 @@
+fsspec
+ftputil
+gcsfs
+pandas
+pyarrow
+typing-extensions
