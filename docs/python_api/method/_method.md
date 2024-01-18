@@ -1,7 +1,0 @@
----
-title: Method
----
-
-# Method
-
-TBC
