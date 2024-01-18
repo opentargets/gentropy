@@ -76,15 +76,13 @@ class L2GFeatureMatrix(Dataset):
             raise ValueError("No features found")
 
         # raise error if the feature matrix is empty
-        if fm.limit(1).count() != 0:
-            return cls(
-                _df=convert_from_long_to_wide(
-                    fm, ["studyLocusId", "geneId"], "featureName", "featureValue"
-                ),
-                _schema=cls.get_schema(),
-                features_list=features_list,
-            )
-        raise ValueError("L2G Feature matrix is empty")
+        return cls(
+            _df=convert_from_long_to_wide(
+                fm, ["studyLocusId", "geneId"], "featureName", "featureValue"
+            ),
+            _schema=cls.get_schema(),
+            features_list=features_list,
+        )
 
     @classmethod
     def get_schema(cls: type[L2GFeatureMatrix]) -> StructType:
