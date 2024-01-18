@@ -21,6 +21,7 @@ class StudyLocusOverlap(Dataset):
     This dataset captures pairs of overlapping `StudyLocus`: that is associations whose credible sets share at least one tagging variant.
 
     !!! note
+
         This is a helpful dataset for other downstream analyses, such as colocalisation. This dataset will contain the overlapping signals between studyLocus associations once they have been clumped and fine-mapped.
     """
 

@@ -61,7 +61,7 @@ shared_dag_kwargs = {
 
 def create_cluster(
     cluster_name: str,
-    master_machine_type: str = "n1-highmem-8",
+    master_machine_type: str = "n1-highmem-16",
     worker_machine_type: str = "n1-standard-16",
     num_workers: int = 2,
     num_preemptible_workers: int = 0,
