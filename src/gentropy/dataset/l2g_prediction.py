@@ -67,7 +67,7 @@ class L2GPrediction(Dataset):
                 study_index.study_type_lut().filter(f.col("studyType") == "gwas"),
                 on="studyId",
                 how="inner",
-            ),
+            ).drop("studyType"),
             _schema=StudyLocus.get_schema(),
         )
         fm = L2GFeatureMatrix.generate_features(
