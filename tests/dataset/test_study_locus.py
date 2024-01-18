@@ -162,7 +162,7 @@ def test_find_overlaps(
 
 
 @pytest.mark.parametrize(
-    ("study_type", "expected_sl_count"), [("gwas", "eqtl", "pqtl"), (1, 1, 0)]
+    "study_type, expected_sl_count", [("gwas", 1), ("eqtl", 1), ("pqtl", 0)]
 )
 def test_filter_by_study_type(
     spark: SparkSession, study_type: str, expected_sl_count: int
