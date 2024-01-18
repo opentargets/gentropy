@@ -113,7 +113,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.deptry]
-extend_exclude = ["src/conftest.py", "src/airflow", "src/utils"]
+extend_exclude = ["src/conftest.py", "src/airflow", "src/utils", "src/batch"]
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["gentropy"]
@@ -125,7 +125,7 @@ color = true
 exclude = ["dist"]
 
 [tool.pytest.ini_options]
-addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
+addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --ignore ./src/batch"
 pythonpath = [".", "./src/airflow/dags"]
 
 # Semi-strict mode for mypy
