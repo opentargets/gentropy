@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "gentropy"
 # !! version is managed by semantic_release
-version = "0.0.69"
+version = "0.0.0"
 description = "Open targets Genetics Portal Python ETL"
 authors = ["Open Targets core team"]
 license = "Apache-2.0"
