@@ -4,6 +4,7 @@ dev_version: XX.XX
 release_folder: gs://genetics_etl_python_playground/releases/${datasets.release_version}
 
 inputs: gs://genetics_etl_python_playground/input
+static_assets: gs://genetics_etl_python_playground/static_assetss
 outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.dev_version}
 
 ## Datasets:
@@ -29,18 +30,18 @@ gwas_catalog_study_locus_folder: ${datasets.gwas_catalog_dataset}/study_locus_da
 gwas_catalog_credible_set_folder: ${datasets.gwas_catalog_dataset}/credible_set_datasets
 
 # Input datasets
-chain_37_38: ${datasets.inputs}/v2g_input/grch37_to_grch38.over.chain
-target_index: ${datasets.inputs}/v2g_input/targets_correct_tss
-vep_consequences: gs://genetics-portal-data/lut/vep_consequences.tsv
-anderson: gs://genetics-portal-input/v2g_input/andersson2014/enhancer_tss_associations.bed
-javierre: gs://genetics-portal-input/v2g_input/javierre_2016_preprocessed.parquet
-jung: gs://genetics-portal-raw/pchic_jung2019/jung2019_pchic_tableS3.csv
-thurman: gs://genetics-portal-input/v2g_input/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
+chain_37_38: ${datasets.static_assets}/grch37_to_grch38.over.chain
+vep_consequences: ${datasets.static_assets}/vep_consequences.tsv
+anderson: ${datasets.static_assets}/andersson2014/enhancer_tss_associations.bed
+javierre: ${datasets.static_assets}/javierre_2016_preprocessed
+jung: ${datasets.static_assets}/jung2019_pchic_tableS3.csv
+thurman: ${datasets.static_assets}/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
+target_index: ${datasets.release_folder}/targets # OTP 23.12 data
 
-gene_interactions: ${datasets.inputs}/l2g/interaction # 23.09 data
+gene_interactions: ${datasets.release_folder}/interaction # OTP 23.12 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 
-# Output datasets
+# Dev output datasets
 variant_annotation: ${datasets.outputs}/variant_annotation
 study_locus: ${datasets.outputs}/study_locus
 summary_statistics: ${datasets.outputs}/summary_statistics
