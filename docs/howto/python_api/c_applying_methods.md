@@ -26,7 +26,7 @@ clumped_summary_statistics = summary_stats.window_based_clumping()
 
 !!! info "The `window_based_clumping` method is also available as a class method"
 
-    The `window_based_clumping` method is also available as a class method of the `LD` class. This method performs window-based clumping on summary statistics.
+    The `window_based_clumping` method is also available as a class method of the `WindowBasedClumping` class. This method performs window-based clumping on summary statistics.
 
     ```python
     # Perform window-based clumping on summary statistics
