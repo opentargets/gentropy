@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import pytest
+from gentropy.common.Liftover import LiftOverSpark
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.intervals import Intervals
+from gentropy.datasource.intervals.jung import IntervalsJung
 from pyspark.sql import DataFrame, SparkSession
-
-from otg.common.Liftover import LiftOverSpark
-from otg.dataset.gene_index import GeneIndex
-from otg.datasource.intervals.jung import IntervalsJung
 
 
 @pytest.fixture(scope="module")
@@ -30,5 +30,5 @@ def test_jung_intervals_from_source(
         IntervalsJung.parse(
             sample_intervals_jung, mock_gene_index, liftover_chain_37_to_38
         ),
-        IntervalsJung,
+        Intervals,
     )

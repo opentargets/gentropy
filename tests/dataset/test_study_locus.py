@@ -5,6 +5,10 @@ from typing import Any
 
 import pyspark.sql.functions as f
 import pytest
+from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
     ArrayType,
@@ -16,24 +20,197 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import StudyIndex
-from otg.dataset.study_locus import CredibleInterval, StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
-
 
 def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
     """Test study locus creation with mock data."""
     assert isinstance(mock_study_locus, StudyLocus)
 
 
-def test_study_locus_overlaps(
+@pytest.mark.parametrize(
+    "has_overlap, expected",
+    [
+        # Overlap exists
+        (
+            True,
+            [
+                {
+                    "leftStudyLocusId": 1,
+                    "rightStudyLocusId": 2,
+                    "chromosome": "1",
+                    "tagVariantId": "commonTag",
+                    "statistics": {
+                        "left_posteriorProbability": 0.9,
+                        "right_posteriorProbability": 0.6,
+                    },
+                },
+                {
+                    "leftStudyLocusId": 1,
+                    "rightStudyLocusId": 2,
+                    "chromosome": "1",
+                    "tagVariantId": "nonCommonTag",
+                    "statistics": {
+                        "left_posteriorProbability": None,
+                        "right_posteriorProbability": 0.6,
+                    },
+                },
+            ],
+        ),
+        # No overlap
+        (False, []),
+    ],
+)
+def test_find_overlaps_semantic(
+    spark: SparkSession, has_overlap: bool, expected: list[Any]
+) -> None:
+    """Test study locus overlaps with and without actual overlap."""
+    if has_overlap:
+        credset = StudyLocus(
+            _df=spark.createDataFrame(
+                # 2 associations with a common variant in the locus
+                [
+                    {
+                        "studyLocusId": 1,
+                        "variantId": "lead1",
+                        "studyId": "study1",
+                        "locus": [
+                            {"variantId": "commonTag", "posteriorProbability": 0.9},
+                        ],
+                        "chromosome": "1",
+                    },
+                    {
+                        "studyLocusId": 2,
+                        "variantId": "lead2",
+                        "studyId": "study2",
+                        "locus": [
+                            {"variantId": "commonTag", "posteriorProbability": 0.6},
+                            {"variantId": "nonCommonTag", "posteriorProbability": 0.6},
+                        ],
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+    else:
+        credset = StudyLocus(
+            _df=spark.createDataFrame(
+                # 2 associations with no common variants in the locus
+                [
+                    {
+                        "studyLocusId": 1,
+                        "variantId": "lead1",
+                        "studyId": "study1",
+                        "locus": [
+                            {"variantId": "var1", "posteriorProbability": 0.9},
+                        ],
+                        "chromosome": "1",
+                    },
+                    {
+                        "studyLocusId": 2,
+                        "variantId": "lead2",
+                        "studyId": "study2",
+                        "locus": None,
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    studies = StudyIndex(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "studyId": "study1",
+                    "studyType": "gwas",
+                    "traitFromSource": "trait1",
+                    "projectId": "project1",
+                },
+                {
+                    "studyId": "study2",
+                    "studyType": "eqtl",
+                    "traitFromSource": "trait2",
+                    "projectId": "project2",
+                },
+            ]
+        ),
+        _schema=StudyIndex.get_schema(),
+    )
+    expected_overlaps_df = spark.createDataFrame(
+        expected, StudyLocusOverlap.get_schema()
+    )
+    cols_to_compare = [
+        "tagVariantId",
+        "statistics.left_posteriorProbability",
+        "statistics.right_posteriorProbability",
+    ]
+    assert (
+        credset.find_overlaps(studies).df.select(*cols_to_compare).collect()
+        == expected_overlaps_df.select(*cols_to_compare).collect()
+    ), "Overlaps differ from expected."
+
+
+def test_find_overlaps(
     mock_study_locus: StudyLocus, mock_study_index: StudyIndex
 ) -> None:
     """Test study locus overlaps."""
     assert isinstance(
         mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap
     )
+
+
+@pytest.mark.parametrize(
+    "study_type, expected_sl_count", [("gwas", 1), ("eqtl", 1), ("pqtl", 0)]
+)
+def test_filter_by_study_type(
+    spark: SparkSession, study_type: str, expected_sl_count: int
+) -> None:
+    """Test filter by study type."""
+    # Input data
+    sl = StudyLocus(
+        _df=spark.createDataFrame(
+            [
+                {
+                    # from gwas
+                    "studyLocusId": 1,
+                    "variantId": "lead1",
+                    "studyId": "study1",
+                },
+                {
+                    # from eqtl
+                    "studyLocusId": 2,
+                    "variantId": "lead2",
+                    "studyId": "study2",
+                },
+            ],
+            StudyLocus.get_schema(),
+        ),
+        _schema=StudyLocus.get_schema(),
+    )
+    studies = StudyIndex(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "studyId": "study1",
+                    "studyType": "gwas",
+                    "traitFromSource": "trait1",
+                    "projectId": "project1",
+                },
+                {
+                    "studyId": "study2",
+                    "studyType": "eqtl",
+                    "traitFromSource": "trait2",
+                    "projectId": "project2",
+                },
+            ]
+        ),
+        _schema=StudyIndex.get_schema(),
+    )
+
+    observed = sl.filter_by_study_type(study_type, studies)
+    assert observed.df.count() == expected_sl_count
 
 
 def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
@@ -319,6 +496,15 @@ def test_annotate_credible_sets(
         _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
     )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
+
+
+def test_annotate_ld(
+    mock_study_locus: StudyLocus, mock_study_index: StudyIndex, mock_ld_index: LDIndex
+) -> None:
+    """Test annotate_ld."""
+    assert isinstance(
+        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocus
+    )
 
 
 def test__qc_no_population(mock_study_locus: StudyLocus) -> None:

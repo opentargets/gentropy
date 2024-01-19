@@ -1,19 +1,22 @@
-site_name: Open Targets Genetics
+site_name: Open Targets Gentropy
 
 nav:
-  - installation.md
-  - usage.md
+  - Home: index.md
+  - Installation: installation.md
+  - ... | howto/**
+  - Roadmap: roadmap.md
   - ... | development/**
   - ... | python_api/**
 
 plugins:
   - search
-  - awesome-pages
+  - awesome-pages:
+      collapse_single_pages: true
   - mkdocstrings:
       handlers:
         python:
           options:
-            filters: ["!^_", "!__new__"]
+            filters: ["!^_", "!__new__", "__init__"]
             show_signature_annotations: true
             show_root_heading: true
   - section-index
@@ -28,7 +31,7 @@ plugins:
         - assets/schemas/*
   # Show git commiters in the footer
   - git-committers:
-      repository: opentargets/genetics_etl_python
+      repository: opentargets/gentropy
       branch: main
 
 markdown_extensions:
@@ -41,12 +44,15 @@ markdown_extensions:
   - pymdownx.superfences
   - toc:
       permalink: true
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
 
 hooks:
-  - src/scripts/schemadocs.py
+  - src/utils/schemadocs.py
 
-repo_name: opentargets/genetics_etl_python
-repo_url: https://github.com/opentargets/genetics_etl_python
+repo_name: opentargets/gentropy
+repo_url: https://github.com/opentargets/gentropy
 
 theme:
   name: "material"
@@ -84,7 +90,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/genetics_etl_python
+      link: https://github.com/gentropy
 
 extra_css:
   - assets/stylesheets/extra.css

@@ -1,4 +1,13 @@
 repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.13
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+      - id: ruff-format
+        files: ^((gentropy|utils|tests)/.+)?[^/]+\.py$
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -7,11 +16,21 @@ repos:
       - id: debug-statements
       - id: check-merge-conflict
       - id: check-case-conflict
+      - id: check-json
+        exclude: (.vscode|.devcontainer)
+      - id: no-commit-to-branch
+        args:
+          - --branch=dev
+          - --branch=main
       - id: check-toml
       - id: check-yaml
       - id: check-ast
       - id: debug-statements
       - id: check-docstring-first
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
@@ -26,42 +45,33 @@ repos:
       - id: pycln
         args: [--all]
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: "v4.0.0-alpha.8"
     hooks:
-      - id: ruff
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        args: [--add-import, from __future__ import annotations]
+      - id: prettier
 
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.10.0
+    rev: v9.11.0
     hooks:
       - id: commitlint
         additional_dependencies: ["@commitlint/config-conventional"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.7.1"
+    rev: "v1.8.0"
     hooks:
       - id: mypy
-        args: [
-            # --ignore-missing-imports is required to run mypy on virtual
-            # environments without installed dependencies
-            "--ignore-missing-imports",
-            "--check-untyped-defs",
-            "--disallow-any-generics",
-            "--disallow-incomplete-defs",
-            "--no-implicit-optional",
-            "--no-implicit-reexport",
-            "--strict-equality",
-            "--warn-redundant-casts",
-            "--warn-unused-ignores",
-            "--disallow-untyped-defs",
-          ]
+        args:
+          - "--ignore-missing-imports"
+          - "--check-untyped-defs"
+          - "--disallow-any-generics"
+          - "--disallow-incomplete-defs"
+          - "--no-implicit-optional"
+          - "--no-implicit-reexport"
+          - "--strict-equality"
+          - "--warn-redundant-casts"
+          - "--warn-unused-ignores"
+          - "--disallow-untyped-defs"
 
   - repo: https://github.com/econchick/interrogate
     rev: 1.5.0

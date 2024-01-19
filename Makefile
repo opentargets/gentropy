@@ -1,6 +1,6 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-APP_NAME ?= $$(cat pyproject.toml| grep name | cut -d" " -f3 | sed  's/"//g')
+APP_NAME ?= $$(cat pyproject.toml| grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
 VERSION_NO ?= $$(poetry version --short)
 CLEAN_VERSION_NO := $(shell echo "$(VERSION_NO)" | tr -cd '[:alnum:]')
 BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/
@@ -22,12 +22,10 @@ setup-dev: ## Setup development environment
 
 check: ## Lint and format code
 	@echo "Linting API..."
-	@poetry run ruff src/otg .
+	@poetry run ruff src/gentropy .
 	@echo "Linting docstrings..."
 	@poetry run pydoclint --config=pyproject.toml src
 	@poetry run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
-	@echo "Formatting..."
-	@poetry run isort src/otg .
 
 test: ## Run tests
 	@echo "Running Tests..."
@@ -37,8 +35,7 @@ build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
 	@poetry run mkdocs serve
 
-create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies for development purposes
-	@${MAKE} build
+create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
@@ -46,13 +43,12 @@ create-dev-cluster: ## Spin up a simple dataproc cluster with all dependencies f
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/install_dependencies_on_cluster.sh \
-		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/otgenetics-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
+		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/gentropy-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
 		--single-node \
 		--optional-components=JUPYTER \
 		--enable-component-gateway
 
-make update-dev-cluster: ## Reinstalls the package on the dev-cluster
-	@${MAKE} build
+make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_VERSION_NO}" \
@@ -63,11 +59,10 @@ make update-dev-cluster: ## Reinstalls the package on the dev-cluster
 build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
-	@rm -rf ./dist
 	@poetry build
 	@tar -czf dist/config.tar.gz config/
 	@echo "Uploading to Dataproc"
-	@gsutil cp src/otg/cli.py ${BUCKET_NAME}
+	@gsutil cp src/gentropy/cli.py ${BUCKET_NAME}
 	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl ${BUCKET_NAME}
 	@gsutil cp ./dist/config.tar.gz ${BUCKET_NAME}
 	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}

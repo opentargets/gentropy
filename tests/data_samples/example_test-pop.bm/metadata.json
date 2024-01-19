@@ -2,18 +2,7 @@
   "blockSize": 2,
   "nRows": 7,
   "nCols": 7,
-  "maybeFiltered": [
-    0,
-    4,
-    5,
-    8,
-    9,
-    10,
-    12,
-    13,
-    14,
-    15
-  ],
+  "maybeFiltered": [0, 4, 5, 8, 9, 10, 12, 13, 14, 15],
   "partFiles": [
     "part-00-36-0-0-9da891bc-b3f3-211c-ec5d-b4586236d3f6",
     "part-01-36-1-0-0f48a14a-3dc0-261b-3b0e-e3549671ed4b",

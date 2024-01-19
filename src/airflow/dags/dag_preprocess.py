@@ -8,7 +8,10 @@ from airflow.models.dag import DAG
 
 CLUSTER_NAME = "otg-preprocess"
 
-ALL_STEPS = ["finngen", "eqtl_catalogue", "ld_index", "variant_annotation"]
+ALL_STEPS = [
+    "ot_ld_index",
+    "ot_variant_annotation",
+]
 
 
 with DAG(
@@ -18,7 +21,7 @@ with DAG(
     **common.shared_dag_kwargs,
 ):
     all_tasks = [
-        common.submit_step(cluster_name=CLUSTER_NAME, step_id=step)
+        common.submit_step(cluster_name=CLUSTER_NAME, step_id=step, task_id=step)
         for step in ALL_STEPS
     ]
     dag = common.generate_dag(cluster_name=CLUSTER_NAME, tasks=all_tasks)

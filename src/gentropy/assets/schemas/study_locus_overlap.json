@@ -1,0 +1,99 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "leftStudyLocusId",
+      "nullable": false,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "rightStudyLocusId",
+      "nullable": false,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "chromosome",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "tagVariantId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "statistics",
+      "nullable": true,
+      "type": {
+        "fields": [
+          {
+            "metadata": {},
+            "name": "left_pValueMantissa",
+            "nullable": true,
+            "type": "float"
+          },
+          {
+            "metadata": {},
+            "name": "left_pValueExponent",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "metadata": {},
+            "name": "right_pValueMantissa",
+            "nullable": true,
+            "type": "float"
+          },
+          {
+            "metadata": {},
+            "name": "right_pValueExponent",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "metadata": {},
+            "name": "left_beta",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "right_beta",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "left_logBF",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "right_logBF",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "left_posteriorProbability",
+            "nullable": true,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "right_posteriorProbability",
+            "nullable": true,
+            "type": "double"
+          }
+        ],
+        "type": "struct"
+      }
+    }
+  ],
+  "type": "struct"
+}

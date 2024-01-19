@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from pyspark.sql import DataFrame
-
-from otg.dataset.study_index import StudyIndex
-from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 
 def test_eqtl_catalogue_study_index_from_source(

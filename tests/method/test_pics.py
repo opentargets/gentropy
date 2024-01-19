@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import pyspark.sql.functions as f
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.method.pics import PICS
 from pyspark.sql import Row
-
-from otg.dataset.study_locus import StudyLocus
-from otg.method.pics import PICS
 
 
 class TestFinemap:
@@ -31,10 +30,25 @@ class TestFinemap:
     def test_finemap_null_ld_set(
         self: TestFinemap, mock_study_locus: StudyLocus
     ) -> None:
-        """Test how we apply `finemap` when `locus` is null by returning a null field."""
+        """Test how we apply `finemap` when `ldSet` is null by returning a null field."""
         mock_study_locus.df = mock_study_locus.df.filter(f.col("ldSet").isNull())
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         assert observed_df.collect()[0]["locus"] is None
+
+    def test_finemap_quality_control(
+        self: TestFinemap, mock_study_locus: StudyLocus
+    ) -> None:
+        """Test that we add a `empty locus` flag when any variant in the locus meets PICS criteria."""
+        mock_study_locus.df = mock_study_locus.df.withColumn(
+            # Association with an empty ldSet
+            "ldSet",
+            f.when(f.col("ldSet").isNull(), f.array()).otherwise(f.col("ldSet")),
+        ).filter(f.size("ldSet") == 0)
+        observed_df = PICS.finemap(mock_study_locus).df.limit(1)
+        qc_flag = "LD block does not contain variants at the required R^2 threshold"
+        assert (
+            qc_flag in observed_df.collect()[0]["qualityControls"]
+        ), "Empty locus QC flag is missing."
 
 
 def test__finemap_udf() -> None:

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 from pyspark.sql import DataFrame
-
-from otg.dataset.study_index import StudyIndex
-from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 
 
 def test_ukbiobank_study_index_from_source(

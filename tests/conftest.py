@@ -5,32 +5,29 @@ from pathlib import Path
 
 import dbldatagen as dg
 import hail as hl
+import numpy as np
+import pandas as pd
 import pytest
+from gentropy.common.Liftover import LiftOverSpark
+from gentropy.common.session import Session
+from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.intervals import Intervals
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.v2g import V2G
+from gentropy.dataset.variant_annotation import VariantAnnotation
+from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
+from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame, SparkSession
 
-from otg.common.Liftover import LiftOverSpark
-from otg.common.session import Session
-from otg.dataset.colocalisation import Colocalisation
-from otg.dataset.gene_index import GeneIndex
-from otg.dataset.intervals import Intervals
-from otg.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from otg.dataset.l2g_gold_standard import L2GGoldStandard
-from otg.dataset.l2g_prediction import L2GPrediction
-from otg.dataset.ld_index import LDIndex
-from otg.dataset.study_index import StudyIndex
-from otg.dataset.study_locus import StudyLocus
-from otg.dataset.study_locus_overlap import StudyLocusOverlap
-from otg.dataset.summary_statistics import SummaryStatistics
-from otg.dataset.v2g import V2G
-from otg.dataset.variant_annotation import VariantAnnotation
-from otg.dataset.variant_index import VariantIndex
-from otg.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from otg.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
-from otg.datasource.finngen.study_index import FinnGenStudyIndex
-from otg.datasource.finngen.summary_stats import FinnGenSummaryStats
-from otg.datasource.gwas_catalog.associations import GWASCatalogAssociations
-from otg.datasource.gwas_catalog.study_index import GWASCatalogStudyIndex
-from otg.datasource.ukbiobank.study_index import UKBiobankStudyIndex
 from utils.spark import get_spark_testing_conf
 
 
@@ -54,7 +51,7 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
 
 @pytest.fixture()
 def session() -> Session:
-    """Return OTG Session object."""
+    """Return gentropy Session object."""
     return Session()
 
 
@@ -131,7 +128,9 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("nControls", percentNulls=0.1)
         .withColumnSpec("nSamples", percentNulls=0.1)
         .withColumnSpec("summarystatsLocation", percentNulls=0.1)
-        .withColumnSpec("studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl"])
+        .withColumnSpec(
+            "studyType", percentNulls=0.0, values=["eqtl", "pqtl", "sqtl", "gwas"]
+        )
     )
     return data_spec.build()
 
@@ -146,56 +145,11 @@ def mock_study_index(spark: SparkSession) -> StudyIndex:
 
 
 @pytest.fixture()
-def mock_study_index_gwas_catalog(spark: SparkSession) -> GWASCatalogStudyIndex:
+def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
     """Mock GWASCatalogStudyIndex dataset."""
-    return GWASCatalogStudyIndex(
+    return StudyIndexGWASCatalog(
         _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_finngen(spark: SparkSession) -> FinnGenStudyIndex:
-    """Mock FinnGenStudyIndex dataset."""
-    return FinnGenStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_summary_stats_finngen(spark: SparkSession) -> FinnGenSummaryStats:
-    """Mock FinnGenSummaryStats dataset."""
-    return FinnGenSummaryStats(
-        _df=mock_summary_statistics_data(spark),
-        _schema=SummaryStatistics.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueStudyIndex:
-    """Mock EqtlCatalogueStudyIndex dataset."""
-    return EqtlCatalogueStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=StudyIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_summary_stats_eqtl_catalogue(spark: SparkSession) -> EqtlCatalogueSummaryStats:
-    """Mock EqtlCatalogueSummaryStats dataset."""
-    return EqtlCatalogueSummaryStats(
-        _df=mock_summary_statistics_data(spark),
-        _schema=SummaryStatistics.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_index_ukbiobank(spark: SparkSession) -> UKBiobankStudyIndex:
-    """Mock StudyIndexUKBiobank dataset."""
-    return UKBiobankStudyIndex(
-        _df=mock_study_index_data(spark),
-        _schema=UKBiobankStudyIndex.get_schema(),
+        _schema=StudyIndexGWASCatalog.get_schema(),
     )
 
 
@@ -242,7 +196,7 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("finemappingMethod", percentNulls=0.1)
         .withColumnSpec(
             "locus",
-            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logABF", rand(), "posteriorProbability", rand(), "variantId", cast(rand() as string), "beta", rand(), "standardError", rand(), "betaConditioned", rand(), "standardErrorConditioned", rand(), "r2Overall", rand(), "pValueMantissaConditioned", rand(), "pValueExponentConditioned", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
+            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logBF", rand(), "posteriorProbability", rand(), "variantId", cast(rand() as string), "beta", rand(), "standardError", rand(), "r2Overall", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
             percentNulls=0.1,
         )
     )
@@ -259,11 +213,11 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
 
 
 @pytest.fixture()
-def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocus:
+def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocusGWASCatalog:
     """Mock study_locus dataset."""
-    return GWASCatalogAssociations(
+    return StudyLocusGWASCatalog(
         _df=mock_study_locus_data(spark),
-        _schema=GWASCatalogAssociations.get_schema(),
+        _schema=StudyLocusGWASCatalog.get_schema(),
     )
 
 
@@ -338,15 +292,15 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
             expr='array(named_struct("alleleFrequency", rand(), "populationName", cast(rand() as string)))',
             percentNulls=0.1,
         )
-        .withColumnSpec(
-            "cadd",
-            expr='named_struct("phred", cast(rand() as float), "raw", cast(rand() as float))',
-            percentNulls=0.1,
-        )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
         .withColumnSpec(
             "vep",
-            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string), "polyphenPrediction", cast(rand() as string), "polyphenScore", cast(rand() as float), "siftPrediction", cast(rand() as string), "siftScore", cast(rand() as float))))',
+            expr='named_struct("mostSevereConsequence", cast(rand() as string), "transcriptConsequences", array(named_struct("aminoAcids", cast(rand() as string), "consequenceTerms", array(cast(rand() as string)), "geneId", cast(rand() as string), "lof", cast(rand() as string))))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "inSilicoPredictors",
+            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
             percentNulls=0.1,
         )
     )
@@ -355,7 +309,7 @@ def mock_variant_annotation(spark: SparkSession) -> VariantAnnotation:
 
 @pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
-    """Mock gene index."""
+    """Mock variant index."""
     vi_schema = VariantIndex.get_schema()
 
     data_spec = (
@@ -378,8 +332,8 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             percentNulls=0.1,
         )
         .withColumnSpec(
-            "cadd",
-            expr='named_struct("phred", cast(rand() AS float), "raw", cast(rand() AS float))',
+            "inSilicoPredictors",
+            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
             percentNulls=0.1,
         )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
@@ -407,7 +361,8 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
             partitions=4,
             randomSeedMethod="hash_fieldname",
             name="summaryStats",
-        ).withSchema(ss_schema)
+        )
+        .withSchema(ss_schema)
         # Allowing missingness in effect allele frequency and enforce upper limit:
         .withColumnSpec(
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
@@ -496,7 +451,7 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 def sample_summary_satistics(spark: SparkSession) -> SummaryStatistics:
     """Sample GWAS raw associations sample data."""
     return SummaryStatistics(
-        _df=spark.read.parquet("tests/data_samples/GCST005523_chr18.parquet"),
+        _df=spark.read.parquet("tests/data_samples/sumstats_sample"),
         _schema=SummaryStatistics.get_schema(),
     )
 
@@ -510,17 +465,6 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
         json_data = finngen_studies.read()
         rdd = spark.sparkContext.parallelize([json_data])
         return spark.read.json(rdd)
-
-
-@pytest.fixture()
-def sample_finngen_summary_stats(spark: SparkSession) -> DataFrame:
-    """Sample FinnGen summary stats."""
-    # For reference, the sample file was generated with the following command:
-    # gsutil cat gs://finngen-public-data-r9/summary_stats/finngen_R9_AB1_ACTINOMYCOSIS.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz
-    # It's important for the test file to be named in exactly this way, because FinnGen study ID is populated based on input file name.
-    return spark.read.option("delimiter", "\t").csv(
-        "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz", header=True
-    )
 
 
 @pytest.fixture()
@@ -629,18 +573,18 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
         .withSchema(schema)
         .withColumnSpec("distanceTssMean", percentNulls=0.1)
         .withColumnSpec("distanceTssMinimum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppNeighborhoodMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrLocalMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrNeighborhoodMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocClppMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrMaximum", percentNulls=0.1)
+        .withColumnSpec("eqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocClppMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrMaximum", percentNulls=0.1)
+        .withColumnSpec("pqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocClppMaximumNeighborhood", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrMaximum", percentNulls=0.1)
+        .withColumnSpec("sqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
         .withColumnSpec(
             "goldStandardSet", percentNulls=0.0, values=["positive", "negative"]
         )
@@ -669,3 +613,15 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
     ).withSchema(schema)
 
     return L2GPrediction(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def sample_data_for_carma() -> list[np.ndarray]:
+    """Sample data for fine-mapping by CARMA."""
+    ld = pd.read_csv("tests/data_samples/01_test_ld.csv", header=None)
+    ld = np.array(ld)
+    z = pd.read_csv("tests/data_samples/01_test_z.csv")
+    z = np.array(z.iloc[:, 1])
+    pips = pd.read_csv("tests/data_samples/01_test_PIPs.txt")
+    pips = np.array(pips.iloc[:, 0])
+    return [ld, z, pips]

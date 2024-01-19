@@ -1,0 +1,27 @@
+{% macro add_emoji(commit_type) %}{% if commit_type == "feature" %}✨{% elif commit_type == "fix" %}🐛{% elif commit_type == "documentation" %}📖{% elif commit_type == "style" %}🎨{% elif commit_type == "refactor" %}♻️{% elif commit_type == "test" %}✅{% elif commit_type == "chore" %}🚀{% elif commit_type == "performance" %}⚡️{% elif commit_type == "ci" %}👷‍♂️{% elif commit_type == "build" %}🏗{% elif commit_type == "breaking" %}💥{% elif commit_type == "unknown" %}🤷‍♂️{% elif commit_type == "revert" %}⏪{% else %}🤷‍♂️{% endif %}{% endmacro %}
+{% macro commit_scope(commit_summary) %}{{ commit_summary.split(":")[0] }}{% endmacro %}
+{% macro commit_content(commit_summary) %}{{ commit_summary.split(":")[1] }}{% endmacro %}
+{% set order = ["breaking", "feature", "fix", "documentation", "style", "refactor", "performance", "test", "build", "ci", "chore", "revert"] %}
+# CHANGELOG
+{% set order = ["breaking", "feature", "fix", "documentation", "style", "refactor", "performance", "test", "build", "ci", "chore", "revert"] %}
+{% if context.history.unreleased | length > 0 %}
+{# UNRELEASED #}
+## Unreleased
+{%- for type_ in order %}
+{%- if type_ in context.history.unreleased %}
+### {{ add_emoji(type_) }} {{ type_ | capitalize }}
+{% for commit in context.history.unreleased[type_] %}
+{% set scope = commit_scope(commit.commit.summary).split("(")[1] | replace(")", "") | default ("", true) %}
+- {% if scope %}\[**{{ scope }}**\]{%endif%}{{ commit_content(commit.commit.summary) }} [\@{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}})
+{% endfor %}{% endif %}{% endfor %}{% endif %}
+
+{# RELEASED #}
+{% for version, release in context.history.released.items() %}
+## {{ version.as_tag() }} ({{ release.tagged_date.strftime("%Y-%m-%d") }})
+{%- for type_ in order %}
+{%- if type_ in release["elements"] %}
+### {{ add_emoji(type_) }} {{ type_ | capitalize }}
+{% for commit in release["elements"][type_] %}
+{% set scope = commit_scope(commit.commit.summary).split("(")[1] | replace(")", "") | default ("", true) %}
+- {% if scope %}\[**{{ scope }}**\]{%endif%}{{ commit_content(commit.commit.summary) }} [\@{{ commit.commit.author.name }}](mailto:{{commit.commit.author.email}})
+{% endfor %}{% endif %}{% endfor %}{% endfor %}

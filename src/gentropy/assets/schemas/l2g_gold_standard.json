@@ -1,0 +1,45 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "studyLocusId",
+      "type": "long",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "variantId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "geneId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "goldStandardSet",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "metadata": {},
+      "name": "sources",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": "string",
+        "type": "array"
+      }
+    }
+  ]
+}

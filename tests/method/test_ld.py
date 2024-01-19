@@ -7,16 +7,14 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.method.ld import LDAnnotator
 from pyspark.sql import Row
 
-from otg.dataset.study_locus import StudyLocus
-from otg.method.ld import LDAnnotator
-
 if TYPE_CHECKING:
+    from gentropy.dataset.ld_index import LDIndex
+    from gentropy.dataset.study_index import StudyIndex
     from pyspark.sql import SparkSession
-
-    from otg.dataset.ld_index import LDIndex
-    from otg.dataset.study_index import StudyIndex
 
 
 class TestLDAnnotator:
