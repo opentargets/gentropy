@@ -6,7 +6,11 @@
   "editor.formatOnSave": true,
   "editor.formatOnType": true,
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff"
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "never",
+      "source.organizeImports": "explicit"
+    }
   },
   "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
   "python.testing.pytestEnabled": true,
@@ -15,5 +19,10 @@
     "tests/",
     "--doctest-modules",
     "--cov=src/"
-  ]
+  ],
+  "[jsonc]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  }
 }
