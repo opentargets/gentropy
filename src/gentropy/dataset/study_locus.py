@@ -228,6 +228,35 @@ class StudyLocus(Dataset):
         """
         return parse_spark_schema("study_locus.json")
 
+    def filter_by_study_type(
+        self: StudyLocus, study_type: str, study_index: StudyIndex
+    ) -> StudyLocus:
+        """Creates a new StudyLocus dataset filtered by study type.
+
+        Args:
+            study_type (str): Study type to filter for. Can be one of `gwas`, `eqtl`, `pqtl`, `eqtl`.
+            study_index (StudyIndex): Study index to resolve study types.
+
+        Returns:
+            StudyLocus: Filtered study-locus dataset.
+
+        Raises:
+            ValueError: If study type is not supported.
+        """
+        if study_type not in ["gwas", "eqtl", "pqtl", "sqtl"]:
+            raise ValueError(
+                f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
+            )
+        new_df = (
+            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            .filter(f.col("studyType") == study_type)
+            .drop("studyType")
+        )
+        return StudyLocus(
+            _df=new_df,
+            _schema=self._schema,
+        )
+
     def filter_credible_set(
         self: StudyLocus,
         credible_interval: CredibleInterval,

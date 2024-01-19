@@ -1,5 +1,5 @@
 ---
-title: Generate inclusion and exclusions lists for GWAS Catalog study ingestion.
+title: gwas_catalog_study_inclusion
 ---
 
 ::: gentropy.gwas_catalog_study_inclusion.GWASCatalogStudyInclusionGenerator

@@ -7,7 +7,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 
 
-class LdBasedClumpingStep:
+class LDBasedClumpingStep:
     """Step to perform LD-based clumping on study locus dataset.
 
     As a first step, study locus is enriched with population specific linked-variants.

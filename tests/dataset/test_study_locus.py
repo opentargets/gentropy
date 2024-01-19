@@ -161,6 +161,58 @@ def test_find_overlaps(
     )
 
 
+@pytest.mark.parametrize(
+    "study_type, expected_sl_count", [("gwas", 1), ("eqtl", 1), ("pqtl", 0)]
+)
+def test_filter_by_study_type(
+    spark: SparkSession, study_type: str, expected_sl_count: int
+) -> None:
+    """Test filter by study type."""
+    # Input data
+    sl = StudyLocus(
+        _df=spark.createDataFrame(
+            [
+                {
+                    # from gwas
+                    "studyLocusId": 1,
+                    "variantId": "lead1",
+                    "studyId": "study1",
+                },
+                {
+                    # from eqtl
+                    "studyLocusId": 2,
+                    "variantId": "lead2",
+                    "studyId": "study2",
+                },
+            ],
+            StudyLocus.get_schema(),
+        ),
+        _schema=StudyLocus.get_schema(),
+    )
+    studies = StudyIndex(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "studyId": "study1",
+                    "studyType": "gwas",
+                    "traitFromSource": "trait1",
+                    "projectId": "project1",
+                },
+                {
+                    "studyId": "study2",
+                    "studyType": "eqtl",
+                    "traitFromSource": "trait2",
+                    "projectId": "project2",
+                },
+            ]
+        ),
+        _schema=StudyIndex.get_schema(),
+    )
+
+    observed = sl.filter_by_study_type(study_type, studies)
+    assert observed.df.count() == expected_sl_count
+
+
 def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     """Test credible interval filter."""
     assert isinstance(
