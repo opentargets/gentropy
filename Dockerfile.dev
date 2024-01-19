@@ -70,7 +70,7 @@ WORKDIR /workspaces
 
 # Copy only requirements, to cache them in docker layer
 COPY ./poetry.lock ./pyproject.toml ./README.md ./
-COPY src/otg src/otg
+COPY src/gentropy src/gentropy
 COPY src/utils src/utils
 
 # Install runtime deps:
