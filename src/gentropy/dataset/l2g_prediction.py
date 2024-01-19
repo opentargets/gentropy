@@ -62,21 +62,23 @@ class L2GPrediction(Dataset):
         Returns:
             L2GPrediction: L2G dataset
         """
-        gwas_study_locus = StudyLocus(
-            _df=study_locus.df.join(
-                study_index.study_type_lut().filter(f.col("studyType") == "gwas"),
-                on="studyId",
-                how="inner",
-            ),
-            _schema=StudyLocus.get_schema(),
-        )
         fm = L2GFeatureMatrix.generate_features(
             features_list=features_list,
-            study_locus=gwas_study_locus,
+            study_locus=study_locus,
             study_index=study_index,
             variant_gene=v2g,
             colocalisation=coloc,
         ).fill_na()
+
+        gwas_fm = L2GFeatureMatrix(
+            _df=(
+                fm.df.join(
+                    study_locus.filter_by_study_type("gwas", study_index).df,
+                    on="studyLocusId",
+                )
+            ),
+            _schema=cls.get_schema(),
+        )
         return L2GPrediction(
             # Load and apply fitted model
             _df=(
@@ -84,7 +86,7 @@ class L2GPrediction(Dataset):
                     model_path,
                     features_list=features_list,
                 )
-                .predict(fm)
+                .predict(gwas_fm)
                 # the probability of the positive class is the second element inside the probability array
                 # - this is selected as the L2G probability
                 .select(

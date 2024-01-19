@@ -8,7 +8,7 @@ This section contains information about the data source harmonisation tools avai
 
 ## GWAS study sources
 
-1. [GWAS catalog](gwas_catalog/_gwas_catalog.md) (with or without full summary statistics)
+1. [GWAS Catalog](gwas_catalog/_gwas_catalog.md) (with or without full summary statistics)
 1. [FinnGen](finngen/_finngen.md)
 
 ## Molecular QTLs
