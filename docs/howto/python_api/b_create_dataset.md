@@ -4,6 +4,8 @@ title: Create a dataset
 
 Gentropy provides a collection of `Dataset`s that encapsulate key concepts in the field of genetics. For example, to represent summary statistics, you'll use the [`SummaryStatistics`](../../python_api/datasets/summary_statistics.md) class. This datatype comes with a set of useful operations to disentangle the genetic architecture of a trait or disease.
 
+The full list of `Dataset`s is available in the Python API [documentation](../../python_api/datasets/_datasets.md).
+
 !!! info "Any instance of Dataset will have 2 common attributes"
 
     - **df**: the Spark DataFrame that contains the data

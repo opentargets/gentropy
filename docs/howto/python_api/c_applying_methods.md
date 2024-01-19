@@ -4,6 +4,8 @@ title: Applying methods
 
 The available methods implement well established algorithms that transform and analyse data. Methods usually take as input predefined `Dataset`(s) and produce one or several `Dataset`(s) as output. This section explains how to apply methods to your data.
 
+The full list of available methods can be found in the Python API [documentation](../../python_api/methods/_methods.md).
+
 ## Apply a class method
 
 Some methods are implemented as class methods. For example, the `finemap` method is a class method of the [`PICS`](../../python_api/methods/pics.md) class. This method performs fine-mapping using the PICS algorithm. These methods usually take as input one or several `Dataset`(s) and produce one or several `Dataset`(s) as output.
