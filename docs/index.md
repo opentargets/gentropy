@@ -34,6 +34,12 @@ hide:
 
 Open Targets Gentropy is a Python package to facilitate the interpretation and analysis of GWAS and functional genomic studies for target identification. This package contains a toolkit for the harmonisation, statistical analysis and prioritisation of genetic signals to assist drug discovery.
 
+#### Key Features:
+
+- **Specialized Datatypes**: Introduces essential genetics datatypes like _StudyLocus_, _LocusToGene_, and _SummaryStatistics_.
+- **Performance-Oriented**: Optimized for large-scale genetic data analysis, including locus-to-gene scoring, fine mapping, and colocalization analysis.
+- **User-Friendly**: The package is designed to be intuitive, allowing both beginners and experienced researchers to conduct complex genetic with ease.
+
 ## About Open Targets
 
 Open Targets is a pre-competitive, public-private partnership that uses human genetics and genomics data to systematically identify and prioritise drug targets. Through large-scale genomic experiments and the development of innovative computational techniques, the partnership aims to help researchers select the best targets for the development of new therapies. For more information, visit the Open Targets [website](https://www.opentargets.org).
