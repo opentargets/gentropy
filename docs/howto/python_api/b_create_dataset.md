@@ -66,3 +66,7 @@ custom_summary_stats = SummaryStatistics(
     _schema=SummaryStatistics.get_schema()
 )
 ```
+
+## What's next?
+
+In the next section, we will explore how to apply well-established algorithms that transform and analyse genetic data within the Gentropy framework.

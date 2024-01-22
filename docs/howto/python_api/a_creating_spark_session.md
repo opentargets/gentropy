@@ -32,6 +32,6 @@ session = Session(extended_spark_conf={"spark.driver.memory": "16g"})
 
 This code snippet demonstrates how to increase the memory allocated to the Spark driver to 16 gigabytes. You can customize other Spark settings similarly, according to your project's requirements.
 
-### What's next?
+## What's next?
 
 Now that you've created a Spark session, you're ready to start using Gentropy. In the next section, we'll show you how to process a large dataset using Gentropy's powerful _SummaryStatistics_ datatype.

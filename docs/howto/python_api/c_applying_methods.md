@@ -36,3 +36,7 @@ clumped_summary_statistics = summary_stats.window_based_clumping()
 
     clumped_summary_statistics = WindowBasedClumping.clump(summary_stats)
     ```
+
+## What's next?
+
+Up next, we'll show you how to inspect your data to ensure its integrity and the success of your transformations.
