@@ -4,7 +4,7 @@ import numpy as np
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import scipy as sc
-from pyspark.sql import Window
+from pyspark.sql import DataFrame, Window
 
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -71,15 +71,14 @@ class sumstat_qc:
         ]
 
     @staticmethod
-    def clculate_QC_GWAS(gwas_path: str, output_path: str) -> None:
+    def clculate_QC_GWAS(gwas_path: str) -> DataFrame:
         """Calculate QC metrics for GWAS.
 
         Args:
             gwas_path (str): Path to GWAS summary statistics.
-            output_path (str): Path to output.
 
         Returns:
-            None: None.
+            DataFrame: the dataframe with QC results.
         """
         session = Session()
 
@@ -145,4 +144,5 @@ class sumstat_qc:
                 "result_lin_reg",
             )
         )
-        GWAS_columns.write.parquet(output_path, mode="overwrite")
+
+        return GWAS_columns
