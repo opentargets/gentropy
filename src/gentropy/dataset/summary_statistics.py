@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pyspark.sql.functions as f
 
 from gentropy.common.schemas import parse_spark_schema
@@ -114,3 +115,28 @@ class SummaryStatistics(Dataset):
             ),
             _schema=SummaryStatistics.get_schema(),
         )
+
+    def sumstat_qc_beta_check(
+        self: SummaryStatistics,
+        threshold: float = 0.05,
+    ) -> bool:
+        """The mean beta check for QC of GWAS summary statstics.
+
+        Args:
+            threshold (float): The threshold for mean beta check.
+
+        Returns:
+            bool: Boolean whether this study passed the QC step or not.
+        """
+        GWAS = self._df
+        QC = (
+            GWAS.agg(
+                f.mean("beta").alias("mean_beta"),
+            )
+            .select(
+                "mean_beta",
+            )
+            .collect()[0]
+        )
+
+        return (np.abs(QC) < threshold)[0]
