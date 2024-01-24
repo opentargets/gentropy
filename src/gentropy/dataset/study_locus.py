@@ -453,24 +453,6 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def _qc_unresolved_ld(
-        self: StudyLocus,
-    ) -> StudyLocus:
-        """Flag associations with variants that are not found in the LD reference.
-
-        Returns:
-            StudyLocus: Updated study locus.
-        """
-        self.df = self.df.withColumn(
-            "qualityControls",
-            self.update_quality_flag(
-                f.col("qualityControls"),
-                f.col("ldSet").isNull(),
-                StudyLocusQualityCheck.UNRESOLVED_LD,
-            ),
-        )
-        return self
-
     def _qc_no_population(self: StudyLocus) -> StudyLocus:
         """Flag associations where the study doesn't have population information to resolve LD.
 
