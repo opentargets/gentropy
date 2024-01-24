@@ -76,6 +76,7 @@ class FinnGenFinemapping:
         finngen_finemapping_df: (str | list[str]),
         finngen_finemapping_summaries: (str | list[str]),
         finngen_release_prefix: str,
+        credset_lbf_threshold: float = 0.8685889638065036,
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
@@ -84,6 +85,7 @@ class FinnGenFinemapping:
             finngen_finemapping_df (str | list[str]): SuSIE finemapping output filename(s).
             finngen_finemapping_summaries (str | list[str]): filename of SuSIE finemapping summaries.
             finngen_release_prefix (str): FinnGen study prefix.
+            credset_lbf_threshold (float, optional): Filter out credible sets below, Default 0.8685889638065036 == np.log10(np.exp(2)), this is threshold from publication.
 
         Returns:
             StudyLocus: Processed SuSIE finemapping output in StudyLocus format.
@@ -119,26 +121,14 @@ class FinnGenFinemapping:
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
                 f.lit("SuSie").cast("string").alias("finemappingMethod"),
-                f.col("alpha1").cast("double").alias("alpha_1"),
-                f.col("alpha2").cast("double").alias("alpha_2"),
-                f.col("alpha3").cast("double").alias("alpha_3"),
-                f.col("alpha4").cast("double").alias("alpha_4"),
-                f.col("alpha5").cast("double").alias("alpha_5"),
-                f.col("alpha6").cast("double").alias("alpha_6"),
-                f.col("alpha7").cast("double").alias("alpha_7"),
-                f.col("alpha8").cast("double").alias("alpha_8"),
-                f.col("alpha9").cast("double").alias("alpha_9"),
-                f.col("alpha10").cast("double").alias("alpha_10"),
-                f.col("lbf_variable1").cast("double").alias("lbf_1"),
-                f.col("lbf_variable2").cast("double").alias("lbf_2"),
-                f.col("lbf_variable3").cast("double").alias("lbf_3"),
-                f.col("lbf_variable4").cast("double").alias("lbf_4"),
-                f.col("lbf_variable5").cast("double").alias("lbf_5"),
-                f.col("lbf_variable6").cast("double").alias("lbf_6"),
-                f.col("lbf_variable7").cast("double").alias("lbf_7"),
-                f.col("lbf_variable8").cast("double").alias("lbf_8"),
-                f.col("lbf_variable9").cast("double").alias("lbf_9"),
-                f.col("lbf_variable10").cast("double").alias("lbf_10"),
+                *[
+                    f.col(f"alpha{i}").cast(t.DoubleType()).alias(f"alpha_{i}")
+                    for i in range(1, 11)
+                ],
+                *[
+                    f.col(f"lbf_variable{i}").cast(t.DoubleType()).alias(f"lbf_{i}")
+                    for i in range(1, 11)
+                ],
             )
             .withColumn(
                 "posteriorProbability",
@@ -206,7 +196,7 @@ class FinnGenFinemapping:
                 f.col("cs_log10bf").cast("double").alias("credibleSetlog10BF"),
             )
             .filter(
-                (f.col("credibleSetlog10BF") > 0.8685889638065036)
+                (f.col("credibleSetlog10BF") > credset_lbf_threshold)
                 | (f.col("credibleSetIndex") == 1)
             )
             .withColumn(
