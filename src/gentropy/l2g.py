@@ -81,13 +81,17 @@ class LocusToGeneStep:
                     "model_path and predictions_path must be set for predict mode."
                 )
             predictions = L2GPrediction.from_credible_set(
-                model_path, features_list, credible_set, studies, v2g, coloc
+                model_path, list(features_list), credible_set, studies, v2g, coloc
             )
             predictions.df.write.mode(session.write_mode).parquet(predictions_path)
             session.logger.info(predictions_path)
-        elif run_mode == "train":
+        elif (
+            run_mode == "train"
+            and gold_standard_curation_path
+            and gene_interactions_path
+        ):
             # Process gold standard and L2G features
-            gs_curation = session.spark.read.json(gold_standard_curation_path)
+            gs_curation = session.spark.read.json(gold_standard_curation_path).persist()
             interactions = session.spark.read.parquet(gene_interactions_path)
             study_locus_overlap = StudyLocus(
                 # We just extract overlaps of associations in the gold standard. This parsing is a duplication of the one in the gold standard curation,

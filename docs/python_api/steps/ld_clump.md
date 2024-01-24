@@ -1,5 +1,5 @@
 ---
-title: LD-based clumping
+title: ld_based_clumping
 ---
 
 ::: gentropy.ld_based_clumping.LDBasedClumpingStep

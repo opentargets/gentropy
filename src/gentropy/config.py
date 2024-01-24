@@ -34,12 +34,9 @@ class StepConfig:
 class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
-    study_locus_path: str = MISSING
+    credible_set_path: str = MISSING
     study_index_path: str = MISSING
     coloc_path: str = MISSING
-    priorc1: float = 1e-4
-    priorc2: float = 1e-4
-    priorc12: float = 1e-5
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
@@ -167,7 +164,11 @@ class LocusToGeneConfig(StepConfig):
 
     session: Any = field(
         default_factory=lambda: {
-            "extended_spark_conf": {"spark.dynamicAllocation.enabled": "false"}
+            "extended_spark_conf": {
+                "spark.dynamicAllocation.enabled": "false",
+                "spark.driver.memory": "48g",
+                "spark.executor.memory": "48g",
+            }
         }
     )
     run_mode: str = MISSING
@@ -177,19 +178,22 @@ class LocusToGeneConfig(StepConfig):
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
-    study_locus_overlap_path: str = MISSING
-    gold_standard_curation_path: str = MISSING
-    gene_interactions_path: str = MISSING
+    gold_standard_curation_path: str | None = None
+    gene_interactions_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
             # average distance of all tagging variants to gene TSS
             "distanceTssMean",
-            # # minimum distance of all tagging variants to gene TSS
+            # minimum distance of all tagging variants to gene TSS
             "distanceTssMinimum",
-            # # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
+            # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
             "vepMaximumNeighborhood",
-            # # maximum vep consequence score of the locus 95% credible set split by gene
+            # maximum vep consequence score of the locus 95% credible set split by gene
             "vepMaximum",
+            # mean vep consequence score of the locus 95% credible set among all genes in the vicinity
+            "vepMeanNeighborhood",
+            # mean vep consequence score of the locus 95% credible set split by gene
+            "vepMean",
             # max clpp for each (study, locus, gene) aggregating over all eQTLs
             "eqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all eQTLs
@@ -260,7 +264,7 @@ class VariantIndexConfig(StepConfig):
 
 
 @dataclass
-class V2GConfig(StepConfig):
+class VariantToGeneConfig(StepConfig):
     """V2G step configuration."""
 
     variant_index_path: str = MISSING
@@ -352,5 +356,5 @@ def register_config() -> None:
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
-    cs.store(group="step", name="variant_to_gene", node=V2GConfig)
+    cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStep)
