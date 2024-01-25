@@ -18,11 +18,9 @@ In this section you'll learn the different ways of how to create a `Dataset` ins
 All the `Dataset`s have a `from_parquet` method that allows you to create any `Dataset` instance from a parquet file or directory.
 
 ```python
-from gentropy.datasets.summary_statistics import SummaryStatistics
-
-# Create a SummaryStatistics object by loading data from the specified path
+--8<-- "src_snippets/howto/python_api/b_create_dataset.py:create_from_parquet_import"
 path = "path/to/summary/stats"
-summary_stats = SummaryStatistics.from_parquet(session, path)
+--8<-- "src_snippets/howto/python_api/b_create_dataset.py:create_from_parquet"
 ```
 
 !!! info "Parquet files"
@@ -34,11 +32,9 @@ summary_stats = SummaryStatistics.from_parquet(session, path)
 Alternatively, `Dataset`s can be created using a [data source](../../python_api/datasources/_datasources.md) harmonisation method. For example, to create a `SummaryStatistics` object from Finngen's raw summary statistics, you can use the [`FinnGen`](../../python_api/datasources/finngen/summary_stats.md) data source.
 
 ```python
-from gentropy.datasources.finngen.summary_stats import FinnGenSummaryStats
-
-# Create a SummaryStatistics object by loading raw data from Finngen
+--8<-- "src_snippets/howto/python_api/b_create_dataset.py:create_from_source_import"
 path = "path/to/finngen/summary/stats"
-finngen_summary_stats = FinngenSummaryStats.from_source(session.spark, path)
+--8<-- "src_snippets/howto/python_api/b_create_dataset.py:create_from_source"
 ```
 
 ## Creating a dataset from a pandas DataFrame
@@ -52,19 +48,12 @@ If none of our data sources fit your needs, you can create a `Dataset` object fr
 You can also create a `Dataset` from a pandas DataFrame. This is useful when you want to create a `Dataset` from a small dataset that fits in memory.
 
 ```python
-from gentropy.datasets.summary_statistics import SummaryStatistics
-import pyspark.pandas as ps
+--8<-- "src_snippets/howto/python_api/b_create_dataset.py:create_from_pandas_import"
 
 # Load your transformed data into a pandas DataFrame
 path = "path/to/your/data"
 custom_summary_stats_pandas_df = pd.read_csv(path)
-
-# Create a SummaryStatistics object specifying the data and schema
-custom_summary_stats_df = ps.from_pandas(custom_summary_stats_pandas_df).to_spark()
-custom_summary_stats = SummaryStatistics(
-    _df=custom_summary_stats_df,
-    _schema=SummaryStatistics.get_schema()
-)
+--8<-- "src_snippets/howto/python_api/b_create_dataset.py:create_from_pandas"
 ```
 
 ## What's next?

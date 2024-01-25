@@ -13,8 +13,7 @@ The `df` attribute of a Dataset instance is key to interacting with and inspecti
 ### View data samples
 
 ```python
-# Inspect the first 10 rows of the data
-summary_stats.df.show(10)
+--8<-- "src_snippets/howto/python_api/d_inspect_dataset.py:print_dataframe"
 ```
 
 This method displays the first 10 rows of your dataset, giving you a snapshot of your data's structure and content.
@@ -22,21 +21,17 @@ This method displays the first 10 rows of your dataset, giving you a snapshot of
 ### Understand the schema
 
 ```python
-# Get the Spark schema of any `Dataset` as a `StructType` object
-summary_stats.get_schema()
+--8<-- "src_snippets/howto/python_api/d_inspect_dataset.py:get_dataset_schema"
 
-# Print the schema of the data
-summary_stats.df.printSchema()
+--8<-- "src_snippets/howto/python_api/d_inspect_dataset.py:print_dataframe"
 ```
 
 ## Write a `Dataset` to disk
 
 ```python
-# Write the data to disk in parquet format
-summary_stats.df.write.parquet("path/to/summary/stats")
+--8<-- "src_snippets/howto/python_api/d_inspect_dataset.py:write_parquet"
 
-# Write the data to disk in csv format
-summary_stats.df.write.csv("path/to/summary/stats")
+--8<-- "src_snippets/howto/python_api/d_inspect_dataset.py:write_csv"
 ```
 
 Consider the format's compatibility with your tools, and the partitioning strategy for large datasets to optimize performance.

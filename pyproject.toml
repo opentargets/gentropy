@@ -260,7 +260,7 @@ convention = "google"
 
 [tool.pydoclint]
 style = 'google'
-exclude = '\.git|\.venv|__init__.py|tests'
+exclude = '\.git|\.venv|__init__.py|tests|docs'
 require-return-section-when-returning-nothing = false
 check-return-types = true
 allow-init-docstring = true

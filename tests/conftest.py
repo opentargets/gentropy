@@ -370,18 +370,16 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
         # Allowing missingness:
         .withColumnSpec("standardError", percentNulls=0.1)
         # Making sure p-values are below 1:
-    ).build()
+    )
 
-    return data_spec
+    return data_spec.build()
 
 
 @pytest.fixture()
-def mock_summary_statistics(
-    mock_summary_statistics_data: DataFrame,
-) -> SummaryStatistics:
+def mock_summary_statistics(spark: SparkSession) -> SummaryStatistics:
     """Generating a mock summary statistics dataset."""
     return SummaryStatistics(
-        _df=mock_summary_statistics_data, _schema=SummaryStatistics.get_schema()
+        _df=mock_summary_statistics_data(spark), _schema=SummaryStatistics.get_schema()
     )
 
 

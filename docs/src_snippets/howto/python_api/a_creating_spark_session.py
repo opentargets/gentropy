@@ -1,4 +1,4 @@
-"""Create a default Spark Session."""
+"""Docs to create a default Spark Session."""
 from gentropy.common.session import Session
 
 
