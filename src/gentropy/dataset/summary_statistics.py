@@ -170,7 +170,7 @@ class SummaryStatistics(Dataset):
 
             Examples:
                 >>> calculate_logpval(1.0)
-                0.3010299956639812
+                0.49851554582799334
             """
             logpval = -np.log10(sc.stats.chi2.sf((z2), 1))
             return float(logpval)
