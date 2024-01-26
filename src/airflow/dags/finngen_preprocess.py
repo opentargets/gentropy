@@ -12,19 +12,13 @@ AUTOSCALING = "finngen-preprocess"
 
 # Get all parameters for the DAG:
 FINNGEN_VERSION = "r10"
-FINNGEN_BUCKET = "gs://finngen_data/{FINNGEN_VERSION}"
+FINNGEN_BUCKET = f"gs://finngen_data/{FINNGEN_VERSION}"
 
 STUDY_INDEX = f"{FINNGEN_BUCKET}/study_index"
 SUMMARY_STATISTICS = f"{FINNGEN_BUCKET}/harmonised_summary_statistics"
-WINDOW_BASED_CLUMPED = (
-    f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_summary_statistics_window_clumped"
-)
-LD_CLUMPED = (
-    f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_summary_statistics_ld_clumped"
-)
-PICSED_CREDIBLE_SET = (
-    f"{FINNGEN_BUCKET}/credible_set_datasets/finngen_summary_statistics_pics"
-)
+WINDOW_BASED_CLUMPED = f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_window_clumped"
+LD_CLUMPED = f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_ld_clumped"
+PICSED_CREDIBLE_SET = f"{FINNGEN_BUCKET}/credible_set_datasets/finngen_pics"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -37,7 +31,7 @@ with DAG(
         step_id="ot_finngen_studies",
         task_id="finngen_studies",
         other_args=[
-            f"finngen_study_index_out={STUDY_INDEX}",
+            f"step.finngen_study_index_out={STUDY_INDEX}",
         ],
     )
 
@@ -52,7 +46,7 @@ with DAG(
     )
     ld_clumping = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="ld_based_clumping",
+        step_id="ot_ld_based_clumping",
         task_id="finngen_ld_clumping",
         other_args=[
             f"step.study_locus_input_path={WINDOW_BASED_CLUMPED}",
