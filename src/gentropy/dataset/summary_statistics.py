@@ -6,6 +6,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
+import scipy as sc
+from pyspark.sql.functions import log10
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
@@ -139,4 +142,95 @@ class SummaryStatistics(Dataset):
             .collect()[0]
         )
 
-        return (np.abs(QC) < threshold)[0]
+        return (np.abs(QC) <= threshold)[0]
+
+    def sumstat_qc_pz_check(
+        self: SummaryStatistics,
+        threshold_b: float = 0.05,
+        threshold_intercept: float = 0.05,
+    ) -> bool:
+        """The PZ check for QC of GWAS summary statstics. It runs linear regression between reorted p-values and p-values infered from z-scores.
+
+        Args:
+            threshold_b (float): The threshold for b coeffcicient in linear regression.
+            threshold_intercept (float): The threshold for intercept in linear regression.
+
+        Returns:
+            bool: Boolean whether this study passed the QC step or not.
+        """
+
+        def calculate_logpval(z2: float) -> float:
+            """Calculate negative log10-pval from Z-score.
+
+            Args:
+                z2 (float): Z-score squared.
+
+            Returns:
+                float: log10-pval.
+
+            Examples:
+                >>> calculate_logpval(1.0)
+                0.3010299956639812
+            """
+            logpval = -np.log10(sc.stats.chi2.sf((z2), 1))
+            return float(logpval)
+
+        def calculate_lin_reg(y: list[float], x: list[float]) -> list[float]:
+            """Calculate linear regression.
+
+            Args:
+                y (list[float]): y values.
+                x (list[float]): x values.
+
+            Returns:
+                list[float]: slope, slope_stderr, intercept, intercept_stderr.
+
+            Examples:
+                >>> calculate_lin_reg([1,2,3], [1,2,3])
+                [1.0, 0.0, 0.0, 0.0]
+            """
+            lin_reg = sc.stats.linregress(y, x)
+            return [
+                float(lin_reg.slope),
+                float(lin_reg.stderr),
+                float(lin_reg.intercept),
+                float(lin_reg.intercept_stderr),
+            ]
+
+        GWAS = self._df
+
+        linear_reg_Schema = t.StructType(
+            [
+                t.StructField("beta", t.FloatType(), False),
+                t.StructField("beta_stderr", t.FloatType(), False),
+                t.StructField("intercept", t.FloatType(), False),
+                t.StructField("intercept_stderr", t.FloatType(), False),
+            ]
+        )
+
+        calculate_logpval_udf = f.udf(calculate_logpval, t.DoubleType())
+        lin_udf = f.udf(calculate_lin_reg, linear_reg_Schema)
+
+        QC = (
+            GWAS.limit(1000)
+            .withColumn("zscore", f.col("beta") / f.col("standardError"))
+            .withColumn("new_logpval", calculate_logpval_udf(f.col("zscore") ** 2))
+            .withColumn("log_mantissa", log10("pValueMantissa"))
+            .withColumn("logpval", -f.col("log_mantissa") - f.col("pValueExponent"))
+            .agg(
+                f.collect_list("logpval").alias("pval_vector"),
+                f.collect_list("new_logpval").alias("new_pval_vector"),
+            )
+            .withColumn(
+                "result_lin_reg",
+                lin_udf(f.col("pval_vector"), f.col("new_pval_vector")),
+            )
+            .select(
+                "result_lin_reg",
+            )
+        )
+
+        lin_results = QC.toPandas().iloc[0, 0]
+        beta = lin_results[0]
+        interc = lin_results[2]
+        return np.abs(beta - 1) <= threshold_b and np.abs(interc) <= threshold_intercept
