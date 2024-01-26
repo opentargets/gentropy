@@ -54,9 +54,6 @@ ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.study_index}/catalog
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 
-
-
-
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 
