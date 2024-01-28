@@ -84,6 +84,5 @@ with DAG(
         )
         >> common.install_dependencies(CLUSTER_NAME)
         >> [finngen_summary_stats_preprocess, finngen_finemapping_ingestion]
-        # >> finngen_finemapping_ingestion
         >> common.delete_cluster(CLUSTER_NAME)
     )

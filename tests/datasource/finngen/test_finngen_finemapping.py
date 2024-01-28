@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.datasource.finngen.finngen_finemapping import FinnGenFinemapping
+from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
 from pyspark.sql import SparkSession
 
 

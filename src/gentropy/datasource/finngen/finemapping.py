@@ -17,7 +17,17 @@ from gentropy.dataset.study_locus import StudyLocus
 
 @dataclass
 class FinnGenFinemapping:
-    """SuSIE finemapping dataset for FinnGen."""
+    """SuSIE finemapping dataset for FinnGen.
+
+    Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
+
+    - Study ID in the special format (e.g. FINNGEN_R10_*)
+    - Credible set specific finemapping statistics (e.g. LogBayesFactors, Alphas/Posterior)
+    - Additional credible set level BayesFactor filtering is applied (LBF > 2)
+    - StudyLocusId is annotated for each credible set.
+
+    Finemapping method is populated as a constant ("SuSIE").
+    """
 
     raw_schema: t.StructType = StructType(
         [
@@ -235,49 +245,38 @@ class FinnGenFinemapping:
         )
 
         processed_finngen_finemapping_df = (
-            (
-                processed_finngen_finemapping_df.groupBy(
-                    "studyId", "region", "credibleSetIndex"
-                )
-                .agg(
-                    f.collect_list(
-                        f.struct(
-                            f.col("variantId").cast("string").alias("variantId"),
-                            f.col("posteriorProbability")
-                            .cast("double")
-                            .alias("posteriorProbability"),
-                            f.col("logBF").cast("double").alias("logBF"),
-                            f.col("pValueMantissa")
-                            .cast("float")
-                            .alias("pValueMantissa"),
-                            f.col("pValueExponent")
-                            .cast("integer")
-                            .alias("pValueExponent"),
-                            f.col("beta").cast("double").alias("beta"),
-                            f.col("standardError")
-                            .cast("double")
-                            .alias("standardError"),
-                        )
-                    ).alias("locus"),
-                )
-                .select(
-                    "studyId",
-                    "region",
-                    "credibleSetIndex",
-                    "locus",
-                )
-                .join(
-                    toploci_df,
-                    on=["studyId", "region", "credibleSetIndex"],
-                    how="inner",
-                )
+            processed_finngen_finemapping_df.groupBy(
+                "studyId", "region", "credibleSetIndex"
             )
-            .withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+            .agg(
+                f.collect_list(
+                    f.struct(
+                        f.col("variantId").cast("string").alias("variantId"),
+                        f.col("posteriorProbability")
+                        .cast("double")
+                        .alias("posteriorProbability"),
+                        f.col("logBF").cast("double").alias("logBF"),
+                        f.col("pValueMantissa").cast("float").alias("pValueMantissa"),
+                        f.col("pValueExponent").cast("integer").alias("pValueExponent"),
+                        f.col("beta").cast("double").alias("beta"),
+                        f.col("standardError").cast("double").alias("standardError"),
+                    )
+                ).alias("locus"),
             )
-            .repartitionByRange(30, "chromosome", "position")
-            .sortWithinPartitions("chromosome", "position")
+            .select(
+                "studyId",
+                "region",
+                "credibleSetIndex",
+                "locus",
+            )
+            .join(
+                toploci_df,
+                on=["studyId", "region", "credibleSetIndex"],
+                how="inner",
+            )
+        ).withColumn(
+            "studyLocusId",
+            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
         )
 
         return StudyLocus(
