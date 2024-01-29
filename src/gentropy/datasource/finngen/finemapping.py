@@ -29,6 +29,7 @@ class FinnGenFinemapping:
     Finemapping method is populated as a constant ("SuSIE").
     """
 
+    finngen_release_prefix: str = "FINNGEN_R10"
     raw_schema: t.StructType = StructType(
         [
             StructField("trait", StringType(), True),
@@ -85,7 +86,6 @@ class FinnGenFinemapping:
         spark: SparkSession,
         finngen_finemapping_df: (str | list[str]),
         finngen_finemapping_summaries: (str | list[str]),
-        finngen_release_prefix: str,
         credset_lbf_threshold: float = 0.8685889638065036,
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
@@ -94,7 +94,6 @@ class FinnGenFinemapping:
             spark (SparkSession): Spark session object.
             finngen_finemapping_df (str | list[str]): SuSIE finemapping output filename(s).
             finngen_finemapping_summaries (str | list[str]): filename of SuSIE finemapping summaries.
-            finngen_release_prefix (str): FinnGen study prefix.
             credset_lbf_threshold (float, optional): Filter out credible sets below, Default 0.8685889638065036 == np.log10(np.exp(2)), this is threshold from publication.
 
         Returns:
@@ -111,7 +110,7 @@ class FinnGenFinemapping:
             .filter(f.col("cs").cast(t.IntegerType()) > 0)
             .select(
                 # Add study idenfitier.
-                f.concat(f.lit(finngen_release_prefix), f.col("trait"))
+                f.concat(f.lit(cls.finngen_release_prefix), f.col("trait"))
                 .cast(t.StringType())
                 .alias("studyId"),
                 f.col("region"),
@@ -210,7 +209,7 @@ class FinnGenFinemapping:
                 | (f.col("credibleSetIndex") == 1)
             )
             .withColumn(
-                "studyId", f.concat(f.lit(finngen_release_prefix), f.col("trait"))
+                "studyId", f.concat(f.lit(cls.finngen_release_prefix), f.col("trait"))
             )
         )
 
