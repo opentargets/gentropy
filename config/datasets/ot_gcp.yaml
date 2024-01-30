@@ -42,10 +42,6 @@ gene_interactions: ${datasets.release_folder}/interaction # OTP 23.12 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 finngen_finemapping_results_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/full
 finngen_finemapping_summaries_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv
-finngen_release_prefix: "FINNGEN_R10_"
-
-finngen_version: "r10"
-finngen_data: gs://finngen_data/${datasets.finngen_version}
 
 # Dev output datasets
 variant_annotation: ${datasets.outputs}/variant_annotation
