@@ -12,6 +12,9 @@ updates:
     commit-message:
       prefix: "build"
       include: "scope"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -23,6 +26,9 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: "docker"
     directory: "/src/airflow/"
@@ -34,3 +40,6 @@ updates:
     commit-message:
       prefix: "build"
       include: "scope"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
