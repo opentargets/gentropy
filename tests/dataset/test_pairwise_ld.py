@@ -6,10 +6,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+from otg.dataset.pairwise_ld import PairwiseLD
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
-
-from otg.dataset.pairwise_ld import PairwiseLD
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
