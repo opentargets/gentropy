@@ -41,6 +41,9 @@ target_index: ${datasets.release_folder}/targets # OTP 23.12 data
 gene_interactions: ${datasets.release_folder}/interaction # OTP 23.12 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 
+finngen_version: "r10"
+finngen_data: gs://finngen_data/${datasets.finngen_version}
+
 # Dev output datasets
 variant_annotation: ${datasets.outputs}/variant_annotation
 study_locus: ${datasets.outputs}/study_locus
@@ -51,8 +54,6 @@ ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.study_index}/catalog
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 
-finngen_study_index: ${datasets.study_index}/finngen
-finngen_summary_stats: ${datasets.summary_statistics}/finngen
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 
