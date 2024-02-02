@@ -91,7 +91,7 @@ class TestGnomADLDMatrixVariants:
         )
 
     @pytest.fixture(scope="class")
-    def ld_slice(self: TestGnomADLDMatrixVariants) -> DataFrame | None:
+    def ld_slice(self: TestGnomADLDMatrixVariants) -> PairwiseLD:
         """Generate a resolved LD slice."""
         return self.gnomad_ld_matrix.get_ld_variants(
             gnomad_ancestry="test-pop",  # observed[0],
@@ -107,7 +107,7 @@ class TestGnomADLDMatrixVariants:
     ) -> None:
         """Testing if the function returns the right type."""
         # Do we have the right type?
-        assert isinstance(ld_slice, PairwiseLD)
+        assert isinstance(ld_slice, DataFrame)
         # Do we have a real square?
         assert sqrt(ld_slice.df.count()) == int(sqrt(ld_slice.df.count()))
 
