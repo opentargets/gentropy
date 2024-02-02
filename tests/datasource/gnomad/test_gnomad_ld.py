@@ -109,7 +109,7 @@ class TestGnomADLDMatrixVariants:
         # Do we have the right type?
         assert isinstance(ld_slice, DataFrame)
         # Do we have a real square?
-        assert sqrt(ld_slice.df.count()) == int(sqrt(ld_slice.df.count()))
+        assert sqrt(ld_slice.count()) == int(sqrt(ld_slice.count()))
 
 
 class TestGnomADLDMatrixSlice:
