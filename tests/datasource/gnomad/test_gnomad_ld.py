@@ -91,7 +91,7 @@ class TestGnomADLDMatrixVariants:
         )
 
     @pytest.fixture(scope="class")
-    def ld_slice(self: TestGnomADLDMatrixVariants) -> PairwiseLD:
+    def ld_slice(self: TestGnomADLDMatrixVariants) -> DataFrame | None:
         """Generate a resolved LD slice."""
         return self.gnomad_ld_matrix.get_ld_variants(
             gnomad_ancestry="test-pop",  # observed[0],
