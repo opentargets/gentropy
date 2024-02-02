@@ -220,9 +220,9 @@ class GnomADLDMatrix:
             DataFrame: Dataframe with variant IDs instead of `i` and `j` indices
         """
         ld_index_i = ld_index.selectExpr(
-            "idx as i", "variantId as variantId_i", "chromosome"
+            "idx as i", "variantId as variantIdI", "chromosome"
         )
-        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantId_j")
+        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantIdJ")
         return (
             ld_matrix.join(ld_index_i, on="i", how="inner")
             .join(ld_index_j, on="j", how="inner")
@@ -246,11 +246,11 @@ class GnomADLDMatrix:
             ...         (1, 2, 0.5, "1", "AFR"),
             ...         (2, 2, 1.0, "1", "AFR"),
             ...     ],
-            ...     ["variantId_i", "variantId_j", "r", "chromosome", "population"],
+            ...     ["variantIdI", "variantIdJ", "r", "chromosome", "population"],
             ... )
             >>> GnomADLDMatrix._transpose_ld_matrix(df).show()
             +-----------+-----------+---+----------+----------+
-            |variantId_i|variantId_j|  r|chromosome|population|
+            |variantIdI|variantIdJ|  r|chromosome|population|
             +-----------+-----------+---+----------+----------+
             |          1|          2|0.5|         1|       AFR|
             |          1|          1|1.0|         1|       AFR|
@@ -260,15 +260,15 @@ class GnomADLDMatrix:
             <BLANKLINE>
         """
         ld_matrix_transposed = ld_matrix.selectExpr(
-            "variantId_i as variantId_j",
-            "variantId_j as variantId_i",
+            "variantIdI as variantIdJ",
+            "variantIdJ as variantIdI",
             "r",
             "chromosome",
             "population",
         )
-        return ld_matrix.filter(
-            f.col("variantId_i") != f.col("variantId_j")
-        ).unionByName(ld_matrix_transposed)
+        return ld_matrix.filter(f.col("variantIdI") != f.col("variantIdJ")).unionByName(
+            ld_matrix_transposed
+        )
 
     def as_ld_index(
         self: GnomADLDMatrix,
@@ -309,8 +309,8 @@ class GnomADLDMatrix:
             GnomADLDMatrix._transpose_ld_matrix(
                 reduce(lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated)
             )
-            .withColumnRenamed("variantId_i", "variantId")
-            .withColumnRenamed("variantId_j", "tagVariantId")
+            .withColumnRenamed("variantIdI", "variantId")
+            .withColumnRenamed("variantIdJ", "tagVariantId")
         )
         return LDIndex(
             _df=self._aggregate_ld_index_across_populations(ld_index_unaggregated),
@@ -397,7 +397,7 @@ class GnomADLDMatrix:
             .join(
                 ld_index_df.select(
                     f.col("idx").alias("idx_i"),
-                    f.col("variantId").alias("variantId_i"),
+                    f.col("variantId").alias("variantIdI"),
                 ),
                 on="idx_i",
                 how="inner",
@@ -405,12 +405,12 @@ class GnomADLDMatrix:
             .join(
                 ld_index_df.select(
                     f.col("idx").alias("idx_j"),
-                    f.col("variantId").alias("variantId_j"),
+                    f.col("variantId").alias("variantIdJ"),
                 ),
                 on="idx_j",
                 how="inner",
             )
-            .select("variantId_i", "variantId_j", "r")
+            .select("variantIdI", "variantIdJ", "r")
         )
 
     def get_ld_matrix_slice(
