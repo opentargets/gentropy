@@ -64,7 +64,7 @@ def test_resolve_variant_indices(
     )
     expected_df = spark.createDataFrame(
         expected,
-        ["r", "variantId_i", "chromosome", "variantId_j"],
+        ["r", "variantIdI", "chromosome", "variantIdJ"],
     )
     observed_df = GnomADLDMatrix._resolve_variant_indices(ld_index, ld_matrix)
     assert (

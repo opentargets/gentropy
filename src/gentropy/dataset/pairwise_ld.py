@@ -59,8 +59,8 @@ class PairwiseLD(Dataset):
         return PairwiseLD(
             _df=(
                 self.df.filter(
-                    f.col("variantId_i").isin(locus_variants)
-                    & f.col("variantId_j").isin(locus_variants)
+                    f.col("variantIdI").isin(locus_variants)
+                    & f.col("variantIdJ").isin(locus_variants)
                 )
             ),
             _schema=PairwiseLD.get_schema(),
