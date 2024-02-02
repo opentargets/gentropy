@@ -2,13 +2,13 @@
   "fields": [
     {
       "metadata": {},
-      "name": "variantId_i",
+      "name": "variantIdI",
       "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "variantId_j",
+      "name": "variantIdJ",
       "nullable": false,
       "type": "string"
     },
