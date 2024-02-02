@@ -240,24 +240,24 @@ class GnomADLDMatrix:
             DataFrame: Square LD matrix without diagonal duplicates
 
         Examples:
-            >>> df = spark.createDataFrame(
-            ...     [
-            ...         (1, 1, 1.0, "1", "AFR"),
-            ...         (1, 2, 0.5, "1", "AFR"),
-            ...         (2, 2, 1.0, "1", "AFR"),
-            ...     ],
-            ...     ["variantIdI", "variantIdJ", "r", "chromosome", "population"],
-            ... )
-            >>> GnomADLDMatrix._transpose_ld_matrix(df).show()
-            +-----------+-----------+---+----------+----------+
-            |variantIdI|variantIdJ|  r|chromosome|population|
-            +-----------+-----------+---+----------+----------+
-            |          1|          2|0.5|         1|       AFR|
-            |          1|          1|1.0|         1|       AFR|
-            |          2|          1|0.5|         1|       AFR|
-            |          2|          2|1.0|         1|       AFR|
-            +-----------+-----------+---+----------+----------+
-            <BLANKLINE>
+        >>> df = spark.createDataFrame(
+        ...     [
+        ...         (1, 1, 1.0, "1", "AFR"),
+        ...         (1, 2, 0.5, "1", "AFR"),
+        ...         (2, 2, 1.0, "1", "AFR"),
+        ...     ],
+        ...     ["variantIdI", "variantIdJ", "r", "chromosome", "population"],
+        ... )
+        >>> GnomADLDMatrix._transpose_ld_matrix(df).show()
+        +----------+----------+---+----------+----------+
+        |variantIdI|variantIdJ|  r|chromosome|population|
+        +----------+----------+---+----------+----------+
+        |         1|         2|0.5|         1|       AFR|
+        |         1|         1|1.0|         1|       AFR|
+        |         2|         1|0.5|         1|       AFR|
+        |         2|         2|1.0|         1|       AFR|
+        +----------+----------+---+----------+----------+
+        <BLANKLINE>
         """
         ld_matrix_transposed = ld_matrix.selectExpr(
             "variantIdI as variantIdJ",
