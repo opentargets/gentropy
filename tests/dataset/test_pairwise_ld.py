@@ -39,16 +39,16 @@ class TestPairwiseLD:
         data = [(v1, v2) for v1 in self.variants for v2 in self.variants]
         return PairwiseLD(
             _df=(
-                spark.createDataFrame(data, ["variantId_i", "variantId_j"])
+                spark.createDataFrame(data, ["variantIdI", "variantIdJ"])
                 .withColumn(
                     "r",
                     f.row_number()
-                    .over(Window.partitionBy(f.lit("x")).orderBy("variantId_i"))
+                    .over(Window.partitionBy(f.lit("x")).orderBy("variantIdI"))
                     .cast("double"),
                 )
                 .withColumn(
                     "r",
-                    f.when(f.col("variantId_i") == f.col("variantId_j"), 1.0).otherwise(
+                    f.when(f.col("variantIdI") == f.col("variantIdJ"), 1.0).otherwise(
                         f.col("r")
                     ),
                 )
