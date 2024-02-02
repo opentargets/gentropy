@@ -32,8 +32,8 @@ class PairwiseLD(Dataset):
         """
         row_count = self.df.count()
 
-        assert int(sqrt(row_count)) == sqrt(
-            row_count
+        assert (
+            int(sqrt(row_count)) == sqrt(row_count)
         ), f"The number of rows in a pairwise LD table has to be square. Got: {row_count}"
 
         self.dimension = (int(sqrt(row_count)), int(sqrt(row_count)))
@@ -74,12 +74,8 @@ class PairwiseLD(Dataset):
         """
         return np.array(
             self.df.select(
-                f.split("variantId_i", "_")[1]
-                .cast(t.IntegerType())
-                .alias("position_i"),
-                f.split("variantId_j", "_")[1]
-                .cast(t.IntegerType())
-                .alias("position_j"),
+                f.split("variantIdI", "_")[1].cast(t.IntegerType()).alias("position_i"),
+                f.split("variantIdJ", "_")[1].cast(t.IntegerType()).alias("position_j"),
                 "r",
             )
             .orderBy(f.col("position_i").asc(), f.col("position_j").asc())
@@ -97,8 +93,8 @@ class PairwiseLD(Dataset):
             row["variantId"]
             for row in (
                 self.df.select(
-                    f.col("variantId_i").alias("variantId"),
-                    f.split(f.col("variantId_i"), "_")[1]
+                    f.col("variantIdI").alias("variantId"),
+                    f.split(f.col("variantIdI"), "_")[1]
                     .cast(t.IntegerType())
                     .alias("position"),
                 )
