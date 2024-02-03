@@ -13,6 +13,7 @@ from pyspark.sql.functions import log10
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
 from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.study_index import StudyIndex
 from gentropy.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
@@ -144,12 +145,52 @@ class SummaryStatistics(Dataset):
 
         return (np.abs(QC) <= threshold)[0]
 
+    @staticmethod
+    def _calculate_logpval(z2: float) -> float:
+        """Calculate negative log10-pval from Z-score.
+
+        Args:
+            z2 (float): Z-score squared.
+
+        Returns:
+            float: log10-pval.
+
+        Examples:
+            >>> SummaryStatistics._calculate_logpval(1.0)
+            0.49851554582799334
+        """
+        logpval = -np.log10(sc.stats.chi2.sf((z2), 1))
+        return float(logpval)
+
+    @staticmethod
+    def _calculate_lin_reg(y: list[float], x: list[float]) -> list[float]:
+        """Calculate linear regression.
+
+        Args:
+            y (list[float]): y values.
+            x (list[float]): x values.
+
+        Returns:
+            list[float]: slope, slope_stderr, intercept, intercept_stderr.
+
+        Examples:
+            >>> SummaryStatistics._calculate_lin_reg([1,2,3], [1,2,3])
+            [1.0, 0.0, 0.0, 0.0]
+        """
+        lin_reg = sc.stats.linregress(y, x)
+        return [
+            float(lin_reg.slope),
+            float(lin_reg.stderr),
+            float(lin_reg.intercept),
+            float(lin_reg.intercept_stderr),
+        ]
+
     def sumstat_qc_pz_check(
         self: SummaryStatistics,
         threshold_b: float = 0.05,
         threshold_intercept: float = 0.05,
     ) -> bool:
-        """The PZ check for QC of GWAS summary statstics. It runs linear regression between reorted p-values and p-values infered from z-scores.
+        """The PZ check for QC of GWAS summary statstics. It runs linear regression between reported p-values and p-values infered from z-scores.
 
         Args:
             threshold_b (float): The threshold for b coeffcicient in linear regression.
@@ -158,45 +199,6 @@ class SummaryStatistics(Dataset):
         Returns:
             bool: Boolean whether this study passed the QC step or not.
         """
-
-        def calculate_logpval(z2: float) -> float:
-            """Calculate negative log10-pval from Z-score.
-
-            Args:
-                z2 (float): Z-score squared.
-
-            Returns:
-                float: log10-pval.
-
-            Examples:
-                >>> calculate_logpval(1.0)
-                0.49851554582799334
-            """
-            logpval = -np.log10(sc.stats.chi2.sf((z2), 1))
-            return float(logpval)
-
-        def calculate_lin_reg(y: list[float], x: list[float]) -> list[float]:
-            """Calculate linear regression.
-
-            Args:
-                y (list[float]): y values.
-                x (list[float]): x values.
-
-            Returns:
-                list[float]: slope, slope_stderr, intercept, intercept_stderr.
-
-            Examples:
-                >>> calculate_lin_reg([1,2,3], [1,2,3])
-                [1.0, 0.0, 0.0, 0.0]
-            """
-            lin_reg = sc.stats.linregress(y, x)
-            return [
-                float(lin_reg.slope),
-                float(lin_reg.stderr),
-                float(lin_reg.intercept),
-                float(lin_reg.intercept_stderr),
-            ]
-
         GWAS = self._df
 
         linear_reg_Schema = t.StructType(
@@ -208,8 +210,10 @@ class SummaryStatistics(Dataset):
             ]
         )
 
-        calculate_logpval_udf = f.udf(calculate_logpval, t.DoubleType())
-        lin_udf = f.udf(calculate_lin_reg, linear_reg_Schema)
+        calculate_logpval_udf = f.udf(
+            SummaryStatistics._calculate_logpval, t.DoubleType()
+        )
+        lin_udf = f.udf(SummaryStatistics._calculate_lin_reg, linear_reg_Schema)
 
         QC = (
             GWAS.limit(1000)
@@ -234,3 +238,69 @@ class SummaryStatistics(Dataset):
         beta = lin_results[0]
         interc = lin_results[2]
         return np.abs(beta - 1) <= threshold_b and np.abs(interc) <= threshold_intercept
+
+    def sumstat_n_eff_check(
+        self: SummaryStatistics,
+        SI: StudyIndex,
+        threshold_n_total: int = 100,
+        threshold_se_n: float = 5,
+    ) -> bool:
+        """The effective sample size check for QC of GWAS summary statstics.
+
+        It estiamtes the ratio between effective sample size and the expected one and checks it's distribution.
+        It is possible to conduct only if the effective allele frequency is provided in the study.
+        The median rartio is always close to 1, but standard error could be inflated.
+
+        Args:
+            SI (StudyIndex): StudyIndex object with information about sample size of the study.
+            threshold_n_total (int): The threshold for total sample size. Extrimly small sample sizes should be avoided.
+            threshold_se_n (float): The threshold for standard error of the ratio.
+
+        Returns:
+            bool: Boolean whether this study passed the QC step or not.
+        """
+        GWAS = self._df
+        study_id = GWAS.select(f.first("studyId")).collect()[0][0]
+
+        n_total = (
+            SI.df.filter(SI.df["studyId"] == study_id)
+            .select("nSamples")
+            .collect()[0][0]
+        )
+
+        QC = (
+            GWAS.limit(1000)
+            .withColumn(
+                "var_af",
+                2
+                * (
+                    f.col("effectAlleleFrequencyFromSource")
+                    * (1 - f.col("effectAlleleFrequencyFromSource"))
+                ),
+            )
+            .withColumn(
+                "pheno_var",
+                ((f.col("standardError") ** 2) * n_total * f.col("var_af"))
+                + ((f.col("beta") ** 2) * f.col("var_af")),
+            )
+        )
+
+        pheno_median = QC.approxQuantile("pheno_var", [0.5], 0)[0]
+
+        QC = (
+            QC.withColumn(
+                "N_hat",
+                (
+                    (pheno_median - ((f.col("beta") ** 2) * f.col("var_af")))
+                    / ((f.col("standardError") ** 2) * f.col("var_af"))
+                ),
+            )
+            .agg(
+                f.percentile_approx(f.col("N_hat") / n_total, 0.5).alias("median_N"),
+                f.stddev(f.col("N_hat") / n_total).alias("se_N"),
+            )
+            .select("median_N", "se_N")
+        )
+
+        se_n = QC.toPandas().iloc[0, 1]
+        return se_n <= threshold_se_n and n_total >= threshold_n_total
