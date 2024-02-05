@@ -41,4 +41,4 @@ In most occassions, some mandatory values will be required to run the step. For 
 gentropy step=gene_index step.target_path=/path/to/target step.gene_index_path=/path/to/gene_index
 ```
 
-You can find more about the available steps in the [documentation](../python_api/steps/_steps.md).
+You can find more about the available steps in the [documentation](../../python_api/steps/_steps.md).
