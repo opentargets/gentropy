@@ -2732,13 +2732,13 @@ protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4
 
 [[package]]
 name = "google-cloud-dataproc"
-version = "5.8.0"
+version = "5.9.0"
 description = "Google Cloud Dataproc API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-dataproc-5.8.0.tar.gz", hash = "sha256:b03412dd63cb84dc0bb0844cd9e9a9eef40e1d0d719649659052cccf0d3e95d7"},
-    {file = "google_cloud_dataproc-5.8.0-py2.py3-none-any.whl", hash = "sha256:1b3dd086d8ee7d1055b93230338a93091e77aca167cf7e32edc0b92e8288667d"},
+    {file = "google-cloud-dataproc-5.9.0.tar.gz", hash = "sha256:7e51f9c9005bc5f1bcb23627171de9cd6246a44775118a48cc632861280a76df"},
+    {file = "google_cloud_dataproc-5.9.0-py2.py3-none-any.whl", hash = "sha256:be7bdf2efe9af2a54632dd476dc3c13a1bb848bcebc337c1e83d2f961bffc106"},
 ]
 
 [package.dependencies]
