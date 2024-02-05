@@ -190,7 +190,9 @@ class StudyIndex(Dataset):
         Returns:
             DataFrame: Columns studyId and the extracted major population from ldPopulationStructure.
         """
-        return self.df.select("studyId", "ldPopulationStructure").withColumn(
-            "ldPopulationStructure",
-            f.array_max(f.col("ldPopulationStructure")).getItem("ldPopulation"),
+        return self.df.select(
+            "studyId",
+            f.array_max(f.col("ldPopulationStructure"))
+            .getItem("ldPopulation")
+            .alias("majorPopulation"),
         )
