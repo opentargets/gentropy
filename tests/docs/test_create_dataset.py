@@ -2,6 +2,7 @@
 from typing import Any
 
 import pytest
+from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 from docs.src_snippets.howto.python_api.b_create_dataset import (
@@ -19,6 +20,7 @@ from docs.src_snippets.howto.python_api.b_create_dataset import (
         create_from_pandas,
     ],
 )
-def test_create_dataset(func: Any) -> None:
+def test_create_dataset(func: Any, session: Session) -> None:
     """Test any method in create_dataset returns an instance of SummaryStatistics."""
-    assert isinstance(func(), SummaryStatistics)
+    tested_func = func(session) if func != create_from_pandas else func()
+    assert isinstance(tested_func, SummaryStatistics)

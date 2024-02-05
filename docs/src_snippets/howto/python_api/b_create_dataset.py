@@ -8,10 +8,8 @@ from gentropy.common.session import Session
 if TYPE_CHECKING:
     from gentropy.dataset.summary_statistics import SummaryStatistics
 
-session = Session()
 
-
-def create_from_parquet() -> SummaryStatistics:
+def create_from_parquet(session: Session) -> SummaryStatistics:
     """Create a dataset from a path with parquet files."""
     # --8<-- [start:create_from_parquet_import]
     # Create a SummaryStatistics object by loading data from the specified path
@@ -26,7 +24,7 @@ def create_from_parquet() -> SummaryStatistics:
     return summary_stats
 
 
-def create_from_source() -> SummaryStatistics:
+def create_from_source(session: Session) -> SummaryStatistics:
     """Create a dataset from a path with parquet files."""
     # --8<-- [start:create_from_source_import]
     # Create a SummaryStatistics object by loading raw data from Finngen
