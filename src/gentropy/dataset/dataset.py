@@ -10,7 +10,7 @@ from typing_extensions import Self
 from gentropy.common.schemas import flatten_schema
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
@@ -93,6 +93,19 @@ class Dataset(ABC):
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
         return cls(_df=df, _schema=schema)
+
+    def filter(self: Self, condition: Column) -> Self:
+        """Creates a new instance of a Dataset with the DataFrame filtered by the condition.
+
+        Args:
+            condition (Column): Condition to filter the DataFrame
+
+        Returns:
+            Self: Filtered Dataset
+        """
+        df = self._df.filter(condition)
+        class_constructor = self.__class__
+        return class_constructor(_df=df, _schema=class_constructor.get_schema())
 
     def validate_schema(self: Dataset) -> None:
         """Validate DataFrame schema against expected class schema.
