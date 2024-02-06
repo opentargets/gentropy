@@ -18,6 +18,14 @@ The `df` attribute of a Dataset instance is key to interacting with and inspecti
 
 This method displays the first 10 rows of your dataset, giving you a snapshot of your data's structure and content.
 
+### Filter data
+
+```python
+--8<-- "src_snippets/howto/python_api/d_inspect_dataset.py:filter_dataset"
+```
+
+This method allows you to filter your data based on specific conditions, such as the value of a column. The application of any filter will create a new instance of the `Dataset` with the filtered data.
+
 ### Understand the schema
 
 ```python
