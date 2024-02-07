@@ -7,10 +7,12 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import hail as hl
+import numpy as np
 import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
+from gentropy.common.session import Session
 from gentropy.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
 from gentropy.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
 from gentropy.dataset.ld_index import LDIndex
@@ -347,7 +349,6 @@ class GnomADLDMatrix:
                 & (f.col("position") <= end)
             )
             .select("chromosome", "position", "variantId", "idx")
-            .persist()
         )
 
         if ld_index_df.limit(1).count() == 0:
@@ -449,4 +450,77 @@ class GnomADLDMatrix:
                 .otherwise(f.col("entry"))
                 .alias("r"),
             )
+        )
+
+    @staticmethod
+    def get_locus_index(
+        session: Session,
+        study_locus_row: DataFrame,
+        window_size: int,
+        major_population: str = "nfe",
+        ld_index_path: str = "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet",
+    ) -> DataFrame:
+        """Extract hail matrix index from StudyLocus rows.
+
+        Args:
+            session (Session): Spark session
+            study_locus_row (DataFrame): Study-locus row
+            window_size (int): Window size to extract from gnomad matrix
+            major_population (str): Major population to extract from gnomad matrix, default is "nfe"
+            ld_index_path (str): Optional path to the LD index parquet
+        Returns:
+            DataFrame: Returns the index of the gnomad matrix for the locus
+        """
+        _df = (
+            study_locus_row.withColumn("start", f.col("position") - (window_size / 2))
+            .withColumn("end", f.col("position") + (window_size / 2))
+            .alias("_df")
+        )
+
+        _matrix_index = session.spark.read.parquet(
+            ld_index_path.format(POP=major_population)
+        )
+
+        _index_joined = (
+            _df.alias("df")
+            .join(
+                _matrix_index.alias("matrix_index"),
+                (f.col("df.chromosome") == f.col("matrix_index.chromosome"))
+                & (f.col("df.start") <= f.col("matrix_index.position"))
+                & (f.col("df.end") >= f.col("matrix_index.position")),
+            )
+            .select(
+                "matrix_index.chromosome",
+                "matrix_index.position",
+                "referenceAllele",
+                "alternateAllele",
+                "idx",
+            )
+            .sort("idx")
+        )
+
+        return _index_joined
+
+    @staticmethod
+    def get_locus_matrix(
+        locus_index: DataFrame,
+        gnomad_ancestry: str,
+    ) -> np.ndarray:
+        """Extract the LD block matrix for a locus.
+
+        Args:
+            locus_index (DataFrame): hail matrix variant index table
+            gnomad_ancestry (str): GnomAD major ancestry label eg. `nfe`
+
+        Returns:
+            np.ndarray: LD block matrix for the locus
+        """
+        idx = [row["idx"] for row in locus_index.select("idx").collect()]
+
+        half_matrix = BlockMatrix.read(
+            GnomADLDMatrix.ld_matrix_template.format(POP=gnomad_ancestry)
+        ).filter(idx, idx)
+
+        return (half_matrix + half_matrix.T).to_numpy() - np.diag(
+            np.diag(half_matrix.to_numpy())
         )

@@ -184,7 +184,7 @@ class StudyIndex(Dataset):
         """
         return self.df.hasSumstats
 
-    def get_major_pop(self: StudyIndex) -> DataFrame:
+    def get_major_population(self: StudyIndex) -> DataFrame:
         """Extract major population from ldPopulationStructure rows with multiple ancestries.
 
         Returns:

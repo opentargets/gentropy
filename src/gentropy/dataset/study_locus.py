@@ -5,9 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pyspark.sql.functions as f
-from hail.linalg import BlockMatrix
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
@@ -16,14 +14,12 @@ from gentropy.common.spark_helpers import (
 )
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 from gentropy.method.clump import LDclumping
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.common.session import Session
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
 
@@ -456,60 +452,6 @@ class StudyLocus(Dataset):
             .drop("is_lead_linked")
         )
         return self
-
-    def get_gnomad_matrix(
-        self: StudyLocus, session: Session, study_index: StudyIndex, window_size: int
-    ) -> tuple[DataFrame, np.ndarray]:
-        """Extract hail matrix index and block matrix from StudyLocus rows.
-
-        Args:
-            session (Session): Spark session
-            study_index (StudyIndex): Study index
-            window_size (int): Window size to extract from gnomad matrix
-
-        Returns:
-            tuple[DataFrame, np.ndarray]: Returns the index of the gnomad matrix and the gnomad block matrix
-        """
-        _df = (
-            self.df.join(study_index.get_major_pop(), on="studyId", how="left")
-            .withColumn("start", f.col("position") - (window_size / 2))
-            .withColumn("end", f.col("position") + (window_size / 2))
-            .alias("_df")
-        )
-        _pop = _df.collect()[0]["ldPopulationStructure"]
-
-        _matrix_index = session.spark.read.parquet(
-            GnomADLDMatrix.ld_index_38_template.format(POP=_pop)
-        )
-        _index_joined = (
-            _df.alias("df")
-            .join(
-                _matrix_index.alias("matrix_index"),
-                (f.col("df.chromosome") == f.col("matrix_index.chromosome"))
-                & (f.col("df.start") <= f.col("matrix_index.position"))
-                & (f.col("df.end") >= f.col("matrix_index.position")),
-            )
-            .select(
-                "matrix_index.chromosome",
-                "matrix_index.position",
-                "referenceAllele",
-                "alternateAllele",
-                "idx",
-            )
-        ).persist()
-        _idx = (
-            _index_joined.sort("idx").select("idx").rdd.flatMap(lambda x: x).collect()
-        )
-        _block_matrix = (
-            BlockMatrix.read(GnomADLDMatrix.ld_matrix_template.format(POP=_pop))
-            .filter(_idx, _idx)
-            .to_numpy()
-        )
-        _block_matrix = (
-            _block_matrix + _block_matrix.T - np.diag(np.diag(_block_matrix))
-        )
-
-        return _index_joined, _block_matrix
 
     def _qc_unresolved_ld(
         self: StudyLocus,
