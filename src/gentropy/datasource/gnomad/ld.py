@@ -517,10 +517,12 @@ class GnomADLDMatrix:
         """
         idx = [row["idx"] for row in locus_index.select("idx").collect()]
 
-        half_matrix = BlockMatrix.read(
-            GnomADLDMatrix.ld_matrix_template.format(POP=gnomad_ancestry)
-        ).filter(idx, idx)
-
-        return (half_matrix + half_matrix.T).to_numpy() - np.diag(
-            np.diag(half_matrix.to_numpy())
+        half_matrix = (
+            BlockMatrix.read(
+                GnomADLDMatrix.ld_matrix_template.format(POP=gnomad_ancestry)
+            )
+            .filter(idx, idx)
+            .to_numpy()
         )
+
+        return (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
