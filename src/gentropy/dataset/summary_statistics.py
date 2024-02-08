@@ -156,6 +156,8 @@ class SummaryStatistics(Dataset):
             position = row["position"]
             chromosome = row["chromosome"]
             study = row["studyId"]
+        if study is not None and study.startswith("FINNGEN_"):
+            study = study.replace("FINNGEN_", "")
 
         paths = [
             f"gs://gwas_catalog_data/harmonised_summary_statistics/{study}.parquet",
