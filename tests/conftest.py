@@ -448,7 +448,7 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def sample_summary_satistics(spark: SparkSession) -> SummaryStatistics:
+def sample_summary_statistics(spark: SparkSession) -> SummaryStatistics:
     """Sample GWAS raw associations sample data."""
     return SummaryStatistics(
         _df=spark.read.parquet("tests/data_samples/sumstats_sample"),
@@ -625,3 +625,14 @@ def sample_data_for_carma() -> list[np.ndarray]:
     pips = pd.read_csv("tests/data_samples/01_test_PIPs.txt")
     pips = np.array(pips.iloc[:, 0])
     return [ld, z, pips]
+
+
+@pytest.fixture()
+def sample_data_for_susie_inf() -> list[np.ndarray]:
+    """Sample data for fine-mapping by SuSiE-inf."""
+    ld = np.loadtxt("tests/data_samples/01_test_ld.csv", delimiter=",")
+    z = pd.read_csv("tests/data_samples/01_test_z.csv")
+    z = np.array(z.iloc[:, 1])
+    lbf_moments = np.loadtxt("tests/data_samples/01_test_lbf_moments.csv")
+    lbf_mle = np.loadtxt("tests/data_samples/01_test_lbf_mle.csv")
+    return [ld, z, lbf_moments, lbf_mle]
