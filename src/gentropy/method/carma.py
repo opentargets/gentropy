@@ -1,10 +1,9 @@
 """CARMA outlier detection method."""
 from __future__ import annotations
 
-import multiprocessing
+import concurrent.futures
 from itertools import combinations
 from math import floor, lgamma
-from multiprocessing.queues import Queue
 from typing import Any
 
 import numpy as np
@@ -17,27 +16,15 @@ class CARMA:
     """Implementation of CARMA outlier detection method."""
 
     @staticmethod
-    def _helper_func(queue: Queue[dict[str, Any]], *args: Any, **kwargs: Any) -> None:
-        """The helper function that runs the CARMA_spike_slab_noEM function and puts the result in the queue.
-
-        Args:
-            queue (Queue[dict[str, Any]]): The queue to hold the result.
-            *args (Any): Variable length argument list.
-            **kwargs (Any): Arbitrary keyword arguments.
-        """
-        result = CARMA.CARMA_spike_slab_noEM(*args, **kwargs)
-        queue.put(result)
-
-    @staticmethod
     def time_limited_CARMA_spike_slab_noEM(
-        sec_threshold: int = 600, *args: Any, **kwargs: Any
+        z: np.ndarray, ld: np.ndarray, sec_threshold: int = 600
     ) -> dict[str, Any]:
-        """The wraper for the CARMA_spike_slab_noEM function that runs the function in a separate process and terminates it if it takes too long.
+        """The wrapper for the CARMA_spike_slab_noEM function that runs the function in a separate thread and terminates it if it takes too long.
 
         Args:
+            z (np.ndarray): Numeric vector representing z-scores.
+            ld (np.ndarray): Numeric matrix representing the linkage disequilibrium (LD) matrix.
             sec_threshold (int): The time threshold in seconds.
-            *args (Any): Variable length argument list.
-            **kwargs (Any): Arbitrary keyword arguments.
 
         Returns:
             dict[str, Any]: A dictionary containing the following results:
@@ -45,30 +32,16 @@ class CARMA:
                 - B_list: A dataframe containing the marginal likelihoods and the corresponding model space or None.
                 - Outliers: A list of outlier SNPs or None.
         """
-        # Create a Queue to hold the result
-        queue: Queue[dict[str, Any]] = multiprocessing.Queue()
+        try:
+            # Execute CARMA.CARMA_spike_slab_noEM with a timeout
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(CARMA.CARMA_spike_slab_noEM, z=z, ld=ld)
+                result = future.result(timeout=sec_threshold)
+        except concurrent.futures.TimeoutError:
+            # If execution exceeds the timeout, return None
+            result = {"PIPs": None, "B_list": None, "Outliers": None}
 
-        # Create a new process that runs the helper function
-        process = multiprocessing.Process(
-            target=CARMA._helper_func, args=(queue,) + args, kwargs=kwargs
-        )
-
-        # Start the process
-        process.start()
-
-        # Wait for sepecific time
-        process.join(sec_threshold)
-
-        # If the process finished in time, get the result
-        if process.is_alive():
-            # The process did not finish in time, terminate it
-            process.terminate()
-            process.join()
-            results_list = {"PIPs": None, "B_list": None, "Outliers": None}
-            return results_list
-        else:
-            # The process finished in time, get the result
-            return queue.get()
+        return result
 
     @staticmethod
     def CARMA_spike_slab_noEM(
