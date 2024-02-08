@@ -22,12 +22,12 @@ MANIFESTS_PATH = f"gs://{GWAS_CATALOG_BUCKET_NAME}/manifests/"
 
 # The name of the manifest files have to be consistent with the config file:
 HARMONISED_SUMSTATS_LIST_OBJECT_NAME = (
-    "manifests/gwas_catalog_harmonised_sumstats_list.txt"
+    "manifests/gwas_catalog_harmonised_summary_statistics_list.txt"
 )
 HARMONISED_SUMSTATS_LIST_FULL_NAME = (
     f"gs://{GWAS_CATALOG_BUCKET_NAME}/{HARMONISED_SUMSTATS_LIST_OBJECT_NAME}"
 )
-CURATION_INCLUSION_NAME = f"{MANIFESTS_PATH}/gwas_catalog_curated_included_studies"
+CURATION_INCLUSION_NAME = f"{MANIFESTS_PATH}/gwas_catalog_curation_included_studies"
 CURATION_EXCLUSION_NAME = f"{MANIFESTS_PATH}/gwas_catalog_curation_excluded_studies"
 SUMMARY_STATISTICS_INCLUSION_NAME = (
     f"{MANIFESTS_PATH}/gwas_catalog_summary_statistics_included_studies"
@@ -153,8 +153,8 @@ with DAG(
 
     # Processing summary statistics from GWAS Catalog:
     with TaskGroup(
-        group_id="summary_satistics_processing"
-    ) as summary_satistics_processing:
+        group_id="summary_statistics_processing"
+    ) as summary_statistics_processing:
         # Generate inclusion study lists:
         summary_stats_calculate_inclusion_list = common.submit_step(
             cluster_name=CLUSTER_NAME,
@@ -220,6 +220,6 @@ with DAG(
         >> list_harmonised_sumstats
         >> upload_task
         >> curation_processing
-        >> summary_satistics_processing
+        >> summary_statistics_processing
         >> common.delete_cluster(CLUSTER_NAME)
     )
