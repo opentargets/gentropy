@@ -1,13 +1,15 @@
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![PyPI pyversions](https://img.shields.io/pypi/pyversions/gentropy.svg)](https://pypi.python.org/pypi/gentropy/)
-[![PyPI version](https://badge.fury.io/py/gentropy.svg)](https://badge.fury.io/py/gentropy)
-[![image](https://github.com/opentargets/gentropy/actions/workflows/release.yaml/badge.svg)](https://opentargets.github.io/gentropy/)
-[![codecov](https://codecov.io/gh/opentargets/gentropy/branch/main/graph/badge.svg?token=5ixzgu8KFP)](https://codecov.io/gh/opentargets/gentropy)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10527086.svg)](https://doi.org/10.5281/zenodo.10527086)
-
 <p align="center">
   <img width=100% height=250px src="https://raw.githubusercontent.com/opentargets/gentropy/dev/docs/assets/imgs/gentropy.svg">
+</p>
+
+<p align="center">
+<a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff" /></a>
+<a href="https://pypi.python.org/pypi/gentropy/"><img src="https://img.shields.io/pypi/pyversions/gentropy.svg" alt="PyPI pyversions" /></a>
+<a href="https://badge.fury.io/py/gentropy"><img src="https://badge.fury.io/py/gentropy.svg" alt="PyPI version" /></a>
+<a href="https://opentargets.github.io/gentropy/"><img src="https://github.com/opentargets/gentropy/actions/workflows/release.yaml/badge.svg" alt="image" /></a>
+<a href="https://codecov.io/gh/opentargets/gentropy"><img src="https://codecov.io/gh/opentargets/gentropy/branch/main/graph/badge.svg?token=5ixzgu8KFP" alt="codecov" /></a>
+<a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
+<a href="https://doi.org/10.5281/zenodo.10527086"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.10527086.svg" alt="DOI" /></a>
 </p>
 
 Open Targets Gentropy is a Python package to facilitate the interpretation and analysis of GWAS and functional genomic studies for target identification. The package contains a toolkit for the harmonisation, statistical analysis and prioritisation of genetic signals to assist drug discovery.

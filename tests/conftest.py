@@ -448,7 +448,7 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def sample_summary_satistics(spark: SparkSession) -> SummaryStatistics:
+def sample_summary_statistics(spark: SparkSession) -> SummaryStatistics:
     """Sample GWAS raw associations sample data."""
     return SummaryStatistics(
         _df=spark.read.parquet("tests/data_samples/sumstats_sample"),
