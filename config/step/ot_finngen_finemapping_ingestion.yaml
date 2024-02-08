@@ -1,0 +1,6 @@
+defaults:
+  - finngen_finemapping_ingestion
+
+finngen_finemapping_results_path: ${datasets.finngen_finemapping_results_path}
+finngen_finemapping_summaries_path: ${datasets.finngen_finemapping_summaries_path}
+finngen_finemapping_out: ${datasets.finngen_finemapping_out}
