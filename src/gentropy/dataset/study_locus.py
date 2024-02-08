@@ -31,13 +31,14 @@ class StudyLocusQualityCheck(Enum):
         SUBSIGNIFICANT_FLAG (str): p-value below significance threshold
         NO_GENOMIC_LOCATION_FLAG (str): Incomplete genomic mapping
         COMPOSITE_FLAG (str): Composite association due to variant x variant interactions
-        VARIANT_INCONSISTENCY_FLAG (str): Inconsistencies in the reported variants
+        INCONSISTENCY_FLAG (str): Inconsistencies in the reported variants
         NON_MAPPED_VARIANT_FLAG (str): Variant not mapped to GnomAd
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
         AMBIGUOUS_STUDY (str): Association with ambiguous study
         UNRESOLVED_LD (str): Variant not found in LD reference
         LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
-        UNPICSABLE (str): Unable to calculate PIPs with the provided data
+        NO_POPULATION (str): Study does not have population annotation to resolve LD
+        NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -450,24 +451,6 @@ class StudyLocus(Dataset):
                 ),
             )
             .drop("is_lead_linked")
-        )
-        return self
-
-    def _qc_unresolved_ld(
-        self: StudyLocus,
-    ) -> StudyLocus:
-        """Flag associations with variants that are not found in the LD reference.
-
-        Returns:
-            StudyLocus: Updated study locus.
-        """
-        self.df = self.df.withColumn(
-            "qualityControls",
-            self.update_quality_flag(
-                f.col("qualityControls"),
-                f.col("ldSet").isNull(),
-                StudyLocusQualityCheck.UNRESOLVED_LD,
-            ),
         )
         return self
 
