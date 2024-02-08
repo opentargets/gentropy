@@ -41,7 +41,7 @@ pep8-naming = "^0.13.2"
 interrogate = "^1.5.0"
 isort = "^5.13.2"
 darglint = "^1.8.1"
-ruff = "^0.1.8"
+ruff = "^0.2.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3"
@@ -59,7 +59,7 @@ pymdown-extensions = "^10.7"
 
 [tool.poetry.group.tests.dependencies]
 pytest-cov = "^4.1.0"
-pytest-sugar = "^0.9.5"
+pytest-sugar = ">=0.9.5,<1.1.0"
 dbldatagen = "^0.3.1"
 pyparsing = "^3.1.1"
 pytest = "^7.4.4"
@@ -260,7 +260,7 @@ convention = "google"
 
 [tool.pydoclint]
 style = 'google'
-exclude = '\.git|\.venv|__init__.py|tests'
+exclude = '\.git|\.venv|__init__.py|tests|docs'
 require-return-section-when-returning-nothing = false
 check-return-types = true
 allow-init-docstring = true

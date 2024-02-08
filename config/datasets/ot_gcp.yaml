@@ -20,10 +20,10 @@ gwas_catalog_ancestries:
 gwas_catalog_sumstats_lut: ${datasets.gwas_catalog_dataset}/curated_inputs/harmonised_list.txt
 gwas_catalog_study_curation: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_study_curation.tsv
 # Harmonised summary statistics list:
-gwas_catalog_summary_stats_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_harmonised_sumstats_list.txt
+gwas_catalog_summary_stats_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_harmonised_summary_statistics_list.txt
 # Inclusion lists:
-gwas_catalog_curated_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_curated_included_studies
-gwas_catalog_summary_satistics_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_summary_statistics_included_studies
+gwas_catalog_curated_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_curation_included_studies
+gwas_catalog_summary_statistics_inclusion_list: ${datasets.gwas_catalog_dataset}/manifests/gwas_catalog_summary_statistics_included_studies
 # Ingestion output folders:
 gwas_catalog_study_index: ${datasets.gwas_catalog_dataset}/study_index
 gwas_catalog_study_locus_folder: ${datasets.gwas_catalog_dataset}/study_locus_datasets
@@ -40,19 +40,20 @@ target_index: ${datasets.release_folder}/targets # OTP 23.12 data
 
 gene_interactions: ${datasets.release_folder}/interaction # OTP 23.12 data
 eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
+finngen_finemapping_results_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/full
+finngen_finemapping_summaries_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv
 
 # Dev output datasets
 variant_annotation: ${datasets.outputs}/variant_annotation
 study_locus: ${datasets.outputs}/study_locus
 summary_statistics: ${datasets.outputs}/summary_statistics
 study_locus_overlap: ${datasets.outputs}/study_locus_overlap
+susie_finemapping: ${datasets.outputs}/finngen_susie_finemapping
 
 ld_index: ${datasets.outputs}/ld_index
 catalog_study_index: ${datasets.study_index}/catalog
 catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 
-finngen_study_index: ${datasets.study_index}/finngen
-finngen_summary_stats: ${datasets.summary_statistics}/finngen
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 
