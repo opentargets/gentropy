@@ -119,7 +119,7 @@ class SummaryStatistics(Dataset):
         )
 
     @staticmethod
-    def get_locus_z_scores(
+    def get_locus_sumstats(
         session: Session,
         window: int,
         locus: Optional[DataFrame] = None,
