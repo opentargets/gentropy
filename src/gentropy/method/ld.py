@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
     from pyspark.sql import Column
@@ -74,6 +74,46 @@ class LDAnnotator:
             ),
         )
 
+    @staticmethod
+    def _qc_unresolved_ld(ld_set: Column, quality_controls: Column) -> Column:
+        """Flag associations with unresolved LD.
+
+        Args:
+            ld_set (Column): LD set
+            quality_controls (Column): Quality controls
+
+        Returns:
+            Column: Quality controls with added 'UNRESOLVED_LD' field
+        """
+        return StudyLocus.update_quality_flag(
+            quality_controls,
+            ld_set.isNull(),
+            StudyLocusQualityCheck.UNRESOLVED_LD,
+        )
+
+    @staticmethod
+    def _rescue_lead_variant(ld_set: Column, variant_id: Column) -> Column:
+        """Rescue lead variant.
+
+        In cases in which no LD information is available but a lead variant is available, we include the lead as the only variant in the ldSet.
+
+        Args:
+            ld_set (Column): LD set
+            variant_id (Column): Variant ID
+
+        Returns:
+            Column: LD set with added 'tagVariantId' field
+        """
+        return f.when(
+            ((ld_set.isNull() | (f.size(ld_set) == 0)) & variant_id.isNotNull()),
+            f.array(
+                f.struct(
+                    variant_id.alias("tagVariantId"),
+                    f.lit(1).alias("r2Overall"),
+                )
+            ),
+        ).otherwise(ld_set)
+
     @classmethod
     def ld_annotate(
         cls: type[LDAnnotator],
@@ -88,6 +128,8 @@ class LDAnnotator:
             2. Joins the LD index to the StudyLocus
             3. Adds the population size of the study to each rValues entry in the ldSet
             4. Calculates the overall R weighted by the ancestry proportions in every given study.
+            5. Flags associations with variants that are not found in the LD reference
+            6. Rescues lead variant when no LD information is available but lead variant is available
 
         Args:
             associations (StudyLocus): Dataset to be LD annotated
@@ -97,46 +139,52 @@ class LDAnnotator:
         Returns:
             StudyLocus: including additional column with LD information.
         """
-        return (
-            StudyLocus(
-                _df=(
-                    associations.df
-                    # Drop ldSet column if already available
-                    .select(*[col for col in associations.df.columns if col != "ldSet"])
-                    # Annotate study locus with population structure from study index
-                    .join(
-                        studies.df.select("studyId", "ldPopulationStructure"),
-                        on="studyId",
-                        how="left",
-                    )
-                    # Bring LD information from LD Index
-                    .join(
-                        ld_index.df,
-                        on=["variantId", "chromosome"],
-                        how="left",
-                    )
-                    # Add population size to each rValues entry in the ldSet if population structure available:
-                    .withColumn(
-                        "ldSet",
-                        f.when(
-                            f.col("ldPopulationStructure").isNotNull(),
-                            cls._add_population_size(
-                                f.col("ldSet"), f.col("ldPopulationStructure")
-                            ),
+        return StudyLocus(
+            _df=(
+                associations.df
+                # Drop ldSet column if already available
+                .select(*[col for col in associations.df.columns if col != "ldSet"])
+                # Annotate study locus with population structure from study index
+                .join(
+                    studies.df.select("studyId", "ldPopulationStructure"),
+                    on="studyId",
+                    how="left",
+                )
+                # Bring LD information from LD Index
+                .join(
+                    ld_index.df,
+                    on=["variantId", "chromosome"],
+                    how="left",
+                )
+                # Add population size to each rValues entry in the ldSet if population structure available:
+                .withColumn(
+                    "ldSet",
+                    f.when(
+                        f.col("ldPopulationStructure").isNotNull(),
+                        cls._add_population_size(
+                            f.col("ldSet"), f.col("ldPopulationStructure")
                         ),
-                    )
-                    # Aggregate weighted R information using ancestry proportions
-                    .withColumn(
-                        "ldSet",
-                        f.when(
-                            f.col("ldPopulationStructure").isNotNull(),
-                            cls._calculate_weighted_r_overall(f.col("ldSet")),
-                        ),
-                    )
-                    .drop("ldPopulationStructure")
-                ),
-                _schema=StudyLocus.get_schema(),
-            )
-            ._qc_no_population()
-            ._qc_unresolved_ld()
-        )
+                    ),
+                )
+                # Aggregate weighted R information using ancestry proportions
+                .withColumn(
+                    "ldSet",
+                    f.when(
+                        f.col("ldPopulationStructure").isNotNull(),
+                        cls._calculate_weighted_r_overall(f.col("ldSet")),
+                    ),
+                )
+                .drop("ldPopulationStructure")
+                # QC: Flag associations with variants that are not found in the LD reference
+                .withColumn(
+                    "qualityControls",
+                    cls._qc_unresolved_ld(f.col("ldSet"), f.col("qualityControls")),
+                )
+                # Add lead variant to empty ldSet when no LD information is available but lead variant is available
+                .withColumn(
+                    "ldSet",
+                    cls._rescue_lead_variant(f.col("ldSet"), f.col("variantId")),
+                )
+            ),
+            _schema=StudyLocus.get_schema(),
+        )._qc_no_population()

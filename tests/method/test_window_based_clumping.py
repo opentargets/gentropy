@@ -26,10 +26,10 @@ def test_window_based_clump__return_type(
 
 
 def test_window_based_clump__correctness(
-    sample_summary_satistics: SummaryStatistics,
+    sample_summary_statistics: SummaryStatistics,
 ) -> None:
     """Test window-based clumping."""
-    clumped = sample_summary_satistics.window_based_clumping(250_000)
+    clumped = sample_summary_statistics.window_based_clumping(250_000)
 
     # One semi index was found:
     assert clumped.df.count() == 1
@@ -39,10 +39,10 @@ def test_window_based_clump__correctness(
 
 
 def test_window_based_clump_with_locus__correctness(
-    sample_summary_satistics: SummaryStatistics,
+    sample_summary_statistics: SummaryStatistics,
 ) -> None:
     """Test window-based clumping."""
-    clumped = sample_summary_satistics.window_based_clumping(
+    clumped = sample_summary_statistics.window_based_clumping(
         distance=250_000, locus_collect_distance=250_000
     )
 
