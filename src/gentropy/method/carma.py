@@ -17,14 +17,14 @@ class CARMA:
 
     @staticmethod
     def time_limited_CARMA_spike_slab_noEM(
-        z: np.ndarray, ld: np.ndarray, sec_threshold: int = 600
+        z: np.ndarray, ld: np.ndarray, sec_threshold: float = 600
     ) -> dict[str, Any]:
         """The wrapper for the CARMA_spike_slab_noEM function that runs the function in a separate thread and terminates it if it takes too long.
 
         Args:
             z (np.ndarray): Numeric vector representing z-scores.
             ld (np.ndarray): Numeric matrix representing the linkage disequilibrium (LD) matrix.
-            sec_threshold (int): The time threshold in seconds.
+            sec_threshold (float): The time threshold in seconds.
 
         Returns:
             dict[str, Any]: A dictionary containing the following results:
