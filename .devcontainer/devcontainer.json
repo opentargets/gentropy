@@ -39,7 +39,8 @@
         "ms-vscode-remote.remote-ssh",
         "ms-toolsai.jupyter",
         "ms-vscode.makefile-tools",
-        "GitHub.vscode-pull-request-github"
+        "GitHub.vscode-pull-request-github",
+        "redhat.vscode-yaml"
       ],
       // Please keep this file in sync with settings in /.vscode/settings.json
       "settings": {
