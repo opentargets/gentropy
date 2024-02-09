@@ -9,6 +9,7 @@
 <a href="https://opentargets.github.io/gentropy/"><img src="https://github.com/opentargets/gentropy/actions/workflows/release.yaml/badge.svg" alt="image" /></a>
 <a href="https://codecov.io/gh/opentargets/gentropy"><img src="https://codecov.io/gh/opentargets/gentropy/branch/main/graph/badge.svg?token=5ixzgu8KFP" alt="codecov" /></a>
 <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
+<a href="https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/open-targets/gentropy"><img src="https://img.shields.io/badge/Dev%20Containers-Open-blue?logo=visualstudiocode" alt="Dev Containers" /></a>
 <a href="https://doi.org/10.5281/zenodo.10527086"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.10527086.svg" alt="DOI" /></a>
 </p>
 
