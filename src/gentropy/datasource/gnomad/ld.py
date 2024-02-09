@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 from functools import reduce
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import hail as hl
 import numpy as np
@@ -455,8 +455,10 @@ class GnomADLDMatrix:
     @staticmethod
     def get_locus_index(
         session: Session,
-        study_locus_row: DataFrame,
-        window_size: int,
+        study_locus_row: Optional[DataFrame] = None,
+        chromosome: Optional[str] = None,
+        position: Optional[int] = None,
+        window_size: int = 1_000_000,
         major_population: str = "nfe",
         ld_index_path: str = "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet",
     ) -> DataFrame:
@@ -464,15 +466,33 @@ class GnomADLDMatrix:
 
         Args:
             session (Session): Spark session
-            study_locus_row (DataFrame): Study-locus row
+            study_locus_row (Optional[DataFrame]): Study-locus row
+            chromosome (Optional[str]): Chromosome to extract from gnomad matrix
+            position (Optional[int]): Position to extract from gnomad matrix
             window_size (int): Window size to extract from gnomad matrix
             major_population (str): Major population to extract from gnomad matrix, default is "nfe"
             ld_index_path (str): Optional path to the LD index parquet
+
         Returns:
             DataFrame: Returns the index of the gnomad matrix for the locus
+
+        Raises:
+            ValueError: Either a studyLocus or a chromosome and position must be provided
         """
+        if study_locus_row is None:
+            if chromosome is not None and position is not None:
+                _df = session.spark.createDataFrame(
+                    [(chromosome, position)], ["chromosome", "position"]
+                )
+            else:
+                raise ValueError(
+                    "Either a studyLocus or a chromosome and position must be provided."
+                )
+        else:
+            _df = study_locus_row
+
         _df = (
-            study_locus_row.withColumn("start", f.col("position") - (window_size / 2))
+            _df.withColumn("start", f.col("position") - (window_size / 2))
             .withColumn("end", f.col("position") + (window_size / 2))
             .alias("_df")
         )
