@@ -54,3 +54,22 @@ class TestCARMA:
             num_causal=10,
         )
         assert np.allclose(np.round(np.corrcoef(l1_pips, pips)[0, 1], decimals=2), 1)
+
+    def test_time_limited_CARMA_spike_slab_noEM_pips_no_restriction(
+        self: TestCARMA, sample_data_for_carma: list[np.ndarray]
+    ) -> None:
+        """Test of CARMA PIPs with no time restriction."""
+        ld = sample_data_for_carma[0]
+        z = sample_data_for_carma[1]
+        pips = sample_data_for_carma[2]
+        _l = CARMA.time_limited_CARMA_spike_slab_noEM(z=z, ld=ld, sec_threshold=600)
+        assert np.allclose(np.round(np.corrcoef(_l["PIPs"], pips)[0, 1], decimals=2), 1)
+
+    def test_time_limited_CARMA_spike_slab_noEM_pips_restriction(
+        self: TestCARMA, sample_data_for_carma: list[np.ndarray]
+    ) -> None:
+        """Test of CARMA PIPs with with time restriction."""
+        ld = sample_data_for_carma[0]
+        z = sample_data_for_carma[1]
+        _l = CARMA.time_limited_CARMA_spike_slab_noEM(z=z, ld=ld, sec_threshold=0.001)
+        assert _l["Outliers"] is None and _l["PIPs"] is None
