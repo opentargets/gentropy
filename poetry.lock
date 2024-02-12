@@ -6313,13 +6313,13 @@ setuptools = "*"
 
 [[package]]
 name = "pydoclint"
-version = "0.3.8"
+version = "0.4.0"
 description = "A Python docstring linter that checks arguments, returns, yields, and raises sections"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pydoclint-0.3.8-py2.py3-none-any.whl", hash = "sha256:8e5e020071bb64056fd3f1d68f3b1162ffeb8a3fd6424f73fef7272dac62c166"},
-    {file = "pydoclint-0.3.8.tar.gz", hash = "sha256:5a9686a5fb410343e998402686b87cc07df647ea3ab92528c0b0cf8505584e44"},
+    {file = "pydoclint-0.4.0-py2.py3-none-any.whl", hash = "sha256:2b266a1332f7c8a1badea115b164a230908004b349750c8ede553a96c4d991b4"},
+    {file = "pydoclint-0.4.0.tar.gz", hash = "sha256:d645845e316463a151e0828013b4ea9cf4510626a6c4a5abbf7c0447ecafdd3b"},
 ]
 
 [package.dependencies]
@@ -8534,4 +8534,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10, <3.11"
-content-hash = "f7b9565b1c7780240cbf010bf76c5cbf3bcbe9d448d951fab192d93d720301f3"
+content-hash = "0f8d866a682c38f4d69b886cc5b8ca2ca1a47c3e5c03a5642257b0af78719dcb"
