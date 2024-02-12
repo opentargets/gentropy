@@ -1,7 +1,7 @@
 {
   "name": "OTGdev",
   "build": {
-    "dockerfile": "../Dockerfile.dev",
+    "dockerfile": "Dockerfile.dev",
     "context": "..",
     "args": {
       "VARIANT": "3.10-bullseye",
