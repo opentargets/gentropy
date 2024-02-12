@@ -1,3 +1,7 @@
+---
+Title: Airflow
+---
+
 # Airflow configuration
 
 This section describes how to set up a local Airflow server which will orchestrate running workflows in Google Cloud Platform. This is useful for testing and debugging, but for production use, it is recommended to run Airflow on a dedicated server.

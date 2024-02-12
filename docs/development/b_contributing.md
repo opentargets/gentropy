@@ -1,5 +1,5 @@
 ---
-title: Contributing guidelines
+Title: Contributing
 ---
 
 # Contributing guidelines
