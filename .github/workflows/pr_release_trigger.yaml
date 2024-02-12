@@ -1,6 +1,8 @@
+name: PR to trigger release
+
 "on":
   schedule:
-    - cron: "0 16 * * 4"
+    - cron: "15 16 * * 4"
 
 jobs:
   pull-request:
@@ -17,4 +19,4 @@ jobs:
           pr_label: "auto-pr"
           pr_draft: false
           pr_allow_empty: true
-          github_token: ${{ secrets.CUSTOM_GH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
