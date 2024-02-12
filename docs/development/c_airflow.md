@@ -117,6 +117,31 @@ More information on running Airflow with Docker Compose can be found in the [off
 
 1. **Additional pip packages**. They can be added to the `requirements.txt` file.
 
+## Example: A gentropy running DAG using GCP
+
+All pipelines in this repository are intended to be run in Google Dataproc. Running them locally is not currently supported.
+
+In order to run the code:
+
+1. Manually edit your local `src/airflow/dags/*` file and comment out the steps you do not want to run.
+
+2. Manually edit your local `pyproject.toml` file and modify the version of the code.
+
+   - This must be different from the version used by any other people working on the repository to avoid any deployment conflicts, so it's a good idea to use your name, for example: `1.2.3+jdoe`.
+   - You can also add a brief branch description, for example: `1.2.3+jdoe.myfeature`.
+   - Note that the version must comply with [PEP440 conventions](https://peps.python.org/pep-0440/#normalization), otherwise Poetry will not allow it to be deployed.
+   - Do not use underscores or hyphens in your version name. When building the WHL file, they will be automatically converted to dots, which means the file name will no longer match the version and the build will fail. Use dots instead.
+
+3. Manually edit your local `src/airflow/dags/common_airflow.py` and set `OTG_VERSION` to the same version as you did in the previous step.
+
+4. Run `make build`.
+
+   - This will create a bundle containing the neccessary code, configuration and dependencies to run the ETL pipeline, and then upload this bundle to Google Cloud.
+   - A version specific subpath is used, so uploading the code will not affect any branches but your own.
+   - If there was already a code bundle uploaded with the same version number, it will be replaced.
+
+5. Open Airflow UI and run the DAG.
+
 ## Troubleshooting
 
 Note that when you a a new workflow under `dags/`, Airflow will not pick that up immediately. By default the filesystem is only scanned for new DAGs every 300s. However, once the DAG is added, updates are applied nearly instantaneously.
