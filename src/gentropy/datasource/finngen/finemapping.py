@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import SparkSession, Window
-from pyspark.sql.types import StringType, StructField, StructType
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.common.spark_helpers import get_top_ranked_in_window
 from gentropy.common.utils import parse_pvalue
@@ -29,7 +29,6 @@ class FinnGenFinemapping:
     Finemapping method is populated as a constant ("SuSIE").
     """
 
-    finngen_release_prefix: str = "FINNGEN_R10"
     raw_schema: t.StructType = StructType(
         [
             StructField("trait", StringType(), True),
@@ -48,26 +47,56 @@ class FinnGenFinemapping:
             StructField("sd", StringType(), True),
             StructField("prob", StringType(), True),
             StructField("cs", StringType(), True),
-            StructField("alpha1", StringType(), True),
-            StructField("alpha2", StringType(), True),
-            StructField("alpha3", StringType(), True),
-            StructField("alpha4", StringType(), True),
-            StructField("alpha5", StringType(), True),
-            StructField("alpha6", StringType(), True),
-            StructField("alpha7", StringType(), True),
-            StructField("alpha8", StringType(), True),
-            StructField("alpha9", StringType(), True),
-            StructField("alpha10", StringType(), True),
-            StructField("lbf_variable1", StringType(), True),
-            StructField("lbf_variable2", StringType(), True),
-            StructField("lbf_variable3", StringType(), True),
-            StructField("lbf_variable4", StringType(), True),
-            StructField("lbf_variable5", StringType(), True),
-            StructField("lbf_variable6", StringType(), True),
-            StructField("lbf_variable7", StringType(), True),
-            StructField("lbf_variable8", StringType(), True),
-            StructField("lbf_variable9", StringType(), True),
-            StructField("lbf_variable10", StringType(), True),
+            StructField("cs_specific_prob", DoubleType(), True),
+            StructField("low_purity", StringType(), True),
+            StructField("lead_r2", StringType(), True),
+            StructField("mean_99", StringType(), True),
+            StructField("sd_99", StringType(), True),
+            StructField("prob_99", StringType(), True),
+            StructField("cs_99", StringType(), True),
+            StructField("cs_specific_prob_99", StringType(), True),
+            StructField("low_purity_99", StringType(), True),
+            StructField("lead_r2_99", StringType(), True),
+            StructField("alpha1", DoubleType(), True),
+            StructField("alpha2", DoubleType(), True),
+            StructField("alpha3", DoubleType(), True),
+            StructField("alpha4", DoubleType(), True),
+            StructField("alpha5", DoubleType(), True),
+            StructField("alpha6", DoubleType(), True),
+            StructField("alpha7", DoubleType(), True),
+            StructField("alpha8", DoubleType(), True),
+            StructField("alpha9", DoubleType(), True),
+            StructField("alpha10", DoubleType(), True),
+            StructField("mean1", StringType(), True),
+            StructField("mean2", StringType(), True),
+            StructField("mean3", StringType(), True),
+            StructField("mean4", StringType(), True),
+            StructField("mean5", StringType(), True),
+            StructField("mean6", StringType(), True),
+            StructField("mean7", StringType(), True),
+            StructField("mean8", StringType(), True),
+            StructField("mean9", StringType(), True),
+            StructField("mean10", StringType(), True),
+            StructField("sd1", StringType(), True),
+            StructField("sd2", StringType(), True),
+            StructField("sd3", StringType(), True),
+            StructField("sd4", StringType(), True),
+            StructField("sd5", StringType(), True),
+            StructField("sd6", StringType(), True),
+            StructField("sd7", StringType(), True),
+            StructField("sd8", StringType(), True),
+            StructField("sd9", StringType(), True),
+            StructField("sd10", StringType(), True),
+            StructField("lbf_variable1", DoubleType(), True),
+            StructField("lbf_variable2", DoubleType(), True),
+            StructField("lbf_variable3", DoubleType(), True),
+            StructField("lbf_variable4", DoubleType(), True),
+            StructField("lbf_variable5", DoubleType(), True),
+            StructField("lbf_variable6", DoubleType(), True),
+            StructField("lbf_variable7", DoubleType(), True),
+            StructField("lbf_variable8", DoubleType(), True),
+            StructField("lbf_variable9", DoubleType(), True),
+            StructField("lbf_variable10", DoubleType(), True),
         ]
     )
 
@@ -76,7 +105,7 @@ class FinnGenFinemapping:
             StructField("trait", StringType(), True),
             StructField("region", StringType(), True),
             StructField("cs", StringType(), True),
-            StructField("cs_log10bf", StringType(), True),
+            StructField("cs_log10bf", DoubleType(), True),
         ]
     )
 
@@ -86,6 +115,7 @@ class FinnGenFinemapping:
         spark: SparkSession,
         finngen_finemapping_df: (str | list[str]),
         finngen_finemapping_summaries: (str | list[str]),
+        finngen_release_prefix: str,
         credset_lbf_threshold: float = 0.8685889638065036,
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
@@ -94,6 +124,7 @@ class FinnGenFinemapping:
             spark (SparkSession): Spark session object.
             finngen_finemapping_df (str | list[str]): SuSIE finemapping output filename(s).
             finngen_finemapping_summaries (str | list[str]): filename of SuSIE finemapping summaries.
+            finngen_release_prefix (str): FinnGen study prefix.
             credset_lbf_threshold (float, optional): Filter out credible sets below, Default 0.8685889638065036 == np.log10(np.exp(2)), this is threshold from publication.
 
         Returns:
@@ -110,7 +141,7 @@ class FinnGenFinemapping:
             .filter(f.col("cs").cast(t.IntegerType()) > 0)
             .select(
                 # Add study idenfitier.
-                f.concat(f.lit(cls.finngen_release_prefix), f.col("trait"))
+                f.concat(f.lit(finngen_release_prefix), f.col("trait"))
                 .cast(t.StringType())
                 .alias("studyId"),
                 f.col("region"),
@@ -209,7 +240,7 @@ class FinnGenFinemapping:
                 | (f.col("credibleSetIndex") == 1)
             )
             .withColumn(
-                "studyId", f.concat(f.lit(cls.finngen_release_prefix), f.col("trait"))
+                "studyId", f.concat(f.lit(finngen_release_prefix), f.col("trait"))
             )
         )
 
