@@ -1,3 +1,4 @@
+# pylint: disable=line-too-long
 """Airflow DAG for the Preprocess part of the pipeline."""
 from __future__ import annotations
 
@@ -21,6 +22,13 @@ WINDOW_BASED_CLUMPED = f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_window_cl
 LD_CLUMPED = f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_ld_clumped"
 PICSED_CREDIBLE_SET = f"{FINNGEN_BUCKET}/credible_set_datasets/finngen_pics"
 
+FINNGEN_FINEMAPPING = (
+    "gs://genetics_etl_python_playground/input/Finngen_susie_finemapping_r10/full"
+)
+FINNGEN_FM_SUMMARIES = "gs://genetics_etl_python_playground/input/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv"
+FINNGEN_PREFIX = "FINNGEN_R10_"
+FINNGEN_FM_OUT = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/finngen_susie_processed"
+
 with DAG(
     dag_id=Path(__file__).stem,
     description="Open Targets Genetics — Finngen preprocess",
@@ -31,6 +39,12 @@ with DAG(
         cluster_name=CLUSTER_NAME,
         step_id="ot_finngen_finemapping_ingestion",
         task_id="finngen_finemapping_ingestion",
+        other_args=[
+            f"step.finngen_finemapping_out={FINNGEN_FM_OUT}",
+            f"step.finngen_release_prefix={FINNGEN_PREFIX}",
+            f"step.finngen_finemapping_results_path={FINNGEN_FINEMAPPING}",
+            f"step.finngen_finemapping_summaries_path={FINNGEN_FM_SUMMARIES}",
+        ],
         # This allows to attempt running the task when above step fails do to failifexists
         trigger_rule=TriggerRule.ALL_DONE,
     )
