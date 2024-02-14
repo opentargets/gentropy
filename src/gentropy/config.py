@@ -1,3 +1,4 @@
+# pylint: disable=too-few-public-methods
 """Interface for application configuration."""
 import os
 from dataclasses import dataclass, field
@@ -131,6 +132,19 @@ class FinngenSumstatPreprocessConfig(StepConfig):
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
     _target_: str = "gentropy.finngen_sumstat_preprocess.FinnGenSumstatPreprocessStep"
+
+
+@dataclass
+class FinngenFinemappingConfig(StepConfig):
+    """FinnGen fine mapping ingestion step configuration."""
+
+    finngen_finemapping_results_path: str = MISSING
+    finngen_finemapping_summaries_path: str = MISSING
+    finngen_release_prefix: str = MISSING
+    finngen_finemapping_out: str = MISSING
+    _target_: str = (
+        "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
+    )
 
 
 @dataclass
@@ -353,6 +367,13 @@ def register_config() -> None:
         name="finngen_sumstat_preprocess",
         node=FinngenSumstatPreprocessConfig,
     )
+
+    cs.store(
+        group="step",
+        name="finngen_finemapping_ingestion",
+        node=FinngenFinemappingConfig,
+    )
+
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
