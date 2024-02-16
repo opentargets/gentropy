@@ -18,17 +18,15 @@ class sumstat_imputation:
         sig_i_t: np.ndarray,
         lamb: float = 0.01,
         rtol: float = 0.01,
-        batch: bool = True,
     ) -> dict[str, Any]:
         """The raiss model of impuattion. It computes the imputation of the zscore.
 
         Args:
             zt (np.ndarray): the vector of known Z scores
-            sig_t (np.ndarray) : the matrix of known Linkage Desiquilibrium correlation
-            sig_i_t (np.ndarray): correlation matrix of known matrix
+            sig_t (np.ndarray) : the matrix of known LD correlations
+            sig_i_t (np.ndarray): LD matrix of known SNPs with other uknown SNPs in large matrix (similar to ld[unknowns, :][:,known])
             lamb (float): regularization term added to the diagonal of the sig_t matrix
-            rtol (float): threshold to filter eigenvector with a eigenvalue under rtol make inversion biased but much more numerically robust
-            batch (bool): if True, the function will compute the imputation for all the SNPs at once
+            rtol (float): threshold to filter eigenvectos by its eigenvalue. It makes an inversion biased but much more numerically robust
 
         Returns:
             dict[str, Any]:
@@ -43,20 +41,13 @@ class sumstat_imputation:
         if sig_t_inv is None:
             return {"mu": None}
         else:
-            if batch:
-                condition_number = np.array([np.linalg.cond(sig_t)] * sig_i_t.shape[0])
-                correct_inversion = np.array(
-                    [sumstat_imputation._check_inversion(sig_t, sig_t_inv)]
-                    * sig_i_t.shape[0]
-                )
-            else:
-                condition_number = np.linalg.cond(sig_t)
-                correct_inversion = np.array(
-                    sumstat_imputation._check_inversion(sig_t, sig_t_inv)
-                )
-            var, ld_score = sumstat_imputation._compute_var(
-                sig_i_t, sig_t_inv, lamb, batch
+            condition_number = np.array([np.linalg.cond(sig_t)] * sig_i_t.shape[0])
+            correct_inversion = np.array(
+                [sumstat_imputation._check_inversion(sig_t, sig_t_inv)]
+                * sig_i_t.shape[0]
             )
+
+            var, ld_score = sumstat_imputation._compute_var(sig_i_t, sig_t_inv, lamb)
 
             mu = sumstat_imputation._compute_mu(sig_i_t, sig_t_inv, zt)
             var_norm = sumstat_imputation._var_in_boundaries(var, lamb)
@@ -91,7 +82,7 @@ class sumstat_imputation:
 
     @staticmethod
     def _compute_var(
-        sig_i_t: np.ndarray, sig_t_inv: np.ndarray, lamb: float, batch: bool = True
+        sig_i_t: np.ndarray, sig_t_inv: np.ndarray, lamb: float
     ) -> tuple[np.ndarray, np.ndarray]:
         """Compute the expected variance of the imputed SNPs.
 
@@ -99,19 +90,15 @@ class sumstat_imputation:
             sig_i_t (np.ndarray) : correlation matrix with line corresponding to unknown Snp (snp to impute) and column to known SNPs
             sig_t_inv (np.ndarray): inverse of the correlation matrix of known matrix
             lamb (float): regularization term added to matrix
-            batch (bool): if True, the function will compute the imputation for all the SNPs at once
 
         Returns:
             tuple[np.ndarray, np.ndarray]: a tuple containing the variance and the ld score
         """
-        if batch:
-            var = (1 + lamb) - np.einsum(
-                "ij,jk,ki->i", sig_i_t, sig_t_inv, sig_i_t.transpose()
-            )
-            ld_score = (sig_i_t**2).sum(1)
-        else:
-            var = (1 + lamb) - np.dot(sig_i_t, np.dot(sig_t_inv, sig_i_t.transpose()))
-            ld_score = (sig_i_t**2).sum()
+        var = (1 + lamb) - np.einsum(
+            "ij,jk,ki->i", sig_i_t, sig_t_inv, sig_i_t.transpose()
+        )
+        ld_score = (sig_i_t**2).sum(1)
+
         return var, ld_score
 
     @staticmethod
