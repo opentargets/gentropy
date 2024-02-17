@@ -42,7 +42,7 @@
         "ms-toolsai.jupyter",
         "ms-vscode.makefile-tools",
         "GitHub.vscode-pull-request-github",
-        "fnando.linter",
+        "fnando.linter"
       ],
       // Please keep this file in sync with settings in /.vscode/settings.json
       "settings": {
