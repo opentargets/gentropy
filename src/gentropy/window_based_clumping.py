@@ -13,8 +13,10 @@ class WindowBasedClumpingStep:
         session: Session,
         summary_statistics_input_path: str,
         study_locus_output_path: str,
+        distance: int = 500_000,
+        collect_locus: bool = False,
+        collect_locus_distance: int = 500_000,
         inclusion_list_path: str | None = None,
-        locus_collect_distance: int | None = None,
     ) -> None:
         """Run window-based clumping step.
 
@@ -22,8 +24,10 @@ class WindowBasedClumpingStep:
             session (Session): Session object.
             summary_statistics_input_path (str): Path to the harmonized summary statistics dataset.
             study_locus_output_path (str): Output path for the resulting study locus dataset.
+            distance (int): Distance, within which tagging variants are collected around the semi-index. Optional.
+            collect_locus (bool): Whether to collect locus around semi-indices. Optional.
+            collect_locus_distance (int): Distance, within which tagging variants are collected around the semi-index. Optional.
             inclusion_list_path (str | None): Path to the inclusion list (list of white-listed study identifier). Optional.
-            locus_collect_distance (int | None): Distance, within which tagging variants are collected around the semi-index. Optional.
         """
         # If inclusion list path is provided, only these studies will be read:
         if inclusion_list_path:
@@ -43,7 +47,11 @@ class WindowBasedClumpingStep:
             )
             .coalesce(4000)
             # Applying window based clumping:
-            .window_based_clumping(locus_collect_distance=locus_collect_distance)
+            .window_based_clumping(
+                distance=distance,
+                collect_locus=collect_locus,
+                collect_locus_distance=collect_locus_distance,
+            )
             # Save resulting study locus dataset:
             .df.write.mode(session.write_mode)
             .parquet(study_locus_output_path)
