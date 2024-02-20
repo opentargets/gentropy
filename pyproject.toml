@@ -127,6 +127,7 @@ exclude = ["dist"]
 [tool.pytest.ini_options]
 addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
 pythonpath = [".", "./src/airflow/dags"]
+testpaths = ["tests/gentropy", "src/gentropy/"]
 
 # Semi-strict mode for mypy
 [tool.mypy]

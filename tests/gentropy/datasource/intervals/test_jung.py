@@ -12,7 +12,7 @@ from pyspark.sql import DataFrame, SparkSession
 @pytest.fixture(scope="module")
 def sample_intervals_jung(spark: SparkSession) -> DataFrame:
     """Sample Jung intervals."""
-    return IntervalsJung.read(spark, "tests/data_samples/jung_sample.bed")
+    return IntervalsJung.read(spark, "tests/gentropy/data_samples/jung_sample.bed")
 
 
 def test_read_jung(sample_intervals_jung: DataFrame) -> None:
