@@ -1,4 +1,3 @@
-# pylint: disable=line-too-long
 """Airflow DAG for the Preprocess part of the pipeline."""
 from __future__ import annotations
 

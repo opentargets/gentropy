@@ -1,4 +1,3 @@
-# pylint: disable=too-few-public-methods
 """Interface for application configuration."""
 import os
 from dataclasses import dataclass, field
