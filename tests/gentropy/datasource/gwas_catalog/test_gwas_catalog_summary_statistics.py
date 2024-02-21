@@ -26,7 +26,7 @@ class TestGWASCatalogSummaryStatistics:
     ) -> GWASCatalogSummaryStatistics:
         """Test GWASCatalogSummaryStatistics creation with mock data."""
         return GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
-            spark, "tests/data_samples/new_format_GCST90293086.h.tsv.gz"
+            spark, "tests/gentropy/data_samples/new_format_GCST90293086.h.tsv.gz"
         )
 
     @pytest.fixture(scope="class")
@@ -36,7 +36,7 @@ class TestGWASCatalogSummaryStatistics:
     ) -> GWASCatalogSummaryStatistics:
         """Test GWASCatalogSummaryStatistics creation with mock data."""
         return GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
-            spark, "tests/data_samples/old_format_GCST006090.h.tsv.gz"
+            spark, "tests/gentropy/data_samples/old_format_GCST006090.h.tsv.gz"
         )
 
     @pytest.fixture(scope="class")

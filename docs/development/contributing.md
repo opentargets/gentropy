@@ -82,5 +82,5 @@ For more details on each of these steps, see the sections below.
 ### Tests
 
 - Test study fixture in `tests/conftest.py` (example: `mock_study_index_finngen` in that module)
-- Test sample data in `tests/data_samples` (example: `tests/data_samples/finngen_studies_sample.json`)
+- Test sample data in `tests/data_samples` (example: `tests/gentropy/data_samples/finngen_studies_sample.json`)
 - Test definition in `tests/` (example: `tests/dataset/test_study_index.py` → `test_study_index_finngen_creation`)
