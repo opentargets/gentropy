@@ -27,7 +27,6 @@ class ClumpStep:
         clumped_study_locus_path: str,
         study_index_path: Optional[str] = None,
         ld_index_path: Optional[str] = None,
-        locus_collect_distance: Optional[int] = None,
     ) -> None:
         """Run the clumping step.
 
@@ -37,7 +36,6 @@ class ClumpStep:
             clumped_study_locus_path (str): Output path for the clumped study locus dataset.
             study_index_path (Optional[str]): Input path for the study index dataset.
             ld_index_path (Optional[str]): Input path for the LD index dataset.
-            locus_collect_distance (Optional[int]): Distance in base pairs to collect variants around the study locus.
 
         Raises:
             ValueError: If study index and LD index paths are not provided for study locus.
@@ -61,9 +59,7 @@ class ClumpStep:
             sumstats = SummaryStatistics.from_parquet(
                 session, input_path, recursiveFileLookup=True
             ).coalesce(4000)
-            clumped_study_locus = sumstats.window_based_clumping(
-                locus_collect_distance=locus_collect_distance
-            )
+            clumped_study_locus = sumstats.window_based_clumping()
 
         clumped_study_locus.df.write.mode(session.write_mode).parquet(
             clumped_study_locus_path
