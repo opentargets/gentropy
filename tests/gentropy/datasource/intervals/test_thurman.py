@@ -12,7 +12,9 @@ from pyspark.sql import DataFrame, SparkSession
 @pytest.fixture(scope="module")
 def sample_intervals_thurman(spark: SparkSession) -> DataFrame:
     """Sample Thurman intervals."""
-    return IntervalsThurman.read(spark, "tests/data_samples/thurman_sample.bed8")
+    return IntervalsThurman.read(
+        spark, "tests/gentropy/data_samples/thurman_sample.bed8"
+    )
 
 
 def test_read_thurman(sample_intervals_thurman: DataFrame) -> None:
