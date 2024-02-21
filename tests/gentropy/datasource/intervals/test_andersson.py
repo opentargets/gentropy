@@ -12,7 +12,9 @@ from pyspark.sql import DataFrame, SparkSession
 @pytest.fixture(scope="module")
 def sample_intervals_andersson(spark: SparkSession) -> DataFrame:
     """Sample Andersson intervals."""
-    return IntervalsAndersson.read(spark, "tests/data_samples/andersson_sample.bed")
+    return IntervalsAndersson.read(
+        spark, "tests/gentropy/data_samples/andersson_sample.bed"
+    )
 
 
 def test_read_andersson(sample_intervals_andersson: DataFrame) -> None:
