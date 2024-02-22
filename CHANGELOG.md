@@ -8,6 +8,59 @@
 
 
 
+## v1.1.1 (2024-02-22)
+### 🐛 Fix
+
+
+- \[**finemapping**\] finngen harmonisation (schema and orchestration) (#489) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+
+-  update github token variable (#476) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### 📖 Documentation
+
+
+-  susie inf method reloacated with the rest of the methods [\@David Ochoa](mailto:dogcaesar@gmail.com)
+
+### ✅ Test
+
+
+-  increase modularity of test directories (#502) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+### 🏗 Build
+
+
+- \[**deps-dev**\] bump apache-airflow-providers-google (#496) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump python-semantic-release from 9.0.3 to 9.1.0 (#495) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump yamllint from 1.33.0 to 1.35.1 (#494) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pydoclint from 0.3.8 to 0.4.1 (#497) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pytest from 7.4.4 to 8.0.1 (#493) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump python-semantic-release from 8.7.0 to 9.0.3 [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+### 👷‍♂️ Ci
+
+
+-  pre-commit autoupdate message (#500) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  pre-commit updates (#499) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  exclude changelog.md from precommit (#479) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**release**\] add action to open pr that triggers release weekly (#474) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
 ## v1.1.0 (2024-02-08)
 ### ✨ Feature
 
