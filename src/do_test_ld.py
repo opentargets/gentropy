@@ -22,24 +22,22 @@ import os
 import hail as hl
 import pyspark.sql.functions as f
 from gentropy.common.session import Session
-from gentropy.common.utils import split_pvalue
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
-from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 from hail import __file__ as hail_location
-from hail.linalg import BlockMatrix
-from pyspark.sql import Column, Window
-from pyspark.storagelevel import StorageLevel
+
+WINDOW_SIZE = 500_000
+NUM_STUDIES = 500
 
 session = Session(
     spark_uri="yarn",
     start_hail=True,
     hail_home=os.path.dirname(hail_location),
-    extended_spark_conf={"spark.driver.memory": "5G"},
+    extended_spark_conf={
+        "spark.sql.shuffle.partitions": str(NUM_STUDIES),
+        "spark.driver.memory": "5G",
+    },
 )
-
-WINDOW_SIZE = 500_000
 
 hl.init(sc=session.spark.sparkContext)
 
@@ -73,21 +71,25 @@ studies = nfe_studies.join(
 )
 study_list = studies.rdd.map(lambda x: x.studyId).collect()
 
+to_do_list = [
+    "gs://gwas_catalog_data/harmonised_summary_statistics/" + i + ".parquet"
+    for i in study_list
+][1:NUM_STUDIES]
 ss = SummaryStatistics.from_parquet(
     session,
-    path=[
-        "gs://gwas_catalog_data/harmonised_summary_statistics/" + i + ".parquet"
-        for i in study_list
-    ],
+    path=to_do_list,
 ).exclude_region("6:28510120-33480577")
 
 # ss = (
 #     SummaryStatistics.from_parquet(session, "gs://ot-team/dochoa/studies_10.parquet/")
 #     .exclude_region("6:28510120-33480577")
 #     # .filter(f.col("studyId") == "GCST90002374") # busy 1k assoc 40M variants
-#     .filter(f.col("studyId") == "GCST006907")  # not so busy
-# ).persist()
+#     # .filter(f.col("studyId") == "GCST006907")  # not so busy
+# )
 
+ss.df.repartition(NUM_STUDIES, "studyId", "chromosome").sortWithinPartitions(
+    "studyId", "chromosome", "position"
+)
 
 # self.df = self._df.withColumn(
 #     "locus",
