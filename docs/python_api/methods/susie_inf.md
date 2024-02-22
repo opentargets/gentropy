@@ -1,6 +1,8 @@
 ---
-title: SuSiE-inf - Fine-mapping with infinitesimal effects v1.1
+title: SuSiE-inf
 ---
+
+# SuSiE-inf - Fine-mapping with infinitesimal effects v1.1
 
 This is an implementation of the SuSiE-inf method found here:
 https://github.com/FinucaneLab/fine-mapping-inf
