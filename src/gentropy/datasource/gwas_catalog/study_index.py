@@ -549,12 +549,12 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
 
         # Parsing cohort information:
-        cohorts = ancestry_lut.select(
-            f.col("STUDY ACCESSION").alias("studyId"),
-            GWASCatalogStudyIndexParser.parse_cohorts(f.col("COHORT(S)")).alias(
-                "cohorts"
-            ),
-        ).distinct()
+        # cohorts = ancestry_lut.select(
+        #     f.col("STUDY ACCESSION").alias("studyId"),
+        #     GWASCatalogStudyIndexParser.parse_cohorts(f.col("COHORT(S)")).alias(
+        #         "cohorts"
+        #     ),
+        # ).distinct()
 
         # Get a high resolution dataset on experimental stage:
         ancestry_stages = (
@@ -644,8 +644,9 @@ class StudyIndexGWASCatalog(StudyIndex):
         ).select(
             "studyId", "discoverySamples", "ldPopulationStructure", "replicationSamples"
         )
-        self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left").join(
-            cohorts, on="studyId", how="left"
+        self.df = (
+            self.df.join(parsed_ancestry_lut, on="studyId", how="left")
+            # .join(cohorts, on="studyId", how="left")
         )
         return self
 
