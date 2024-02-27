@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
@@ -30,33 +31,33 @@ class EqtlCatalogueStep:
         # Extract
         pd.DataFrame.iteritems = pd.DataFrame.items
         credible_sets = session.spark.read.csv(
-            f"{eqtl_catalogue_paths_imported}.credible_sets.tsv",
+            f"{eqtl_catalogue_paths_imported}/*.credible_sets.tsv",
             sep="\t",
             header=True,
             schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
         )
         lbf = session.spark.read.csv(
-            f"{eqtl_catalogue_paths_imported}.lbf_variable.txt",
+            f"{eqtl_catalogue_paths_imported}/*.lbf_variable.txt",
             sep="\t",
             header=True,
             schema=EqtlCatalogueFinemapping.raw_lbf_schema,
-        )
+        ).repartition(800)
         studies_metadata = session.spark.createDataFrame(
             pd.read_csv(EqtlCatalogueStudyIndex.raw_studies_metadata_path, sep="\t"),
             schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
-        )
+        ).filter(f.col("quant_method") == "ge")
 
         # Transform
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
             credible_sets, lbf, studies_metadata
         ).persist()
         credible_sets = EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
-        study_index = EqtlCatalogueStudyIndex.from_source(processed_susie_df)
+        study_index = EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
 
         # Load
-        study_index.write.mode(session.write_mode).parquet(
+        study_index.df.write.mode(session.write_mode).parquet(
             eqtl_catalogue_study_index_out
         )
-        credible_sets.write.mode(session.write_mode).parquet(
+        credible_sets.df.write.mode(session.write_mode).parquet(
             eqtl_catalogue_credible_sets_out
         )

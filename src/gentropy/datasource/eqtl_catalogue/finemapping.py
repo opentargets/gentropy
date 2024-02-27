@@ -1,4 +1,6 @@
 """Process SuSIE finemapping results from eQTL Catalogue."""
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import pyspark.sql.functions as f
@@ -67,7 +69,14 @@ class EqtlCatalogueFinemapping:
     def _extract_credible_set_index(
         cls: type[EqtlCatalogueFinemapping], cs_id: Column
     ) -> Column:
-        """Extract the credible set index from the cs_id."""
+        """Extract the credible set index from the cs_id.
+
+        Args:
+            cs_id (Column): column with the credible set id as defined in the eQTL Catalogue.
+
+        Returns:
+            Column: The credible set index.
+        """
         return f.split(cs_id, "_L")[1].cast(IntegerType())
 
     @classmethod
@@ -77,10 +86,10 @@ class EqtlCatalogueFinemapping:
         """Extract the dataset_id from the file_path. The dataset_id follows the pattern QTD{6}.
 
         Args:
-            file_path: The file path.
+            file_path (Column): A column containing the file path.
 
         Returns:
-            The dataset_id.
+            Column: The dataset_id.
 
         Examples:
             >>> extract_dataset_id_from_file_path(f.lit("QTD000046.credible_sets.tsv")).show()
@@ -99,21 +108,33 @@ class EqtlCatalogueFinemapping:
         lbf: DataFrame,
         studies_metadata: DataFrame,
     ) -> DataFrame:
-        """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies."""
+        """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
+
+        Args:
+            credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
+            lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
+            studies_metadata (DataFrame): DataFrame containing the study metadata.
+
+        Returns:
+            DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
+        """
         ss_ftp_path_template = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats"
         return (
-            credible_sets.withColumn(
-                "dataset_id",
-                cls._extract_dataset_id_from_file_path(
-                    f.input_file_name()
+            lbf.join(
+                f.broadcast(
+                    credible_sets.withColumn(
+                        "dataset_id",
+                        cls._extract_dataset_id_from_file_path(f.input_file_name()),
+                    )
+                    .withColumn(
+                        "credibleSetIndex",
+                        cls._extract_credible_set_index(f.col("cs_id")),
+                    )
+                    .join(f.broadcast(studies_metadata), on="dataset_id")
                 ),
+                on=["molecular_trait_id", "region", "variant"],
+                how="inner",
             )
-            # filter out credible sets from any method other than gene quantification
-            .join(
-                studies_metadata.filter(f.col("quant_method") == "ge"), on="dataset_id"
-            )
-            # bring in the lbf data
-            .join(lbf, on=["molecular_trait_id", "region", "variant"])
             .withColumn(
                 "logBF",
                 f.when(f.col("credibleSetIndex") == 1, f.col("lbf_variable1"))
@@ -137,9 +158,7 @@ class EqtlCatalogueFinemapping:
                 f.col("sample_size").alias("nSamples"),
                 f.col("beta"),
                 f.col("se").alias("standardError"),
-                cls._extract_credible_set_index(
-                    f.col("cs_id")
-                ).alias("credibleSetIndex"),
+                f.col("credibleSetIndex"),
                 f.col("logBF"),
                 f.lit("SuSie").alias("finemappingMethod"),
                 # Study metadata
@@ -166,23 +185,29 @@ class EqtlCatalogueFinemapping:
                 "studyLocusId",
                 StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
             )
-            .persist()
         )
 
     @classmethod
     def from_susie_results(
-        cls: type[EqtlCatalogueFinemapping], processed_finngen_finemapping_df: DataFrame
+        cls: type[EqtlCatalogueFinemapping], processed_finemapping_df: DataFrame
     ) -> StudyLocus:
-        """Create a StudyLocus object from the processed SuSIE results."""
+        """Create a StudyLocus object from the processed SuSIE results.
+
+        Args:
+            processed_finemapping_df (DataFrame): DataFrame containing the processed SuSIE results.
+
+        Returns:
+            StudyLocus: eQTL Catalogue credible sets.
+        """
         lead_w = Window.partitionBy("studyId", "region", "credibleSetIndex")
         study_locus_cols = [
             field.name
             for field in StudyLocus.get_schema().fields
-            if field.name in processed_finngen_finemapping_df.columns
+            if field.name in processed_finemapping_df.columns
         ] + ["locus"]
         return StudyLocus(
             _df=(
-                processed_finngen_finemapping_df.withColumn(
+                processed_finemapping_df.withColumn(
                     "isLead",
                     f.row_number().over(
                         lead_w.orderBy(

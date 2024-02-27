@@ -33,22 +33,31 @@ class EqtlCatalogueStudyIndex:
     raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/data_tables/dataset_metadata.tsv"
 
     @classmethod
-    def _identify_study_type(cls: type[EqtlCatalogueStudyIndex], study_label_col: Column) -> Column:
-        """Identify the study type based on the study label."""
+    def _identify_study_type(
+        cls: type[EqtlCatalogueStudyIndex], study_label_col: Column
+    ) -> Column:
+        """Identify the study type based on the study label.
+
+        Args:
+            study_label_col (Column): column with the study label that identifies the supporting publication.
+
+        Returns:
+            Column: The study type.
+        """
         return f.when(
             study_label_col == "Sun_2018",
             f.lit("pqtl"),
         ).otherwise(f.lit("eqtl"))
 
     @classmethod
-    def from_source(
+    def from_susie_results(
         cls: type[EqtlCatalogueStudyIndex],
-        processed_finngen_finemapping_df: DataFrame,
+        processed_finemapping_df: DataFrame,
     ) -> StudyIndex:
         """Ingest study level metadata from eQTL Catalogue.
 
         Args:
-            processed_finngen_finemapping_df (DataFrame): processed fine mapping results with study metadata.
+            processed_finemapping_df (DataFrame): processed fine mapping results with study metadata.
 
         Returns:
             StudyIndex: eQTL Catalogue study index dataset derived from the selected SuSIE results.
@@ -56,9 +65,9 @@ class EqtlCatalogueStudyIndex:
         study_index_cols = [
             field.name
             for field in StudyIndex.get_schema().fields
-            if field.name in processed_finngen_finemapping_df.columns
+            if field.name in processed_finemapping_df.columns
         ]
         return StudyIndex(
-            _df=processed_finngen_finemapping_df.select(study_index_cols).distinct(),
+            _df=processed_finemapping_df.select(study_index_cols).distinct(),
             _schema=StudyIndex.get_schema(),
         )

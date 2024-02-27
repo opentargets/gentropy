@@ -112,7 +112,7 @@ class EqtlCatalogueConfig(StepConfig):
 
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
-    eqtl_catalogue_summary_stats_out: str = MISSING
+    eqtl_catalogue_credible_sets_out: str = MISSING
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
