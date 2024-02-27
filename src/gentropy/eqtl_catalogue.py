@@ -1,10 +1,12 @@
-"""Step to run eQTL Catalogue study table ingestion."""
+"""Step to run eQTL Catalogue credible set and study index ingestion."""
 
 from __future__ import annotations
 
+import pandas as pd
+
 from gentropy.common.session import Session
+from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from gentropy.datasource.eqtl_catalogue.summary_stats import EqtlCatalogueSummaryStats
 
 
 class EqtlCatalogueStep:
@@ -15,48 +17,46 @@ class EqtlCatalogueStep:
         session: Session,
         eqtl_catalogue_paths_imported: str,
         eqtl_catalogue_study_index_out: str,
-        eqtl_catalogue_summary_stats_out: str,
+        eqtl_catalogue_credible_sets_out: str,
     ) -> None:
         """Run eQTL Catalogue ingestion step.
 
         Args:
             session (Session): Session object.
-            eqtl_catalogue_paths_imported (str): Input eQTL Catalogue study index path.
+            eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.
             eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.
-            eqtl_catalogue_summary_stats_out (str): Output eQTL Catalogue summary stats path.
+            eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.
         """
-        # Fetch study index.
-        df = session.spark.read.option("delimiter", "\t").csv(
-            eqtl_catalogue_paths_imported, header=True
+        # Extract
+        pd.DataFrame.iteritems = pd.DataFrame.items
+        credible_sets = session.spark.read.csv(
+            f"{eqtl_catalogue_paths_imported}.credible_sets.tsv",
+            sep="\t",
+            header=True,
+            schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
         )
-        # Process partial study index.  At this point, it is not complete because we don't have the gene IDs, which we
-        # will only get once the summary stats are ingested.
-        study_index_df = EqtlCatalogueStudyIndex.from_source(df).df
-
-        # Fetch summary stats.
-        input_filenames = [row.summarystatsLocation for row in study_index_df.collect()]
-        summary_stats_df = (
-            session.spark.read.option("delimiter", "\t")
-            .csv(input_filenames, header=True)
-            .repartition(1280)
+        lbf = session.spark.read.csv(
+            f"{eqtl_catalogue_paths_imported}.lbf_variable.txt",
+            sep="\t",
+            header=True,
+            schema=EqtlCatalogueFinemapping.raw_lbf_schema,
         )
-        # Process summary stats.
-        summary_stats_df = EqtlCatalogueSummaryStats.from_source(summary_stats_df).df
+        studies_metadata = session.spark.createDataFrame(
+            pd.read_csv(EqtlCatalogueStudyIndex.raw_studies_metadata_path, sep="\t"),
+            schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
+        )
 
-        # Add geneId column to the study index.
-        study_index_df = EqtlCatalogueStudyIndex.add_gene_to_study_id(
-            study_index_df,
-            summary_stats_df,
-        ).df
+        # Transform
+        processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
+            credible_sets, lbf, studies_metadata
+        ).persist()
+        credible_sets = EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
+        study_index = EqtlCatalogueStudyIndex.from_source(processed_susie_df)
 
-        # Write study index.
-        study_index_df.write.mode(session.write_mode).parquet(
+        # Load
+        study_index.write.mode(session.write_mode).parquet(
             eqtl_catalogue_study_index_out
         )
-        # Write summary stats.
-        (
-            summary_stats_df.sortWithinPartitions("position")
-            .write.partitionBy("chromosome")
-            .mode(session.write_mode)
-            .parquet(eqtl_catalogue_summary_stats_out)
+        credible_sets.write.mode(session.write_mode).parquet(
+            eqtl_catalogue_credible_sets_out
         )
