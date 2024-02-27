@@ -97,9 +97,9 @@ class TestGnomADLDMatrixVariants:
         ld_test_population = "test-pop"
 
         gnomad_ld_matrix = GnomADLDMatrix(
-            ld_matrix_template="tests/data_samples/example_{POP}.bm",
-            ld_index_raw_template="tests/data_samples/example_{POP}.ht",
-            grch37_to_grch38_chain_path="tests/data_samples/grch37_to_grch38.over.chain",
+            ld_matrix_template="tests/gentropy/data_samples/example_{POP}.bm",
+            ld_index_raw_template="tests/gentropy/data_samples/example_{POP}.ht",
+            grch37_to_grch38_chain_path="tests/gentropy/data_samples/grch37_to_grch38.over.chain",
         )
         self.ld_slice = gnomad_ld_matrix.get_ld_variants(
             gnomad_ancestry=ld_test_population,
@@ -173,7 +173,7 @@ class TestGnomADLDMatrixSlice:
         """Prepares fixtures for the test."""
         hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
         gnomad_ld_matrix = GnomADLDMatrix(
-            ld_matrix_template="tests/data_samples/example_{POP}.bm"
+            ld_matrix_template="tests/gentropy/data_samples/example_{POP}.bm"
         )
         test_ld_population: str = "test-pop"
         self.slice_start_index: int = 1
