@@ -41,7 +41,7 @@ class EqtlCatalogueStep:
             sep="\t",
             header=True,
             schema=EqtlCatalogueFinemapping.raw_lbf_schema,
-        ).repartition(800)
+        )
         studies_metadata = session.spark.createDataFrame(
             pd.read_csv(EqtlCatalogueStudyIndex.raw_studies_metadata_path, sep="\t"),
             schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
@@ -50,7 +50,7 @@ class EqtlCatalogueStep:
         # Transform
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
             credible_sets, lbf, studies_metadata
-        ).persist()
+        )
         credible_sets = EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
         study_index = EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
 

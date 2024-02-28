@@ -8,7 +8,7 @@ import common_airflow as common
 from airflow.models.dag import DAG
 
 CLUSTER_NAME = "otg-preprocess-eqtl"
-AUTOSCALING = "otg-preprocess-gwascatalog"
+AUTOSCALING = "do-ld-explosion"
 PROJECT_ID = "open-targets-genetics-dev"
 
 EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalog_data/ebi_ftp/susie"
@@ -39,7 +39,7 @@ with DAG(
 
     ingestion_job = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="eqtl_catalogue",
+        step_id="ot_eqtl_catalogue",
         task_id="ot_eqtl_ingestion",
         other_args=[
             f"step.eqtl_catalogue_paths_imported={TEMP_DECOMPRESS_LOCATION}",
@@ -60,7 +60,7 @@ with DAG(
         common.create_cluster(
             CLUSTER_NAME,
             autoscaling_policy=AUTOSCALING,
-            num_workers=5,
+            num_workers=4,
             worker_machine_type="n1-highmem-8",
         )
         >> common.install_dependencies(CLUSTER_NAME)
