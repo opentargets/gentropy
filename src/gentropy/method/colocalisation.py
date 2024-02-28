@@ -210,9 +210,11 @@ class Coloc:
                 # h3
                 .withColumn("sumlogsum", f.col("logsum1") + f.col("logsum2"))
                 .withColumn("max", f.greatest("sumlogsum", "logsum12"))
+                # exclude null H3/H4s: due to sumlogsum == logsum12
+                .filter(f.col("sumlogsum") != f.col("logsum12"))
                 .withColumn(
                     "logdiff",
-                    f.when(f.col("sumlogsum") == f.col("logsum12"), 1e-10).otherwise(
+                    (
                         f.col("max")
                         + f.log(
                             f.exp(f.col("sumlogsum") - f.col("max"))
