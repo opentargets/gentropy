@@ -18,7 +18,7 @@ def test_coloc_colocalise(
     spark: SparkSession,
     threshold: float = 1e-5,
 ) -> None:
-    """Test COLOC with the sample dataset from R, transformed into StudyLocusOverlap object."""
+    """Compare COLOC results with R implementation, using provided sample dataset from R package (StudyLocusOverlap)."""
     test_overlap_df = spark.read.parquet(
         "tests/gentropy/data_samples/coloc_test_data.snappy.parquet", header=True
     )
