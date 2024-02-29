@@ -13,7 +13,6 @@ from pyspark.sql.functions import log10
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.study_index import StudyIndex
 from gentropy.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
@@ -123,14 +122,14 @@ class SummaryStatistics(Dataset):
     def sumstat_qc_beta_check(
         self: SummaryStatistics,
         threshold: float = 0.05,
-    ) -> bool:
+    ) -> tuple[bool, float]:
         """The mean beta check for QC of GWAS summary statstics.
 
         Args:
             threshold (float): The threshold for mean beta check.
 
         Returns:
-            bool: Boolean whether this study passed the QC step or not.
+            tuple[bool, float]: Boolean whether this study passed the QC step or not and the mean beta.
         """
         GWAS = self._df
         QC = (
@@ -143,7 +142,7 @@ class SummaryStatistics(Dataset):
             .collect()[0]
         )
 
-        return (np.abs(QC) <= threshold)[0]
+        return ((np.abs(QC) <= threshold)[0], QC[0])
 
     @staticmethod
     def _calculate_logpval(z2: float) -> float:
@@ -189,15 +188,17 @@ class SummaryStatistics(Dataset):
         self: SummaryStatistics,
         threshold_b: float = 0.05,
         threshold_intercept: float = 0.05,
-    ) -> bool:
+        limit: int = 10_000_000,
+    ) -> tuple[bool, float, float]:
         """The PZ check for QC of GWAS summary statstics. It runs linear regression between reported p-values and p-values infered from z-scores.
 
         Args:
             threshold_b (float): The threshold for b coeffcicient in linear regression.
             threshold_intercept (float): The threshold for intercept in linear regression.
+            limit (int): The limit for the number of variants to be used for the estimation.
 
         Returns:
-            bool: Boolean whether this study passed the QC step or not.
+            tuple[bool, float, float]: Boolean whether this study passed the QC step or not, beta coefficient and intercept.
         """
         GWAS = self._df
 
@@ -215,8 +216,11 @@ class SummaryStatistics(Dataset):
         )
         lin_udf = f.udf(SummaryStatistics._calculate_lin_reg, linear_reg_Schema)
 
+        n_variants = GWAS.count()
+        n_to_use = min(n_variants, limit)
+
         QC = (
-            GWAS.limit(1000)
+            GWAS.limit(n_to_use)
             .withColumn("zscore", f.col("beta") / f.col("standardError"))
             .withColumn("new_logpval", calculate_logpval_udf(f.col("zscore") ** 2))
             .withColumn("log_mantissa", log10("pValueMantissa"))
@@ -237,14 +241,19 @@ class SummaryStatistics(Dataset):
         lin_results = QC.toPandas().iloc[0, 0]
         beta = lin_results[0]
         interc = lin_results[2]
-        return np.abs(beta - 1) <= threshold_b and np.abs(interc) <= threshold_intercept
+        return (
+            np.abs(beta - 1) <= threshold_b and np.abs(interc) <= threshold_intercept,
+            beta,
+            interc,
+        )
 
     def sumstat_n_eff_check(
         self: SummaryStatistics,
-        SI: StudyIndex,
+        n_total: int,
         threshold_n_total: int = 100,
         threshold_se_n: float = 5,
-    ) -> bool:
+        limit: int = 10_000_000,
+    ) -> tuple[bool, float]:
         """The effective sample size check for QC of GWAS summary statstics.
 
         It estiamtes the ratio between effective sample size and the expected one and checks it's distribution.
@@ -252,24 +261,21 @@ class SummaryStatistics(Dataset):
         The median rartio is always close to 1, but standard error could be inflated.
 
         Args:
-            SI (StudyIndex): StudyIndex object with information about sample size of the study.
+            n_total (int): The reported sample size of the study. The QC metrics is robust toward the sample size.
             threshold_n_total (int): The threshold for total sample size. Extrimly small sample sizes should be avoided.
             threshold_se_n (float): The threshold for standard error of the ratio.
+            limit (int): The limit for the number of variants to be used for the estimation.
 
         Returns:
-            bool: Boolean whether this study passed the QC step or not.
+            tuple[bool, float]: Boolean whether this study passed the QC step or not and the standard error of the n_eff ratio.
         """
         GWAS = self._df
-        study_id = GWAS.select(f.first("studyId")).collect()[0][0]
 
-        n_total = (
-            SI.df.filter(SI.df["studyId"] == study_id)
-            .select("nSamples")
-            .collect()[0][0]
-        )
+        n_variants = GWAS.count()
+        n_to_use = min(n_variants, limit)
 
         QC = (
-            GWAS.limit(1000)
+            GWAS.limit(n_to_use)
             .withColumn(
                 "var_af",
                 2
@@ -303,4 +309,4 @@ class SummaryStatistics(Dataset):
         )
 
         se_n = QC.toPandas().iloc[0, 1]
-        return se_n <= threshold_se_n and n_total >= threshold_n_total
+        return (se_n <= threshold_se_n and n_total >= threshold_n_total, se_n)
