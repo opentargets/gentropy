@@ -120,7 +120,11 @@ class EqtlCatalogueFinemapping:
         """
         ss_ftp_path_template = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats"
         return (
-            lbf.join(
+            lbf.withColumn(
+                "dataset_id",
+                cls._extract_dataset_id_from_file_path(f.input_file_name()),
+            )
+            .join(
                 f.broadcast(
                     credible_sets.withColumn(
                         "dataset_id",
@@ -132,7 +136,7 @@ class EqtlCatalogueFinemapping:
                     )
                     .join(f.broadcast(studies_metadata), on="dataset_id")
                 ),
-                on=["molecular_trait_id", "region", "variant"],
+                on=["molecular_trait_id", "region", "variant", "dataset_id"],
                 how="inner",
             )
             .withColumn(
@@ -180,10 +184,7 @@ class EqtlCatalogueFinemapping:
                     f.col("dataset_id"),
                 ).alias("summarystatsLocation"),
                 f.lit(True).alias("hasSumstats"),
-            )
-            .withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+                f.col("molecular_trait_id"),
             )
         )
 
@@ -199,12 +200,14 @@ class EqtlCatalogueFinemapping:
         Returns:
             StudyLocus: eQTL Catalogue credible sets.
         """
-        lead_w = Window.partitionBy("studyId", "region", "credibleSetIndex")
+        lead_w = Window.partitionBy(
+            "dataset_id", "molecular_trait_id", "region", "credibleSetIndex"
+        )
         study_locus_cols = [
             field.name
             for field in StudyLocus.get_schema().fields
             if field.name in processed_finemapping_df.columns
-        ] + ["locus"]
+        ] + ["studyLocusId", "locus"]
         return StudyLocus(
             _df=(
                 processed_finemapping_df.withColumn(
@@ -222,19 +225,29 @@ class EqtlCatalogueFinemapping:
                 .withColumn(
                     # Collecting all variants that constitute the credible set brings as many variants as the credible set size
                     "locus",
-                    f.collect_set(
-                        f.struct(
-                            "variantId",
-                            "posteriorProbability",
-                            "pValueMantissa",
-                            "pValueExponent",
-                            "logBF",
-                            "beta",
-                            "standardError",
-                        )
-                    ).over(lead_w),
+                    f.when(
+                        f.col("isLead"),
+                        f.collect_list(
+                            f.struct(
+                                "variantId",
+                                "posteriorProbability",
+                                "pValueMantissa",
+                                "pValueExponent",
+                                "logBF",
+                                "beta",
+                                "standardError",
+                            )
+                        ).over(lead_w),
+                    ),
                 )
                 .filter(f.col("isLead"))
+                .drop("isLead")
+                .withColumn(
+                    "studyLocusId",
+                    StudyLocus.assign_study_locus_id(
+                        f.col("studyId"), f.col("variantId")
+                    ),
+                )
                 .select(study_locus_cols)
             ),
             _schema=StudyLocus.get_schema(),
