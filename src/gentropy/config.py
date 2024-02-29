@@ -263,7 +263,7 @@ class VariantAnnotationConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    _target_: str = "gentropytropy.variant_annotation.VariantAnnotationStep"
+    _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
 
 
 @dataclass
