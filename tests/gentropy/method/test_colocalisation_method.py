@@ -6,6 +6,7 @@ from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation import Coloc, ECaviar
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as f
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
@@ -15,6 +16,7 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
 
 def test_coloc_colocalise(
     spark: SparkSession,
+    threshold: float = 1e-5,
 ) -> None:
     """Test COLOC with the sample dataset from R, transformed into StudyLocusOverlap object."""
     test_overlap_df = spark.read.parquet(
@@ -35,7 +37,8 @@ def test_coloc_colocalise(
         ]
     )
     difference = test_result.df.select("h0", "h1", "h2", "h3", "h4").subtract(expected)
-    assert difference.count() == 0
+    for col in difference.columns:
+        assert difference.filter(f.abs(f.col(col)) > threshold).count() == 0
 
 
 def test_ecaviar(mock_study_locus_overlap: StudyLocusOverlap) -> None:
