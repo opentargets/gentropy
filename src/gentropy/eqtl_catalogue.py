@@ -16,6 +16,7 @@ class EqtlCatalogueStep:
     def __init__(
         self,
         session: Session,
+        mqtl_quantification_methods: list[str],
         eqtl_catalogue_paths_imported: str,
         eqtl_catalogue_study_index_out: str,
         eqtl_catalogue_credible_sets_out: str,
@@ -24,6 +25,7 @@ class EqtlCatalogueStep:
 
         Args:
             session (Session): Session object.
+            mqtl_quantification_methods (list[str]): Molecular trait quantification methods to ingest. These inform how transcriptional changes from RNA-seq data were measured. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
             eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.
             eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.
             eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.
@@ -33,7 +35,7 @@ class EqtlCatalogueStep:
         studies_metadata = session.spark.createDataFrame(
             pd.read_csv(EqtlCatalogueStudyIndex.raw_studies_metadata_path, sep="\t"),
             schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
-        ).filter(f.col("quant_method") == "ge")  # TODO
+        ).filter(f.col("quant_method").isin(list(mqtl_quantification_methods)))
 
         # Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.
         studies_to_ingest = EqtlCatalogueStudyIndex.get_studies_of_interest(
