@@ -1,0 +1,22 @@
+name: PR to trigger release
+
+"on":
+  schedule:
+    - cron: "15 16 * * 4"
+
+jobs:
+  pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: pull-request
+        uses: diillson/auto-pull-request@v1.0.1
+        with:
+          source_branch: "dev"
+          destination_branch: "main"
+          pr_title: "chore: trigger release process"
+          pr_body: ":warning: *This PR requires a MERGE or REBASE COMMIT (Don't squash!)*"
+          pr_label: "auto-pr"
+          pr_draft: false
+          pr_allow_empty: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
