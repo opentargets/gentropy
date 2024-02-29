@@ -50,6 +50,25 @@ class EqtlCatalogueStudyIndex:
         ).otherwise(f.lit("eqtl"))
 
     @classmethod
+    def get_studies_of_interest(
+        cls: type[EqtlCatalogueStudyIndex], studies_metadata: DataFrame
+    ) -> list[str]:
+        """Filter studies of interest from the raw studies metadata.
+
+        Args:
+            studies_metadata (DataFrame): raw studies metadata filtered with studies of interest.
+
+        Returns:
+            list[str]: QTD IDs defining the studies of interest for ingestion.
+        """
+        return (
+            studies_metadata.select("dataset_id")
+            .distinct()
+            .toPandas()["dataset_id"]
+            .tolist()
+        )
+
+    @classmethod
     def from_susie_results(
         cls: type[EqtlCatalogueStudyIndex],
         processed_finemapping_df: DataFrame,

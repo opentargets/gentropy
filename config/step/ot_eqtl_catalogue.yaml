@@ -7,4 +7,3 @@ eqtl_catalogue_credible_sets_out: ???
 session:
   extended_spark_conf:
     "spark.sql.shuffle.partitions": "3200"
-    "spark.default.parallelism": "3200"

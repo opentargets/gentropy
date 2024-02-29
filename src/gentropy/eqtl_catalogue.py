@@ -30,26 +30,37 @@ class EqtlCatalogueStep:
         """
         # Extract
         pd.DataFrame.iteritems = pd.DataFrame.items
-        credible_sets = session.spark.read.csv(
-            f"{eqtl_catalogue_paths_imported}/*.credible_sets.tsv",
+        studies_metadata = session.spark.createDataFrame(
+            pd.read_csv(EqtlCatalogueStudyIndex.raw_studies_metadata_path, sep="\t"),
+            schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
+        ).filter(f.col("quant_method") == "ge")  # TODO
+
+        # Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.
+        studies_to_ingest = EqtlCatalogueStudyIndex.get_studies_of_interest(
+            studies_metadata
+        )
+        credible_sets_df = session.spark.read.csv(
+            [
+                f"{eqtl_catalogue_paths_imported}/{qtd_id}.credible_sets.tsv"
+                for qtd_id in studies_to_ingest
+            ],
             sep="\t",
             header=True,
             schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
         )
-        lbf = session.spark.read.csv(
-            f"{eqtl_catalogue_paths_imported}/*.lbf_variable.txt",
+        lbf_df = session.spark.read.csv(
+            [
+                f"{eqtl_catalogue_paths_imported}/{qtd_id}.lbf_variable.txt"
+                for qtd_id in studies_to_ingest
+            ],
             sep="\t",
             header=True,
             schema=EqtlCatalogueFinemapping.raw_lbf_schema,
         )
-        studies_metadata = session.spark.createDataFrame(
-            pd.read_csv(EqtlCatalogueStudyIndex.raw_studies_metadata_path, sep="\t"),
-            schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
-        ).filter(f.col("quant_method") == "ge")
 
         # Transform
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
-            credible_sets, lbf, studies_metadata
+            credible_sets_df, lbf_df, studies_metadata
         )
         credible_sets = EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
         study_index = EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
