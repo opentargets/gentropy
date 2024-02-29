@@ -76,6 +76,14 @@ class EqtlCatalogueFinemapping:
 
         Returns:
             Column: The credible set index.
+
+        Examples:
+            >>> extract_credible_set_index(f.lit("QTD000046_L1")).show()
+            +-------------------+
+            |credibleSetIndex   |
+            +-------------------+
+            | 1                 |
+            +-------------------+
         """
         return f.split(cs_id, "_L")[1].cast(IntegerType())
 

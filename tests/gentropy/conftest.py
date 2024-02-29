@@ -470,27 +470,28 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
-    """Sample eQTL Catalogue studies."""
-    # For reference, the sample file was generated with the following command:
-    # curl https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv | head -n11 > tests/gentropy/data_samples/eqtl_catalogue_studies_sample.tsv
-    with open(
-        "tests/gentropy/data_samples/eqtl_catalogue_studies_sample.tsv"
-    ) as eqtl_catalogue:
-        tsv = eqtl_catalogue.read()
-        rdd = spark.sparkContext.parallelize([tsv])
-        return spark.read.csv(rdd, sep="\t", header=True)
+def sample_eqtl_catalogue_finemapping_credible_sets(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/gentropy/data_samples/QTD000584.credible_sets.tsv",
+        header=True,
+    )
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_summary_stats(spark: SparkSession) -> DataFrame:
-    """Sample eQTL Catalogue summary stats."""
-    # For reference, the sample file was generated with the following commands:
-    # mkdir -p tests/gentropy/data_samples/imported/GTEx_V8/ge
-    # curl ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz | gzip -cd | head -n11 | gzip -c > tests/gentropy/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz
-    # It's important for the test file to be named in exactly this way, because eQTL Catalogue study ID is populated based on input file name.
+def sample_eqtl_catalogue_finemapping_lbf(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
     return spark.read.option("delimiter", "\t").csv(
-        "tests/gentropy/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz",
+        "tests/gentropy/data_samples/QTD000584.lbf_variable.txt",
+        header=True,
+    )
+
+
+@pytest.fixture()
+def sample_eqtl_catalogue_studies_metadata(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue table with metadata about the QTD000584 study."""
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/gentropy/data_samples/sample_eqtl_catalogue_studies.tsv",
         header=True,
     )
 
