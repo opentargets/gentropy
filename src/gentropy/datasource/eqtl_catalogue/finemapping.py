@@ -78,14 +78,14 @@ class EqtlCatalogueFinemapping:
             Column: The credible set index.
 
         Examples:
-            >>> EqtlCatalogueFinemapping._extract_credible_set_index(f.lit("QTD000046_L1")).show()
+            >>> spark.createDataFrame([("QTD000046_L1",)], ["cs_id"]).select(EqtlCatalogueFinemapping._extract_credible_set_index(f.col("cs_id"))).show()
             +-------------------+
             |credibleSetIndex   |
             +-------------------+
             | 1                 |
             +-------------------+
         """
-        return f.split(cs_id, "_L")[1].cast(IntegerType())
+        return f.split(cs_id, "_L")[1].cast(IntegerType()).alias("credibleSetIndex")
 
     @classmethod
     def _extract_dataset_id_from_file_path(
@@ -100,7 +100,7 @@ class EqtlCatalogueFinemapping:
             Column: The dataset_id.
 
         Examples:
-            >>> EqtlCatalogueFinemapping._extract_dataset_id_from_file_path(f.lit("QTD000046.credible_sets.tsv")).show()
+            >>> spark.createDataFrame([("QTD000046.credible_sets.tsv",)], ["filename"]).select(EqtlCatalogueFinemapping._extract_dataset_id_from_file_path(f.col("filename"))).show()
             +----------+
             |dataset_id|
             +----------+
@@ -178,7 +178,10 @@ class EqtlCatalogueFinemapping:
                 f.array(f.col("molecular_trait_id")).alias("traitFromSourceMappedIds"),
                 f.col("dataset_id"),
                 f.concat_ws(
-                    "_", f.col("study_label"), f.col("sample_group"), f.col("gene_id")
+                    "_",
+                    f.col("study_label"),
+                    f.col("sample_group"),
+                    f.col("molecular_trait_id"),
                 ).alias("studyId"),
                 f.col("tissue_id").alias("c"),
                 EqtlCatalogueStudyIndex._identify_study_type(
