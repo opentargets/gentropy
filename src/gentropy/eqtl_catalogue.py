@@ -11,7 +11,10 @@ from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyInd
 
 
 class EqtlCatalogueStep:
-    """eQTL Catalogue ingestion step."""
+    """eQTL Catalogue ingestion step.
+
+    From SuSIE fine mapping results (available at [their FTP](https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/) ), we extract credible sets and study index datasets from gene expression QTL studies.
+    """
 
     def __init__(
         self,
@@ -25,7 +28,7 @@ class EqtlCatalogueStep:
 
         Args:
             session (Session): Session object.
-            mqtl_quantification_methods (list[str]): Molecular trait quantification methods to ingest. These inform how transcriptional changes from RNA-seq data were measured. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
+            mqtl_quantification_methods (list[str]): Molecular trait quantification methods to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
             eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.
             eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.
             eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.

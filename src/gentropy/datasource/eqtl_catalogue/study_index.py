@@ -15,7 +15,17 @@ if TYPE_CHECKING:
 
 
 class EqtlCatalogueStudyIndex:
-    """Study index dataset from eQTL Catalogue."""
+    """Study index dataset from eQTL Catalogue.
+
+    We extract study level metadata from eQTL Catalogue's fine mapping results. All available studies can be found [here](https://www.ebi.ac.uk/eqtl/Studies/).
+
+    One study from the eQTL Catalogue clusters together all the molecular QTLs (mQTLs) that were found:
+
+        - in the same publication (e.g. Alasoo_2018)
+        - in the same cell type or tissue (e.g. monocytes)
+        - and for the same gene associated with the measured molecular trait (e.g. ENSG00000141510)
+
+    """
 
     raw_studies_metadata_schema: StructType = StructType(
         [
