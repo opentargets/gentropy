@@ -79,11 +79,12 @@ class EqtlCatalogueFinemapping:
 
         Examples:
             >>> spark.createDataFrame([("QTD000046_L1",)], ["cs_id"]).select(EqtlCatalogueFinemapping._extract_credible_set_index(f.col("cs_id"))).show()
-            +-------------------+
-            |credibleSetIndex   |
-            +-------------------+
-            | 1                 |
-            +-------------------+
+            +----------------+
+            |credibleSetIndex|
+            +----------------+
+            |               1|
+            +----------------+
+            <BLANKLINE>
         """
         return f.split(cs_id, "_L")[1].cast(IntegerType()).alias("credibleSetIndex")
 
@@ -106,6 +107,7 @@ class EqtlCatalogueFinemapping:
             +----------+
             | QTD000046|
             +----------+
+            <BLANKLINE>
         """
         return f.regexp_extract(file_path, r"QTD\d{6}", 0).alias("dataset_id")
 
