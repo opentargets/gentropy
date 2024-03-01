@@ -78,7 +78,7 @@ class EqtlCatalogueFinemapping:
             Column: The credible set index.
 
         Examples:
-            >>> extract_credible_set_index(f.lit("QTD000046_L1")).show()
+            >>> EqtlCatalogueFinemapping.extract_credible_set_index(f.lit("QTD000046_L1")).show()
             +-------------------+
             |credibleSetIndex   |
             +-------------------+
@@ -100,7 +100,7 @@ class EqtlCatalogueFinemapping:
             Column: The dataset_id.
 
         Examples:
-            >>> extract_dataset_id_from_file_path(f.lit("QTD000046.credible_sets.tsv")).show()
+            >>> EqtlCatalogueFinemapping.extract_dataset_id_from_file_path(f.lit("QTD000046.credible_sets.tsv")).show()
             +----------+
             |dataset_id|
             +----------+
