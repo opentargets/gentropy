@@ -9,6 +9,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import scipy as sc
 from pyspark.sql.functions import log10
+from scipy.stats import chi2
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
@@ -249,7 +250,7 @@ class SummaryStatistics(Dataset):
 
     def sumstat_n_eff_check(
         self: SummaryStatistics,
-        n_total: int,
+        n_total: int = 100_000,
         threshold_n_total: int = 100,
         threshold_se_n: float = 5,
         limit: int = 10_000_000,
@@ -310,3 +311,33 @@ class SummaryStatistics(Dataset):
 
         se_n = QC.toPandas().iloc[0, 1]
         return (se_n <= threshold_se_n and n_total >= threshold_n_total, se_n)
+
+    def gc_lambda_check(
+        self: SummaryStatistics,
+        lambda_threshold: float = 2.5,
+        limit: int = 10_000_000,
+    ) -> tuple[bool, float]:
+        """The genomic control lambda check for QC of GWAS summary statstics.
+
+        Args:
+            lambda_threshold (float): The threshold for the genomic control lambda.
+            limit (int): The limit for the number of variants to be used for the estimation.
+
+        Returns:
+            tuple[bool, float]: Boolean whether this study passed the QC step or not and the genomic control lambda.
+        """
+        GWAS = self._df
+        n_variants = GWAS.count()
+        n_to_use = min(n_variants, limit)
+
+        QC = (
+            GWAS.limit(n_to_use)
+            .select("beta", "standardError")
+            .withColumn("Z2", (f.col("beta") / f.col("standardError")) ** 2)
+            .select("Z2")
+        )
+
+        gc_median = QC.approxQuantile("Z2", [0.5], 0)[0]
+        gc_lambda = gc_median / chi2.ppf(0.5, df=1)
+
+        return (gc_lambda <= lambda_threshold, gc_lambda)
