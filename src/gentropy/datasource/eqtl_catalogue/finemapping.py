@@ -181,7 +181,7 @@ class EqtlCatalogueFinemapping:
                     "_",
                     f.col("study_label"),
                     f.col("sample_group"),
-                    f.col("molecular_trait_id"),
+                    f.col("gene_id"),
                 ).alias("studyId"),
                 f.col("tissue_id").alias("c"),
                 EqtlCatalogueStudyIndex._identify_study_type(
