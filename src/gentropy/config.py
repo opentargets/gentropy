@@ -113,11 +113,7 @@ class EqtlCatalogueConfig(StepConfig):
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
-    mqtl_quantification_methods: list[str] = field(
-        default_factory=lambda: [
-            "ge",
-        ]
-    )
+    mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
