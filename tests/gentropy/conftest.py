@@ -24,6 +24,8 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.v2g import V2G
 from gentropy.dataset.variant_annotation import VariantAnnotation
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
+from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame, SparkSession
@@ -475,6 +477,7 @@ def sample_eqtl_catalogue_finemapping_credible_sets(spark: SparkSession) -> Data
     return spark.read.option("delimiter", "\t").csv(
         "tests/gentropy/data_samples/QTD000584.credible_sets.tsv",
         header=True,
+        schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
     )
 
 
@@ -484,6 +487,7 @@ def sample_eqtl_catalogue_finemapping_lbf(spark: SparkSession) -> DataFrame:
     return spark.read.option("delimiter", "\t").csv(
         "tests/gentropy/data_samples/QTD000584.lbf_variable.txt",
         header=True,
+        schema=EqtlCatalogueFinemapping.raw_lbf_schema,
     )
 
 
@@ -493,6 +497,7 @@ def sample_eqtl_catalogue_studies_metadata(spark: SparkSession) -> DataFrame:
     return spark.read.option("delimiter", "\t").csv(
         "tests/gentropy/data_samples/sample_eqtl_catalogue_studies.tsv",
         header=True,
+        schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
     )
 
 

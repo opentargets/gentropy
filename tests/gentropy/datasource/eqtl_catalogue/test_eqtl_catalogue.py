@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pytest
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
+from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from pyspark.sql import DataFrame
-
-if TYPE_CHECKING:
-    from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
-    from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 
 @pytest.fixture
@@ -22,9 +18,9 @@ def processed_finemapping_df(
 ) -> DataFrame:
     """Return a DataFrame after joining credible sets and LBFs."""
     return EqtlCatalogueFinemapping.parse_susie_results(
-        sample_eqtl_catalogue_studies_metadata,
         sample_eqtl_catalogue_finemapping_credible_sets,
         sample_eqtl_catalogue_finemapping_lbf,
+        sample_eqtl_catalogue_studies_metadata,
     )
 
 
@@ -36,9 +32,9 @@ def test_parse_susie_results(
     """Test parsing SuSIE results."""
     assert isinstance(
         EqtlCatalogueFinemapping.parse_susie_results(
-            sample_eqtl_catalogue_studies_metadata,
             sample_eqtl_catalogue_finemapping_credible_sets,
             sample_eqtl_catalogue_finemapping_lbf,
+            sample_eqtl_catalogue_studies_metadata,
         ),
         DataFrame,
     )
