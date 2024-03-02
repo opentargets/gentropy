@@ -272,45 +272,51 @@ class SummaryStatistics(Dataset):
         """
         GWAS = self._df
 
+        GWAS = GWAS.dropna(subset=["effectAlleleFrequencyFromSource"])
         n_variants = GWAS.count()
         n_to_use = min(n_variants, limit)
 
-        QC = (
-            GWAS.limit(n_to_use)
-            .withColumn(
-                "var_af",
-                2
-                * (
-                    f.col("effectAlleleFrequencyFromSource")
-                    * (1 - f.col("effectAlleleFrequencyFromSource"))
-                ),
+        if n_to_use >= 3:
+            QC = (
+                GWAS.limit(n_to_use)
+                .withColumn(
+                    "var_af",
+                    2
+                    * (
+                        f.col("effectAlleleFrequencyFromSource")
+                        * (1 - f.col("effectAlleleFrequencyFromSource"))
+                    ),
+                )
+                .withColumn(
+                    "pheno_var",
+                    ((f.col("standardError") ** 2) * n_total * f.col("var_af"))
+                    + ((f.col("beta") ** 2) * f.col("var_af")),
+                )
             )
-            .withColumn(
-                "pheno_var",
-                ((f.col("standardError") ** 2) * n_total * f.col("var_af"))
-                + ((f.col("beta") ** 2) * f.col("var_af")),
-            )
-        )
 
-        pheno_median = QC.approxQuantile("pheno_var", [0.5], 0)[0]
+            pheno_median = QC.approxQuantile("pheno_var", [0.5], 0)[0]
 
-        QC = (
-            QC.withColumn(
-                "N_hat",
-                (
-                    (pheno_median - ((f.col("beta") ** 2) * f.col("var_af")))
-                    / ((f.col("standardError") ** 2) * f.col("var_af"))
-                ),
+            QC = (
+                QC.withColumn(
+                    "N_hat",
+                    (
+                        (pheno_median - ((f.col("beta") ** 2) * f.col("var_af")))
+                        / ((f.col("standardError") ** 2) * f.col("var_af"))
+                    ),
+                )
+                .agg(
+                    f.percentile_approx(f.col("N_hat") / n_total, 0.5).alias(
+                        "median_N"
+                    ),
+                    f.stddev(f.col("N_hat") / n_total).alias("se_N"),
+                )
+                .select("median_N", "se_N")
             )
-            .agg(
-                f.percentile_approx(f.col("N_hat") / n_total, 0.5).alias("median_N"),
-                f.stddev(f.col("N_hat") / n_total).alias("se_N"),
-            )
-            .select("median_N", "se_N")
-        )
 
-        se_n = QC.toPandas().iloc[0, 1]
-        return (se_n <= threshold_se_n and n_total >= threshold_n_total, se_n)
+            se_n = QC.toPandas().iloc[0, 1]
+            return (se_n <= threshold_se_n and n_total >= threshold_n_total, se_n)
+        else:
+            return (True, 0)
 
     def gc_lambda_check(
         self: SummaryStatistics,
@@ -341,3 +347,45 @@ class SummaryStatistics(Dataset):
         gc_lambda = gc_median / chi2.ppf(0.5, df=1)
 
         return (gc_lambda <= lambda_threshold, gc_lambda)
+
+    def sanity_filter(self: SummaryStatistics) -> SummaryStatistics:
+        """The function filters the summary statistics by sanity filters.
+
+        The function filters the summary statistics by the following filters:
+            - The p-value should not be eqaul 1.
+            - The beta and se should not be equal 0.
+            - The p-value, beta and se should not be NaN.
+
+        Returns:
+            SummaryStatistics: The filtered summary statistics.
+        """
+        GWAS = self._df
+        GWAS = GWAS.dropna(
+            subset=["beta", "standardError", "pValueMantissa", "pValueExponent"]
+        )
+
+        GWAS = GWAS.filter((f.col("beta") != 0) & (f.col("standardError") != 0))
+        GWAS = GWAS.filter(f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1)
+        self._df = GWAS
+        return self
+
+    def number_of_snps(
+        self: SummaryStatistics, pval_threhod: float = 5e-8
+    ) -> tuple[int, int]:
+        """The function caluates number of SNPs and number of SNPs with p-value less than 5e-8.
+
+        Args:
+            pval_threhod (float): The threshold for the p-value.
+
+        Returns:
+            tuple[int, int]: Number of SNPs and number of SNPs with p-value less than 5e-8.
+        """
+        GWAS = self._df
+
+        n_variants = GWAS.count()
+        n_variants_sig = GWAS.filter(
+            (log10(f.col("pValueMantissa")) + f.col("pValueExponent"))
+            <= np.log10(pval_threhod)
+        ).count()
+
+        return (n_variants, n_variants_sig)
