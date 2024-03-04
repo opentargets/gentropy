@@ -54,7 +54,7 @@ with DAG(
 
     delete_decompressed_job = GCSDeleteBucketOperator(
         task_id="delete_decompressed_files",
-        bucket_name=TEMP_DECOMPRESS_LOCATION,
+        bucket_name=TEMP_DECOMPRESS_LOCATION.split("/")[-1],
         force=True,
         user_project=PROJECT_ID,
     )
