@@ -239,13 +239,14 @@ class SummaryStatistics(Dataset):
             )
         )
 
-        lin_results = QC.toPandas().iloc[0, 0]
-        beta = lin_results[0]
-        interc = lin_results[2]
+        lin_results_v = QC.toPandas().iloc[0, 0]
+        beta_c = lin_results_v[0]
+        interc_c = lin_results_v[2]
         return (
-            np.abs(beta - 1) <= threshold_b and np.abs(interc) <= threshold_intercept,
-            beta,
-            interc,
+            np.abs(beta_c - 1) <= threshold_b
+            and np.abs(interc_c) <= threshold_intercept,
+            beta_c,
+            interc_c,
         )
 
     def sumstat_n_eff_check(

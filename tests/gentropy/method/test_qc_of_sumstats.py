@@ -15,6 +15,13 @@ def test_qc_functions(
 
     assert gwas.number_of_snps() == (1663, 29)
     assert gwas.gc_lambda_check(lambda_threshold=2) == (True, 1.9159734429793385)
-    assert gwas.sumstat_qc_pz_check()[1] == 1.0
     assert gwas.sumstat_qc_beta_check() == (True, 0.001310962803607386)
     assert gwas.sumstat_n_eff_check(n_total=100000) == (True, 0)
+
+
+def test_pz_check(
+    sample_summary_statistics: SummaryStatistics,
+) -> None:
+    """Test pz check."""
+    gwas = sample_summary_statistics.sanity_filter()
+    assert gwas.sumstat_qc_pz_check()[1] == 1.0
