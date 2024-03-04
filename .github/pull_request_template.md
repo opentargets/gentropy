@@ -1,6 +1,6 @@
 ## ✨ Context
 
-<!--- What's the context for the changes? If the changes are related to a specific issue, please [link](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) to it:_
+<!--- What's the context for the changes? If the changes are related to a specific issue in our [issue tracker,](https://github.com/opentargets/issues/issues) please [link](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) to it:_
 
 - This PR fixes or closes issue: fixes #
 - This PR is related to issue:
