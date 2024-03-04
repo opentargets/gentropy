@@ -178,7 +178,10 @@ class EqtlCatalogueFinemapping:
                 f.array(f.col("molecular_trait_id")).alias("traitFromSourceMappedIds"),
                 f.col("dataset_id"),
                 f.concat_ws(
-                    "_", f.col("study_label"), f.col("sample_group"), f.col("gene_id")
+                    "_",
+                    f.col("study_label"),
+                    f.col("sample_group"),
+                    f.col("molecular_trait_id"),
                 ).alias("studyId"),
                 f.col("tissue_id").alias("c"),
                 EqtlCatalogueStudyIndex._identify_study_type(
@@ -223,7 +226,7 @@ class EqtlCatalogueFinemapping:
                     f.row_number().over(
                         lead_w.orderBy(
                             *[
-                                f.col("pValueExponent").asc(),
+                                f.col("pValueExponent").asc(),  # TODO change to PIP
                                 f.col("pValueMantissa").asc(),
                             ]
                         )
