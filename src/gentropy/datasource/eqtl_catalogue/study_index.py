@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -40,24 +41,45 @@ class EqtlCatalogueStudyIndex:
             StructField("quant_method", StringType(), True),
         ]
     )
-    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/data_tables/dataset_metadata.tsv"
+    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/19929ff6a99bf402194292a14f96f9615b35f65f/data_tables/dataset_metadata.tsv"
 
     @classmethod
     def _identify_study_type(
-        cls: type[EqtlCatalogueStudyIndex], study_label_col: Column
+        cls: type[EqtlCatalogueStudyIndex], quantification_method_col: Column
     ) -> Column:
-        """Identify the study type based on the study label.
+        """Identify the study type based on the method to quantify the trait.
 
         Args:
-            study_label_col (Column): column with the study label that identifies the supporting publication.
+            quantification_method_col (Column): column with the label of the method to quantify the trait. Available methods are [here](https://www.ebi.ac.uk/eqtl/Methods/)
 
         Returns:
             Column: The study type.
+
+        Examples:
+            >>> df = spark.createDataFrame([("ge",), ("exon",), ("tx",)], ["quant_method"])
+            >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"))).show()
+            +------------+----------+
+            |quant_method|study_type|
+            +------------+----------+
+            |          ge|      eqtl|
+            |        exon|      eqtl|
+            |          tx|      eqtl|
+            +------------+----------+
+            <BLANKLINE>
         """
-        return f.when(
-            study_label_col == "Sun_2018",
-            f.lit("pqtl"),
-        ).otherwise(f.lit("eqtl"))
+        method_to_study_type_mapping = {
+            "ge": "eqtl",
+            "exon": "eqtl",
+            "tx": "eqtl",
+            "microarray": "eqtl",
+            "leafcutter": "sqtl",
+            "aptamer": "pqtl",
+            "txrev": "tuqtl",
+        }
+        map_expr = f.create_map(
+            *[f.lit(x) for x in chain(*method_to_study_type_mapping.items())]
+        )
+        return map_expr.getItem(quantification_method_col)
 
     @classmethod
     def get_studies_of_interest(
