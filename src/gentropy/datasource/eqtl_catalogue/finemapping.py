@@ -83,14 +83,15 @@ class EqtlCatalogueFinemapping:
             Column: The credible set index.
 
         Examples:
-            >>> EqtlCatalogueFinemapping.extract_credible_set_index(f.lit("QTD000046_L1")).show()
-            +-------------------+
-            |credibleSetIndex   |
-            +-------------------+
-            | 1                 |
-            +-------------------+
+            >>> spark.createDataFrame([("QTD000046_L1",)], ["cs_id"]).select(EqtlCatalogueFinemapping._extract_credible_set_index(f.col("cs_id"))).show()
+            +----------------+
+            |credibleSetIndex|
+            +----------------+
+            |               1|
+            +----------------+
+            <BLANKLINE>
         """
-        return f.split(cs_id, "_L")[1].cast(IntegerType())
+        return f.split(cs_id, "_L")[1].cast(IntegerType()).alias("credibleSetIndex")
 
     @classmethod
     def _extract_dataset_id_from_file_path(
@@ -105,12 +106,13 @@ class EqtlCatalogueFinemapping:
             Column: The dataset_id.
 
         Examples:
-            >>> EqtlCatalogueFinemapping.extract_dataset_id_from_file_path(f.lit("QTD000046.credible_sets.tsv")).show()
+            >>> spark.createDataFrame([("QTD000046.credible_sets.tsv",)], ["filename"]).select(EqtlCatalogueFinemapping._extract_dataset_id_from_file_path(f.col("filename"))).show()
             +----------+
             |dataset_id|
             +----------+
             | QTD000046|
             +----------+
+            <BLANKLINE>
         """
         return f.regexp_extract(file_path, r"QTD\d{6}", 0).alias("dataset_id")
 
