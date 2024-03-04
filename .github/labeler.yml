@@ -1,25 +1,25 @@
 version: 1
 labels:
-  - label: "XS"
+  - label: "size-XS"
     size:
       exclude-files: ["poetry.lock"]
       below: 10
-  - label: "S"
+  - label: "size-S"
     size:
       exclude-files: ["poetry.lock"]
       above: 9
       below: 100
-  - label: "M"
+  - label: "size-M"
     size:
       exclude-files: ["poetry.lock"]
       above: 100
       below: 500
-  - label: "L"
+  - label: "size-L"
     size:
       exclude-files: ["poetry.lock"]
       above: 499
       below: 1000
-  - label: "XL"
+  - label: "size-XL"
     size:
       exclude-files: ["poetry.lock"]
       above: 999
