@@ -18,7 +18,7 @@ add diagrams or images if necessary. It'll help the reviewer_ -->
 
 ## 🚦 Before submitting
 
-- [ ] covers one single feature (one change at a time)
+- [ ] Do these changes cover one single feature (one change at a time)?
 - [ ] documentation added/updated
 - [ ] there is no commented out code in this PR
 - [ ] follows [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) in PR title and commits.
