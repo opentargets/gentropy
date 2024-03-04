@@ -22,7 +22,7 @@
     {
       "name": "traitFromSource",
       "type": "string",
-      "nullable": false,
+      "nullable": true,
       "metadata": {}
     },
     {
@@ -37,6 +37,12 @@
     },
     {
       "name": "geneId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "tissueFromSourceId",
       "type": "string",
       "nullable": true,
       "metadata": {}
