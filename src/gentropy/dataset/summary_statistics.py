@@ -132,9 +132,9 @@ class SummaryStatistics(Dataset):
         Returns:
             tuple[bool, float]: Boolean whether this study passed the QC step or not and the mean beta.
         """
-        GWAS = self._df
-        QC = (
-            GWAS.agg(
+        gwas_df = self._df
+        qc_c = (
+            gwas_df.agg(
                 f.mean("beta").alias("mean_beta"),
             )
             .select(
@@ -143,7 +143,7 @@ class SummaryStatistics(Dataset):
             .collect()[0]
         )
 
-        return ((np.abs(QC) <= threshold)[0], QC[0])
+        return ((np.abs(qc_c) <= threshold)[0], qc_c[0])
 
     @staticmethod
     def _calculate_logpval(z2: float) -> float:
@@ -201,7 +201,7 @@ class SummaryStatistics(Dataset):
         Returns:
             tuple[bool, float, float]: Boolean whether this study passed the QC step or not, beta coefficient and intercept.
         """
-        GWAS = self._df
+        gwas_df = self._df
 
         linear_reg_Schema = t.StructType(
             [
@@ -217,11 +217,11 @@ class SummaryStatistics(Dataset):
         )
         lin_udf = f.udf(SummaryStatistics._calculate_lin_reg, linear_reg_Schema)
 
-        n_variants = GWAS.count()
+        n_variants = gwas_df.count()
         n_to_use = min(n_variants, limit)
 
-        QC = (
-            GWAS.limit(n_to_use)
+        qc_c = (
+            gwas_df.limit(n_to_use)
             .withColumn("zscore", f.col("beta") / f.col("standardError"))
             .withColumn("new_logpval", calculate_logpval_udf(f.col("zscore") ** 2))
             .withColumn("log_mantissa", log10("pValueMantissa"))
@@ -239,7 +239,7 @@ class SummaryStatistics(Dataset):
             )
         )
 
-        lin_results_v = QC.toPandas().iloc[0, 0]
+        lin_results_v = qc_c.first()["result_lin_reg"]
         beta_c = lin_results_v[0]
         interc_c = lin_results_v[2]
         return (
@@ -271,15 +271,15 @@ class SummaryStatistics(Dataset):
         Returns:
             tuple[bool, float]: Boolean whether this study passed the QC step or not and the standard error of the n_eff ratio.
         """
-        GWAS = self._df
+        gwas_df = self._df
 
-        GWAS = GWAS.dropna(subset=["effectAlleleFrequencyFromSource"])
-        n_variants = GWAS.count()
+        gwas_df = gwas_df.dropna(subset=["effectAlleleFrequencyFromSource"])
+        n_variants = gwas_df.count()
         n_to_use = min(n_variants, limit)
 
         if n_to_use >= 3:
-            QC = (
-                GWAS.limit(n_to_use)
+            qc_c = (
+                gwas_df.limit(n_to_use)
                 .withColumn(
                     "var_af",
                     2
@@ -295,10 +295,10 @@ class SummaryStatistics(Dataset):
                 )
             )
 
-            pheno_median = QC.approxQuantile("pheno_var", [0.5], 0)[0]
+            pheno_median = qc_c.approxQuantile("pheno_var", [0.5], 0)[0]
 
-            QC = (
-                QC.withColumn(
+            qc_c = (
+                qc_c.withColumn(
                     "N_hat",
                     (
                         (pheno_median - ((f.col("beta") ** 2) * f.col("var_af")))
@@ -314,7 +314,7 @@ class SummaryStatistics(Dataset):
                 .select("median_N", "se_N")
             )
 
-            se_n = QC.toPandas().iloc[0, 1]
+            se_n = qc_c.toPandas().iloc[0, 1]
             return (se_n <= threshold_se_n and n_total >= threshold_n_total, se_n)
         else:
             return (True, 0)
@@ -333,18 +333,18 @@ class SummaryStatistics(Dataset):
         Returns:
             tuple[bool, float]: Boolean whether this study passed the QC step or not and the genomic control lambda.
         """
-        GWAS = self._df
-        n_variants = GWAS.count()
+        gwas_df = self._df
+        n_variants = gwas_df.count()
         n_to_use = min(n_variants, limit)
 
-        QC = (
-            GWAS.limit(n_to_use)
+        qc_c = (
+            gwas_df.limit(n_to_use)
             .select("beta", "standardError")
             .withColumn("Z2", (f.col("beta") / f.col("standardError")) ** 2)
             .select("Z2")
         )
 
-        gc_median = QC.approxQuantile("Z2", [0.5], 0)[0]
+        gc_median = qc_c.approxQuantile("Z2", [0.5], 0)[0]
         gc_lambda = gc_median / chi2.ppf(0.5, df=1)
 
         return (gc_lambda <= lambda_threshold, gc_lambda)
@@ -360,14 +360,16 @@ class SummaryStatistics(Dataset):
         Returns:
             SummaryStatistics: The filtered summary statistics.
         """
-        GWAS = self._df
-        GWAS = GWAS.dropna(
+        gwas_df = self._df
+        gwas_df = gwas_df.dropna(
             subset=["beta", "standardError", "pValueMantissa", "pValueExponent"]
         )
 
-        GWAS = GWAS.filter((f.col("beta") != 0) & (f.col("standardError") != 0))
-        GWAS = GWAS.filter(f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1)
-        self._df = GWAS
+        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") != 0))
+        gwas_df = gwas_df.filter(
+            f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1
+        )
+        self._df = gwas_df
         return self
 
     def number_of_snps(
@@ -381,10 +383,10 @@ class SummaryStatistics(Dataset):
         Returns:
             tuple[int, int]: Number of SNPs and number of SNPs with p-value less than 5e-8.
         """
-        GWAS = self._df
+        gwas_df = self._df
 
-        n_variants = GWAS.count()
-        n_variants_sig = GWAS.filter(
+        n_variants = gwas_df.count()
+        n_variants_sig = gwas_df.filter(
             (log10(f.col("pValueMantissa")) + f.col("pValueExponent"))
             <= np.log10(pval_threhod)
         ).count()
