@@ -5,9 +5,11 @@ from __future__ import annotations
 from itertools import chain
 from typing import TYPE_CHECKING
 
+import pandas as pd
 import pyspark.sql.functions as f
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
+from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 
 if TYPE_CHECKING:
@@ -122,3 +124,24 @@ class EqtlCatalogueStudyIndex:
             _df=processed_finemapping_df.select(study_index_cols).distinct(),
             _schema=StudyIndex.get_schema(),
         )
+
+    @classmethod
+    def read_studies_from_source(
+        cls: type[EqtlCatalogueStudyIndex],
+        session: Session,
+        mqtl_quantification_methods_blacklist: list[str],
+    ) -> DataFrame:
+        """Read raw studies metadata from eQTL Catalogue.
+
+        Args:
+            session (Session): Spark session.
+            mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don't want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
+
+        Returns:
+            DataFrame: raw studies metadata.
+        """
+        pd.DataFrame.iteritems = pd.DataFrame.items
+        return session.spark.createDataFrame(
+            pd.read_csv(cls.raw_studies_metadata_path, sep="\t"),
+            schema=cls.raw_studies_metadata_schema,
+        ).filter(~(f.col("quant_method").isin(mqtl_quantification_methods_blacklist)))

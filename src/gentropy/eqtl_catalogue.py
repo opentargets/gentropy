@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pandas as pd
-import pyspark.sql.functions as f
-
 from gentropy.common.session import Session
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
@@ -34,35 +31,27 @@ class EqtlCatalogueStep:
             eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.
         """
         # Extract
-        pd.DataFrame.iteritems = pd.DataFrame.items
-        studies_metadata = session.spark.createDataFrame(
-            pd.read_csv(EqtlCatalogueStudyIndex.raw_studies_metadata_path, sep="\t"),
-            schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
-        ).filter(
-            ~(f.col("quant_method").isin(list(mqtl_quantification_methods_blacklist)))
+        studies_metadata = EqtlCatalogueStudyIndex.read_studies_from_source(
+            session, list(mqtl_quantification_methods_blacklist)
         )
 
         # Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.
         studies_to_ingest = EqtlCatalogueStudyIndex.get_studies_of_interest(
             studies_metadata
         )
-        credible_sets_df = session.spark.read.csv(
-            [
+        credible_sets_df = EqtlCatalogueFinemapping.read_credible_set_from_source(
+            session,
+            credible_set_path=[
                 f"{eqtl_catalogue_paths_imported}/{qtd_id}.credible_sets.tsv"
                 for qtd_id in studies_to_ingest
             ],
-            sep="\t",
-            header=True,
-            schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
         )
-        lbf_df = session.spark.read.csv(
-            [
+        lbf_df = EqtlCatalogueFinemapping.read_lbf_from_source(
+            session,
+            lbf_path=[
                 f"{eqtl_catalogue_paths_imported}/{qtd_id}.lbf_variable.txt"
                 for qtd_id in studies_to_ingest
             ],
-            sep="\t",
-            header=True,
-            schema=EqtlCatalogueFinemapping.raw_lbf_schema,
         )
 
         # Transform

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 from pyspark.sql import Column, DataFrame, Window
@@ -13,9 +14,13 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.common.session import Session
 from gentropy.common.utils import parse_pvalue
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
 
 
 @dataclass
@@ -256,3 +261,47 @@ class EqtlCatalogueFinemapping:
             ),
             _schema=StudyLocus.get_schema(),
         ).annotate_credible_sets()
+
+    @classmethod
+    def read_credible_set_from_source(
+        cls: type[EqtlCatalogueFinemapping],
+        session: Session,
+        credible_set_path: str | list[str],
+    ) -> DataFrame:
+        """Load raw credible sets from eQTL Catalogue.
+
+        Args:
+            session (Session): Spark session.
+            credible_set_path (str | list[str]): Path to raw table(s) containing finemapping results for any variant belonging to a credible set.
+
+        Returns:
+            DataFrame: Credible sets DataFrame.
+        """
+        return session.spark.read.csv(
+            credible_set_path,
+            sep="\t",
+            header=True,
+            schema=cls.raw_credible_set_schema,
+        )
+
+    @classmethod
+    def read_lbf_from_source(
+        cls: type[EqtlCatalogueFinemapping],
+        session: Session,
+        lbf_path: str | list[str],
+    ) -> DataFrame:
+        """Load raw log Bayes Factors from eQTL Catalogue.
+
+        Args:
+            session (Session): Spark session.
+            lbf_path (str | list[str]): Path to raw table(s) containing Log Bayes Factors for each variant.
+
+        Returns:
+            DataFrame: Log Bayes Factors DataFrame.
+        """
+        return session.spark.read.csv(
+            lbf_path,
+            sep="\t",
+            header=True,
+            schema=cls.raw_lbf_schema,
+        )
