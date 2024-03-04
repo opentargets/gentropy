@@ -31,13 +31,13 @@ labels:
       - "docs/.*"
   - label: "Dataset"
     files:
-      - "src/dataset/.*"
+      - "src/gentropy/dataset/.*"
   - label: "Method"
     files:
-      - "src/method/.*"
+      - "src/gentropy/method/.*"
   - label: "Datasource"
     files:
-      - "src/datasource/.*"
+      - "src/gentropy/datasource/.*"
   - label: "Feature"
     title: "feat:.*"
   - label: "Bug"
