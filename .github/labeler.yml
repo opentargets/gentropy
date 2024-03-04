@@ -58,5 +58,3 @@ labels:
     title: "build:.*"
   - label: "Revert"
     title: "revert:.*"
-  - label: "Mergeable"
-    mergeable: true
