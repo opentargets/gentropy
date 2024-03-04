@@ -22,7 +22,7 @@ add diagrams or images if necessary. It'll help the reviewer_ -->
 - [ ] Did you read the [contributor guideline](https://opentargets.github.io/gentropy/development/contributing/#contributing-checklist)?
 -  [ ] Did you make sure to update the documentation with your changes?
 - [ ] Did you make sure there is no commented out code in this PR?
-- [ ] follows [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) in PR title and commits.
+- [ ] Did you follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) standards in PR title and commit messages?
 - [ ] is up-to-date with `dev` branch
 - [ ] tests have been added to verify that the new code works
 - [ ] passes local tests (`make test`)
