@@ -26,16 +26,16 @@ labels:
   - label: "airflow"
     files:
       - "src/airflow/.*"
-  - label: "documentation"
+  - label: "Documentation"
     files:
       - "docs/.*"
-  - label: "dataset"
+  - label: "Dataset"
     files:
       - "src/dataset/.*"
-  - label: "method"
+  - label: "Method"
     files:
       - "src/method/.*"
-  - label: "datasource"
+  - label: "Datasource"
     files:
       - "src/datasource/.*"
   - label: "Feature"
