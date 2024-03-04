@@ -26,4 +26,4 @@ add diagrams or images if necessary. It'll help the reviewer_ -->
 - [ ] Did you make sure the branch is up-to-date with the `dev` branch?
 - [ ] Did you write any new necessary tests?
 - [ ] Did you make sure the changes pass local tests (`make test`)?
-- [ ] passes pre-commits (e.g `poetry run pre-commit run --all-files`)
+- [ ] Did you make sure the changes pass pre-commit rules (e.g `poetry run pre-commit run --all-files`)?
