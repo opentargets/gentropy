@@ -25,5 +25,5 @@ add diagrams or images if necessary. It'll help the reviewer_ -->
 - [ ] Did you follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) standards in PR title and commit messages?
 - [ ] Did you make sure the branch is up-to-date with the `dev` branch?
 - [ ] Did you write any new necessary tests?
-- [ ] passes local tests (`make test`)
+- [ ] Did you make sure the changes pass local tests (`make test`)?
 - [ ] passes pre-commits (e.g `poetry run pre-commit run --all-files`)
