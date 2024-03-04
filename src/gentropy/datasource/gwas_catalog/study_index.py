@@ -305,7 +305,7 @@ class StudyIndexGWASCatalogParser:
                 parse_efos(f.col("MAPPED BACKGROUND TRAIT URI")).alias(
                     "backgroundTraitFromSourceMappedIds"
                 ),
-                cls.parse_cohorts(f.col("COHORTS")).alias("cohorts"),
+                cls.parse_cohorts(f.col("COHORT")).alias("cohorts"),
             ),
             _schema=StudyIndexGWASCatalog.get_schema(),
         )
