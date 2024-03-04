@@ -1,10 +1,9 @@
 ## ✨ Context
 
-<!--- What's the context for the changes? If the changes are related to a specific issue in our [issue tracker,](https://github.com/opentargets/issues/issues) please [link](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) to it:_
-
-- This PR fixes or closes issue: fixes #
-- This PR is related to issue:
-
+<!---
+Congratulations! You've made it this far!
+Once merged, your PR is going to appear in the release notes with the title you set, so make sure it's a great title that fully reflects the extent of your contribution.
+What's the context for the changes? If the changes are related to a specific issue, please [link](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) to it:
 -->
 
 ## 🛠 What does this PR implement
