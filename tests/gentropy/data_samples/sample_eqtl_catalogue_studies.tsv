@@ -1,0 +1,2 @@
+study_id	dataset_id	study_label	sample_group	tissue_id	tissue_label	condition_label	sample_size	quant_method
+QTS000035	QTD000584	Sun_2018	plasma	UBERON_0001969	plasma	naive	3301	aptamer
