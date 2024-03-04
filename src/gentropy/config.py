@@ -112,7 +112,12 @@ class EqtlCatalogueConfig(StepConfig):
 
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
-    eqtl_catalogue_summary_stats_out: str = MISSING
+    eqtl_catalogue_credible_sets_out: str = MISSING
+    mqtl_quantification_methods: list[str] = field(
+        default_factory=lambda: [
+            "ge",
+        ]
+    )
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -263,7 +268,7 @@ class VariantAnnotationConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    _target_: str = "gentropytropy.variant_annotation.VariantAnnotationStep"
+    _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
 
 
 @dataclass
