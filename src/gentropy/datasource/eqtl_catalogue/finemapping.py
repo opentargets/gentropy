@@ -223,14 +223,7 @@ class EqtlCatalogueFinemapping:
             _df=(
                 processed_finemapping_df.withColumn(
                     "isLead",
-                    f.row_number().over(
-                        lead_w.orderBy(
-                            *[
-                                f.col("pValueExponent").asc(),  # TODO change to PIP
-                                f.col("pValueMantissa").asc(),
-                            ]
-                        )
-                    )
+                    f.row_number().over(lead_w.orderBy(f.desc("posteriorProbability")))
                     == f.lit(1),
                 )
                 .withColumn(
