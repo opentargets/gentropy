@@ -16,7 +16,7 @@ add diagrams or images if necessary. It'll help the reviewer_ -->
 
 <!--- If there are things that are requested in the task and were not implemented, list them here -->
 
-## 🚦 Checks
+## 🚦 Before submitting
 
 - [ ] covers one single feature (one change at a time)
 - [ ] documentation added/updated
