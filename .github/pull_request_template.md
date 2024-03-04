@@ -20,7 +20,7 @@ add diagrams or images if necessary. It'll help the reviewer_ -->
 
 - [ ] Do these changes cover one single feature (one change at a time)?
 - [ ] Did you read the [contributor guideline](https://opentargets.github.io/gentropy/development/contributing/#contributing-checklist)?
--  [ ] Did you make sure to update the documentation with your changes?
+- [ ] Did you make sure to update the documentation with your changes?
 - [ ] Did you make sure there is no commented out code in this PR?
 - [ ] Did you follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) standards in PR title and commit messages?
 - [ ] Did you make sure the branch is up-to-date with the `dev` branch?
