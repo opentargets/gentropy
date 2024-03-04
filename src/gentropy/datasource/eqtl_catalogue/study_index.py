@@ -26,7 +26,7 @@ class EqtlCatalogueStudyIndex:
 
         - in the same publication (e.g. Alasoo_2018)
         - in the same cell type or tissue (e.g. monocytes)
-        - and for the same gene associated with the measured molecular trait (e.g. ENSG00000141510)
+        - and for the same measured molecular trait (e.g. ENSG00000141510)
 
     """
 

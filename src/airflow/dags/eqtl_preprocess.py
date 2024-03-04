@@ -12,7 +12,7 @@ from airflow.providers.google.cloud.operators.dataflow import (
 from airflow.providers.google.cloud.operators.gcs import GCSDeleteBucketOperator
 
 CLUSTER_NAME = "otg-preprocess-eqtl"
-AUTOSCALING = "do-ld-explosion"
+AUTOSCALING = "eqtl-preprocess"
 PROJECT_ID = "open-targets-genetics-dev"
 
 EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalog_data/ebi_ftp/susie"
