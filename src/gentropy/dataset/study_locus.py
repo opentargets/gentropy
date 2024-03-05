@@ -233,7 +233,8 @@ class StudyLocus(Dataset):
             Column: log10 Bayes factor for the entire credible set.
 
         Examples:
-            >>> spark.createDataFrame([([0.2, 0.1, 0.05, 0.0],)]).toDF("logBF").select(calculate_credible_set_log10bf(f.col("logBF"))).show()
+            >>> from pyspark.sql.functions import round
+            >>> spark.createDataFrame([([0.2, 0.1, 0.05, 0.0],)]).toDF("logBF").select(round(StudyLocus.calculate_credible_set_log10bf(f.col("logBF")), 7)).show()
             +------------------+
             |credibleSetlog10BF|
             +------------------+
