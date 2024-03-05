@@ -3,13 +3,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import pandas as pd
+import pyspark.sql.functions as f
 import scipy.linalg
 import scipy.special
+from pyspark.sql import Window
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import logsumexp
+
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.datasource.gnomad.ld import GnomADLDMatrix
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
+
+    from gentropy.common.session import Session
 
 
 @dataclass
@@ -399,7 +411,7 @@ class SUSIE_inf:
     def cred_inf(
         PIP: np.ndarray,
         n: int = 100_000,
-        coverage: float = 0.9,
+        coverage: float = 0.99,
         purity: float = 0.5,
         LD: np.ndarray | None = None,
         V: np.ndarray | None = None,
@@ -457,3 +469,182 @@ class SUSIE_inf:
                 )
             )
         return cred
+
+    @staticmethod
+    def susie_finemapper(
+        session: Session,
+        locus: DataFrame,
+        window: int = 1_000_000,
+        study_index_path: str = "gs://genetics_etl_python_playground/releases/24.01/study_index/gwas_catalog",
+    ) -> DataFrame:
+        """Susie fine-mapper for a study locus.
+
+        Args:
+            session (Session): Spark session
+            locus (DataFrame): row of studyLocus DataFrame
+            window (int): window size for fine-mapping
+            study_index_path (str): path to the study index, default is ETL output path
+
+        Returns:
+            DataFrame: DataFrame with fine-mapped credible sets
+        """
+        # Extract information from studyLocus
+        _locus = StudyIndex.get_major_population(
+            locus.select(
+                "studyLocusId",
+                "studyId",
+                "variantId",
+                "chromosome",
+                "position",
+                "beta",
+                "standardError",
+            )
+            .join(
+                StudyIndex.from_parquet(
+                    session, study_index_path, recursiveFileLookup=True
+                ).df,
+                "studyId",
+            )
+            .withColumn(
+                "region",
+                f.regexp_replace(
+                    f.concat(
+                        f.col("chromosome"),
+                        f.lit(":"),
+                        f.format_number((f.col("position") - (window / 2)), 0),
+                        f.lit("-"),
+                        f.format_number((f.col("position") + (window / 2)), 0),
+                    ),
+                    ",",
+                    "",
+                ),
+            )
+        )
+
+        _major_population = _locus.select("majorPopulation").collect()[0][
+            "majorPopulation"
+        ]
+
+        _ss = (
+            SummaryStatistics.get_locus_sumstats(session, window, _locus)
+            .withColumn("z", f.col("beta") / f.col("standardError"))
+            .withColumn("ref", f.split(f.col("variantId"), "_").getItem(2))
+            .withColumn("alt", f.split(f.col("variantId"), "_").getItem(3))
+            .select(
+                f.col("chromosome").alias("chr"),
+                f.col("position").alias("pos"),
+                "ref",
+                "alt",
+                "beta",
+                "pValueMantissa",
+                "pValueExponent",
+                "effectAlleleFrequencyFromSource",
+                "standardError",
+                "z",
+            )
+        )
+
+        _index = GnomADLDMatrix.get_locus_index(
+            session, locus, window_size=window, major_population=_major_population
+        )
+
+        _join = (
+            _ss.join(
+                _index.alias("_index"),
+                on=(
+                    (_ss["chr"] == _index["chromosome"])
+                    & (_ss["pos"] == _index["position"])
+                    & (_ss["ref"] == _index["referenceAllele"])
+                    & (_ss["alt"] == _index["alternateAllele"])
+                ),
+            )
+            .drop("ref", "alt", "chr", "pos")
+            .sort("idx")
+        )
+
+        _z = np.array([_row["z"] for _row in _join.select("z").collect()])
+
+        _ld = GnomADLDMatrix.get_locus_matrix(_join, gnomad_ancestry=_major_population)
+
+        _result = SUSIE_inf.susie_inf(z=_z, LD=_ld)
+
+        _cred_sets = SUSIE_inf.cred_inf(_result["PIP"], LD=_ld)
+        _cred_lbfs = _result["lbf"]
+        _pips = [_result["PIP"][[j], i] for i, j in enumerate(_cred_sets)]
+        _lbfs = [_result["lbf_variable"][[j], i] for i, j in enumerate(_cred_sets)]
+        _collect_locus = [[_join.collect()[j] for j in i] for i in _cred_sets]
+
+        df = pd.DataFrame()
+        for i, value in enumerate(_cred_lbfs):
+            if value < 2.0:
+                continue
+            _df = pd.DataFrame(row.asDict() for row in _collect_locus[i])
+            _df["posteriorProbability"] = _pips[i][0]
+            _df["logBF"] = _lbfs[i][0]
+            _df["credibleSetIndex"] = i + 1
+            _df["finemappingMethod"] = "SuSiE-inf"
+            _df["credibleSetlog10BF"] = value
+            _df["variantId"] = (
+                _df["chromosome"]
+                + "_"
+                + _df["position"].astype(str)
+                + "_"
+                + _df["referenceAllele"]
+                + "_"
+                + _df["alternateAllele"]
+            )
+            df = pd.concat([df, _df], ignore_index=True)
+        df.drop(columns=["z", "referenceAllele", "alternateAllele"])
+
+        pd.DataFrame.iteritems = pd.DataFrame.items
+        locus = session.spark.createDataFrame(df)
+        locus = locus.withColumn(
+            "locus",
+            f.struct(
+                locus["variantId"],
+                locus["posteriorProbability"],
+                locus["logBF"],
+                locus["pValueMantissa"],
+                locus["pValueExponent"],
+                locus["beta"],
+                locus["standardError"],
+            ),
+        )
+        window_spec = Window.partitionBy("credibleSetIndex").orderBy(
+            f.desc("posteriorProbability")
+        )
+        locus = locus.withColumn("row_num", f.row_number().over(window_spec))
+        locus = locus.groupBy("credibleSetIndex").agg(
+            f.collect_list("locus").alias("locus")
+        )
+
+        result = session.spark.createDataFrame(df)
+        result = (
+            result.withColumn(
+                "row_num",
+                f.row_number().over(
+                    Window.partitionBy("credibleSetIndex").orderBy(
+                        f.desc("posteriorProbability")
+                    )
+                ),
+            )
+            .filter(f.col("row_num") == 1)
+            .drop("row_num")
+            .join(locus, "credibleSetIndex")
+            .select(
+                "credibleSetIndex",
+                "locus",
+                "variantId",
+                "chromosome",
+                "position",
+                "beta",
+                "pValueMantissa",
+                "pValueExponent",
+                "effectAlleleFrequencyFromSource",
+                "standardError",
+                "finemappingMethod",
+                "credibleSetlog10BF",
+            )
+        )
+
+        return result

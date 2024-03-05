@@ -12,7 +12,7 @@ def test_finngen_summary_stats_from_source(spark: SparkSession) -> None:
     assert isinstance(
         FinnGenSummaryStats.from_source(
             spark=spark,
-            raw_file="tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz",
+            raw_file="tests/gentropy/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz",
         ),
         SummaryStatistics,
     )

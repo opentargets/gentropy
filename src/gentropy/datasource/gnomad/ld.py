@@ -516,7 +516,6 @@ class GnomADLDMatrix:
                 "alternateAllele",
                 "idx",
             )
-            .sort("idx")
         )
 
         return _index_joined
@@ -535,7 +534,8 @@ class GnomADLDMatrix:
         Returns:
             np.ndarray: LD block matrix for the locus
         """
-        idx = [row["idx"] for row in locus_index.select("idx").collect()]
+        _locus = locus_index
+        idx = [row["idx"] for row in _locus.select("idx").collect()]
 
         half_matrix = (
             BlockMatrix.read(
