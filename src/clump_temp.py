@@ -1,4 +1,4 @@
-"""Clumps GWAS significant variants from summary statistics with a distance based method."""
+"""WARNING: Copy of clumping function available in branch."""
 
 from __future__ import annotations
 
