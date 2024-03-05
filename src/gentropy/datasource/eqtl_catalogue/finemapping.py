@@ -140,7 +140,7 @@ class EqtlCatalogueFinemapping:
                 cls._extract_dataset_id_from_file_path(f.input_file_name()),
             )
             .join(
-                f.broadcast(
+                (
                     credible_sets.withColumn(
                         "dataset_id",
                         cls._extract_dataset_id_from_file_path(f.input_file_name()),
@@ -253,16 +253,6 @@ class EqtlCatalogueFinemapping:
                 )
                 .filter(f.col("isLead"))
                 .drop("isLead")
-                # .withColumn(
-                #     "studyLocusId",
-                #     StudyLocus.assign_study_locus_id(
-                #         f.col("studyId"), f.col("variantId")
-                #     ),
-                # )
-                # .withColumn(
-                #     "credibleSetlog10BF",
-                #     StudyLocus.calculate_credible_set_log10bf(f.col("locus.logBF")),
-                # )
                 .select(
                     *study_locus_cols,
                     StudyLocus.assign_study_locus_id(
