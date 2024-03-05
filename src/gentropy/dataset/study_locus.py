@@ -6,12 +6,14 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark.sql.types import FloatType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     calculate_neglog_pvalue,
     order_array_of_structs_by_field,
 )
+from gentropy.common.utils import get_logsum
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.clump import LDclumping
@@ -219,6 +221,28 @@ class StudyLocus(Dataset):
         """
         variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
         return f.xxhash64(study_id_col, variant_id_col).alias("studyLocusId")
+
+    @classmethod
+    def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:
+        """Calculate Bayes factor for the entire credible set. The Bayes factor is calculated as the logsumexp of the logBF values of the variants in the locus.
+
+        Args:
+            logbfs (Column): Array column with the logBF values of the variants in the locus.
+
+        Returns:
+            Column: log10 Bayes factor for the entire credible set.
+
+        Examples:
+            >>> spark.createDataFrame([([0.2, 0.1, 0.05, 0.0],)]).toDF("logBF").select(calculate_credible_set_log10bf(f.col("logBF"))).show()
+            +------------------+
+            |credibleSetlog10BF|
+            +------------------+
+            |         1.4765565|
+            +------------------+
+            <BLANKLINE>
+        """
+        logsumexp_udf = f.udf(lambda x: get_logsum(x), FloatType())
+        return logsumexp_udf(logbfs).cast("double").alias("credibleSetlog10BF")
 
     @classmethod
     def get_schema(cls: type[StudyLocus]) -> StructType:

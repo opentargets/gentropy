@@ -181,8 +181,8 @@ class EqtlCatalogueFinemapping:
                 f.col("logBF"),
                 f.lit("SuSie").alias("finemappingMethod"),
                 # Study metadata
+                f.col("molecular_trait_id").alias("traitFromSource"),
                 f.col("gene_id").alias("geneId"),
-                f.array(f.col("molecular_trait_id")).alias("traitFromSourceMappedIds"),
                 f.col("dataset_id"),
                 f.concat_ws(
                     "_",
@@ -190,9 +190,9 @@ class EqtlCatalogueFinemapping:
                     f.col("sample_group"),
                     f.col("molecular_trait_id"),
                 ).alias("studyId"),
-                f.col("tissue_id").alias("c"),
+                f.col("tissue_id").alias("tissueFromSourceId"),
                 EqtlCatalogueStudyIndex._identify_study_type(
-                    f.col("study_label")
+                    f.col("quant_method")
                 ).alias("studyType"),
                 f.col("study_label").alias("projectId"),
                 f.concat_ws(
@@ -225,7 +225,7 @@ class EqtlCatalogueFinemapping:
             field.name
             for field in StudyLocus.get_schema().fields
             if field.name in processed_finemapping_df.columns
-        ] + ["studyLocusId", "locus"]
+        ] + ["locus"]
         return StudyLocus(
             _df=(
                 processed_finemapping_df.withColumn(
@@ -253,13 +253,25 @@ class EqtlCatalogueFinemapping:
                 )
                 .filter(f.col("isLead"))
                 .drop("isLead")
-                .withColumn(
-                    "studyLocusId",
+                # .withColumn(
+                #     "studyLocusId",
+                #     StudyLocus.assign_study_locus_id(
+                #         f.col("studyId"), f.col("variantId")
+                #     ),
+                # )
+                # .withColumn(
+                #     "credibleSetlog10BF",
+                #     StudyLocus.calculate_credible_set_log10bf(f.col("locus.logBF")),
+                # )
+                .select(
+                    *study_locus_cols,
                     StudyLocus.assign_study_locus_id(
                         f.col("studyId"), f.col("variantId")
                     ),
+                    StudyLocus.calculate_credible_set_log10bf(
+                        f.col("locus.logBF")
+                    ).alias("credibleSetlog10BF"),
                 )
-                .select(study_locus_cols)
             ),
             _schema=StudyLocus.get_schema(),
         ).annotate_credible_sets()
