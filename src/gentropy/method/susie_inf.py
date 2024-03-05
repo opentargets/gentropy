@@ -520,11 +520,11 @@ class SUSIE_inf:
                 ),
             )
         )
-
+        # Extract major population
         _major_population = _locus.select("majorPopulation").collect()[0][
             "majorPopulation"
         ]
-
+        # Extract summary statistics
         _ss = (
             SummaryStatistics.get_locus_sumstats(session, window, _locus)
             .withColumn("z", f.col("beta") / f.col("standardError"))
@@ -543,7 +543,7 @@ class SUSIE_inf:
                 "z",
             )
         )
-
+        # Extract LD index
         _index = GnomADLDMatrix.get_locus_index(
             session, locus, window_size=window, major_population=_major_population
         )
@@ -561,19 +561,19 @@ class SUSIE_inf:
             .drop("ref", "alt", "chr", "pos")
             .sort("idx")
         )
-
+        # Extracting z-scores and LD matrix, then running SuSiE-inf
         _z = np.array([_row["z"] for _row in _join.select("z").collect()])
-
         _ld = GnomADLDMatrix.get_locus_matrix(_join, gnomad_ancestry=_major_population)
+        _susie = SUSIE_inf.susie_inf(z=_z, LD=_ld)
 
-        _result = SUSIE_inf.susie_inf(z=_z, LD=_ld)
-
-        _cred_sets = SUSIE_inf.cred_inf(_result["PIP"], LD=_ld)
-        _cred_lbfs = _result["lbf"]
-        _pips = [_result["PIP"][[j], i] for i, j in enumerate(_cred_sets)]
-        _lbfs = [_result["lbf_variable"][[j], i] for i, j in enumerate(_cred_sets)]
+        # Extracting credible sets
+        _cred_sets = SUSIE_inf.cred_inf(_susie["PIP"], LD=_ld)
+        _cred_lbfs = _susie["lbf"]
+        _pips = [_susie["PIP"][[j], i] for i, j in enumerate(_cred_sets)]
+        _lbfs = [_susie["lbf_variable"][[j], i] for i, j in enumerate(_cred_sets)]
         _collect_locus = [[_join.collect()[j] for j in i] for i in _cred_sets]
 
+        # Shaping results into finemapping catalogue format
         df = pd.DataFrame()
         for i, value in enumerate(_cred_lbfs):
             if value < 2.0:
