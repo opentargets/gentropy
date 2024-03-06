@@ -39,7 +39,6 @@ thurman: ${datasets.static_assets}/thurman2012/genomewideCorrs_above0.7_promoter
 target_index: ${datasets.release_folder}/targets # OTP 23.12 data
 
 gene_interactions: ${datasets.release_folder}/interaction # OTP 23.12 data
-eqtl_catalogue_paths_imported: ${datasets.inputs}/preprocess/eqtl_catalogue/tabix_ftp_paths_imported.tsv
 finngen_finemapping_results_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/full
 finngen_finemapping_summaries_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv
 
