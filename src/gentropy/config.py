@@ -112,7 +112,12 @@ class EqtlCatalogueConfig(StepConfig):
 
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
-    eqtl_catalogue_summary_stats_out: str = MISSING
+    eqtl_catalogue_credible_sets_out: str = MISSING
+    mqtl_quantification_methods: list[str] = field(
+        default_factory=lambda: [
+            "ge",
+        ]
+    )
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -131,6 +136,19 @@ class FinngenSumstatPreprocessConfig(StepConfig):
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
     _target_: str = "gentropy.finngen_sumstat_preprocess.FinnGenSumstatPreprocessStep"
+
+
+@dataclass
+class FinngenFinemappingConfig(StepConfig):
+    """FinnGen fine mapping ingestion step configuration."""
+
+    finngen_finemapping_results_path: str = MISSING
+    finngen_finemapping_summaries_path: str = MISSING
+    finngen_release_prefix: str = MISSING
+    finngen_finemapping_out: str = MISSING
+    _target_: str = (
+        "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
+    )
 
 
 @dataclass
@@ -250,7 +268,7 @@ class VariantAnnotationConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    _target_: str = "gentropytropy.variant_annotation.VariantAnnotationStep"
+    _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
 
 
 @dataclass
@@ -353,6 +371,13 @@ def register_config() -> None:
         name="finngen_sumstat_preprocess",
         node=FinngenSumstatPreprocessConfig,
     )
+
+    cs.store(
+        group="step",
+        name="finngen_finemapping_ingestion",
+        node=FinngenFinemappingConfig,
+    )
+
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)

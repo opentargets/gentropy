@@ -24,6 +24,8 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.v2g import V2G
 from gentropy.dataset.variant_annotation import VariantAnnotation
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
+from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame, SparkSession
@@ -411,7 +413,7 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
 def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
     """Sample GWAS Catalog studies."""
     return spark.read.csv(
-        "tests/data_samples/gwas_catalog_studies_sample-r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_studies_sample-r2022-11-29.tsv",
         sep="\t",
         header=True,
     )
@@ -421,7 +423,7 @@ def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
 def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
     """Sample GWAS ancestries sample data."""
     return spark.read.csv(
-        "tests/data_samples/gwas_catalog_ancestries_sample_v1.0.3-r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_ancestries_sample_v1.0.3-r2022-11-29.tsv",
         sep="\t",
         header=True,
     )
@@ -431,7 +433,7 @@ def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
 def sample_gwas_catalog_harmonised_sumstats_list(spark: SparkSession) -> DataFrame:
     """Sample GWAS harmonised sumstats sample data."""
     return spark.read.csv(
-        "tests/data_samples/gwas_catalog_harmonised_list.txt",
+        "tests/gentropy/data_samples/gwas_catalog_harmonised_list.txt",
         sep="\t",
         header=False,
     )
@@ -441,7 +443,7 @@ def sample_gwas_catalog_harmonised_sumstats_list(spark: SparkSession) -> DataFra
 def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
     """Sample GWAS raw associations sample data."""
     return spark.read.csv(
-        "tests/data_samples/gwas_catalog_associations_sample_e107_r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_associations_sample_e107_r2022-11-29.tsv",
         sep="\t",
         header=True,
     )
@@ -451,7 +453,7 @@ def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
 def sample_summary_statistics(spark: SparkSession) -> SummaryStatistics:
     """Sample GWAS raw associations sample data."""
     return SummaryStatistics(
-        _df=spark.read.parquet("tests/data_samples/sumstats_sample"),
+        _df=spark.read.parquet("tests/gentropy/data_samples/sumstats_sample"),
         _schema=SummaryStatistics.get_schema(),
     )
 
@@ -460,34 +462,42 @@ def sample_summary_statistics(spark: SparkSession) -> SummaryStatistics:
 def sample_finngen_studies(spark: SparkSession) -> DataFrame:
     """Sample FinnGen studies."""
     # For reference, the sample file was generated with the following command:
-    # curl https://r9.finngen.fi/api/phenos | jq '.[:10]' > tests/data_samples/finngen_studies_sample.json
-    with open("tests/data_samples/finngen_studies_sample.json") as finngen_studies:
+    # curl https://r9.finngen.fi/api/phenos | jq '.[:10]' > tests/gentropy/data_samples/finngen_studies_sample.json
+    with open(
+        "tests/gentropy/data_samples/finngen_studies_sample.json"
+    ) as finngen_studies:
         json_data = finngen_studies.read()
         rdd = spark.sparkContext.parallelize([json_data])
         return spark.read.json(rdd)
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
-    """Sample eQTL Catalogue studies."""
-    # For reference, the sample file was generated with the following command:
-    # curl https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv | head -n11 > tests/data_samples/eqtl_catalogue_studies_sample.tsv
-    with open("tests/data_samples/eqtl_catalogue_studies_sample.tsv") as eqtl_catalogue:
-        tsv = eqtl_catalogue.read()
-        rdd = spark.sparkContext.parallelize([tsv])
-        return spark.read.csv(rdd, sep="\t", header=True)
+def sample_eqtl_catalogue_finemapping_credible_sets(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/gentropy/data_samples/QTD000584.credible_sets.tsv",
+        header=True,
+        schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
+    )
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_summary_stats(spark: SparkSession) -> DataFrame:
-    """Sample eQTL Catalogue summary stats."""
-    # For reference, the sample file was generated with the following commands:
-    # mkdir -p tests/data_samples/imported/GTEx_V8/ge
-    # curl ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz | gzip -cd | head -n11 | gzip -c > tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz
-    # It's important for the test file to be named in exactly this way, because eQTL Catalogue study ID is populated based on input file name.
+def sample_eqtl_catalogue_finemapping_lbf(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
     return spark.read.option("delimiter", "\t").csv(
-        "tests/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz",
+        "tests/gentropy/data_samples/QTD000584.lbf_variable.txt",
         header=True,
+        schema=EqtlCatalogueFinemapping.raw_lbf_schema,
+    )
+
+
+@pytest.fixture()
+def sample_eqtl_catalogue_studies_metadata(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue table with metadata about the QTD000584 study."""
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/gentropy/data_samples/sample_eqtl_catalogue_studies.tsv",
+        header=True,
+        schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
     )
 
 
@@ -496,7 +506,7 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
     """Sample UKBiobank manifest."""
     # Sampled 10 rows of the UKBB manifest tsv
     return spark.read.csv(
-        "tests/data_samples/neale2_saige_study_manifest.samples.tsv",
+        "tests/gentropy/data_samples/neale2_saige_study_manifest.samples.tsv",
         sep="\t",
         header=True,
         inferSchema=True,
@@ -507,7 +517,7 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
 def sample_target_index(spark: SparkSession) -> DataFrame:
     """Sample target index sample data."""
     return spark.read.parquet(
-        "tests/data_samples/target_sample.parquet",
+        "tests/gentropy/data_samples/target_sample.parquet",
     )
 
 
@@ -539,14 +549,14 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 @pytest.fixture()
 def liftover_chain_37_to_38(spark: SparkSession) -> LiftOverSpark:
     """Sample liftover chain file."""
-    return LiftOverSpark("tests/data_samples/grch37_to_grch38.over.chain")
+    return LiftOverSpark("tests/gentropy/data_samples/grch37_to_grch38.over.chain")
 
 
 @pytest.fixture()
 def sample_l2g_gold_standard(spark: SparkSession) -> DataFrame:
     """Sample L2G gold standard curation."""
     return spark.read.json(
-        "tests/data_samples/l2g_gold_standard_curation_sample.json.gz",
+        "tests/gentropy/data_samples/l2g_gold_standard_curation_sample.json.gz",
     )
 
 
@@ -554,7 +564,7 @@ def sample_l2g_gold_standard(spark: SparkSession) -> DataFrame:
 def sample_otp_interactions(spark: SparkSession) -> DataFrame:
     """Sample OTP gene-gene interactions dataset."""
     return spark.read.parquet(
-        "tests/data_samples/otp_interactions_sample.parquet",
+        "tests/gentropy/data_samples/otp_interactions_sample.parquet",
     )
 
 
@@ -618,11 +628,11 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
 @pytest.fixture()
 def sample_data_for_carma() -> list[np.ndarray]:
     """Sample data for fine-mapping by CARMA."""
-    ld = pd.read_csv("tests/data_samples/01_test_ld.csv", header=None)
+    ld = pd.read_csv("tests/gentropy/data_samples/01_test_ld.csv", header=None)
     ld = np.array(ld)
-    z = pd.read_csv("tests/data_samples/01_test_z.csv")
+    z = pd.read_csv("tests/gentropy/data_samples/01_test_z.csv")
     z = np.array(z.iloc[:, 1])
-    pips = pd.read_csv("tests/data_samples/01_test_PIPs.txt")
+    pips = pd.read_csv("tests/gentropy/data_samples/01_test_PIPs.txt")
     pips = np.array(pips.iloc[:, 0])
     return [ld, z, pips]
 
@@ -630,9 +640,9 @@ def sample_data_for_carma() -> list[np.ndarray]:
 @pytest.fixture()
 def sample_data_for_susie_inf() -> list[np.ndarray]:
     """Sample data for fine-mapping by SuSiE-inf."""
-    ld = np.loadtxt("tests/data_samples/01_test_ld.csv", delimiter=",")
-    z = pd.read_csv("tests/data_samples/01_test_z.csv")
+    ld = np.loadtxt("tests/gentropy/data_samples/01_test_ld.csv", delimiter=",")
+    z = pd.read_csv("tests/gentropy/data_samples/01_test_z.csv")
     z = np.array(z.iloc[:, 1])
-    lbf_moments = np.loadtxt("tests/data_samples/01_test_lbf_moments.csv")
-    lbf_mle = np.loadtxt("tests/data_samples/01_test_lbf_mle.csv")
+    lbf_moments = np.loadtxt("tests/gentropy/data_samples/01_test_lbf_moments.csv")
+    lbf_mle = np.loadtxt("tests/gentropy/data_samples/01_test_lbf_mle.csv")
     return [ld, z, lbf_moments, lbf_mle]
