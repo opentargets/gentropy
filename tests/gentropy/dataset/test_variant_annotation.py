@@ -1,4 +1,5 @@
 """Tests variant annotation dataset."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
