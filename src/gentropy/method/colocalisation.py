@@ -10,6 +10,7 @@ import pyspark.sql.functions as f
 from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
+from gentropy.common.utils import get_logsum
 from gentropy.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
@@ -106,28 +107,6 @@ class Coloc:
     """
 
     @staticmethod
-    def _get_logsum(log_bf: NDArray[np.float64]) -> float:
-        """Calculates logsum of vector.
-
-        This function calculates the log of the sum of the exponentiated
-        logs taking out the max, i.e. insuring that the sum is not Inf
-
-        Args:
-            log_bf (NDArray[np.float64]): log bayes factor
-
-        Returns:
-            float: logsum
-
-        Example:
-            >>> l = [0.2, 0.1, 0.05, 0]
-            >>> round(Coloc._get_logsum(l), 6)
-            1.476557
-        """
-        themax = np.max(log_bf)
-        result = themax + np.log(np.sum(np.exp(log_bf - themax)))
-        return float(result)
-
-    @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
         """Calculate posterior probabilities for each hypothesis.
 
@@ -142,7 +121,7 @@ class Coloc:
             >>> Coloc._get_posteriors(l)
             DenseVector([0.279, 0.2524, 0.2401, 0.2284])
         """
-        diff = all_bfs - Coloc._get_logsum(all_bfs)
+        diff = all_bfs - get_logsum(all_bfs)
         bfs_posteriors = np.exp(diff)
         return Vectors.dense(bfs_posteriors)
 
@@ -166,7 +145,7 @@ class Coloc:
             Colocalisation: Colocalisation results
         """
         # register udfs
-        logsum = f.udf(Coloc._get_logsum, DoubleType())
+        logsum = f.udf(get_logsum, DoubleType())
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
