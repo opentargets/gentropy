@@ -1,0 +1,78 @@
+{
+  "name": "OTGdev",
+  "build": {
+    "dockerfile": "Dockerfile.dev",
+    "context": "..",
+    "args": {
+      "VARIANT": "3.10-bullseye",
+      "POETRY_VERSION": "1.7.1"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/dhoeric/features/google-cloud-cli:1": {},
+    "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:1": {},
+    "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=devcontainer-bashhistory,target=/commandhistory,type=volume",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.config/gcloud,target=/home/vscode/.config/gcloud,type=bind,consistency=cached"
+  ],
+  "runArgs": ["-e", "GIT_EDITOR=code --wait"],
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
+  "customizations": {
+    "vscode": {
+      // Please keep this file in sync with settings in /.vscode/extensions.json
+      "extensions": [
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker",
+        "ms-python.python",
+        "esbenp.prettier-vscode",
+        "mhutchie.git-graph",
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-docker",
+        "github.vscode-github-actions",
+        "timonwong.shellcheck",
+        "GitHub.copilot",
+        "vivaxy.vscode-conventional-commits",
+        "ms-vscode-remote.remote-ssh",
+        "ms-toolsai.jupyter",
+        "ms-vscode.makefile-tools",
+        "GitHub.vscode-pull-request-github",
+        "fnando.linter"
+      ],
+      // Please keep this file in sync with settings in /.vscode/settings.json
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "terminal.integrated.fontFamily": "Fira Code",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnPaste": false,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "src/",
+          "tests/",
+          "--doctest-modules",
+          "--no-cov"
+        ]
+      }
+    }
+  },
+  "portsAttributes": {
+    "4040": {
+      "label": "SparkUI",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "forwardPorts": [4040]
+}
