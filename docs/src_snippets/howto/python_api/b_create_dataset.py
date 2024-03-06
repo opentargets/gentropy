@@ -17,7 +17,7 @@ def create_from_parquet(session: Session) -> SummaryStatistics:
 
     # --8<-- [end:create_from_parquet_import]
 
-    path = "tests/data_samples/sumstats_sample/GCST005523_chr18.parquet"
+    path = "tests/gentropy/data_samples/sumstats_sample/GCST005523_chr18.parquet"
     # --8<-- [start:create_from_parquet]
     summary_stats = SummaryStatistics.from_parquet(session, path)
     # --8<-- [end:create_from_parquet]
@@ -31,7 +31,7 @@ def create_from_source(session: Session) -> SummaryStatistics:
     from gentropy.datasource.finngen.summary_stats import FinnGenSummaryStats
 
     # --8<-- [end:create_from_source_import]
-    path = "tests/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz"
+    path = "tests/gentropy/data_samples/finngen_R9_AB1_ACTINOMYCOSIS.gz"
     # --8<-- [start:create_from_source]
     summary_stats = FinnGenSummaryStats.from_source(session.spark, path)
     # --8<-- [end:create_from_source]
@@ -46,7 +46,7 @@ def create_from_pandas() -> SummaryStatistics:
 
     # --8<-- [end:create_from_pandas_import]
 
-    path = "tests/data_samples/sumstats_sample/GCST005523_chr18.parquet"
+    path = "tests/gentropy/data_samples/sumstats_sample/GCST005523_chr18.parquet"
     custom_summary_stats_pandas_df = ps.read_parquet(path)
     # --8<-- [start:create_from_pandas]
 
