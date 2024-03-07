@@ -43,7 +43,7 @@ labels:
       - "^src/gentropy/[a-zA-Z]\\w+\\.py"
   - label: "Feature"
     title: "^feat.*"
-  - label: "Fix"
+  - label: "Bug"
     title: "^fix.*"
   - label: "Refactor"
     title: "^refactor.*"
