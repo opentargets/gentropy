@@ -1500,6 +1500,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasources/eqtl_catalogue/finemapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine mapping results
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasources/eqtl_catalogue/study_index/" class="md-nav__link">
         
   
@@ -2545,7 +2566,7 @@
         
   
   <span class="md-ellipsis">
-    eqtl_catalogue
+    eQTL Catalogue
   </span>
   
 
@@ -4010,10 +4031,11 @@
  |-- studyId: string (nullable = false)
  |-- projectId: string (nullable = false)
  |-- studyType: string (nullable = false)
- |-- traitFromSource: string (nullable = false)
+ |-- traitFromSource: string (nullable = true)
  |-- traitFromSourceMappedIds: array (nullable = true)
  |    |-- element: string (containsNull = true)
  |-- geneId: string (nullable = true)
+ |-- tissueFromSourceId: string (nullable = true)
  |-- pubmedId: string (nullable = true)
  |-- publicationTitle: string (nullable = true)
  |-- publicationFirstAuthor: string (nullable = true)

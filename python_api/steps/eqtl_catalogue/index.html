@@ -20,7 +20,7 @@
     
     
       
-        <title>eqtl_catalogue - Open Targets Gentropy</title>
+        <title>eQTL Catalogue - Open Targets Gentropy</title>
       
     
     
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              eqtl_catalogue
+              eQTL Catalogue
             
           </span>
         </div>
@@ -1366,6 +1366,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasources/eqtl_catalogue/finemapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine mapping results
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasources/eqtl_catalogue/study_index/" class="md-nav__link">
         
   
@@ -2420,7 +2441,7 @@
           
   
   <span class="md-ellipsis">
-    eqtl_catalogue
+    eQTL Catalogue
   </span>
   
 
@@ -2431,7 +2452,7 @@
         
   
   <span class="md-ellipsis">
-    eqtl_catalogue
+    eQTL Catalogue
   </span>
   
 
@@ -2879,7 +2900,7 @@
   
 
 
-  <h1>eqtl_catalogue</h1>
+  <h1>eQTL Catalogue</h1>
 
 <div class="doc doc-object doc-class">
 
@@ -2896,6 +2917,7 @@
 
   
       <p>eQTL Catalogue ingestion step.</p>
+<p>From SuSIE fine mapping results (available at <a href="https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/">their FTP</a> ), we extract credible sets and study index datasets from gene expression QTL studies.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/eqtl_catalogue.py</code></summary>
@@ -2951,58 +2973,74 @@
 <span class="normal">59</span>
 <span class="normal">60</span>
 <span class="normal">61</span>
-<span class="normal">62</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EqtlCatalogueStep</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;eQTL Catalogue ingestion step.&quot;&quot;&quot;</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EqtlCatalogueStep</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;eQTL Catalogue ingestion step.</span>
+
+<span class="sd">    From SuSIE fine mapping results (available at [their FTP](https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/) ), we extract credible sets and study index datasets from gene expression QTL studies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
+        <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">eqtl_catalogue_summary_stats_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run eQTL Catalogue ingestion step.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            session (Session): Session object.</span>
-<span class="sd">            eqtl_catalogue_paths_imported (str): Input eQTL Catalogue study index path.</span>
+<span class="sd">            mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don&#39;t want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv</span>
+<span class="sd">            eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.</span>
 <span class="sd">            eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.</span>
-<span class="sd">            eqtl_catalogue_summary_stats_out (str): Output eQTL Catalogue summary stats path.</span>
+<span class="sd">            eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Fetch study index.</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;delimiter&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span>
-            <span class="n">eqtl_catalogue_paths_imported</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span>
+        <span class="c1"># Extract</span>
+        <span class="n">studies_metadata</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">read_studies_from_source</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="c1"># Process partial study index.  At this point, it is not complete because we don&#39;t have the gene IDs, which we</span>
-        <span class="c1"># will only get once the summary stats are ingested.</span>
-        <span class="n">study_index_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">from_source</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">df</span>
 
-        <span class="c1"># Fetch summary stats.</span>
-        <span class="n">input_filenames</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">summarystatsLocation</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">study_index_df</span><span class="o">.</span><span class="n">collect</span><span class="p">()]</span>
-        <span class="n">summary_stats_df</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;delimiter&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">repartition</span><span class="p">(</span><span class="mi">1280</span><span class="p">)</span>
+        <span class="c1"># Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.</span>
+        <span class="n">studies_to_ingest</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">get_studies_of_interest</span><span class="p">(</span>
+            <span class="n">studies_metadata</span>
         <span class="p">)</span>
-        <span class="c1"># Process summary stats.</span>
-        <span class="n">summary_stats_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueSummaryStats</span><span class="o">.</span><span class="n">from_source</span><span class="p">(</span><span class="n">summary_stats_df</span><span class="p">)</span><span class="o">.</span><span class="n">df</span>
+        <span class="n">credible_sets_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_credible_set_from_source</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span>
+            <span class="n">credible_set_path</span><span class="o">=</span><span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.credible_sets.tsv&quot;</span>
+                <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">lbf_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_lbf_from_source</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span>
+            <span class="n">lbf_path</span><span class="o">=</span><span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.lbf_variable.txt&quot;</span>
+                <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
 
-        <span class="c1"># Add geneId column to the study index.</span>
-        <span class="n">study_index_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">add_gene_to_study_id</span><span class="p">(</span>
-            <span class="n">study_index_df</span><span class="p">,</span>
-            <span class="n">summary_stats_df</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">df</span>
+        <span class="c1"># Transform</span>
+        <span class="n">processed_susie_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">parse_susie_results</span><span class="p">(</span>
+            <span class="n">credible_sets_df</span><span class="p">,</span> <span class="n">lbf_df</span><span class="p">,</span> <span class="n">studies_metadata</span>
+        <span class="p">)</span>
+        <span class="n">credible_sets</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
+        <span class="n">study_index</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
 
-        <span class="c1"># Write study index.</span>
-        <span class="n">study_index_df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+        <span class="c1"># Load</span>
+        <span class="n">study_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
             <span class="n">eqtl_catalogue_study_index_out</span>
         <span class="p">)</span>
-        <span class="c1"># Write summary stats.</span>
-        <span class="p">(</span>
-            <span class="n">summary_stats_df</span><span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">eqtl_catalogue_summary_stats_out</span><span class="p">)</span>
+        <span class="n">credible_sets</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+            <span class="n">eqtl_catalogue_credible_sets_out</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -3025,7 +3063,7 @@
 
 
 <h3 id="gentropy.eqtl_catalogue.EqtlCatalogueStep.__init__" class="doc doc-heading">
-          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_summary_stats_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.eqtl_catalogue.EqtlCatalogueStep.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3062,13 +3100,27 @@
           </td>
         </tr>
         <tr>
+          <td><code>mqtl_quantification_methods_blacklist</code></td>
+          <td>
+                <code>list[str]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Molecular trait quantification methods that we don't want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
           <td><code>eqtl_catalogue_paths_imported</code></td>
           <td>
                 <code>str</code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Input eQTL Catalogue study index path.</p>
+              <p>Input eQTL Catalogue fine mapping results path.</p>
             </div>
           </td>
           <td>
@@ -3090,13 +3142,13 @@
           </td>
         </tr>
         <tr>
-          <td><code>eqtl_catalogue_summary_stats_out</code></td>
+          <td><code>eqtl_catalogue_credible_sets_out</code></td>
           <td>
                 <code>str</code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Output eQTL Catalogue summary stats path.</p>
+              <p>Output eQTL Catalogue credible sets path.</p>
             </div>
           </td>
           <td>
@@ -3108,10 +3160,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/eqtl_catalogue.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
 <span class="normal">17</span>
 <span class="normal">18</span>
 <span class="normal">19</span>
@@ -3157,55 +3206,68 @@
 <span class="normal">59</span>
 <span class="normal">60</span>
 <span class="normal">61</span>
-<span class="normal">62</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
+    <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">eqtl_catalogue_summary_stats_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run eQTL Catalogue ingestion step.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        session (Session): Session object.</span>
-<span class="sd">        eqtl_catalogue_paths_imported (str): Input eQTL Catalogue study index path.</span>
+<span class="sd">        mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don&#39;t want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv</span>
+<span class="sd">        eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.</span>
 <span class="sd">        eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.</span>
-<span class="sd">        eqtl_catalogue_summary_stats_out (str): Output eQTL Catalogue summary stats path.</span>
+<span class="sd">        eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Fetch study index.</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;delimiter&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span>
-        <span class="n">eqtl_catalogue_paths_imported</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span>
+    <span class="c1"># Extract</span>
+    <span class="n">studies_metadata</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">read_studies_from_source</span><span class="p">(</span>
+        <span class="n">session</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="c1"># Process partial study index.  At this point, it is not complete because we don&#39;t have the gene IDs, which we</span>
-    <span class="c1"># will only get once the summary stats are ingested.</span>
-    <span class="n">study_index_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">from_source</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">df</span>
 
-    <span class="c1"># Fetch summary stats.</span>
-    <span class="n">input_filenames</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">summarystatsLocation</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">study_index_df</span><span class="o">.</span><span class="n">collect</span><span class="p">()]</span>
-    <span class="n">summary_stats_df</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;delimiter&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">repartition</span><span class="p">(</span><span class="mi">1280</span><span class="p">)</span>
+    <span class="c1"># Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.</span>
+    <span class="n">studies_to_ingest</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">get_studies_of_interest</span><span class="p">(</span>
+        <span class="n">studies_metadata</span>
     <span class="p">)</span>
-    <span class="c1"># Process summary stats.</span>
-    <span class="n">summary_stats_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueSummaryStats</span><span class="o">.</span><span class="n">from_source</span><span class="p">(</span><span class="n">summary_stats_df</span><span class="p">)</span><span class="o">.</span><span class="n">df</span>
+    <span class="n">credible_sets_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_credible_set_from_source</span><span class="p">(</span>
+        <span class="n">session</span><span class="p">,</span>
+        <span class="n">credible_set_path</span><span class="o">=</span><span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.credible_sets.tsv&quot;</span>
+            <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">lbf_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_lbf_from_source</span><span class="p">(</span>
+        <span class="n">session</span><span class="p">,</span>
+        <span class="n">lbf_path</span><span class="o">=</span><span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.lbf_variable.txt&quot;</span>
+            <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
 
-    <span class="c1"># Add geneId column to the study index.</span>
-    <span class="n">study_index_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">add_gene_to_study_id</span><span class="p">(</span>
-        <span class="n">study_index_df</span><span class="p">,</span>
-        <span class="n">summary_stats_df</span><span class="p">,</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">df</span>
+    <span class="c1"># Transform</span>
+    <span class="n">processed_susie_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">parse_susie_results</span><span class="p">(</span>
+        <span class="n">credible_sets_df</span><span class="p">,</span> <span class="n">lbf_df</span><span class="p">,</span> <span class="n">studies_metadata</span>
+    <span class="p">)</span>
+    <span class="n">credible_sets</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
+    <span class="n">study_index</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
 
-    <span class="c1"># Write study index.</span>
-    <span class="n">study_index_df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+    <span class="c1"># Load</span>
+    <span class="n">study_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
         <span class="n">eqtl_catalogue_study_index_out</span>
     <span class="p">)</span>
-    <span class="c1"># Write summary stats.</span>
-    <span class="p">(</span>
-        <span class="n">summary_stats_df</span><span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">eqtl_catalogue_summary_stats_out</span><span class="p">)</span>
+    <span class="n">credible_sets</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+        <span class="n">eqtl_catalogue_credible_sets_out</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
@@ -3243,7 +3305,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-18T13:35:25+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-03-04T14:11:41+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-03-04</span> </span>
       </li>
       
 

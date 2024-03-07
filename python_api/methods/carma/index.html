@@ -1366,6 +1366,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasources/eqtl_catalogue/finemapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine mapping results
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasources/eqtl_catalogue/study_index/" class="md-nav__link">
         
   
@@ -2111,6 +2132,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#gentropy.method.carma.CARMA.time_limited_CARMA_spike_slab_noEM" class="md-nav__link">
+    <span class="md-ellipsis">
+      time_limited_CARMA_spike_slab_noEM
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2473,7 +2503,7 @@
         
   
   <span class="md-ellipsis">
-    eqtl_catalogue
+    eQTL Catalogue
   </span>
   
 
@@ -2856,6 +2886,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#gentropy.method.carma.CARMA.time_limited_CARMA_spike_slab_noEM" class="md-nav__link">
+    <span class="md-ellipsis">
+      time_limited_CARMA_spike_slab_noEM
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2914,8 +2953,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/method/carma.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 14</span>
-<span class="normal"> 15</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
 <span class="normal"> 18</span>
@@ -3771,8 +3809,64 @@
 <span class="normal">868</span>
 <span class="normal">869</span>
 <span class="normal">870</span>
-<span class="normal">871</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">CARMA</span><span class="p">:</span>
+<span class="normal">871</span>
+<span class="normal">872</span>
+<span class="normal">873</span>
+<span class="normal">874</span>
+<span class="normal">875</span>
+<span class="normal">876</span>
+<span class="normal">877</span>
+<span class="normal">878</span>
+<span class="normal">879</span>
+<span class="normal">880</span>
+<span class="normal">881</span>
+<span class="normal">882</span>
+<span class="normal">883</span>
+<span class="normal">884</span>
+<span class="normal">885</span>
+<span class="normal">886</span>
+<span class="normal">887</span>
+<span class="normal">888</span>
+<span class="normal">889</span>
+<span class="normal">890</span>
+<span class="normal">891</span>
+<span class="normal">892</span>
+<span class="normal">893</span>
+<span class="normal">894</span>
+<span class="normal">895</span>
+<span class="normal">896</span>
+<span class="normal">897</span>
+<span class="normal">898</span>
+<span class="normal">899</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">CARMA</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Implementation of CARMA outlier detection method.&quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">time_limited_CARMA_spike_slab_noEM</span><span class="p">(</span>
+        <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sec_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">600</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The wrapper for the CARMA_spike_slab_noEM function that runs the function in a separate thread and terminates it if it takes too long.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            z (np.ndarray): Numeric vector representing z-scores.</span>
+<span class="sd">            ld (np.ndarray): Numeric matrix representing the linkage disequilibrium (LD) matrix.</span>
+<span class="sd">            sec_threshold (float): The time threshold in seconds.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, Any]: A dictionary containing the following results:</span>
+<span class="sd">                - PIPs: A numeric vector of posterior inclusion probabilities (PIPs) for all SNPs or None.</span>
+<span class="sd">                - B_list: A dataframe containing the marginal likelihoods and the corresponding model space or None.</span>
+<span class="sd">                - Outliers: A list of outlier SNPs or None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Execute CARMA.CARMA_spike_slab_noEM with a timeout</span>
+            <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+                <span class="n">future</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">CARMA</span><span class="o">.</span><span class="n">CARMA_spike_slab_noEM</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">ld</span><span class="o">=</span><span class="n">ld</span><span class="p">)</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">sec_threshold</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+            <span class="c1"># If execution exceeds the timeout, return None</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;PIPs&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;B_list&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Outliers&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">result</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">CARMA_spike_slab_noEM</span><span class="p">(</span>
@@ -3864,7 +3958,6 @@
             <span class="s2">&quot;B_list&quot;</span><span class="p">:</span> <span class="n">all_C_list</span><span class="p">[</span><span class="s2">&quot;B_list&quot;</span><span class="p">],</span>
             <span class="s2">&quot;Outliers&quot;</span><span class="p">:</span> <span class="n">all_C_list</span><span class="p">[</span><span class="s2">&quot;conditional_S_list&quot;</span><span class="p">],</span>
         <span class="p">}</span>
-
 
         <span class="k">return</span> <span class="n">results_list</span>
 
@@ -4862,36 +4955,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/method/carma.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 17</span>
-<span class="normal"> 18</span>
-<span class="normal"> 19</span>
-<span class="normal"> 20</span>
-<span class="normal"> 21</span>
-<span class="normal"> 22</span>
-<span class="normal"> 23</span>
-<span class="normal"> 24</span>
-<span class="normal"> 25</span>
-<span class="normal"> 26</span>
-<span class="normal"> 27</span>
-<span class="normal"> 28</span>
-<span class="normal"> 29</span>
-<span class="normal"> 30</span>
-<span class="normal"> 31</span>
-<span class="normal"> 32</span>
-<span class="normal"> 33</span>
-<span class="normal"> 34</span>
-<span class="normal"> 35</span>
-<span class="normal"> 36</span>
-<span class="normal"> 37</span>
-<span class="normal"> 38</span>
-<span class="normal"> 39</span>
-<span class="normal"> 40</span>
-<span class="normal"> 41</span>
-<span class="normal"> 42</span>
-<span class="normal"> 43</span>
-<span class="normal"> 44</span>
-<span class="normal"> 45</span>
-<span class="normal"> 46</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 46</span>
 <span class="normal"> 47</span>
 <span class="normal"> 48</span>
 <span class="normal"> 49</span>
@@ -4954,7 +5018,35 @@
 <span class="normal">106</span>
 <span class="normal">107</span>
 <span class="normal">108</span>
-<span class="normal">109</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span> <span class="nf">CARMA_spike_slab_noEM</span><span class="p">(</span>
     <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -5045,8 +5137,172 @@
         <span class="s2">&quot;Outliers&quot;</span><span class="p">:</span> <span class="n">all_C_list</span><span class="p">[</span><span class="s2">&quot;conditional_S_list&quot;</span><span class="p">],</span>
     <span class="p">}</span>
 
-
     <span class="k">return</span> <span class="n">results_list</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="gentropy.method.carma.CARMA.time_limited_CARMA_spike_slab_noEM" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">time_limited_CARMA_spike_slab_noEM</span><span class="p">(</span><span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sec_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">600</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></code>
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+<a href="#gentropy.method.carma.CARMA.time_limited_CARMA_spike_slab_noEM" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>The wrapper for the CARMA_spike_slab_noEM function that runs the function in a separate thread and terminates it if it takes too long.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>z</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Numeric vector representing z-scores.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>ld</code></td>
+          <td>
+                <code><span title="numpy.ndarray">ndarray</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Numeric matrix representing the linkage disequilibrium (LD) matrix.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>sec_threshold</code></td>
+          <td>
+                <code>float</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The time threshold in seconds.</p>
+            </div>
+          </td>
+          <td>
+                <code>600</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>dict[str, <span title="typing.Any">Any</span>]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>dict[str, Any]: A dictionary containing the following results:
+- PIPs: A numeric vector of posterior inclusion probabilities (PIPs) for all SNPs or None.
+- B_list: A dataframe containing the marginal likelihoods and the corresponding model space or None.
+- Outliers: A list of outlier SNPs or None.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>src/gentropy/method/carma.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">time_limited_CARMA_spike_slab_noEM</span><span class="p">(</span>
+    <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sec_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">600</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The wrapper for the CARMA_spike_slab_noEM function that runs the function in a separate thread and terminates it if it takes too long.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        z (np.ndarray): Numeric vector representing z-scores.</span>
+<span class="sd">        ld (np.ndarray): Numeric matrix representing the linkage disequilibrium (LD) matrix.</span>
+<span class="sd">        sec_threshold (float): The time threshold in seconds.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, Any]: A dictionary containing the following results:</span>
+<span class="sd">            - PIPs: A numeric vector of posterior inclusion probabilities (PIPs) for all SNPs or None.</span>
+<span class="sd">            - B_list: A dataframe containing the marginal likelihoods and the corresponding model space or None.</span>
+<span class="sd">            - Outliers: A list of outlier SNPs or None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Execute CARMA.CARMA_spike_slab_noEM with a timeout</span>
+        <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">future</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">CARMA</span><span class="o">.</span><span class="n">CARMA_spike_slab_noEM</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">ld</span><span class="o">=</span><span class="n">ld</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">sec_threshold</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+        <span class="c1"># If execution exceeds the timeout, return None</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;PIPs&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;B_list&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Outliers&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">result</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -5094,15 +5350,7 @@
         <span class="label"> Contributors </span>
       </li>
       <li class="contributors-holder">
-        <ul class="contributors" data-bi-name="contributors"><li>
-            <a
-              href="https://github.com/d0choa"
-              title="d0choa"
-              data-bi-name="contributorprofile"
-              target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
-            /></a>
-          </li></ul>
+        <ul class="contributors" data-bi-name="contributors"></ul>
       </li>
     </ul>
   </small>

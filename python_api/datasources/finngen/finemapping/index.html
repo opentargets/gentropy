@@ -1368,6 +1368,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../eqtl_catalogue/finemapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine mapping results
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../eqtl_catalogue/study_index/" class="md-nav__link">
         
   
@@ -2475,7 +2496,7 @@
         
   
   <span class="md-ellipsis">
-    eqtl_catalogue
+    eQTL Catalogue
   </span>
   
 
@@ -3207,10 +3228,7 @@
 <span class="normal">309</span>
 <span class="normal">310</span>
 <span class="normal">311</span>
-<span class="normal">312</span>
-<span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">312</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">FinnGenFinemapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;SuSIE finemapping dataset for FinnGen.</span>
 
@@ -3448,10 +3466,7 @@
         <span class="n">toploci_df</span> <span class="o">=</span> <span class="n">get_top_ranked_in_window</span><span class="p">(</span>
             <span class="n">processed_finngen_finemapping_df</span><span class="p">,</span>
             <span class="n">Window</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;region&quot;</span><span class="p">,</span> <span class="s2">&quot;credibleSetIndex&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">orderBy</span><span class="p">(</span>
-                <span class="o">*</span><span class="p">[</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueExponent&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueMantissa&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
-                <span class="p">]</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">)</span>
             <span class="p">),</span>
         <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
             <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
@@ -3854,10 +3869,7 @@
 <span class="normal">309</span>
 <span class="normal">310</span>
 <span class="normal">311</span>
-<span class="normal">312</span>
-<span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">312</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_finngen_susie_finemapping</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenFinemapping</span><span class="p">],</span>
     <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
@@ -4001,10 +4013,7 @@
     <span class="n">toploci_df</span> <span class="o">=</span> <span class="n">get_top_ranked_in_window</span><span class="p">(</span>
         <span class="n">processed_finngen_finemapping_df</span><span class="p">,</span>
         <span class="n">Window</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;region&quot;</span><span class="p">,</span> <span class="s2">&quot;credibleSetIndex&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">orderBy</span><span class="p">(</span>
-            <span class="o">*</span><span class="p">[</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueExponent&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueMantissa&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
-            <span class="p">]</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">desc</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">)</span>
         <span class="p">),</span>
     <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
         <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
