@@ -104,7 +104,11 @@ class Coloc:
 
         Coloc requires the availability of Bayes factors (BF) for each variant in the credible set (`logBF` column).
 
+    Attributes:
+        PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
     """
+
+    PSEUDOCOUNT: float = 1e-10
 
     @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
@@ -137,6 +141,7 @@ class Coloc:
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
+
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
@@ -188,12 +193,12 @@ class Coloc:
                 .withColumn("lH2bf", f.log(f.col("priorc2")) + f.col("logsum2"))
                 # h3
                 .withColumn("sumlogsum", f.col("logsum1") + f.col("logsum2"))
-                # exclude null H3/H4s: due to sumlogsum == logsum12
-                .filter(f.col("sumlogsum") != f.col("logsum12"))
                 .withColumn("max", f.greatest("sumlogsum", "logsum12"))
                 .withColumn(
                     "logdiff",
-                    (
+                    f.when(
+                        f.col("sumlogsum") == f.col("logsum12"), Coloc.PSEUDOCOUNT
+                    ).otherwise(
                         f.col("max")
                         + f.log(
                             f.exp(f.col("sumlogsum") - f.col("max"))
