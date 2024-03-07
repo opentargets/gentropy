@@ -132,14 +132,17 @@ class Coloc:
         priorc1: float = 1e-4,
         priorc2: float = 1e-4,
         priorc12: float = 1e-5,
+        PSEUDOCOUNT: float = 1e-10,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
+
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
+            PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
 
         Returns:
             Colocalisation: Colocalisation results
@@ -191,7 +194,9 @@ class Coloc:
                 .withColumn("max", f.greatest("sumlogsum", "logsum12"))
                 .withColumn(
                     "logdiff",
-                    f.when(f.col("sumlogsum") == f.col("logsum12"), 1e-10).otherwise(
+                    f.when(
+                        f.col("sumlogsum") == f.col("logsum12"), PSEUDOCOUNT
+                    ).otherwise(
                         f.col("max")
                         + f.log(
                             f.exp(f.col("sumlogsum") - f.col("max"))
