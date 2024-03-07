@@ -1,4 +1,5 @@
 """Test Open Targets target data source."""
+
 from __future__ import annotations
 
 from gentropy.dataset.gene_index import GeneIndex
