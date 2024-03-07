@@ -1,4 +1,5 @@
 """Testing applying methods docs."""
+
 from typing import Any
 
 import pytest
