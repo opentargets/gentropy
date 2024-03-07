@@ -8,6 +8,62 @@
 
 
 
+## v1.2.0 (2024-03-07)
+### ✨ Feature
+
+
+- \[**coloc**\] single SNP case (#511) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+
+-  extract credible sets and studies from all eQTL Catalogue finemapping results (#518) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**CARMA**\] adding time limited CARMA (#475) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  extract credible sets and studies from eQTL Catalogue finemapping results (#514) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### 🐛 Fix
+
+
+-  pr labeller patterns (#523) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  pull-request labeler fixes (#520) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+### 🏗 Build
+
+
+- \[**deps-dev**\] bump pytest from 8.0.1 to 8.1.0 (#516) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mkdocs-git-committers-plugin-2 from 2.2.3 to 2.3.0 (#505) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps**\] bump typing-extensions from 4.9.0 to 4.10.0 (#506) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipython from 8.21.0 to 8.22.1 [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+### 👷‍♂️ Ci
+
+
+-  precommit checks for poetry TOML and lock (#526) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  pull request template (#517) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  pull request labeler (#519) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+### 🚀 Chore
+
+
+-  update ruff pre-commit and rules (#522) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  Unit tests for coloc (#509) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
 ## v1.1.1 (2024-02-22)
 ### 🐛 Fix
 
