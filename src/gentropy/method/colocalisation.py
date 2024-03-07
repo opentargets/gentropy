@@ -104,7 +104,11 @@ class Coloc:
 
         Coloc requires the availability of Bayes factors (BF) for each variant in the credible set (`logBF` column).
 
+    Attributes:
+        PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
     """
+
+    PSEUDOCOUNT: float = 1e-10
 
     @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
@@ -132,7 +136,6 @@ class Coloc:
         priorc1: float = 1e-4,
         priorc2: float = 1e-4,
         priorc12: float = 1e-5,
-        PSEUDOCOUNT: float = 1e-10,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
@@ -142,7 +145,6 @@ class Coloc:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
-            PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
 
         Returns:
             Colocalisation: Colocalisation results
@@ -195,7 +197,7 @@ class Coloc:
                 .withColumn(
                     "logdiff",
                     f.when(
-                        f.col("sumlogsum") == f.col("logsum12"), PSEUDOCOUNT
+                        f.col("sumlogsum") == f.col("logsum12"), Coloc.PSEUDOCOUNT
                     ).otherwise(
                         f.col("max")
                         + f.log(
