@@ -1,4 +1,4 @@
-version: 1
+version: "1"
 labels:
   - label: "size-XS"
     size:
@@ -43,7 +43,7 @@ labels:
       - "^src/gentropy/[a-zA-Z]\\w+\\.py"
   - label: "Feature"
     title: "^feat.*"
-  - label: "Bug"
+  - label: "Fix"
     title: "^fix.*"
   - label: "Refactor"
     title: "^refactor.*"
