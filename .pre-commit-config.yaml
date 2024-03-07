@@ -1,6 +1,9 @@
+default_language_version:
+  python: python3.10
 ci:
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
   autofix_commit_msg: "chore: pre-commit auto fixes [...]"
+  skip: [poetry-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.3.0
@@ -99,3 +102,10 @@ repos:
     rev: 0.4.1
     hooks:
       - id: pydoclint
+
+  - repo: https://github.com/python-poetry/poetry
+    rev: "1.8.2"
+    hooks:
+      - id: poetry-check
+      - id: poetry-lock
+        args: ["--no-update"]
