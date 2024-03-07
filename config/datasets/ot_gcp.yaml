@@ -1,10 +1,10 @@
 # Release specific configuration:
-release_version: "24.01"
+release_version: "24.03"
 dev_version: XX.XX
 release_folder: gs://genetics_etl_python_playground/releases/${datasets.release_version}
 
 inputs: gs://genetics_etl_python_playground/input
-static_assets: gs://genetics_etl_python_playground/static_assetss
+static_assets: gs://genetics_etl_python_playground/static_assets
 outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.dev_version}
 
 ## Datasets:
@@ -36,9 +36,9 @@ anderson: ${datasets.static_assets}/andersson2014/enhancer_tss_associations.bed
 javierre: ${datasets.static_assets}/javierre_2016_preprocessed
 jung: ${datasets.static_assets}/jung2019_pchic_tableS3.csv
 thurman: ${datasets.static_assets}/thurman2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz
-target_index: ${datasets.release_folder}/targets # OTP 23.12 data
+target_index: ${datasets.static_assets}/targets # OTP 23.12 data
+gene_interactions: ${datasets.static_assets}/interaction # OTP 23.12 data
 
-gene_interactions: ${datasets.release_folder}/interaction # OTP 23.12 data
 finngen_finemapping_results_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/full
 finngen_finemapping_summaries_path: ${datasets.inputs}/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv
 
