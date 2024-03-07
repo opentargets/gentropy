@@ -587,18 +587,24 @@ class SUSIE_inf:
         order_creds = list(enumerate(_susie["lbf"]))
         order_creds.sort(key=lambda x: x[1], reverse=True)
         cred_sets = None
+        counter = 0
         for i, value in order_creds:
-            if i != 0 and value < 2:
+            if counter > 0 and value < 2:
                 continue
+            counter += 1
             sorted_arr = susie_result[
                 susie_result[:, i + 1].astype(float).argsort()[::-1]
             ]
             cumsum_arr = np.cumsum(sorted_arr[:, i + 1].astype(float))
-            filtered_arr = sorted_arr[cumsum_arr < 0.99]
-            window = Window.rowsBetween(
+            filter_row = np.argmax(cumsum_arr >= 0.99)
+            if filter_row == 0 and cumsum_arr[0] < 0.99:
+                filter_row = len(cumsum_arr)
+            filter_row += 1
+            filtered_arr = sorted_arr[:filter_row]
+            cred_set = filtered_arr[:, [0, i + 1, i + 11]]
+            win = Window.rowsBetween(
                 Window.unboundedPreceding, Window.unboundedFollowing
             )
-            cred_set = filtered_arr[:, [0, i + 1, i + 11]]
             cred_set = (
                 session.spark.createDataFrame(
                     cred_set.tolist(), ["variantId", "posteriorProbability", "logBF"]
@@ -608,6 +614,8 @@ class SUSIE_inf:
                         "variantId",
                         "pValueMantissa",
                         "pValueExponent",
+                        "chromosome",
+                        "position",
                         "beta",
                         "standardError",
                     ),
@@ -626,7 +634,7 @@ class SUSIE_inf:
                             "beta",
                             "standardError",
                         )
-                    ).over(window),
+                    ).over(win),
                 )
                 .limit(1)
                 .withColumns(
@@ -635,7 +643,23 @@ class SUSIE_inf:
                         "region": f.lit(_region),
                         "credibleSetIndex": f.lit(i + 1),
                         "credibleSetlog10BF": f.lit(value),
+                        "fineMappingMethod": f.lit("SuSiE-inf"),
                     }
+                )
+                .select(
+                    "studyId",
+                    "region",
+                    "credibleSetIndex",
+                    "locus",
+                    "variantId",
+                    "chromosome",
+                    "position",
+                    "beta",
+                    "pValueMantissa",
+                    "pValueExponent",
+                    "standardError",
+                    "fineMappingMethod",
+                    "credibleSetlog10BF",
                 )
             )
             if cred_sets is None:
