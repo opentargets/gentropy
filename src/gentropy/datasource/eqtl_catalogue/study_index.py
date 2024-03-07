@@ -1,10 +1,15 @@
 """Study Index for eQTL Catalogue data source."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type
+from itertools import chain
+from typing import TYPE_CHECKING
 
+import pandas as pd
 import pyspark.sql.functions as f
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
+from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 
 if TYPE_CHECKING:
@@ -13,167 +18,130 @@ if TYPE_CHECKING:
 
 
 class EqtlCatalogueStudyIndex:
-    """Study index dataset from eQTL Catalogue."""
+    """Study index dataset from eQTL Catalogue.
 
-    study_config = {
-        "GTEx_V8": {
-            "nSamples": 838,
-            "initialSampleSize": "838 (281 females and 557 males)",
-            "discoverySamples": [
-                {"sampleSize": 715, "ancestry": "European American"},
-                {"sampleSize": 103, "ancestry": "African American"},
-                {"sampleSize": 12, "ancestry": "Asian American"},
-                {"sampleSize": 16, "ancestry": "Hispanic or Latino"},
-            ],
-            "ldPopulationStructure": [
-                {"ldPopulation": "nfe", "relativeSampleSize": 0.85},
-                {"ldPopulation": "afr", "relativeSampleSize": 0.12},
-                {"ldPopulation": "eas", "relativeSampleSize": 0.01},
-                {"ldPopulation": "amr", "relativeSampleSize": 0.02},
-            ],
-            "pubmedId": "32913098",
-            "publicationTitle": "The GTEx Consortium atlas of genetic regulatory effects across human tissues",
-            "publicationFirstAuthor": "GTEx Consortium",
-            "publicationDate": "2020-09-11",
-            "publicationJournal": "Science",
-        },
-    }
+    We extract study level metadata from eQTL Catalogue's fine mapping results. All available studies can be found [here](https://www.ebi.ac.uk/eqtl/Studies/).
+
+    One study from the eQTL Catalogue clusters together all the molecular QTLs (mQTLs) that were found:
+
+        - in the same publication (e.g. Alasoo_2018)
+        - in the same cell type or tissue (e.g. monocytes)
+        - and for the same measured molecular trait (e.g. ENSG00000141510)
+
+    """
+
+    raw_studies_metadata_schema: StructType = StructType(
+        [
+            StructField("study_id", StringType(), True),
+            StructField("dataset_id", StringType(), True),
+            StructField("study_label", StringType(), True),
+            StructField("sample_group", StringType(), True),
+            StructField("tissue_id", StringType(), True),
+            StructField("tissue_label", StringType(), True),
+            StructField("condition_label", StringType(), True),
+            StructField("sample_size", IntegerType(), True),
+            StructField("quant_method", StringType(), True),
+        ]
+    )
+    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/19929ff6a99bf402194292a14f96f9615b35f65f/data_tables/dataset_metadata.tsv"
 
     @classmethod
-    def get_study_attribute(
-        cls: Type[EqtlCatalogueStudyIndex], attribute_key: str
+    def _identify_study_type(
+        cls: type[EqtlCatalogueStudyIndex], quantification_method_col: Column
     ) -> Column:
-        """Returns a Column expression that dynamically assigns the attribute based on the study.
+        """Identify the study type based on the method to quantify the trait.
 
         Args:
-            attribute_key (str): The attribute key to assign.
+            quantification_method_col (Column): column with the label of the method to quantify the trait. Available methods are [here](https://www.ebi.ac.uk/eqtl/Methods/)
 
         Returns:
-            Column: The dynamically assigned attribute.
+            Column: The study type.
 
-        Raises:
-            ValueError: If the attribute key is not known for the study.
+        Examples:
+            >>> df = spark.createDataFrame([("ge",), ("exon",), ("tx",)], ["quant_method"])
+            >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"))).show()
+            +------------+----------+
+            |quant_method|study_type|
+            +------------+----------+
+            |          ge|      eqtl|
+            |        exon|      eqtl|
+            |          tx|      eqtl|
+            +------------+----------+
+            <BLANKLINE>
         """
-        study_column = f.col("study")
-        for study, config in cls.study_config.items():
-            attribute_value = config.get(attribute_key)
-            if attribute_value is None:
-                raise ValueError(
-                    f"Unknown attribute key {attribute_key} for study {study}"
-                )
-            # Convert list of dicts to array of structs
-            if isinstance(attribute_value, list) and isinstance(
-                attribute_value[0], dict
-            ):
-                struct_fields = [
-                    f.struct(*[f.lit(value).alias(key) for key, value in item.items()])
-                    for item in attribute_value
-                ]
-                attribute_value = f.array(struct_fields)
-            # Convert dict to struct
-            elif isinstance(attribute_value, dict):
-                attribute_value = f.struct(
-                    *[f.lit(value).alias(key) for key, value in attribute_value.items()]
-                )
-        return f.when(study_column == study, attribute_value).alias(attribute_key)
-
-    @classmethod
-    def _all_attributes(cls: Type[EqtlCatalogueStudyIndex]) -> list[Column]:
-        """A helper function to return all study index attribute expressions.
-
-        Returns:
-            list[Column]: A list of all study index attribute expressions.
-        """
-        study_column = f.col("study")
-
-        static_study_attributes = [
-            study_column.alias("projectId"),
-            f.concat(study_column, f.lit("_"), f.col("qtl_group")).alias("studyId"),
-            f.col("ftp_path").alias("summarystatsLocation"),
-            f.lit(True).alias("hasSumstats"),
-            f.lit("eqtl").alias("studyType"),
-        ]
-        tissue_attributes = [
-            # Human readable tissue label, example: "Adipose - Subcutaneous".
-            f.col("tissue_label").alias("traitFromSource"),
-            # Ontology identifier for the tissue, for example: "UBERON:0001157".
-            f.array(
-                f.regexp_replace(
-                    f.regexp_replace(
-                        f.col("tissue_ontology_id"),
-                        "UBER_",
-                        "UBERON_",
-                    ),
-                    "_",
-                    ":",
-                )
-            ).alias("traitFromSourceMappedIds"),
-        ]
-        dynamic_study_attributes = [
-            cls.get_study_attribute("nSamples"),
-            cls.get_study_attribute("initialSampleSize"),
-            cls.get_study_attribute("discoverySamples"),
-            cls.get_study_attribute("ldPopulationStructure"),
-            cls.get_study_attribute("pubmedId"),
-            cls.get_study_attribute("publicationTitle"),
-            cls.get_study_attribute("publicationFirstAuthor"),
-            cls.get_study_attribute("publicationDate"),
-            cls.get_study_attribute("publicationJournal"),
-        ]
-        return static_study_attributes + tissue_attributes + dynamic_study_attributes
-
-    @classmethod
-    def add_gene_to_study_id(
-        cls: type[EqtlCatalogueStudyIndex],
-        study_index_df: DataFrame,
-        summary_stats_df: DataFrame,
-    ) -> StudyIndex:
-        """Update the studyId to include gene information from summary statistics. A geneId column is also added.
-
-        While the original list contains one entry per tissue, what we consider as a single study is one mini-GWAS for
-        an expression of a _particular gene_ in a particular study.  At this stage we have a study index with partial
-        study IDs like "PROJECT_QTLGROUP", and a summary statistics object with full study IDs like
-        "PROJECT_QTLGROUP_GENEID", so we need to perform a merge and explosion to obtain our final study index.
-
-        Args:
-            study_index_df (DataFrame): preliminary study index for eQTL Catalogue studies.
-            summary_stats_df (DataFrame): summary statistics dataframe for eQTL Catalogue data.
-
-        Returns:
-            StudyIndex: final study index for eQTL Catalogue studies.
-        """
-        partial_to_full_study_id = summary_stats_df.select(
-            f.col("studyId").alias("fullStudyId"),  # PROJECT_QTLGROUP_GENEID
-            f.regexp_extract(f.col("studyId"), r"^(.*)_ENSG\d+", 1).alias(
-                "studyId"
-            ),  # PROJECT_QTLGROUP
-        ).distinct()
-        study_index_df = (
-            partial_to_full_study_id.join(
-                f.broadcast(study_index_df), "studyId", "inner"
-            )
-            # Change studyId to fullStudyId
-            .drop("studyId")
-            .withColumnRenamed("fullStudyId", "studyId")
-            # Add geneId column
-            .withColumn("geneId", f.regexp_extract(f.col("studyId"), r"([^_]+)$", 1))
+        method_to_study_type_mapping = {
+            "ge": "eqtl",
+            "exon": "eqtl",
+            "tx": "eqtl",
+            "microarray": "eqtl",
+            "leafcutter": "sqtl",
+            "aptamer": "pqtl",
+            "txrev": "tuqtl",
+        }
+        map_expr = f.create_map(
+            *[f.lit(x) for x in chain(*method_to_study_type_mapping.items())]
         )
-        return StudyIndex(_df=study_index_df, _schema=StudyIndex.get_schema())
+        return map_expr.getItem(quantification_method_col)
 
     @classmethod
-    def from_source(
+    def get_studies_of_interest(
+        cls: type[EqtlCatalogueStudyIndex], studies_metadata: DataFrame
+    ) -> list[str]:
+        """Filter studies of interest from the raw studies metadata.
+
+        Args:
+            studies_metadata (DataFrame): raw studies metadata filtered with studies of interest.
+
+        Returns:
+            list[str]: QTD IDs defining the studies of interest for ingestion.
+        """
+        return (
+            studies_metadata.select("dataset_id")
+            .distinct()
+            .toPandas()["dataset_id"]
+            .tolist()
+        )
+
+    @classmethod
+    def from_susie_results(
         cls: type[EqtlCatalogueStudyIndex],
-        eqtl_studies: DataFrame,
+        processed_finemapping_df: DataFrame,
     ) -> StudyIndex:
         """Ingest study level metadata from eQTL Catalogue.
 
         Args:
-            eqtl_studies (DataFrame): ingested but unprocessed eQTL Catalogue studies.
+            processed_finemapping_df (DataFrame): processed fine mapping results with study metadata.
 
         Returns:
-            StudyIndex: preliminary processed study index for eQTL Catalogue studies.
+            StudyIndex: eQTL Catalogue study index dataset derived from the selected SuSIE results.
         """
+        study_index_cols = [
+            field.name
+            for field in StudyIndex.get_schema().fields
+            if field.name in processed_finemapping_df.columns
+        ]
         return StudyIndex(
-            _df=eqtl_studies.select(*cls._all_attributes()),
+            _df=processed_finemapping_df.select(study_index_cols).distinct(),
             _schema=StudyIndex.get_schema(),
         )
+
+    @classmethod
+    def read_studies_from_source(
+        cls: type[EqtlCatalogueStudyIndex],
+        session: Session,
+        mqtl_quantification_methods_blacklist: list[str],
+    ) -> DataFrame:
+        """Read raw studies metadata from eQTL Catalogue.
+
+        Args:
+            session (Session): Spark session.
+            mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don't want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
+
+        Returns:
+            DataFrame: raw studies metadata.
+        """
+        pd.DataFrame.iteritems = pd.DataFrame.items
+        return session.spark.createDataFrame(
+            pd.read_csv(cls.raw_studies_metadata_path, sep="\t"),
+            schema=cls.raw_studies_metadata_schema,
+        ).filter(~(f.col("quant_method").isin(mqtl_quantification_methods_blacklist)))

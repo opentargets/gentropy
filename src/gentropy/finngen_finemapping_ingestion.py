@@ -18,6 +18,7 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
         session: Session,
         finngen_finemapping_results_path: str,
         finngen_finemapping_summaries_path: str,
+        finngen_release_prefix: str,
         finngen_finemapping_out: str,
     ) -> None:
         """Run FinnGen finemapping ingestion step.
@@ -26,14 +27,16 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
             session (Session): Session object.
             finngen_finemapping_results_path (str): Path to the FinnGen SuSIE finemapping results.
             finngen_finemapping_summaries_path (str): FinnGen SuSIE summaries for CS filters(LBF>2).
+            finngen_release_prefix (str): Release prefix for FinnGen.
             finngen_finemapping_out (str): Output path for the finemapping results in StudyLocus format.
         """
-        # Read finemapping outputs from the URL.
+        # Read finemapping outputs from the input paths.
 
         finngen_finemapping_df = FinnGenFinemapping.from_finngen_susie_finemapping(
             spark=session.spark,
             finngen_finemapping_df=finngen_finemapping_results_path,
             finngen_finemapping_summaries=finngen_finemapping_summaries_path,
+            finngen_release_prefix=finngen_release_prefix,
         )
 
         # Write the output.
