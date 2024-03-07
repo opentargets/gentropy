@@ -1,4 +1,5 @@
 """Testing creating spark session docs."""
+
 from gentropy.common.session import Session
 
 from docs.src_snippets.howto.python_api.a_creating_spark_session import (

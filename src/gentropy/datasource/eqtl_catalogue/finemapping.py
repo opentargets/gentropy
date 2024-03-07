@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 from pyspark.sql import Column, DataFrame, Window
@@ -13,9 +14,13 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.common.session import Session
 from gentropy.common.utils import parse_pvalue
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
 
 
 @dataclass
@@ -23,7 +28,7 @@ class EqtlCatalogueFinemapping:
     """SuSIE finemapping dataset for eQTL Catalogue.
 
     Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
-    - A study ID is defined as a triad between: the publication, the tissue, and the measured gene (e.g. Braineac2_substantia_nigra_ENSG00000248275)
+    - A study ID is defined as a triad between: the publication, the tissue, and the measured trait (e.g. Braineac2_substantia_nigra_ENSG00000248275)
     - Each row in the `credible_sets.tsv.gz` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
     - log Bayes Factors are available for all variants in the `lbf_variable.txt` files
     """
@@ -135,7 +140,7 @@ class EqtlCatalogueFinemapping:
                 cls._extract_dataset_id_from_file_path(f.input_file_name()),
             )
             .join(
-                f.broadcast(
+                (
                     credible_sets.withColumn(
                         "dataset_id",
                         cls._extract_dataset_id_from_file_path(f.input_file_name()),
@@ -176,18 +181,18 @@ class EqtlCatalogueFinemapping:
                 f.col("logBF"),
                 f.lit("SuSie").alias("finemappingMethod"),
                 # Study metadata
+                f.col("molecular_trait_id").alias("traitFromSource"),
                 f.col("gene_id").alias("geneId"),
-                f.array(f.col("molecular_trait_id")).alias("traitFromSourceMappedIds"),
                 f.col("dataset_id"),
                 f.concat_ws(
                     "_",
                     f.col("study_label"),
                     f.col("sample_group"),
-                    f.col("gene_id"),
+                    f.col("molecular_trait_id"),
                 ).alias("studyId"),
-                f.col("tissue_id").alias("c"),
+                f.col("tissue_id").alias("tissueFromSourceId"),
                 EqtlCatalogueStudyIndex._identify_study_type(
-                    f.col("study_label")
+                    f.col("quant_method")
                 ).alias("studyType"),
                 f.col("study_label").alias("projectId"),
                 f.concat_ws(
@@ -220,19 +225,12 @@ class EqtlCatalogueFinemapping:
             field.name
             for field in StudyLocus.get_schema().fields
             if field.name in processed_finemapping_df.columns
-        ] + ["studyLocusId", "locus"]
+        ] + ["locus"]
         return StudyLocus(
             _df=(
                 processed_finemapping_df.withColumn(
                     "isLead",
-                    f.row_number().over(
-                        lead_w.orderBy(
-                            *[
-                                f.col("pValueExponent").asc(),
-                                f.col("pValueMantissa").asc(),
-                            ]
-                        )
-                    )
+                    f.row_number().over(lead_w.orderBy(f.desc("posteriorProbability")))
                     == f.lit(1),
                 )
                 .withColumn(
@@ -255,13 +253,59 @@ class EqtlCatalogueFinemapping:
                 )
                 .filter(f.col("isLead"))
                 .drop("isLead")
-                .withColumn(
-                    "studyLocusId",
+                .select(
+                    *study_locus_cols,
                     StudyLocus.assign_study_locus_id(
                         f.col("studyId"), f.col("variantId")
                     ),
+                    StudyLocus.calculate_credible_set_log10bf(
+                        f.col("locus.logBF")
+                    ).alias("credibleSetlog10BF"),
                 )
-                .select(study_locus_cols)
             ),
             _schema=StudyLocus.get_schema(),
         ).annotate_credible_sets()
+
+    @classmethod
+    def read_credible_set_from_source(
+        cls: type[EqtlCatalogueFinemapping],
+        session: Session,
+        credible_set_path: str | list[str],
+    ) -> DataFrame:
+        """Load raw credible sets from eQTL Catalogue.
+
+        Args:
+            session (Session): Spark session.
+            credible_set_path (str | list[str]): Path to raw table(s) containing finemapping results for any variant belonging to a credible set.
+
+        Returns:
+            DataFrame: Credible sets DataFrame.
+        """
+        return session.spark.read.csv(
+            credible_set_path,
+            sep="\t",
+            header=True,
+            schema=cls.raw_credible_set_schema,
+        )
+
+    @classmethod
+    def read_lbf_from_source(
+        cls: type[EqtlCatalogueFinemapping],
+        session: Session,
+        lbf_path: str | list[str],
+    ) -> DataFrame:
+        """Load raw log Bayes Factors from eQTL Catalogue.
+
+        Args:
+            session (Session): Spark session.
+            lbf_path (str | list[str]): Path to raw table(s) containing Log Bayes Factors for each variant.
+
+        Returns:
+            DataFrame: Log Bayes Factors DataFrame.
+        """
+        return session.spark.read.csv(
+            lbf_path,
+            sep="\t",
+            header=True,
+            schema=cls.raw_lbf_schema,
+        )

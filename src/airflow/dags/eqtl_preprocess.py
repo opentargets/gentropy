@@ -9,10 +9,10 @@ from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.dataflow import (
     DataflowTemplatedJobStartOperator,
 )
-from airflow.providers.google.cloud.operators.gcs import GCSDeleteBucketOperator
+from airflow.providers.google.cloud.operators.gcs import GCSDeleteObjectsOperator
 
 CLUSTER_NAME = "otg-preprocess-eqtl"
-AUTOSCALING = "do-ld-explosion"
+AUTOSCALING = "eqtl-preprocess"
 PROJECT_ID = "open-targets-genetics-dev"
 
 EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalog_data/ebi_ftp/susie"
@@ -52,11 +52,10 @@ with DAG(
         ],
     )
 
-    delete_decompressed_job = GCSDeleteBucketOperator(
+    delete_decompressed_job = GCSDeleteObjectsOperator(
         task_id="delete_decompressed_files",
-        bucket_name=TEMP_DECOMPRESS_LOCATION,
-        force=True,
-        user_project=PROJECT_ID,
+        bucket_name=TEMP_DECOMPRESS_LOCATION.split("/")[2],
+        prefix=f"{TEMP_DECOMPRESS_LOCATION.split('/')[-1]}/",
     )
 
     (
@@ -69,6 +68,5 @@ with DAG(
         )
         >> common.install_dependencies(CLUSTER_NAME)
         >> ingestion_job
-        >> delete_decompressed_job
-        >> common.delete_cluster(CLUSTER_NAME)
+        >> [delete_decompressed_job, common.delete_cluster(CLUSTER_NAME)]
     )

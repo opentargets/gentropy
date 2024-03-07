@@ -1,4 +1,5 @@
 """Check for airflow import errors. Inspiration from https://garystafford.medium.com/devops-for-dataops-building-a-ci-cd-pipeline-for-apache-airflow-dags-975e4a622f83."""
+
 from __future__ import annotations
 
 import pytest
