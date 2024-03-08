@@ -58,7 +58,7 @@ class ColocalisationStep:
 
         # Load
         colocalisation_results.df.write.mode(session.write_mode).parquet(
-            f"{coloc_path}/{colocalisation_method}"
+            f"{coloc_path}/{colocalisation_method.value}"
         )
 
     @classmethod
