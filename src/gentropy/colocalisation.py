@@ -1,6 +1,8 @@
 """Step to generate colocalisation results."""
 from __future__ import annotations
 
+from pyspark.sql.functions import col
+
 from gentropy.common.session import Session
 from gentropy.config import ColocalisationMethod
 from gentropy.dataset.study_index import StudyIndex
@@ -32,8 +34,14 @@ class ColocalisationStep:
             colocalisation_method (ColocalisationMethod): Colocalisation method. Available methods are: ECAVIAR, COLOC.
         """
         # Extract
-        credible_set = StudyLocus.from_parquet(
-            session, credible_set_path, recursiveFileLookup=True
+        credible_set = (
+            StudyLocus.from_parquet(
+                session, credible_set_path, recursiveFileLookup=True
+            ).filter(col("finemappingMethod") == "SuSie")
+            if colocalisation_method.value == "coloc"
+            else StudyLocus.from_parquet(
+                session, credible_set_path, recursiveFileLookup=True
+            )
         )
         si = StudyIndex.from_parquet(
             session, study_index_path, recursiveFileLookup=True
