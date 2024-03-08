@@ -6,7 +6,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import scipy as sc
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import expr, log10, row_number
+from pyspark.sql.functions import col, expr, log10, row_number
 from pyspark.sql.window import Window
 from scipy.stats import chi2
 
@@ -55,7 +55,7 @@ class SummaryStatisticsQC:
             float: log10-pval.
 
         Examples:
-            >>> SummaryStatistics._calculate_logpval(1.0)
+            >>> SummaryStatisticsQC._calculate_logpval(1.0)
             0.49851554582799334
         """
         logpval = -np.log10(sc.stats.chi2.sf((z2), 1))
@@ -73,7 +73,7 @@ class SummaryStatisticsQC:
             list[float]: slope, slope_stderr, intercept, intercept_stderr.
 
         Examples:
-            >>> SummaryStatistics._calculate_lin_reg([1,2,3], [1,2,3])
+            >>> SummaryStatisticsQC._calculate_lin_reg([1,2,3], [1,2,3])
             [1.0, 0.0]
         """
         lin_reg = sc.stats.linregress(y, x)
@@ -131,7 +131,11 @@ class SummaryStatisticsQC:
             )
             .select("studyId", "result_lin_reg")
         )
-
+        qc_c = (
+            qc_c.withColumn("pz_beta", col("result_lin_reg").getItem("beta"))
+            .withColumn("pz_intercept", col("result_lin_reg").getItem("intercept"))
+            .drop("result_lin_reg")
+        )
         return qc_c
 
     @staticmethod
@@ -275,9 +279,9 @@ class SummaryStatisticsQC:
     @staticmethod
     def get_quality_control_metrics(
         gwas: SummaryStatistics,
-        limit: int = 1000000,
-        min_count: int = 100,
-        n_total: int = 100000,
+        limit: int = 100_000_000,
+        min_count: int = 100_000,
+        n_total: int = 100_000,
     ) -> DataFrame:
         """The function calculates the quality control metrics for the summary statistics.
 
@@ -290,11 +294,13 @@ class SummaryStatisticsQC:
         Returns:
             DataFrame: PySpark DataFrame with the quality control metrics for the summary statistics.
         """
-        qc1 = SummaryStatisticsQC.sumstat_qc_beta_check(gwas)
-        qc2 = SummaryStatisticsQC.sumstat_qc_pz_check(gwas, limit)
-        qc3 = SummaryStatisticsQC.sumstat_n_eff_check(gwas, n_total, limit, min_count)
-        qc4 = SummaryStatisticsQC.gc_lambda_check(gwas, limit)
-        qc5 = SummaryStatisticsQC.number_of_snps(gwas)
+        qc1 = SummaryStatisticsQC.sumstat_qc_beta_check(gwas_for_qc=gwas)
+        qc2 = SummaryStatisticsQC.sumstat_qc_pz_check(gwas_for_qc=gwas, limit=limit)
+        qc3 = SummaryStatisticsQC.sumstat_n_eff_check(
+            gwas_for_qc=gwas, n_total=n_total, limit=limit, min_count=min_count
+        )
+        qc4 = SummaryStatisticsQC.gc_lambda_check(gwas_for_qc=gwas, limit=limit)
+        qc5 = SummaryStatisticsQC.number_of_snps(gwas_for_qc=gwas)
         df = (
             qc1.join(qc2, on="studyId", how="outer")
             .join(qc3, on="studyId", how="outer")
