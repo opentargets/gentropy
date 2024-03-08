@@ -7,6 +7,7 @@ import pandas as pd
 import pyspark.sql.functions as f
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.sumstat_quality_controls import SummaryStatisticsQC
+from pyspark.sql.functions import rand, when
 
 
 def test_qc_functions(
@@ -42,3 +43,21 @@ def test_neff_check_eaf(
     )
     QC = QC.toPandas()
     assert np.round(QC["se_N"].iloc[0], 4) == 0.5586
+
+
+def test_several_studyid(
+    sample_summary_statistics: SummaryStatistics,
+) -> None:
+    """Test stability when several studyIds are present."""
+    gwas = sample_summary_statistics.sanity_filter()
+    gwas_df = gwas._df
+    gwas_df = gwas_df.withColumn(
+        "studyId", when(rand() < 0.5, "new_value").otherwise(gwas_df["studyId"])
+    )
+    gwas._df = gwas_df
+
+    QC = SummaryStatisticsQC.get_quality_control_metrics(
+        gwas=gwas, limit=100000, min_count=100, n_total=100000
+    )
+    QC = QC.toPandas()
+    assert QC.shape == (2, 8)
