@@ -16,14 +16,18 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 class SummaryStatisticsQC:
     """Summary statistics QC methods.
 
-    It contains methods for quality control of GWAS summary statistics.
-    The list of methods:
-        - sumstat_qc_beta_check: The mean beta check. The mean beta should be close to 0.
-        - sumstat_qc_pz_check: The PZ check. It runs linear regression between reported p-values and p-values infered from z-scores.
-        - sumstat_n_eff_check: The effective sample size check. It estiamtes the ratio between effective sample size and the expected one and checks it's distribution.
-        - gc_lambda_check: The genomic control lambda check.
-        - sanity_filter: The function filters the summary statistics by sanity filters.
-        - number_of_snps: The function caluates number of SNPs and number of SNPs with p-value less than 5e-8.
+    This module contains methods for quality control of GWAS summary statistics.
+    The list of methods includes:
+
+        - sumstat_qc_beta_check: This is the mean beta check. The mean beta should be close to 0.
+
+        - sumstat_qc_pz_check: This is the PZ check. It runs a linear regression between reported p-values and p-values inferred from z-scores.
+
+        - sumstat_n_eff_check: This is the effective sample size check. It estimates the ratio between the effective sample size and the expected one and checks its distribution.
+
+        - gc_lambda_check: This is the genomic control lambda check.
+
+        - number_of_snps: This function calculates the number of SNPs and the number of SNPs with a p-value less than 5e-8.
     """
 
     @staticmethod
