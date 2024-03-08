@@ -4,7 +4,8 @@
   prerequisites:
     - "ot_variant_index"
     - "ot_gene_index"
-- id: "ot_colocalisation"
+- id: "ot_colocalisation_ecaviar"
+- id: "ot_colocalisation_coloc"
 - id: "ot_locus_to_gene_train"
   prerequisites:
     - "ot_variant_index"

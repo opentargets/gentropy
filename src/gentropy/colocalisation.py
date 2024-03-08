@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.config import ColocalisationMethod
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
-from gentropy.method.colocalisation import ECaviar
+from gentropy.method.colocalisation import Coloc, ECaviar
 
 
 class ColocalisationStep:
@@ -19,6 +20,7 @@ class ColocalisationStep:
         credible_set_path: str,
         study_index_path: str,
         coloc_path: str,
+        colocalisation_method: ColocalisationMethod,
     ) -> None:
         """Run Colocalisation step.
 
@@ -27,6 +29,7 @@ class ColocalisationStep:
             credible_set_path (str): Input credible sets path.
             study_index_path (str): Input study index path.
             coloc_path (str): Output Colocalisation path.
+            colocalisation_method (ColocalisationMethod): Colocalisation method. Available methods are: ECAVIAR, COLOC.
         """
         # Extract
         credible_set = StudyLocus.from_parquet(
@@ -37,10 +40,35 @@ class ColocalisationStep:
         )
 
         # Transform
+        colocalisation_class = self._get_colocalisation_class(
+            colocalisation_method.value
+        )
         overlaps = credible_set.filter_credible_set(
             CredibleInterval.IS95
         ).find_overlaps(si)
-        ecaviar_results = ECaviar.colocalise(overlaps)
+        colocalisation_results = colocalisation_class.colocalise(overlaps)  # type: ignore
 
         # Load
-        ecaviar_results.df.write.mode(session.write_mode).parquet(coloc_path)
+        colocalisation_results.df.write.mode(session.write_mode).parquet(
+            f"{coloc_path}/{colocalisation_method}"
+        )
+
+    @classmethod
+    def _get_colocalisation_class(cls: type[ColocalisationStep], method: str) -> type:
+        """Get colocalisation class.
+
+        Args:
+            method (str): Colocalisation method.
+
+        Returns:
+            type: Colocalisation class.
+
+        Examples:
+            >>> ColocalisationStep._get_colocalisation_class("ecaviar")
+            <class 'gentropy.method.colocalisation.ECaviar'>
+        """
+        method_to_class = {
+            "coloc": Coloc,
+            "ecaviar": ECaviar,
+        }
+        return method_to_class[method]

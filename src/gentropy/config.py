@@ -1,6 +1,7 @@
 """Interface for application configuration."""
 import os
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List
 
 from hail import __file__ as hail_location
@@ -30,6 +31,13 @@ class StepConfig:
     )
 
 
+class ColocalisationMethod(Enum):
+    """Colocalisation methods."""
+
+    COLOC = "coloc"
+    ECAVIAR = "ecaviar"
+
+
 @dataclass
 class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
@@ -37,6 +45,7 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     study_index_path: str = MISSING
     coloc_path: str = MISSING
+    colocalisation_method: ColocalisationMethod = MISSING
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
