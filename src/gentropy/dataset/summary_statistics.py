@@ -4,9 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.functions import log10
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
@@ -139,24 +137,3 @@ class SummaryStatistics(Dataset):
         )
         self._df = gwas_df
         return self
-
-    def number_of_snps(
-        self: SummaryStatistics, pval_threhod: float = 5e-8
-    ) -> tuple[int, int]:
-        """The function caluates number of SNPs and number of SNPs with p-value less than 5e-8.
-
-        Args:
-            pval_threhod (float): The threshold for the p-value.
-
-        Returns:
-            tuple[int, int]: Number of SNPs and number of SNPs with p-value less than 5e-8.
-        """
-        gwas_df = self._df
-
-        n_variants = gwas_df.count()
-        n_variants_sig = gwas_df.filter(
-            (log10(f.col("pValueMantissa")) + f.col("pValueExponent"))
-            <= np.log10(pval_threhod)
-        ).count()
-
-        return (n_variants, n_variants_sig)

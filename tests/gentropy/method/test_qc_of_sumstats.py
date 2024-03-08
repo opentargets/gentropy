@@ -19,7 +19,6 @@ def test_qc_functions(
     )
     QC = QC.toPandas()
 
-    assert gwas.number_of_snps() == (1663, 29)
     assert QC["n_variants"].iloc[0] == 1663
     assert QC["n_variants_sig"].iloc[0] == 29
     assert np.round(QC["gc_lambda"].iloc[0], 4) == 1.916
