@@ -24,8 +24,8 @@ def test_qc_functions(
     assert QC["n_variants_sig"].iloc[0] == 29
     assert np.round(QC["gc_lambda"].iloc[0], 4) == 1.916
     assert np.round(QC["mean_beta"].iloc[0], 4) == 0.0013
-    assert np.round(QC["pz_beta"].iloc[0], 6) == 1
-    assert np.round(QC["pz_intercept"].iloc[0], 6) == 0
+    assert np.round(QC["mean_diff_pz"].iloc[0], 6) == 0
+    assert np.round(QC["se_diff_pz"].iloc[0], 6) == 0
     assert pd.isna(QC["se_N"].iloc[0])
 
 

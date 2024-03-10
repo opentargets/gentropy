@@ -135,5 +135,8 @@ class SummaryStatistics(Dataset):
         gwas_df = gwas_df.filter(
             f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1
         )
-        self._df = gwas_df
-        return self
+
+        return SummaryStatistics(
+            _df=gwas_df,
+            _schema=SummaryStatistics.get_schema(),
+        )

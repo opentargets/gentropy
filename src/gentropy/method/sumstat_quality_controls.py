@@ -6,7 +6,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import scipy as sc
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col, expr, log10, row_number
+from pyspark.sql.functions import expr, log10, row_number
 from pyspark.sql.window import Window
 from scipy.stats import chi2
 
@@ -66,24 +66,6 @@ class SummaryStatisticsQC:
         return float(logpval)
 
     @staticmethod
-    def _calculate_lin_reg(y: list[float], x: list[float]) -> list[float]:
-        """Calculate linear regression.
-
-        Args:
-            y (list[float]): y values.
-            x (list[float]): x values.
-
-        Returns:
-            list[float]: slope, slope_stderr, intercept, intercept_stderr.
-
-        Examples:
-            >>> SummaryStatisticsQC._calculate_lin_reg([1,2,3], [1,2,3])
-            [1.0, 0.0]
-        """
-        lin_reg = sc.stats.linregress(y, x)
-        return [float(lin_reg.slope), float(lin_reg.intercept)]
-
-    @staticmethod
     def sumstat_qc_pz_check(
         gwas_for_qc: SummaryStatistics,
         limit: int = 10_000_000,
@@ -99,17 +81,9 @@ class SummaryStatisticsQC:
         """
         gwas_df = gwas_for_qc._df
 
-        linear_reg_Schema = t.StructType(
-            [
-                t.StructField("beta", t.FloatType(), False),
-                t.StructField("intercept", t.FloatType(), False),
-            ]
-        )
-
         calculate_logpval_udf = f.udf(
             SummaryStatisticsQC._calculate_logpval, t.DoubleType()
         )
-        lin_udf = f.udf(SummaryStatisticsQC._calculate_lin_reg, linear_reg_Schema)
 
         window = Window.partitionBy("studyId").orderBy("studyId")
 
@@ -123,23 +97,18 @@ class SummaryStatisticsQC:
             gwas_df.withColumn("zscore", f.col("beta") / f.col("standardError"))
             .withColumn("new_logpval", calculate_logpval_udf(f.col("zscore") ** 2))
             .withColumn("log_mantissa", log10("pValueMantissa"))
-            .withColumn("logpval", -f.col("log_mantissa") - f.col("pValueExponent"))
+            .withColumn(
+                "diffpval",
+                -f.col("log_mantissa") - f.col("pValueExponent") - f.col("new_logpval"),
+            )
             .groupBy("studyId")
             .agg(
-                f.collect_list("logpval").alias("pval_vector"),
-                f.collect_list("new_logpval").alias("new_pval_vector"),
+                f.mean("diffpval").alias("mean_diff_pz"),
+                f.stddev("diffpval").alias("se_diff_pz"),
             )
-            .withColumn(
-                "result_lin_reg",
-                lin_udf(f.col("pval_vector"), f.col("new_pval_vector")),
-            )
-            .select("studyId", "result_lin_reg")
+            .select("studyId", "mean_diff_pz", "se_diff_pz")
         )
-        qc_c = (
-            qc_c.withColumn("pz_beta", col("result_lin_reg").getItem("beta"))
-            .withColumn("pz_intercept", col("result_lin_reg").getItem("intercept"))
-            .drop("result_lin_reg")
-        )
+
         return qc_c
 
     @staticmethod
@@ -211,11 +180,12 @@ class SummaryStatisticsQC:
             ),
         )
 
-        gwas_df = gwas_df.withColumn(
-            "se_N", f.stddev(f.col("N_hat_ratio")).over(window)
-        )
-        qc_c = gwas_df.groupBy("studyId").agg(
-            f.stddev("N_hat_ratio").alias("se_N"),
+        qc_c = (
+            gwas_df.groupBy("studyId")
+            .agg(
+                f.stddev("N_hat_ratio").alias("se_N"),
+            )
+            .select("studyId", "se_N")
         )
 
         return qc_c
