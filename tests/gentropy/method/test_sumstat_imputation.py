@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from gentropy.method.sumstat_imputation import sumstat_imputation
+from gentropy.method.sumstat_imputation import SummaryStatisticsImputation
 
 
 class TestSSImp:
@@ -22,8 +22,10 @@ class TestSSImp:
         sig_i_t = ld[unknowns, :][:, known]
         zt = z[known]
 
-        _l = sumstat_imputation.raiss_model(zt, sig_t, sig_i_t, lamb=0.01, rtol=0.01)
+        _l = SummaryStatisticsImputation.raiss_model(
+            zt, sig_t, sig_i_t, lamb=0.01, rtol=0.01
+        )
         assert (
-            np.round(_l["imputation_R2"][0], decimals=4) == 0.9304
+            np.round(_l["imputation_r2"][0], decimals=4) == 0.9304
             and np.round(_l["mu"][0], decimals=4) == 9.7215
         )

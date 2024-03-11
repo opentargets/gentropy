@@ -37,20 +37,22 @@ class SummaryStatisticsImputation:
                 - correct_inversion (np.ndarray): a boolean array indicating if the inversion was successful
                 - imputation_r2 (np.ndarray): the R2 of the imputation
         """
-        sig_t_inv = sumstat_imputation._invert_sig_t(sig_t, lamb, rtol)
+        sig_t_inv = SummaryStatisticsImputation._invert_sig_t(sig_t, lamb, rtol)
         if sig_t_inv is None:
             return {"mu": None}
         else:
             condition_number = np.array([np.linalg.cond(sig_t)] * sig_i_t.shape[0])
             correct_inversion = np.array(
-                [sumstat_imputation._check_inversion(sig_t, sig_t_inv)]
+                [SummaryStatisticsImputation._check_inversion(sig_t, sig_t_inv)]
                 * sig_i_t.shape[0]
             )
 
-            var, ld_score = sumstat_imputation._compute_var(sig_i_t, sig_t_inv, lamb)
+            var, ld_score = SummaryStatisticsImputation._compute_var(
+                sig_i_t, sig_t_inv, lamb
+            )
 
-            mu = sumstat_imputation._compute_mu(sig_i_t, sig_t_inv, zt)
-            var_norm = sumstat_imputation._var_in_boundaries(var, lamb)
+            mu = SummaryStatisticsImputation._compute_mu(sig_i_t, sig_t_inv, zt)
+            var_norm = SummaryStatisticsImputation._var_in_boundaries(var, lamb)
 
             R2 = (1 + lamb) - var_norm
 
@@ -61,7 +63,7 @@ class SummaryStatisticsImputation:
                 "ld_score": ld_score,
                 "condition_number": condition_number,
                 "correct_inversion": correct_inversion,
-                "imputation_R2": 1 - var,
+                "imputation_r2": 1 - var,
             }
 
     @staticmethod
@@ -148,4 +150,6 @@ class SummaryStatisticsImputation:
             sig_t_inv = scipy.linalg.pinv(sig_t, rtol=rtol, atol=0)
             return sig_t_inv
         except np.linalg.LinAlgError:
-            return sumstat_imputation._invert_sig_t(sig_t, lamb * 1.1, rtol * 1.1)
+            return SummaryStatisticsImputation._invert_sig_t(
+                sig_t, lamb * 1.1, rtol * 1.1
+            )
