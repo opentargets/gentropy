@@ -19,7 +19,7 @@ class SummaryStatisticsImputation:
         lamb: float = 0.01,
         rtol: float = 0.01,
     ) -> dict[str, Any]:
-        """The raiss model of impuattion. It computes the imputation of the zscore.
+        """Compute the imputation of the z-score using the RAISS model.
 
         Args:
             zt (np.ndarray): the vector of known Z scores
