@@ -24,7 +24,7 @@ class SummaryStatisticsImputation:
         Args:
             zt (np.ndarray): the vector of known Z scores
             sig_t (np.ndarray) : the matrix of known LD correlations
-            sig_i_t (np.ndarray): LD matrix of known SNPs with other uknown SNPs in large matrix (similar to ld[unknowns, :][:,known])
+            sig_i_t (np.ndarray): LD matrix of known SNPs with other unknown SNPs in large matrix (similar to ld[unknowns, :][:,known])
             lamb (float): size of the small value added to the diagonal of the covariance matrix before inversion. Defaults to 0.01.
             rtol (float): threshold to filter eigenvectos by its eigenvalue. It makes an inversion biased but much more numerically robust
 
