@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql import Column, Window
+import pyspark.sql.types as t
+from pyspark.ml import functions as fml
+from pyspark.ml.linalg import DenseVector, VectorUDT
+from pyspark.sql.window import Window
 
-from gentropy.common.utils import split_pvalue
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
     from pyspark.sql import Column
 
     from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -21,127 +24,312 @@ class WindowBasedClumping:
     """Get semi-lead snps from summary statistics using a window based function."""
 
     @staticmethod
-    def clump(
-        summary_statistics: SummaryStatistics,
-        distance: int = 500_000,
-        gwas_significance: float = 5e-8,
-        collect_locus: bool = False,
-        collect_locus_distance: int = 500_000,
-    ) -> StudyLocus:
-        """Generate study-locus from summary statistics by distance based clumping + collect locus.
+    def _cluster_peaks(
+        study: Column, chromosome: Column, position: Column, window_length: int
+    ) -> Column:
+        """Cluster GWAS significant variants, were clusters are separated by a defined distance.
 
-        The clumping procedure takes all SNPs that are significant at threshold `gwas_significance` that have not already been clumped by more significant index SNPs. If `collect_locus` is `True`, the method forms clumps of all other SNPs that are within a `collect_locus_distance` from the index SNP (default 500kb). SNPs can appear in more than one locus if independently clumped by 2 non-onverlapping index SNPs.
+        !! Important to note that the length of the clusters can be arbitrarily big.
 
         Args:
-            summary_statistics (SummaryStatistics): Summary statistics to be used for clumping.
-            distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
-            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
-            collect_locus (bool): Whether to collect locus around semi-indices. Defaults to False.
-            collect_locus_distance (int): The distance to collect locus around semi-indices. If not provided, locus is not collected. Defaults to 500_000.
+            study (Column): study identifier
+            chromosome (Column): chromosome identifier
+            position (Column): position of the variant
+            window_length (int): window length in basepair
 
         Returns:
-            StudyLocus: Clumped study-locus containing variants based on window.
+            Column: containing cluster identifier
+
+        Examples:
+            >>> data = [
+            ...     # Cluster 1:
+            ...     ('s1', 'chr1', 2),
+            ...     ('s1', 'chr1', 4),
+            ...     ('s1', 'chr1', 12),
+            ...     # Cluster 2 - Same chromosome:
+            ...     ('s1', 'chr1', 31),
+            ...     ('s1', 'chr1', 38),
+            ...     ('s1', 'chr1', 42),
+            ...     # Cluster 3 - New chromosome:
+            ...     ('s1', 'chr2', 41),
+            ...     ('s1', 'chr2', 44),
+            ...     ('s1', 'chr2', 50),
+            ...     # Cluster 4 - other study:
+            ...     ('s2', 'chr2', 55),
+            ...     ('s2', 'chr2', 62),
+            ...     ('s2', 'chr2', 70),
+            ... ]
+            >>> window_length = 10
+            >>> (
+            ...     spark.createDataFrame(data, ['studyId', 'chromosome', 'position'])
+            ...     .withColumn("cluster_id",
+            ...         WindowBasedClumping._cluster_peaks(
+            ...             f.col('studyId'),
+            ...             f.col('chromosome'),
+            ...             f.col('position'),
+            ...             window_length
+            ...         )
+            ...     ).show()
+            ... )
+            +-------+----------+--------+----------+
+            |studyId|chromosome|position|cluster_id|
+            +-------+----------+--------+----------+
+            |     s1|      chr1|       2| s1_chr1_2|
+            |     s1|      chr1|       4| s1_chr1_2|
+            |     s1|      chr1|      12| s1_chr1_2|
+            |     s1|      chr1|      31|s1_chr1_31|
+            |     s1|      chr1|      38|s1_chr1_31|
+            |     s1|      chr1|      42|s1_chr1_31|
+            |     s1|      chr2|      41|s1_chr2_41|
+            |     s1|      chr2|      44|s1_chr2_41|
+            |     s1|      chr2|      50|s1_chr2_41|
+            |     s2|      chr2|      55|s2_chr2_55|
+            |     s2|      chr2|      62|s2_chr2_55|
+            |     s2|      chr2|      70|s2_chr2_55|
+            +-------+----------+--------+----------+
+            <BLANKLINE>
+
         """
-        # When collect_locus is False, we only want to keep the significant variants
-        if not collect_locus:
-            summary_statistics = summary_statistics.pvalue_filter(gwas_significance)
-
-        def _pvalue_filter_expr(
-            pvalue_threshold: float,
-            pValueExponentCol: Column,
-            pValueMantissaCol: Column,
-        ) -> Column:
-            (mantissa, exponent) = split_pvalue(pvalue_threshold)
-            return (pValueExponentCol < exponent) | (
-                (pValueExponentCol == exponent) & (pValueMantissaCol <= mantissa)
-            )
-
-        # STAGE 1:
-        # Finding semi-indices (potential lead variants) by evaluating a window around each variant
-        # Variants without a significant signal in the window are discarded
-        # WARNING: This stage can be time consuming in large chromosomes with complete statistics and many significant associations
-        w1 = (
-            Window.partitionBy("studyId", "chromosome")
-            .orderBy("position")
-            .rangeBetween(-distance, distance)
+        # By adding previous position, the cluster boundary can be identified:
+        previous_position = f.lag(position).over(
+            Window.partitionBy(study, chromosome).orderBy(position)
         )
-        ss_with_indexes = (
-            summary_statistics.df.withColumn(
-                "semiIndexId",
-                # potential lead variants defined as lowest p-value in window (below threshold)
-                f.element_at(
-                    f.array_sort(
-                        f.collect_list(
-                            f.when(
-                                _pvalue_filter_expr(
-                                    gwas_significance,
-                                    f.col("pValueExponent"),
-                                    f.col("pValueMantissa"),
-                                ),
-                                f.struct(
-                                    f.col("pValueExponent"),
-                                    f.col("pValueMantissa"),
-                                    f.col("variantId"),
-                                ),
-                            )
-                        ).over(w1),
-                    ),
-                    1,
-                )["variantId"],
-            )
-            # discard variants with no semi-index (significant signal in +/- window)
-            .filter(f.col("semiIndexId").isNotNull())
+        # We consider a cluster boudary if subsequent snps are further than the defined window:
+        cluster_id = f.when(
+            (previous_position.isNull())
+            | (position - previous_position > window_length),
+            f.concat_ws("_", study, chromosome, position),
         )
+        # The cluster identifier is propagated across every variant of the cluster:
+        return f.when(
+            cluster_id.isNull(),
+            f.last(cluster_id, ignorenulls=True).over(
+                Window.partitionBy(study, chromosome)
+                .orderBy(position)
+                .rowsBetween(Window.unboundedPreceding, Window.currentRow)
+            ),
+        ).otherwise(cluster_id)
 
-        # STAGE 2:
-        # If collect_locus is True, we collect all variants in a window around the semi-indices
-        # Rows without a locus are discarded as they are already contained in the respective loci
-        if collect_locus:
-            w2 = (
-                Window.partitionBy("studyId", "chromosome")
-                .orderBy("position")
-                .rangeBetween(-collect_locus_distance, collect_locus_distance)
-            )
-            ss_with_indexes = (
-                ss_with_indexes.withColumn(  # collect variants in locus only for potential leads
-                    "locus",
-                    f.when(
-                        _pvalue_filter_expr(
-                            gwas_significance,
-                            f.col("pValueExponent"),
-                            f.col("pValueMantissa"),
-                        ),
-                        # f.col("pValueExponent") <= f.lit(-8),
-                        f.collect_list(
-                            f.struct(
-                                f.col("variantId"),
-                                f.col("pValueMantissa"),
-                                f.col("pValueExponent"),
-                                f.col("beta"),
-                                f.col("standardError"),
-                            )
-                        ).over(w2),
+    @staticmethod
+    def _prune_peak(position: NDArray[np.float64], window_size: int) -> DenseVector:
+        """Establish lead snps based on their positions listed by p-value.
+
+        The function `find_peak` assigns lead SNPs based on their positions listed by p-value within a specified window size.
+
+        Args:
+            position (NDArray[np.float64]): positions of the SNPs sorted by p-value.
+            window_size (int): the distance in bp within which associations are clumped together around the lead snp.
+
+        Returns:
+            DenseVector: binary vector where 1 indicates a lead SNP and 0 indicates a non-lead SNP.
+
+        Examples:
+            >>> from pyspark.ml import functions as fml
+            >>> from pyspark.ml.linalg import DenseVector
+            >>> WindowBasedClumping._prune_peak(np.array((3, 9, 8, 4, 6)), 2)
+            DenseVector([1.0, 1.0, 0.0, 0.0, 1.0])
+
+        """
+        # Initializing the lead list with zeroes:
+        is_lead = np.zeros(len(position))
+
+        # List containing indices of leads:
+        lead_indices: list[int] = []
+
+        # Looping through all positions:
+        for index in range(len(position)):
+            # Looping through leads to find out if they are within a window:
+            for lead_index in lead_indices:
+                # If any of the leads within the window:
+                if abs(position[lead_index] - position[index]) < window_size:
+                    # Skipping further checks:
+                    break
+            else:
+                # None of the leads were within the window:
+                lead_indices.append(index)
+                is_lead[index] = 1
+
+        return DenseVector(is_lead)
+
+    @classmethod
+    def clump(
+        cls: type[WindowBasedClumping],
+        summary_stats: SummaryStatistics,
+        window_length: int,
+        p_value_significance: float = 5e-8,
+    ) -> StudyLocus:
+        """Clump summary statistics by distance.
+
+        Args:
+            summary_stats (SummaryStatistics): summary statistics to clump
+            window_length (int): window length in basepair
+            p_value_significance (float): only more significant variants are considered
+
+        Returns:
+            StudyLocus: clumped summary statistics
+        """
+        # Create window for locus clusters
+        # - variants where the distance between subsequent variants is below the defined threshold.
+        # - Variants are sorted by descending significance
+        cluster_window = Window.partitionBy(
+            "studyId", "chromosome", "cluster_id"
+        ).orderBy(f.col("pValueExponent").asc(), f.col("pValueMantissa").asc())
+
+        return StudyLocus(
+            _df=(
+                summary_stats
+                # Dropping snps below significance - all subsequent steps are done on significant variants:
+                .pvalue_filter(p_value_significance)
+                .df
+                # Clustering summary variants for efficient windowing (complexity reduction):
+                .withColumn(
+                    "cluster_id",
+                    WindowBasedClumping._cluster_peaks(
+                        f.col("studyId"),
+                        f.col("chromosome"),
+                        f.col("position"),
+                        window_length,
                     ),
                 )
-                # Focus on potential leads (locus contains remaining variants)
-                .filter(f.col("locus").isNotNull())
-            )
-
-        # STAGE 3:
-        # When multiple nominated loci share the same semiIndexId only the most significant remains
-        w3 = Window.partitionBy("studyId", "chromosome", "semiIndexId").orderBy(
-            f.asc("pValueExponent"), f.asc("pValueMantissa")
-        )
-        ss_with_indexes_nr = (
-            ss_with_indexes.withColumn("row", f.row_number().over(w3))
-            .filter(f.col("row") == 1)
-            .drop("row", "semiIndexId")
-        )
-        # Format and return
-        return StudyLocus(
-            _df=ss_with_indexes_nr.withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+                # Within each cluster variants are ranked by significance:
+                .withColumn("pvRank", f.row_number().over(cluster_window))
+                # Collect positions in cluster for the most significant variant (complexity reduction):
+                .withColumn(
+                    "collectedPositions",
+                    f.when(
+                        f.col("pvRank") == 1,
+                        f.collect_list(f.col("position")).over(
+                            cluster_window.rowsBetween(
+                                Window.currentRow, Window.unboundedFollowing
+                            )
+                        ),
+                    ).otherwise(f.array()),
+                )
+                # Get semi indices only ONCE per cluster:
+                .withColumn(
+                    "semiIndices",
+                    f.when(
+                        f.size(f.col("collectedPositions")) > 0,
+                        fml.vector_to_array(
+                            f.udf(WindowBasedClumping._prune_peak, VectorUDT())(
+                                fml.array_to_vector(f.col("collectedPositions")),
+                                f.lit(window_length),
+                            )
+                        ),
+                    ),
+                )
+                # Propagating the result of the above calculation for all rows:
+                .withColumn(
+                    "semiIndices",
+                    f.when(
+                        f.col("semiIndices").isNull(),
+                        f.first(f.col("semiIndices"), ignorenulls=True).over(
+                            cluster_window
+                        ),
+                    ).otherwise(f.col("semiIndices")),
+                )
+                # Keeping semi indices only:
+                .filter(f.col("semiIndices")[f.col("pvRank") - 1] > 0)
+                .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
+                # Adding study-locus id:
+                .withColumn(
+                    "studyLocusId",
+                    StudyLocus.assign_study_locus_id(
+                        f.col("studyId"), f.col("variantId")
+                    ),
+                )
+                # Initialize QC column as array of strings:
+                .withColumn(
+                    "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
+                )
             ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    @classmethod
+    def clump_with_locus(
+        cls: type[WindowBasedClumping],
+        summary_stats: SummaryStatistics,
+        window_length: int,
+        p_value_significance: float = 5e-8,
+        p_value_baseline: float = 0.05,
+        locus_window_length: int | None = None,
+    ) -> StudyLocus:
+        """Clump significant associations while collecting locus around them.
+
+        Args:
+            summary_stats (SummaryStatistics): Input summary statistics dataset
+            window_length (int): Window size in  bp, used for distance based clumping.
+            p_value_significance (float): GWAS significance threshold used to filter peaks. Defaults to 5e-8.
+            p_value_baseline (float): Least significant threshold. Below this, all snps are dropped. Defaults to 0.05.
+            locus_window_length (int | None): The distance for collecting locus around the semi indices. Defaults to None.
+
+        Returns:
+            StudyLocus: StudyLocus after clumping with information about the `locus`
+        """
+        # If no locus window provided, using the same value:
+        if locus_window_length is None:
+            locus_window_length = window_length
+
+        # Run distance based clumping on the summary stats:
+        clumped_dataframe = WindowBasedClumping.clump(
+            summary_stats,
+            window_length=window_length,
+            p_value_significance=p_value_significance,
+        ).df.alias("clumped")
+
+        # Get list of columns from clumped dataset for further propagation:
+        clumped_columns = clumped_dataframe.columns
+
+        # Dropping variants not meeting the baseline criteria:
+        sumstats_baseline = summary_stats.pvalue_filter(p_value_baseline).df
+
+        # Renaming columns:
+        sumstats_baseline_renamed = sumstats_baseline.selectExpr(
+            *[f"{col} as tag_{col}" for col in sumstats_baseline.columns]
+        ).alias("sumstat")
+
+        study_locus_df = (
+            sumstats_baseline_renamed
+            # Joining the two datasets together:
+            .join(
+                f.broadcast(clumped_dataframe),
+                on=[
+                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
+                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
+                    & (
+                        f.col("sumstat.tag_position")
+                        >= (f.col("clumped.position") - locus_window_length)
+                    )
+                    & (
+                        f.col("sumstat.tag_position")
+                        <= (f.col("clumped.position") + locus_window_length)
+                    )
+                ],
+                how="right",
+            )
+            .withColumn(
+                "locus",
+                f.struct(
+                    f.col("tag_variantId").alias("variantId"),
+                    f.col("tag_beta").alias("beta"),
+                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
+                    f.col("tag_pValueExponent").alias("pValueExponent"),
+                    f.col("tag_standardError").alias("standardError"),
+                ),
+            )
+            .groupby("studyLocusId")
+            .agg(
+                *[
+                    f.first(col).alias(col)
+                    for col in clumped_columns
+                    if col != "studyLocusId"
+                ],
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
+        )
+
+        return StudyLocus(
+            _df=study_locus_df,
             _schema=StudyLocus.get_schema(),
         )

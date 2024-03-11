@@ -59,7 +59,7 @@ repos:
     rev: v9.11.0
     hooks:
       - id: commitlint
-        additional_dependencies: ["@commitlint/config-conventional"]
+        additional_dependencies: ["@commitlint/config-conventional@18.6.3"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
