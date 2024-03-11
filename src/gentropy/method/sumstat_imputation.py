@@ -35,7 +35,7 @@ class SummaryStatisticsImputation:
                 - ld_score (np.ndarray): the linkage desiquilibrium score of the imputed SNPs
                 - condition_number (np.ndarray): the condition number of the correlation matrix
                 - correct_inversion (np.ndarray): a boolean array indicating if the inversion was successful
-                - imputation_R2 (np.ndarray): the R2 of the imputation
+                - imputation_r2 (np.ndarray): the R2 of the imputation
         """
         sig_t_inv = sumstat_imputation._invert_sig_t(sig_t, lamb, rtol)
         if sig_t_inv is None:
