@@ -133,7 +133,7 @@ class SummaryStatisticsImputation:
 
     @staticmethod
     def _invert_sig_t(sig_t: np.ndarray, lamb: float, rtol: float) -> np.ndarray:
-        """Invert the correlation matrix.
+        """Invert the correlation matrix. If the provided regularization values are not enough to stabilize the inversion process for the given matrix, the function calls itself recursively, increasing lamb and rtol by 10%.
 
         Args:
             sig_t (np.ndarray): the correlation matrix
