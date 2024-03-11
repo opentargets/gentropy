@@ -2,7 +2,7 @@
 title: Summary Statistics Imputation
 ---
 
-Summary statistics imputation enables the imputation of SNP summary statistics from the neighboring
+Summary statistics imputation leverages linkage disequilibrium (LD) information to compute Z-scores of missing SNPs from neighbouring observed SNPs
 SNPs by taking advantage of the Linkage Disequilibrium.
 
 We implemented the basic model from RAISS (Robust and Accurate Imputation from Summary Statistics) package (see the original [paper](https://academic.oup.com/bioinformatics/article/35/22/4837/5512360)).
