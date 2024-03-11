@@ -8,7 +8,7 @@ import numpy as np
 import scipy.linalg
 
 
-class sumstat_imputation:
+class SummaryStatisticsImputation:
     """Implementation of RAISS summary statstics imputation model."""
 
     @staticmethod
