@@ -330,7 +330,7 @@ class StudyIndexGWASCatalogParser:
         # Read GWAS Catalogue raw data
         return (
             cls._parse_study_table(catalog_studies)
-            .annotate_ancestries(ancestry_file)
+            .annotate_ancestries(ancestry_file, catalog_studies)
             .annotate_sumstats_info(sumstats_lut)
             .annotate_discovery_sample_sizes()
         )
@@ -520,7 +520,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
 
     def annotate_ancestries(
-        self: StudyIndexGWASCatalog, ancestry_lut: DataFrame
+        self: StudyIndexGWASCatalog, ancestry_lut: DataFrame, catalog_studies: DataFrame
     ) -> StudyIndexGWASCatalog:
         """Extracting sample sizes and ancestry information.
 
@@ -529,6 +529,7 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         Args:
             ancestry_lut (DataFrame): Ancestry table as downloaded from the GWAS Catalog
+            catalog_studies (DataFrame): GWAS Catalog study table
 
         Returns:
             StudyIndexGWASCatalog: Slimmed and cleaned version of the ancestry annotation.
