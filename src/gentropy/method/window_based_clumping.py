@@ -258,7 +258,7 @@ class WindowBasedClumping:
                 # Joining the two datasets together:
                 .join(
                     f.broadcast(
-                        clumped_dataframe.select(
+                        clumped_dataframe.alias("clumped").select(
                             "position", "chromosome", "studyId", "studyLocusId"
                         )
                     ),
