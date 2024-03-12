@@ -58,7 +58,7 @@ class ClumpStep:
         else:
             sumstats = SummaryStatistics.from_parquet(
                 session, input_path, recursiveFileLookup=True
-            ).coalesce(4000)
+            )
             clumped_study_locus = sumstats.window_based_clumping()
 
         clumped_study_locus.df.write.mode(session.write_mode).parquet(
