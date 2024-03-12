@@ -9,6 +9,7 @@ from pyspark.sql.functions import col
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.method.colocalisation import Coloc
 
 
 class ColocalisationStep:
@@ -34,12 +35,13 @@ class ColocalisationStep:
             coloc_path (str): Output Colocalisation path.
             colocalisation_method (str): Colocalisation method.
         """
+        colocalisation_class = self._get_colocalisation_class(colocalisation_method)
         # Extract
         credible_set = (
             StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
             ).filter(col("finemappingMethod") == "SuSie")
-            if colocalisation_method == "Coloc"
+            if colocalisation_class is Coloc
             else StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
             )
@@ -49,7 +51,6 @@ class ColocalisationStep:
         )
 
         # Transform
-        colocalisation_class = self._get_colocalisation_class(colocalisation_method)
         overlaps = credible_set.filter_credible_set(
             CredibleInterval.IS95
         ).find_overlaps(si)
