@@ -1,4 +1,5 @@
 """Tests on variant index generation."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

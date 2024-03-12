@@ -253,10 +253,7 @@ class FinnGenFinemapping:
         toploci_df = get_top_ranked_in_window(
             processed_finngen_finemapping_df,
             Window.partitionBy("studyId", "region", "credibleSetIndex").orderBy(
-                *[
-                    f.col("pValueExponent").asc(),
-                    f.col("pValueMantissa").asc(),
-                ]
+                f.desc("posteriorProbability")
             ),
         ).select(
             "variantId",
