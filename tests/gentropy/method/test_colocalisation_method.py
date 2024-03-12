@@ -8,8 +8,8 @@ import pytest
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation import Coloc, ECaviar
+from pandas.testing import assert_frame_equal
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as f
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
@@ -86,16 +86,23 @@ def test_coloc_semantic(
         _df=spark.createDataFrame(observed_data, schema=StudyLocusOverlap.get_schema()),
         _schema=StudyLocusOverlap.get_schema(),
     )
-    observed_coloc_df = Coloc.colocalise(observed_overlap).df
-    expected_coloc_df = spark.createDataFrame(expected_data)
-
-    difference = observed_coloc_df.select("h0", "h1", "h2", "h3", "h4").subtract(
-        expected_coloc_df
+    observed_coloc_pdf = (
+        Coloc.colocalise(observed_overlap)
+        .df.select("h0", "h1", "h2", "h3", "h4")
+        .toPandas()
     )
-    for col in difference.columns:
-        assert (
-            difference.filter(f.abs(f.col(col)) > threshold).count() == 0
-        ), f"Column {col} has a difference larger than {threshold}"
+    expected_coloc_pdf = (
+        spark.createDataFrame(expected_data)
+        .select("h0", "h1", "h2", "h3", "h4")
+        .toPandas()
+    )
+
+    assert_frame_equal(
+        observed_coloc_pdf,
+        expected_coloc_pdf,
+        check_exact=False,
+        check_dtype=True,
+    )
 
 
 def test_ecaviar(mock_study_locus_overlap: StudyLocusOverlap) -> None:
