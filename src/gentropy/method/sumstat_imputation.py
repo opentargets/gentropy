@@ -13,7 +13,7 @@ class SummaryStatisticsImputation:
 
     @staticmethod
     def raiss_model(
-        zt: np.ndarray,
+        z_scores_known: np.ndarray,
         sig_t: np.ndarray,
         sig_i_t: np.ndarray,
         lamb: float = 0.01,
