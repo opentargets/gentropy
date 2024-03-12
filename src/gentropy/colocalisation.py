@@ -1,13 +1,15 @@
 """Step to generate colocalisation results."""
 from __future__ import annotations
 
+import inspect
+from importlib import import_module
+
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
 from gentropy.config import ColocalisationMethod
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
-from gentropy.method.colocalisation import Coloc, ECaviar
 
 
 class ColocalisationStep:
@@ -71,12 +73,22 @@ class ColocalisationStep:
         Returns:
             type: Colocalisation class.
 
+        Raises:
+            ValueError: if method not available.
+
         Examples:
-            >>> ColocalisationStep._get_colocalisation_class("ecaviar")
+            >>> ColocalisationStep._get_colocalisation_class("ECaviar")
             <class 'gentropy.method.colocalisation.ECaviar'>
         """
-        method_to_class = {
-            "coloc": Coloc,
-            "ecaviar": ECaviar,
-        }
-        return method_to_class[method]
+        module_name = "gentropy.method.colocalisation"
+        module = import_module(module_name)
+
+        available_methods = []
+        for class_name, class_obj in inspect.getmembers(module, inspect.isclass):
+            if class_obj.__module__ == module_name:
+                available_methods.append(class_name)
+                if class_name == method:
+                    return class_obj
+        raise ValueError(
+            f"Method {method} is not supported. Available: {(', ').join(available_methods)}"
+        )
