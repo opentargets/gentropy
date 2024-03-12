@@ -4,7 +4,7 @@ dev_version: XX.XX
 release_folder: gs://genetics_etl_python_playground/releases/${datasets.release_version}
 
 inputs: gs://genetics_etl_python_playground/input
-static_assets: gs://genetics_etl_python_playground/static_assetss
+static_assets: gs://genetics_etl_python_playground/static_assets
 outputs: gs://genetics_etl_python_playground/output/python_etl/parquet/${datasets.dev_version}
 
 ## Datasets:
