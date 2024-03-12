@@ -7,7 +7,6 @@ from importlib import import_module
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
-from gentropy.config import ColocalisationMethod
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 
@@ -24,7 +23,7 @@ class ColocalisationStep:
         credible_set_path: str,
         study_index_path: str,
         coloc_path: str,
-        colocalisation_method: ColocalisationMethod,
+        colocalisation_method: str,
     ) -> None:
         """Run Colocalisation step.
 
@@ -33,14 +32,14 @@ class ColocalisationStep:
             credible_set_path (str): Input credible sets path.
             study_index_path (str): Input study index path.
             coloc_path (str): Output Colocalisation path.
-            colocalisation_method (ColocalisationMethod): Colocalisation method. Available methods are: ECAVIAR, COLOC.
+            colocalisation_method (str): Colocalisation method.
         """
         # Extract
         credible_set = (
             StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
             ).filter(col("finemappingMethod") == "SuSie")
-            if colocalisation_method.value == "coloc"
+            if colocalisation_method == "Coloc"
             else StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
             )
@@ -50,9 +49,7 @@ class ColocalisationStep:
         )
 
         # Transform
-        colocalisation_class = self._get_colocalisation_class(
-            colocalisation_method.value
-        )
+        colocalisation_class = self._get_colocalisation_class(colocalisation_method)
         overlaps = credible_set.filter_credible_set(
             CredibleInterval.IS95
         ).find_overlaps(si)
@@ -60,7 +57,7 @@ class ColocalisationStep:
 
         # Load
         colocalisation_results.df.write.mode(session.write_mode).parquet(
-            f"{coloc_path}/{colocalisation_method.value}"
+            f"{coloc_path}/{colocalisation_method.lower()}"
         )
 
     @classmethod
