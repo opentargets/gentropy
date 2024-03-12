@@ -10,6 +10,7 @@ import pyspark.sql.functions as f
 from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
+from gentropy.common.utils import get_logsum
 from gentropy.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
@@ -103,29 +104,11 @@ class Coloc:
 
         Coloc requires the availability of Bayes factors (BF) for each variant in the credible set (`logBF` column).
 
+    Attributes:
+        PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
     """
 
-    @staticmethod
-    def _get_logsum(log_bf: NDArray[np.float64]) -> float:
-        """Calculates logsum of vector.
-
-        This function calculates the log of the sum of the exponentiated
-        logs taking out the max, i.e. insuring that the sum is not Inf
-
-        Args:
-            log_bf (NDArray[np.float64]): log bayes factor
-
-        Returns:
-            float: logsum
-
-        Example:
-            >>> l = [0.2, 0.1, 0.05, 0]
-            >>> round(Coloc._get_logsum(l), 6)
-            1.476557
-        """
-        themax = np.max(log_bf)
-        result = themax + np.log(np.sum(np.exp(log_bf - themax)))
-        return float(result)
+    PSEUDOCOUNT: float = 1e-10
 
     @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
@@ -142,7 +125,7 @@ class Coloc:
             >>> Coloc._get_posteriors(l)
             DenseVector([0.279, 0.2524, 0.2401, 0.2284])
         """
-        diff = all_bfs - Coloc._get_logsum(all_bfs)
+        diff = all_bfs - get_logsum(all_bfs)
         bfs_posteriors = np.exp(diff)
         return Vectors.dense(bfs_posteriors)
 
@@ -158,6 +141,7 @@ class Coloc:
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
+
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
@@ -166,7 +150,7 @@ class Coloc:
             Colocalisation: Colocalisation results
         """
         # register udfs
-        logsum = f.udf(Coloc._get_logsum, DoubleType())
+        logsum = f.udf(get_logsum, DoubleType())
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
@@ -209,12 +193,12 @@ class Coloc:
                 .withColumn("lH2bf", f.log(f.col("priorc2")) + f.col("logsum2"))
                 # h3
                 .withColumn("sumlogsum", f.col("logsum1") + f.col("logsum2"))
-                # exclude null H3/H4s: due to sumlogsum == logsum12
-                .filter(f.col("sumlogsum") != f.col("logsum12"))
                 .withColumn("max", f.greatest("sumlogsum", "logsum12"))
                 .withColumn(
                     "logdiff",
-                    (
+                    f.when(
+                        f.col("sumlogsum") == f.col("logsum12"), Coloc.PSEUDOCOUNT
+                    ).otherwise(
                         f.col("max")
                         + f.log(
                             f.exp(f.col("sumlogsum") - f.col("max"))
