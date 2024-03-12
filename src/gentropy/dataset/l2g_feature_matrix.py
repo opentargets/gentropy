@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from functools import reduce
 from typing import TYPE_CHECKING, Type
 
+from pyspark.sql.functions import col
+
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import convert_from_long_to_wide
 from gentropy.dataset.dataset import Dataset
@@ -60,11 +62,22 @@ class L2GFeatureMatrix(Dataset):
         Raises:
             ValueError: If the feature matrix is empty
         """
+        coloc_methods = (
+            colocalisation.df.select("colocalisationMethod")
+            .distinct()
+            .toPandas()["colocalisationMethod"]
+            .tolist()
+        )
         if features_dfs := [
             # Extract features
-            ColocalisationFactory._get_coloc_features(
-                study_locus, study_index, colocalisation
-            ).df,
+            ColocalisationFactory._get_max_coloc_per_study_locus(
+                study_locus,
+                study_index,
+                colocalisation.filter(col("colocalisationMethod") == method),
+                method,
+            ).df
+            for method in coloc_methods
+        ] + [
             StudyLocusFactory._get_tss_distance_features(study_locus, variant_gene).df,
             StudyLocusFactory._get_vep_features(study_locus, variant_gene).df,
         ]:

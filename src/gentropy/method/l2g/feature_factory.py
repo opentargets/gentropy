@@ -143,7 +143,7 @@ class ColocalisationFactory:
             .distinct()
             .toPandas()["right_studyType"]
             .tolist()
-        ) or ["eqtl", "pqtl", "sqtl"]
+        )
         for qtl_type in qtl_types:
             filtered_local_max = (
                 local_max.filter(f.col("right_studyType") == qtl_type)
@@ -187,34 +187,6 @@ class ColocalisationFactory:
                 var_name="featureName",
                 value_name="featureValue",
             ),
-            _schema=L2GFeature.get_schema(),
-        )
-
-    @staticmethod
-    def _get_coloc_features(
-        study_locus: StudyLocus, studies: StudyIndex, colocalisation: Colocalisation
-    ) -> L2GFeature:
-        """Calls _get_max_coloc_per_study_locus for both methods and concatenates the results.
-
-        !!! note "Colocalisation features are only available for the eCAVIAR results for now."
-
-        Args:
-            study_locus (StudyLocus): Study locus dataset
-            studies (StudyIndex): Study index dataset
-            colocalisation (Colocalisation): Colocalisation dataset
-
-        Returns:
-            L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
-        """
-        coloc_clpp = ColocalisationFactory._get_max_coloc_per_study_locus(
-            study_locus,
-            studies,
-            colocalisation,
-            "eCAVIAR",
-        )
-
-        return L2GFeature(
-            _df=coloc_clpp.df,
             _schema=L2GFeature.get_schema(),
         )
 

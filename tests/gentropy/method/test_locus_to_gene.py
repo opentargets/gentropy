@@ -191,20 +191,6 @@ class TestColocalisationFactory:
         )
         assert coloc_features.df.collect() == expected_coloc_features_df.collect()
 
-    def test_get_coloc_features(
-        self: TestColocalisationFactory,
-        mock_study_locus: StudyLocus,
-        mock_study_index: StudyIndex,
-        mock_colocalisation: Colocalisation,
-    ) -> None:
-        """Test the function that calls all the methods to produce colocalisation features."""
-        coloc_features = ColocalisationFactory._get_coloc_features(
-            mock_study_locus, mock_study_index, mock_colocalisation
-        )
-        assert isinstance(
-            coloc_features, L2GFeature
-        ), "Unexpected model type returned from _get_coloc_features"
-
 
 class TestStudyLocusFactory:
     """Test the StudyLocusFactory methods."""
