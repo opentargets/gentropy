@@ -32,7 +32,7 @@ class SummaryStatisticsImputation:
             dict[str, Any]:
                 - var (np.ndarray): variance of the imputed SNPs
                 - mu (np.ndarray): the estimation of the zscore of the imputed SNPs
-                - ld_score (np.ndarray): the linkage desiquilibrium score of the imputed SNPs
+                - ld_score (np.ndarray): the linkage disequilibrium score of the imputed SNPs
                 - condition_number (np.ndarray): the condition number of the correlation matrix
                 - correct_inversion (np.ndarray): a boolean array indicating if the inversion was successful
                 - imputation_r2 (np.ndarray): the R2 of the imputation
