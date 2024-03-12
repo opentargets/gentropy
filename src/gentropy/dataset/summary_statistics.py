@@ -59,7 +59,7 @@ class SummaryStatistics(Dataset):
         distance: int = 500_000,
         gwas_significance: float = 5e-8,
         collect_locus: bool = False,
-        collect_locus_distance: int = 500_000,
+        collect_locus_distance: int | None = None,
     ) -> StudyLocus:
         """Generate study-locus from summary statistics using window-based clumping.
 
@@ -69,7 +69,7 @@ class SummaryStatistics(Dataset):
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
             gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
             collect_locus (bool): Whether to collect locus around semi-indices. Defaults to False.
-            collect_locus_distance (int): The distance to collect locus around semi-indices. If not provided, locus is not collected. Defaults to 500_000.
+            collect_locus_distance (int | None): The distance to collect locus around semi-indices. If not provided, `distance` will be used.
 
         Returns:
             StudyLocus: Clumped study-locus optionally containing variants based on window.
