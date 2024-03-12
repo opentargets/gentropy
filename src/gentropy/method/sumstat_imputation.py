@@ -22,9 +22,9 @@ class SummaryStatisticsImputation:
         """Compute the imputation of the z-score using the RAISS model.
 
         Args:
-            zt (np.ndarray): the vector of known Z scores
-            sig_t (np.ndarray) : the matrix of known LD correlations
-            sig_i_t (np.ndarray): LD matrix of known SNPs with other unknown SNPs in large matrix (similar to ld[unknowns, :][:,known])
+            z_scores_known (np.ndarray): the vector of known Z scores
+            ld_matrix_known (np.ndarray) : the matrix of known LD correlations
+            ld_matrix_known_missing (np.ndarray): LD matrix of known SNPs with other unknown SNPs in large matrix (similar to ld[unknowns, :][:,known])
             lamb (float): size of the small value added to the diagonal of the covariance matrix before inversion. Defaults to 0.01.
             rtol (float): threshold to filter eigenvectos by its eigenvalue. It makes an inversion biased but much more numerically robust. Default to 0.01.
 
@@ -37,21 +37,38 @@ class SummaryStatisticsImputation:
                 - correct_inversion (np.ndarray): a boolean array indicating if the inversion was successful
                 - imputation_r2 (np.ndarray): the R2 of the imputation
         """
-        sig_t_inv = SummaryStatisticsImputation._invert_sig_t(sig_t, lamb, rtol)
+        sig_t_inv = SummaryStatisticsImputation._invert_sig_t(
+            ld_matrix_known, lamb, rtol
+        )
         if sig_t_inv is None:
-            return {"mu": None}
+            return {
+                "var": None,
+                "mu": None,
+                "ld_score": None,
+                "condition_number": None,
+                "correct_inversion": None,
+                "imputation_r2": None,
+            }
         else:
-            condition_number = np.array([np.linalg.cond(sig_t)] * sig_i_t.shape[0])
+            condition_number = np.array(
+                [np.linalg.cond(ld_matrix_known)] * ld_matrix_known_missing.shape[0]
+            )
             correct_inversion = np.array(
-                [SummaryStatisticsImputation._check_inversion(sig_t, sig_t_inv)]
-                * sig_i_t.shape[0]
+                [
+                    SummaryStatisticsImputation._check_inversion(
+                        ld_matrix_known, sig_t_inv
+                    )
+                ]
+                * ld_matrix_known_missing.shape[0]
             )
 
             var, ld_score = SummaryStatisticsImputation._compute_var(
-                sig_i_t, sig_t_inv, lamb
+                ld_matrix_known_missing, sig_t_inv, lamb
             )
 
-            mu = SummaryStatisticsImputation._compute_mu(sig_i_t, sig_t_inv, zt)
+            mu = SummaryStatisticsImputation._compute_mu(
+                ld_matrix_known_missing, sig_t_inv, z_scores_known
+            )
             var_norm = SummaryStatisticsImputation._var_in_boundaries(var, lamb)
 
             R2 = (1 + lamb) - var_norm
