@@ -1,4 +1,5 @@
 """Test study locus overlap dataset."""
+
 from __future__ import annotations
 
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap

@@ -6,6 +6,7 @@ from math import floor, log10
 from typing import TYPE_CHECKING, Tuple
 
 import hail as hl
+import numpy as np
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -13,6 +14,7 @@ from gentropy.common.spark_helpers import pvalue_to_zscore
 
 if TYPE_CHECKING:
     from hail.table import Table
+    from numpy.typing import NDArray
     from pyspark.sql import Column
 
 
@@ -325,3 +327,24 @@ def parse_efos(efo_uri: Column) -> Column:
     """
     colname = efo_uri._jc.toString()
     return f.array_sort(f.expr(f"regexp_extract_all(`{colname}`, '([A-Z]+_[0-9]+)')"))
+
+
+def get_logsum(arr: NDArray[np.float64]) -> float:
+    """Calculates logarithm of the sum of exponentials of a vector. The max is extracted to ensure that the sum is not Inf.
+
+    This function emulates scipy's logsumexp expression.
+
+    Args:
+        arr (NDArray[np.float64]): input array
+
+    Returns:
+        float: logsumexp of the input array
+
+    Example:
+        >>> l = [0.2, 0.1, 0.05, 0]
+        >>> round(get_logsum(l), 6)
+        1.476557
+    """
+    themax = np.max(arr)
+    result = themax + np.log(np.sum(np.exp(arr - themax)))
+    return float(result)
