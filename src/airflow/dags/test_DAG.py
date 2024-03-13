@@ -38,14 +38,14 @@ DATA_TO_MOVE = {
         "source_bucket": GWAS_CATALOG_BUCKET_NAME,
         "source_object": "credible_set_datasets/gwas_catalog_curated",
         "destination_bucket": RELEASE_BUCKET_NAME,
-        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_curated",
+        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_pics_from_curation",
     },
     # PICS credible sets from GWAS Catalog summary statistics:
     "gwas_catalog_sumstats_credible_set": {
         "source_bucket": GWAS_CATALOG_BUCKET_NAME,
         "source_object": "credible_set_datasets/gwas_catalog_summary_stats",
         "destination_bucket": RELEASE_BUCKET_NAME,
-        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_summary_statistics",
+        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_pics_from_summary_statistics",
     },
     # GWAS Catalog manifest files:
     "gwas_catalog_manifests": {
@@ -55,18 +55,18 @@ DATA_TO_MOVE = {
         "destination_object": f"releases/{RELEASE_VERSION}/manifests",
     },
     # eQTL Catalog study index:
-    "eqtl_catalog_study_index": {
+    "eqtl_catalogue_study_index": {
         "source_bucket": EQTL_BUCKET_NAME,
         "source_object": "study_index",
         "destination_bucket": RELEASE_BUCKET_NAME,
-        "destination_object": f"releases/{RELEASE_VERSION}/study_index/eqtl_catalog",
+        "destination_object": f"releases/{RELEASE_VERSION}/study_index/eqtl_catalogue",
     },
     # eQTL Catalog SuSiE credible sets:
-    "eqtl_catalog_susie_credible_set": {
+    "eqtl_catalogue_susie_credible_set": {
         "source_bucket": EQTL_BUCKET_NAME,
         "source_object": "credible_set_datasets/susie",
         "destination_bucket": RELEASE_BUCKET_NAME,
-        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/eqtl_catalog_susie",
+        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/eqtl_catalogue_susie",
     },
     # Finngen study index:
     "finngen_study_index": {
@@ -100,7 +100,7 @@ DATA_TO_MOVE = {
 
 
 # Test if release folder exists:
-def test_release_folder_exists() -> bool:
+def test_release_folder_absent() -> bool:
     """This function tests if the release folder exists.
 
     Returns:
@@ -109,13 +109,13 @@ def test_release_folder_exists() -> bool:
     hook = GCSHook(gcp_conn_id="google_cloud_default")
     return (
         False
-        if hook.exists(RELEASE_BUCKET_NAME, f"releases/{RELEASE_VERSION}")
+        return not hook.exists(RELEASE_BUCKET_NAME, f"releases/{RELEASE_VERSION}")
         else True
     )
 
 
 # This operator meant to fail the DAG if the release folder exists:
-test_folder = ShortCircuitOperator(
+absent_release_folder = ShortCircuitOperator(
     task_id="test_release_folder_exists",
     python_callable=test_release_folder_exists,
 )
@@ -161,7 +161,7 @@ with DAG(
 
     # DAG description:
     (
-        # Test if release folder exists:
+        # Test that the release folder doesn't exist:
         test_folder
         # Run data transfer:
         >> data_transfer
