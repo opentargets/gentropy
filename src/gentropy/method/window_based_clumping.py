@@ -151,6 +151,171 @@ class WindowBasedClumping:
 
         return DenseVector(is_lead)
 
+    @staticmethod
+    def _clump_signals(
+        summary_statistics: SummaryStatistics,
+        distance: int = 500_000,
+        gwas_significance: float = 5e-8,
+    ) -> StudyLocus:
+        """Clump significant signals from summary statistics based on window.
+
+        Args:
+            summary_statistics (SummaryStatistics): Summary statistics to be used for clumping.
+            distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
+            gwas_significance (float): GWAS significance threshold. Defaults to 5e-8.
+
+        Returns:
+            StudyLocus: clumped summary statistics (without locus collection)
+        """
+        # Create window for locus clusters
+        # - variants where the distance between subsequent variants is below the defined threshold.
+        # - Variants are sorted by descending significance
+        cluster_window = Window.partitionBy(
+            "studyId", "chromosome", "cluster_id"
+        ).orderBy(f.col("pValueExponent").asc(), f.col("pValueMantissa").asc())
+
+        return StudyLocus(
+            _df=(
+                summary_statistics
+                # Dropping snps below significance - all subsequent steps are done on significant variants:
+                .pvalue_filter(gwas_significance)
+                .df
+                # Clustering summary variants for efficient windowing (complexity reduction):
+                .withColumn(
+                    "cluster_id",
+                    WindowBasedClumping._cluster_peaks(
+                        f.col("studyId"),
+                        f.col("chromosome"),
+                        f.col("position"),
+                        distance,
+                    ),
+                )
+                # Within each cluster variants are ranked by significance:
+                .withColumn("pvRank", f.row_number().over(cluster_window))
+                # Collect positions in cluster for the most significant variant (complexity reduction):
+                .withColumn(
+                    "collectedPositions",
+                    f.when(
+                        f.col("pvRank") == 1,
+                        f.collect_list(f.col("position")).over(
+                            cluster_window.rowsBetween(
+                                Window.currentRow, Window.unboundedFollowing
+                            )
+                        ),
+                    ).otherwise(f.array()),
+                )
+                # Get semi indices only ONCE per cluster:
+                .withColumn(
+                    "semiIndices",
+                    f.when(
+                        f.size(f.col("collectedPositions")) > 0,
+                        fml.vector_to_array(
+                            f.udf(WindowBasedClumping._prune_peak, VectorUDT())(
+                                fml.array_to_vector(f.col("collectedPositions")),
+                                f.lit(distance),
+                            )
+                        ),
+                    ),
+                )
+                # Propagating the result of the above calculation for all rows:
+                .withColumn(
+                    "semiIndices",
+                    f.when(
+                        f.col("semiIndices").isNull(),
+                        f.first(f.col("semiIndices"), ignorenulls=True).over(
+                            cluster_window
+                        ),
+                    ).otherwise(f.col("semiIndices")),
+                )
+                # Keeping semi indices only:
+                .filter(f.col("semiIndices")[f.col("pvRank") - 1] > 0)
+                .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
+                # Adding study-locus id:
+                .withColumn(
+                    "studyLocusId",
+                    StudyLocus.assign_study_locus_id(
+                        f.col("studyId"), f.col("variantId")
+                    ),
+                )
+                # Initialize QC column as array of strings:
+                .withColumn(
+                    "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
+                )
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    @staticmethod
+    def _annotate_locus_using_summary_statistics(
+        study_locus: StudyLocus,
+        summary_statistics: SummaryStatistics,
+        collect_locus_distance: int,
+    ) -> StudyLocus:
+        """Annotates study locus with summary statistics from specified distance.
+
+        Args:
+            study_locus (StudyLocus): Study locus to be annotated.
+            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
+            collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.
+
+        Returns:
+            StudyLocus: Study locus annotated with summary statistics in `locus` column.
+        """
+        # The clumps will be used several times (persisting)
+        study_locus.df.persist()
+        # Renaming columns:
+        sumstats_renamed = summary_statistics.df.selectExpr(
+            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
+        ).alias("sumstat")
+
+        locus_df = (
+            sumstats_renamed
+            # Joining the two datasets together:
+            .join(
+                f.broadcast(
+                    study_locus.df.alias("clumped").select(
+                        "position", "chromosome", "studyId", "studyLocusId"
+                    )
+                ),
+                on=[
+                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
+                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
+                    & (
+                        f.col("sumstat.tag_position")
+                        >= (f.col("clumped.position") - collect_locus_distance)
+                    )
+                    & (
+                        f.col("sumstat.tag_position")
+                        <= (f.col("clumped.position") + collect_locus_distance)
+                    )
+                ],
+                how="inner",
+            )
+            .withColumn(
+                "locus",
+                f.struct(
+                    f.col("tag_variantId").alias("variantId"),
+                    f.col("tag_beta").alias("beta"),
+                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
+                    f.col("tag_pValueExponent").alias("pValueExponent"),
+                    f.col("tag_standardError").alias("standardError"),
+                ),
+            )
+            .groupBy("studyLocusId")
+            .agg(
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
+        )
+
+        return StudyLocus(
+            _df=study_locus.df.join(
+                locus_df,
+                on="studyLocusId",
+                how="left",
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
     @classmethod
     def clump(
         cls: type[WindowBasedClumping],
@@ -173,135 +338,14 @@ class WindowBasedClumping:
         Returns:
             StudyLocus: clumped summary statistics
         """
-        # Create window for locus clusters
-        # - variants where the distance between subsequent variants is below the defined threshold.
-        # - Variants are sorted by descending significance
-        cluster_window = Window.partitionBy(
-            "studyId", "chromosome", "cluster_id"
-        ).orderBy(f.col("pValueExponent").asc(), f.col("pValueMantissa").asc())
-
-        clumped_dataframe = (
-            summary_statistics
-            # Dropping snps below significance - all subsequent steps are done on significant variants:
-            .pvalue_filter(gwas_significance)
-            .df
-            # Clustering summary variants for efficient windowing (complexity reduction):
-            .withColumn(
-                "cluster_id",
-                WindowBasedClumping._cluster_peaks(
-                    f.col("studyId"),
-                    f.col("chromosome"),
-                    f.col("position"),
-                    distance,
-                ),
-            )
-            # Within each cluster variants are ranked by significance:
-            .withColumn("pvRank", f.row_number().over(cluster_window))
-            # Collect positions in cluster for the most significant variant (complexity reduction):
-            .withColumn(
-                "collectedPositions",
-                f.when(
-                    f.col("pvRank") == 1,
-                    f.collect_list(f.col("position")).over(
-                        cluster_window.rowsBetween(
-                            Window.currentRow, Window.unboundedFollowing
-                        )
-                    ),
-                ).otherwise(f.array()),
-            )
-            # Get semi indices only ONCE per cluster:
-            .withColumn(
-                "semiIndices",
-                f.when(
-                    f.size(f.col("collectedPositions")) > 0,
-                    fml.vector_to_array(
-                        f.udf(WindowBasedClumping._prune_peak, VectorUDT())(
-                            fml.array_to_vector(f.col("collectedPositions")),
-                            f.lit(distance),
-                        )
-                    ),
-                ),
-            )
-            # Propagating the result of the above calculation for all rows:
-            .withColumn(
-                "semiIndices",
-                f.when(
-                    f.col("semiIndices").isNull(),
-                    f.first(f.col("semiIndices"), ignorenulls=True).over(
-                        cluster_window
-                    ),
-                ).otherwise(f.col("semiIndices")),
-            )
-            # Keeping semi indices only:
-            .filter(f.col("semiIndices")[f.col("pvRank") - 1] > 0)
-            .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
-            # Adding study-locus id:
-            .withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
-            )
-            # Initialize QC column as array of strings:
-            .withColumn("qualityControls", f.array().cast(t.ArrayType(t.StringType())))
-        ).persist()
-
+        clumped_study_locus = cls._clump_signals(
+            summary_statistics, distance, gwas_significance
+        )
         if collect_locus:
             if not collect_locus_distance:
                 collect_locus_distance = distance
-
-            # Renaming columns:
-            sumstats_renamed = summary_statistics.df.selectExpr(
-                *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
-            ).alias("sumstat")
-
-            locus_df = (
-                sumstats_renamed
-                # Joining the two datasets together:
-                .join(
-                    f.broadcast(
-                        clumped_dataframe.alias("clumped").select(
-                            "position", "chromosome", "studyId", "studyLocusId"
-                        )
-                    ),
-                    on=[
-                        (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
-                        & (
-                            f.col("sumstat.tag_chromosome")
-                            == f.col("clumped.chromosome")
-                        )
-                        & (
-                            f.col("sumstat.tag_position")
-                            >= (f.col("clumped.position") - collect_locus_distance)
-                        )
-                        & (
-                            f.col("sumstat.tag_position")
-                            <= (f.col("clumped.position") + collect_locus_distance)
-                        )
-                    ],
-                    how="inner",
-                )
-                .withColumn(
-                    "locus",
-                    f.struct(
-                        f.col("tag_variantId").alias("variantId"),
-                        f.col("tag_beta").alias("beta"),
-                        f.col("tag_pValueMantissa").alias("pValueMantissa"),
-                        f.col("tag_pValueExponent").alias("pValueExponent"),
-                        f.col("tag_standardError").alias("standardError"),
-                    ),
-                )
-                .groupBy("studyLocusId")
-                .agg(
-                    f.collect_list(f.col("locus")).alias("locus"),
-                )
+            clumped_study_locus = cls._annotate_locus_using_summary_statistics(
+                clumped_study_locus, summary_statistics, collect_locus_distance
             )
 
-            clumped_dataframe = clumped_dataframe.join(
-                locus_df,
-                on="studyLocusId",
-                how="left",
-            )
-
-        return StudyLocus(
-            _df=clumped_dataframe,
-            _schema=StudyLocus.get_schema(),
-        )
+        return clumped_study_locus
