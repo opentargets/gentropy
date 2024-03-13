@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import dbldatagen as dg
 import hail as hl
@@ -648,46 +647,3 @@ def sample_data_for_susie_inf() -> list[np.ndarray]:
     lbf_moments = np.loadtxt("tests/gentropy/data_samples/01_test_lbf_moments.csv")
     lbf_mle = np.loadtxt("tests/gentropy/data_samples/01_test_lbf_mle.csv")
     return [ld, z, lbf_moments, lbf_mle]
-
-
-@pytest.fixture()
-def sample_data_for_coloc(spark: SparkSession) -> list[Any]:
-    """Sample data for Coloc tests."""
-    overlap_df = spark.read.parquet(
-        "tests/gentropy/data_samples/coloc_test_data.snappy.parquet"
-    )
-    expected_df = spark.createDataFrame(
-        [
-            {
-                "h0": 1.3769995397857477e-18,
-                "h1": 2.937336451601565e-10,
-                "h2": 8.593226431647826e-12,
-                "h3": 8.338916748775843e-4,
-                "h4": 0.9991661080227981,
-            }
-        ]
-    )
-    single_snp_coloc = spark.createDataFrame(
-        [
-            {
-                "leftStudyLocusId": 1,
-                "rightStudyLocusId": 2,
-                "chromosome": "1",
-                "tagVariantId": "snp",
-                "left_logBF": 10.3,
-                "right_logBF": 10.5,
-            }
-        ]
-    )
-    expected_single_snp_coloc = spark.createDataFrame(
-        [
-            {
-                "h0": 9.254841951638903e-5,
-                "h1": 2.7517068829182966e-4,
-                "h2": 3.3609423764447284e-4,
-                "h3": 9.254841952564387e-13,
-                "h4": 0.9992961866536217,
-            }
-        ]
-    )
-    return [overlap_df, expected_df, single_snp_coloc, expected_single_snp_coloc]
