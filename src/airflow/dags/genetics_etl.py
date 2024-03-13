@@ -7,7 +7,6 @@ from pathlib import Path
 import common_airflow as common
 from airflow.models.dag import DAG
 from airflow.operators.python import ShortCircuitOperator
-from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.providers.google.cloud.transfers.gcs_to_gcs import GCSToGCSOperator
 from airflow.utils.task_group import TaskGroup
 
@@ -20,7 +19,7 @@ RELEASE_BUCKET_NAME = "genetics_etl_python_playground"
 
 # Datasource paths:
 GWAS_CATALOG_BUCKET_NAME = "gwas_catalog_data"
-EQTL_BUCKET_NAME = "eqtl_catalog_data"
+EQTL_BUCKET_NAME = "eqtl_catalogue_data"
 FINNGEN_BUCKET_NAME = "finngen_data"
 FINNGEN_RELEASE = "r10"
 
@@ -99,25 +98,15 @@ DATA_TO_MOVE = {
 }
 
 
-# Test if release folder exists:
-def test_release_folder_absent() -> bool:
-    """This function tests if the release folder exists.
-
-    Returns:
-        bool: False if the release folder exists, True otherwise.
-    """
-    hook = GCSHook(gcp_conn_id="google_cloud_default")
-    return (
-        False
-        return not hook.exists(RELEASE_BUCKET_NAME, f"releases/{RELEASE_VERSION}")
-        else True
-    )
-
-
 # This operator meant to fail the DAG if the release folder exists:
-absent_release_folder = ShortCircuitOperator(
+ensrure_absent_release_folder = ShortCircuitOperator(
     task_id="test_release_folder_exists",
-    python_callable=test_release_folder_exists,
+    # The short-circuit operator will fail the DAG if the test condition returns True (i.e. the release folder exists)
+    python_callable=not common.tests_cloud_folder_exist(
+        bucket_name=RELEASE_BUCKET_NAME,
+        path=f"releases/{RELEASE_VERSION}",
+        connection_id="google_cloud_default",
+    ),
 )
 
 with DAG(
@@ -162,7 +151,7 @@ with DAG(
     # DAG description:
     (
         # Test that the release folder doesn't exist:
-        test_folder
+        ensrure_absent_release_folder
         # Run data transfer:
         >> data_transfer
         # Once datasets are transferred, run the rest of the steps:

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import pendulum
 import yaml
+from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -57,6 +58,24 @@ shared_dag_kwargs = {
     "schedule": "@once",
     "catchup": False,
 }
+
+
+# Test if release folder exists:
+def tests_cloud_folder_exist(
+    bucket_name: str, path: str, connection_id: str = "google_cloud_default"
+) -> bool:
+    """This function tests if a folder exist in Google Cloud.
+
+    Args:
+        bucket_name (str): Name of the GCP bucket.
+        path (str): Path to the folder in the bucket.
+        connection_id (str): Connection ID to use. Defaults to "google_cloud_default".
+
+    Returns:
+        bool: True if folder exists, False otherwise.
+    """
+    hook = GCSHook(gcp_conn_id=connection_id)
+    return hook.exists(bucket_name, path)
 
 
 def create_cluster(
