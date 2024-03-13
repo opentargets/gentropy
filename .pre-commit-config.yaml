@@ -104,7 +104,7 @@ repos:
       - id: pydoclint
 
   - repo: https://github.com/python-poetry/poetry
-    rev: "1.8.0"
+    rev: "1.8.2"
     hooks:
       - id: poetry-check
       - id: poetry-lock
