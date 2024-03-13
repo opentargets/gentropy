@@ -1,4 +1,5 @@
 """Test the command-line interface (CLI)."""
+
 from unittest.mock import patch
 
 import pytest
