@@ -1,4 +1,5 @@
 """Step to run window based clumping on summary statistics datasts."""
+
 from __future__ import annotations
 
 from gentropy.common.session import Session
@@ -39,20 +40,22 @@ class WindowBasedClumpingStep:
             # If no inclusion list is provided, read all summary stats in folder:
             study_ids_to_ingest = [summary_statistics_input_path]
 
-        (
-            SummaryStatistics.from_parquet(
-                session,
-                study_ids_to_ingest,
-                recursiveFileLookup=True,
-            )
-            .coalesce(4000)
-            # Applying window based clumping:
-            .window_based_clumping(
-                distance=distance,
-                collect_locus=collect_locus,
-                collect_locus_distance=collect_locus_distance,
-            )
-            # Save resulting study locus dataset:
-            .df.write.mode(session.write_mode)
-            .parquet(study_locus_output_path)
+        ss = SummaryStatistics.from_parquet(
+            session,
+            study_ids_to_ingest,
+            recursiveFileLookup=True,
         )
+
+        # Clumping:
+        study_locus = ss.window_based_clumping(
+            distance=distance,
+        )
+
+        # Optional locus collection:
+        if collect_locus:
+            # Collecting locus around semi-indices:
+            study_locus = study_locus.annotate_locus_statistics(
+                ss, collect_locus_distance=collect_locus_distance
+            )
+
+        study_locus.df.write.mode(session.write_mode).parquet(study_locus_output_path)

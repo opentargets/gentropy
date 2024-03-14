@@ -28,8 +28,6 @@ def test_window_based_clump__return_type(
         WindowBasedClumping.clump(
             mock_summary_statistics,
             distance=250_000,
-            collect_locus=True,
-            collect_locus_distance=250_000,
         ),
         StudyLocus,
     )
@@ -53,7 +51,10 @@ def test_window_based_clump_with_locus__correctness(
 ) -> None:
     """Test window-based clumping."""
     clumped = sample_summary_statistics.window_based_clumping(
-        distance=250_000, collect_locus_distance=250_000, collect_locus=True
+        distance=250_000,
+    )
+    clumped = clumped.annotate_locus_statistics(
+        sample_summary_statistics, collect_locus_distance=250_000
     )
 
     # Asserting the presence of locus key:
