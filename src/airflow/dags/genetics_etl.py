@@ -99,14 +99,15 @@ DATA_TO_MOVE = {
 
 
 # This operator meant to fail the DAG if the release folder exists:
-ensrure_absent_release_folder = ShortCircuitOperator(
+ensure_release_folder_not_exists = ShortCircuitOperator(
     task_id="test_release_folder_exists",
-    # The short-circuit operator will fail the DAG if the test condition returns True (i.e. the release folder exists)
-    python_callable=not common.tests_cloud_folder_exist(
-        bucket_name=RELEASE_BUCKET_NAME,
-        path=f"releases/{RELEASE_VERSION}",
-        connection_id="google_cloud_default",
+    python_callable=lambda bucket, path: not common.check_gcp_folder_exists(
+        bucket, path
     ),
+    op_kwargs={
+        "bucket": RELEASE_BUCKET_NAME,
+        "path": f"releases/{RELEASE_VERSION}",
+    },
 )
 
 with DAG(
@@ -151,7 +152,7 @@ with DAG(
     # DAG description:
     (
         # Test that the release folder doesn't exist:
-        ensrure_absent_release_folder
+        ensure_release_folder_not_exists
         # Run data transfer:
         >> data_transfer
         # Once datasets are transferred, run the rest of the steps:
