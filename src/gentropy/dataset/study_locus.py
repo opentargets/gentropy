@@ -1,4 +1,5 @@
 """Study locus dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -488,7 +489,7 @@ class StudyLocus(Dataset):
             )
         )
 
-        self.df = self.df.join(
+        self.df = self.df.drop("locus").join(
             locus_df,
             on="studyLocusId",
             how="left",
