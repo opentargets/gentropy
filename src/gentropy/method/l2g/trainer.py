@@ -22,7 +22,7 @@ class LocusToGeneTrainer:
     @classmethod
     def train(
         cls: type[LocusToGeneTrainer],
-        data: L2GFeatureMatrix,
+        gold_standard_data: L2GFeatureMatrix,
         l2g_model: LocusToGeneModel,
         evaluate: bool,
         wandb_run_name: str | None = None,
@@ -32,7 +32,7 @@ class LocusToGeneTrainer:
         """Train the Locus to Gene model.
 
         Args:
-            data (L2GFeatureMatrix): Feature matrix containing the data
+            gold_standard_data (L2GFeatureMatrix): Feature matrix for the associations in the gold standard
             l2g_model (LocusToGeneModel): Model to fit to the data on
             evaluate (bool): Whether to evaluate the model on a test set
             wandb_run_name (str | None): Descriptive name for the run to be tracked with W&B
@@ -42,7 +42,7 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Trained model
         """
-        train, test = data.train_test_split(fraction=0.8)
+        train, test = gold_standard_data.train_test_split(fraction=0.8)
 
         model = l2g_model.add_pipeline_stage(l2g_model.estimator).fit(train)
 
@@ -51,7 +51,7 @@ class LocusToGeneTrainer:
                 results=model.predict(test),
                 hyperparameters=hyperparams,
                 wandb_run_name=wandb_run_name,
-                training_data=train,
+                gold_standard_data=gold_standard_data,
             )
         if model_path:
             l2g_model.save(model_path)

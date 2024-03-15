@@ -132,8 +132,8 @@ class LocusToGeneStep:
                 colocalisation=coloc,
             )
 
-            # Join and fill null values with 0
             data = (
+                # Annotate gold standards with features
                 L2GFeatureMatrix(
                     _df=fm.df.join(
                         f.broadcast(
@@ -169,7 +169,7 @@ class LocusToGeneStep:
             else:
                 # Train model
                 LocusToGeneTrainer.train(
-                    data=data,
+                    gold_standard_data=data,
                     l2g_model=l2g_model,
                     model_path=model_path,
                     evaluate=True,
