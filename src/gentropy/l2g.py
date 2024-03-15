@@ -133,16 +133,20 @@ class LocusToGeneStep:
             )
 
             # Join and fill null values with 0
-            data = L2GFeatureMatrix(
-                _df=fm.df.join(
-                    f.broadcast(
-                        gold_standards.df.drop("variantId", "studyId", "sources")
+            data = (
+                L2GFeatureMatrix(
+                    _df=fm.df.join(
+                        f.broadcast(
+                            gold_standards.df.drop("variantId", "studyId", "sources")
+                        ),
+                        on=["studyLocusId", "geneId"],
+                        how="inner",
                     ),
-                    on=["studyLocusId", "geneId"],
-                    how="inner",
-                ),
-                _schema=L2GFeatureMatrix.get_schema(),
-            ).fill_na()
+                    _schema=L2GFeatureMatrix.get_schema(),
+                )
+                .fill_na()
+                .select_features(list(features_list))
+            )
 
             # Instantiate classifier
             estimator = SparkXGBClassifier(
@@ -167,7 +171,6 @@ class LocusToGeneStep:
                 LocusToGeneTrainer.train(
                     data=data,
                     l2g_model=l2g_model,
-                    features_list=list(features_list),
                     model_path=model_path,
                     evaluate=True,
                     wandb_run_name=wandb_run_name,

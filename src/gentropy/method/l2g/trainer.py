@@ -24,7 +24,6 @@ class LocusToGeneTrainer:
         cls: type[LocusToGeneTrainer],
         data: L2GFeatureMatrix,
         l2g_model: LocusToGeneModel,
-        features_list: list[str],
         evaluate: bool,
         wandb_run_name: str | None = None,
         model_path: str | None = None,
@@ -35,7 +34,6 @@ class LocusToGeneTrainer:
         Args:
             data (L2GFeatureMatrix): Feature matrix containing the data
             l2g_model (LocusToGeneModel): Model to fit to the data on
-            features_list (list[str]): List of features to use for the model
             evaluate (bool): Whether to evaluate the model on a test set
             wandb_run_name (str | None): Descriptive name for the run to be tracked with W&B
             model_path (str | None): Path to save the model to
@@ -44,7 +42,7 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Trained model
         """
-        train, test = data.select_features(features_list).train_test_split(fraction=0.8)
+        train, test = data.train_test_split(fraction=0.8)
 
         model = l2g_model.add_pipeline_stage(l2g_model.estimator).fit(train)
 
