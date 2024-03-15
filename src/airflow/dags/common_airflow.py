@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib.metadata import version as importlib_version
 from typing import TYPE_CHECKING, Any, Optional
 
 import pendulum
@@ -18,8 +19,7 @@ from google.cloud import dataproc_v1, storage
 if TYPE_CHECKING:
     from pathlib import Path
 
-# Code version. It has to be repeated here as well as in `pyproject.toml`, because Airflow isn't able to look at files outside of its `dags/` directory.
-GENTROPY_VERSION = "0.0.0"
+GENTROPY_VERSION = importlib_version("gentropy")
 
 # Cloud configuration.
 GCP_PROJECT = "open-targets-genetics-dev"
