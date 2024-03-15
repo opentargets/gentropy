@@ -192,14 +192,14 @@ class StudyLocusFactory(StudyLocus):
 
     @staticmethod
     def _get_tss_distance_features(credible_set: StudyLocus, v2g: V2G) -> L2GFeature:
-        """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
+        """Joins StudyLocus with the V2G to extract a score that is based on the distance to a gene TSS of any variant weighted by its posterior probability in a credible set.
 
         Args:
             credible_set (StudyLocus): Credible set dataset
             v2g (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
 
         Returns:
-            L2GFeature: Stores the features with the minimum distance among all variants in the credible set and a gene TSS.
+            L2GFeature: Stores the features with the score of weighting the distance to the TSS by the posterior probability of the variant
 
         """
         wide_df = (
