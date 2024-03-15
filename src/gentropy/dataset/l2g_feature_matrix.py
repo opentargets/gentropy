@@ -42,7 +42,7 @@ class L2GFeatureMatrix(Dataset):
     def generate_features(
         cls: Type[L2GFeatureMatrix],
         features_list: list[str],
-        study_locus: StudyLocus,
+        credible_set: StudyLocus,
         study_index: StudyIndex,
         variant_gene: V2G,
         colocalisation: Colocalisation,
@@ -51,7 +51,7 @@ class L2GFeatureMatrix(Dataset):
 
         Args:
             features_list (list[str]): List of features to generate
-            study_locus (StudyLocus): Study locus dataset
+            credible_set (StudyLocus): Credible set dataset
             study_index (StudyIndex): Study index dataset
             variant_gene (V2G): Variant to gene dataset
             colocalisation (Colocalisation): Colocalisation dataset
@@ -70,16 +70,16 @@ class L2GFeatureMatrix(Dataset):
         )
         if features_dfs := [
             # Extract features
-            ColocalisationFactory._get_max_coloc_per_study_locus(
-                study_locus,
+            ColocalisationFactory._get_max_coloc_per_credible_set(
+                credible_set,
                 study_index,
                 colocalisation.filter(col("colocalisationMethod") == method),
                 method,
             ).df
             for method in coloc_methods
         ] + [
-            StudyLocusFactory._get_tss_distance_features(study_locus, variant_gene).df,
-            StudyLocusFactory._get_vep_features(study_locus, variant_gene).df,
+            StudyLocusFactory._get_tss_distance_features(credible_set, variant_gene).df,
+            StudyLocusFactory._get_vep_features(credible_set, variant_gene).df,
         ]:
             fm = reduce(
                 lambda x, y: x.unionByName(y),
@@ -175,8 +175,6 @@ class L2GFeatureMatrix(Dataset):
         """
         train, test = self._df.randomSplit([fraction, 1 - fraction], seed=42)
         return (
-            L2GFeatureMatrix(
-                _df=train, _schema=L2GFeatureMatrix.get_schema()
-            ).persist(),
-            L2GFeatureMatrix(_df=test, _schema=L2GFeatureMatrix.get_schema()).persist(),
+            L2GFeatureMatrix(_df=train, _schema=L2GFeatureMatrix.get_schema()),
+            L2GFeatureMatrix(_df=test, _schema=L2GFeatureMatrix.get_schema()),
         )

@@ -25,8 +25,8 @@ class ColocalisationFactory:
     """Feature extraction in colocalisation."""
 
     @staticmethod
-    def _get_max_coloc_per_study_locus(
-        study_locus: StudyLocus,
+    def _get_max_coloc_per_credible_set(
+        credible_set: StudyLocus,
         studies: StudyIndex,
         colocalisation: Colocalisation,
         colocalisation_method: str,
@@ -34,7 +34,7 @@ class ColocalisationFactory:
         """Get the maximum colocalisation posterior probability for each pair of overlapping study-locus per type of colocalisation method and QTL type.
 
         Args:
-            study_locus (StudyLocus): Study locus dataset
+            credible_set (StudyLocus): Study locus dataset
             studies (StudyIndex): Study index dataset
             colocalisation (Colocalisation): Colocalisation dataset
             colocalisation_method (str): Colocalisation method to extract the max from
@@ -57,8 +57,8 @@ class ColocalisationFactory:
             coloc_score_col_name = "clpp"
             coloc_feature_col_template = "ColocClppMaximum"
 
-        colocalising_study_locus = (
-            study_locus.df.select("studyLocusId", "studyId")
+        colocalising_credible_sets = (
+            credible_set.df.select("studyLocusId", "studyId")
             # annotate studyLoci with overlapping IDs on the left - to just keep GWAS associations
             .join(
                 colocalisation.df.selectExpr(
@@ -72,7 +72,7 @@ class ColocalisationFactory:
             )
             # bring study metadata to just keep QTL studies on the right
             .join(
-                study_locus.df.selectExpr(
+                credible_set.df.selectExpr(
                     "studyLocusId as rightStudyLocusId", "studyId as right_studyId"
                 ),
                 on="rightStudyLocusId",
@@ -98,7 +98,7 @@ class ColocalisationFactory:
 
         # Max PP calculation per studyLocus AND type of QTL
         local_max = get_record_with_maximum_value(
-            colocalising_study_locus,
+            colocalising_credible_sets,
             ["studyLocusId", "right_studyType", "geneId"],
             "coloc_score",
         )
@@ -111,7 +111,7 @@ class ColocalisationFactory:
             .join(
                 # Add maximum in the neighborhood
                 get_record_with_maximum_value(
-                    colocalising_study_locus.withColumnRenamed(
+                    colocalising_credible_sets.withColumnRenamed(
                         "coloc_score", "coloc_neighborhood_max"
                     ),
                     ["studyLocusId", "right_studyType"],
@@ -135,7 +135,7 @@ class ColocalisationFactory:
         local_dfs = []
         nbh_dfs = []
         qtl_types: list[str] = (
-            colocalising_study_locus.select("right_studyType")
+            colocalising_credible_sets.select("right_studyType")
             .distinct()
             .toPandas()["right_studyType"]
             .tolist()
@@ -192,12 +192,12 @@ class StudyLocusFactory(StudyLocus):
 
     @staticmethod
     def _get_tss_distance_features(
-        study_locus: StudyLocus, distances: V2G
+        credible_set: StudyLocus, distances: V2G
     ) -> L2GFeature:
         """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
 
         Args:
-            study_locus (StudyLocus): Study locus dataset
+            credible_set (StudyLocus): Credible set dataset
             distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
 
         Returns:
@@ -205,7 +205,7 @@ class StudyLocusFactory(StudyLocus):
 
         """
         wide_df = (
-            study_locus.filter_credible_set(CredibleInterval.IS95)
+            credible_set.filter_credible_set(CredibleInterval.IS95)
             .df.select(
                 "studyLocusId",
                 "variantId",

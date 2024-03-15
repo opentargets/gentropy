@@ -73,7 +73,9 @@ class LocusToGeneStep:
             session, study_index_path, recursiveFileLookup=True
         )
         v2g = V2G.from_parquet(session, variant_gene_path)
-        coloc = Colocalisation.from_parquet(session, colocalisation_path)
+        coloc = Colocalisation.from_parquet(
+            session, colocalisation_path, recursiveFileLookup=True
+        )
 
         if run_mode == "predict":
             if not model_path or not predictions_path:
@@ -91,7 +93,7 @@ class LocusToGeneStep:
             and gene_interactions_path
         ):
             # Process gold standard and L2G features
-            gs_curation = session.spark.read.json(gold_standard_curation_path).persist()
+            gs_curation = session.spark.read.json(gold_standard_curation_path)
             interactions = session.spark.read.parquet(gene_interactions_path)
             study_locus_overlap = StudyLocus(
                 # We just extract overlaps of associations in the gold standard. This parsing is a duplication of the one in the gold standard curation,
@@ -126,7 +128,7 @@ class LocusToGeneStep:
 
             fm = L2GFeatureMatrix.generate_features(
                 features_list=features_list,
-                study_locus=credible_set,
+                credible_set=credible_set,
                 study_index=studies,
                 variant_gene=v2g,
                 colocalisation=coloc,
