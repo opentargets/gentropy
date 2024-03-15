@@ -35,16 +35,16 @@ DATA_TO_MOVE = {
     # PICS credible sets from GWAS Catalog curated associations:
     "gwas_catalog_curated_credible_set": {
         "source_bucket": GWAS_CATALOG_BUCKET_NAME,
-        "source_object": "credible_set_datasets/gwas_catalog_curated",
+        "source_object": "credible_set_datasets/gwas_catalog_PICSed_curated_associations",
         "destination_bucket": RELEASE_BUCKET_NAME,
-        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_pics_from_curation",
+        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_PICSed_curated_associations",
     },
     # PICS credible sets from GWAS Catalog summary statistics:
     "gwas_catalog_sumstats_credible_set": {
         "source_bucket": GWAS_CATALOG_BUCKET_NAME,
-        "source_object": "credible_set_datasets/gwas_catalog_summary_stats",
+        "source_object": "credible_set_datasets/gwas_catalog_PICSed_summary_statistics",
         "destination_bucket": RELEASE_BUCKET_NAME,
-        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_pics_from_summary_statistics",
+        "destination_object": f"releases/{RELEASE_VERSION}/credible_set/gwas_catalog_PICSed_summary_statistics",
     },
     # GWAS Catalog manifest files:
     "gwas_catalog_manifests": {
