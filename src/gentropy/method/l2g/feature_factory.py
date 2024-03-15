@@ -101,39 +101,35 @@ class ColocalisationFactory:
             colocalising_study_locus,
             ["studyLocusId", "right_studyType", "geneId"],
             "coloc_score",
-        ).persist()
+        )
 
         intercept = 0.0001
         neighbourhood_max = (
-            (
-                local_max.selectExpr(
-                    "studyLocusId", "coloc_score as coloc_local_max", "geneId"
-                )
-                .join(
-                    # Add maximum in the neighborhood
-                    get_record_with_maximum_value(
-                        colocalising_study_locus.withColumnRenamed(
-                            "coloc_score", "coloc_neighborhood_max"
-                        ),
-                        ["studyLocusId", "right_studyType"],
-                        "coloc_neighborhood_max",
-                    ).drop("geneId"),
-                    on="studyLocusId",
-                )
-                .withColumn(
-                    f"{coloc_feature_col_template}Neighborhood",
-                    f.log10(
-                        f.abs(
-                            f.col("coloc_local_max")
-                            - f.col("coloc_neighborhood_max")
-                            + f.lit(intercept)
-                        )
-                    ),
-                )
+            local_max.selectExpr(
+                "studyLocusId", "coloc_score as coloc_local_max", "geneId"
             )
-            .drop("coloc_neighborhood_max", "coloc_local_max")
-            .persist()
-        )
+            .join(
+                # Add maximum in the neighborhood
+                get_record_with_maximum_value(
+                    colocalising_study_locus.withColumnRenamed(
+                        "coloc_score", "coloc_neighborhood_max"
+                    ),
+                    ["studyLocusId", "right_studyType"],
+                    "coloc_neighborhood_max",
+                ).drop("geneId"),
+                on="studyLocusId",
+            )
+            .withColumn(
+                f"{coloc_feature_col_template}Neighborhood",
+                f.log10(
+                    f.abs(
+                        f.col("coloc_local_max")
+                        - f.col("coloc_neighborhood_max")
+                        + f.lit(intercept)
+                    )
+                ),
+            )
+        ).drop("coloc_neighborhood_max", "coloc_local_max")
 
         # Split feature per molQTL
         local_dfs = []
@@ -293,21 +289,22 @@ class StudyLocusFactory(StudyLocus):
 
         credible_set_w_variant_consequences = (
             credible_set.filter_credible_set(CredibleInterval.IS95)
-            .df.withColumn("variantInLocusId", f.explode(f.col("locus.variantId")))
-            .withColumn(
-                "variantInLocusPosteriorProbability",
-                f.explode(f.col("locus.posteriorProbability")),
+            .df.withColumn("variantInLocus", f.explode_outer("locus"))
+            .select(
+                f.col("studyLocusId"),
+                f.col("variantId"),
+                f.col("studyId"),
+                f.col("variantInLocus.variantId").alias("variantInLocusId"),
+                f.col("variantInLocus.posteriorProbability").alias(
+                    "variantInLocusPosteriorProbability"
+                ),
             )
             .join(
                 # Join with V2G to get variant consequences
-                v2g.df.filter(
-                    f.col("datasourceId") == "variantConsequence"
-                ).withColumnRenamed("variantId", "variantInLocusId"),
+                v2g.df.filter(f.col("datasourceId") == "variantConsequence").selectExpr(
+                    "variantId as variantInLocusId", "geneId", "score"
+                ),
                 on="variantInLocusId",
-            )
-            .withColumn(
-                "weightedScore",
-                f.col("score") * f.col("variantInLocusPosteriorProbability"),
             )
             .select(
                 "studyLocusId",
@@ -315,10 +312,11 @@ class StudyLocusFactory(StudyLocus):
                 "studyId",
                 "geneId",
                 "score",
-                "weightedScore",
+                (f.col("score") * f.col("variantInLocusPosteriorProbability")).alias(
+                    "weightedScore"
+                ),
             )
             .distinct()
-            .persist()
         )
 
         return L2GFeature(
