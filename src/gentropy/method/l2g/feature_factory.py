@@ -311,7 +311,6 @@ class StudyLocusFactory(StudyLocus):
                 "variantId",
                 "studyId",
                 "geneId",
-                "score",
                 (f.col("score") * f.col("variantInLocusPosteriorProbability")).alias(
                     "weightedScore"
                 ),
@@ -327,14 +326,14 @@ class StudyLocusFactory(StudyLocus):
                         # Calculate overall max VEP score for all genes in the vicinity
                         credible_set_w_variant_consequences.transform(
                             _aggregate_vep_feature,
-                            f.max("score"),
+                            f.max("weightedScore"),
                             ["studyLocusId"],
                             "vepMaximumNeighborhood",
                         ),
                         # Calculate overall max VEP score per gene
                         credible_set_w_variant_consequences.transform(
                             _aggregate_vep_feature,
-                            f.max("score"),
+                            f.max("weightedScore"),
                             ["studyLocusId", "geneId"],
                             "vepMaximum",
                         ),
