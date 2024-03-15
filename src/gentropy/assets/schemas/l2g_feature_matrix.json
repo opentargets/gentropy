@@ -125,6 +125,30 @@
       "name": "sqtlColocLlrMaximumNeighborhood",
       "nullable": true,
       "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "tuqtlColocClppMaximum",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "tuqtlColocClppMaximumNeighborhood",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "tuqtlColocLlrMaximum",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "tuqtlColocLlrMaximumNeighborhood",
+      "nullable": true,
+      "type": "float"
     }
   ],
   "type": "struct"

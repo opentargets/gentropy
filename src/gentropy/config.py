@@ -214,13 +214,17 @@ class LocusToGeneConfig(StepConfig):
             # max clpp for each (study, locus) aggregating over all eQTLs
             "eqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocClppMaximum",
+            "pqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocClppMaximumNeighborhood",
+            "pqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocClppMaximum",
+            "sqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocClppMaximumNeighborhood",
+            "sqtlColocClppMaximumNeighborhood",
+            # max clpp for each (study, locus) aggregating over all tuQTLs
+            "tuqtlColocClppMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all tuQTLs
+            "tuqtlColocClppMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
