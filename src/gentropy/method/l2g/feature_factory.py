@@ -221,13 +221,13 @@ class StudyLocusFactory(StudyLocus):
                 how="inner",
             )
             .withColumn(
-                "wightedScore",
+                "weightedScore",
                 f.col("score") * f.col("variantInLocusPosteriorProbability"),
             )
             .groupBy("studyLocusId", "geneId")
             .agg(
-                f.min("wightedScore").alias("distanceTssMinimum"),
-                f.mean("wightedScore").alias("distanceTssMean"),
+                f.min("weightedScore").alias("distanceTssMinimum"),
+                f.mean("weightedScore").alias("distanceTssMean"),
             )
         )
 
