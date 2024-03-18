@@ -455,23 +455,23 @@ class GnomADLDMatrix:
     @staticmethod
     def get_locus_index(
         session: Session,
+        ld_index_path: str,
         study_locus_row: Optional[DataFrame] = None,
         chromosome: Optional[str] = None,
         position: Optional[int] = None,
         window_size: int = 1_000_000,
         major_population: str = "nfe",
-        ld_index_path: str = "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet",
     ) -> DataFrame:
         """Extract hail matrix index from StudyLocus rows.
 
         Args:
             session (Session): Spark session
+            ld_index_path (str): Optional path to the LD index parquet
             study_locus_row (Optional[DataFrame]): Study-locus row
             chromosome (Optional[str]): Chromosome to extract from gnomad matrix
             position (Optional[int]): Position to extract from gnomad matrix
             window_size (int): Window size to extract from gnomad matrix
             major_population (str): Major population to extract from gnomad matrix, default is "nfe"
-            ld_index_path (str): Optional path to the LD index parquet
 
         Returns:
             DataFrame: Returns the index of the gnomad matrix for the locus
