@@ -182,6 +182,7 @@ class LocusToGeneConfig(StepConfig):
                 "spark.dynamicAllocation.enabled": "false",
                 "spark.driver.memory": "48g",
                 "spark.executor.memory": "48g",
+                "spark.sql.shuffle.partitions": "800",
             }
         }
     )

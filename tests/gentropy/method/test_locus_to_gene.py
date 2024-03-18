@@ -87,7 +87,7 @@ class TestColocalisationFactory:
             "eCAVIAR",
         ],
     )
-    def test_get_max_coloc_per_study_locus(
+    def test_get_max_coloc_per_credible_set(
         self: TestColocalisationFactory,
         mock_study_locus: StudyLocus,
         mock_study_index: StudyIndex,
@@ -95,7 +95,7 @@ class TestColocalisationFactory:
         colocalisation_method: str,
     ) -> None:
         """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus returns the right data type."""
-        coloc_features = ColocalisationFactory._get_max_coloc_per_study_locus(
+        coloc_features = ColocalisationFactory._get_max_coloc_per_credible_set(
             mock_study_locus,
             mock_study_index,
             mock_colocalisation,
@@ -103,9 +103,9 @@ class TestColocalisationFactory:
         )
         assert isinstance(
             coloc_features, L2GFeature
-        ), "Unexpected model type returned from _get_max_coloc_per_study_locus"
+        ), "Unexpected model type returned from _get_max_coloc_per_credible_set"
 
-    def test_get_max_coloc_per_study_locus_semantic(
+    def test_get_max_coloc_per_credible_set_semantic(
         self: TestColocalisationFactory,
         spark: SparkSession,
     ) -> None:
@@ -182,27 +182,13 @@ class TestColocalisationFactory:
             L2GFeature.get_schema(),
         )
         # Test
-        coloc_features = ColocalisationFactory._get_max_coloc_per_study_locus(
+        coloc_features = ColocalisationFactory._get_max_coloc_per_credible_set(
             credset,
             studies,
             coloc,
             "eCAVIAR",
         )
         assert coloc_features.df.collect() == expected_coloc_features_df.collect()
-
-    def test_get_coloc_features(
-        self: TestColocalisationFactory,
-        mock_study_locus: StudyLocus,
-        mock_study_index: StudyIndex,
-        mock_colocalisation: Colocalisation,
-    ) -> None:
-        """Test the function that calls all the methods to produce colocalisation features."""
-        coloc_features = ColocalisationFactory._get_coloc_features(
-            mock_study_locus, mock_study_index, mock_colocalisation
-        )
-        assert isinstance(
-            coloc_features, L2GFeature
-        ), "Unexpected model type returned from _get_coloc_features"
 
 
 class TestStudyLocusFactory:
