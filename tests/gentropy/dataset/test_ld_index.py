@@ -1,4 +1,5 @@
 """Tests on LD index."""
+
 from __future__ import annotations
 
 from gentropy.dataset.ld_index import LDIndex

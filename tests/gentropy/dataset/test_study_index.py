@@ -1,4 +1,5 @@
 """Test study index dataset."""
+
 from __future__ import annotations
 
 from gentropy.dataset.study_index import StudyIndex

@@ -1,4 +1,5 @@
 """Tests on L2G datasets."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -167,8 +168,8 @@ def test_calculate_feature_missingness_rate(spark: SparkSession) -> None:
     expected_missingness = {"distanceTssMean": 0.0, "distanceTssMinimum": 1.0}
     observed_missingness = fm.calculate_feature_missingness_rate()
     assert isinstance(observed_missingness, dict)
-    assert len(observed_missingness) == len(
-        fm.features_list  # type: ignore
+    assert fm.features_list is not None and len(observed_missingness) == len(
+        fm.features_list
     ), "Missing features in the missingness rate dictionary."
     assert (
         observed_missingness == expected_missingness

@@ -1,4 +1,5 @@
 """Test colocalisation dataset."""
+
 from __future__ import annotations
 
 from gentropy.dataset.colocalisation import Colocalisation
