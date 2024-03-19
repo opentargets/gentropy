@@ -6,7 +6,7 @@ ci:
   skip: [poetry-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
+    rev: v0.3.3
     hooks:
       - id: ruff
         args:
@@ -59,14 +59,14 @@ repos:
         exclude: "CHANGELOG.md"
 
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.11.0
+    rev: v9.13.0
     hooks:
       - id: commitlint
         additional_dependencies: ["@commitlint/config-conventional@18.6.3"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.8.0"
+    rev: "v1.9.0"
     hooks:
       - id: mypy
         args:
@@ -104,7 +104,7 @@ repos:
       - id: pydoclint
 
   - repo: https://github.com/python-poetry/poetry
-    rev: "1.8.2"
+    rev: "1.8.0"
     hooks:
       - id: poetry-check
       - id: poetry-lock
