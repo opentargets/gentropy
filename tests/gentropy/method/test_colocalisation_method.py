@@ -79,7 +79,6 @@ def test_coloc_semantic(
     spark: SparkSession,
     observed_data: list[Any],
     expected_data: list[Any],
-    threshold: float = 1e-5,
 ) -> None:
     """Test our COLOC with the implementation in R."""
     observed_overlap = StudyLocusOverlap(
