@@ -16,7 +16,7 @@ class TestSUSIE_inf:
         ld = sample_data_for_susie_inf[0]
         z = sample_data_for_susie_inf[1]
         lbf_moments = sample_data_for_susie_inf[2]
-        susie_output = SUSIE_inf.susie_inf(z=z, LD=ld, method="moments")
+        susie_output = SUSIE_inf.susie_inf(z=z, LD=ld, est_tausq=True, method="moments")
         lbf_calc = susie_output["lbf_variable"][:, 0]
         assert np.allclose(
             lbf_calc, lbf_moments
@@ -29,7 +29,7 @@ class TestSUSIE_inf:
         ld = sample_data_for_susie_inf[0]
         z = sample_data_for_susie_inf[1]
         lbf_mle = sample_data_for_susie_inf[3]
-        susie_output = SUSIE_inf.susie_inf(z=z, LD=ld, method="MLE")
+        susie_output = SUSIE_inf.susie_inf(z=z, LD=ld, est_tausq=True, method="MLE")
         lbf_calc = susie_output["lbf_variable"][:, 0]
         assert np.allclose(
             lbf_calc, lbf_mle, atol=1e-1
@@ -41,6 +41,6 @@ class TestSUSIE_inf:
         """Test of SuSiE-inf credible set generator."""
         ld = sample_data_for_susie_inf[0]
         z = sample_data_for_susie_inf[1]
-        susie_output = SUSIE_inf.susie_inf(z=z, LD=ld)
+        susie_output = SUSIE_inf.susie_inf(z=z, LD=ld, est_tausq=True)
         cred = SUSIE_inf.cred_inf(susie_output["PIP"], LD=ld)
         assert cred[0] == [5]

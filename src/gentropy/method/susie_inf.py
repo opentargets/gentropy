@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import pyspark.sql.functions as f
 import scipy.linalg
 import scipy.special
+from pyspark.sql import Window
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import logsumexp
+
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.datasource.gnomad.ld import GnomADLDMatrix
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
+
+    from gentropy.common.session import Session
 
 
 @dataclass
@@ -34,7 +45,7 @@ class SUSIE_inf:
         ssq_range: tuple[float, float] = (0, 1),
         pi0: np.ndarray | None = None,
         est_sigmasq: bool = True,
-        est_tausq: bool = True,
+        est_tausq: bool = False,
         sigmasq: float = 1,
         tausq: float = 0,
         sigmasq_range: tuple[float, float] | None = None,
@@ -399,7 +410,7 @@ class SUSIE_inf:
     def cred_inf(
         PIP: np.ndarray,
         n: int = 100_000,
-        coverage: float = 0.9,
+        coverage: float = 0.99,
         purity: float = 0.5,
         LD: np.ndarray | None = None,
         V: np.ndarray | None = None,
@@ -457,3 +468,203 @@ class SUSIE_inf:
                 )
             )
         return cred
+
+    @staticmethod
+    def susie_finemapper(
+        session: Session,
+        locus: DataFrame,
+        window: int = 1_000_000,
+        study_index_path: str = "gs://genetics_etl_python_playground/releases/24.01/study_index/gwas_catalog",
+    ) -> DataFrame:
+        """Susie fine-mapper for a study locus.
+
+        Args:
+            session (Session): Spark session
+            locus (DataFrame): row of studyLocus DataFrame
+            window (int): window size for fine-mapping
+            study_index_path (str): path to the study index, default is ETL output path
+
+        Returns:
+            DataFrame: DataFrame with fine-mapped credible sets
+        """
+        # Extract information from studyLocus
+        _locus = StudyIndex.get_major_population(
+            locus.select(
+                "studyLocusId",
+                "studyId",
+                "variantId",
+                "chromosome",
+                "position",
+                "beta",
+                "standardError",
+            )
+            .join(
+                StudyIndex.from_parquet(
+                    session, study_index_path, recursiveFileLookup=True
+                ).df,
+                "studyId",
+            )
+            .withColumn(
+                "region",
+                f.regexp_replace(
+                    f.concat(
+                        f.col("chromosome"),
+                        f.lit(":"),
+                        f.format_number((f.col("position") - (window / 2)), 0),
+                        f.lit("-"),
+                        f.format_number((f.col("position") + (window / 2)), 0),
+                    ),
+                    ",",
+                    "",
+                ),
+            )
+        )
+
+        # Extract required locus information
+        collection = _locus.select(
+            "studyId",
+            "region",
+            "majorPopulation",
+        ).collect()[0]
+        _major_population = collection["majorPopulation"]
+        _studyId = collection["studyId"]
+        _region = collection["region"]
+
+        # Extract summary statistics
+        _ss = (
+            SummaryStatistics.get_locus_sumstats(session, window, _locus)
+            .withColumn("z", f.col("beta") / f.col("standardError"))
+            .withColumn("ref", f.split(f.col("variantId"), "_").getItem(2))
+            .withColumn("alt", f.split(f.col("variantId"), "_").getItem(3))
+            .select(
+                "variantId",
+                f.col("chromosome").alias("chr"),
+                f.col("position").alias("pos"),
+                "ref",
+                "alt",
+                "beta",
+                "pValueMantissa",
+                "pValueExponent",
+                "effectAlleleFrequencyFromSource",
+                "standardError",
+                "z",
+            )
+        )
+
+        # Extract LD index
+        _index = GnomADLDMatrix.get_locus_index(
+            session, locus, window_size=window, major_population=_major_population
+        )
+        _join = (
+            _ss.join(
+                _index.alias("_index"),
+                on=(
+                    (_ss["chr"] == _index["chromosome"])
+                    & (_ss["pos"] == _index["position"])
+                    & (_ss["ref"] == _index["referenceAllele"])
+                    & (_ss["alt"] == _index["alternateAllele"])
+                ),
+            )
+            .drop("ref", "alt", "chr", "pos")
+            .sort("idx")
+        )
+
+        # Extracting z-scores and LD matrix, then running SuSiE-inf
+        _z = np.array([_row["z"] for _row in _join.select("z").collect()])
+        _variants = np.array(
+            [row["variantId"] for row in _join.select("variantId").collect()]
+        )
+        _ld = GnomADLDMatrix.get_locus_matrix(_join, gnomad_ancestry=_major_population)
+        _susie = SUSIE_inf.susie_inf(z=_z, LD=_ld)
+
+        # Formatting susie results
+        variants = _variants.reshape(-1, 1)
+        PIPs = _susie["PIP"]
+        lbfs = _susie["lbf_variable"]
+        susie_result = np.hstack((variants, PIPs, lbfs))
+
+        # Extracting credible sets
+        order_creds = list(enumerate(_susie["lbf"]))
+        order_creds.sort(key=lambda x: x[1], reverse=True)
+        cred_sets = None
+        counter = 0
+        for i, value in order_creds:
+            if counter > 0 and value < 2:
+                continue
+            counter += 1
+            sorted_arr = susie_result[
+                susie_result[:, i + 1].astype(float).argsort()[::-1]
+            ]
+            cumsum_arr = np.cumsum(sorted_arr[:, i + 1].astype(float))
+            filter_row = np.argmax(cumsum_arr >= 0.99)
+            if filter_row == 0 and cumsum_arr[0] < 0.99:
+                filter_row = len(cumsum_arr)
+            filter_row += 1
+            filtered_arr = sorted_arr[:filter_row]
+            cred_set = filtered_arr[:, [0, i + 1, i + 11]]
+            win = Window.rowsBetween(
+                Window.unboundedPreceding, Window.unboundedFollowing
+            )
+            cred_set = (
+                session.spark.createDataFrame(
+                    cred_set.tolist(), ["variantId", "posteriorProbability", "logBF"]
+                )
+                .join(
+                    _join.select(
+                        "variantId",
+                        "pValueMantissa",
+                        "pValueExponent",
+                        "chromosome",
+                        "position",
+                        "beta",
+                        "standardError",
+                    ),
+                    "variantId",
+                )
+                .sort(f.desc("posteriorProbability"))
+                .withColumn(
+                    "locus",
+                    f.collect_list(
+                        f.struct(
+                            "variantId",
+                            "posteriorProbability",
+                            "logBF",
+                            "pValueMantissa",
+                            "pValueExponent",
+                            "beta",
+                            "standardError",
+                        )
+                    ).over(win),
+                )
+                .limit(1)
+                .withColumns(
+                    {
+                        "studyId": f.lit(_studyId),
+                        "region": f.lit(_region),
+                        "credibleSetIndex": f.lit(i + 1),
+                        "credibleSetlog10BF": f.lit(value),
+                        "fineMappingMethod": f.lit("SuSiE-inf"),
+                    }
+                )
+                .select(
+                    "studyId",
+                    "region",
+                    "credibleSetIndex",
+                    "locus",
+                    "variantId",
+                    "chromosome",
+                    "position",
+                    "beta",
+                    "pValueMantissa",
+                    "pValueExponent",
+                    "standardError",
+                    "fineMappingMethod",
+                    "credibleSetlog10BF",
+                )
+            )
+            if cred_sets is None:
+                cred_sets = cred_set
+            else:
+                cred_sets = cred_sets.union(cred_set)
+
+        return cred_sets

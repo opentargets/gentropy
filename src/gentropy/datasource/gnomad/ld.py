@@ -4,13 +4,15 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 from functools import reduce
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import hail as hl
+import numpy as np
 import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
+from gentropy.common.session import Session
 from gentropy.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
 from gentropy.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
 from gentropy.dataset.ld_index import LDIndex
@@ -28,12 +30,14 @@ class GnomADLDMatrix:
     Attributes:
         ld_matrix_template (str): Template for the LD matrix path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm".
         ld_index_raw_template (str): Template for the LD index path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht".
+        ld_index_38_template (str): Template for the LD index path in build 38. Defaults to "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet"
         grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates. Defaults to "gs://hail-common/references/grch37_to_grch38.over.chain.gz".
         ld_populations (list[str]): List of populations to use to build the LDIndex. Defaults to ["afr", "amr", "asj", "eas", "fin", "nfe", "nwe", "seu"].
     """
 
     ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
     ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
+    ld_index_38_template: str = "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet"
     grch37_to_grch38_chain_path: str = (
         "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
     )
@@ -218,9 +222,9 @@ class GnomADLDMatrix:
             DataFrame: Dataframe with variant IDs instead of `i` and `j` indices
         """
         ld_index_i = ld_index.selectExpr(
-            "idx as i", "variantId as variantId_i", "chromosome"
+            "idx as i", "variantId as variantIdI", "chromosome"
         )
-        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantId_j")
+        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantIdJ")
         return (
             ld_matrix.join(ld_index_i, on="i", how="inner")
             .join(ld_index_j, on="j", how="inner")
@@ -238,35 +242,35 @@ class GnomADLDMatrix:
             DataFrame: Square LD matrix without diagonal duplicates
 
         Examples:
-            >>> df = spark.createDataFrame(
-            ...     [
-            ...         (1, 1, 1.0, "1", "AFR"),
-            ...         (1, 2, 0.5, "1", "AFR"),
-            ...         (2, 2, 1.0, "1", "AFR"),
-            ...     ],
-            ...     ["variantId_i", "variantId_j", "r", "chromosome", "population"],
-            ... )
-            >>> GnomADLDMatrix._transpose_ld_matrix(df).show()
-            +-----------+-----------+---+----------+----------+
-            |variantId_i|variantId_j|  r|chromosome|population|
-            +-----------+-----------+---+----------+----------+
-            |          1|          2|0.5|         1|       AFR|
-            |          1|          1|1.0|         1|       AFR|
-            |          2|          1|0.5|         1|       AFR|
-            |          2|          2|1.0|         1|       AFR|
-            +-----------+-----------+---+----------+----------+
-            <BLANKLINE>
+        >>> df = spark.createDataFrame(
+        ...     [
+        ...         (1, 1, 1.0, "1", "AFR"),
+        ...         (1, 2, 0.5, "1", "AFR"),
+        ...         (2, 2, 1.0, "1", "AFR"),
+        ...     ],
+        ...     ["variantIdI", "variantIdJ", "r", "chromosome", "population"],
+        ... )
+        >>> GnomADLDMatrix._transpose_ld_matrix(df).show()
+        +----------+----------+---+----------+----------+
+        |variantIdI|variantIdJ|  r|chromosome|population|
+        +----------+----------+---+----------+----------+
+        |         1|         2|0.5|         1|       AFR|
+        |         1|         1|1.0|         1|       AFR|
+        |         2|         1|0.5|         1|       AFR|
+        |         2|         2|1.0|         1|       AFR|
+        +----------+----------+---+----------+----------+
+        <BLANKLINE>
         """
         ld_matrix_transposed = ld_matrix.selectExpr(
-            "variantId_i as variantId_j",
-            "variantId_j as variantId_i",
+            "variantIdI as variantIdJ",
+            "variantIdJ as variantIdI",
             "r",
             "chromosome",
             "population",
         )
-        return ld_matrix.filter(
-            f.col("variantId_i") != f.col("variantId_j")
-        ).unionByName(ld_matrix_transposed)
+        return ld_matrix.filter(f.col("variantIdI") != f.col("variantIdJ")).unionByName(
+            ld_matrix_transposed
+        )
 
     def as_ld_index(
         self: GnomADLDMatrix,
@@ -307,8 +311,8 @@ class GnomADLDMatrix:
             GnomADLDMatrix._transpose_ld_matrix(
                 reduce(lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated)
             )
-            .withColumnRenamed("variantId_i", "variantId")
-            .withColumnRenamed("variantId_j", "tagVariantId")
+            .withColumnRenamed("variantIdI", "variantId")
+            .withColumnRenamed("variantIdJ", "tagVariantId")
         )
         return LDIndex(
             _df=self._aggregate_ld_index_across_populations(ld_index_unaggregated),
@@ -345,7 +349,6 @@ class GnomADLDMatrix:
                 & (f.col("position") <= end)
             )
             .select("chromosome", "position", "variantId", "idx")
-            .persist()
         )
 
         if ld_index_df.limit(1).count() == 0:
@@ -395,7 +398,7 @@ class GnomADLDMatrix:
             .join(
                 ld_index_df.select(
                     f.col("idx").alias("idx_i"),
-                    f.col("variantId").alias("variantId_i"),
+                    f.col("variantId").alias("variantIdI"),
                 ),
                 on="idx_i",
                 how="inner",
@@ -403,12 +406,12 @@ class GnomADLDMatrix:
             .join(
                 ld_index_df.select(
                     f.col("idx").alias("idx_j"),
-                    f.col("variantId").alias("variantId_j"),
+                    f.col("variantId").alias("variantIdJ"),
                 ),
                 on="idx_j",
                 how="inner",
             )
-            .select("variantId_i", "variantId_j", "r")
+            .select("variantIdI", "variantIdJ", "r")
         )
 
     def get_ld_matrix_slice(
@@ -448,3 +451,98 @@ class GnomADLDMatrix:
                 .alias("r"),
             )
         )
+
+    @staticmethod
+    def get_locus_index(
+        session: Session,
+        study_locus_row: Optional[DataFrame] = None,
+        chromosome: Optional[str] = None,
+        position: Optional[int] = None,
+        window_size: int = 1_000_000,
+        major_population: str = "nfe",
+        ld_index_path: str = "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet",
+    ) -> DataFrame:
+        """Extract hail matrix index from StudyLocus rows.
+
+        Args:
+            session (Session): Spark session
+            study_locus_row (Optional[DataFrame]): Study-locus row
+            chromosome (Optional[str]): Chromosome to extract from gnomad matrix
+            position (Optional[int]): Position to extract from gnomad matrix
+            window_size (int): Window size to extract from gnomad matrix
+            major_population (str): Major population to extract from gnomad matrix, default is "nfe"
+            ld_index_path (str): Optional path to the LD index parquet
+
+        Returns:
+            DataFrame: Returns the index of the gnomad matrix for the locus
+
+        Raises:
+            ValueError: Either a studyLocus or a chromosome and position must be provided
+        """
+        if study_locus_row is None:
+            if chromosome is not None and position is not None:
+                _df = session.spark.createDataFrame(
+                    [(chromosome, position)], ["chromosome", "position"]
+                )
+            else:
+                raise ValueError(
+                    "Either a studyLocus or a chromosome and position must be provided."
+                )
+        else:
+            _df = study_locus_row
+
+        _df = (
+            _df.withColumn("start", f.col("position") - (window_size / 2))
+            .withColumn("end", f.col("position") + (window_size / 2))
+            .alias("_df")
+        )
+
+        _matrix_index = session.spark.read.parquet(
+            ld_index_path.format(POP=major_population)
+        )
+
+        _index_joined = (
+            _df.alias("df")
+            .join(
+                _matrix_index.alias("matrix_index"),
+                (f.col("df.chromosome") == f.col("matrix_index.chromosome"))
+                & (f.col("df.start") <= f.col("matrix_index.position"))
+                & (f.col("df.end") >= f.col("matrix_index.position")),
+            )
+            .select(
+                "matrix_index.chromosome",
+                "matrix_index.position",
+                "referenceAllele",
+                "alternateAllele",
+                "idx",
+            )
+        )
+
+        return _index_joined
+
+    @staticmethod
+    def get_locus_matrix(
+        locus_index: DataFrame,
+        gnomad_ancestry: str,
+    ) -> np.ndarray:
+        """Extract the LD block matrix for a locus.
+
+        Args:
+            locus_index (DataFrame): hail matrix variant index table
+            gnomad_ancestry (str): GnomAD major ancestry label eg. `nfe`
+
+        Returns:
+            np.ndarray: LD block matrix for the locus
+        """
+        _locus = locus_index
+        idx = [row["idx"] for row in _locus.select("idx").collect()]
+
+        half_matrix = (
+            BlockMatrix.read(
+                GnomADLDMatrix.ld_matrix_template.format(POP=gnomad_ancestry)
+            )
+            .filter(idx, idx)
+            .to_numpy()
+        )
+
+        return (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))

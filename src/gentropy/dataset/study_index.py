@@ -183,3 +183,23 @@ class StudyIndex(Dataset):
             Column: True if the study has harmonized summary statistics.
         """
         return self.df.hasSumstats
+
+    @staticmethod
+    def get_major_population(df: DataFrame) -> DataFrame:
+        """Extract major population from ldPopulationStructure rows with multiple ancestries.
+
+        Args:
+            df (DataFrame): A dataframe with the studyID and ldPopulationStructure columns
+
+        Returns:
+            DataFrame: Original DataFrame, extracted major population from ldPopulationStructure
+        """
+        return df.join(
+            df.select(
+                "studyId",
+                f.array_max(f.col("ldPopulationStructure"))
+                .getItem("ldPopulation")
+                .alias("majorPopulation"),
+            ),
+            "studyId",
+        )
