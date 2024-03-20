@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql.utils import AnalysisException
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
@@ -16,7 +15,6 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.common.session import Session
     from gentropy.dataset.study_locus import StudyLocus
 
 
@@ -118,64 +116,24 @@ class SummaryStatistics(Dataset):
             _schema=SummaryStatistics.get_schema(),
         )
 
-    @staticmethod
     def get_locus_sumstats(
-        session: Session,
+        self: SummaryStatistics,
+        locus: DataFrame,
         window: int,
-        locus: Optional[DataFrame] = None,
-        pos: Optional[int] = None,
-        chr: Optional[str] = None,
-        study: Optional[str] = None,
     ) -> DataFrame:
-        """Get z-scores for a locus.
+        """Get summary statistics for a studyLocus.
 
         Args:
-            session (Session): Session object
+            locus (DataFrame): studyLocus DataFrame
             window (int): Window size
-            locus (Optional[DataFrame]): Locus DataFrame
-            pos (Optional[int]): Position
-            chr (Optional[str]): Chromosome
-            study (Optional[str]): StudyId to extract z-scores from
 
         Returns:
-            DataFrame: Locus z-scores
-
-        Raises:
-            ValueError: If locus is not provided, pos, chr and study must be provided
-            ValueError: No valid path found for summary statistics
+            DataFrame: Summary statistics for the studyLocus region
         """
-        if locus is None:
-            if pos is None or chr is None or study is None:
-                raise ValueError(
-                    "If locus is not provided, pos, chr and study must be provided"
-                )
-            position = pos
-            chromosome = chr
-        else:
-            row = locus.collect()[0]
-            position = row["position"]
-            chromosome = row["chromosome"]
-            study = row["studyId"]
-        if study is not None and study.startswith("FINNGEN_"):
-            study = study.replace("FINNGEN_", "")
-
-        paths = [
-            f"gs://gwas_catalog_data/harmonised_summary_statistics/{study}.parquet",
-            f"gs://finngen_data/r10/harmonised_summary_statistics/{study}.parquet",
-        ]
-        sumstats = None
-
-        for path in paths:
-            try:
-                sumstats = SummaryStatistics.from_parquet(session=session, path=path)
-                break
-            except AnalysisException:
-                continue
-        if sumstats is None:
-            raise ValueError("No valid path found for summary statistics")
-
-        return sumstats.df.filter(
-            (f.col("chromosome") == chromosome)
-            & (f.col("position") >= position - (window / 2))
-            & (f.col("position") <= position + (window / 2))
+        chr = locus.select(f.first("chromosome")).collect()[0][0]
+        pos = locus.select(f.first("position")).collect()[0][0]
+        return self.df.filter(
+            (f.col("chromosome") == chr)
+            & (f.col("position") >= pos - (window / 2))
+            & (f.col("position") <= pos + (window / 2))
         )
