@@ -26,16 +26,16 @@ class ColocalisationFactory:
 
     @staticmethod
     def _get_max_coloc_per_credible_set(
+        colocalisation: Colocalisation,
         credible_set: StudyLocus,
         studies: StudyIndex,
-        colocalisation: Colocalisation,
     ) -> L2GFeature:
         """Get the maximum colocalisation posterior probability for each pair of overlapping study-locus per type of colocalisation method and QTL type.
 
         Args:
+            colocalisation (Colocalisation): Colocalisation dataset
             credible_set (StudyLocus): Study locus dataset
             studies (StudyIndex): Study index dataset
-            colocalisation (Colocalisation): Colocalisation dataset
 
         Returns:
             L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
@@ -62,7 +62,9 @@ class ColocalisationFactory:
                 credible_set.df.join(
                     studies.df.select("studyId", "studyType", "geneId"), "studyId"
                 ).selectExpr(
-                    "studyLocusId as rightStudyLocusId", "studyType as right_studyType"
+                    "studyLocusId as rightStudyLocusId",
+                    "studyType as right_studyType",
+                    "geneId",
                 ),
                 on="rightStudyLocusId",
                 how="inner",
@@ -135,9 +137,9 @@ class ColocalisationFactory:
                         f.lit("Coloc"),
                         f.col("colocalisationMetric"),
                         f.lit("Maximum"),
-                        f.col("score_type"),
+                        f.regexp_replace(f.col("score_type"), "Local", ""),
                     ).alias("featureName"),
-                    f.col("max_score").alias("featureValue"),
+                    f.col("max_score").cast("float").alias("featureValue"),
                 )
             ),
             _schema=L2GFeature.get_schema(),
