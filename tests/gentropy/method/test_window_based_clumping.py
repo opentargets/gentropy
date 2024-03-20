@@ -8,12 +8,12 @@ from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.window_based_clumping import WindowBasedClumping
 from pyspark.ml import functions as fml
 from pyspark.ml.linalg import VectorUDT
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 
 if TYPE_CHECKING:
     from gentropy.dataset.summary_statistics import SummaryStatistics
-    from pyspark.sql import SparkSession
 
 
 def test_window_based_clump__return_type(
@@ -21,7 +21,14 @@ def test_window_based_clump__return_type(
 ) -> None:
     """Test window-based clumping."""
     assert isinstance(
-        WindowBasedClumping.clump_with_locus(mock_summary_statistics, 250_000),
+        WindowBasedClumping.clump(mock_summary_statistics, distance=250_000),
+        StudyLocus,
+    )
+    assert isinstance(
+        WindowBasedClumping.clump(
+            mock_summary_statistics,
+            distance=250_000,
+        ),
         StudyLocus,
     )
 
@@ -44,7 +51,10 @@ def test_window_based_clump_with_locus__correctness(
 ) -> None:
     """Test window-based clumping."""
     clumped = sample_summary_statistics.window_based_clumping(
-        distance=250_000, locus_collect_distance=250_000
+        distance=250_000,
+    )
+    clumped = clumped.annotate_locus_statistics(
+        sample_summary_statistics, collect_locus_distance=250_000
     )
 
     # Asserting the presence of locus key:
@@ -57,7 +67,7 @@ def test_window_based_clump_with_locus__correctness(
     assert (clumped.df.filter(f.col("variantId") == "18_12843138_T_C").count()) == 1
 
     # Assert the number of variants in the locus:
-    assert (clumped.df.select(f.explode_outer("locus").alias("loci")).count()) == 132
+    assert (clumped.df.select(f.explode_outer("locus").alias("loci")).count()) == 218
 
 
 def test_prune_peak(spark: SparkSession) -> None:
