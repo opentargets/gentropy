@@ -184,15 +184,14 @@ class StudyIndex(Dataset):
         """
         return self.df.hasSumstats
 
-    def get_major_population(self: StudyIndex) -> DataFrame:
+    def get_major_population(self: StudyIndex) -> Column:
         """Extract major population from ldPopulationStructure rows with multiple ancestries.
 
         Returns:
-            DataFrame: Columns studyId and the extracted major population from ldPopulationStructure.
+            Column: Columns studyId and the extracted major population from ldPopulationStructure.
         """
-        return self.df.select(
-            "studyId",
-            f.array_max(f.col("ldPopulationStructure"))
+        return (
+            f.array_max(self.df.ldPopulationStructure)
             .getItem("ldPopulation")
-            .alias("majorPopulation"),
+            .alias("majorPopulation")
         )
