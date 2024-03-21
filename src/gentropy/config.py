@@ -182,6 +182,7 @@ class LocusToGeneConfig(StepConfig):
                 "spark.dynamicAllocation.enabled": "false",
                 "spark.driver.memory": "48g",
                 "spark.executor.memory": "48g",
+                "spark.sql.shuffle.partitions": "800",
             }
         }
     )
@@ -320,9 +321,10 @@ class WindowBasedClumpingStep(StepConfig):
 
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
+    distance: int = 500_000
+    collect_locus: bool = False
+    collect_locus_distance: int = 500_000
     inclusion_list_path: str | None = None
-    locus_collect_distance: str | None = None
-
     _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
 
 
