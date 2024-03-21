@@ -13,7 +13,11 @@ from gentropy.dataset.study_locus import StudyLocus
 
 
 class SusieFineMapperStep:
-    """SuSie finemaping. It has generic methods to run SuSie fine mapping for a study locus."""
+    """SuSie finemaping. It has generic methods to run SuSie fine mapping for a study locus.
+
+    This class/step is the temporary solution of the fine-mapping warpper for the development purposes.
+    In the future this step will be refactored and moved to the methods module.
+    """
 
     @staticmethod
     def susie_inf_to_studylocus(
