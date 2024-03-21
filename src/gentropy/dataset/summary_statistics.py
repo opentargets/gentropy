@@ -11,7 +11,6 @@ from gentropy.common.utils import parse_region, split_pvalue
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.study_locus import StudyLocus
@@ -104,5 +103,3 @@ class SummaryStatistics(Dataset):
             ),
             _schema=SummaryStatistics.get_schema(),
         )
-
-
