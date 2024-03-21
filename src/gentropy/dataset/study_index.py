@@ -77,6 +77,22 @@ class StudyIndex(Dataset):
             gwas_ancestry_label.sampleSize.alias("sampleSize"),
         )
 
+    @staticmethod
+    def get_major_population(ldPopulationStructure: Column) -> Column:
+        """Extract major population from ldPopulationStructure rows with multiple ancestries.
+
+        Args:
+            ldPopulationStructure (Column): Column with multiple ancestries.
+
+        Returns:
+            Column: Column with extracted major population from ldPopulationStructure.
+        """
+        return (
+            f.array_max(ldPopulationStructure)
+            .getItem("ldPopulation")
+            .alias("majorPopulation")
+        )
+
     @classmethod
     def get_schema(cls: type[StudyIndex]) -> StructType:
         """Provide the schema for the StudyIndex dataset.
@@ -183,15 +199,3 @@ class StudyIndex(Dataset):
             Column: True if the study has harmonized summary statistics.
         """
         return self.df.hasSumstats
-
-    def get_major_population(self: StudyIndex) -> Column:
-        """Extract major population from ldPopulationStructure rows with multiple ancestries.
-
-        Returns:
-            Column: Columns studyId and the extracted major population from ldPopulationStructure.
-        """
-        return (
-            f.array_max(self.df.ldPopulationStructure)
-            .getItem("ldPopulation")
-            .alias("majorPopulation")
-        )
