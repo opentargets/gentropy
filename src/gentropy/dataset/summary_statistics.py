@@ -105,24 +105,4 @@ class SummaryStatistics(Dataset):
             _schema=SummaryStatistics.get_schema(),
         )
 
-    def get_locus_sumstats(
-        self: SummaryStatistics,
-        locus: DataFrame,
-        window: int,
-    ) -> DataFrame:
-        """Get summary statistics for a studyLocus.
 
-        Args:
-            locus (DataFrame): studyLocus DataFrame
-            window (int): Window size
-
-        Returns:
-            DataFrame: Summary statistics for the studyLocus region
-        """
-        chr = locus.select(f.first("chromosome")).collect()[0][0]
-        pos = locus.select(f.first("position")).collect()[0][0]
-        return self.df.filter(
-            (f.col("chromosome") == chr)
-            & (f.col("position") >= pos - (window / 2))
-            & (f.col("position") <= pos + (window / 2))
-        )
