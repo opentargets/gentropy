@@ -72,8 +72,8 @@ class ECaviar:
                 overlapping_signals.df.withColumn(
                     "clpp",
                     ECaviar._get_clpp(
-                        f.col("left_posteriorProbability"),
-                        f.col("right_posteriorProbability"),
+                        f.col("statistics.left_posteriorProbability"),
+                        f.col("statistics.right_posteriorProbability"),
                     ),
                 )
                 .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
