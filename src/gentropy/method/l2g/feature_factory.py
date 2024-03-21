@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from functools import reduce
+from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -12,6 +13,7 @@ from gentropy.common.spark_helpers import (
 )
 from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.method.colocalisation import Coloc, ECaviar
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -23,6 +25,20 @@ if TYPE_CHECKING:
 
 class ColocalisationFactory:
     """Feature extraction in colocalisation."""
+
+    @classmethod
+    def _add_colocalisation_metric(cls: type[ColocalisationFactory]) -> Column:
+        """Expression that adds a `colocalisationMetric` column to the colocalisation dataframe in preparation for feature extraction.
+
+        Returns:
+            Column: The expression that adds a `colocalisationMetric` column with the derived metric
+        """
+        method_metric_map = {
+            ECaviar.METHOD_NAME: ECaviar.METHOD_METRIC,
+            Coloc.METHOD_NAME: Coloc.METHOD_METRIC,
+        }
+        map_expr = f.create_map(*[f.lit(x) for x in chain(*method_metric_map.items())])
+        return map_expr[f.col("colocalisationMethod")].alias("colocalisationMetric")
 
     @staticmethod
     def _get_max_coloc_per_credible_set(
@@ -44,9 +60,7 @@ class ColocalisationFactory:
             f.col("leftStudyLocusId").alias("studyLocusId"),
             "rightStudyLocusId",
             f.coalesce("log2h4h3", "clpp").alias("score"),
-            f.when(f.col("colocalisationMethod") == "COLOC", f.lit("Llr"))
-            .when(f.col("colocalisationMethod") == "eCAVIAR", f.lit("Clpp"))
-            .alias("colocalisationMetric"),
+            ColocalisationFactory._add_colocalisation_metric(),
         )
 
         colocalising_credible_sets = (
@@ -135,7 +149,7 @@ class ColocalisationFactory:
                         "",
                         f.col("right_studyType"),
                         f.lit("Coloc"),
-                        f.col("colocalisationMetric"),
+                        f.initcap(f.col("colocalisationMetric")),
                         f.lit("Maximum"),
                         f.regexp_replace(f.col("score_type"), "Local", ""),
                     ).alias("featureName"),
