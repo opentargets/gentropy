@@ -72,8 +72,8 @@ class ECaviar:
                 overlapping_signals.df.withColumn(
                     "clpp",
                     ECaviar._get_clpp(
-                        f.col("statistics.left_posteriorProbability"),
-                        f.col("statistics.right_posteriorProbability"),
+                        f.col("left_posteriorProbability"),
+                        f.col("right_posteriorProbability"),
                     ),
                 )
                 .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
@@ -154,24 +154,24 @@ class Coloc:
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
-                overlapping_signals.df
+                overlapping_signals.df.select("*", "statistics.*")
                 # Before summing log_BF columns nulls need to be filled with 0:
-                .fillna(0, subset=["statistics.left_logBF", "statistics.right_logBF"])
+                .fillna(0, subset=["left_logBF", "right_logBF"])
                 # Sum of log_BFs for each pair of signals
                 .withColumn(
                     "sum_log_bf",
-                    f.col("statistics.left_logBF") + f.col("statistics.right_logBF"),
+                    f.col("left_logBF") + f.col("right_logBF"),
                 )
                 # Group by overlapping peak and generating dense vectors of log_BF:
                 .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId")
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("statistics.left_logBF"))
-                    ).alias("left_logBF"),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("statistics.right_logBF"))
-                    ).alias("right_logBF"),
+                    fml.array_to_vector(f.collect_list(f.col("left_logBF"))).alias(
+                        "left_logBF"
+                    ),
+                    fml.array_to_vector(f.collect_list(f.col("right_logBF"))).alias(
+                        "right_logBF"
+                    ),
                     fml.array_to_vector(f.collect_list(f.col("sum_log_bf"))).alias(
                         "sum_log_bf"
                     ),
