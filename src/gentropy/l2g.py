@@ -73,7 +73,9 @@ class LocusToGeneStep:
             session, study_index_path, recursiveFileLookup=True
         )
         v2g = V2G.from_parquet(session, variant_gene_path)
-        coloc = Colocalisation.from_parquet(session, colocalisation_path)
+        coloc = Colocalisation.from_parquet(
+            session, colocalisation_path, recursiveFileLookup=True
+        )
 
         if run_mode == "predict":
             if not model_path or not predictions_path:
@@ -91,7 +93,7 @@ class LocusToGeneStep:
             and gene_interactions_path
         ):
             # Process gold standard and L2G features
-            gs_curation = session.spark.read.json(gold_standard_curation_path).persist()
+            gs_curation = session.spark.read.json(gold_standard_curation_path)
             interactions = session.spark.read.parquet(gene_interactions_path)
             study_locus_overlap = StudyLocus(
                 # We just extract overlaps of associations in the gold standard. This parsing is a duplication of the one in the gold standard curation,
@@ -126,23 +128,27 @@ class LocusToGeneStep:
 
             fm = L2GFeatureMatrix.generate_features(
                 features_list=features_list,
-                study_locus=credible_set,
+                credible_set=credible_set,
                 study_index=studies,
                 variant_gene=v2g,
                 colocalisation=coloc,
             )
 
-            # Join and fill null values with 0
-            data = L2GFeatureMatrix(
-                _df=fm.df.join(
-                    f.broadcast(
-                        gold_standards.df.drop("variantId", "studyId", "sources")
+            data = (
+                # Annotate gold standards with features
+                L2GFeatureMatrix(
+                    _df=fm.df.join(
+                        f.broadcast(
+                            gold_standards.df.drop("variantId", "studyId", "sources")
+                        ),
+                        on=["studyLocusId", "geneId"],
+                        how="inner",
                     ),
-                    on=["studyLocusId", "geneId"],
-                    how="inner",
-                ),
-                _schema=L2GFeatureMatrix.get_schema(),
-            ).fill_na()
+                    _schema=L2GFeatureMatrix.get_schema(),
+                )
+                .fill_na()
+                .select_features(list(features_list))
+            )
 
             # Instantiate classifier
             estimator = SparkXGBClassifier(
@@ -165,9 +171,8 @@ class LocusToGeneStep:
             else:
                 # Train model
                 LocusToGeneTrainer.train(
-                    data=data,
+                    gold_standard_data=data,
                     l2g_model=l2g_model,
-                    features_list=list(features_list),
                     model_path=model_path,
                     evaluate=True,
                     wandb_run_name=wandb_run_name,

@@ -10,6 +10,7 @@ from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.summary_statistics import SummaryStatistics
 from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
     ArrayType,
@@ -212,6 +213,16 @@ def test_filter_by_study_type(
 
     observed = sl.filter_by_study_type(study_type, studies)
     assert observed.df.count() == expected_sl_count
+
+
+def test_annotate_locus_statistics(
+    mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
+) -> None:
+    """Test annotate locus statistics returns a StudyLocus."""
+    assert isinstance(
+        mock_study_locus.annotate_locus_statistics(mock_summary_statistics, 100),
+        StudyLocus,
+    )
 
 
 def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
