@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 from functools import reduce
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import hail as hl
 import numpy as np
@@ -30,14 +30,12 @@ class GnomADLDMatrix:
     Attributes:
         ld_matrix_template (str): Template for the LD matrix path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm".
         ld_index_raw_template (str): Template for the LD index path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht".
-        ld_index_38_template (str): Template for the LD index path in build 38. Defaults to "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet"
         grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates. Defaults to "gs://hail-common/references/grch37_to_grch38.over.chain.gz".
         ld_populations (list[str]): List of populations to use to build the LDIndex. Defaults to ["afr", "amr", "asj", "eas", "fin", "nfe", "nwe", "seu"].
     """
 
     ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
     ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
-    ld_index_38_template: str = "gs://genetics_etl_python_playground/input/ld/gnomad_r2.1.1.{POP}.common.ld.variant_indices.parquet"
     grch37_to_grch38_chain_path: str = (
         "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
     )
@@ -455,10 +453,8 @@ class GnomADLDMatrix:
     @staticmethod
     def get_locus_index(
         session: Session,
+        study_locus_row: DataFrame,
         ld_index_path: str,
-        study_locus_row: Optional[DataFrame] = None,
-        chromosome: Optional[str] = None,
-        position: Optional[int] = None,
         window_size: int = 1_000_000,
         major_population: str = "nfe",
     ) -> DataFrame:
@@ -466,33 +462,17 @@ class GnomADLDMatrix:
 
         Args:
             session (Session): Spark session
-            ld_index_path (str): Optional path to the LD index parquet
-            study_locus_row (Optional[DataFrame]): Study-locus row
-            chromosome (Optional[str]): Chromosome to extract from gnomad matrix
-            position (Optional[int]): Position to extract from gnomad matrix
+            study_locus_row (DataFrame): Study-locus row
+            ld_index_path (str): Path to the hail LD index parquet
             window_size (int): Window size to extract from gnomad matrix
             major_population (str): Major population to extract from gnomad matrix, default is "nfe"
 
         Returns:
             DataFrame: Returns the index of the gnomad matrix for the locus
 
-        Raises:
-            ValueError: Either a studyLocus or a chromosome and position must be provided
         """
-        if study_locus_row is None:
-            if chromosome is not None and position is not None:
-                _df = session.spark.createDataFrame(
-                    [(chromosome, position)], ["chromosome", "position"]
-                )
-            else:
-                raise ValueError(
-                    "Either a studyLocus or a chromosome and position must be provided."
-                )
-        else:
-            _df = study_locus_row
-
         _df = (
-            _df.withColumn("start", f.col("position") - (window_size / 2))
+            study_locus_row.withColumn("start", f.col("position") - (window_size / 2))
             .withColumn("end", f.col("position") + (window_size / 2))
             .alias("_df")
         )
