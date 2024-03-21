@@ -34,7 +34,7 @@ class SUSIE_inf:
         ssq_range: tuple[float, float] = (0, 1),
         pi0: np.ndarray | None = None,
         est_sigmasq: bool = True,
-        est_tausq: bool = True,
+        est_tausq: bool = False,
         sigmasq: float = 1,
         tausq: float = 0,
         sigmasq_range: tuple[float, float] | None = None,
@@ -399,7 +399,7 @@ class SUSIE_inf:
     def cred_inf(
         PIP: np.ndarray,
         n: int = 100_000,
-        coverage: float = 0.9,
+        coverage: float = 0.99,
         purity: float = 0.5,
         LD: np.ndarray | None = None,
         V: np.ndarray | None = None,
