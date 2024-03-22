@@ -104,7 +104,7 @@ class LocusToGeneModel:
     def log_to_wandb(
         self: LocusToGeneModel,
         results: DataFrame,
-        training_data: L2GFeatureMatrix,
+        gold_standard_data: L2GFeatureMatrix,
         evaluators: list[
             BinaryClassificationEvaluator | MulticlassClassificationEvaluator
         ],
@@ -114,7 +114,7 @@ class LocusToGeneModel:
 
         Args:
             results (DataFrame): Dataframe containing the predictions
-            training_data (L2GFeatureMatrix): Training data used for the model. If provided, the table and the number of positive and negative labels will be logged to W&B
+            gold_standard_data (L2GFeatureMatrix): Feature matrix for the associations in the gold standard.
             evaluators (list[BinaryClassificationEvaluator | MulticlassClassificationEvaluator]): List of Spark ML evaluators to use for evaluation
             wandb_run (Run): W&B run to log the results to
         """
@@ -126,18 +126,22 @@ class LocusToGeneModel:
             wandb_evaluator.evaluate(results)
         ## Track feature importance
         wandb_run.log({"importances": self.get_feature_importance()})
-        ## Track training set
-        training_table = Table(dataframe=training_data.df.toPandas())
-        wandb_run.log({"trainingSet": training_table})
+        ## Track gold standards and their features
+        gold_standards_table = Table(dataframe=gold_standard_data.df.toPandas())
+        wandb_run.log({"featureMatrix": gold_standards_table})
         # Count number of positive and negative labels
         gs_counts_dict = {
             "goldStandard" + row["goldStandardSet"].capitalize(): row["count"]
-            for row in training_data.df.groupBy("goldStandardSet").count().collect()
+            for row in gold_standards_table.df.groupBy("goldStandardSet")
+            .count()
+            .collect()
         }
         wandb_run.log(gs_counts_dict)
         # Missingness rates
         wandb_run.log(
-            {"missingnessRates": training_data.calculate_feature_missingness_rate()}
+            {
+                "missingnessRates": gold_standards_table.calculate_feature_missingness_rate()
+            }
         )
 
     @classmethod
