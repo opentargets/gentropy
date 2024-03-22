@@ -10,6 +10,7 @@ from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation import Coloc, ECaviar
 from pandas.testing import assert_frame_equal
 from pyspark.sql import SparkSession
+from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
@@ -102,6 +103,57 @@ def test_coloc_semantic(
         check_exact=False,
         check_dtype=True,
     )
+
+
+def test_coloc_no_logbf(
+    spark: SparkSession,
+    minimum_expected_h0: float = 0.99,
+    maximum_expected_h4: float = 1e-5,
+) -> None:
+    """Test COLOC output when the input data has irrelevant logBF."""
+    observed_overlap = StudyLocusOverlap(
+        (
+            spark.createDataFrame(
+                [
+                    {
+                        "leftStudyLocusId": 1,
+                        "rightStudyLocusId": 2,
+                        "chromosome": "1",
+                        "tagVariantId": "snp",
+                        "statistics": {
+                            "left_logBF": None,
+                            "right_logBF": None,
+                        },  # irrelevant for COLOC
+                    }
+                ],
+                schema=StructType(
+                    [
+                        StructField("leftStudyLocusId", LongType(), False),
+                        StructField("rightStudyLocusId", LongType(), False),
+                        StructField("chromosome", StringType(), False),
+                        StructField("tagVariantId", StringType(), False),
+                        StructField(
+                            "statistics",
+                            StructType(
+                                [
+                                    StructField("left_logBF", DoubleType(), True),
+                                    StructField("right_logBF", DoubleType(), True),
+                                ]
+                            ),
+                        ),
+                    ]
+                ),
+            )
+        ),
+        StudyLocusOverlap.get_schema(),
+    )
+    observed_coloc_df = Coloc.colocalise(observed_overlap).df
+    assert (
+        observed_coloc_df.select("h0").collect()[0]["h0"] > minimum_expected_h0
+    ), "COLOC should return a high h0 (no association) when the input data has irrelevant logBF."
+    assert (
+        observed_coloc_df.select("h4").collect()[0]["h4"] < maximum_expected_h4
+    ), "COLOC should return a low h4 (traits are associated) when the input data has irrelevant logBF."
 
 
 def test_ecaviar(mock_study_locus_overlap: StudyLocusOverlap) -> None:
