@@ -80,30 +80,21 @@ class TestLocusToGeneTrainer:
 class TestColocalisationFactory:
     """Test the ColocalisationFactory methods."""
 
-    @pytest.mark.parametrize(
-        "colocalisation_method",
-        [
-            "COLOC",
-            "eCAVIAR",
-        ],
-    )
     def test_get_max_coloc_per_credible_set(
         self: TestColocalisationFactory,
         mock_study_locus: StudyLocus,
         mock_study_index: StudyIndex,
         mock_colocalisation: Colocalisation,
-        colocalisation_method: str,
     ) -> None:
         """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus returns the right data type."""
         coloc_features = ColocalisationFactory._get_max_coloc_per_credible_set(
+            mock_colocalisation,
             mock_study_locus,
             mock_study_index,
-            mock_colocalisation,
-            colocalisation_method,
         )
         assert isinstance(
             coloc_features, L2GFeature
-        ), "Unexpected model type returned from _get_max_coloc_per_credible_set"
+        ), "Unexpected type returned from _get_max_coloc_per_credible_set"
 
     def test_get_max_coloc_per_credible_set_semantic(
         self: TestColocalisationFactory,
@@ -169,8 +160,10 @@ class TestColocalisationFactory:
                         "colocalisationMethod": "eCAVIAR",
                         "numberColocalisingVariants": 1,
                         "clpp": 0.81,  # 0.9*0.9
+                        "log2h4h3": None,
                     }
-                ]
+                ],
+                schema=Colocalisation.get_schema(),
             ),
             _schema=Colocalisation.get_schema(),
         )
@@ -183,10 +176,9 @@ class TestColocalisationFactory:
         )
         # Test
         coloc_features = ColocalisationFactory._get_max_coloc_per_credible_set(
+            coloc,
             credset,
             studies,
-            coloc,
-            "eCAVIAR",
         )
         assert coloc_features.df.collect() == expected_coloc_features_df.collect()
 
