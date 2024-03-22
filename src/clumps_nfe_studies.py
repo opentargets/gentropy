@@ -18,18 +18,17 @@
 
 
 import pyspark.sql.functions as f
-from clump_temp import WindowBasedClumping
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 WINDOW_SIZE = 500_000
-NUM_STUDIES = 500
+# NUM_STUDIES = 500
 
 session = Session(
     spark_uri="yarn",
     extended_spark_conf={
-        "spark.sql.shuffle.partitions": str(NUM_STUDIES),
+        "spark.sql.shuffle.partitions": "3200",
     },
 )
 
@@ -59,22 +58,25 @@ study_list = studies.rdd.map(lambda x: x.studyId).collect()
 to_do_list = [
     "gs://gwas_catalog_data/harmonised_summary_statistics/" + i + ".parquet"
     for i in study_list
-][1:NUM_STUDIES]
+]
 ss = SummaryStatistics.from_parquet(
     session,
     path=to_do_list,
 ).exclude_region("6:28510120-33480577")
 
-ss.df.repartition(NUM_STUDIES, "studyId", "chromosome").sortWithinPartitions(
+ss.df.repartition("studyId", "chromosome").sortWithinPartitions(
     "studyId", "chromosome", "position"
 )
 
 # StudyLocus count in all NFE GWAS Catalog summary statistics: 154_715
-sl = WindowBasedClumping.window_based_clumping(
-    ss, distance=WINDOW_SIZE, collect_locus=True, collect_locus_distance=WINDOW_SIZE
+sl = ss.window_based_clumping(
+    distance=WINDOW_SIZE,
+    baseline_significance=1,
+    locus_collect_distance=WINDOW_SIZE,
 )
 
+
 sl.df.write.parquet(
-    path="gs://ot-team/dochoa/sl_collect_500_28_02_2024.parquet",
+    path="gs://ot-team/dochoa/sl_11_3_24.parquet",
     mode="overwrite",
 )
