@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 from gentropy.method.pics import PICS
 
 
@@ -28,6 +28,10 @@ class PICSStep:
             session, study_locus_ld_annotated_in
         )
         # PICS
-        picsed_sl = PICS.finemap(study_locus_ld_annotated).annotate_credible_sets()
+        picsed_sl = (
+            PICS.finemap(study_locus_ld_annotated)
+            .annotate_credible_sets()
+            .filter_credible_set(credible_interval=CredibleInterval.IS99)
+        )
         # Write
         picsed_sl.df.write.mode(session.write_mode).parquet(picsed_study_locus_out)
