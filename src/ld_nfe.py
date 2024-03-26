@@ -29,9 +29,10 @@ from hail.linalg import BlockMatrix
 session = Session(
     spark_uri="yarn",
     start_hail=True,
+    app_name="ld_nfe",
     hail_home=os.path.dirname(hail_location),
     extended_spark_conf={
-        "spark.sql.shuffle.partitions": "3200",
+        "spark.sql.shuffle.partitions": "8000",
     },
 )
 
@@ -55,25 +56,31 @@ ld = (
     .entries(keyed=False)
     .to_spark()
     .withColumnRenamed("entry", "r")
+    .filter(f.col("r") != 0)
 ).persist()
 
 ld.join(
     f.broadcast(
-        ld_index.select(
+        ld_index.alias("i").select(
             f.col("variantId").alias("variantId_i"),
+            f.col("position").alias("position_i"),
             f.col("idx").alias("i"),
-        )
-    ),
-    on=["i"],
-).repartitionByRange("j").join(
-    f.broadcast(
-        ld_index.select(
-            f.col("variantId").alias("variantId_j"),
-            f.col("idx").alias("j"),
             f.col("chromosome"),
         )
     ),
-    on=["j"],
-).drop("i", "j").write.partitionBy("chromosome").parquet(
-    "gs://ot-team/dochoa/study_locus_expl_ld_27_02_2024.parquet"
+    on=["i"],
+).join(
+    f.broadcast(
+        ld_index.alias("j").select(
+            f.col("variantId").alias("variantId_j"),
+            f.col("idx").alias("j"),
+            f.col("chromosome"),
+            f.col("position").alias("position_j"),
+        )
+    ),
+    on=["j", "chromosome"],
+).sortWithinPartitions("position_i", "position_j").drop(
+    "position_i", "position_j", "i", "j"
+).write.partitionBy("chromosome").parquet(
+    "gs://ot-team/dochoa/ld_exploded_25_03_2024.parquet",
 )

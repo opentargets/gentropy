@@ -27,6 +27,7 @@ WINDOW_SIZE = 500_000
 
 session = Session(
     spark_uri="yarn",
+    app_name="clumps_nfe_studies",
     extended_spark_conf={
         "spark.sql.shuffle.partitions": "3200",
     },
@@ -77,6 +78,5 @@ sl = ss.window_based_clumping(
 
 
 sl.df.write.parquet(
-    path="gs://ot-team/dochoa/sl_11_3_24.parquet",
-    mode="overwrite",
+    path="gs://ot-team/dochoa/sl_25_3_24.parquet",
 )

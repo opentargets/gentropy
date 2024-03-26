@@ -2,12 +2,14 @@
 import pyspark.sql.functions as f
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.method.window_based_clumping import WindowBasedClumping
 
 WINDOW_SIZE = 500_000
-NUM_STUDIES = 500
+BUFFER = 50_000
 
 session = Session(
     spark_uri="yarn",
+    app_name="clumped_ld_clusters",
     extended_spark_conf={
         "spark.sql.shuffle.partitions": "3200",
     },
@@ -15,47 +17,55 @@ session = Session(
 
 # Read LD information
 ld = (
-    session.spark.read.parquet(
-        "gs://ot-team/dochoa/study_locus_expl_ld_27_02_2024.parquet"
-    )
+    session.spark.read.parquet("gs://ot-team/dochoa/ld_exploded_25_03_2024.parquet")
     .withColumn("position_i", f.split(f.col("variantId_i"), "_")[1].cast("int"))
     .withColumn("position_j", f.split(f.col("variantId_j"), "_")[1].cast("int"))
 )
 
-# Summary statistics from GCST006907 (not so big study)
+sl = StudyLocus.from_parquet(session, path="gs://ot-team/dochoa/sl_25_3_24.parquet")
 
-sl = StudyLocus.from_parquet(session, path="gs://ot-team/dochoa/sl_11_3_24.parquet")
+clumped_sl = (
+    sl.df.withColumn("studyId", f.lit("dummy"))
+    .withColumn(
+        "clusterId",
+        WindowBasedClumping._cluster_peaks(
+            f.col("studyId"), f.col("chromosome"), f.col("position"), BUFFER
+        ),
+    )
+    .groupBy("clusterId")
+    .agg(
+        f.collect_set(f.col("studyLocusId")).alias("studyLocusIds"),
+        (f.first(f.col("position")) - BUFFER - WINDOW_SIZE).alias("start"),
+        (f.first(f.col("position")) + BUFFER + WINDOW_SIZE).alias("end"),
+        f.first("chromosome").alias("chromosome"),
+    )
+    .repartitionByRange("chromosome", "start")
+    .sortWithinPartitions("chromosome", "start")
+    .persist()
+)
+
+clumped_sl.write.parquet("gs://ot-team/dochoa/sl_cluster_lut_25_03_2024.parquet")
 
 (
     ld.alias("ld")
     .join(
-        f.broadcast(
-            sl.df.alias("sl")
-            .select(
-                "studyLocusId",
-                "chromosome",
-                "position",
-                # f.col("locus.variantId").alias("variantIdArray"),
-            )
-            .repartitionByRange("chromosome", "position")
-            .sortWithinPartitions("chromosome", "position")
-        ),
+        f.broadcast(clumped_sl.alias("sl")),
         on=[
             f.col("sl.chromosome") == f.col("ld.chromosome"),
-            f.col("position_i") > (f.col("sl.position") - WINDOW_SIZE),
-            f.col("position_i") < (f.col("sl.position") + WINDOW_SIZE),
-            f.col("position_j") > (f.col("sl.position") - WINDOW_SIZE),
-            f.col("position_j") < (f.col("sl.position") + WINDOW_SIZE),
+            f.col("position_i") > f.col("sl.start"),
+            f.col("position_i") < f.col("sl.end"),
+            f.col("position_j") > f.col("sl.start"),
+            f.col("position_j") < f.col("sl.end"),
             # f.array_contains("variantIdArray", f.col("variantId_i")),
             # f.array_contains("variantIdArray", f.col("variantId_j")),
         ],
     )
     .select(
-        "studyLocusId",
+        "clusterId",
         f.col("variantId_i"),
         f.col("variantId_j"),
         f.col("r"),
     )
-    .write.partitionBy("studyLocusId")
-    .parquet("gs://ot-team/dochoa/ldmatrixes_21_3_24.parquet", mode="overwrite")
+    .write.partitionBy("clusterId")
+    .parquet("gs://ot-team/dochoa/ld_exploded_bycluster_25_03_2024.parquet")
 )
