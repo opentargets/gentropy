@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from functools import reduce
+from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -12,6 +13,7 @@ from gentropy.common.spark_helpers import (
 )
 from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.method.colocalisation import Coloc, ECaviar
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -24,197 +26,136 @@ if TYPE_CHECKING:
 class ColocalisationFactory:
     """Feature extraction in colocalisation."""
 
+    @classmethod
+    def _add_colocalisation_metric(cls: type[ColocalisationFactory]) -> Column:
+        """Expression that adds a `colocalisationMetric` column to the colocalisation dataframe in preparation for feature extraction.
+
+        Returns:
+            Column: The expression that adds a `colocalisationMetric` column with the derived metric
+        """
+        method_metric_map = {
+            ECaviar.METHOD_NAME: ECaviar.METHOD_METRIC,
+            Coloc.METHOD_NAME: Coloc.METHOD_METRIC,
+        }
+        map_expr = f.create_map(*[f.lit(x) for x in chain(*method_metric_map.items())])
+        return map_expr[f.col("colocalisationMethod")].alias("colocalisationMetric")
+
     @staticmethod
-    def _get_max_coloc_per_study_locus(
-        study_locus: StudyLocus,
-        studies: StudyIndex,
+    def _get_max_coloc_per_credible_set(
         colocalisation: Colocalisation,
-        colocalisation_method: str,
+        credible_set: StudyLocus,
+        studies: StudyIndex,
     ) -> L2GFeature:
         """Get the maximum colocalisation posterior probability for each pair of overlapping study-locus per type of colocalisation method and QTL type.
 
         Args:
-            study_locus (StudyLocus): Study locus dataset
-            studies (StudyIndex): Study index dataset
             colocalisation (Colocalisation): Colocalisation dataset
-            colocalisation_method (str): Colocalisation method to extract the max from
+            credible_set (StudyLocus): Study locus dataset
+            studies (StudyIndex): Study index dataset
 
         Returns:
             L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
-
-        Raises:
-            ValueError: If the colocalisation method is not supported
         """
-        if colocalisation_method not in ["COLOC", "eCAVIAR"]:
-            raise ValueError(
-                f"Colocalisation method {colocalisation_method} not supported"
-            )
-        if colocalisation_method == "COLOC":
-            coloc_score_col_name = "log2h4h3"
-            coloc_feature_col_template = "ColocLlrMaximum"
+        colocalisation_df = colocalisation.df.select(
+            f.col("leftStudyLocusId").alias("studyLocusId"),
+            "rightStudyLocusId",
+            f.coalesce("log2h4h3", "clpp").alias("score"),
+            ColocalisationFactory._add_colocalisation_metric(),
+        )
 
-        elif colocalisation_method == "eCAVIAR":
-            coloc_score_col_name = "clpp"
-            coloc_feature_col_template = "ColocClppMaximum"
-
-        colocalising_study_locus = (
-            study_locus.df.select("studyLocusId", "studyId")
+        colocalising_credible_sets = (
+            credible_set.df.select("studyLocusId", "studyId")
             # annotate studyLoci with overlapping IDs on the left - to just keep GWAS associations
             .join(
-                colocalisation.df.selectExpr(
-                    "leftStudyLocusId as studyLocusId",
-                    "rightStudyLocusId",
-                    "colocalisationMethod",
-                    f"{coloc_score_col_name} as coloc_score",
-                ),
+                colocalisation_df,
                 on="studyLocusId",
                 how="inner",
             )
             # bring study metadata to just keep QTL studies on the right
             .join(
-                study_locus.df.selectExpr(
-                    "studyLocusId as rightStudyLocusId", "studyId as right_studyId"
+                credible_set.df.join(
+                    studies.df.select("studyId", "studyType", "geneId"), "studyId"
+                ).selectExpr(
+                    "studyLocusId as rightStudyLocusId",
+                    "studyType as right_studyType",
+                    "geneId",
                 ),
                 on="rightStudyLocusId",
                 how="inner",
             )
-            .join(
-                f.broadcast(
-                    studies.df.selectExpr(
-                        "studyId as right_studyId",
-                        "studyType as right_studyType",
-                        "geneId",
-                    )
-                ),
-                on="right_studyId",
-                how="inner",
+            .filter(f.col("right_studyType") != "gwas")
+            .select(
+                "studyLocusId",
+                "right_studyType",
+                "geneId",
+                "score",
+                "colocalisationMetric",
             )
-            .filter(
-                (f.col("colocalisationMethod") == colocalisation_method)
-                & (f.col("right_studyType") != "gwas")
-            )
-            .select("studyLocusId", "right_studyType", "geneId", "coloc_score")
         )
 
-        # Max PP calculation per studyLocus AND type of QTL
-        local_max = get_record_with_maximum_value(
-            colocalising_study_locus,
-            ["studyLocusId", "right_studyType", "geneId"],
-            "coloc_score",
-        ).persist()
+        # Max PP calculation per credible set AND type of QTL AND colocalisation method
+        local_max = (
+            get_record_with_maximum_value(
+                colocalising_credible_sets,
+                ["studyLocusId", "right_studyType", "geneId", "colocalisationMetric"],
+                "score",
+            )
+            .select(
+                "*",
+                f.col("score").alias("max_score"),
+                f.lit("Local").alias("score_type"),
+            )
+            .drop("score")
+        )
 
-        intercept = 0.0001
         neighbourhood_max = (
-            (
-                local_max.selectExpr(
-                    "studyLocusId", "coloc_score as coloc_local_max", "geneId"
-                )
-                .join(
-                    # Add maximum in the neighborhood
-                    get_record_with_maximum_value(
-                        colocalising_study_locus.withColumnRenamed(
-                            "coloc_score", "coloc_neighborhood_max"
-                        ),
-                        ["studyLocusId", "right_studyType"],
-                        "coloc_neighborhood_max",
-                    ).drop("geneId"),
-                    on="studyLocusId",
-                )
-                .withColumn(
-                    f"{coloc_feature_col_template}Neighborhood",
-                    f.log10(
-                        f.abs(
-                            f.col("coloc_local_max")
-                            - f.col("coloc_neighborhood_max")
-                            + f.lit(intercept)
-                        )
+            local_max.selectExpr(
+                "studyLocusId", "max_score as local_max_score", "geneId"
+            )
+            .join(
+                # Add maximum in the neighborhood
+                get_record_with_maximum_value(
+                    colocalising_credible_sets.withColumnRenamed(
+                        "score", "tmp_nbh_max_score"
                     ),
-                )
+                    ["studyLocusId", "right_studyType", "colocalisationMetric"],
+                    "tmp_nbh_max_score",
+                ).drop("geneId"),
+                on="studyLocusId",
             )
-            .drop("coloc_neighborhood_max", "coloc_local_max")
-            .persist()
-        )
-
-        # Split feature per molQTL
-        local_dfs = []
-        nbh_dfs = []
-        qtl_types: list[str] = (
-            colocalising_study_locus.select("right_studyType")
-            .distinct()
-            .toPandas()["right_studyType"]
-            .tolist()
-        ) or ["eqtl", "pqtl", "sqtl"]
-        for qtl_type in qtl_types:
-            filtered_local_max = (
-                local_max.filter(f.col("right_studyType") == qtl_type)
-                .withColumnRenamed(
-                    "coloc_score",
-                    f"{qtl_type}{coloc_feature_col_template}",
-                )
-                .drop("right_studyType")
-            )
-            local_dfs.append(filtered_local_max)
-
-            filtered_neighbourhood_max = (
-                neighbourhood_max.filter(f.col("right_studyType") == qtl_type)
-                .withColumnRenamed(
-                    f"{coloc_feature_col_template}Neighborhood",
-                    f"{qtl_type}{coloc_feature_col_template}Neighborhood",
-                )
-                .drop("right_studyType")
-            )
-            nbh_dfs.append(filtered_neighbourhood_max)
-
-        wide_dfs = reduce(
-            lambda x, y: x.unionByName(y, allowMissingColumns=True),
-            local_dfs + nbh_dfs,
-        )
-
-        return L2GFeature(
-            _df=convert_from_wide_to_long(
-                wide_dfs.groupBy("studyLocusId", "geneId").agg(
-                    *(
-                        f.first(f.col(c), ignorenulls=True).alias(c)
-                        for c in wide_dfs.columns
-                        if c
-                        not in [
-                            "studyLocusId",
-                            "geneId",
-                        ]
+            .withColumn("score_type", f.lit("Neighborhood"))
+            .withColumn(
+                "max_score",
+                f.log10(
+                    f.abs(
+                        f.col("local_max_score")
+                        - f.col("tmp_nbh_max_score")
+                        + f.lit(0.0001)  # intercept
                     )
                 ),
-                id_vars=("studyLocusId", "geneId"),
-                var_name="featureName",
-                value_name="featureValue",
-            ),
-            _schema=L2GFeature.get_schema(),
-        )
-
-    @staticmethod
-    def _get_coloc_features(
-        study_locus: StudyLocus, studies: StudyIndex, colocalisation: Colocalisation
-    ) -> L2GFeature:
-        """Calls _get_max_coloc_per_study_locus for both methods and concatenates the results.
-
-        !!! note "Colocalisation features are only available for the eCAVIAR results for now."
-
-        Args:
-            study_locus (StudyLocus): Study locus dataset
-            studies (StudyIndex): Study index dataset
-            colocalisation (Colocalisation): Colocalisation dataset
-
-        Returns:
-            L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus
-        """
-        coloc_clpp = ColocalisationFactory._get_max_coloc_per_study_locus(
-            study_locus,
-            studies,
-            colocalisation,
-            "eCAVIAR",
-        )
+            )
+        ).drop("tmp_nbh_max_score", "local_max_score")
 
         return L2GFeature(
-            _df=coloc_clpp.df,
+            _df=(
+                # Combine local and neighborhood metrics
+                local_max.unionByName(
+                    neighbourhood_max, allowMissingColumns=True
+                ).select(
+                    "studyLocusId",
+                    "geneId",
+                    # Feature name is a concatenation of the QTL type, colocalisation metric and if it's local or in the vicinity
+                    f.concat_ws(
+                        "",
+                        f.col("right_studyType"),
+                        f.lit("Coloc"),
+                        f.initcap(f.col("colocalisationMetric")),
+                        f.lit("Maximum"),
+                        f.regexp_replace(f.col("score_type"), "Local", ""),
+                    ).alias("featureName"),
+                    f.col("max_score").cast("float").alias("featureValue"),
+                )
+            ),
             _schema=L2GFeature.get_schema(),
         )
 
@@ -223,37 +164,43 @@ class StudyLocusFactory(StudyLocus):
     """Feature extraction in study locus."""
 
     @staticmethod
-    def _get_tss_distance_features(
-        study_locus: StudyLocus, distances: V2G
-    ) -> L2GFeature:
-        """Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.
+    def _get_tss_distance_features(credible_set: StudyLocus, v2g: V2G) -> L2GFeature:
+        """Joins StudyLocus with the V2G to extract a score that is based on the distance to a gene TSS of any variant weighted by its posterior probability in a credible set.
 
         Args:
-            study_locus (StudyLocus): Study locus dataset
-            distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
+            credible_set (StudyLocus): Credible set dataset
+            v2g (V2G): Dataframe containing the distances of all variants to all genes TSS within a region
 
         Returns:
-            L2GFeature: Stores the features with the minimum distance among all variants in the credible set and a gene TSS.
+            L2GFeature: Stores the features with the score of weighting the distance to the TSS by the posterior probability of the variant
 
         """
         wide_df = (
-            study_locus.filter_credible_set(CredibleInterval.IS95)
-            .df.select(
+            credible_set.filter_credible_set(CredibleInterval.IS95)
+            .df.withColumn("variantInLocus", f.explode_outer("locus"))
+            .select(
                 "studyLocusId",
                 "variantId",
-                f.explode("locus.variantId").alias("tagVariantId"),
+                f.col("variantInLocus.variantId").alias("variantInLocusId"),
+                f.col("variantInLocus.posteriorProbability").alias(
+                    "variantInLocusPosteriorProbability"
+                ),
             )
             .join(
-                distances.df.selectExpr(
-                    "variantId as tagVariantId", "geneId", "distance"
+                v2g.df.filter(f.col("datasourceId") == "canonical_tss").selectExpr(
+                    "variantId as variantInLocusId", "geneId", "score"
                 ),
-                on="tagVariantId",
+                on="variantInLocusId",
                 how="inner",
+            )
+            .withColumn(
+                "weightedScore",
+                f.col("score") * f.col("variantInLocusPosteriorProbability"),
             )
             .groupBy("studyLocusId", "geneId")
             .agg(
-                f.min("distance").alias("distanceTssMinimum"),
-                f.mean("distance").alias("distanceTssMean"),
+                f.min("weightedScore").alias("distanceTssMinimum"),
+                f.mean("weightedScore").alias("distanceTssMean"),
             )
         )
 
@@ -321,32 +268,33 @@ class StudyLocusFactory(StudyLocus):
 
         credible_set_w_variant_consequences = (
             credible_set.filter_credible_set(CredibleInterval.IS95)
-            .df.withColumn("variantInLocusId", f.explode(f.col("locus.variantId")))
-            .withColumn(
-                "variantInLocusPosteriorProbability",
-                f.explode(f.col("locus.posteriorProbability")),
+            .df.withColumn("variantInLocus", f.explode_outer("locus"))
+            .select(
+                f.col("studyLocusId"),
+                f.col("variantId"),
+                f.col("studyId"),
+                f.col("variantInLocus.variantId").alias("variantInLocusId"),
+                f.col("variantInLocus.posteriorProbability").alias(
+                    "variantInLocusPosteriorProbability"
+                ),
             )
             .join(
                 # Join with V2G to get variant consequences
-                v2g.df.filter(
-                    f.col("datasourceId") == "variantConsequence"
-                ).withColumnRenamed("variantId", "variantInLocusId"),
+                v2g.df.filter(f.col("datasourceId") == "variantConsequence").selectExpr(
+                    "variantId as variantInLocusId", "geneId", "score"
+                ),
                 on="variantInLocusId",
-            )
-            .withColumn(
-                "weightedScore",
-                f.col("score") * f.col("variantInLocusPosteriorProbability"),
             )
             .select(
                 "studyLocusId",
                 "variantId",
                 "studyId",
                 "geneId",
-                "score",
-                "weightedScore",
+                (f.col("score") * f.col("variantInLocusPosteriorProbability")).alias(
+                    "weightedScore"
+                ),
             )
             .distinct()
-            .persist()
         )
 
         return L2GFeature(
@@ -357,14 +305,14 @@ class StudyLocusFactory(StudyLocus):
                         # Calculate overall max VEP score for all genes in the vicinity
                         credible_set_w_variant_consequences.transform(
                             _aggregate_vep_feature,
-                            f.max("score"),
+                            f.max("weightedScore"),
                             ["studyLocusId"],
                             "vepMaximumNeighborhood",
                         ),
                         # Calculate overall max VEP score per gene
                         credible_set_w_variant_consequences.transform(
                             _aggregate_vep_feature,
-                            f.max("score"),
+                            f.max("weightedScore"),
                             ["studyLocusId", "geneId"],
                             "vepMaximum",
                         ),

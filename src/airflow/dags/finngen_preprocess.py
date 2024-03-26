@@ -26,7 +26,7 @@ FINNGEN_FINEMAPPING = (
 )
 FINNGEN_FM_SUMMARIES = "gs://genetics_etl_python_playground/input/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv"
 FINNGEN_PREFIX = "FINNGEN_R10_"
-FINNGEN_FM_OUT = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/finngen_susie_processed"
+FINNGEN_FM_OUT = f"{FINNGEN_BUCKET}/credible_set_datasets/finngen_susie"
 
 with DAG(
     dag_id=Path(__file__).stem,

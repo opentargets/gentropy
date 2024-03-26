@@ -18,7 +18,7 @@ with DAG(
 ):
     update_gwas_curation = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="gwas_catalog_curation_update",
+        step_id="ot_gwas_catalog_study_curation",
         task_id="gwas_catalog_curation_update",
         other_args=[
             f"step.gwas_catalog_study_curation_out=gs://genetics_etl_python_playground/input/v2d/GWAS_Catalog_study_curation_{RUN_DATE}.tsv",

@@ -15,11 +15,11 @@ CLUSTER_NAME = "otg-preprocess-eqtl"
 AUTOSCALING = "eqtl-preprocess"
 PROJECT_ID = "open-targets-genetics-dev"
 
-EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalog_data/ebi_ftp/susie"
-TEMP_DECOMPRESS_LOCATION = "gs://eqtl_catalog_data/susie_decompressed_tmp"
+EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalogue_data/ebi_ftp/susie"
+TEMP_DECOMPRESS_LOCATION = "gs://eqtl_catalogue_data/susie_decompressed_tmp"
 DECOMPRESS_FAILED_LOG = f"{TEMP_DECOMPRESS_LOCATION}.log"
-STUDY_INDEX_PATH = "gs://eqtl_catalog_data/study_index"
-CREDIBLE_SET_PATH = "gs://eqtl_catalog_data/credible_set_datasets/susie"
+STUDY_INDEX_PATH = "gs://eqtl_catalogue_data/study_index"
+CREDIBLE_SET_PATH = "gs://eqtl_catalogue_data/credible_set_datasets/susie"
 
 with DAG(
     dag_id=Path(__file__).stem,

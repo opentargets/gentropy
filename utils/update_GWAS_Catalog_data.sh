@@ -15,7 +15,7 @@ get_release_url(){
 
 # Function to get the Ensembl and EFO version which used to ground GWAS data:
 get_release_info(){
-    curl -s https://www.ebi.ac.uk/gwas/api/search/stats | jq -r '"\(.ensemblbuild) \(.efoversion)"'
+    curl -s "${1}" | jq -r '"\(.ensemblbuild) \(.efoversion)"'
 }
 
 logging(){
@@ -38,6 +38,18 @@ upload_file_to_gcp(){
     # Test if file was successfully uploaded:
     if [ $? -ne 0 ]; then
         logging "File ${FILENAME} failed to upload."
+    fi
+}
+
+fetch_from_ftp(){
+    URL=${1}
+    TARGET=${2}
+    wget -q ${URL} -O ${TARGET}
+    if [ $? -ne 0 ]; then
+        logging "Failed to fetch ${URL}"
+        return
+    else
+        logging "File ${TARGET} saved."
     fi
 }
 
@@ -71,7 +83,7 @@ read YEAR MONTH DAY < <(get_release_url)
 logging "Most recent GWAS Catalog release: ${YEAR}/${MONTH}/${DAY}"
 
 # Capturing release metadata:
-read ENSEMBL EFO < <(get_release_info)
+read ENSEMBL EFO < <(get_release_info ${RELEASE_INFO_URL})
 logging "Genes were mapped to v${ENSEMBL} Ensembl release."
 logging "Diseases were mapped to ${EFO} EFO release."
 
@@ -80,26 +92,19 @@ RELEASE_URL=${BASE_URL}/releases/${YEAR}/${MONTH}/${DAY}
 logging "Datafiles are fetching from ${RELEASE_URL}"
 
 # Fetching files while assigning properly dated and annotated names:
-wget -q ${RELEASE_URL}/gwas-catalog-associations_ontology-annotated.tsv -O ${ASSOCIATION_FILE}
-logging "File ${ASSOCIATION_FILE} saved."
+fetch_from_ftp ${RELEASE_URL}/gwas-catalog-associations_ontology-annotated.tsv ${ASSOCIATION_FILE}
 
-wget -q ${RELEASE_URL}/gwas-catalog-download-studies-v1.0.3.txt -O ${PUBLISHED_STUDIES_FILE}
-logging "File ${PUBLISHED_STUDIES_FILE} saved."
+fetch_from_ftp ${RELEASE_URL}/gwas-catalog-download-studies-v1.0.3.1.txt ${PUBLISHED_STUDIES_FILE}
 
-wget -q ${RELEASE_URL}/gwas-catalog-unpublished-studies-v1.0.3.tsv -O ${UNPUBLISHED_STUDIES_FILE}
-logging "File ${UNPUBLISHED_STUDIES_FILE} saved."
+fetch_from_ftp ${RELEASE_URL}/gwas-catalog-unpublished-studies-v1.0.3.1.tsv ${UNPUBLISHED_STUDIES_FILE}
 
-wget -q ${RELEASE_URL}/gwas-catalog-download-ancestries-v1.0.3.txt -O ${PUBLISHED_ANCESTRIES_FILE}
-logging "File ${PUBLISHED_ANCESTRIES_FILE} saved."
+fetch_from_ftp ${RELEASE_URL}/gwas-catalog-download-ancestries-v1.0.3.1.txt ${PUBLISHED_ANCESTRIES_FILE}
 
-wget -q ${RELEASE_URL}/gwas-catalog-unpublished-ancestries-v1.0.3.tsv -O ${UNPUBLISHED_ANCESTRIES_FILE}
-logging "File ${UNPUBLISHED_ANCESTRIES_FILE} saved."
+fetch_from_ftp ${RELEASE_URL}/gwas-catalog-unpublished-ancestries-v1.0.3.1.tsv ${UNPUBLISHED_ANCESTRIES_FILE}
 
-wget -q ${BASE_URL}/summary_statistics/harmonised_list.txt -O ${HARMONISED_LIST_FILE}
-logging "File ${HARMONISED_LIST_FILE} saved."
+fetch_from_ftp ${BASE_URL}/summary_statistics/harmonised_list.txt ${HARMONISED_LIST_FILE}
 
-wget -q ${GWAS_CATALOG_STUDY_CURATION_URL} -O ${GWAS_CATALOG_STUDY_CURATION_FILE}
-logging "In-house GWAS Catalog study curation file fetched from GitHub."
+fetch_from_ftp ${GWAS_CATALOG_STUDY_CURATION_URL} ${GWAS_CATALOG_STUDY_CURATION_FILE}
 
 logging "Copying files to GCP..."
 

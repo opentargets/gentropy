@@ -23,7 +23,7 @@ def apply_class_method_clumping(summary_stats: SummaryStatistics) -> StudyLocus:
     from gentropy.method.window_based_clumping import WindowBasedClumping
 
     clumped_summary_statistics = WindowBasedClumping.clump(
-        summary_stats, window_length=500_000
+        summary_stats, distance=250_000
     )
     # --8<-- [end:apply_class_method_clumping]
     return clumped_summary_statistics

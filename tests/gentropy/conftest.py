@@ -84,6 +84,11 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("h4", percentNulls=0.1)
         .withColumnSpec("log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
+        .withColumnSpec(
+            "colocalisationMethod",
+            percentNulls=0.0,
+            values=["COLOC", "eCAVIAR"],
+        )
     )
     return Colocalisation(_df=data_spec.build(), _schema=coloc_schema)
 
@@ -414,7 +419,7 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
 def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
     """Sample GWAS Catalog studies."""
     return spark.read.csv(
-        "tests/gentropy/data_samples/gwas_catalog_studies_sample-r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_studies.tsv",
         sep="\t",
         header=True,
     )
@@ -424,7 +429,7 @@ def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
 def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
     """Sample GWAS ancestries sample data."""
     return spark.read.csv(
-        "tests/gentropy/data_samples/gwas_catalog_ancestries_sample_v1.0.3-r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_ancestries.tsv",
         sep="\t",
         header=True,
     )
@@ -444,7 +449,7 @@ def sample_gwas_catalog_harmonised_sumstats_list(spark: SparkSession) -> DataFra
 def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
     """Sample GWAS raw associations sample data."""
     return spark.read.csv(
-        "tests/gentropy/data_samples/gwas_catalog_associations_sample_e107_r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_associations.tsv",
         sep="\t",
         header=True,
     )

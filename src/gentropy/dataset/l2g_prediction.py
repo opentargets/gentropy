@@ -44,7 +44,7 @@ class L2GPrediction(Dataset):
         cls: Type[L2GPrediction],
         model_path: str,
         features_list: list[str],
-        study_locus: StudyLocus,
+        credible_set: StudyLocus,
         study_index: StudyIndex,
         v2g: V2G,
         coloc: Colocalisation,
@@ -54,7 +54,7 @@ class L2GPrediction(Dataset):
         Args:
             model_path (str): Path to the fitted model
             features_list (list[str]): List of features to use for the model
-            study_locus (StudyLocus): Study locus dataset
+            credible_set (StudyLocus): Credible set dataset
             study_index (StudyIndex): Study index dataset
             v2g (V2G): Variant to gene dataset
             coloc (Colocalisation): Colocalisation dataset
@@ -64,7 +64,7 @@ class L2GPrediction(Dataset):
         """
         fm = L2GFeatureMatrix.generate_features(
             features_list=features_list,
-            study_locus=study_locus,
+            credible_set=credible_set,
             study_index=study_index,
             variant_gene=v2g,
             colocalisation=coloc,
@@ -73,7 +73,7 @@ class L2GPrediction(Dataset):
         gwas_fm = L2GFeatureMatrix(
             _df=(
                 fm.df.join(
-                    study_locus.filter_by_study_type("gwas", study_index).df,
+                    credible_set.filter_by_study_type("gwas", study_index).df,
                     on="studyLocusId",
                 )
             ),

@@ -50,7 +50,6 @@ class FinnGenSummaryStats:
         Returns:
             SummaryStatistics: Processed summary statistics dataset
         """
-        study_id = raw_file.split("/")[-1].split(".")[0].upper()
         processed_summary_stats_df = (
             spark.read.schema(cls.raw_schema)
             .option("delimiter", "\t")
@@ -59,7 +58,11 @@ class FinnGenSummaryStats:
             .filter(f.col("pos").cast(t.IntegerType()).isNotNull())
             .select(
                 # From the full path, extracts just the filename, and converts to upper case to get the study ID.
-                f.lit(study_id).alias("studyId"),
+                f.upper(
+                    f.regexp_extract(
+                        f.input_file_name(), r"([^/]+)(\.tsv\.gz|\.gz|\.tsv)", 1
+                    )
+                ).alias("studyId"),
                 # Add variant information.
                 f.concat_ws(
                     "_",

@@ -207,7 +207,7 @@ class LocusToGeneModel:
         results: DataFrame,
         hyperparameters: dict[str, Any],
         wandb_run_name: str | None,
-        training_data: L2GFeatureMatrix | None = None,
+        gold_standard_data: L2GFeatureMatrix | None = None,
     ) -> None:
         """Perform evaluation of the model predictions for the test set and track the results with W&B.
 
@@ -215,7 +215,7 @@ class LocusToGeneModel:
             results (DataFrame): Dataframe containing the predictions
             hyperparameters (dict[str, Any]): Hyperparameters used for the model
             wandb_run_name (str | None): Descriptive name for the run to be tracked with W&B
-            training_data (L2GFeatureMatrix | None): Training data used for the model. If provided, the ratio of positive to negative labels will be logged to W&B
+            gold_standard_data (L2GFeatureMatrix | None): Feature matrix for the associations in the gold standard. If provided, the ratio of positive to negative labels will be logged to W&B
         """
         binary_evaluator = BinaryClassificationEvaluator(
             rawPredictionCol="rawPrediction", labelCol="label"
@@ -224,7 +224,7 @@ class LocusToGeneModel:
             labelCol="label", predictionCol="prediction"
         )
 
-        if wandb_run_name and training_data:
+        if wandb_run_name and gold_standard_data:
             run = wandb_init(
                 project=self.wandb_l2g_project_name,
                 config=hyperparameters,
@@ -232,7 +232,10 @@ class LocusToGeneModel:
             )
             if isinstance(run, Run):
                 self.log_to_wandb(
-                    results, training_data, [binary_evaluator, multi_evaluator], run
+                    results,
+                    gold_standard_data,
+                    [binary_evaluator, multi_evaluator],
+                    run,
                 )
                 run.finish()
 
