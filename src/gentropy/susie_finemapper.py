@@ -65,7 +65,8 @@ class SusieFineMapperStep:
 
         GWAS_df = GWAS._df
         GWAS_df = GWAS_df.filter(
-            (f.col("chromosome") == chromosome)
+            (f.col("studyId") == _studyId)
+            & (f.col("chromosome") == chromosome)
             & (f.col("position") >= position - (window / 2))
             & (f.col("position") <= position + (window / 2))
         ).withColumn("z", f.col("beta") / f.col("standardError"))
