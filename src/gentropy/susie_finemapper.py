@@ -23,31 +23,29 @@ class SusieFineMapperStep:
     """
 
     @staticmethod
-    def susie_finemapper_one_locus(
+    def susie_finemapper_chr_pos(
         GWAS: SummaryStatistics,
         session: Session,
-        study_locus: StudyLocus,
+        chromosome: str,
+        position: int,
+        _studyId: str,
         study_index: StudyIndex,
         window: int = 1_000_000,
     ) -> StudyLocus:
-        """Susie fine-mapper for one study locus.
+        """Susie fine-mapper function that uses Summary Statstics, chromosome and position as inputs.
 
         Args:
             GWAS (SummaryStatistics): GWAS summary statistics
             session (Session): Spark session
-            study_locus (StudyLocus): StudyLocus object with one row (the first one will be used)
+            chromosome (str): chromosome
+            position (int): position
+            _studyId (str): study ID
             study_index (StudyIndex): StudyIndex object
             window (int): window size for fine-mapping
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
         """
-        study_locus_df = study_locus._df
-        first_line = study_locus_df.first()
-        chromosome = first_line.chromosome
-        position = first_line.position
-        _studyId = first_line.studyId
-
         study_index_df = study_index._df
         study_index_df = study_index_df.filter(study_index_df.studyId == _studyId)
         _major_population = study_index_df.select(
@@ -58,22 +56,11 @@ class SusieFineMapperStep:
         )
 
         _region = (
-            first_line.withColumn(
-                "region",
-                f.regexp_replace(
-                    f.concat(
-                        f.col("chromosome"),
-                        f.lit(":"),
-                        f.format_number((f.col("position") - (window / 2)), 0),
-                        f.lit("-"),
-                        f.format_number((f.col("position") + (window / 2)), 0),
-                    ),
-                    ",",
-                    "",
-                ),
-            )
-            .select("region")
-            .collect()[0]
+            chromosome
+            + ":"
+            + str(int(position - window / 2))
+            + "-"
+            + str(int(position + window / 2))
         )
 
         GWAS_df = GWAS._df
