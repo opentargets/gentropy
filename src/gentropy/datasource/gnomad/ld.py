@@ -488,7 +488,9 @@ class GnomADLDMatrix:
             self.ld_index_raw_template.format(POP=major_population)
         )
 
-        joined_index = liftover_ht.join(hail_index, how="inner").to_spark().sort("idx")
+        joined_index = (
+            liftover_ht.join(hail_index, how="inner").order_by("idx").to_spark()
+        )
 
         return joined_index
 
