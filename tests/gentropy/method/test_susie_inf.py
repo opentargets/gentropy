@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import numpy as np
+from gentropy.common.session import Session
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.susie_inf import SUSIE_inf
+from gentropy.susie_finemapper import SusieFineMapperStep
 
 
 class TestSUSIE_inf:
@@ -48,3 +52,28 @@ class TestSUSIE_inf:
         )
         cred = SUSIE_inf.cred_inf(susie_output["PIP"], LD=ld)
         assert cred[0] == [5]
+
+    def test_SUSIE_inf_convert_to_study_locus(
+        self: TestSUSIE_inf,
+        sample_data_for_susie_inf: list[np.ndarray],
+        sample_summary_statistics: SummaryStatistics,
+        session: Session,
+    ) -> None:
+        """Test of SuSiE-inf credible set generator."""
+        ld = sample_data_for_susie_inf[0]
+        z = sample_data_for_susie_inf[1]
+        susie_output = SUSIE_inf.susie_inf(
+            z=z,
+            LD=ld,
+            est_tausq=False,
+        )
+        gwas_df = sample_summary_statistics._df.limit(21)
+        L1 = SusieFineMapperStep.susie_inf_to_studylocus(
+            susie_output=susie_output,
+            session=session,
+            _studyId="sample_id",
+            _region="sample_region",
+            variant_index=gwas_df,
+            cs_lbf_thr=2,
+        )
+        assert isinstance(L1, StudyLocus), "L1 is not an instance of StudyLocus"
