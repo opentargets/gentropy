@@ -25,7 +25,7 @@ class SusieFineMapperStep:
         session: Session,
         _studyId: str,
         _region: str,
-        _join: DataFrame,
+        variant_index: DataFrame,
         cs_lbf_thr: float = 2,
     ) -> StudyLocus:
         """Convert SuSiE-inf output to studyLocus DataFrame.
@@ -35,14 +35,14 @@ class SusieFineMapperStep:
             session (Session): Spark session
             _studyId (str): study ID
             _region (str): region
-            _join (DataFrame): DataFrame with variant information
+            variant_index (DataFrame): DataFrame with variant information
             cs_lbf_thr (float): credible set logBF threshold, default is 2
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
         """
         variants = np.array(
-            [row["variantId"] for row in _join.select("variantId").collect()]
+            [row["variantId"] for row in variant_index.select("variantId").collect()]
         ).reshape(-1, 1)
         PIPs = susie_output["PIP"]
         lbfs = susie_output["lbf_variable"]
@@ -56,8 +56,8 @@ class SusieFineMapperStep:
         order_creds.sort(key=lambda x: x[1], reverse=True)
         cred_sets = None
         counter = 0
-        for i, value in order_creds:
-            if counter > 0 and value < cs_lbf_thr:
+        for i, cs_lbf_value in order_creds:
+            if counter > 0 and cs_lbf_value < cs_lbf_thr:
                 counter += 1
                 continue
             counter += 1
@@ -80,7 +80,7 @@ class SusieFineMapperStep:
                     ["variantId", "posteriorProbability", "logBF", "beta"],
                 )
                 .join(
-                    _join.select(
+                    variant_index.select(
                         "variantId",
                         "chromosome",
                         "position",
@@ -107,7 +107,7 @@ class SusieFineMapperStep:
                         "studyId": f.lit(_studyId),
                         "region": f.lit(_region),
                         "credibleSetIndex": f.lit(counter),
-                        "credibleSetlog10BF": f.lit(value * 0.4342944819),
+                        "credibleSetlog10BF": f.lit(cs_lbf_value * 0.4342944819),
                         "finemappingMethod": f.lit("SuSiE-inf"),
                     }
                 )
@@ -133,7 +133,7 @@ class SusieFineMapperStep:
             if cred_sets is None:
                 cred_sets = cred_set
             else:
-                cred_sets = cred_sets.union(cred_set)
+                cred_sets = cred_sets.unionByName(cred_set)
         return StudyLocus(
             _df=cred_sets,
             _schema=StudyLocus.get_schema(),

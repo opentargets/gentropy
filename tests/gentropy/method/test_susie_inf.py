@@ -73,7 +73,7 @@ class TestSUSIE_inf:
             session=session,
             _studyId="sample_id",
             _region="sample_region",
-            _join=gwas_df,
+            variant_index=gwas_df,
             cs_lbf_thr=2,
         )
         assert isinstance(L1, StudyLocus), "L1 is not an instance of StudyLocus"
