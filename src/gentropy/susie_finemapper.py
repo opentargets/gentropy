@@ -9,7 +9,10 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, Window
 
 from gentropy.common.session import Session
+from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.method.susie_inf import SUSIE_inf
 
 
 class SusieFineMapperStep:
@@ -18,6 +21,122 @@ class SusieFineMapperStep:
     This class/step is the temporary solution of the fine-mapping warpper for the development purposes.
     In the future this step will be refactored and moved to the methods module.
     """
+
+    @staticmethod
+    def susie_finemapper_one_locus(
+        GWAS: SummaryStatistics,
+        session: Session,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
+        window: int = 1_000_000,
+    ) -> StudyLocus:
+        """Susie fine-mapper for one study locus.
+
+        Args:
+            GWAS (SummaryStatistics): GWAS summary statistics
+            session (Session): Spark session
+            study_locus (StudyLocus): StudyLocus object with one row (the first one will be used)
+            study_index (StudyIndex): StudyIndex object
+            window (int): window size for fine-mapping
+
+        Returns:
+            StudyLocus: StudyLocus object with fine-mapped credible sets
+        """
+        study_locus_df = study_locus._df
+        first_line = study_locus_df.first()
+        chromosome = first_line.chromosome
+        position = first_line.position
+        _studyId = first_line.studyId
+
+        study_index_df = study_index._df
+        study_index_df = study_index_df.filter(study_index_df.studyId == _studyId)
+        _major_population = study_index_df.select(
+            "studyId",
+            f.array_max(f.col("ldPopulationStructure"))
+            .getItem("ldPopulation")
+            .alias("majorPopulation"),
+        )
+
+        _region = (
+            first_line.withColumn(
+                "region",
+                f.regexp_replace(
+                    f.concat(
+                        f.col("chromosome"),
+                        f.lit(":"),
+                        f.format_number((f.col("position") - (window / 2)), 0),
+                        f.lit("-"),
+                        f.format_number((f.col("position") + (window / 2)), 0),
+                    ),
+                    ",",
+                    "",
+                ),
+            )
+            .select("region")
+            .collect()[0]
+        )
+
+        GWAS_df = GWAS._df
+        GWAS_df = GWAS_df.filter(
+            (f.col("chromosome") == chromosome)
+            & (f.col("position") >= position - (window / 2))
+            & (f.col("position") <= position + (window / 2))
+        ).withColumn("z", f.col("beta") / f.col("standardError"))
+
+        _z = np.array([row["z"] for row in GWAS_df.select("z").collect()])
+
+        # # Extract summary statistics
+        # _ss = (
+        #     SummaryStatistics.get_locus_sumstats(session, window, _locus)
+        #     .withColumn("z", f.col("beta") / f.col("standardError"))
+        #     .withColumn("ref", f.split(f.col("variantId"), "_").getItem(2))
+        #     .withColumn("alt", f.split(f.col("variantId"), "_").getItem(3))
+        #     .select(
+        #         "variantId",
+        #         f.col("chromosome").alias("chr"),
+        #         f.col("position").alias("pos"),
+        #         "ref",
+        #         "alt",
+        #         "beta",
+        #         "pValueMantissa",
+        #         "pValueExponent",
+        #         "effectAlleleFrequencyFromSource",
+        #         "standardError",
+        #         "z",
+        #     )
+        # )
+
+        # Extract LD index
+        # _index = GnomADLDMatrix.get_locus_index(
+        #     session, locus, window_size=window, major_population=_major_population
+        # )
+        # _join = (
+        #     _ss.join(
+        #         _index.alias("_index"),
+        #         on=(
+        #             (_ss["chr"] == _index["chromosome"])
+        #             & (_ss["pos"] == _index["position"])
+        #             & (_ss["ref"] == _index["referenceAllele"])
+        #             & (_ss["alt"] == _index["alternateAllele"])
+        #         ),
+        #     )
+        #     .drop("ref", "alt", "chr", "pos")
+        #     .sort("idx")
+        # )
+
+        # Extracting z-scores and LD matrix, then running SuSiE-inf
+        # _ld = GnomADLDMatrix.get_locus_matrix(_join, gnomad_ancestry=_major_population)
+
+        _ld = 1
+        susie_output = SUSIE_inf.susie_inf(z=_z, LD=_ld, L=10)
+
+        return SusieFineMapperStep.susie_inf_to_studylocus(
+            susie_output=susie_output,
+            session=session,
+            _studyId=_studyId,
+            _region=_region,
+            variant_index=GWAS,
+        )
 
     @staticmethod
     def susie_inf_to_studylocus(
