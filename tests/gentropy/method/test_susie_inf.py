@@ -68,6 +68,7 @@ class TestSUSIE_inf:
             est_tausq=False,
         )
         gwas_df = sample_summary_statistics._df.limit(21)
+
         L1 = SusieFineMapperStep.susie_inf_to_studylocus(
             susie_output=susie_output,
             session=session,
