@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, Row, Window
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
@@ -24,7 +26,7 @@ class SusieFineMapperStep:
     """
 
     @staticmethod
-    def susie_finemapper_chr_pos(
+    def susie_finemapper_one_studylocus_row(
         GWAS: SummaryStatistics,
         session: Session,
         study_locus_row: Row,
@@ -45,6 +47,9 @@ class SusieFineMapperStep:
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
         """
+        # PLEASE DO NOT REMOVE THIS LINE
+        pd.DataFrame.iteritems = pd.DataFrame.items
+
         chromosome = study_locus_row.chromosome
         position = study_locus_row.position
         _studyId = study_locus_row.studyId
@@ -117,7 +122,24 @@ class SusieFineMapperStep:
         z_to_fm = GWAS_df["z"].values
 
         susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=L)
-        variant_index = session.spark.createDataFrame(GWAS_df)
+
+        schema = StructType(
+            [
+                StructField("variantId", StringType(), True),
+                StructField("chromosome", StringType(), True),
+                StructField("position", IntegerType(), True),
+            ]
+        )
+        variant_index = session.spark.createDataFrame(
+            GWAS_df[
+                [
+                    "variantId",
+                    "chromosome",
+                    "position",
+                ]
+            ],
+            schema=schema,
+        )
 
         return SusieFineMapperStep.susie_inf_to_studylocus(
             susie_output=susie_output,
