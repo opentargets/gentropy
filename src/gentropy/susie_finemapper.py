@@ -56,7 +56,7 @@ class SusieFineMapperStep:
             f.array_max(f.col("ldPopulationStructure"))
             .getItem("ldPopulation")
             .alias("majorPopulation"),
-        )
+        ).collect()[0]["majorPopulation"]
 
         _region = (
             chromosome
