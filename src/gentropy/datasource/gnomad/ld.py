@@ -1,4 +1,5 @@
 """Step to import filtered version of a LD matrix (block matrix)."""
+
 from __future__ import annotations
 
 import sys
@@ -13,7 +14,7 @@ from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
-from gentropy.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
+from gentropy.common.utils import _liftover_loci
 from gentropy.dataset.ld_index import LDIndex
 
 if TYPE_CHECKING:
@@ -177,20 +178,11 @@ class GnomADLDMatrix:
             ld_index_38.to_spark()
             # Filter out variants where the liftover failed
             .filter(f.col("`locus_GRCh38.position`").isNotNull())
-            .withColumn(
-                "chromosome", f.regexp_replace("`locus_GRCh38.contig`", "chr", "")
-            )
-            .withColumn(
-                "position",
-                convert_gnomad_position_to_ensembl(
-                    f.col("`locus_GRCh38.position`"),
-                    f.col("`alleles`").getItem(0),
-                    f.col("`alleles`").getItem(1),
-                ),
-            )
             .select(
-                "chromosome",
-                "position",
+                f.regexp_replace("`locus_GRCh38.contig`", "chr", "").alias(
+                    "chromosome"
+                ),
+                f.col("`locus_GRCh38.position`").alias("position"),
                 f.concat_ws(
                     "_",
                     f.col("chromosome"),
