@@ -50,20 +50,20 @@ class SusieFineMapperStep:
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
 
-        chromosome = study_locus_row.chromosome
-        position = study_locus_row.position
-        _studyId = study_locus_row.studyId
+        chromosome = study_locus_row["chromosome"]
+        position = study_locus_row["position"]
+        studyId = study_locus_row["studyId"]
 
         study_index_df = study_index._df
-        study_index_df = study_index_df.filter(study_index_df.studyId == _studyId)
-        _major_population = study_index_df.select(
+        study_index_df = study_index_df.filter(f.col("studyId") == studyId)
+        major_population = study_index_df.select(
             "studyId",
             f.array_max(f.col("ldPopulationStructure"))
             .getItem("ldPopulation")
             .alias("majorPopulation"),
         ).collect()[0]["majorPopulation"]
 
-        _region = (
+        region = (
             chromosome
             + ":"
             + str(int(position - window / 2))
@@ -71,20 +71,19 @@ class SusieFineMapperStep:
             + str(int(position + window / 2))
         )
 
-        GWAS_df = GWAS._df
-        GWAS_df = GWAS_df.filter(
-            (f.col("studyId") == _studyId)
-            & (f.col("chromosome") == chromosome)
-            & (f.col("position") >= position - (window / 2))
-            & (f.col("position") <= position + (window / 2))
-        ).withColumn("z", f.col("beta") / f.col("standardError"))
+        gwas_df = (
+            GWAS.df.withColumn("z", f.col("beta") / f.col("standardError"))
+            .withColumn("chromosome", f.split(f.col("variantId"), "_")[0])
+            .withColumn("position", f.split(f.col("variantId"), "_")[1])
+            .filter(f.col("z").isNotNull())
+        )
 
         ld_index = (
             GnomADLDMatrix()
             .get_locus_index(
                 study_locus_row=study_locus_row,
                 window_size=window,
-                major_population=_major_population,
+                major_population=major_population,
             )
             .withColumn(
                 "variantId",
@@ -100,26 +99,18 @@ class SusieFineMapperStep:
             )
         )
 
-        gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
-            ld_index, gnomad_ancestry=_major_population
-        )
-
-        GWAS_df = GWAS_df.toPandas()
-        ld_index = ld_index.toPandas()
-        ld_index = ld_index.reset_index()
-
         # Filtering out the variants that are not in the LD matrix, we don't need them
-        df_columns = GWAS_df.columns
-        GWAS_df = GWAS_df.merge(ld_index, on="variantId", how="inner")
-        GWAS_df = GWAS_df[df_columns].reset_index()
+        gwas_index = gwas_df.join(
+            ld_index.select("variantId", "alleles", "idx"), on="variantId"
+        ).sort("idx")
 
-        merged_df = GWAS_df.merge(
-            ld_index, left_on="variantId", right_on="variantId", how="inner"
+        gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
+            gwas_index, gnomad_ancestry=major_population
         )
-        indices = merged_df["index_y"].values
 
-        ld_to_fm = gnomad_ld[indices][:, indices]
-        z_to_fm = GWAS_df["z"].values
+        pd_df = gwas_index.toPandas()
+        z_to_fm = np.array(pd_df["z"])
+        ld_to_fm = gnomad_ld
 
         susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=L)
 
@@ -130,8 +121,9 @@ class SusieFineMapperStep:
                 StructField("position", IntegerType(), True),
             ]
         )
+        pd_df["position"] = pd_df["position"].astype(int)
         variant_index = session.spark.createDataFrame(
-            GWAS_df[
+            pd_df[
                 [
                     "variantId",
                     "chromosome",
@@ -144,8 +136,8 @@ class SusieFineMapperStep:
         return SusieFineMapperStep.susie_inf_to_studylocus(
             susie_output=susie_output,
             session=session,
-            _studyId=_studyId,
-            _region=_region,
+            studyId=studyId,
+            region=region,
             variant_index=variant_index,
         )
 
@@ -153,8 +145,8 @@ class SusieFineMapperStep:
     def susie_inf_to_studylocus(
         susie_output: dict[str, Any],
         session: Session,
-        _studyId: str,
-        _region: str,
+        studyId: str,
+        region: str,
         variant_index: DataFrame,
         cs_lbf_thr: float = 2,
     ) -> StudyLocus:
@@ -163,8 +155,8 @@ class SusieFineMapperStep:
         Args:
             susie_output (dict[str, Any]): SuSiE-inf output dictionary
             session (Session): Spark session
-            _studyId (str): study ID
-            _region (str): region
+            studyId (str): study ID
+            region (str): region
             variant_index (DataFrame): DataFrame with variant information
             cs_lbf_thr (float): credible set logBF threshold, default is 2
 
@@ -236,8 +228,8 @@ class SusieFineMapperStep:
                 .limit(1)
                 .withColumns(
                     {
-                        "studyId": f.lit(_studyId),
-                        "region": f.lit(_region),
+                        "studyId": f.lit(studyId),
+                        "region": f.lit(region),
                         "credibleSetIndex": f.lit(counter),
                         "credibleSetlog10BF": f.lit(cs_lbf_value * 0.4342944819),
                         "finemappingMethod": f.lit("SuSiE-inf"),
