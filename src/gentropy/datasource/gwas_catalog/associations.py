@@ -52,7 +52,7 @@ class GWASCatalogCuratedAssociationsParser:
         Examples:
             >>> d = [(1, "A", "C"), (2, "AA", "C"), (3, "A", "AA")]
             >>> df = spark.createDataFrame(d).toDF("position", "reference", "alternate")
-            >>> df.withColumn("new_position", convert_gnomad_position_to_ensembl(f.col("position"), f.col("reference"), f.col("alternate"))).show()
+            >>> df.withColumn("new_position", GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(f.col("position"), f.col("reference"), f.col("alternate"))).show()
             +--------+---------+---------+------------+
             |position|reference|alternate|new_position|
             +--------+---------+---------+------------+
@@ -61,7 +61,6 @@ class GWASCatalogCuratedAssociationsParser:
             |       3|        A|       AA|           4|
             +--------+---------+---------+------------+
             <BLANKLINE>
-
         """
         return f.when(
             (f.length(reference) > 1) | (f.length(alternate) > 1), position + 1
