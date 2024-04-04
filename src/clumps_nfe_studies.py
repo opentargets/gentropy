@@ -16,7 +16,6 @@
 #         --num-workers=4 \
 #         --worker-machine-type=n1-highmem-8
 
-
 import pyspark.sql.functions as f
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
@@ -70,12 +69,9 @@ ss.df.repartition("studyId", "chromosome").sortWithinPartitions(
 )
 
 # StudyLocus count in all NFE GWAS Catalog summary statistics: 154_715
-sl = ss.window_based_clumping(
-    distance=WINDOW_SIZE,
-    baseline_significance=1,
-    locus_collect_distance=WINDOW_SIZE,
+sl = ss.window_based_clumping(distance=WINDOW_SIZE).annotate_locus_statistics(
+    ss, collect_locus_distance=WINDOW_SIZE
 )
-
 
 sl.df.write.parquet(
     path="gs://ot-team/dochoa/sl_25_3_24.parquet",
