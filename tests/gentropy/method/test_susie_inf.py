@@ -72,8 +72,8 @@ class TestSUSIE_inf:
         L1 = SusieFineMapperStep.susie_inf_to_studylocus(
             susie_output=susie_output,
             session=session,
-            _studyId="sample_id",
-            _region="sample_region",
+            studyId="sample_id",
+            region="sample_region",
             variant_index=gwas_df,
             cs_lbf_thr=2,
         )

@@ -75,6 +75,7 @@ class SusieFineMapperStep:
             GWAS.df.withColumn("z", f.col("beta") / f.col("standardError"))
             .withColumn("chromosome", f.split(f.col("variantId"), "_")[0])
             .withColumn("position", f.split(f.col("variantId"), "_")[1])
+            .filter(f.col("studyId") == studyId)
             .filter(f.col("z").isNotNull())
         )
 
