@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import numpy as np
@@ -152,6 +153,7 @@ class SusieFineMapperStep:
         region: str,
         variant_index: DataFrame,
         cs_lbf_thr: float = 2,
+        sum_pips: float = 0.99,
     ) -> StudyLocus:
         """Convert SuSiE-inf output to studyLocus DataFrame.
 
@@ -162,6 +164,7 @@ class SusieFineMapperStep:
             region (str): region
             variant_index (DataFrame): DataFrame with variant information
             cs_lbf_thr (float): credible set logBF threshold, default is 2
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
@@ -191,8 +194,8 @@ class SusieFineMapperStep:
                 susie_result[:, i + 1].astype(float).argsort()[::-1]
             ]
             cumsum_arr = np.cumsum(sorted_arr[:, i + 1].astype(float))
-            filter_row = np.argmax(cumsum_arr >= 0.99)
-            if filter_row == 0 and cumsum_arr[0] < 0.99:
+            filter_row = np.argmax(cumsum_arr >= sum_pips)
+            if filter_row == 0 and cumsum_arr[0] < sum_pips:
                 filter_row = len(cumsum_arr)
             filter_row += 1
             filtered_arr = sorted_arr[:filter_row]
@@ -281,11 +284,12 @@ class SusieFineMapperStep:
         carma_time_limit: int = 600,
         imputed_r2_threshold: float = 0.8,
         ld_score_threshold: float = 4,
+        sum_pips: float = 0.99,
     ) -> dict[str, Any]:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
         Args:
-            GWAS_df (DataFrame): GWAS DataFrame with mandotary columns: z, variantId, chromosome, position
+            GWAS_df (DataFrame): GWAS DataFrame with mandotary columns: z, variantId
             ld_index (DataFrame): LD index DataFrame
             gnomad_ld (np.ndarray): GnomAD LD matrix
             L (int): number of causal variants
@@ -298,10 +302,15 @@ class SusieFineMapperStep:
             carma_time_limit (int): CARMA time limit, default is 600 seconds
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
 
         Returns:
             dict[str, Any]: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
         """
+        # PLEASE DO NOT REMOVE THIS LINE
+        pd.DataFrame.iteritems = pd.DataFrame.items
+
+        start_time = time.time()
         GWAS_df = GWAS_df.toPandas()
         ld_index = ld_index.toPandas()
         ld_index = ld_index.reset_index()
@@ -361,17 +370,11 @@ class SusieFineMapperStep:
                 rtol=0.01,
             )
 
-            if (
-                sum(
-                    (sumstat_imp_res["imputation_r2"] >= imputed_r2_threshold)
-                    * (sumstat_imp_res["ld_score"] >= ld_score_threshold)
-                )
-                >= 1
-            ):
-                indices = np.where(
-                    (sumstat_imp_res["imputation_r2"] >= imputed_r2_threshold)
-                    * (sumstat_imp_res["ld_score"] >= ld_score_threshold)
-                )[0]
+            bool_index = (sumstat_imp_res["imputation_r2"] >= imputed_r2_threshold) * (
+                sumstat_imp_res["ld_score"] >= ld_score_threshold
+            )
+            if sum(bool_index) >= 1:
+                indices = np.where(bool_index)[0]
                 index_to_add = [unknown[i] for i in indices]
                 index_to_fm = np.concatenate((known, index_to_add))
 
@@ -382,7 +385,7 @@ class SusieFineMapperStep:
                         "variantId": ld_index.iloc[index_to_add, :]["variantId"],
                         "z": sumstat_imp_res["mu"][indices],
                     }
-                ).reset_index()
+                )
                 GWAS_df = pd.concat([GWAS_df, snp_info_to_add], ignore_index=True)
                 z_to_fm = GWAS_df["z"].values
 
@@ -402,8 +405,10 @@ class SusieFineMapperStep:
                 GWAS_df[["variantId"]],
                 schema=schema,
             )
-            .withColumn("chromosome", f.split(f.col("variantId"), "_")[0])
-            .withColumn("position", f.split(f.col("variantId"), "_")[1])
+            .withColumn(
+                "chromosome", f.split(f.col("variantId"), "_")[0].cast("string")
+            )
+            .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
         )
 
         study_locus = SusieFineMapperStep.susie_inf_to_studylocus(
@@ -412,13 +417,142 @@ class SusieFineMapperStep:
             studyId=studyId,
             region=region,
             variant_index=variant_index,
+            sum_pips=sum_pips,
         )
+
+        end_time = time.time()
+
+        log_df = pd.DataFrame(
+            {
+                "N_gwas": N_gwas,
+                "N_ld": N_ld,
+                "N_overlap": N_after_merge,
+                "N_outliers": N_outliers,
+                "N_imputed": N_imputed,
+                "N_final_to_fm": len(ld_to_fm),
+                "eleapsed_time": end_time - start_time,
+            },
+            index=[0],
+        )
+
         return {
             "study_locus": study_locus,
-            "N_gwas": N_gwas,
-            "N_ld": N_ld,
-            "N_after_merge": N_after_merge,
-            "N_outliers": N_outliers,
-            "N_imputed": N_imputed,
-            "N_to_fm": len(ld_to_fm),
+            "log": log_df,
         }
+
+    @staticmethod
+    def susie_finemapper_one_studylocus_row_v2_dev(
+        GWAS: SummaryStatistics,
+        session: Session,
+        study_locus_row: Row,
+        study_index: StudyIndex,
+        window: int = 1_000_000,
+        L: int = 10,
+        susie_est_tausq: bool = False,
+        run_carma: bool = False,
+        run_sumstat_imputation: bool = False,
+        carma_time_limit: int = 600,
+        imputed_r2_threshold: float = 0.8,
+        ld_score_threshold: float = 4,
+        sum_pips: float = 0.99,
+    ) -> dict[str, Any]:
+        """Susie fine-mapper function that uses Summary Statstics, chromosome and position as inputs.
+
+        Args:
+            GWAS (SummaryStatistics): GWAS summary statistics
+            session (Session): Spark session
+            study_locus_row (Row): StudyLocus row
+            study_index (StudyIndex): StudyIndex object
+            window (int): window size for fine-mapping
+            L (int): number of causal variants
+            susie_est_tausq (bool): estimate tau squared, default is False
+            run_carma (bool): run CARMA, default is False
+            run_sumstat_imputation (bool): run summary statistics imputation, default is False
+            carma_time_limit (int): CARMA time limit, default is 600 seconds
+            imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
+            ld_score_threshold (float): LD score threshold ofr imputation, default is 4
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+
+        Returns:
+            dict[str, Any]: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
+        """
+        # PLEASE DO NOT REMOVE THIS LINE
+        pd.DataFrame.iteritems = pd.DataFrame.items
+
+        chromosome = study_locus_row["chromosome"]
+        position = study_locus_row["position"]
+        studyId = study_locus_row["studyId"]
+
+        study_index_df = study_index._df
+        study_index_df = study_index_df.filter(f.col("studyId") == studyId)
+        major_population = study_index_df.select(
+            "studyId",
+            f.array_max(f.col("ldPopulationStructure"))
+            .getItem("ldPopulation")
+            .alias("majorPopulation"),
+        ).collect()[0]["majorPopulation"]
+
+        region = (
+            chromosome
+            + ":"
+            + str(int(position - window / 2))
+            + "-"
+            + str(int(position + window / 2))
+        )
+
+        gwas_df = (
+            GWAS.df.withColumn("z", f.col("beta") / f.col("standardError"))
+            .withColumn(
+                "chromosome", f.split(f.col("variantId"), "_")[0].cast("string")
+            )
+            .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
+            .filter(f.col("studyId") == studyId)
+            .filter(f.col("z").isNotNull())
+            .filter(f.col("chromosome") == chromosome)
+            .filter(f.col("position") >= position - window / 2)
+            .filter(f.col("position") <= position + window / 2)
+        )
+
+        ld_index = (
+            GnomADLDMatrix()
+            .get_locus_index(
+                study_locus_row=study_locus_row,
+                window_size=window,
+                major_population=major_population,
+            )
+            .withColumn(
+                "variantId",
+                f.concat(
+                    f.lit(chromosome),
+                    f.lit("_"),
+                    f.col("`locus.position`"),
+                    f.lit("_"),
+                    f.col("alleles").getItem(0),
+                    f.lit("_"),
+                    f.col("alleles").getItem(1),
+                ).cast("string"),
+            )
+        )
+
+        gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
+            ld_index, gnomad_ancestry=major_population
+        )
+
+        out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
+            GWAS_df=gwas_df,
+            ld_index=ld_index,
+            gnomad_ld=gnomad_ld,
+            L=L,
+            session=session,
+            studyId=studyId,
+            region=region,
+            susie_est_tausq=susie_est_tausq,
+            run_carma=run_carma,
+            run_sumstat_imputation=run_sumstat_imputation,
+            carma_time_limit=carma_time_limit,
+            imputed_r2_threshold=imputed_r2_threshold,
+            ld_score_threshold=ld_score_threshold,
+            sum_pips=sum_pips,
+        )
+
+        return out
