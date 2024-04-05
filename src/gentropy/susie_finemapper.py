@@ -34,7 +34,7 @@ class SusieFineMapperStep:
         window: int = 1_000_000,
         L: int = 10,
     ) -> StudyLocus:
-        """Susie fine-mapper function that uses Summary Statstics, chromosome and position as inputs.
+        """Susie fine-mapper for StudyLocus row with SummaryStatistics object.
 
         Args:
             GWAS (SummaryStatistics): GWAS summary statistics
@@ -151,7 +151,7 @@ class SusieFineMapperStep:
         variant_index: DataFrame,
         cs_lbf_thr: float = 2,
     ) -> StudyLocus:
-        """Convert SuSiE-inf output to studyLocus DataFrame.
+        """Convert SuSiE-inf output to StudyLocus DataFrame.
 
         Args:
             susie_output (dict[str, Any]): SuSiE-inf output dictionary
@@ -272,7 +272,7 @@ class SusieFineMapperStep:
         window: int = 1_000_000,
         L: int = 10,
     ) -> StudyLocus:
-        """Susie fine-mapper function that uses Summary Statstics, chromosome and position as inputs.
+        """Susie fine-mapper for StudyLocus row with locus annotated summary statistics.
 
         Args:
             session (Session): Spark session
