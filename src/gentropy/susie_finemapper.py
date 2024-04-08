@@ -499,7 +499,6 @@ class SusieFineMapperStep:
             + "-"
             + str(int(position + window / 2))
         )
-
         gwas_df = (
             GWAS.df.withColumn("z", f.col("beta") / f.col("standardError"))
             .withColumn(

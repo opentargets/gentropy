@@ -854,9 +854,19 @@ class CARMA:
                         sec_sample = np.random.choice(
                             range(0, 3), 1, p=np.exp(aa) / np.sum(np.exp(aa))
                         )
-                        S = set_gamma[sec_sample[0]][
-                            int(set_star["gamma_set_index"][sec_sample[0]])
-                        ].tolist()
+                        if set_gamma[sec_sample[0]] is not None:
+                            S = set_gamma[sec_sample[0]][
+                                int(set_star["gamma_set_index"][sec_sample[0]])
+                            ].tolist()
+                        else:
+                            sec_sample = np.random.choice(
+                                range(1, 3),
+                                1,
+                                p=np.exp(aa)[[1, 2]] / np.sum(np.exp(aa)[[1, 2]]),
+                            )
+                            S = set_gamma[sec_sample[0]][
+                                int(set_star["gamma_set_index"][sec_sample[0]])
+                            ].tolist()
 
                 for item in conditional_S:
                     if item not in S:
