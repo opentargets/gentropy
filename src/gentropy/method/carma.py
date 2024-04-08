@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import warnings
 from itertools import combinations
 from math import floor, lgamma
 from typing import Any
@@ -32,6 +33,8 @@ class CARMA:
                 - B_list: A dataframe containing the marginal likelihoods and the corresponding model space or None.
                 - Outliers: A list of outlier SNPs or None.
         """
+        # Ignore pandas future warnings
+        warnings.simplefilter(action="ignore", category=FutureWarning)
         try:
             # Execute CARMA.CARMA_spike_slab_noEM with a timeout
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
