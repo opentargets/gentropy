@@ -182,6 +182,7 @@ class LocusToGeneConfig(StepConfig):
                 "spark.dynamicAllocation.enabled": "false",
                 "spark.driver.memory": "48g",
                 "spark.executor.memory": "48g",
+                "spark.sql.shuffle.partitions": "800",
             }
         }
     )
@@ -213,13 +214,17 @@ class LocusToGeneConfig(StepConfig):
             # max clpp for each (study, locus) aggregating over all eQTLs
             "eqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocClppMaximum",
+            "pqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocClppMaximumNeighborhood",
+            "pqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocClppMaximum",
+            "sqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocClppMaximumNeighborhood",
+            "sqtlColocClppMaximumNeighborhood",
+            # max clpp for each (study, locus) aggregating over all tuQTLs
+            "tuqtlColocClppMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all tuQTLs
+            "tuqtlColocClppMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
@@ -316,9 +321,10 @@ class WindowBasedClumpingStep(StepConfig):
 
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
+    distance: int = 500_000
+    collect_locus: bool = False
+    collect_locus_distance: int = 500_000
     inclusion_list_path: str | None = None
-    locus_collect_distance: str | None = None
-
     _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
 
 
