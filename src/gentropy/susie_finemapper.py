@@ -81,6 +81,10 @@ class SusieFineMapperStep:
             .filter(f.col("studyId") == studyId)
             .filter(f.col("z").isNotNull())
         )
+        # Remove ALL duplicated variants from GWAS DataFrame - we don't know which is correct
+        variant_counts = gwas_df.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
         ld_index = (
             GnomADLDMatrix()
@@ -320,6 +324,10 @@ class SusieFineMapperStep:
             .withColumn("position", f.split(f.col("variantId"), "_")[1])
             .filter(f.col("z").isNotNull())
         )
+        # Remove ALL duplicated variants from GWAS DataFrame - we don't know which is correct
+        variant_counts = gwas_df.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
         ld_index = (
             GnomADLDMatrix()
