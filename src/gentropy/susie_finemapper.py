@@ -427,6 +427,11 @@ class SusieFineMapperStep:
 
         start_time = time.time()
         GWAS_df = GWAS_df.toPandas()
+        N_gwas_before_dedupl = len(GWAS_df)
+
+        GWAS_df = GWAS_df.drop_duplicates(subset="variantId", keep=False)
+        GWAS_df = GWAS_df.reset_index()
+
         ld_index = ld_index.toPandas()
         ld_index = ld_index.reset_index()
 
@@ -539,6 +544,7 @@ class SusieFineMapperStep:
 
         log_df = pd.DataFrame(
             {
+                "N_gwas_before_dedupl": N_gwas_before_dedupl,
                 "N_gwas": N_gwas,
                 "N_ld": N_ld,
                 "N_overlap": N_after_merge,
