@@ -185,8 +185,8 @@ class GnomADLDMatrix:
                 f.col("`locus_GRCh38.position`").alias("position"),
                 f.concat_ws(
                     "_",
-                    f.col("chromosome"),
-                    f.col("position"),
+                    f.regexp_replace("`locus_GRCh38.contig`", "chr", ""),
+                    f.col("`locus_GRCh38.position`"),
                     f.col("`alleles`").getItem(0),
                     f.col("`alleles`").getItem(1),
                 ).alias("variantId"),
