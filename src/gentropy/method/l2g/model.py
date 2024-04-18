@@ -6,19 +6,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Type
 
 from pyspark.ml import Pipeline, PipelineModel
-from pyspark.ml.evaluation import (
-    BinaryClassificationEvaluator,
-    MulticlassClassificationEvaluator,
-)
 from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml.tuning import ParamGridBuilder
-from wandb.data_types import Table
-from wandb.sdk import init as wandb_init
-from wandb.wandb_run import Run
 from xgboost.spark.core import SparkXGBClassifierModel
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.method.l2g.evaluator import WandbEvaluator
 
 if TYPE_CHECKING:
     from pyspark.ml import Transformer
@@ -33,7 +25,7 @@ class LocusToGeneModel:
     estimator: Any = None
     pipeline: Pipeline = Pipeline(stages=[])
     model: PipelineModel | None = None
-    wandb_l2g_project_name: str = "otg_l2g"
+    wandb_l2g_project_name: str = "gentropy-locus-to-gene"
 
     def __post_init__(self: LocusToGeneModel) -> None:
         """Post init that adds the model to the ML pipeline."""
@@ -101,48 +93,26 @@ class LocusToGeneModel:
             .setOutputCol("features")
         )
 
-    def log_to_wandb(
-        self: LocusToGeneModel,
-        results: DataFrame,
-        gold_standard_data: L2GFeatureMatrix,
-        evaluators: list[
-            BinaryClassificationEvaluator | MulticlassClassificationEvaluator
-        ],
-        wandb_run: Run,
-    ) -> None:
-        """Log evaluation results and feature importance to W&B.
+    # def log_to_wandb(
+    #     self: LocusToGeneModel,
+    #     gold_standard_data: L2GFeatureMatrix,
+    #     wandb_run: Run,
+    # ) -> None:
+    #     """Log evaluation results and feature importance to W&B.
 
-        Args:
-            results (DataFrame): Dataframe containing the predictions
-            gold_standard_data (L2GFeatureMatrix): Feature matrix for the associations in the gold standard.
-            evaluators (list[BinaryClassificationEvaluator | MulticlassClassificationEvaluator]): List of Spark ML evaluators to use for evaluation
-            wandb_run (Run): W&B run to log the results to
-        """
-        ## Track evaluation metrics
-        for evaluator in evaluators:
-            wandb_evaluator = WandbEvaluator(
-                spark_ml_evaluator=evaluator, wandb_run=wandb_run
-            )
-            wandb_evaluator.evaluate(results)
-        ## Track feature importance
-        wandb_run.log({"importances": self.get_feature_importance()})
-        ## Track gold standards and their features
-        gold_standards_table = Table(dataframe=gold_standard_data.df.toPandas())
-        wandb_run.log({"featureMatrix": gold_standards_table})
-        # Count number of positive and negative labels
-        gs_counts_dict = {
-            "goldStandard" + row["goldStandardSet"].capitalize(): row["count"]
-            for row in gold_standards_table.df.groupBy("goldStandardSet")
-            .count()
-            .collect()
-        }
-        wandb_run.log(gs_counts_dict)
-        # Missingness rates
-        wandb_run.log(
-            {
-                "missingnessRates": gold_standards_table.calculate_feature_missingness_rate()
-            }
-        )
+    #     Args:
+    #         gold_standard_data (L2GFeatureMatrix): Feature matrix for the associations in the gold standard.
+    #         wandb_run (Run): W&B run to log the results to
+    #     """
+    ## Track evaluation metrics
+    ## Track classificator plot
+    ## Track gold standards and their features
+    # Missingness rates
+    # wandb_run.log(
+    #     {
+    #         "missingnessRates": gold_standard_data.calculate_feature_missingness_rate()
+    #     }
+    # )
 
     @classmethod
     def load_from_disk(
@@ -205,43 +175,6 @@ class LocusToGeneModel:
         new_stages = pipeline_stages + [transformer]
         self.pipeline = Pipeline(stages=new_stages)
         return self
-
-    def evaluate(
-        self: LocusToGeneModel,
-        results: DataFrame,
-        hyperparameters: dict[str, Any],
-        wandb_run_name: str | None,
-        gold_standard_data: L2GFeatureMatrix | None = None,
-    ) -> None:
-        """Perform evaluation of the model predictions for the test set and track the results with W&B.
-
-        Args:
-            results (DataFrame): Dataframe containing the predictions
-            hyperparameters (dict[str, Any]): Hyperparameters used for the model
-            wandb_run_name (str | None): Descriptive name for the run to be tracked with W&B
-            gold_standard_data (L2GFeatureMatrix | None): Feature matrix for the associations in the gold standard. If provided, the ratio of positive to negative labels will be logged to W&B
-        """
-        binary_evaluator = BinaryClassificationEvaluator(
-            rawPredictionCol="rawPrediction", labelCol="label"
-        )
-        multi_evaluator = MulticlassClassificationEvaluator(
-            labelCol="label", predictionCol="prediction"
-        )
-
-        if wandb_run_name and gold_standard_data:
-            run = wandb_init(
-                project=self.wandb_l2g_project_name,
-                config=hyperparameters,
-                name=wandb_run_name,
-            )
-            if isinstance(run, Run):
-                self.log_to_wandb(
-                    results,
-                    gold_standard_data,
-                    [binary_evaluator, multi_evaluator],
-                    run,
-                )
-                run.finish()
 
     @property
     def feature_name_map(self: LocusToGeneModel) -> dict[str, str]:
