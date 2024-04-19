@@ -71,7 +71,7 @@ class GnomADVariants:
         return VariantAnnotation(
             _df=(
                 ht.select(
-                    variantId=hl.str("-").join(
+                    variantId=hl.str("_").join(
                         [
                             ht.locus.contig.replace("chr", ""),
                             hl.str(ht.locus.position),
