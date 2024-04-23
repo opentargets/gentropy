@@ -65,7 +65,9 @@ class SusieFineMapperStep:
             locus_L,
         )
         # Write result
-        result.df.write.mode(session.write_mode).parquet(output_path)
+        result.df.write.mode(session.write_mode).parquet(
+            output_path + "/" + study_locus_to_finemap
+        )
 
     @staticmethod
     def susie_finemapper_one_studylocus_row(
