@@ -356,9 +356,15 @@ class SusieFineMapperStep:
             + str(int(position + window / 2))
         )
 
+        schema = StudyLocus.get_schema()
+        gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
+        exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
+
+        result_df = exploded_df.select(
+            "locus.variantId", "locus.beta", "locus.standardError"
+        )
         gwas_df = (
-            session.spark.createDataFrame(study_locus_row.locus)
-            .withColumn("z", f.col("beta") / f.col("standardError"))
+            result_df.withColumn("z", f.col("beta") / f.col("standardError"))
             .withColumn("chromosome", f.split(f.col("variantId"), "_")[0])
             .withColumn("position", f.split(f.col("variantId"), "_")[1])
             .filter(f.col("z").isNotNull())
