@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import hail as hl
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
@@ -49,6 +50,7 @@ class SusieFineMapperStep:
             locus_radius (int): Radius of base-pair window around the locus, default is 500_000
             locus_l (int): Maximum number of causal variants in locus, default is 10
         """
+        hl.init(sc=session.spark.sparkContext, log="/dev/null")
         # Read studyLocus
         study_locus = (
             StudyLocus.from_parquet(session, study_locus_collected_path)
