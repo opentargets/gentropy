@@ -1,4 +1,5 @@
 """LD annotation for studyLocus."""
+
 import pyspark.sql.functions as f
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import StudyLocus
@@ -17,7 +18,7 @@ session = Session(
 
 # Read LD information
 ld = (
-    session.spark.read.parquet("gs://ot-team/dochoa/ld_exploded_25_03_2024.parquet")
+    session.spark.read.parquet("gs://ot-team/dochoa/ld_exploded_03_04_2024.parquet")
     .withColumn("position_i", f.split(f.col("variantId_i"), "_")[1].cast("int"))
     .withColumn("position_j", f.split(f.col("variantId_j"), "_")[1].cast("int"))
 )
@@ -67,5 +68,5 @@ clumped_sl.write.parquet("gs://ot-team/dochoa/sl_cluster_lut_25_03_2024.parquet"
         f.col("r"),
     )
     .write.partitionBy("clusterId")
-    .parquet("gs://ot-team/dochoa/ld_exploded_bycluster_25_03_2024.parquet")
+    .parquet("gs://ot-team/dochoa/ld_exploded_bycluster_15_04_2024.parquet")
 )

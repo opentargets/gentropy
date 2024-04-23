@@ -1,6 +1,5 @@
 """Calculate densematrix from triangle."""
 
-
 from typing import Iterable
 
 import numpy as np
@@ -17,19 +16,26 @@ session = Session(
 )
 
 
-regional_ld = session.spark.read.parquet(
-    "gs://ot-team/dochoa/ld_exploded_bycluster_25_03_2024.parquet"
-).select(
-    f.xxhash64(f.col("variantId_i")).alias("i"),
-    f.xxhash64(f.col("variantId_j")).alias("j"),
-    f.col("r"),
+regional_ld = (
+    session.spark.read.parquet(
+        "gs://ot-team/dochoa/ld_exploded_bycluster_25_03_2024.parquet"
+    )
+    .select(
+        "clusterId",
+        f.xxhash64(f.col("variantId_i")).alias("i"),
+        f.xxhash64(f.col("variantId_j")).alias("j"),
+        f.col("r"),
+    )
+    # .filter(f.col("clusterId") == "dummy_21_44178639")
+    .filter(f.col("clusterId").startswith("dummy_21"))
+    # .repartition("clusterId")
 )
 
 
 def _vectors_to_matrix(
-    i: Iterable[float], j: Iterable[float], r: Iterable[float]
-) -> DenseMatrix:
-    """Convert  of vectors to a matrix.
+    i: Iterable[int], j: Iterable[int], r: Iterable[float]
+) -> DenseMatrix | None:
+    """Convert  vectors to a matrix.
 
     Args:
         i (Iterable[float]): coordinates for i
@@ -58,9 +64,11 @@ _vectors_to_matrix_udf = f.udf(
 )
 
 
-regional_ld.groupBy(f.lit("clusterId")).agg(
+regional_ld.groupBy("clusterId").agg(
     _vectors_to_matrix_udf(
         f.collect_list("i"), f.collect_list("j"), f.collect_list("r")
     ).alias("matrix"),
     f.array_sort(f.collect_set(f.col("i"))).alias("variants"),
-).write.parquet("gs://ot-team/dochoa/regional_ld_densematrix_26_03_2024.parquet")
+).write.parquet(
+    "gs://ot-team/dochoa/regional_ld_densematrix_26_03_2024.parquet", mode="overwrite"
+)

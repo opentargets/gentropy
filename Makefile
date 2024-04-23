@@ -38,7 +38,7 @@ build-documentation: ## Create local server with documentation
 create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
-	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
+	@gcloud dataproc clusters create "do-genetics-dev-${CLEAN_VERSION_NO}" \
 		--image-version 2.1 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
@@ -51,7 +51,7 @@ create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependen
 make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
-	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_VERSION_NO}" \
+	gcloud dataproc jobs submit pig --cluster="do-test-ld" \
 		--region ${REGION} \
 		--jars=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		-e='sh chmod 750 $${PWD}/install_dependencies_on_cluster.sh; sh $${PWD}/install_dependencies_on_cluster.sh'
