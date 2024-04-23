@@ -1,4 +1,5 @@
 """Interface for application configuration."""
+
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
@@ -241,8 +242,9 @@ class LocusToGeneConfig(StepConfig):
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
+            "n_estimators": 100,
             "max_depth": 5,
-            "loss_function": "binary:logistic",
+            "loss": "log_loss",
         }
     )
     wandb_run_name: str | None = None

@@ -1,11 +1,13 @@
 """Step to run Locus to Gene either for inference or for training."""
+
 from __future__ import annotations
 
 from typing import Any
 
 import pyspark.sql.functions as f
 import sklearn
-from xgboost.spark import SparkXGBClassifier
+import wandb
+from sklearn.ensemble import GradientBoostingClassifier
 
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
@@ -83,7 +85,13 @@ class LocusToGeneStep:
                     "model_path and predictions_path must be set for predict mode."
                 )
             predictions = L2GPrediction.from_credible_set(
-                model_path, list(features_list), credible_set, studies, v2g, coloc
+                model_path,
+                list(features_list),
+                credible_set,
+                studies,
+                v2g,
+                coloc,
+                session,
             )
             predictions.df.write.mode(session.write_mode).parquet(predictions_path)
             session.logger.info(predictions_path)
@@ -150,32 +158,15 @@ class LocusToGeneStep:
                 .select_features(list(features_list))
             )
 
-            # Instantiate classifier
-            estimator = SparkXGBClassifier(
-                eval_metric="logloss",
-                features_col="features",
-                label_col="label",
-                max_depth=5,
-            )
+            # Instantiate classifier and train model
             l2g_model = LocusToGeneModel(
-                features_list=list(features_list), estimator=estimator
+                features_list=list(features_list),
+                model=GradientBoostingClassifier(**hyperparameters, random_state=42),
+                hyperparameters=hyperparameters,
             )
-            if perform_cross_validation:
-                # Perform cross validation to extract what are the best hyperparameters
-                cv_folds = hyperparameters.get("cross_validation_folds", 5)
-                LocusToGeneTrainer.cross_validate(
-                    l2g_model=l2g_model,
-                    data=data,
-                    num_folds=cv_folds,
-                )
-            else:
-                # Train model
-                LocusToGeneTrainer.train(
-                    gold_standard_data=data,
-                    l2g_model=l2g_model,
-                    model_path=model_path,
-                    evaluate=True,
-                    wandb_run_name=wandb_run_name,
-                    **hyperparameters,
-                )
-                session.logger.info(model_path)
+            wandb.login()
+            trained_model = LocusToGeneTrainer(
+                model=l2g_model, feature_matrix=data
+            ).train(wandb_run_name)
+            trained_model.save(model_path)
+            session.logger.info(f"Model saved to {model_path}")  # noqa: G004

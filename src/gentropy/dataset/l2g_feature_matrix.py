@@ -1,4 +1,5 @@
 """Feature matrix of study locus pairs annotated with their functional genomics features."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -150,20 +151,3 @@ class L2GFeatureMatrix(Dataset):
         fixed_cols = ["studyLocusId", "geneId", "goldStandardSet"]
         self.df = self._df.select(fixed_cols + features_list)  # type: ignore
         return self
-
-    def train_test_split(
-        self: L2GFeatureMatrix, fraction: float
-    ) -> tuple[L2GFeatureMatrix, L2GFeatureMatrix]:
-        """Split the dataset into training and test sets.
-
-        Args:
-            fraction (float): Fraction of the dataset to use for training
-
-        Returns:
-            tuple[L2GFeatureMatrix, L2GFeatureMatrix]: Training and test datasets
-        """
-        train, test = self._df.randomSplit([fraction, 1 - fraction], seed=42)
-        return (
-            L2GFeatureMatrix(_df=train, _schema=L2GFeatureMatrix.get_schema()),
-            L2GFeatureMatrix(_df=test, _schema=L2GFeatureMatrix.get_schema()),
-        )
