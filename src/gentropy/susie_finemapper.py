@@ -28,6 +28,47 @@ class SusieFineMapperStep:
     In the future this step will be refactored and moved to the methods module.
     """
 
+    def __init__(
+        self,
+        session: Session,
+        study_locus_to_finemap: str,
+        study_locus_collected_path: str,
+        study_index_path: str,
+        output_path: str,
+        locus_radius: int = 500_000,
+        locus_l: int = 10,
+    ) -> None:
+        """Run fine-mapping on a studyLocusId from a collected studyLocus table.
+
+        Args:
+            session (Session): Spark session
+            study_locus_to_finemap (str): path to the study locus to fine-map
+            study_locus_collected_path (str): path to the collected study locus
+            study_index_path (str): path to the study index
+            output_path (str): path to the output
+            locus_radius (int): Radius of base-pair window around the locus, default is 500_000
+            locus_l (int): Maximum number of causal variants in locus, default is 10
+        """
+        # Read studyLocus
+        study_locus = (
+            StudyLocus.from_parquet(session, study_locus_collected_path)
+            .df.filter(f.col("studyLocusId") == study_locus_to_finemap)
+            .collect()[0]
+        )
+        study_index = StudyIndex.from_parquet(session, study_index_path)
+        # Run fine-mapping
+        result = self.susie_finemapper_ss_gathered(
+            session,
+            study_locus,
+            study_index,
+            locus_radius * 2,
+            locus_l,
+        )
+        # Write result
+        result.df.write.mode(session.write_mode).parquet(
+            output_path + "/" + study_locus_to_finemap
+        )
+
     @staticmethod
     def susie_finemapper_one_studylocus_row(
         GWAS: SummaryStatistics,
@@ -81,6 +122,10 @@ class SusieFineMapperStep:
             .filter(f.col("studyId") == studyId)
             .filter(f.col("z").isNotNull())
         )
+        # Remove ALL duplicated variants from GWAS DataFrame - we don't know which is correct
+        variant_counts = gwas_df.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
         ld_index = (
             GnomADLDMatrix()
@@ -313,13 +358,23 @@ class SusieFineMapperStep:
             + str(int(position + window / 2))
         )
 
+        schema = StudyLocus.get_schema()
+        gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
+        exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
+
+        result_df = exploded_df.select(
+            "locus.variantId", "locus.beta", "locus.standardError"
+        )
         gwas_df = (
-            session.spark.createDataFrame(study_locus_row.locus)
-            .withColumn("z", f.col("beta") / f.col("standardError"))
+            result_df.withColumn("z", f.col("beta") / f.col("standardError"))
             .withColumn("chromosome", f.split(f.col("variantId"), "_")[0])
             .withColumn("position", f.split(f.col("variantId"), "_")[1])
             .filter(f.col("z").isNotNull())
         )
+        # Remove ALL duplicated variants from GWAS DataFrame - we don't know which is correct
+        variant_counts = gwas_df.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
         ld_index = (
             GnomADLDMatrix()
@@ -427,6 +482,11 @@ class SusieFineMapperStep:
 
         start_time = time.time()
         GWAS_df = GWAS_df.toPandas()
+        N_gwas_before_dedupl = len(GWAS_df)
+
+        GWAS_df = GWAS_df.drop_duplicates(subset="variantId", keep=False)
+        GWAS_df = GWAS_df.reset_index()
+
         ld_index = ld_index.toPandas()
         ld_index = ld_index.reset_index()
 
@@ -539,6 +599,7 @@ class SusieFineMapperStep:
 
         log_df = pd.DataFrame(
             {
+                "N_gwas_before_dedupl": N_gwas_before_dedupl,
                 "N_gwas": N_gwas,
                 "N_ld": N_ld,
                 "N_overlap": N_after_merge,
