@@ -84,6 +84,11 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("h4", percentNulls=0.1)
         .withColumnSpec("log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
+        .withColumnSpec(
+            "colocalisationMethod",
+            percentNulls=0.0,
+            values=["COLOC", "eCAVIAR"],
+        )
     )
     return Colocalisation(_df=data_spec.build(), _schema=coloc_schema)
 
