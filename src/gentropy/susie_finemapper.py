@@ -36,7 +36,7 @@ class SusieFineMapperStep:
         study_index_path: str,
         output_path: str,
         locus_radius: int = 500_000,
-        locus_L: int = 10,
+        locus_l: int = 10,
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -47,7 +47,7 @@ class SusieFineMapperStep:
             study_index_path (str): path to the study index
             output_path (str): path to the output
             locus_radius (int): Radius of base-pair window around the locus, default is 500_000
-            locus_L (int): Maximum number of causal variants in locus, default is 10
+            locus_l (int): Maximum number of causal variants in locus, default is 10
         """
         # Read studyLocus
         study_locus = (
@@ -62,7 +62,7 @@ class SusieFineMapperStep:
             study_locus,
             study_index,
             locus_radius * 2,
-            locus_L,
+            locus_l,
         )
         # Write result
         result.df.write.mode(session.write_mode).parquet(
