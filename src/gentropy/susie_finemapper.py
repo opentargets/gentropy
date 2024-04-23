@@ -37,7 +37,7 @@ class SusieFineMapperStep:
         study_index_path: str,
         output_path: str,
         locus_radius: int = 500_000,
-        locus_l: int = 10,
+        max_causal_snps: int = 10,
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -48,8 +48,9 @@ class SusieFineMapperStep:
             study_index_path (str): path to the study index
             output_path (str): path to the output
             locus_radius (int): Radius of base-pair window around the locus, default is 500_000
-            locus_l (int): Maximum number of causal variants in locus, default is 10
+            max_causal_snps (int): Maximum number of causal variants in locus, default is 10
         """
+        # Initialise Hail
         hl.init(sc=session.spark.sparkContext, log="/dev/null")
         # Read studyLocus
         study_locus = (
@@ -63,8 +64,8 @@ class SusieFineMapperStep:
             session,
             study_locus,
             study_index,
-            locus_radius * 2,
-            locus_l,
+            locus_radius,
+            max_causal_snps,
         )
         # Write result
         result.df.write.mode(session.write_mode).parquet(
@@ -77,7 +78,7 @@ class SusieFineMapperStep:
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
-        window: int = 1_000_000,
+        radius: int = 1_000_000,
         L: int = 10,
     ) -> StudyLocus:
         """Susie fine-mapper for StudyLocus row with SummaryStatistics object.
@@ -87,7 +88,7 @@ class SusieFineMapperStep:
             session (Session): Spark session
             study_locus_row (Row): StudyLocus row
             study_index (StudyIndex): StudyIndex object
-            window (int): window size for fine-mapping
+            radius (int): window size for fine-mapping
             L (int): number of causal variants
 
         Returns:
@@ -112,9 +113,9 @@ class SusieFineMapperStep:
         region = (
             chromosome
             + ":"
-            + str(int(position - window / 2))
+            + str(int(position - radius))
             + "-"
-            + str(int(position + window / 2))
+            + str(int(position + radius))
         )
 
         gwas_df = (
@@ -133,7 +134,7 @@ class SusieFineMapperStep:
             GnomADLDMatrix()
             .get_locus_index(
                 study_locus_row=study_locus_row,
-                window_size=window,
+                radius=radius,
                 major_population=major_population,
             )
             .withColumn(
@@ -321,8 +322,8 @@ class SusieFineMapperStep:
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
-        window: int = 1_000_000,
-        L: int = 10,
+        radius: int = 1_000_000,
+        max_causal_snps: int = 10,
     ) -> StudyLocus:
         """Susie fine-mapper for StudyLocus row with locus annotated summary statistics.
 
@@ -330,8 +331,8 @@ class SusieFineMapperStep:
             session (Session): Spark session
             study_locus_row (Row): StudyLocus row
             study_index (StudyIndex): StudyIndex object
-            window (int): window size for fine-mapping
-            L (int): number of causal variants
+            radius (int): window size for fine-mapping
+            max_causal_snps (int): number of causal variants
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
@@ -355,9 +356,9 @@ class SusieFineMapperStep:
         region = (
             chromosome
             + ":"
-            + str(int(position - window / 2))
+            + str(int(position - radius))
             + "-"
-            + str(int(position + window / 2))
+            + str(int(position + radius))
         )
 
         schema = StudyLocus.get_schema()
@@ -382,7 +383,7 @@ class SusieFineMapperStep:
             GnomADLDMatrix()
             .get_locus_index(
                 study_locus_row=study_locus_row,
-                window_size=window,
+                radius=radius,
                 major_population=major_population,
             )
             .withColumn(
@@ -412,7 +413,7 @@ class SusieFineMapperStep:
         z_to_fm = np.array(pd_df["z"])
         ld_to_fm = gnomad_ld
 
-        susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=L)
+        susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=max_causal_snps)
 
         schema = StructType(
             [
@@ -624,8 +625,8 @@ class SusieFineMapperStep:
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
-        window: int = 1_000_000,
-        L: int = 10,
+        radius: int = 1_000_000,
+        max_causal_snps: int = 10,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
@@ -641,8 +642,8 @@ class SusieFineMapperStep:
             session (Session): Spark session
             study_locus_row (Row): StudyLocus row
             study_index (StudyIndex): StudyIndex object
-            window (int): window size for fine-mapping
-            L (int): number of causal variants
+            radius (int): Radius in base-pairs of window for fine-mapping
+            max_causal_snps (int): maximum number of causal variants
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
@@ -673,9 +674,9 @@ class SusieFineMapperStep:
         region = (
             chromosome
             + ":"
-            + str(int(position - window / 2))
+            + str(int(position - radius))
             + "-"
-            + str(int(position + window / 2))
+            + str(int(position + radius))
         )
         gwas_df = (
             GWAS.df.withColumn("z", f.col("beta") / f.col("standardError"))
@@ -686,15 +687,15 @@ class SusieFineMapperStep:
             .filter(f.col("studyId") == studyId)
             .filter(f.col("z").isNotNull())
             .filter(f.col("chromosome") == chromosome)
-            .filter(f.col("position") >= position - window / 2)
-            .filter(f.col("position") <= position + window / 2)
+            .filter(f.col("position") >= position - radius)
+            .filter(f.col("position") <= position + radius)
         )
 
         ld_index = (
             GnomADLDMatrix()
             .get_locus_index(
                 study_locus_row=study_locus_row,
-                window_size=window,
+                radius=radius,
                 major_population=major_population,
             )
             .withColumn(
@@ -719,7 +720,7 @@ class SusieFineMapperStep:
             GWAS_df=gwas_df,
             ld_index=ld_index,
             gnomad_ld=gnomad_ld,
-            L=L,
+            L=max_causal_snps,
             session=session,
             studyId=studyId,
             region=region,
