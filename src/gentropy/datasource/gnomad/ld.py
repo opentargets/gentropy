@@ -445,14 +445,14 @@ class GnomADLDMatrix:
     def get_locus_index(
         self: GnomADLDMatrix,
         study_locus_row: Row,
-        window_size: int = 1_000_000,
+        radius: int = 500_000,
         major_population: str = "nfe",
     ) -> DataFrame:
         """Extract hail matrix index from StudyLocus rows.
 
         Args:
             study_locus_row (Row): Study-locus row
-            window_size (int): Window size to extract from gnomad matrix
+            radius (int): Locus radius to extract from gnomad matrix
             major_population (str): Major population to extract from gnomad matrix, default is "nfe"
 
         Returns:
@@ -460,8 +460,8 @@ class GnomADLDMatrix:
 
         """
         chromosome = str("chr" + study_locus_row["chromosome"])
-        start = study_locus_row["position"] - window_size // 2
-        end = study_locus_row["position"] + window_size // 2
+        start = study_locus_row["position"] - radius
+        end = study_locus_row["position"] + radius
 
         liftover_ht = hl.read_table(self.liftover_ht_path)
         liftover_ht = (
