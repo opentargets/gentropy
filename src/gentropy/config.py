@@ -342,7 +342,7 @@ class FinemapperConfig(StepConfig):
     study_index_path: str = MISSING
     output_path: str = MISSING
     locus_radius: int = MISSING
-    locus_l: int = MISSING
+    max_causal_snps: int = MISSING
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
