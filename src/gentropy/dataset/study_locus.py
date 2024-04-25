@@ -82,42 +82,70 @@ class StudyLocus(Dataset):
     """
 
     @staticmethod
-    def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
+    def _overlapping_peaks(
+        credset_to_overlap: DataFrame, intra_study_overlap: bool = False
+    ) -> DataFrame:
         """Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.
 
         Args:
             credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
+            intra_study_overlap (bool): When True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
         """
         # Reduce columns to the minimum to reduce the size of the dataframe
         credset_to_overlap = credset_to_overlap.select(
-            "studyLocusId", "studyType", "chromosome", "tagVariantId"
+            "studyLocusId", "studyId", "studyType", "chromosome", "tagVariantId"
         )
-        return (
-            credset_to_overlap.alias("left")
-            .filter(f.col("studyType") == "gwas")
-            # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-            .join(
-                credset_to_overlap.alias("right"),
-                on=[
-                    f.col("left.chromosome") == f.col("right.chromosome"),
-                    f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                    (f.col("right.studyType") != "gwas")
-                    | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
-                ],
-                how="inner",
+        if not intra_study_overlap:
+            credset_to_overlap = credset_to_overlap.drop("studyId")
+            return (
+                credset_to_overlap.alias("left")
+                .filter(f.col("studyType") == "gwas")
+                # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
+                .join(
+                    credset_to_overlap.alias("right"),
+                    on=[
+                        f.col("left.chromosome") == f.col("right.chromosome"),
+                        f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+                        (f.col("right.studyType") != "gwas")
+                        | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+                    ],
+                    how="inner",
+                )
+                .select(
+                    f.col("left.studyLocusId").alias("leftStudyLocusId"),
+                    f.col("right.studyLocusId").alias("rightStudyLocusId"),
+                    f.col("left.chromosome").alias("chromosome"),
+                )
+                .distinct()
+                .repartition("chromosome")
+                .persist()
             )
-            .select(
-                f.col("left.studyLocusId").alias("leftStudyLocusId"),
-                f.col("right.studyLocusId").alias("rightStudyLocusId"),
-                f.col("left.chromosome").alias("chromosome"),
+        else:
+            return (
+                credset_to_overlap.alias("left")
+                # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
+                .join(
+                    credset_to_overlap.alias("right"),
+                    on=[
+                        f.col("left.studyId") == f.col("right.studyId"),
+                        f.col("left.chromosome") == f.col("right.chromosome"),
+                        f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+                        f.col("left.studyLocusId") > f.col("right.studyLocusId"),
+                    ],
+                    how="inner",
+                )
+                .select(
+                    f.col("left.studyLocusId").alias("leftStudyLocusId"),
+                    f.col("right.studyLocusId").alias("rightStudyLocusId"),
+                    f.col("left.chromosome").alias("chromosome"),
+                )
+                .distinct()
+                .repartition("chromosome")
+                .persist()
             )
-            .distinct()
-            .repartition("chromosome")
-            .persist()
-        )
 
     @staticmethod
     def _align_overlapping_tags(
@@ -305,7 +333,9 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def find_overlaps(self: StudyLocus, study_index: StudyIndex) -> StudyLocusOverlap:
+    def find_overlaps(
+        self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
+    ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
         Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
@@ -313,6 +343,7 @@ class StudyLocus(Dataset):
 
         Args:
             study_index (StudyIndex): Study index to resolve study types.
+            intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
@@ -322,6 +353,7 @@ class StudyLocus(Dataset):
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
+                "studyId",
                 "studyType",
                 "chromosome",
                 f.col("locus.variantId").alias("tagVariantId"),
@@ -335,7 +367,7 @@ class StudyLocus(Dataset):
         )
 
         # overlapping study-locus
-        peak_overlaps = self._overlapping_peaks(loci_to_overlap)
+        peak_overlaps = self._overlapping_peaks(loci_to_overlap, intra_study_overlap)
 
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
