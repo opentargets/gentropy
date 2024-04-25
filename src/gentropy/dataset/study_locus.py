@@ -96,7 +96,12 @@ class StudyLocus(Dataset):
         """
         # Reduce columns to the minimum to reduce the size of the dataframe
         credset_to_overlap = credset_to_overlap.select(
-            "studyLocusId", "studyId", "studyType", "chromosome", "tagVariantId"
+            "studyLocusId",
+            "studyId",
+            "studyType",
+            "chromosome",
+            "region",
+            "tagVariantId",
         )
         if not intra_study_overlap:
             credset_to_overlap = credset_to_overlap.drop("studyId")
@@ -134,6 +139,7 @@ class StudyLocus(Dataset):
                         f.col("left.chromosome") == f.col("right.chromosome"),
                         f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                         f.col("left.studyLocusId") > f.col("right.studyLocusId"),
+                        f.col("left.region") != f.col("right.region"),
                     ],
                     how="inner",
                 )
@@ -356,6 +362,7 @@ class StudyLocus(Dataset):
                 "studyId",
                 "studyType",
                 "chromosome",
+                "region",
                 f.col("locus.variantId").alias("tagVariantId"),
                 f.col("locus.logBF").alias("logBF"),
                 f.col("locus.posteriorProbability").alias("posteriorProbability"),

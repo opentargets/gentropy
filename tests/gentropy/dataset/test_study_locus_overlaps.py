@@ -72,6 +72,7 @@ def test_study_locus_overlap_from_associations(
                     "studyId": "A",
                     "studyType": "gwas",
                     "chromosome": "1",
+                    "region": "X",
                     "tagVariantId": "A",
                 },
                 {
@@ -79,6 +80,7 @@ def test_study_locus_overlap_from_associations(
                     "studyId": "A",
                     "studyType": "gwas",
                     "chromosome": "1",
+                    "region": "Y",
                     "tagVariantId": "A",
                 },
                 {
@@ -86,6 +88,7 @@ def test_study_locus_overlap_from_associations(
                     "studyId": "B",
                     "studyType": "gwas",
                     "chromosome": "1",
+                    "region": "X",
                     "tagVariantId": "A",
                 },
             ],
@@ -109,6 +112,7 @@ def test_overlapping_peaks(
             t.StructField("studyId", t.StringType()),
             t.StructField("studyType", t.StringType()),
             t.StructField("chromosome", t.StringType()),
+            t.StructField("region", t.StringType()),
             t.StructField("tagVariantId", t.StringType()),
         ]
     )
