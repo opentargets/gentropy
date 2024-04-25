@@ -103,55 +103,42 @@ class StudyLocus(Dataset):
             "region",
             "tagVariantId",
         )
-        if not intra_study_overlap:
-            credset_to_overlap = credset_to_overlap.drop("studyId")
-            return (
-                credset_to_overlap.alias("left")
-                .filter(f.col("studyType") == "gwas")
-                # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-                .join(
-                    credset_to_overlap.alias("right"),
-                    on=[
-                        f.col("left.chromosome") == f.col("right.chromosome"),
-                        f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                        (f.col("right.studyType") != "gwas")
-                        | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
-                    ],
-                    how="inner",
-                )
-                .select(
-                    f.col("left.studyLocusId").alias("leftStudyLocusId"),
-                    f.col("right.studyLocusId").alias("rightStudyLocusId"),
-                    f.col("left.chromosome").alias("chromosome"),
-                )
-                .distinct()
-                .repartition("chromosome")
-                .persist()
+        # Define join condition - if intra_study_overlap is True, finds overlaps within the same study. Otherwise finds gwas vs everything overlaps for coloc.
+        join_condition = (
+            [
+                f.col("left.studyId") == f.col("right.studyId"),
+                f.col("left.chromosome") == f.col("right.chromosome"),
+                f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+                f.col("left.studyLocusId") > f.col("right.studyLocusId"),
+                f.col("left.region") != f.col("right.region"),
+            ]
+            if intra_study_overlap
+            else [
+                f.col("left.chromosome") == f.col("right.chromosome"),
+                f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+                (f.col("right.studyType") != "gwas")
+                | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+                f.col("left.studyType") == f.lit("gwas"),
+            ]
+        )
+
+        return (
+            credset_to_overlap.alias("left")
+            # Self join with complex condition.
+            .join(
+                credset_to_overlap.alias("right"),
+                on=join_condition,
+                how="inner",
             )
-        else:
-            return (
-                credset_to_overlap.alias("left")
-                # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
-                .join(
-                    credset_to_overlap.alias("right"),
-                    on=[
-                        f.col("left.studyId") == f.col("right.studyId"),
-                        f.col("left.chromosome") == f.col("right.chromosome"),
-                        f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                        f.col("left.studyLocusId") > f.col("right.studyLocusId"),
-                        f.col("left.region") != f.col("right.region"),
-                    ],
-                    how="inner",
-                )
-                .select(
-                    f.col("left.studyLocusId").alias("leftStudyLocusId"),
-                    f.col("right.studyLocusId").alias("rightStudyLocusId"),
-                    f.col("left.chromosome").alias("chromosome"),
-                )
-                .distinct()
-                .repartition("chromosome")
-                .persist()
+            .select(
+                f.col("left.studyLocusId").alias("leftStudyLocusId"),
+                f.col("right.studyLocusId").alias("rightStudyLocusId"),
+                f.col("left.chromosome").alias("chromosome"),
             )
+            .distinct()
+            .repartition("chromosome")
+            .persist()
+        )
 
     @staticmethod
     def _align_overlapping_tags(
