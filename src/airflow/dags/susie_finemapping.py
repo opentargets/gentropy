@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from typing import Any
 
 import common_airflow as common
+from airflow.decorators import task
 from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.cloud_batch import (
     CloudBatchSubmitJobOperator,
@@ -18,13 +20,53 @@ GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/g
 STUDY_LOCUS_PATH = "gs://genetics-portal-dev-analysis/yt4/toy_studdy_locus_alzheimer"
 STUDY_INDEX_PATH = "gs://gwas_catalog_data/study_index"
 OUTPUT_PATH = "gs://genetics-portal-dev-analysis/irene/tmp_to_delete"
-CREDENTIALS_REMOTE_LOCATION = (
-    "gs://genetics-portal-dev-analysis/irene/service_account_credentials.json"
-)
+
+
+@task(task_id="get_study_loci_to_finemap")
+def get_study_loci_to_finemap(**kwargs: Any) -> None:
+    """Get the list of study loci to include in the fine-mapping job.
+
+    Args:
+        **kwargs (Any): Keyword arguments.
+    """
+    ti = kwargs["ti"]
+    ti.xcom_push(
+        key="study_loci_ids", value=["6109438569946056978", "6388992474978589194"]
+    )
+
+
+@task(task_id="finemapping_task")
+def finemapping_task(**kwargs: Any) -> None:
+    """Submit a Batch job to run fine-mapping on a list of study loci.
+
+    Args:
+        **kwargs (Any): Keyword arguments.
+    """
+    ti = kwargs["ti"]
+    pulled_study_loci_ids = ti.xcom_pull(
+        task_ids="get_study_loci_to_finemap", key="study_loci_ids"
+    )
+    batch_task = CloudBatchSubmitJobOperator(
+        task_id="finemapping_batch_job",
+        project_id=PROJECT_ID,
+        region=REGION,
+        job_name=f"finemapping-job-{time.strftime('%Y%m%d-%H%M%S')}",
+        job=_finemapping_batch_job(
+            pulled_study_loci_ids,
+            GENTROPY_DOCKER_IMAGE,
+            STUDY_LOCUS_PATH,
+            STUDY_INDEX_PATH,
+            OUTPUT_PATH,
+            1000000,
+            10,
+        ),
+        deferrable=False,
+    )
+    batch_task.execute(context=kwargs)
 
 
 def _finemapping_batch_job(
-    studyloci_ids: list[str],
+    study_loci_ids: list[str],
     docker_image_url: str,
     study_locus_collected_path: str,
     study_index_path: str,
@@ -35,7 +77,7 @@ def _finemapping_batch_job(
     """Create a Batch job to run fine-mapping on a list of study loci.
 
     Args:
-        studyloci_ids (list[str]): A list of study loci IDs to run fine-mapping on.
+        study_loci_ids (list[str]): The list of study loci to fine-map.
         docker_image_url (str): The URL of the Docker image to use for the job.
         study_locus_collected_path (str): The path to the study locus to fine-map.
         study_index_path (str): The path to the study index.
@@ -69,7 +111,7 @@ def _finemapping_batch_job(
 
     task_env = [
         batch_v1.Environment(variables={"STUDYLOCUSID": study_locus_id})
-        for study_locus_id in studyloci_ids
+        for study_locus_id in study_loci_ids
     ]
     group.task_environments = task_env
     group.task_spec = task
@@ -97,22 +139,4 @@ with DAG(
     default_args=common.shared_dag_args,
     **common.shared_dag_kwargs,
 ) as dag:
-    finemapping_job = CloudBatchSubmitJobOperator(
-        task_id="finemapping_batch_job",
-        project_id=PROJECT_ID,
-        region=REGION,
-        job_name=f"finemapping-job-{time.strftime('%Y%m%d-%H%M%S')}",
-        job=_finemapping_batch_job(
-            ["6109438569946056978", "6388992474978589194"],
-            GENTROPY_DOCKER_IMAGE,
-            STUDY_LOCUS_PATH,
-            STUDY_INDEX_PATH,
-            OUTPUT_PATH,
-            1000000,
-            10,
-        ),
-        dag=dag,
-        deferrable=False,
-    )
-
-    (finemapping_job)
+    (get_study_loci_to_finemap() >> finemapping_task())
