@@ -1,0 +1,39 @@
+name: Build and Push to Artifact Registry
+
+"on":
+  push:
+    branches: ["dev"]
+
+env:
+  PROJECT_ID: open-targets-genetics-dev
+  REGION: europe-west1
+  GAR_LOCATION: europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app-dev/
+  IMAGE_NAME: gentropy-app
+
+jobs:
+  build-push-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v3"
+
+      - id: "auth"
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+
+      - name: "Use gcloud CLI"
+        run: "gcloud info"
+
+      - name: "Docker auth"
+        run: |-
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: docker build . --tag "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.github.ref_name }}"
+
+      - name: Push image
+        run: docker push "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.github.ref_name }}"
