@@ -33,7 +33,7 @@ jobs:
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build image
-        run: docker build . --tag "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+        run: docker build . --tag "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}/gentropy:${{ github.ref_name }}"
 
       - name: Push image
-        run: docker push "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+        run: docker push "${{ env.GAR_LOCATION }}/${{ env.IMAGE_NAME }}/gentropy:${{ github.ref_name }}"
