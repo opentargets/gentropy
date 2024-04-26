@@ -17,13 +17,13 @@ jobs:
       - name: "Checkout"
         uses: "actions/checkout@v3"
 
-      - id: "auth"
-        uses: "google-github-actions/auth@v1"
+      - name: "auth"
+        uses: "google-github-actions/auth@v2"
         with:
           credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
 
       - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud"
+        uses: "google-github-actions/setup-gcloud@v2"
 
       - name: "Use gcloud CLI"
         run: "gcloud info"
