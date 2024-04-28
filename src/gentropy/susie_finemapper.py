@@ -153,12 +153,13 @@ class SusieFineMapperStep:
         study_locus_row: Row,
         study_index: StudyIndex,
         radius: int = 1_000_000,
-        L: int = 10,
+        max_causal_snps: int = 10,
         primary_signal_pval_threshold: float = 5e-8,
         secondary_signal_pval_threshold: float = 1e-7,
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0.25,
         sum_pips: float = 0.99,
+        cs_lbf_thr: float = 2,
     ) -> StudyLocus:
         """Susie fine-mapper for StudyLocus row with SummaryStatistics object.
 
@@ -168,12 +169,13 @@ class SusieFineMapperStep:
             study_locus_row (Row): StudyLocus row
             study_index (StudyIndex): StudyIndex object
             radius (int): window size for fine-mapping
-            L (int): number of causal variants
+            max_causal_snps (int): number of causal variants
             primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
             secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
             purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
@@ -248,7 +250,7 @@ class SusieFineMapperStep:
         z_to_fm = np.array(pd_df["z"])
         ld_to_fm = gnomad_ld
 
-        susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=L)
+        susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=max_causal_snps)
 
         schema = StructType(
             [
@@ -276,6 +278,7 @@ class SusieFineMapperStep:
             purity_mean_r2_threshold=purity_mean_r2_threshold,
             purity_min_r2_threshold=purity_min_r2_threshold,
             sum_pips=sum_pips,
+            cs_lbf_thr=cs_lbf_thr,
         )
 
     @staticmethod
