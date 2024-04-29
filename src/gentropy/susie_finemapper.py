@@ -90,17 +90,15 @@ class SusieFineMapperStep:
         # Initialise Hail
         hl.init(sc=session.spark.sparkContext, log="/dev/null")
         # Read studyLocus
-        study_locus = (
-            StudyLocus.from_parquet(session, study_locus_collected_path)
-            .df.filter(f.col("studyLocusId") == study_locus_to_finemap)
-            .collect()[0]
-        )
+        filtered_study_locus = StudyLocus.from_parquet(
+            session, study_locus_collected_path
+        ).df.filter(f.col("studyLocusId") == study_locus_to_finemap)
         study_index = StudyIndex.from_parquet(session, study_index_path)
         # Run fine-mapping
 
         result_logging = self.susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
             session=session,
-            study_locus_row=study_locus,
+            study_locus_row=filtered_study_locus,
             study_index=study_index,
             max_causal_snps=max_causal_snps,
             primary_signal_pval_threshold=primary_signal_pval_threshold,
@@ -502,7 +500,7 @@ class SusieFineMapperStep:
     @staticmethod
     def susie_finemapper_ss_gathered(
         session: Session,
-        study_locus_row: Row,
+        filtered_study_locus: DataFrame,
         study_index: StudyIndex,
         radius: int = 1_000_000,
         max_causal_snps: int = 10,
@@ -517,7 +515,7 @@ class SusieFineMapperStep:
 
         Args:
             session (Session): Spark session
-            study_locus_row (Row): StudyLocus row
+            filtered_study_locus (DataFrame): Dataframe with just one row containing the information of the study locus
             study_index (StudyIndex): StudyIndex object
             radius (int): window size for fine-mapping
             max_causal_snps (int): number of causal variants
@@ -534,6 +532,7 @@ class SusieFineMapperStep:
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
 
+        study_locus_row = filtered_study_locus.collect()[0]
         chromosome = study_locus_row["chromosome"]
         position = study_locus_row["position"]
         studyId = study_locus_row["studyId"]
@@ -555,9 +554,7 @@ class SusieFineMapperStep:
             + str(int(position + radius))
         )
 
-        schema = StudyLocus.get_schema()
-        gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
-        exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
+        exploded_df = filtered_study_locus.select(f.explode("locus").alias("locus"))
 
         result_df = exploded_df.select(
             "locus.variantId", "locus.beta", "locus.standardError"
