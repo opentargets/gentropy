@@ -1,0 +1,63 @@
+version: 1
+labels:
+  - label: "size-XS"
+    size:
+      exclude-files: ["poetry.lock"]
+      below: 10
+  - label: "size-S"
+    size:
+      exclude-files: ["poetry.lock"]
+      above: 9
+      below: 100
+  - label: "size-M"
+    size:
+      exclude-files: ["poetry.lock"]
+      above: 100
+      below: 500
+  - label: "size-L"
+    size:
+      exclude-files: ["poetry.lock"]
+      above: 499
+      below: 1000
+  - label: "size-XL"
+    size:
+      exclude-files: ["poetry.lock"]
+      above: 999
+  - label: "airflow"
+    files:
+      - "^src/airflow/.*"
+  - label: "Documentation"
+    files:
+      - "^docs/.*"
+  - label: "Dataset"
+    files:
+      - "^src/gentropy/dataset/.*"
+  - label: "Method"
+    files:
+      - "^src/gentropy/method/.*"
+  - label: "Datasource"
+    files:
+      - "^src/gentropy/datasource/.*"
+  - label: "Step"
+    files:
+      - "^src/gentropy/[a-zA-Z]\\w+\\.py"
+  - label: "Feature"
+    title: "^feat.*"
+  - label: "Bug"
+    title: "^fix.*"
+  - label: "Refactor"
+    title: "^refactor.*"
+  - label: "Chore"
+    title: "^chore.*"
+  - label: "CI"
+    title: "^ci.*"
+  - label: "Test"
+    title: "^test.*"
+  - label: "Documentation"
+    title: "^docs.*"
+  - label: "Performance"
+    title: "^perf.*"
+  - label: "Build"
+    title: "^build.*"
+  - label: "Revert"
+    title: "^revert.*"

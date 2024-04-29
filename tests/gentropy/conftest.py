@@ -1,4 +1,5 @@
 """Unit test configuration."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,6 +25,8 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.v2g import V2G
 from gentropy.dataset.variant_annotation import VariantAnnotation
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
+from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame, SparkSession
@@ -81,6 +84,11 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("h4", percentNulls=0.1)
         .withColumnSpec("log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
+        .withColumnSpec(
+            "colocalisationMethod",
+            percentNulls=0.0,
+            values=["COLOC", "eCAVIAR"],
+        )
     )
     return Colocalisation(_df=data_spec.build(), _schema=coloc_schema)
 
@@ -411,7 +419,7 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
 def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
     """Sample GWAS Catalog studies."""
     return spark.read.csv(
-        "tests/gentropy/data_samples/gwas_catalog_studies_sample-r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_studies.tsv",
         sep="\t",
         header=True,
     )
@@ -421,7 +429,7 @@ def sample_gwas_catalog_studies(spark: SparkSession) -> DataFrame:
 def sample_gwas_catalog_ancestries_lut(spark: SparkSession) -> DataFrame:
     """Sample GWAS ancestries sample data."""
     return spark.read.csv(
-        "tests/gentropy/data_samples/gwas_catalog_ancestries_sample_v1.0.3-r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_ancestries.tsv",
         sep="\t",
         header=True,
     )
@@ -441,7 +449,7 @@ def sample_gwas_catalog_harmonised_sumstats_list(spark: SparkSession) -> DataFra
 def sample_gwas_catalog_associations(spark: SparkSession) -> DataFrame:
     """Sample GWAS raw associations sample data."""
     return spark.read.csv(
-        "tests/gentropy/data_samples/gwas_catalog_associations_sample_e107_r2022-11-29.tsv",
+        "tests/gentropy/data_samples/gwas_catalog_associations.tsv",
         sep="\t",
         header=True,
     )
@@ -470,28 +478,32 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_studies(spark: SparkSession) -> DataFrame:
-    """Sample eQTL Catalogue studies."""
-    # For reference, the sample file was generated with the following command:
-    # curl https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/master/tabix/tabix_ftp_paths_imported.tsv | head -n11 > tests/gentropy/data_samples/eqtl_catalogue_studies_sample.tsv
-    with open(
-        "tests/gentropy/data_samples/eqtl_catalogue_studies_sample.tsv"
-    ) as eqtl_catalogue:
-        tsv = eqtl_catalogue.read()
-        rdd = spark.sparkContext.parallelize([tsv])
-        return spark.read.csv(rdd, sep="\t", header=True)
+def sample_eqtl_catalogue_finemapping_credible_sets(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/gentropy/data_samples/QTD000584.credible_sets.tsv",
+        header=True,
+        schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
+    )
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_summary_stats(spark: SparkSession) -> DataFrame:
-    """Sample eQTL Catalogue summary stats."""
-    # For reference, the sample file was generated with the following commands:
-    # mkdir -p tests/gentropy/data_samples/imported/GTEx_V8/ge
-    # curl ftp://ftp.ebi.ac.uk/pub/databases/spot/eQTL/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz | gzip -cd | head -n11 | gzip -c > tests/gentropy/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz
-    # It's important for the test file to be named in exactly this way, because eQTL Catalogue study ID is populated based on input file name.
+def sample_eqtl_catalogue_finemapping_lbf(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
     return spark.read.option("delimiter", "\t").csv(
-        "tests/gentropy/data_samples/imported/GTEx_V8/ge/Adipose_Subcutaneous.tsv.gz",
+        "tests/gentropy/data_samples/QTD000584.lbf_variable.txt",
         header=True,
+        schema=EqtlCatalogueFinemapping.raw_lbf_schema,
+    )
+
+
+@pytest.fixture()
+def sample_eqtl_catalogue_studies_metadata(spark: SparkSession) -> DataFrame:
+    """Sample raw eQTL Catalogue table with metadata about the QTD000584 study."""
+    return spark.read.option("delimiter", "\t").csv(
+        "tests/gentropy/data_samples/sample_eqtl_catalogue_studies.tsv",
+        header=True,
+        schema=EqtlCatalogueStudyIndex.raw_studies_metadata_schema,
     )
 
 

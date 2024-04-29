@@ -35,13 +35,13 @@ scikit-learn = "^1.3.2"
 pandas = "^2.1.4"
 
 [tool.poetry.dev-dependencies]
-pre-commit = "^3.6.0"
-mypy = "^1.8"
+pre-commit = "^3.7.0"
+mypy = "^1.9"
 pep8-naming = "^0.13.2"
 interrogate = "^1.5.0"
 isort = "^5.13.2"
 darglint = "^1.8.1"
-ruff = "^0.2.0"
+ruff = "^0.3.2"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3"
@@ -58,7 +58,7 @@ pymdown-extensions = "^10.7"
 
 
 [tool.poetry.group.tests.dependencies]
-pytest-cov = "^4.1.0"
+pytest-cov = ">=4.1,<6.0"
 pytest-sugar = ">=0.9.5,<1.1.0"
 dbldatagen = "^0.3.1"
 pyparsing = "^3.1.1"
@@ -74,7 +74,7 @@ apache-airflow = "^2.8.0"
 apache-airflow-providers-google = "^10.13.1"
 pydoclint = ">=0.3.8,<0.5.0"
 prettier = "^0.0.7"
-deptry = "^0.12.0"
+deptry = ">=0.12,<0.17"
 python-semantic-release = ">=8.7,<10.0"
 yamllint = "^1.33.0"
 
@@ -158,13 +158,14 @@ module = [
 ignore_missing_imports = true
 
 
-[tool.ruff]
+[tool.ruff.lint]
 select = [
   "B002",    # Python does not support the unary prefix increment
   "B007",    # Loop control variable {name} not used within loop body
   "B014",    # Exception handler with duplicate exception
   "B023",    # Function definition does not bind loop variable {name}
   "B026",    # Star-arg unpacking after a keyword argument is strongly discouraged
+  "B904",    # Checks for raise statements in exception handlers that lack a from clause
   "C",       # complexity
   "COM818",  # Trailing comma on bare tuple prohibited
   "D",       # docstrings
@@ -179,7 +180,6 @@ select = [
   "N804",    # First argument of a class method should be named cls
   "N805",    # First argument of a method should be named self
   "N815",    # Variable {name} in class scope should not be mixedCase
-  "PGH001",  # No builtin eval() allowed
   "PGH004",  # Use specific rule codes when using noqa
   "PLC0414", # Useless import alias. Import alias does not rename original package.
   "PLC",     # pylint
@@ -218,7 +218,6 @@ select = [
   "T20",     # flake8-print
   "TID251",  # Banned imports
   "TRY004",  # Prefer TypeError exception for invalid type
-  "TRY200",  # Use raise from to specify exception cause
   "TRY302",  # Remove exception handler; error is immediately re-raised
   "UP",      # pyupgrade
   "W",       # pycodestyle

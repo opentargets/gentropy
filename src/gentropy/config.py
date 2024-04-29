@@ -112,7 +112,8 @@ class EqtlCatalogueConfig(StepConfig):
 
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
-    eqtl_catalogue_summary_stats_out: str = MISSING
+    eqtl_catalogue_credible_sets_out: str = MISSING
+    mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -131,6 +132,19 @@ class FinngenSumstatPreprocessConfig(StepConfig):
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
     _target_: str = "gentropy.finngen_sumstat_preprocess.FinnGenSumstatPreprocessStep"
+
+
+@dataclass
+class FinngenFinemappingConfig(StepConfig):
+    """FinnGen fine mapping ingestion step configuration."""
+
+    finngen_finemapping_results_path: str = MISSING
+    finngen_finemapping_summaries_path: str = MISSING
+    finngen_release_prefix: str = MISSING
+    finngen_finemapping_out: str = MISSING
+    _target_: str = (
+        "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
+    )
 
 
 @dataclass
@@ -168,6 +182,7 @@ class LocusToGeneConfig(StepConfig):
                 "spark.dynamicAllocation.enabled": "false",
                 "spark.driver.memory": "48g",
                 "spark.executor.memory": "48g",
+                "spark.sql.shuffle.partitions": "800",
             }
         }
     )
@@ -199,13 +214,17 @@ class LocusToGeneConfig(StepConfig):
             # max clpp for each (study, locus) aggregating over all eQTLs
             "eqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocClppMaximum",
+            "pqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocClppMaximumNeighborhood",
+            "pqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocClppMaximum",
+            "sqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocClppMaximumNeighborhood",
+            "sqtlColocClppMaximumNeighborhood",
+            # max clpp for each (study, locus) aggregating over all tuQTLs
+            "tuqtlColocClppMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all tuQTLs
+            "tuqtlColocClppMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
@@ -250,7 +269,7 @@ class VariantAnnotationConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    _target_: str = "gentropytropy.variant_annotation.VariantAnnotationStep"
+    _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
 
 
 @dataclass
@@ -302,10 +321,29 @@ class WindowBasedClumpingStep(StepConfig):
 
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
+    distance: int = 500_000
+    collect_locus: bool = False
+    collect_locus_distance: int = 500_000
     inclusion_list_path: str | None = None
-    locus_collect_distance: str | None = None
-
     _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
+
+
+@dataclass
+class FinemapperConfig(StepConfig):
+    """SuSiE fine-mapper step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    study_locus_to_finemap: str = MISSING
+    study_locus_collected_path: str = MISSING
+    study_index_path: str = MISSING
+    output_path: str = MISSING
+    locus_radius: int = MISSING
+    max_causal_snps: int = MISSING
+    _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
 @dataclass
@@ -353,8 +391,16 @@ def register_config() -> None:
         name="finngen_sumstat_preprocess",
         node=FinngenSumstatPreprocessConfig,
     )
+
+    cs.store(
+        group="step",
+        name="finngen_finemapping_ingestion",
+        node=FinngenFinemappingConfig,
+    )
+
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStep)
+    cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
