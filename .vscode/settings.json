@@ -1,29 +1,28 @@
 {
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "terminal.integrated.fontFamily": "Fira Code",
+  "terminal.integrated.defaultProfile.linux": "zsh",
+  "editor.formatOnPaste": false,
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnPaste": false,
-    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll": "never",
       "source.organizeImports": "explicit"
     }
   },
   "python.terminal.launchArgs": ["-m", "IPython", "--no-autoindent"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "src/",
+    "tests/",
+    "--doctest-modules",
+    "--cov=src/"
+  ],
   "[jsonc]": {
-    "editor.tabSize": 2,
-    "editor.insertSpaces": true,
-    "editor.detectIndentation": false,
-    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"
     }
-  },
-  "json.format.keepLines": true,
-  "autoDocstring.docstringFormat": "google",
-  "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true,
-  "mypy-type-checker.severity": {
-    "error": "Information"
   }
 }
