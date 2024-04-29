@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import warnings
 from itertools import combinations
 from math import floor, lgamma
 from typing import Any
@@ -32,6 +33,8 @@ class CARMA:
                 - B_list: A dataframe containing the marginal likelihoods and the corresponding model space or None.
                 - Outliers: A list of outlier SNPs or None.
         """
+        # Ignore pandas future warnings
+        warnings.simplefilter(action="ignore", category=FutureWarning)
         try:
             # Execute CARMA.CARMA_spike_slab_noEM with a timeout
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
@@ -854,9 +857,19 @@ class CARMA:
                         sec_sample = np.random.choice(
                             range(0, 3), 1, p=np.exp(aa) / np.sum(np.exp(aa))
                         )
-                        S = set_gamma[sec_sample[0]][
-                            int(set_star["gamma_set_index"][sec_sample[0]])
-                        ].tolist()
+                        if set_gamma[sec_sample[0]] is not None:
+                            S = set_gamma[sec_sample[0]][
+                                int(set_star["gamma_set_index"][sec_sample[0]])
+                            ].tolist()
+                        else:
+                            sec_sample = np.random.choice(
+                                range(1, 3),
+                                1,
+                                p=np.exp(aa)[[1, 2]] / np.sum(np.exp(aa)[[1, 2]]),
+                            )
+                            S = set_gamma[sec_sample[0]][
+                                int(set_star["gamma_set_index"][sec_sample[0]])
+                            ].tolist()
 
                 for item in conditional_S:
                     if item not in S:
