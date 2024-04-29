@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -12,12 +13,18 @@ from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.cloud_batch import (
     CloudBatchSubmitJobOperator,
 )
+from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
+from cloudpathlib import GSPath
 from google.cloud import batch_v1
 
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"
-GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app-dev/gentropy_test:latest"
-STUDY_LOCUS_PATH = "gs://genetics-portal-dev-analysis/yt4/toy_studdy_locus_alzheimer"
+GENTROPY_DOCKER_IMAGE = (
+    "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:dev"
+)
+STUDY_LOCUS_PATH = (
+    "gs://genetics-portal-dev-analysis/irene/toy_studdy_locus_alzheimer_partitioned"
+)
 STUDY_INDEX_PATH = "gs://gwas_catalog_data/study_index"
 OUTPUT_PATH = "gs://genetics-portal-dev-analysis/irene/tmp_to_delete"
 
@@ -30,9 +37,18 @@ def get_study_loci_to_finemap(**kwargs: Any) -> None:
         **kwargs (Any): Keyword arguments.
     """
     ti = kwargs["ti"]
-    ti.xcom_push(
-        key="study_loci_ids", value=["6109438569946056978", "6388992474978589194"]
-    )
+    all_study_locus_ids = [
+        re.search(r"studyLocusId=(-?\d+)", path)[1]  # type: ignore
+        for path in ti.xcom_pull(task_ids="get_all_study_locus_ids", key="return_value")
+        if re.search(r"studyLocusId=(-?\d+)", path)
+    ]
+    finemapped_study_locus_ids = [
+        path.strip("/_SUCCESS").split("/")[-1]
+        for path in ti.xcom_pull(task_ids="get_finemapped_paths", key="return_value")
+    ]
+
+    ids_to_finemap = list(set(all_study_locus_ids) - set(finemapped_study_locus_ids))
+    ti.xcom_push(key="study_loci_ids", value=ids_to_finemap)
 
 
 @task(task_id="finemapping_task")
@@ -135,8 +151,25 @@ def _finemapping_batch_job(
 
 with DAG(
     dag_id=Path(__file__).stem,
-    description="Open Targets Genetics — eQTL preprocess",
+    description="Open Targets Genetics — finemap study loci with SuSie",
     default_args=common.shared_dag_args,
     **common.shared_dag_kwargs,
 ) as dag:
-    (get_study_loci_to_finemap() >> finemapping_task())
+    get_all_study_locus_ids = GCSListObjectsOperator(
+        task_id="get_all_study_locus_ids",
+        bucket=GSPath(STUDY_LOCUS_PATH).bucket,
+        prefix=GSPath(STUDY_LOCUS_PATH)._url.path[1:],  # remove first slash from path
+        match_glob="**/**",
+    )
+    get_finemapped_paths = GCSListObjectsOperator(
+        task_id="get_finemapped_paths",
+        bucket=GSPath(OUTPUT_PATH).bucket,
+        prefix=GSPath(OUTPUT_PATH)._url.path[1:],  # remove first slash from path
+        match_glob="**/_SUCCESS",
+    )
+
+    (
+        [get_all_study_locus_ids, get_finemapped_paths]
+        >> get_study_loci_to_finemap()
+        >> finemapping_task()
+    )
