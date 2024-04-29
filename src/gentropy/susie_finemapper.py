@@ -458,7 +458,7 @@ class SusieFineMapperStep:
                 "credibleSetIndex": cred_set_index,
                 "purityMeanR2": purity_mean_r2,
                 "purityMinR2": purity_min_r2,
-                "z": z_values,
+                "zScore": z_values,
                 "neglogpval": neglogpval,
             }
         )
@@ -467,7 +467,7 @@ class SusieFineMapperStep:
                 StructField("credibleSetIndex", IntegerType(), True),
                 StructField("purityMeanR2", DoubleType(), True),
                 StructField("purityMinR2", DoubleType(), True),
-                StructField("z", DoubleType(), True),
+                StructField("zScore", DoubleType(), True),
                 StructField("neglogpval", DoubleType(), True),
             ]
         )

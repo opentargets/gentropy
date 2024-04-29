@@ -44,7 +44,7 @@
     },
     {
       "metadata": {},
-      "name": "z",
+      "name": "zScore",
       "nullable": true,
       "type": "double"
     },
