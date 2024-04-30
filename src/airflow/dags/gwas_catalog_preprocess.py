@@ -45,12 +45,8 @@ CURATED_LD_CLUMPED = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas
 WINDOW_BASED_CLUMPED = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_summary_stats_window_clumped"
 LD_BASED_CLUMPED = f"gs://{GWAS_CATALOG_BUCKET_NAME}/study_locus_datasets/gwas_catalog_summary_stats_ld_clumped"
 # Credible sets:
-CURATED_CREDIBLE_SETS = (
-    f"gs://{GWAS_CATALOG_BUCKET_NAME}/credible_set_datasets/gwas_catalog_curated"
-)
-SUMMARY_STATISTICS_CREDIBLE_SETS = (
-    f"gs://{GWAS_CATALOG_BUCKET_NAME}/credible_set_datasets/gwas_catalog_summary_stats"
-)
+CURATED_CREDIBLE_SETS = f"gs://{GWAS_CATALOG_BUCKET_NAME}/credible_set_datasets/gwas_catalog_PICSed_curated_associations"
+SUMMARY_STATISTICS_CREDIBLE_SETS = f"gs://{GWAS_CATALOG_BUCKET_NAME}/credible_set_datasets/gwas_catalog_PICSed_summary_statistics"
 
 
 def upload_harmonized_study_list(
