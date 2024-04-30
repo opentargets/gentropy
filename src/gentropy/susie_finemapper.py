@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -142,9 +143,12 @@ class SusieFineMapperStep:
                 sum_pips=sum_pips,
             )
             # Write result
-            result.df.write.mode(session.write_mode).parquet(
-                output_path + "/" + study_locus_to_finemap
-            )
+            if result is not None:
+                result.df.write.mode(session.write_mode).parquet(
+                    output_path + "/" + study_locus_to_finemap
+                )
+            else:
+                return
 
     @staticmethod
     def susie_finemapper_one_studylocus_row(
@@ -529,7 +533,7 @@ class SusieFineMapperStep:
         purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
         sum_pips: float = 0.99,
-    ) -> StudyLocus:
+    ) -> StudyLocus | None:
         """Susie fine-mapper for StudyLocus row with locus annotated summary statistics.
 
         Args:
@@ -546,7 +550,7 @@ class SusieFineMapperStep:
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
 
         Returns:
-            StudyLocus: StudyLocus object with fine-mapped credible sets
+            StudyLocus | None: StudyLocus object with fine-mapped credible sets, or None
         """
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
@@ -615,7 +619,9 @@ class SusieFineMapperStep:
         gwas_index = gwas_df.join(
             ld_index.select("variantId", "alleles", "idx"), on="variantId"
         ).sort("idx")
-
+        if gwas_index.rdd.isEmpty():
+            logging.warning("No overlapping variants in the LD Index")
+            return None
         gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
             gwas_index, gnomad_ancestry=major_population
         )
