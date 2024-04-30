@@ -9,10 +9,19 @@ import hail as hl
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
+import scipy as sc
 from pyspark.sql import DataFrame, Row, Window
-from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+from pyspark.sql.functions import row_number
+from pyspark.sql.types import (
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from gentropy.common.session import Session
+from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -38,6 +47,20 @@ class SusieFineMapperStep:
         output_path: str,
         locus_radius: int = 500_000,
         max_causal_snps: int = 10,
+        primary_signal_pval_threshold: float = 1,
+        secondary_signal_pval_threshold: float = 1,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0,
+        cs_lbf_thr: float = 2,
+        sum_pips: float = 0.99,
+        logging: bool = False,
+        susie_est_tausq: bool = False,
+        run_carma: bool = False,
+        run_sumstat_imputation: bool = False,
+        carma_time_limit: int = 600,
+        imputed_r2_threshold: float = 0.9,
+        ld_score_threshold: float = 5,
+        output_path_log: str = "~/",
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -49,6 +72,20 @@ class SusieFineMapperStep:
             output_path (str): path to the output
             locus_radius (int): Radius of base-pair window around the locus, default is 500_000
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1), default is 5e-8
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals, default is 1e-7
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets, default is 0
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets, default is 0.25
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            logging (bool): enable logging, default is False, runs diffrent FM wrapper
+            susie_est_tausq (bool): estimate tau squared, default is False
+            run_carma (bool): run CARMA, default is False
+            run_sumstat_imputation (bool): run summary statistics imputation, default is False
+            carma_time_limit (int): CARMA time limit, default is 600 seconds
+            imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
+            ld_score_threshold (float): LD score threshold ofr imputation, default is 5
+            output_path_log (str): path to the output log
         """
         # Initialise Hail
         hl.init(sc=session.spark.sparkContext, log="/dev/null")
@@ -60,17 +97,54 @@ class SusieFineMapperStep:
         )
         study_index = StudyIndex.from_parquet(session, study_index_path)
         # Run fine-mapping
-        result = self.susie_finemapper_ss_gathered(
-            session,
-            study_locus,
-            study_index,
-            locus_radius,
-            max_causal_snps,
-        )
-        # Write result
-        result.df.write.mode(session.write_mode).parquet(
-            output_path + "/" + study_locus_to_finemap
-        )
+        if logging:
+            result_logging = (
+                self.susie_finemapper_one_studylocus_row_v3_dev_ss_gathered(
+                    session=session,
+                    study_locus_row=study_locus,
+                    study_index=study_index,
+                    radius=locus_radius,
+                    max_causal_snps=max_causal_snps,
+                    primary_signal_pval_threshold=primary_signal_pval_threshold,
+                    secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+                    purity_mean_r2_threshold=purity_mean_r2_threshold,
+                    purity_min_r2_threshold=purity_min_r2_threshold,
+                    cs_lbf_thr=cs_lbf_thr,
+                    sum_pips=sum_pips,
+                    susie_est_tausq=susie_est_tausq,
+                    run_carma=run_carma,
+                    run_sumstat_imputation=run_sumstat_imputation,
+                    carma_time_limit=carma_time_limit,
+                    imputed_r2_threshold=imputed_r2_threshold,
+                    ld_score_threshold=ld_score_threshold,
+                )
+            )
+            # Write result
+            result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
+                output_path + "/" + study_locus_to_finemap
+            )
+            # Write log
+            result_logging["log"].df.write.mode(session.write_mode).parquet(
+                output_path_log + "/" + study_locus_to_finemap
+            )
+        else:
+            result = self.susie_finemapper_ss_gathered(
+                session=session,
+                study_locus_row=study_locus,
+                study_index=study_index,
+                radius=locus_radius,
+                max_causal_snps=max_causal_snps,
+                primary_signal_pval_threshold=primary_signal_pval_threshold,
+                secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+                purity_mean_r2_threshold=purity_mean_r2_threshold,
+                purity_min_r2_threshold=purity_min_r2_threshold,
+                cs_lbf_thr=cs_lbf_thr,
+                sum_pips=sum_pips,
+            )
+            # Write result
+            result.df.write.mode(session.write_mode).parquet(
+                output_path + "/" + study_locus_to_finemap
+            )
 
     @staticmethod
     def susie_finemapper_one_studylocus_row(
@@ -79,7 +153,13 @@ class SusieFineMapperStep:
         study_locus_row: Row,
         study_index: StudyIndex,
         radius: int = 1_000_000,
-        L: int = 10,
+        max_causal_snps: int = 10,
+        primary_signal_pval_threshold: float = 5e-8,
+        secondary_signal_pval_threshold: float = 1e-7,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
+        sum_pips: float = 0.99,
+        cs_lbf_thr: float = 2,
     ) -> StudyLocus:
         """Susie fine-mapper for StudyLocus row with SummaryStatistics object.
 
@@ -89,7 +169,13 @@ class SusieFineMapperStep:
             study_locus_row (Row): StudyLocus row
             study_index (StudyIndex): StudyIndex object
             radius (int): window size for fine-mapping
-            L (int): number of causal variants
+            max_causal_snps (int): number of causal variants
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
@@ -164,24 +250,19 @@ class SusieFineMapperStep:
         z_to_fm = np.array(pd_df["z"])
         ld_to_fm = gnomad_ld
 
-        susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=L)
+        susie_output = SUSIE_inf.susie_inf(z=z_to_fm, LD=ld_to_fm, L=max_causal_snps)
 
         schema = StructType(
             [
                 StructField("variantId", StringType(), True),
                 StructField("chromosome", StringType(), True),
                 StructField("position", IntegerType(), True),
+                StructField("z", DoubleType(), True),
             ]
         )
         pd_df["position"] = pd_df["position"].astype(int)
         variant_index = session.spark.createDataFrame(
-            pd_df[
-                [
-                    "variantId",
-                    "chromosome",
-                    "position",
-                ]
-            ],
+            pd_df[["variantId", "chromosome", "position", "z"]],
             schema=schema,
         )
 
@@ -191,6 +272,13 @@ class SusieFineMapperStep:
             studyId=studyId,
             region=region,
             variant_index=variant_index,
+            ld_matrix=ld_to_fm,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            sum_pips=sum_pips,
+            cs_lbf_thr=cs_lbf_thr,
         )
 
     @staticmethod
@@ -200,8 +288,13 @@ class SusieFineMapperStep:
         studyId: str,
         region: str,
         variant_index: DataFrame,
+        ld_matrix: np.ndarray,
         cs_lbf_thr: float = 2,
         sum_pips: float = 0.99,
+        primary_signal_pval_threshold: float = 1,
+        secondary_signal_pval_threshold: float = 1,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0,
     ) -> StudyLocus:
         """Convert SuSiE-inf output to StudyLocus DataFrame.
 
@@ -211,12 +304,20 @@ class SusieFineMapperStep:
             studyId (str): study ID
             region (str): region
             variant_index (DataFrame): DataFrame with variant information
-            cs_lbf_thr (float): credible set logBF threshold, default is 2
+            ld_matrix (np.ndarray): LD matrix used for fine-mapping
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
         """
+        # PLEASE DO NOT REMOVE THIS LINE
+        pd.DataFrame.iteritems = pd.DataFrame.items
+
         variants = np.array(
             [row["variantId"] for row in variant_index.select("variantId").collect()]
         ).reshape(-1, 1)
@@ -231,7 +332,7 @@ class SusieFineMapperStep:
         # Extracting credible sets
         order_creds = list(enumerate(susie_output["lbf"]))
         order_creds.sort(key=lambda x: x[1], reverse=True)
-        cred_sets = None
+
         counter = 0
         for i, cs_lbf_value in order_creds:
             if counter > 0 and cs_lbf_value < cs_lbf_thr:
@@ -308,10 +409,108 @@ class SusieFineMapperStep:
                     "credibleSetlog10BF",
                 )
             )
-            if cred_sets is None:
+            if counter == 1:
                 cred_sets = cred_set
             else:
                 cred_sets = cred_sets.unionByName(cred_set)
+
+        # Calulating purity
+        variant_index_df = variant_index.toPandas()
+        cred_sets_variantId = cred_sets.select("locus.variantId").toPandas()
+
+        lead_variantId_list = (
+            cred_sets.select("variantId").toPandas()["variantId"].tolist()
+        )
+        cred_set_index = (
+            cred_sets.select("credibleSetIndex").toPandas()["credibleSetIndex"].tolist()
+        )
+        vlist_series = pd.Series(lead_variantId_list)
+        ind = vlist_series.map(variant_index_df.set_index("variantId").index.get_loc)
+        z_values = variant_index_df.iloc[ind]["z"].tolist()
+        z_values_array = np.array(z_values)
+        pval = sc.stats.chi2.sf((z_values_array**2), 1)
+
+        # sometimes pval is 0, we need to avoid it
+        pval[pval < 1e-322] = 1e-322
+
+        neglogpval = -np.log10(pval)
+        neglogpval = neglogpval.tolist()
+
+        list_purity_mean_r2 = []
+        list_purity_min_r2 = []
+        for _, row in cred_sets_variantId.iterrows():
+            row = row.iloc[0]
+            vlist_series = pd.Series(row)
+            ind = vlist_series.map(
+                variant_index_df.set_index("variantId").index.get_loc
+            )
+            # print(variant_index_df.iloc[ind,0]==vlist)
+            squared_matrix = ld_matrix[ind, :][:, ind] ** 2
+            purity_mean_r2 = np.mean(squared_matrix)
+            purity_min_r2 = np.min(squared_matrix)
+            list_purity_mean_r2.append(purity_mean_r2)
+            list_purity_min_r2.append(purity_min_r2)
+
+        cred_sets = cred_sets.drop("pValueMantissa", "pValueExponent")
+
+        df = pd.DataFrame(
+            {
+                "credibleSetIndex": cred_set_index,
+                "purityMeanR2": purity_mean_r2,
+                "purityMinR2": purity_min_r2,
+                "zScore": z_values,
+                "neglogpval": neglogpval,
+            }
+        )
+        schema = StructType(
+            [
+                StructField("credibleSetIndex", IntegerType(), True),
+                StructField("purityMeanR2", DoubleType(), True),
+                StructField("purityMinR2", DoubleType(), True),
+                StructField("zScore", DoubleType(), True),
+                StructField("neglogpval", DoubleType(), True),
+            ]
+        )
+
+        df_spark = session.spark.createDataFrame(df, schema=schema)
+
+        cred_sets = cred_sets.join(df_spark, on="credibleSetIndex")
+
+        mantissa, exponent = neglog_pvalue_to_mantissa_and_exponent(
+            cred_sets.neglogpval
+        )
+
+        cred_sets = cred_sets.withColumn("pValueMantissa", mantissa)
+        cred_sets = cred_sets.withColumn("pValueExponent", exponent)
+
+        cred_sets = cred_sets.withColumn(
+            "pValueMantissa", f.col("pValueMantissa").cast("float")
+        )
+
+        cred_sets = cred_sets.filter(
+            (f.col("neglogpval") >= -np.log10(secondary_signal_pval_threshold))
+            | (f.col("credibleSetIndex") == 1)
+        )
+
+        cred_sets = cred_sets.filter(
+            (f.col("neglogpval") >= -np.log10(primary_signal_pval_threshold))
+            | (f.col("credibleSetIndex") > 1)
+        )
+
+        cred_sets = cred_sets.drop("neglogpval")
+
+        cred_sets = cred_sets.filter(
+            (f.col("credibleSetlog10BF") >= cs_lbf_thr * 0.4342944819)
+            | (f.col("credibleSetIndex") == 1)
+        )
+
+        cred_sets = cred_sets.filter(f.col("purityMeanR2") >= purity_mean_r2_threshold)
+        cred_sets = cred_sets.filter(f.col("purityMinR2") >= purity_min_r2_threshold)
+
+        window = Window.partitionBy("studyLocusId").orderBy("credibleSetIndex")
+        cred_sets = cred_sets.withColumn("rank", row_number().over(window))
+        cred_sets = cred_sets.filter(cred_sets["rank"] == 1).drop("rank")
+
         return StudyLocus(
             _df=cred_sets,
             _schema=StudyLocus.get_schema(),
@@ -324,6 +523,12 @@ class SusieFineMapperStep:
         study_index: StudyIndex,
         radius: int = 1_000_000,
         max_causal_snps: int = 10,
+        primary_signal_pval_threshold: float = 5e-8,
+        secondary_signal_pval_threshold: float = 1e-7,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
+        cs_lbf_thr: float = 2,
+        sum_pips: float = 0.99,
     ) -> StudyLocus:
         """Susie fine-mapper for StudyLocus row with locus annotated summary statistics.
 
@@ -333,6 +538,12 @@ class SusieFineMapperStep:
             study_index (StudyIndex): StudyIndex object
             radius (int): window size for fine-mapping
             max_causal_snps (int): number of causal variants
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
 
         Returns:
             StudyLocus: StudyLocus object with fine-mapped credible sets
@@ -420,17 +631,12 @@ class SusieFineMapperStep:
                 StructField("variantId", StringType(), True),
                 StructField("chromosome", StringType(), True),
                 StructField("position", IntegerType(), True),
+                StructField("z", DoubleType(), True),
             ]
         )
         pd_df["position"] = pd_df["position"].astype(int)
         variant_index = session.spark.createDataFrame(
-            pd_df[
-                [
-                    "variantId",
-                    "chromosome",
-                    "position",
-                ]
-            ],
+            pd_df[["variantId", "chromosome", "position", "z"]],
             schema=schema,
         )
 
@@ -440,6 +646,13 @@ class SusieFineMapperStep:
             studyId=studyId,
             region=region,
             variant_index=variant_index,
+            ld_matrix=ld_to_fm,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            cs_lbf_thr=cs_lbf_thr,
+            sum_pips=sum_pips,
         )
 
     @staticmethod
@@ -458,6 +671,11 @@ class SusieFineMapperStep:
         imputed_r2_threshold: float = 0.8,
         ld_score_threshold: float = 4,
         sum_pips: float = 0.99,
+        primary_signal_pval_threshold: float = 5e-8,
+        secondary_signal_pval_threshold: float = 1e-7,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
+        cs_lbf_thr: float = 2,
     ) -> dict[str, Any]:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
@@ -476,6 +694,11 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
 
         Returns:
             dict[str, Any]: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
@@ -577,10 +800,15 @@ class SusieFineMapperStep:
             z=z_to_fm, LD=ld_to_fm, L=L, est_tausq=susie_est_tausq
         )
 
-        schema = StructType([StructField("variantId", StringType(), True)])
+        schema = StructType(
+            [
+                StructField("variantId", StringType(), True),
+                StructField("z", DoubleType(), True),
+            ]
+        )
         variant_index = (
             session.spark.createDataFrame(
-                GWAS_df[["variantId"]],
+                GWAS_df[["variantId", "z"]],
                 schema=schema,
             )
             .withColumn(
@@ -596,6 +824,12 @@ class SusieFineMapperStep:
             region=region,
             variant_index=variant_index,
             sum_pips=sum_pips,
+            ld_matrix=ld_to_fm,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            cs_lbf_thr=cs_lbf_thr,
         )
 
         end_time = time.time()
@@ -631,9 +865,14 @@ class SusieFineMapperStep:
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
-        imputed_r2_threshold: float = 0.8,
-        ld_score_threshold: float = 4,
+        imputed_r2_threshold: float = 0.9,
+        ld_score_threshold: float = 5,
         sum_pips: float = 0.99,
+        primary_signal_pval_threshold: float = 5e-8,
+        secondary_signal_pval_threshold: float = 1e-7,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
+        cs_lbf_thr: float = 2,
     ) -> dict[str, Any]:
         """Susie fine-mapper function that uses Summary Statstics, chromosome and position as inputs.
 
@@ -651,6 +890,11 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
 
         Returns:
             dict[str, Any]: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
@@ -731,6 +975,11 @@ class SusieFineMapperStep:
             imputed_r2_threshold=imputed_r2_threshold,
             ld_score_threshold=ld_score_threshold,
             sum_pips=sum_pips,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            cs_lbf_thr=cs_lbf_thr,
         )
 
         return out
@@ -746,9 +995,14 @@ class SusieFineMapperStep:
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
-        imputed_r2_threshold: float = 0.8,
-        ld_score_threshold: float = 4,
+        imputed_r2_threshold: float = 0.9,
+        ld_score_threshold: float = 5,
         sum_pips: float = 0.99,
+        primary_signal_pval_threshold: float = 5e-8,
+        secondary_signal_pval_threshold: float = 1e-7,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
+        cs_lbf_thr: float = 2,
     ) -> dict[str, Any]:
         """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
 
@@ -765,6 +1019,11 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
 
         Returns:
             dict[str, Any]: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
@@ -852,6 +1111,11 @@ class SusieFineMapperStep:
             imputed_r2_threshold=imputed_r2_threshold,
             ld_score_threshold=ld_score_threshold,
             sum_pips=sum_pips,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            cs_lbf_thr=cs_lbf_thr,
         )
 
         return out
