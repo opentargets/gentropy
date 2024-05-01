@@ -147,8 +147,6 @@ class SusieFineMapperStep:
                 result.df.write.mode(session.write_mode).parquet(
                     output_path + "/" + study_locus_to_finemap
                 )
-            else:
-                return
 
     @staticmethod
     def susie_finemapper_one_studylocus_row(
