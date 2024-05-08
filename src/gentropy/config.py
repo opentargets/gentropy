@@ -330,6 +330,38 @@ class WindowBasedClumpingStep(StepConfig):
 
 
 @dataclass
+class FinemapperConfig(StepConfig):
+    """SuSiE fine-mapper step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    study_locus_to_finemap: str = MISSING
+    study_locus_collected_path: str = MISSING
+    study_index_path: str = MISSING
+    output_path: str = MISSING
+    locus_radius: int = MISSING
+    max_causal_snps: int = MISSING
+    primary_signal_pval_threshold: float = MISSING
+    secondary_signal_pval_threshold: float = MISSING
+    purity_mean_r2_threshold: float = MISSING
+    purity_min_r2_threshold: float = MISSING
+    cs_lbf_th: float = MISSING
+    sum_pips: float = MISSING
+    logging: bool = MISSING
+    susie_est_tausq: bool = MISSING
+    run_carma: bool = MISSING
+    run_sumstat_imputation: bool = MISSING
+    carma_time_limit: int = MISSING
+    imputed_r2_threshold: float = MISSING
+    ld_score_threshold: float = MISSING
+    output_path_log: str = MISSING
+    _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -386,3 +418,4 @@ def register_config() -> None:
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStep)
+    cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
