@@ -36,7 +36,7 @@ pandas = "^2.1.4"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^3.7.0"
-mypy = "^1.9"
+mypy = "^1.10"
 pep8-naming = "^0.13.2"
 interrogate = "^1.7.0"
 isort = "^5.13.2"
