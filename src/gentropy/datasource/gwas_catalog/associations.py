@@ -299,7 +299,6 @@ class GWASCatalogCuratedAssociationsParser:
             "alternateAllele",
             "chromosome",
             "position",
-            # ensemblPosition column is dropped. Only the GnomAD position is kept.
         )
 
         return gwas_associations.join(
