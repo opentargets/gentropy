@@ -36,12 +36,12 @@ pandas = "^2.1.4"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^3.7.0"
-mypy = "^1.9"
+mypy = "^1.10"
 pep8-naming = "^0.13.2"
-interrogate = "^1.5.0"
+interrogate = "^1.7.0"
 isort = "^5.13.2"
 darglint = "^1.8.1"
-ruff = "^0.3.2"
+ruff = "^0.4.3"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3"
