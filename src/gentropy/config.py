@@ -37,6 +37,7 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     study_index_path: str = MISSING
     coloc_path: str = MISSING
+    colocalisation_method: str = MISSING
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
