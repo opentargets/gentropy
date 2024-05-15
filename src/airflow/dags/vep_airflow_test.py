@@ -148,7 +148,8 @@ def vep_annotation(**kwargs: Any) -> None:
             --exclude_null_alleles \
             --canonical \
             --plugin LoF,loftee_path:{MOUNT_DIR}/VEP_plugins,gerp_bigwig:{MOUNT_DIR}/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:{MOUNT_DIR}/human_ancestor.fa.gz,conservation_file:{MOUNT_DIR}/loftee.sql \
-            --plugin AlphaMissense,file={MOUNT_DIR}/AlphaMissense_hg38.tsv.gz,transcript_match=1",
+            --plugin AlphaMissense,file={MOUNT_DIR}/AlphaMissense_hg38.tsv.gz,transcript_match=1 \
+            --plugin CADD,snv={MOUNT_DIR}/CADD_GRCh38_whole_genome_SNVs.tsv.gz",
     ]
     task = create_task_spec(VEP_DOCKER_IMAGE, command)
     batch_task = CloudBatchSubmitJobOperator(
