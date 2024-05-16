@@ -147,7 +147,7 @@ def vep_annotation(**kwargs: Any) -> None:
             --check_existing \
             --exclude_null_alleles \
             --canonical \
-            --plugin LoF,loftee_path:{MOUNT_DIR}/VEP_plugins,gerp_bigwig:{MOUNT_DIR}/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:{MOUNT_DIR}/human_ancestor.fa.gz,conservation_file:{MOUNT_DIR}/loftee.sql \
+            --plugin LoF,loftee_path:{MOUNT_DIR}/VEP_plugins,gerp_bigwig:{MOUNT_DIR}/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:{MOUNT_DIR}/human_ancestor.fa.gz,conservation_file:/opt/vep/loftee.sql \
             --plugin AlphaMissense,file={MOUNT_DIR}/AlphaMissense_hg38.tsv.gz,transcript_match=1",
     ]
     task = create_task_spec(VEP_DOCKER_IMAGE, command)
