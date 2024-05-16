@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 from typing import Any, List
@@ -12,6 +13,7 @@ from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.cloud_batch import (
     CloudBatchSubmitJobOperator,
 )
+from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
 from google.cloud import batch_v1
 
 PROJECT_ID = "open-targets-genetics-dev"
@@ -19,19 +21,19 @@ REGION = "europe-west1"
 
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
 MOUNT_DIR = "/mnt/disks/share"  # inside the image
-BUCKET_NAME = "genetics_etl_python_playground/vep/"
+BUCKET_NAME = "genetics_etl_python_playground"
+PREFIX_NAME = "vep"
+
+INPUT_VCFS_BUCKET = "vi_tsv"
 
 MACHINES = {
     "VEPMACHINE": {
         "machine_type": "e2-standard-4",
         "cpu_milli": 2000,
-        "memory_mib": 8000,
+        "memory_mib": 2000,
         "boot_disk_mib": 10000,
     },
 }
-
-INPUT_FILE = "clinvar_subset.vcf"
-OUTPUT_FILE = "clinvar_output.json"
 
 
 def create_container_runnable(image: str, commands: List[str]) -> batch_v1.Runnable:
@@ -71,7 +73,10 @@ def create_task_spec(image: str, commands: List[str]) -> batch_v1.TaskSpec:
 
 
 def create_batch_job(
-    task: batch_v1.TaskSpec, task_count: int, machine: str
+    task: batch_v1.TaskSpec,
+    task_count: int,
+    machine: str,
+    task_env: list[batch_v1.Environment],
 ) -> batch_v1.Job:
     """Create a Google Batch job.
 
@@ -79,6 +84,7 @@ def create_batch_job(
         task (batch_v1.TaskSpec): The task specification.
         task_count (int): The number of tasks to run.
         machine (str): The machine type to use.
+        task_env (list[batch_v1.Environment]): The environment variables for the task.
 
     Returns:
         batch_v1.Job: The Batch job.
@@ -93,7 +99,7 @@ def create_batch_job(
     task.max_run_duration = "43200s"
 
     gcs_bucket = batch_v1.GCS()
-    gcs_bucket.remote_path = BUCKET_NAME
+    gcs_bucket.remote_path = BUCKET_NAME + "/" + PREFIX_NAME
     gcs_volume = batch_v1.Volume()
     gcs_volume.gcs = gcs_bucket
     gcs_volume.mount_path = MOUNT_DIR
@@ -102,12 +108,11 @@ def create_batch_job(
 
     group = batch_v1.TaskGroup()
     group.task_spec = task
-    group.task_count_per_node = 1
-    group.task_count = task_count
-    group.parallelism = task_count
+    group.task_environments = task_env
 
     policy = batch_v1.AllocationPolicy.InstancePolicy()
     policy.machine_type = MACHINES[machine]["machine_type"]
+    policy.provisioning_model = "SPOT"
 
     instances = batch_v1.AllocationPolicy.InstancePolicyOrTemplate()
     instances.policy = policy
@@ -130,16 +135,26 @@ def vep_annotation(**kwargs: Any) -> None:
     Args:
         **kwargs (Any): Keyword arguments.
     """
-    # ti = kwargs["ti"]
-    # pulled_study_loci_ids = ti.xcom_pull(
-    #     task_ids="get_study_loci_to_finemap", key="study_loci_ids"
-    # )
+    ti = kwargs["ti"]
+    filenames = [
+        os.path.basename(os.path.splitext(path)[0])
+        for path in ti.xcom_pull(task_ids="get_vep_todo_list", key="return_value")
+    ]
+    task_env = [
+        batch_v1.Environment(
+            variables={
+                "INPUT_FILE": filename + ".csv",
+                "OUTPUT_FILE": filename + ".json",
+            }
+        )
+        for filename in filenames
+    ]
     command = [
         "-c",
         rf"vep --cache --offline --format vcf --force_overwrite \
             --dir_cache {MOUNT_DIR} \
-            --input_file {MOUNT_DIR}/{INPUT_FILE} \
-            --output_file {MOUNT_DIR}/{OUTPUT_FILE} --json \
+            --input_file {MOUNT_DIR}/{INPUT_VCFS_BUCKET}/$INPUT_FILE \
+            --output_file {MOUNT_DIR}/{INPUT_VCFS_BUCKET}/$OUTPUT_FILE --json \
             --dir_plugins {MOUNT_DIR}/VEP_plugins \
             --sift b \
             --polyphen b \
@@ -157,7 +172,7 @@ def vep_annotation(**kwargs: Any) -> None:
         project_id=PROJECT_ID,
         region=REGION,
         job_name=f"vep-job-{time.strftime('%Y%m%d-%H%M%S')}",
-        job=create_batch_job(task, 1, "VEPMACHINE"),
+        job=create_batch_job(task, 1, "VEPMACHINE", task_env),
         deferrable=False,
     )
     batch_task.execute(context=kwargs)
@@ -169,4 +184,11 @@ with DAG(
     default_args=common.shared_dag_args,
     **common.shared_dag_kwargs,
 ):
-    vep_annotation()
+    get_vep_todo_list = GCSListObjectsOperator(
+        task_id="get_vep_todo_list",
+        bucket=BUCKET_NAME,
+        prefix=PREFIX_NAME + "/" + INPUT_VCFS_BUCKET + "/",
+        match_glob="**csv",
+    )
+
+    get_vep_todo_list >> vep_annotation()
