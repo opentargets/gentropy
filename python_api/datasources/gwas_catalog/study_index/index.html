@@ -2347,6 +2347,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2377,7 +2419,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2393,14 +2435,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3381,7 +3423,8 @@
 <span class="normal">332</span>
 <span class="normal">333</span>
 <span class="normal">334</span>
-<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">335</span>
+<span class="normal">336</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">StudyIndexGWASCatalogParser</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GWAS Catalog study index parser.</span>
 
@@ -3625,6 +3668,7 @@
                 <span class="n">parse_efos</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;MAPPED BACKGROUND TRAIT URI&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
                     <span class="s2">&quot;backgroundTraitFromSourceMappedIds&quot;</span>
                 <span class="p">),</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">parse_cohorts</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;COHORT&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;cohorts&quot;</span><span class="p">),</span>
             <span class="p">),</span>
             <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndexGWASCatalog</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
@@ -3689,7 +3733,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3700,7 +3744,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>catalog_studies</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -3714,7 +3758,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>ancestry_file</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -3728,7 +3772,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>sumstats_lut</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -3747,7 +3791,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3756,7 +3800,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyIndexGWASCatalog</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog" href="#gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code>
           </td>
@@ -3771,8 +3815,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">312</span>
-<span class="normal">313</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">313</span>
 <span class="normal">314</span>
 <span class="normal">315</span>
 <span class="normal">316</span>
@@ -3794,7 +3837,8 @@
 <span class="normal">332</span>
 <span class="normal">333</span>
 <span class="normal">334</span>
-<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">335</span>
+<span class="normal">336</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndexGWASCatalogParser</span><span class="p">],</span>
     <span class="n">catalog_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -3845,7 +3889,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3856,7 +3900,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>raw_cohort</code></td>
           <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
@@ -3875,7 +3919,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3884,7 +3928,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>Column</code></td>          <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
           </td>
@@ -4005,8 +4049,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">338</span>
-<span class="normal">339</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">339</span>
 <span class="normal">340</span>
 <span class="normal">341</span>
 <span class="normal">342</span>
@@ -4432,16 +4475,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="normal">762</span>
 <span class="normal">763</span>
 <span class="normal">764</span>
-<span class="normal">765</span>
-<span class="normal">766</span>
-<span class="normal">767</span>
-<span class="normal">768</span>
-<span class="normal">769</span>
-<span class="normal">770</span>
-<span class="normal">771</span>
-<span class="normal">772</span>
-<span class="normal">773</span>
-<span class="normal">774</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">765</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">StudyIndexGWASCatalog</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from GWAS Catalog.</span>
 
@@ -4654,14 +4688,6 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
             <span class="p">)</span>  <span class="c1"># studyId has not been split yet</span>
         <span class="p">)</span>
 
-        <span class="c1"># Parsing cohort information:</span>
-        <span class="n">cohorts</span> <span class="o">=</span> <span class="n">ancestry_lut</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;STUDY ACCESSION&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
-            <span class="n">GWASCatalogStudyIndexParser</span><span class="o">.</span><span class="n">parse_cohorts</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;COHORT(S)&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
-                <span class="s2">&quot;cohorts&quot;</span>
-            <span class="p">),</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
-
         <span class="c1"># Get a high resolution dataset on experimental stage:</span>
         <span class="n">ancestry_stages</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">ancestry</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">)</span>
@@ -4750,9 +4776,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
         <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
             <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;discoverySamples&quot;</span><span class="p">,</span> <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span> <span class="s2">&quot;replicationSamples&quot;</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parsed_ancestry_lut</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">cohorts</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parsed_ancestry_lut</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span> <span class="nf">annotate_sumstats_info</span><span class="p">(</span>
@@ -4912,7 +4936,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4923,7 +4947,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>ancestry_lut</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -4942,7 +4966,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4951,7 +4975,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyIndexGWASCatalog</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog" href="#gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code>
           </td>
@@ -4966,8 +4990,7 @@ discovery stage.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">521</span>
-<span class="normal">522</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">522</span>
 <span class="normal">523</span>
 <span class="normal">524</span>
 <span class="normal">525</span>
@@ -5086,16 +5109,7 @@ discovery stage.</p>
 <span class="normal">638</span>
 <span class="normal">639</span>
 <span class="normal">640</span>
-<span class="normal">641</span>
-<span class="normal">642</span>
-<span class="normal">643</span>
-<span class="normal">644</span>
-<span class="normal">645</span>
-<span class="normal">646</span>
-<span class="normal">647</span>
-<span class="normal">648</span>
-<span class="normal">649</span>
-<span class="normal">650</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_ancestries</span><span class="p">(</span>
+<span class="normal">641</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_ancestries</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">ancestry_lut</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracting sample sizes and ancestry information.</span>
@@ -5124,14 +5138,6 @@ discovery stage.</p>
             <span class="s2">&quot;studyAccession&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span>
         <span class="p">)</span>  <span class="c1"># studyId has not been split yet</span>
     <span class="p">)</span>
-
-    <span class="c1"># Parsing cohort information:</span>
-    <span class="n">cohorts</span> <span class="o">=</span> <span class="n">ancestry_lut</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;STUDY ACCESSION&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
-        <span class="n">GWASCatalogStudyIndexParser</span><span class="o">.</span><span class="n">parse_cohorts</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;COHORT(S)&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
-            <span class="s2">&quot;cohorts&quot;</span>
-        <span class="p">),</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
 
     <span class="c1"># Get a high resolution dataset on experimental stage:</span>
     <span class="n">ancestry_stages</span> <span class="o">=</span> <span class="p">(</span>
@@ -5221,9 +5227,7 @@ discovery stage.</p>
     <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
         <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;discoverySamples&quot;</span><span class="p">,</span> <span class="s2">&quot;ldPopulationStructure&quot;</span><span class="p">,</span> <span class="s2">&quot;replicationSamples&quot;</span>
     <span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parsed_ancestry_lut</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="n">cohorts</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span>
-    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parsed_ancestry_lut</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span>
 </code></pre></div></td></tr></table></div>
           </details>
@@ -5249,7 +5253,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5258,7 +5262,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyIndexGWASCatalog</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog" href="#gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code>
           </td>
@@ -5273,7 +5277,16 @@ discovery stage.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">693</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">684</span>
+<span class="normal">685</span>
+<span class="normal">686</span>
+<span class="normal">687</span>
+<span class="normal">688</span>
+<span class="normal">689</span>
+<span class="normal">690</span>
+<span class="normal">691</span>
+<span class="normal">692</span>
+<span class="normal">693</span>
 <span class="normal">694</span>
 <span class="normal">695</span>
 <span class="normal">696</span>
@@ -5307,16 +5320,7 @@ discovery stage.</p>
 <span class="normal">724</span>
 <span class="normal">725</span>
 <span class="normal">726</span>
-<span class="normal">727</span>
-<span class="normal">728</span>
-<span class="normal">729</span>
-<span class="normal">730</span>
-<span class="normal">731</span>
-<span class="normal">732</span>
-<span class="normal">733</span>
-<span class="normal">734</span>
-<span class="normal">735</span>
-<span class="normal">736</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_discovery_sample_sizes</span><span class="p">(</span>
+<span class="normal">727</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_discovery_sample_sizes</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.</span>
@@ -5383,7 +5387,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5394,7 +5398,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>curation_table</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span> | None</code>
@@ -5413,7 +5417,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5422,7 +5426,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyIndexGWASCatalog</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog" href="#gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code>
           </td>
@@ -5437,8 +5441,7 @@ discovery stage.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">389</span>
-<span class="normal">390</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">390</span>
 <span class="normal">391</span>
 <span class="normal">392</span>
 <span class="normal">393</span>
@@ -5507,7 +5510,8 @@ discovery stage.</p>
 <span class="normal">456</span>
 <span class="normal">457</span>
 <span class="normal">458</span>
-<span class="normal">459</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_from_study_curation</span><span class="p">(</span>
+<span class="normal">459</span>
+<span class="normal">460</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_from_study_curation</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">curation_table</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotating study index with curation.</span>
@@ -5601,7 +5605,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5612,7 +5616,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>sumstats_lut</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -5631,7 +5635,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5640,7 +5644,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyIndexGWASCatalog</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog" href="#gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code>
           </td>
@@ -5655,7 +5659,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Raises:</strong></p>
+  <p><span class="doc-section-title">Raises:</span></p>
   <table>
     <thead>
       <tr>
@@ -5664,7 +5668,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>ValueError</code>
           </td>
@@ -5679,7 +5683,16 @@ discovery stage.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">652</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">643</span>
+<span class="normal">644</span>
+<span class="normal">645</span>
+<span class="normal">646</span>
+<span class="normal">647</span>
+<span class="normal">648</span>
+<span class="normal">649</span>
+<span class="normal">650</span>
+<span class="normal">651</span>
+<span class="normal">652</span>
 <span class="normal">653</span>
 <span class="normal">654</span>
 <span class="normal">655</span>
@@ -5709,16 +5722,7 @@ discovery stage.</p>
 <span class="normal">679</span>
 <span class="normal">680</span>
 <span class="normal">681</span>
-<span class="normal">682</span>
-<span class="normal">683</span>
-<span class="normal">684</span>
-<span class="normal">685</span>
-<span class="normal">686</span>
-<span class="normal">687</span>
-<span class="normal">688</span>
-<span class="normal">689</span>
-<span class="normal">690</span>
-<span class="normal">691</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_sumstats_info</span><span class="p">(</span>
+<span class="normal">682</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_sumstats_info</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">sumstats_lut</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotate summary stat locations.</span>
@@ -5781,7 +5785,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5792,7 +5796,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>inclusion_list</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -5811,7 +5815,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5820,7 +5824,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyIndexGWASCatalog</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog" href="#gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code>
           </td>
@@ -5835,21 +5839,21 @@ discovery stage.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">738</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">729</span>
+<span class="normal">730</span>
+<span class="normal">731</span>
+<span class="normal">732</span>
+<span class="normal">733</span>
+<span class="normal">734</span>
+<span class="normal">735</span>
+<span class="normal">736</span>
+<span class="normal">737</span>
+<span class="normal">738</span>
 <span class="normal">739</span>
 <span class="normal">740</span>
 <span class="normal">741</span>
 <span class="normal">742</span>
-<span class="normal">743</span>
-<span class="normal">744</span>
-<span class="normal">745</span>
-<span class="normal">746</span>
-<span class="normal">747</span>
-<span class="normal">748</span>
-<span class="normal">749</span>
-<span class="normal">750</span>
-<span class="normal">751</span>
-<span class="normal">752</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">apply_inclusion_list</span><span class="p">(</span>
+<span class="normal">743</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">apply_inclusion_list</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">inclusion_list</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Restricting GWAS Catalog studies based on a list of accepted study identifiers.</span>
@@ -5887,7 +5891,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5898,7 +5902,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>curation</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span> | None</code>
@@ -5917,7 +5921,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5926,7 +5930,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>DataFrame</code></td>          <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
           </td>
@@ -5941,8 +5945,7 @@ discovery stage.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">461</span>
-<span class="normal">462</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">462</span>
 <span class="normal">463</span>
 <span class="normal">464</span>
 <span class="normal">465</span>
@@ -5999,7 +6002,8 @@ discovery stage.</p>
 <span class="normal">516</span>
 <span class="normal">517</span>
 <span class="normal">518</span>
-<span class="normal">519</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">extract_studies_for_curation</span><span class="p">(</span>
+<span class="normal">519</span>
+<span class="normal">520</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">extract_studies_for_curation</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">curation</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract studies for curation.</span>
@@ -6081,7 +6085,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -6092,7 +6096,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_annotation</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -6111,7 +6115,7 @@ discovery stage.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -6120,7 +6124,7 @@ discovery stage.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyIndexGWASCatalog</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog" href="#gentropy.datasource.gwas_catalog.study_index.StudyIndexGWASCatalog">StudyIndexGWASCatalog</a></code>
           </td>
@@ -6135,8 +6139,7 @@ discovery stage.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/study_index.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">345</span>
-<span class="normal">346</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">346</span>
 <span class="normal">347</span>
 <span class="normal">348</span>
 <span class="normal">349</span>
@@ -6177,7 +6180,8 @@ discovery stage.</p>
 <span class="normal">384</span>
 <span class="normal">385</span>
 <span class="normal">386</span>
-<span class="normal">387</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_study_id</span><span class="p">(</span>
+<span class="normal">387</span>
+<span class="normal">388</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_study_id</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">study_annotation</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Update studyId with a dataframe containing study.</span>
@@ -6267,7 +6271,15 @@ discovery stage.</p>
         <span class="label"> Contributors </span>
       </li>
       <li class="contributors-holder">
-        <ul class="contributors" data-bi-name="contributors"></ul>
+        <ul class="contributors" data-bi-name="contributors"><li>
+            <a
+              href="https://github.com/d0choa"
+              title="d0choa"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li></ul>
       </li>
     </ul>
   </small>

@@ -2260,6 +2260,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2290,7 +2332,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2306,14 +2348,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3003,7 +3045,10 @@
 <span class="normal">90</span>
 <span class="normal">91</span>
 <span class="normal">92</span>
-<span class="normal">93</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">FinnGenSummaryStats</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Summary statistics dataset for FinnGen.&quot;&quot;&quot;</span>
 
@@ -3040,7 +3085,6 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            SummaryStatistics: Processed summary statistics dataset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">study_id</span> <span class="o">=</span> <span class="n">raw_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
         <span class="n">processed_summary_stats_df</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">schema</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_schema</span><span class="p">)</span>
             <span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;delimiter&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -3049,7 +3093,11 @@
             <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">IntegerType</span><span class="p">())</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
             <span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="c1"># From the full path, extracts just the filename, and converts to upper case to get the study ID.</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">study_id</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">regexp_extract</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">input_file_name</span><span class="p">(),</span> <span class="sa">r</span><span class="s2">&quot;([^/]+)(\.tsv\.gz|\.gz|\.tsv)&quot;</span><span class="p">,</span> <span class="mi">1</span>
+                    <span class="p">)</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
                 <span class="c1"># Add variant information.</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span>
                     <span class="s2">&quot;_&quot;</span><span class="p">,</span>
@@ -3117,7 +3165,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3128,7 +3176,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>spark</code></td>
           <td>
                 <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
@@ -3142,7 +3190,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>raw_file</code></td>
           <td>
                 <code>str</code>
@@ -3161,7 +3209,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3170,7 +3218,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>SummaryStatistics</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.summary_statistics.SummaryStatistics" href="../../../datasets/summary_statistics/#gentropy.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code>
           </td>
@@ -3240,7 +3288,10 @@
 <span class="normal">90</span>
 <span class="normal">91</span>
 <span class="normal">92</span>
-<span class="normal">93</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenSummaryStats</span><span class="p">],</span>
     <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
@@ -3255,7 +3306,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        SummaryStatistics: Processed summary statistics dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">study_id</span> <span class="o">=</span> <span class="n">raw_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
     <span class="n">processed_summary_stats_df</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">schema</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_schema</span><span class="p">)</span>
         <span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;delimiter&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -3264,7 +3314,11 @@
         <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">IntegerType</span><span class="p">())</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
         <span class="o">.</span><span class="n">select</span><span class="p">(</span>
             <span class="c1"># From the full path, extracts just the filename, and converts to upper case to get the study ID.</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">study_id</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">regexp_extract</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">input_file_name</span><span class="p">(),</span> <span class="sa">r</span><span class="s2">&quot;([^/]+)(\.tsv\.gz|\.gz|\.tsv)&quot;</span><span class="p">,</span> <span class="mi">1</span>
+                <span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
             <span class="c1"># Add variant information.</span>
             <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span>
                 <span class="s2">&quot;_&quot;</span><span class="p">,</span>

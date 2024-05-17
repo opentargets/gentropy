@@ -2269,6 +2269,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2299,7 +2341,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2315,14 +2357,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3052,7 +3094,7 @@
                 <span class="n">t</span><span class="o">.</span><span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">FloatType</span><span class="p">(),</span> <span class="kc">False</span><span class="p">),</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">thurman_schema</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">thurman_schema</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span>
@@ -3149,7 +3191,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3160,7 +3202,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>thurman_raw</code></td>
           <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
@@ -3174,7 +3216,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>gene_index</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.gene_index.GeneIndex" href="../../../datasets/gene_index/#gentropy.dataset.gene_index.GeneIndex">GeneIndex</a></code>
@@ -3188,7 +3230,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>lift</code></td>
           <td>
                 <code><span title="gentropy.common.Liftover.LiftOverSpark">LiftOverSpark</span></code>
@@ -3207,7 +3249,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3216,7 +3258,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>Intervals</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.intervals.Intervals" href="../../../datasets/intervals/#gentropy.dataset.intervals.Intervals">Intervals</a></code>
           </td>
@@ -3375,7 +3417,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3386,7 +3428,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>spark</code></td>
           <td>
                 <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
@@ -3400,7 +3442,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>path</code></td>
           <td>
                 <code>str</code>
@@ -3419,7 +3461,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3428,7 +3470,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>DataFrame</code></td>          <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
           </td>
@@ -3489,7 +3531,7 @@
             <span class="n">t</span><span class="o">.</span><span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">FloatType</span><span class="p">(),</span> <span class="kc">False</span><span class="p">),</span>
         <span class="p">]</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">thurman_schema</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">thurman_schema</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -3537,7 +3579,15 @@
         <span class="label"> Contributors </span>
       </li>
       <li class="contributors-holder">
-        <ul class="contributors" data-bi-name="contributors"></ul>
+        <ul class="contributors" data-bi-name="contributors"><li>
+            <a
+              href="https://github.com/d0choa"
+              title="d0choa"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li></ul>
       </li>
     </ul>
   </small>

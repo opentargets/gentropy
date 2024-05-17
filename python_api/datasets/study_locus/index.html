@@ -1214,6 +1214,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gentropy.dataset.study_locus.StudyLocus.annotate_locus_statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      annotate_locus_statistics
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gentropy.dataset.study_locus.StudyLocus.assign_study_locus_id" class="md-nav__link">
     <span class="md-ellipsis">
       assign_study_locus_id
@@ -2384,6 +2393,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2414,7 +2465,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2430,14 +2481,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3013,6 +3064,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gentropy.dataset.study_locus.StudyLocus.annotate_locus_statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      annotate_locus_statistics
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gentropy.dataset.study_locus.StudyLocus.assign_study_locus_id" class="md-nav__link">
     <span class="md-ellipsis">
       assign_study_locus_id
@@ -3179,9 +3239,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 75</span>
-<span class="normal"> 76</span>
-<span class="normal"> 77</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 77</span>
 <span class="normal"> 78</span>
 <span class="normal"> 79</span>
 <span class="normal"> 80</span>
@@ -3603,7 +3661,103 @@
 <span class="normal">496</span>
 <span class="normal">497</span>
 <span class="normal">498</span>
-<span class="normal">499</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span>
+<span class="normal">525</span>
+<span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span>
+<span class="normal">595</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">StudyLocus</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study-Locus dataset.</span>
 
@@ -3611,31 +3765,52 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_overlapping_peaks</span><span class="p">(</span><span class="n">credset_to_overlap</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">_overlapping_peaks</span><span class="p">(</span>
+        <span class="n">credset_to_overlap</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">intra_study_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.</span>
+<span class="sd">            intra_study_overlap (bool): When True, finds intra-study overlaps for credible set deduplication. Default is False.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Reduce columns to the minimum to reduce the size of the dataframe</span>
         <span class="n">credset_to_overlap</span> <span class="o">=</span> <span class="n">credset_to_overlap</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-            <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyType&quot;</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;tagVariantId&quot;</span>
+            <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;studyId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;studyType&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;region&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tagVariantId&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="c1"># Define join condition - if intra_study_overlap is True, finds overlaps within the same study. Otherwise finds gwas vs everything overlaps for coloc.</span>
+        <span class="n">join_condition</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.studyId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.studyId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.chromosome&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.tagVariantId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.tagVariantId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.studyLocusId&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.studyLocusId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.region&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.region&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="n">intra_study_overlap</span>
+            <span class="k">else</span> <span class="p">[</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.chromosome&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.tagVariantId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.tagVariantId&quot;</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.studyType&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;gwas&quot;</span><span class="p">)</span>
+                <span class="o">|</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.studyLocusId&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.studyLocusId&quot;</span><span class="p">)),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.studyType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;gwas&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">credset_to_overlap</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;gwas&quot;</span><span class="p">)</span>
-            <span class="c1"># Self join with complex condition. Left it&#39;s all gwas and right can be gwas or molecular trait</span>
+            <span class="c1"># Self join with complex condition.</span>
             <span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="n">credset_to_overlap</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;right&quot;</span><span class="p">),</span>
-                <span class="n">on</span><span class="o">=</span><span class="p">[</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.chromosome&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.tagVariantId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.tagVariantId&quot;</span><span class="p">),</span>
-                    <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.studyType&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;gwas&quot;</span><span class="p">)</span>
-                    <span class="o">|</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;left.studyLocusId&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right.studyLocusId&quot;</span><span class="p">)),</span>
-                <span class="p">],</span>
+                <span class="n">on</span><span class="o">=</span><span class="n">join_condition</span><span class="p">,</span>
                 <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -3834,7 +4009,9 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">find_overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusOverlap</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">find_overlaps</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">intra_study_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusOverlap</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate overlapping study-locus.</span>
 
 <span class="sd">        Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always</span>
@@ -3842,6 +4019,7 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            study_index (StudyIndex): Study index to resolve study types.</span>
+<span class="sd">            intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.</span>
@@ -3851,8 +4029,10 @@
             <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">))</span>
             <span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;studyId&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;studyType&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;region&quot;</span><span class="p">,</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tagVariantId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.logBF&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.posteriorProbability&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">),</span>
@@ -3864,7 +4044,7 @@
         <span class="p">)</span>
 
         <span class="c1"># overlapping study-locus</span>
-        <span class="n">peak_overlaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlapping_peaks</span><span class="p">(</span><span class="n">loci_to_overlap</span><span class="p">)</span>
+        <span class="n">peak_overlaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlapping_peaks</span><span class="p">(</span><span class="n">loci_to_overlap</span><span class="p">,</span> <span class="n">intra_study_overlap</span><span class="p">)</span>
 
         <span class="c1"># study-locus overlap by aligning overlapping variants</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_align_overlapping_tags</span><span class="p">(</span><span class="n">loci_to_overlap</span><span class="p">,</span> <span class="n">peak_overlaps</span><span class="p">)</span>
@@ -3956,6 +4136,74 @@
                 <span class="p">),</span>
             <span class="p">),</span>
         <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">annotate_locus_statistics</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
+        <span class="n">summary_statistics</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
+        <span class="n">collect_locus_distance</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Annotates study locus with summary statistics in the specified distance around the position.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.</span>
+<span class="sd">            collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># The clumps will be used several times (persisting)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="c1"># Renaming columns:</span>
+        <span class="n">sumstats_renamed</span> <span class="o">=</span> <span class="n">summary_statistics</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> as tag_</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">summary_statistics</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;sumstat&quot;</span><span class="p">)</span>
+
+        <span class="n">locus_df</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">sumstats_renamed</span>
+            <span class="c1"># Joining the two datasets together:</span>
+            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;clumped&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                        <span class="s2">&quot;position&quot;</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyLocusId&quot;</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">on</span><span class="o">=</span><span class="p">[</span>
+                    <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_studyId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.studyId&quot;</span><span class="p">))</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.chromosome&quot;</span><span class="p">))</span>
+                    <span class="o">&amp;</span> <span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_position&quot;</span><span class="p">)</span>
+                        <span class="o">&gt;=</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.position&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">collect_locus_distance</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="o">&amp;</span> <span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_position&quot;</span><span class="p">)</span>
+                        <span class="o">&lt;=</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.position&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">collect_locus_distance</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">],</span>
+                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                <span class="s2">&quot;locus&quot;</span><span class="p">,</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_beta&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_pValueMantissa&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pValueMantissa&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_pValueExponent&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pValueExponent&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_standardError&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;standardError&quot;</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">collect_list</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">locus_df</span><span class="p">,</span>
+            <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span> <span class="nf">annotate_ld</span><span class="p">(</span>
@@ -4063,7 +4311,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4072,7 +4320,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyLocus</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
           </td>
@@ -4087,7 +4335,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Raises:</strong></p>
+  <p><span class="doc-section-title">Raises:</span></p>
   <table>
     <thead>
       <tr>
@@ -4096,7 +4344,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>ValueError</code>
           </td>
@@ -4111,35 +4359,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">375</span>
-<span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span>
-<span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span>
-<span class="normal">398</span>
-<span class="normal">399</span>
-<span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">403</span>
 <span class="normal">404</span>
 <span class="normal">405</span>
 <span class="normal">406</span>
@@ -4164,7 +4384,35 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">425</span>
 <span class="normal">426</span>
 <span class="normal">427</span>
-<span class="normal">428</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_credible_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">428</span>
+<span class="normal">429</span>
+<span class="normal">430</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_credible_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotate study-locus dataset with credible set flags.</span>
 
 <span class="sd">    Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds</span>
@@ -4241,7 +4489,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4252,7 +4500,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_index</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_index.StudyIndex" href="../study_index/#gentropy.dataset.study_index.StudyIndex">StudyIndex</a></code>
@@ -4266,7 +4514,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>ld_index</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.ld_index.LDIndex" href="../ld_index/#gentropy.dataset.ld_index.LDIndex">LDIndex</a></code>
@@ -4285,7 +4533,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4294,7 +4542,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyLocus</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
           </td>
@@ -4309,21 +4557,21 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">430</span>
-<span class="normal">431</span>
-<span class="normal">432</span>
-<span class="normal">433</span>
-<span class="normal">434</span>
-<span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_ld</span><span class="p">(</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">526</span>
+<span class="normal">527</span>
+<span class="normal">528</span>
+<span class="normal">529</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span>
+<span class="normal">534</span>
+<span class="normal">535</span>
+<span class="normal">536</span>
+<span class="normal">537</span>
+<span class="normal">538</span>
+<span class="normal">539</span>
+<span class="normal">540</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_ld</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">ld_index</span><span class="p">:</span> <span class="n">LDIndex</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotate LD information to study-locus.</span>
@@ -4338,6 +4586,230 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
     <span class="kn">from</span> <span class="nn">gentropy.method.ld</span> <span class="kn">import</span> <span class="n">LDAnnotator</span>
 
     <span class="k">return</span> <span class="n">LDAnnotator</span><span class="o">.</span><span class="n">ld_annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">study_index</span><span class="p">,</span> <span class="n">ld_index</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="gentropy.dataset.study_locus.StudyLocus.annotate_locus_statistics" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">annotate_locus_statistics</span><span class="p">(</span><span class="n">summary_statistics</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">collect_locus_distance</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span></code>
+
+<a href="#gentropy.dataset.study_locus.StudyLocus.annotate_locus_statistics" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Annotates study locus with summary statistics in the specified distance around the position.</p>
+
+
+
+  <p><span class="doc-section-title">Parameters:</span></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr class="doc-section-item">
+          <td><code>summary_statistics</code></td>
+          <td>
+                <code><a class="autorefs autorefs-internal" title="gentropy.dataset.summary_statistics.SummaryStatistics" href="../summary_statistics/#gentropy.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Summary statistics to be used for annotation.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr class="doc-section-item">
+          <td><code>collect_locus_distance</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>distance from variant defining window for inclusion of variants in locus.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><span class="doc-section-title">Returns:</span></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr class="doc-section-item">
+<td><code>StudyLocus</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Study locus annotated with summary statistics in <code>locus</code> column. If no statistics are found, the <code>locus</code> column will be empty.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span>
+<span class="normal">508</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span>
+<span class="normal">517</span>
+<span class="normal">518</span>
+<span class="normal">519</span>
+<span class="normal">520</span>
+<span class="normal">521</span>
+<span class="normal">522</span>
+<span class="normal">523</span>
+<span class="normal">524</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_locus_statistics</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
+    <span class="n">summary_statistics</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
+    <span class="n">collect_locus_distance</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotates study locus with summary statistics in the specified distance around the position.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.</span>
+<span class="sd">        collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># The clumps will be used several times (persisting)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+    <span class="c1"># Renaming columns:</span>
+    <span class="n">sumstats_renamed</span> <span class="o">=</span> <span class="n">summary_statistics</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> as tag_</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">summary_statistics</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;sumstat&quot;</span><span class="p">)</span>
+
+    <span class="n">locus_df</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">sumstats_renamed</span>
+        <span class="c1"># Joining the two datasets together:</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;clumped&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                    <span class="s2">&quot;position&quot;</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyLocusId&quot;</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">on</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_studyId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.studyId&quot;</span><span class="p">))</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.chromosome&quot;</span><span class="p">))</span>
+                <span class="o">&amp;</span> <span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_position&quot;</span><span class="p">)</span>
+                    <span class="o">&gt;=</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.position&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">collect_locus_distance</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sumstat.tag_position&quot;</span><span class="p">)</span>
+                    <span class="o">&lt;=</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clumped.position&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">collect_locus_distance</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;locus&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_beta&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_pValueMantissa&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pValueMantissa&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_pValueExponent&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pValueExponent&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tag_standardError&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;standardError&quot;</span><span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">collect_list</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">locus_df</span><span class="p">,</span>
+        <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>
@@ -4365,7 +4837,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4376,7 +4848,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_id_col</code></td>
           <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
@@ -4390,7 +4862,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>variant_id_col</code></td>
           <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
@@ -4409,7 +4881,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4418,7 +4890,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>Column</code></td>          <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
           </td>
@@ -4433,7 +4905,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-<p><strong>Examples:</strong></p>
+<p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="s2">&quot;GCST000001&quot;</span><span class="p">,</span> <span class="s2">&quot;1_1000_A_C&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;GCST000002&quot;</span><span class="p">,</span> <span class="s2">&quot;1_1000_A_C&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;study_locus_id&quot;</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">assign_study_locus_id</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">)))</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 <span class="go">+----------+----------+-------------------+</span>
@@ -4446,30 +4918,30 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span> <span class="nf">assign_study_locus_id</span><span class="p">(</span><span class="n">study_id_col</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">variant_id_col</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.</span>
 
@@ -4520,7 +4992,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4531,7 +5003,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>logbfs</code></td>
           <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
@@ -4550,7 +5022,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4559,7 +5031,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>Column</code></td>          <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
           </td>
@@ -4574,7 +5046,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-<p><strong>Examples:</strong></p>
+<p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([([</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],)])</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">StudyLocus</span><span class="o">.</span><span class="n">calculate_credible_set_log10bf</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">)),</span> <span class="mi">7</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;credibleSetlog10BF&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 <span class="go">+------------------+</span>
 <span class="go">|credibleSetlog10BF|</span>
@@ -4585,27 +5057,27 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">calculate_credible_set_log10bf</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyLocus</span><span class="p">],</span> <span class="n">logbfs</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate Bayes factor for the entire credible set. The Bayes factor is calculated as the logsumexp of the logBF values of the variants in the locus.</span>
 
@@ -4650,7 +5122,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4659,7 +5131,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyLocus</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
           </td>
@@ -4674,40 +5146,40 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">446</span>
-<span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span>
-<span class="normal">450</span>
-<span class="normal">451</span>
-<span class="normal">452</span>
-<span class="normal">453</span>
-<span class="normal">454</span>
-<span class="normal">455</span>
-<span class="normal">456</span>
-<span class="normal">457</span>
-<span class="normal">458</span>
-<span class="normal">459</span>
-<span class="normal">460</span>
-<span class="normal">461</span>
-<span class="normal">462</span>
-<span class="normal">463</span>
-<span class="normal">464</span>
-<span class="normal">465</span>
-<span class="normal">466</span>
-<span class="normal">467</span>
-<span class="normal">468</span>
-<span class="normal">469</span>
-<span class="normal">470</span>
-<span class="normal">471</span>
-<span class="normal">472</span>
-<span class="normal">473</span>
-<span class="normal">474</span>
-<span class="normal">475</span>
-<span class="normal">476</span>
-<span class="normal">477</span>
-<span class="normal">478</span>
-<span class="normal">479</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">clump</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span>
+<span class="normal">546</span>
+<span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">clump</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform LD clumping of the studyLocus.</span>
 
 <span class="sd">    Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</span>
@@ -4764,7 +5236,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4775,7 +5247,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_type</code></td>
           <td>
                 <code>str</code>
@@ -4789,7 +5261,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_index</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_index.StudyIndex" href="../study_index/#gentropy.dataset.study_index.StudyIndex">StudyIndex</a></code>
@@ -4808,7 +5280,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4817,7 +5289,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyLocus</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
           </td>
@@ -4832,7 +5304,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Raises:</strong></p>
+  <p><span class="doc-section-title">Raises:</span></p>
   <table>
     <thead>
       <tr>
@@ -4841,7 +5313,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>ValueError</code>
           </td>
@@ -4856,34 +5328,34 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span>
-<span class="normal">263</span>
-<span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span>
-<span class="normal">277</span>
-<span class="normal">278</span>
-<span class="normal">279</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">279</span>
 <span class="normal">280</span>
 <span class="normal">281</span>
 <span class="normal">282</span>
-<span class="normal">283</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">filter_by_study_type</span><span class="p">(</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">filter_by_study_type</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a new StudyLocus dataset filtered by study type.</span>
@@ -4934,7 +5406,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4945,7 +5417,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>credible_interval</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.CredibleInterval" href="#gentropy.dataset.study_locus.CredibleInterval">CredibleInterval</a></code>
@@ -4964,7 +5436,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4973,7 +5445,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyLocus</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
           </td>
@@ -4988,26 +5460,26 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">285</span>
-<span class="normal">286</span>
-<span class="normal">287</span>
-<span class="normal">288</span>
-<span class="normal">289</span>
-<span class="normal">290</span>
-<span class="normal">291</span>
-<span class="normal">292</span>
-<span class="normal">293</span>
-<span class="normal">294</span>
-<span class="normal">295</span>
-<span class="normal">296</span>
-<span class="normal">297</span>
-<span class="normal">298</span>
-<span class="normal">299</span>
-<span class="normal">300</span>
-<span class="normal">301</span>
-<span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">filter_credible_set</span><span class="p">(</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">filter_credible_set</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">credible_interval</span><span class="p">:</span> <span class="n">CredibleInterval</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
@@ -5039,7 +5511,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 <h3 id="gentropy.dataset.study_locus.StudyLocus.find_overlaps" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">find_overlaps</span><span class="p">(</span><span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusOverlap</span></code>
+          <code class="highlight language-python"><span class="n">find_overlaps</span><span class="p">(</span><span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">intra_study_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusOverlap</span></code>
 
 <a href="#gentropy.dataset.study_locus.StudyLocus.find_overlaps" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -5052,7 +5524,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5063,7 +5535,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_index</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_index.StudyIndex" href="../study_index/#gentropy.dataset.study_index.StudyIndex">StudyIndex</a></code>
@@ -5077,12 +5549,26 @@ appearing on the right side.</p>
               <em>required</em>
           </td>
         </tr>
+        <tr class="doc-section-item">
+          <td><code>intra_study_overlap</code></td>
+          <td>
+                <code>bool</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>If True, finds intra-study overlaps for credible set deduplication. Default is False.</p>
+            </div>
+          </td>
+          <td>
+                <code>False</code>
+          </td>
+        </tr>
     </tbody>
   </table>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5091,7 +5577,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyLocusOverlap</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus_overlap.StudyLocusOverlap" href="../study_locus_overlap/#gentropy.dataset.study_locus_overlap.StudyLocusOverlap">StudyLocusOverlap</a></code>
           </td>
@@ -5106,30 +5592,7 @@ appearing on the right side.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
-<span class="normal">310</span>
-<span class="normal">311</span>
-<span class="normal">312</span>
-<span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span>
-<span class="normal">316</span>
-<span class="normal">317</span>
-<span class="normal">318</span>
-<span class="normal">319</span>
-<span class="normal">320</span>
-<span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">329</span>
 <span class="normal">330</span>
 <span class="normal">331</span>
 <span class="normal">332</span>
@@ -5139,7 +5602,37 @@ appearing on the right side.</p>
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
-<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">find_overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusOverlap</span><span class="p">:</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span>
+<span class="normal">343</span>
+<span class="normal">344</span>
+<span class="normal">345</span>
+<span class="normal">346</span>
+<span class="normal">347</span>
+<span class="normal">348</span>
+<span class="normal">349</span>
+<span class="normal">350</span>
+<span class="normal">351</span>
+<span class="normal">352</span>
+<span class="normal">353</span>
+<span class="normal">354</span>
+<span class="normal">355</span>
+<span class="normal">356</span>
+<span class="normal">357</span>
+<span class="normal">358</span>
+<span class="normal">359</span>
+<span class="normal">360</span>
+<span class="normal">361</span>
+<span class="normal">362</span>
+<span class="normal">363</span>
+<span class="normal">364</span>
+<span class="normal">365</span>
+<span class="normal">366</span>
+<span class="normal">367</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">find_overlaps</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">intra_study_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusOverlap</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate overlapping study-locus.</span>
 
 <span class="sd">    Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always</span>
@@ -5147,6 +5640,7 @@ appearing on the right side.</p>
 
 <span class="sd">    Args:</span>
 <span class="sd">        study_index (StudyIndex): Study index to resolve study types.</span>
+<span class="sd">        intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.</span>
@@ -5156,8 +5650,10 @@ appearing on the right side.</p>
         <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">select</span><span class="p">(</span>
             <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;studyId&quot;</span><span class="p">,</span>
             <span class="s2">&quot;studyType&quot;</span><span class="p">,</span>
             <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;region&quot;</span><span class="p">,</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tagVariantId&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.logBF&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.posteriorProbability&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">),</span>
@@ -5169,7 +5665,7 @@ appearing on the right side.</p>
     <span class="p">)</span>
 
     <span class="c1"># overlapping study-locus</span>
-    <span class="n">peak_overlaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlapping_peaks</span><span class="p">(</span><span class="n">loci_to_overlap</span><span class="p">)</span>
+    <span class="n">peak_overlaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlapping_peaks</span><span class="p">(</span><span class="n">loci_to_overlap</span><span class="p">,</span> <span class="n">intra_study_overlap</span><span class="p">)</span>
 
     <span class="c1"># study-locus overlap by aligning overlapping variants</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_align_overlapping_tags</span><span class="p">(</span><span class="n">loci_to_overlap</span><span class="p">,</span> <span class="n">peak_overlaps</span><span class="p">)</span>
@@ -5200,7 +5696,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5209,7 +5705,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StructType</code></td>          <td>
                 <code><span title="pyspark.sql.types.StructType">StructType</span></code>
           </td>
@@ -5224,14 +5720,14 @@ appearing on the right side.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyLocus</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides the schema for the StudyLocus dataset.</span>
 
@@ -5262,7 +5758,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5271,7 +5767,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>Column</code></td>          <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
           </td>
@@ -5286,16 +5782,16 @@ appearing on the right side.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">364</span>
-<span class="normal">365</span>
-<span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span>
-<span class="normal">369</span>
-<span class="normal">370</span>
-<span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">neglog_pvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">neglog_pvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the negative log p-value.</span>
 
 <span class="sd">    Returns:</span>
@@ -5328,7 +5824,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5337,7 +5833,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>DataFrame</code></td>          <td>
                 <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
           </td>
@@ -5352,28 +5848,28 @@ appearing on the right side.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
-<span class="normal">346</span>
-<span class="normal">347</span>
-<span class="normal">348</span>
-<span class="normal">349</span>
-<span class="normal">350</span>
-<span class="normal">351</span>
-<span class="normal">352</span>
-<span class="normal">353</span>
-<span class="normal">354</span>
-<span class="normal">355</span>
-<span class="normal">356</span>
-<span class="normal">357</span>
-<span class="normal">358</span>
-<span class="normal">359</span>
-<span class="normal">360</span>
-<span class="normal">361</span>
-<span class="normal">362</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">unique_variants_in_locus</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span>
+<span class="normal">384</span>
+<span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span>
+<span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">unique_variants_in_locus</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;All unique variants collected in a `StudyLocus` dataframe.</span>
 
 <span class="sd">    Returns:</span>
@@ -5422,7 +5918,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -5433,7 +5929,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>qc</code></td>
           <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
@@ -5447,7 +5943,7 @@ appearing on the right side.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>flag_condition</code></td>
           <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
@@ -5461,7 +5957,7 @@ appearing on the right side.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>flag_text</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocusQualityCheck" href="#gentropy.dataset.study_locus.StudyLocusQualityCheck">StudyLocusQualityCheck</a></code>
@@ -5480,7 +5976,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -5489,7 +5985,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>Column</code></td>          <td>
                 <code><span title="pyspark.sql.Column">Column</span></code>
           </td>
@@ -5504,25 +6000,25 @@ appearing on the right side.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span> <span class="nf">update_quality_flag</span><span class="p">(</span>
     <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_text</span><span class="p">:</span> <span class="n">StudyLocusQualityCheck</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
@@ -5577,7 +6073,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Attributes:</strong></p>
+  <p><span class="doc-section-title">Attributes:</span></p>
   <table>
     <thead>
       <tr>
@@ -5587,7 +6083,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG">SUBSIGNIFICANT_FLAG</span></code></td>
           <td>
                 <code>str</code>
@@ -5598,7 +6094,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG">NO_GENOMIC_LOCATION_FLAG</span></code></td>
           <td>
                 <code>str</code>
@@ -5609,7 +6105,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.COMPOSITE_FLAG">COMPOSITE_FLAG</span></code></td>
           <td>
                 <code>str</code>
@@ -5620,7 +6116,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.INCONSISTENCY_FLAG">INCONSISTENCY_FLAG</span></code></td>
           <td>
                 <code>str</code>
@@ -5631,7 +6127,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.NON_MAPPED_VARIANT_FLAG">NON_MAPPED_VARIANT_FLAG</span></code></td>
           <td>
                 <code>str</code>
@@ -5642,7 +6138,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.PALINDROMIC_ALLELE_FLAG">PALINDROMIC_ALLELE_FLAG</span></code></td>
           <td>
                 <code>str</code>
@@ -5653,7 +6149,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.AMBIGUOUS_STUDY">AMBIGUOUS_STUDY</span></code></td>
           <td>
                 <code>str</code>
@@ -5664,7 +6160,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.UNRESOLVED_LD">UNRESOLVED_LD</span></code></td>
           <td>
                 <code>str</code>
@@ -5675,7 +6171,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.LD_CLUMPED">LD_CLUMPED</span></code></td>
           <td>
                 <code>str</code>
@@ -5686,7 +6182,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.NO_POPULATION">NO_POPULATION</span></code></td>
           <td>
                 <code>str</code>
@@ -5697,7 +6193,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.StudyLocusQualityCheck.NOT_QUALIFYING_LD_BLOCK">NOT_QUALIFYING_LD_BLOCK</span></code></td>
           <td>
                 <code>str</code>
@@ -5713,9 +6209,7 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">31</span>
 <span class="normal">32</span>
 <span class="normal">33</span>
 <span class="normal">34</span>
@@ -5742,7 +6236,9 @@ appearing on the right side.</p>
 <span class="normal">55</span>
 <span class="normal">56</span>
 <span class="normal">57</span>
-<span class="normal">58</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">StudyLocusQualityCheck</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">StudyLocusQualityCheck</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study-Locus quality control options listing concerns on the quality of the association.</span>
 
 <span class="sd">    Attributes:</span>
@@ -5818,7 +6314,7 @@ appearing on the right side.</p>
 
 
 
-  <p><strong>Attributes:</strong></p>
+  <p><span class="doc-section-title">Attributes:</span></p>
   <table>
     <thead>
       <tr>
@@ -5828,7 +6324,7 @@ appearing on the right side.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.CredibleInterval.IS95">IS95</span></code></td>
           <td>
                 <code>str</code>
@@ -5839,7 +6335,7 @@ appearing on the right side.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.dataset.study_locus.CredibleInterval.IS99">IS99</span></code></td>
           <td>
                 <code>str</code>
@@ -5855,9 +6351,7 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">63</span>
 <span class="normal">64</span>
 <span class="normal">65</span>
 <span class="normal">66</span>
@@ -5866,7 +6360,9 @@ appearing on the right side.</p>
 <span class="normal">69</span>
 <span class="normal">70</span>
 <span class="normal">71</span>
-<span class="normal">72</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">CredibleInterval</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">CredibleInterval</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Credible interval enum.</span>
 
 <span class="sd">    Interval within which an unobserved parameter value falls with a particular probability.</span>
@@ -5909,6 +6405,7 @@ appearing on the right side.</p>
  |-- region: string (nullable = true)
  |-- studyId: string (nullable = false)
  |-- beta: double (nullable = true)
+ |-- zScore: double (nullable = true)
  |-- pValueMantissa: float (nullable = true)
  |-- pValueExponent: integer (nullable = true)
  |-- effectAlleleFrequencyFromSource: float (nullable = true)
@@ -5919,6 +6416,8 @@ appearing on the right side.</p>
  |-- finemappingMethod: string (nullable = true)
  |-- credibleSetIndex: integer (nullable = true)
  |-- credibleSetlog10BF: double (nullable = true)
+ |-- purityMeanR2: double (nullable = true)
+ |-- purityMinR2: double (nullable = true)
  |-- sampleSize: integer (nullable = true)
  |-- ldSet: array (nullable = true)
  |    |-- element: struct (containsNull = true)

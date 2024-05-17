@@ -2258,6 +2258,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../susie_inf/" class="md-nav__link">
         
   
@@ -2288,7 +2330,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2304,14 +2346,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -2985,11 +3027,17 @@
 <span class="normal">84</span>
 <span class="normal">85</span>
 <span class="normal">86</span>
-<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ECaviar</span><span class="p">:</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ECaviar</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;ECaviar-based colocalisation analysis.</span>
 
 <span class="sd">    It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">METHOD_NAME</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;eCAVIAR&quot;</span>
+    <span class="n">METHOD_METRIC</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;clpp&quot;</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_get_clpp</span><span class="p">(</span><span class="n">left_pp</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">right_pp</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
@@ -3046,7 +3094,7 @@
                     <span class="n">f</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;numberColocalisingVariants&quot;</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clpp&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;clpp&quot;</span><span class="p">),</span>
                 <span class="p">)</span>
-                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;colocalisationMethod&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;eCAVIAR&quot;</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;colocalisationMethod&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">METHOD_NAME</span><span class="p">))</span>
             <span class="p">),</span>
             <span class="n">_schema</span><span class="o">=</span><span class="n">Colocalisation</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
@@ -3086,7 +3134,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3097,7 +3145,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>overlapping_signals</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus_overlap.StudyLocusOverlap" href="../../datasets/study_locus_overlap/#gentropy.dataset.study_locus_overlap.StudyLocusOverlap">StudyLocusOverlap</a></code>
@@ -3116,7 +3164,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3125,7 +3173,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>Colocalisation</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.colocalisation.Colocalisation" href="../../datasets/colocalisation/#gentropy.dataset.colocalisation.Colocalisation">Colocalisation</a></code>
           </td>
@@ -3140,10 +3188,7 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/method/colocalisation.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
 <span class="normal">64</span>
@@ -3169,7 +3214,10 @@
 <span class="normal">84</span>
 <span class="normal">85</span>
 <span class="normal">86</span>
-<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">colocalise</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">ECaviar</span><span class="p">],</span> <span class="n">overlapping_signals</span><span class="p">:</span> <span class="n">StudyLocusOverlap</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Colocalisation</span><span class="p">:</span>
@@ -3195,7 +3243,7 @@
                 <span class="n">f</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;numberColocalisingVariants&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;clpp&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;clpp&quot;</span><span class="p">),</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;colocalisationMethod&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;eCAVIAR&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;colocalisationMethod&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">METHOD_NAME</span><span class="p">))</span>
         <span class="p">),</span>
         <span class="n">_schema</span><span class="o">=</span><span class="n">Colocalisation</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
     <span class="p">)</span>

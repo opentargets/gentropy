@@ -2196,6 +2196,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2226,7 +2268,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2242,14 +2284,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -2943,7 +2985,11 @@
 <span class="normal">30</span>
 <span class="normal">31</span>
 <span class="normal">32</span>
-<span class="normal">33</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">PICSStep</span><span class="p">:</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">PICSStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;PICS finemapping of LD-annotated StudyLocus.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -2964,7 +3010,11 @@
             <span class="n">session</span><span class="p">,</span> <span class="n">study_locus_ld_annotated_in</span>
         <span class="p">)</span>
         <span class="c1"># PICS</span>
-        <span class="n">picsed_sl</span> <span class="o">=</span> <span class="n">PICS</span><span class="o">.</span><span class="n">finemap</span><span class="p">(</span><span class="n">study_locus_ld_annotated</span><span class="p">)</span><span class="o">.</span><span class="n">annotate_credible_sets</span><span class="p">()</span>
+        <span class="n">picsed_sl</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">PICS</span><span class="o">.</span><span class="n">finemap</span><span class="p">(</span><span class="n">study_locus_ld_annotated</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">annotate_credible_sets</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span><span class="n">credible_interval</span><span class="o">=</span><span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS99</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="c1"># Write</span>
         <span class="n">picsed_sl</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">picsed_study_locus_out</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -2999,7 +3049,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3010,7 +3060,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>session</code></td>
           <td>
                 <code><span title="gentropy.common.session.Session">Session</span></code>
@@ -3024,7 +3074,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_locus_ld_annotated_in</code></td>
           <td>
                 <code>str</code>
@@ -3038,7 +3088,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>picsed_study_locus_out</code></td>
           <td>
                 <code>str</code>
@@ -3077,7 +3127,11 @@
 <span class="normal">30</span>
 <span class="normal">31</span>
 <span class="normal">32</span>
-<span class="normal">33</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">study_locus_ld_annotated_in</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3095,7 +3149,11 @@
         <span class="n">session</span><span class="p">,</span> <span class="n">study_locus_ld_annotated_in</span>
     <span class="p">)</span>
     <span class="c1"># PICS</span>
-    <span class="n">picsed_sl</span> <span class="o">=</span> <span class="n">PICS</span><span class="o">.</span><span class="n">finemap</span><span class="p">(</span><span class="n">study_locus_ld_annotated</span><span class="p">)</span><span class="o">.</span><span class="n">annotate_credible_sets</span><span class="p">()</span>
+    <span class="n">picsed_sl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">PICS</span><span class="o">.</span><span class="n">finemap</span><span class="p">(</span><span class="n">study_locus_ld_annotated</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">annotate_credible_sets</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span><span class="n">credible_interval</span><span class="o">=</span><span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS99</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="c1"># Write</span>
     <span class="n">picsed_sl</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">picsed_study_locus_out</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>

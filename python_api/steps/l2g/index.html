@@ -2196,6 +2196,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2226,7 +2268,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2242,14 +2284,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3074,7 +3116,12 @@
 <span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
-<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">LocusToGeneStep</span><span class="p">:</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">LocusToGeneStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locus to gene step.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -3128,7 +3175,9 @@
             <span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
         <span class="n">v2g</span> <span class="o">=</span> <span class="n">V2G</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">variant_gene_path</span><span class="p">)</span>
-        <span class="n">coloc</span> <span class="o">=</span> <span class="n">Colocalisation</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">colocalisation_path</span><span class="p">)</span>
+        <span class="n">coloc</span> <span class="o">=</span> <span class="n">Colocalisation</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span> <span class="n">colocalisation_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">run_mode</span> <span class="o">==</span> <span class="s2">&quot;predict&quot;</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">model_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">predictions_path</span><span class="p">:</span>
@@ -3146,7 +3195,7 @@
             <span class="ow">and</span> <span class="n">gene_interactions_path</span>
         <span class="p">):</span>
             <span class="c1"># Process gold standard and L2G features</span>
-            <span class="n">gs_curation</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">gold_standard_curation_path</span><span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+            <span class="n">gs_curation</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">gold_standard_curation_path</span><span class="p">)</span>
             <span class="n">interactions</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">gene_interactions_path</span><span class="p">)</span>
             <span class="n">study_locus_overlap</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="p">(</span>
                 <span class="c1"># We just extract overlaps of associations in the gold standard. This parsing is a duplication of the one in the gold standard curation,</span>
@@ -3181,23 +3230,27 @@
 
             <span class="n">fm</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">generate_features</span><span class="p">(</span>
                 <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span><span class="p">,</span>
-                <span class="n">study_locus</span><span class="o">=</span><span class="n">credible_set</span><span class="p">,</span>
+                <span class="n">credible_set</span><span class="o">=</span><span class="n">credible_set</span><span class="p">,</span>
                 <span class="n">study_index</span><span class="o">=</span><span class="n">studies</span><span class="p">,</span>
                 <span class="n">variant_gene</span><span class="o">=</span><span class="n">v2g</span><span class="p">,</span>
                 <span class="n">colocalisation</span><span class="o">=</span><span class="n">coloc</span><span class="p">,</span>
             <span class="p">)</span>
 
-            <span class="c1"># Join and fill null values with 0</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="p">(</span>
-                <span class="n">_df</span><span class="o">=</span><span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
-                        <span class="n">gold_standards</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="c1"># Annotate gold standards with features</span>
+                <span class="n">L2GFeatureMatrix</span><span class="p">(</span>
+                    <span class="n">_df</span><span class="o">=</span><span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
+                            <span class="n">gold_standards</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
+                        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
                     <span class="p">),</span>
-                    <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
-                    <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+                    <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">select_features</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">features_list</span><span class="p">))</span>
+            <span class="p">)</span>
 
             <span class="c1"># Instantiate classifier</span>
             <span class="n">estimator</span> <span class="o">=</span> <span class="n">SparkXGBClassifier</span><span class="p">(</span>
@@ -3220,9 +3273,8 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Train model</span>
                 <span class="n">LocusToGeneTrainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
-                    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                    <span class="n">gold_standard_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
                     <span class="n">l2g_model</span><span class="o">=</span><span class="n">l2g_model</span><span class="p">,</span>
-                    <span class="n">features_list</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">features_list</span><span class="p">),</span>
                     <span class="n">model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">,</span>
                     <span class="n">evaluate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">wandb_run_name</span><span class="o">=</span><span class="n">wandb_run_name</span><span class="p">,</span>
@@ -3261,7 +3313,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3272,7 +3324,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>session</code></td>
           <td>
                 <code><span title="gentropy.common.session.Session">Session</span></code>
@@ -3286,7 +3338,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>run_mode</code></td>
           <td>
                 <code>str</code>
@@ -3300,7 +3352,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>model_path</code></td>
           <td>
                 <code>str</code>
@@ -3314,7 +3366,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>predictions_path</code></td>
           <td>
                 <code>str</code>
@@ -3328,7 +3380,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>credible_set_path</code></td>
           <td>
                 <code>str</code>
@@ -3342,7 +3394,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>variant_gene_path</code></td>
           <td>
                 <code>str</code>
@@ -3356,7 +3408,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>colocalisation_path</code></td>
           <td>
                 <code>str</code>
@@ -3370,7 +3422,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_index_path</code></td>
           <td>
                 <code>str</code>
@@ -3384,7 +3436,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>gold_standard_curation_path</code></td>
           <td>
                 <code>str</code>
@@ -3398,7 +3450,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>gene_interactions_path</code></td>
           <td>
                 <code>str</code>
@@ -3412,7 +3464,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>features_list</code></td>
           <td>
                 <code>list[str]</code>
@@ -3426,7 +3478,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>hyperparameters</code></td>
           <td>
                 <code>dict[str, <span title="typing.Any">Any</span>]</code>
@@ -3440,7 +3492,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>wandb_run_name</code></td>
           <td>
                 <code>str | None</code>
@@ -3454,7 +3506,7 @@
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>perform_cross_validation</code></td>
           <td>
                 <code>bool</code>
@@ -3473,7 +3525,7 @@
 
 
 
-  <p><strong>Raises:</strong></p>
+  <p><span class="doc-section-title">Raises:</span></p>
   <table>
     <thead>
       <tr>
@@ -3482,7 +3534,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>ValueError</code>
           </td>
@@ -3648,7 +3700,12 @@
 <span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
-<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">run_mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3699,7 +3756,9 @@
         <span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">)</span>
     <span class="n">v2g</span> <span class="o">=</span> <span class="n">V2G</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">variant_gene_path</span><span class="p">)</span>
-    <span class="n">coloc</span> <span class="o">=</span> <span class="n">Colocalisation</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">colocalisation_path</span><span class="p">)</span>
+    <span class="n">coloc</span> <span class="o">=</span> <span class="n">Colocalisation</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+        <span class="n">session</span><span class="p">,</span> <span class="n">colocalisation_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">run_mode</span> <span class="o">==</span> <span class="s2">&quot;predict&quot;</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">model_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">predictions_path</span><span class="p">:</span>
@@ -3717,7 +3776,7 @@
         <span class="ow">and</span> <span class="n">gene_interactions_path</span>
     <span class="p">):</span>
         <span class="c1"># Process gold standard and L2G features</span>
-        <span class="n">gs_curation</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">gold_standard_curation_path</span><span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="n">gs_curation</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">gold_standard_curation_path</span><span class="p">)</span>
         <span class="n">interactions</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">gene_interactions_path</span><span class="p">)</span>
         <span class="n">study_locus_overlap</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="p">(</span>
             <span class="c1"># We just extract overlaps of associations in the gold standard. This parsing is a duplication of the one in the gold standard curation,</span>
@@ -3752,23 +3811,27 @@
 
         <span class="n">fm</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">generate_features</span><span class="p">(</span>
             <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span><span class="p">,</span>
-            <span class="n">study_locus</span><span class="o">=</span><span class="n">credible_set</span><span class="p">,</span>
+            <span class="n">credible_set</span><span class="o">=</span><span class="n">credible_set</span><span class="p">,</span>
             <span class="n">study_index</span><span class="o">=</span><span class="n">studies</span><span class="p">,</span>
             <span class="n">variant_gene</span><span class="o">=</span><span class="n">v2g</span><span class="p">,</span>
             <span class="n">colocalisation</span><span class="o">=</span><span class="n">coloc</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c1"># Join and fill null values with 0</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
-                    <span class="n">gold_standards</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="c1"># Annotate gold standards with features</span>
+            <span class="n">L2GFeatureMatrix</span><span class="p">(</span>
+                <span class="n">_df</span><span class="o">=</span><span class="n">fm</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
+                        <span class="n">gold_standards</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
+                    <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
                 <span class="p">),</span>
-                <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
-                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+                <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">select_features</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">features_list</span><span class="p">))</span>
+        <span class="p">)</span>
 
         <span class="c1"># Instantiate classifier</span>
         <span class="n">estimator</span> <span class="o">=</span> <span class="n">SparkXGBClassifier</span><span class="p">(</span>
@@ -3791,9 +3854,8 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Train model</span>
             <span class="n">LocusToGeneTrainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
-                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">gold_standard_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
                 <span class="n">l2g_model</span><span class="o">=</span><span class="n">l2g_model</span><span class="p">,</span>
-                <span class="n">features_list</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">features_list</span><span class="p">),</span>
                 <span class="n">model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">,</span>
                 <span class="n">evaluate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">wandb_run_name</span><span class="o">=</span><span class="n">wandb_run_name</span><span class="p">,</span>

@@ -2260,6 +2260,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2290,7 +2332,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2306,14 +2348,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -2926,7 +2968,7 @@
 
 
 
-  <p><strong>Attributes:</strong></p>
+  <p><span class="doc-section-title">Attributes:</span></p>
   <table>
     <thead>
       <tr>
@@ -2936,7 +2978,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.datasource.gnomad.variants.GnomADVariants.gnomad_genomes">gnomad_genomes</span></code></td>
           <td>
                 <code>str</code>
@@ -2947,7 +2989,7 @@
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.datasource.gnomad.variants.GnomADVariants.chain_hail_38_37">chain_hail_38_37</span></code></td>
           <td>
                 <code>str</code>
@@ -2958,7 +3000,7 @@
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code><span title="gentropy.datasource.gnomad.variants.GnomADVariants.populations">populations</span></code></td>
           <td>
                 <code>list[str]</code>
@@ -2974,8 +3016,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gnomad/variants.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
-<span class="normal"> 16</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 16</span>
 <span class="normal"> 17</span>
 <span class="normal"> 18</span>
 <span class="normal"> 19</span>
@@ -3092,43 +3133,7 @@
 <span class="normal">130</span>
 <span class="normal">131</span>
 <span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">133</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">GnomADVariants</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GnomAD variants included in the GnomAD genomes dataset.</span>
 
@@ -3154,29 +3159,6 @@
             <span class="s2">&quot;remaining&quot;</span><span class="p">,</span>  <span class="c1"># Other</span>
         <span class="p">]</span>
     <span class="p">)</span>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_convert_gnomad_position_to_ensembl_hail</span><span class="p">(</span>
-        <span class="n">position</span><span class="p">:</span> <span class="n">Int32Expression</span><span class="p">,</span>
-        <span class="n">reference</span><span class="p">:</span> <span class="n">StringExpression</span><span class="p">,</span>
-        <span class="n">alternate</span><span class="p">:</span> <span class="n">StringExpression</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Int32Expression</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert GnomAD variant position to Ensembl variant position in hail table.</span>
-
-<span class="sd">        For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.</span>
-<span class="sd">        More info about the problem: https://www.biostars.org/p/84686/</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            position (Int32Expression): Position of the variant in the GnomAD genome.</span>
-<span class="sd">            reference (StringExpression): The reference allele.</span>
-<span class="sd">            alternate (StringExpression): The alternate allele</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Int32Expression: The position of the variant according to Ensembl genome.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">hl</span><span class="o">.</span><span class="n">if_else</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">reference</span><span class="o">.</span><span class="n">length</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">alternate</span><span class="o">.</span><span class="n">length</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">),</span> <span class="n">position</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">position</span>
-        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">as_variant_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GnomADVariants</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VariantAnnotation</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate variant annotation dataset from gnomAD.</span>
@@ -3209,7 +3191,7 @@
         <span class="k">return</span> <span class="n">VariantAnnotation</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">ht</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                    <span class="n">gnomadVariantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">variantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                         <span class="p">[</span>
                             <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
                             <span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">),</span>
@@ -3218,21 +3200,7 @@
                         <span class="p">]</span>
                     <span class="p">),</span>
                     <span class="n">chromosome</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
-                    <span class="n">position</span><span class="o">=</span><span class="n">GnomADVariants</span><span class="o">.</span><span class="n">_convert_gnomad_position_to_ensembl_hail</span><span class="p">(</span>
-                        <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                    <span class="p">),</span>
-                    <span class="n">variantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                        <span class="p">[</span>
-                            <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
-                            <span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span>
-                                <span class="n">GnomADVariants</span><span class="o">.</span><span class="n">_convert_gnomad_position_to_ensembl_hail</span><span class="p">(</span>
-                                    <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                                <span class="p">)</span>
-                            <span class="p">),</span>
-                            <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                            <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                        <span class="p">]</span>
-                    <span class="p">),</span>
+                    <span class="n">position</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
                     <span class="n">chromosomeB37</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus_GRCh37</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
                     <span class="n">positionB37</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus_GRCh37</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
                     <span class="n">referenceAllele</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -3321,7 +3289,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3330,7 +3298,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>VariantAnnotation</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.variant_annotation.VariantAnnotation" href="../../../datasets/variant_annotation/#gentropy.dataset.variant_annotation.VariantAnnotation">VariantAnnotation</a></code>
           </td>
@@ -3345,7 +3313,29 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/datasource/gnomad/variants.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 65</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
 <span class="normal"> 66</span>
 <span class="normal"> 67</span>
 <span class="normal"> 68</span>
@@ -3413,43 +3403,7 @@
 <span class="normal">130</span>
 <span class="normal">131</span>
 <span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">as_variant_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GnomADVariants</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VariantAnnotation</span><span class="p">:</span>
+<span class="normal">133</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">as_variant_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">GnomADVariants</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VariantAnnotation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate variant annotation dataset from gnomAD.</span>
 
 <span class="sd">    Some relevant modifications to the original dataset are:</span>
@@ -3480,7 +3434,7 @@
     <span class="k">return</span> <span class="n">VariantAnnotation</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="n">ht</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                <span class="n">gnomadVariantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">variantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="p">[</span>
                         <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
                         <span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">),</span>
@@ -3489,21 +3443,7 @@
                     <span class="p">]</span>
                 <span class="p">),</span>
                 <span class="n">chromosome</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
-                <span class="n">position</span><span class="o">=</span><span class="n">GnomADVariants</span><span class="o">.</span><span class="n">_convert_gnomad_position_to_ensembl_hail</span><span class="p">(</span>
-                    <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                <span class="p">),</span>
-                <span class="n">variantId</span><span class="o">=</span><span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="p">[</span>
-                        <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
-                        <span class="n">hl</span><span class="o">.</span><span class="n">str</span><span class="p">(</span>
-                            <span class="n">GnomADVariants</span><span class="o">.</span><span class="n">_convert_gnomad_position_to_ensembl_hail</span><span class="p">(</span>
-                                <span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                            <span class="p">)</span>
-                        <span class="p">),</span>
-                        <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                        <span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                    <span class="p">]</span>
-                <span class="p">),</span>
+                <span class="n">position</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
                 <span class="n">chromosomeB37</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus_GRCh37</span><span class="o">.</span><span class="n">contig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
                 <span class="n">positionB37</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">locus_GRCh37</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
                 <span class="n">referenceAllele</span><span class="o">=</span><span class="n">ht</span><span class="o">.</span><span class="n">alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>

@@ -2198,6 +2198,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../susie_inf/" class="md-nav__link">
         
   
@@ -2230,7 +2272,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" checked>
         
           
           
@@ -2246,14 +2288,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3039,9 +3081,7 @@
 <span class="normal">107</span>
 <span class="normal">108</span>
 <span class="normal">109</span>
-<span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">110</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">LocusToGeneTrainer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Modelling of what is the most likely causal gene associated with a given locus.&quot;&quot;&quot;</span>
 
@@ -3051,9 +3091,8 @@
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LocusToGeneTrainer</span><span class="p">],</span>
-        <span class="n">data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
+        <span class="n">gold_standard_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
         <span class="n">l2g_model</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
-        <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">evaluate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3062,9 +3101,8 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Train the Locus to Gene model.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            data (L2GFeatureMatrix): Feature matrix containing the data</span>
+<span class="sd">            gold_standard_data (L2GFeatureMatrix): Feature matrix for the associations in the gold standard</span>
 <span class="sd">            l2g_model (LocusToGeneModel): Model to fit to the data on</span>
-<span class="sd">            features_list (list[str]): List of features to use for the model</span>
 <span class="sd">            evaluate (bool): Whether to evaluate the model on a test set</span>
 <span class="sd">            wandb_run_name (str | None): Descriptive name for the run to be tracked with W&amp;B</span>
 <span class="sd">            model_path (str | None): Path to save the model to</span>
@@ -3073,7 +3111,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            LocusToGeneModel: Trained model</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">select_features</span><span class="p">(</span><span class="n">features_list</span><span class="p">)</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span><span class="n">fraction</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+        <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">gold_standard_data</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span><span class="n">fraction</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
 
         <span class="n">model</span> <span class="o">=</span> <span class="n">l2g_model</span><span class="o">.</span><span class="n">add_pipeline_stage</span><span class="p">(</span><span class="n">l2g_model</span><span class="o">.</span><span class="n">estimator</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
 
@@ -3082,7 +3120,7 @@
                 <span class="n">results</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">),</span>
                 <span class="n">hyperparameters</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">,</span>
                 <span class="n">wandb_run_name</span><span class="o">=</span><span class="n">wandb_run_name</span><span class="p">,</span>
-                <span class="n">training_data</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+                <span class="n">gold_standard_data</span><span class="o">=</span><span class="n">gold_standard_data</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">model_path</span><span class="p">:</span>
             <span class="n">l2g_model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
@@ -3177,7 +3215,7 @@ combination of parameters and return the best model.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3188,7 +3226,7 @@ combination of parameters and return the best model.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>l2g_model</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.method.l2g.model.LocusToGeneModel" href="../model/#gentropy.method.l2g.model.LocusToGeneModel">LocusToGeneModel</a></code>
@@ -3202,7 +3240,7 @@ combination of parameters and return the best model.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>data</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_feature_matrix.L2GFeatureMatrix" href="../../../datasets/l2g_feature_matrix/#gentropy.dataset.l2g_feature_matrix.L2GFeatureMatrix">L2GFeatureMatrix</a></code>
@@ -3216,7 +3254,7 @@ combination of parameters and return the best model.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>num_folds</code></td>
           <td>
                 <code>int</code>
@@ -3230,7 +3268,7 @@ combination of parameters and return the best model.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>param_grid</code></td>
           <td>
                 <code><span title="typing.Optional">Optional</span>[list]</code>
@@ -3249,7 +3287,7 @@ combination of parameters and return the best model.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3258,7 +3296,7 @@ combination of parameters and return the best model.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>LocusToGeneModel</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.method.l2g.model.LocusToGeneModel" href="../model/#gentropy.method.l2g.model.LocusToGeneModel">LocusToGeneModel</a></code>
           </td>
@@ -3273,7 +3311,7 @@ combination of parameters and return the best model.</p>
 
 
 
-  <p><strong>Raises:</strong></p>
+  <p><span class="doc-section-title">Raises:</span></p>
   <table>
     <thead>
       <tr>
@@ -3282,7 +3320,7 @@ combination of parameters and return the best model.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>ValueError</code>
           </td>
@@ -3292,7 +3330,7 @@ combination of parameters and return the best model.</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>ValueError</code>
           </td>
@@ -3307,7 +3345,9 @@ combination of parameters and return the best model.</p>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/method/l2g/trainer.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 62</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
 <span class="normal"> 63</span>
 <span class="normal"> 64</span>
 <span class="normal"> 65</span>
@@ -3355,9 +3395,7 @@ combination of parameters and return the best model.</p>
 <span class="normal">107</span>
 <span class="normal">108</span>
 <span class="normal">109</span>
-<span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">110</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">cross_validate</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LocusToGeneTrainer</span><span class="p">],</span>
     <span class="n">l2g_model</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
@@ -3420,7 +3458,7 @@ combination of parameters and return the best model.</p>
 
 
 <h3 id="gentropy.method.l2g.trainer.LocusToGeneTrainer.train" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">train</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span> <span class="n">l2g_model</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span> <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">evaluate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">hyperparams</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">LocusToGeneModel</span></code>
+          <code class="highlight language-python"><span class="n">train</span><span class="p">(</span><span class="n">gold_standard_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span> <span class="n">l2g_model</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span> <span class="n">evaluate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">hyperparams</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">LocusToGeneModel</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -3435,7 +3473,7 @@ combination of parameters and return the best model.</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3446,21 +3484,21 @@ combination of parameters and return the best model.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
-          <td><code>data</code></td>
+        <tr class="doc-section-item">
+          <td><code>gold_standard_data</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_feature_matrix.L2GFeatureMatrix" href="../../../datasets/l2g_feature_matrix/#gentropy.dataset.l2g_feature_matrix.L2GFeatureMatrix">L2GFeatureMatrix</a></code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Feature matrix containing the data</p>
+              <p>Feature matrix for the associations in the gold standard</p>
             </div>
           </td>
           <td>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>l2g_model</code></td>
           <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.method.l2g.model.LocusToGeneModel" href="../model/#gentropy.method.l2g.model.LocusToGeneModel">LocusToGeneModel</a></code>
@@ -3474,21 +3512,7 @@ combination of parameters and return the best model.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
-          <td><code>features_list</code></td>
-          <td>
-                <code>list[str]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>List of features to use for the model</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>evaluate</code></td>
           <td>
                 <code>bool</code>
@@ -3502,7 +3526,7 @@ combination of parameters and return the best model.</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>wandb_run_name</code></td>
           <td>
                 <code>str | None</code>
@@ -3516,7 +3540,7 @@ combination of parameters and return the best model.</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>model_path</code></td>
           <td>
                 <code>str | None</code>
@@ -3530,7 +3554,7 @@ combination of parameters and return the best model.</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>**hyperparams</code></td>
           <td>
                 <code>dict[str, <span title="typing.Any">Any</span>]</code>
@@ -3549,7 +3573,7 @@ combination of parameters and return the best model.</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3558,7 +3582,7 @@ combination of parameters and return the best model.</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>LocusToGeneModel</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.method.l2g.model.LocusToGeneModel" href="../model/#gentropy.method.l2g.model.LocusToGeneModel">LocusToGeneModel</a></code>
           </td>
@@ -3609,14 +3633,11 @@ combination of parameters and return the best model.</p>
 <span class="normal">55</span>
 <span class="normal">56</span>
 <span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">58</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LocusToGeneTrainer</span><span class="p">],</span>
-    <span class="n">data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
+    <span class="n">gold_standard_data</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
     <span class="n">l2g_model</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
-    <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">evaluate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3625,9 +3646,8 @@ combination of parameters and return the best model.</p>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Train the Locus to Gene model.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        data (L2GFeatureMatrix): Feature matrix containing the data</span>
+<span class="sd">        gold_standard_data (L2GFeatureMatrix): Feature matrix for the associations in the gold standard</span>
 <span class="sd">        l2g_model (LocusToGeneModel): Model to fit to the data on</span>
-<span class="sd">        features_list (list[str]): List of features to use for the model</span>
 <span class="sd">        evaluate (bool): Whether to evaluate the model on a test set</span>
 <span class="sd">        wandb_run_name (str | None): Descriptive name for the run to be tracked with W&amp;B</span>
 <span class="sd">        model_path (str | None): Path to save the model to</span>
@@ -3636,7 +3656,7 @@ combination of parameters and return the best model.</p>
 <span class="sd">    Returns:</span>
 <span class="sd">        LocusToGeneModel: Trained model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">select_features</span><span class="p">(</span><span class="n">features_list</span><span class="p">)</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span><span class="n">fraction</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">gold_standard_data</span><span class="o">.</span><span class="n">train_test_split</span><span class="p">(</span><span class="n">fraction</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
 
     <span class="n">model</span> <span class="o">=</span> <span class="n">l2g_model</span><span class="o">.</span><span class="n">add_pipeline_stage</span><span class="p">(</span><span class="n">l2g_model</span><span class="o">.</span><span class="n">estimator</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
 
@@ -3645,7 +3665,7 @@ combination of parameters and return the best model.</p>
             <span class="n">results</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">),</span>
             <span class="n">hyperparameters</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">,</span>
             <span class="n">wandb_run_name</span><span class="o">=</span><span class="n">wandb_run_name</span><span class="p">,</span>
-            <span class="n">training_data</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+            <span class="n">gold_standard_data</span><span class="o">=</span><span class="n">gold_standard_data</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">model_path</span><span class="p">:</span>
         <span class="n">l2g_model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>

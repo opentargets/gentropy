@@ -2194,6 +2194,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2224,7 +2266,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2240,14 +2282,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -2918,8 +2960,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/window_based_clumping.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 8</span>
-<span class="normal"> 9</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 9</span>
 <span class="normal">10</span>
 <span class="normal">11</span>
 <span class="normal">12</span>
@@ -2960,7 +3001,18 @@
 <span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
-<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">WindowBasedClumpingStep</span><span class="p">:</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">WindowBasedClumpingStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply window based clumping on summary statistics datasets.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -2968,8 +3020,10 @@
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
         <span class="n">summary_statistics_input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">study_locus_output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
+        <span class="n">collect_locus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">collect_locus_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
         <span class="n">inclusion_list_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run window-based clumping step.</span>
 
@@ -2977,8 +3031,10 @@
 <span class="sd">            session (Session): Session object.</span>
 <span class="sd">            summary_statistics_input_path (str): Path to the harmonized summary statistics dataset.</span>
 <span class="sd">            study_locus_output_path (str): Output path for the resulting study locus dataset.</span>
+<span class="sd">            distance (int): Distance, within which tagging variants are collected around the semi-index. Optional.</span>
+<span class="sd">            collect_locus (bool): Whether to collect locus around semi-indices. Optional.</span>
+<span class="sd">            collect_locus_distance (int): Distance, within which tagging variants are collected around the semi-index. Optional.</span>
 <span class="sd">            inclusion_list_path (str | None): Path to the inclusion list (list of white-listed study identifier). Optional.</span>
-<span class="sd">            locus_collect_distance (int | None): Distance, within which tagging variants are collected around the semi-index. Optional.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># If inclusion list path is provided, only these studies will be read:</span>
         <span class="k">if</span> <span class="n">inclusion_list_path</span><span class="p">:</span>
@@ -2990,19 +3046,25 @@
             <span class="c1"># If no inclusion list is provided, read all summary stats in folder:</span>
             <span class="n">study_ids_to_ingest</span> <span class="o">=</span> <span class="p">[</span><span class="n">summary_statistics_input_path</span><span class="p">]</span>
 
-        <span class="p">(</span>
-            <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
-                <span class="n">session</span><span class="p">,</span>
-                <span class="n">study_ids_to_ingest</span><span class="p">,</span>
-                <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span>
-            <span class="c1"># Applying window based clumping:</span>
-            <span class="o">.</span><span class="n">window_based_clumping</span><span class="p">(</span><span class="n">locus_collect_distance</span><span class="o">=</span><span class="n">locus_collect_distance</span><span class="p">)</span>
-            <span class="c1"># Save resulting study locus dataset:</span>
-            <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">study_locus_output_path</span><span class="p">)</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span>
+            <span class="n">study_ids_to_ingest</span><span class="p">,</span>
+            <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="c1"># Clumping:</span>
+        <span class="n">study_locus</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">window_based_clumping</span><span class="p">(</span>
+            <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Optional locus collection:</span>
+        <span class="k">if</span> <span class="n">collect_locus</span><span class="p">:</span>
+            <span class="c1"># Collecting locus around semi-indices:</span>
+            <span class="n">study_locus</span> <span class="o">=</span> <span class="n">study_locus</span><span class="o">.</span><span class="n">annotate_locus_statistics</span><span class="p">(</span>
+                <span class="n">ss</span><span class="p">,</span> <span class="n">collect_locus_distance</span><span class="o">=</span><span class="n">collect_locus_distance</span>
+            <span class="p">)</span>
+
+        <span class="n">study_locus</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">study_locus_output_path</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
 
@@ -3024,7 +3086,7 @@
 
 
 <h3 id="gentropy.window_based_clumping.WindowBasedClumpingStep.__init__" class="doc doc-heading">
-          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">summary_statistics_input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">study_locus_output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inclusion_list_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">summary_statistics_input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">study_locus_output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500000</span><span class="p">,</span> <span class="n">collect_locus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">collect_locus_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500000</span><span class="p">,</span> <span class="n">inclusion_list_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.window_based_clumping.WindowBasedClumpingStep.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3035,7 +3097,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3046,7 +3108,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>session</code></td>
           <td>
                 <code><span title="gentropy.common.session.Session">Session</span></code>
@@ -3060,7 +3122,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>summary_statistics_input_path</code></td>
           <td>
                 <code>str</code>
@@ -3074,7 +3136,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_locus_output_path</code></td>
           <td>
                 <code>str</code>
@@ -3088,7 +3150,49 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
+          <td><code>distance</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Distance, within which tagging variants are collected around the semi-index. Optional.</p>
+            </div>
+          </td>
+          <td>
+                <code>500000</code>
+          </td>
+        </tr>
+        <tr class="doc-section-item">
+          <td><code>collect_locus</code></td>
+          <td>
+                <code>bool</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Whether to collect locus around semi-indices. Optional.</p>
+            </div>
+          </td>
+          <td>
+                <code>False</code>
+          </td>
+        </tr>
+        <tr class="doc-section-item">
+          <td><code>collect_locus_distance</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Distance, within which tagging variants are collected around the semi-index. Optional.</p>
+            </div>
+          </td>
+          <td>
+                <code>500000</code>
+          </td>
+        </tr>
+        <tr class="doc-section-item">
           <td><code>inclusion_list_path</code></td>
           <td>
                 <code>str | None</code>
@@ -3102,27 +3206,12 @@
                 <code>None</code>
           </td>
         </tr>
-        <tr>
-          <td><code>locus_collect_distance</code></td>
-          <td>
-                <code>int | None</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Distance, within which tagging variants are collected around the semi-index. Optional.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
     </tbody>
   </table>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/window_based_clumping.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
-<span class="normal">12</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
 <span class="normal">13</span>
 <span class="normal">14</span>
 <span class="normal">15</span>
@@ -3160,13 +3249,26 @@
 <span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
-<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">summary_statistics_input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">study_locus_output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
+    <span class="n">collect_locus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">collect_locus_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
     <span class="n">inclusion_list_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run window-based clumping step.</span>
 
@@ -3174,8 +3276,10 @@
 <span class="sd">        session (Session): Session object.</span>
 <span class="sd">        summary_statistics_input_path (str): Path to the harmonized summary statistics dataset.</span>
 <span class="sd">        study_locus_output_path (str): Output path for the resulting study locus dataset.</span>
+<span class="sd">        distance (int): Distance, within which tagging variants are collected around the semi-index. Optional.</span>
+<span class="sd">        collect_locus (bool): Whether to collect locus around semi-indices. Optional.</span>
+<span class="sd">        collect_locus_distance (int): Distance, within which tagging variants are collected around the semi-index. Optional.</span>
 <span class="sd">        inclusion_list_path (str | None): Path to the inclusion list (list of white-listed study identifier). Optional.</span>
-<span class="sd">        locus_collect_distance (int | None): Distance, within which tagging variants are collected around the semi-index. Optional.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># If inclusion list path is provided, only these studies will be read:</span>
     <span class="k">if</span> <span class="n">inclusion_list_path</span><span class="p">:</span>
@@ -3187,19 +3291,25 @@
         <span class="c1"># If no inclusion list is provided, read all summary stats in folder:</span>
         <span class="n">study_ids_to_ingest</span> <span class="o">=</span> <span class="p">[</span><span class="n">summary_statistics_input_path</span><span class="p">]</span>
 
-    <span class="p">(</span>
-        <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
-            <span class="n">session</span><span class="p">,</span>
-            <span class="n">study_ids_to_ingest</span><span class="p">,</span>
-            <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span>
-        <span class="c1"># Applying window based clumping:</span>
-        <span class="o">.</span><span class="n">window_based_clumping</span><span class="p">(</span><span class="n">locus_collect_distance</span><span class="o">=</span><span class="n">locus_collect_distance</span><span class="p">)</span>
-        <span class="c1"># Save resulting study locus dataset:</span>
-        <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">study_locus_output_path</span><span class="p">)</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+        <span class="n">session</span><span class="p">,</span>
+        <span class="n">study_ids_to_ingest</span><span class="p">,</span>
+        <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="c1"># Clumping:</span>
+    <span class="n">study_locus</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">window_based_clumping</span><span class="p">(</span>
+        <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Optional locus collection:</span>
+    <span class="k">if</span> <span class="n">collect_locus</span><span class="p">:</span>
+        <span class="c1"># Collecting locus around semi-indices:</span>
+        <span class="n">study_locus</span> <span class="o">=</span> <span class="n">study_locus</span><span class="o">.</span><span class="n">annotate_locus_statistics</span><span class="p">(</span>
+            <span class="n">ss</span><span class="p">,</span> <span class="n">collect_locus_distance</span><span class="o">=</span><span class="n">collect_locus_distance</span>
+        <span class="p">)</span>
+
+    <span class="n">study_locus</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">study_locus_output_path</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>

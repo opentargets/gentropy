@@ -1265,6 +1265,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gentropy.dataset.summary_statistics.SummaryStatistics.sanity_filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      sanity_filter
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gentropy.dataset.summary_statistics.SummaryStatistics.window_based_clumping" class="md-nav__link">
     <span class="md-ellipsis">
       window_based_clumping
@@ -2294,6 +2303,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2324,7 +2375,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2340,14 +2391,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -2932,6 +2983,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#gentropy.dataset.summary_statistics.SummaryStatistics.sanity_filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      sanity_filter
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#gentropy.dataset.summary_statistics.SummaryStatistics.window_based_clumping" class="md-nav__link">
     <span class="md-ellipsis">
       window_based_clumping
@@ -2999,7 +3059,8 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/summary_statistics.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 20</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 19</span>
+<span class="normal"> 20</span>
 <span class="normal"> 21</span>
 <span class="normal"> 22</span>
 <span class="normal"> 23</span>
@@ -3095,7 +3156,22 @@
 <span class="normal">113</span>
 <span class="normal">114</span>
 <span class="normal">115</span>
-<span class="normal">116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">SummaryStatistics</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Summary Statistics dataset.</span>
 
@@ -3137,34 +3213,24 @@
         <span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
         <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
         <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-8</span><span class="p">,</span>
-        <span class="n">baseline_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
-        <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate study-locus from summary statistics by distance based clumping + collect locus.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate study-locus from summary statistics using window-based clumping.</span>
+
+<span class="sd">        For more info, see [`WindowBasedClumping`][gentropy.method.window_based_clumping.WindowBasedClumping]</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.</span>
 <span class="sd">            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.</span>
-<span class="sd">            baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.</span>
-<span class="sd">            locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, locus is not collected.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            StudyLocus: Clumped study-locus containing variants based on window.</span>
+<span class="sd">            StudyLocus: Clumped study-locus optionally containing variants based on window.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump_with_locus</span><span class="p">(</span>
-                <span class="bp">self</span><span class="p">,</span>
-                <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
-                <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
-                <span class="n">p_value_baseline</span><span class="o">=</span><span class="n">baseline_significance</span><span class="p">,</span>
-                <span class="n">locus_window_length</span><span class="o">=</span><span class="n">locus_collect_distance</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">locus_collect_distance</span>
-            <span class="k">else</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
-                <span class="bp">self</span><span class="p">,</span>
-                <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
-                <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
-            <span class="p">)</span>
+        <span class="kn">from</span> <span class="nn">gentropy.method.window_based_clumping</span> <span class="kn">import</span> <span class="n">WindowBasedClumping</span>
+
+        <span class="k">return</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+            <span class="n">gwas_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">exclude_region</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
@@ -3190,6 +3256,32 @@
                     <span class="p">)</span>
                 <span class="p">)</span>
             <span class="p">),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sanity_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The function filters the summary statistics by sanity filters.</span>
+
+<span class="sd">        The function filters the summary statistics by the following filters:</span>
+<span class="sd">            - The p-value should not be eqaul 1.</span>
+<span class="sd">            - The beta and se should not be equal 0.</span>
+<span class="sd">            - The p-value, beta and se should not be NaN.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            SummaryStatistics: The filtered summary statistics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">gwas_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span>
+        <span class="n">gwas_df</span> <span class="o">=</span> <span class="n">gwas_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span>
+            <span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;beta&quot;</span><span class="p">,</span> <span class="s2">&quot;standardError&quot;</span><span class="p">,</span> <span class="s2">&quot;pValueMantissa&quot;</span><span class="p">,</span> <span class="s2">&quot;pValueExponent&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">gwas_df</span> <span class="o">=</span> <span class="n">gwas_df</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;standardError&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">gwas_df</span> <span class="o">=</span> <span class="n">gwas_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueMantissa&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueExponent&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">SummaryStatistics</span><span class="p">(</span>
+            <span class="n">_df</span><span class="o">=</span><span class="n">gwas_df</span><span class="p">,</span>
             <span class="n">_schema</span><span class="o">=</span><span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -3224,7 +3316,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3235,7 +3327,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>region</code></td>
           <td>
                 <code>str</code>
@@ -3254,7 +3346,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3263,7 +3355,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>SummaryStatistics</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.summary_statistics.SummaryStatistics" href="#gentropy.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code>
           </td>
@@ -3278,7 +3370,18 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/summary_statistics.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 92</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
 <span class="normal"> 93</span>
 <span class="normal"> 94</span>
 <span class="normal"> 95</span>
@@ -3291,18 +3394,7 @@
 <span class="normal">102</span>
 <span class="normal">103</span>
 <span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span>
-<span class="normal">108</span>
-<span class="normal">109</span>
-<span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span>
-<span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span>
-<span class="normal">116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">exclude_region</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
+<span class="normal">105</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">exclude_region</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Exclude a region from the summary stats dataset.</span>
 
 <span class="sd">    Args:</span>
@@ -3354,7 +3446,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3363,7 +3455,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StructType</code></td>          <td>
                 <code><span title="pyspark.sql.types.StructType">StructType</span></code>
           </td>
@@ -3378,14 +3470,14 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/summary_statistics.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">27</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">26</span>
+<span class="normal">27</span>
 <span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
 <span class="normal">31</span>
 <span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">33</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SummaryStatistics</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides the schema for the SummaryStatistics dataset.</span>
 
@@ -3416,7 +3508,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3427,7 +3519,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>pvalue</code></td>
           <td>
                 <code>float</code>
@@ -3446,7 +3538,7 @@
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3455,7 +3547,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>SummaryStatistics</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.summary_statistics.SummaryStatistics" href="#gentropy.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code>
           </td>
@@ -3470,7 +3562,8 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/summary_statistics.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">36</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">35</span>
+<span class="normal">36</span>
 <span class="normal">37</span>
 <span class="normal">38</span>
 <span class="normal">39</span>
@@ -3489,8 +3582,7 @@
 <span class="normal">52</span>
 <span class="normal">53</span>
 <span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">pvalue_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">pvalue</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
+<span class="normal">55</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">pvalue_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">pvalue</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter summary statistics based on the provided p-value threshold.</span>
 
 <span class="sd">    Args:</span>
@@ -3522,19 +3614,124 @@
 
 
 
+<h3 id="gentropy.dataset.summary_statistics.SummaryStatistics.sanity_filter" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">sanity_filter</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span></code>
+
+<a href="#gentropy.dataset.summary_statistics.SummaryStatistics.sanity_filter" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>The function filters the summary statistics by sanity filters.</p>
+
+<details class="the-function-filters-the-summary-statistics-by-the-following-filters" open>
+  <summary>The function filters the summary statistics by the following filters</summary>
+  <ul>
+<li>The p-value should not be eqaul 1.</li>
+<li>The beta and se should not be equal 0.</li>
+<li>The p-value, beta and se should not be NaN.</li>
+</ul>
+</details>
+
+
+  <p><span class="doc-section-title">Returns:</span></p>
+  <table>
+    <thead>
+      <tr>
+<th>Name</th>        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr class="doc-section-item">
+<td><code>SummaryStatistics</code></td>          <td>
+                <code><a class="autorefs autorefs-internal" title="gentropy.dataset.summary_statistics.SummaryStatistics" href="#gentropy.dataset.summary_statistics.SummaryStatistics">SummaryStatistics</a></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>The filtered summary statistics.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>src/gentropy/dataset/summary_statistics.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">sanity_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SummaryStatistics</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The function filters the summary statistics by sanity filters.</span>
+
+<span class="sd">    The function filters the summary statistics by the following filters:</span>
+<span class="sd">        - The p-value should not be eqaul 1.</span>
+<span class="sd">        - The beta and se should not be equal 0.</span>
+<span class="sd">        - The p-value, beta and se should not be NaN.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        SummaryStatistics: The filtered summary statistics.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gwas_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span>
+    <span class="n">gwas_df</span> <span class="o">=</span> <span class="n">gwas_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span>
+        <span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;beta&quot;</span><span class="p">,</span> <span class="s2">&quot;standardError&quot;</span><span class="p">,</span> <span class="s2">&quot;pValueMantissa&quot;</span><span class="p">,</span> <span class="s2">&quot;pValueExponent&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">gwas_df</span> <span class="o">=</span> <span class="n">gwas_df</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;standardError&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">gwas_df</span> <span class="o">=</span> <span class="n">gwas_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueMantissa&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pValueExponent&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">SummaryStatistics</span><span class="p">(</span>
+        <span class="n">_df</span><span class="o">=</span><span class="n">gwas_df</span><span class="p">,</span>
+        <span class="n">_schema</span><span class="o">=</span><span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
 <h3 id="gentropy.dataset.summary_statistics.SummaryStatistics.window_based_clumping" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">window_based_clumping</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500000</span><span class="p">,</span> <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-08</span><span class="p">,</span> <span class="n">baseline_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span></code>
+          <code class="highlight language-python"><span class="n">window_based_clumping</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500000</span><span class="p">,</span> <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-08</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span></code>
 
 <a href="#gentropy.dataset.summary_statistics.SummaryStatistics.window_based_clumping" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
   <div class="doc doc-contents ">
   
-      <p>Generate study-locus from summary statistics by distance based clumping + collect locus.</p>
+      <p>Generate study-locus from summary statistics using window-based clumping.</p>
+<p>For more info, see <a class="autorefs autorefs-internal" href="../../methods/clumping/#gentropy.method.window_based_clumping.WindowBasedClumping"><code>WindowBasedClumping</code></a></p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3545,7 +3742,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>distance</code></td>
           <td>
                 <code>int</code>
@@ -3559,7 +3756,7 @@
                 <code>500000</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>gwas_significance</code></td>
           <td>
                 <code>float</code>
@@ -3573,40 +3770,12 @@
                 <code>5e-08</code>
           </td>
         </tr>
-        <tr>
-          <td><code>baseline_significance</code></td>
-          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Baseline significance threshold for inclusion in the locus. Defaults to 0.05.</p>
-            </div>
-          </td>
-          <td>
-                <code>0.05</code>
-          </td>
-        </tr>
-        <tr>
-          <td><code>locus_collect_distance</code></td>
-          <td>
-                <code>int | None</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The distance to collect locus around semi-indices. If not provided, locus is not collected.</p>
-            </div>
-          </td>
-          <td>
-                <code>None</code>
-          </td>
-        </tr>
     </tbody>
   </table>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -3615,13 +3784,13 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
 <td><code>StudyLocus</code></td>          <td>
                 <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
           </td>
           <td>
             <div class="doc-md-description">
-              <p>Clumped study-locus containing variants based on window.</p>
+              <p>Clumped study-locus optionally containing variants based on window.</p>
             </div>
           </td>
         </tr>
@@ -3630,7 +3799,8 @@
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/dataset/summary_statistics.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">58</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">57</span>
+<span class="normal">58</span>
 <span class="normal">59</span>
 <span class="normal">60</span>
 <span class="normal">61</span>
@@ -3651,49 +3821,28 @@
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">window_based_clumping</span><span class="p">(</span>
+<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">window_based_clumping</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
     <span class="n">gwas_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-8</span><span class="p">,</span>
-    <span class="n">baseline_significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
-    <span class="n">locus_collect_distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate study-locus from summary statistics by distance based clumping + collect locus.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate study-locus from summary statistics using window-based clumping.</span>
+
+<span class="sd">    For more info, see [`WindowBasedClumping`][gentropy.method.window_based_clumping.WindowBasedClumping]</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.</span>
 <span class="sd">        gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.</span>
-<span class="sd">        baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.</span>
-<span class="sd">        locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, locus is not collected.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        StudyLocus: Clumped study-locus containing variants based on window.</span>
+<span class="sd">        StudyLocus: Clumped study-locus optionally containing variants based on window.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump_with_locus</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
-            <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
-            <span class="n">p_value_baseline</span><span class="o">=</span><span class="n">baseline_significance</span><span class="p">,</span>
-            <span class="n">locus_window_length</span><span class="o">=</span><span class="n">locus_collect_distance</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">locus_collect_distance</span>
-        <span class="k">else</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">window_length</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
-            <span class="n">p_value_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="kn">from</span> <span class="nn">gentropy.method.window_based_clumping</span> <span class="kn">import</span> <span class="n">WindowBasedClumping</span>
+
+    <span class="k">return</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+        <span class="n">gwas_significance</span><span class="o">=</span><span class="n">gwas_significance</span><span class="p">,</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>

@@ -2196,6 +2196,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/susie_inf/" class="md-nav__link">
         
   
@@ -2226,7 +2268,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2242,14 +2284,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -2921,12 +2963,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/colocalisation.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
-<span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
 <span class="normal">18</span>
@@ -2957,7 +2994,53 @@
 <span class="normal">43</span>
 <span class="normal">44</span>
 <span class="normal">45</span>
-<span class="normal">46</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ColocalisationStep</span><span class="p">:</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ColocalisationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Colocalisation step.</span>
 
 <span class="sd">    This workflow runs colocalisation analyses that assess the degree to which independent signals of the association share the same causal variant in a region of the genome, typically limited by linkage disequilibrium (LD).</span>
@@ -2969,6 +3052,7 @@
         <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">coloc_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run Colocalisation step.</span>
 
@@ -2977,10 +3061,18 @@
 <span class="sd">            credible_set_path (str): Input credible sets path.</span>
 <span class="sd">            study_index_path (str): Input study index path.</span>
 <span class="sd">            coloc_path (str): Output Colocalisation path.</span>
+<span class="sd">            colocalisation_method (str): Colocalisation method.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">colocalisation_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_colocalisation_class</span><span class="p">(</span><span class="n">colocalisation_method</span><span class="p">)</span>
         <span class="c1"># Extract</span>
-        <span class="n">credible_set</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
-            <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">credible_set</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+                <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;finemappingMethod&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;SuSie&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">colocalisation_class</span> <span class="ow">is</span> <span class="n">Coloc</span>
+            <span class="k">else</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+                <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
         <span class="p">)</span>
         <span class="n">si</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
             <span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
@@ -2990,10 +3082,42 @@
         <span class="n">overlaps</span> <span class="o">=</span> <span class="n">credible_set</span><span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span>
             <span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS95</span>
         <span class="p">)</span><span class="o">.</span><span class="n">find_overlaps</span><span class="p">(</span><span class="n">si</span><span class="p">)</span>
-        <span class="n">ecaviar_results</span> <span class="o">=</span> <span class="n">ECaviar</span><span class="o">.</span><span class="n">colocalise</span><span class="p">(</span><span class="n">overlaps</span><span class="p">)</span>
+        <span class="n">colocalisation_results</span> <span class="o">=</span> <span class="n">colocalisation_class</span><span class="o">.</span><span class="n">colocalise</span><span class="p">(</span><span class="n">overlaps</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
 
         <span class="c1"># Load</span>
-        <span class="n">ecaviar_results</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">coloc_path</span><span class="p">)</span>
+        <span class="n">colocalisation_results</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">coloc_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">colocalisation_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_colocalisation_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">ColocalisationStep</span><span class="p">],</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get colocalisation class.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            method (str): Colocalisation method.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            type: Colocalisation class.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if method not available.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; ColocalisationStep._get_colocalisation_class(&quot;ECaviar&quot;)</span>
+<span class="sd">            &lt;class &#39;gentropy.method.colocalisation.ECaviar&#39;&gt;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">module_name</span> <span class="o">=</span> <span class="s2">&quot;gentropy.method.colocalisation&quot;</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+
+        <span class="n">available_methods</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">class_obj</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">class_obj</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">==</span> <span class="n">module_name</span><span class="p">:</span>
+                <span class="n">available_methods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">class_name</span> <span class="o">==</span> <span class="n">method</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">class_obj</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Method </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> is not supported. Available: </span><span class="si">{</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">available_methods</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
 
@@ -3015,7 +3139,7 @@
 
 
 <h3 id="gentropy.colocalisation.ColocalisationStep.__init__" class="doc doc-heading">
-          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">coloc_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">coloc_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.colocalisation.ColocalisationStep.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3026,7 +3150,7 @@
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3037,7 +3161,7 @@
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>session</code></td>
           <td>
                 <code><span title="gentropy.common.session.Session">Session</span></code>
@@ -3051,7 +3175,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>credible_set_path</code></td>
           <td>
                 <code>str</code>
@@ -3065,7 +3189,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>study_index_path</code></td>
           <td>
                 <code>str</code>
@@ -3079,7 +3203,7 @@
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>coloc_path</code></td>
           <td>
                 <code>str</code>
@@ -3093,17 +3217,26 @@
               <em>required</em>
           </td>
         </tr>
+        <tr class="doc-section-item">
+          <td><code>colocalisation_method</code></td>
+          <td>
+                <code>str</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Colocalisation method.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
     </tbody>
   </table>
 
           <details class="quote">
             <summary>Source code in <code>src/gentropy/colocalisation.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
 <span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
@@ -3128,12 +3261,29 @@
 <span class="normal">43</span>
 <span class="normal">44</span>
 <span class="normal">45</span>
-<span class="normal">46</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">coloc_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run Colocalisation step.</span>
 
@@ -3142,10 +3292,18 @@
 <span class="sd">        credible_set_path (str): Input credible sets path.</span>
 <span class="sd">        study_index_path (str): Input study index path.</span>
 <span class="sd">        coloc_path (str): Output Colocalisation path.</span>
+<span class="sd">        colocalisation_method (str): Colocalisation method.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">colocalisation_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_colocalisation_class</span><span class="p">(</span><span class="n">colocalisation_method</span><span class="p">)</span>
     <span class="c1"># Extract</span>
-    <span class="n">credible_set</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
-        <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+    <span class="n">credible_set</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;finemappingMethod&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;SuSie&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">colocalisation_class</span> <span class="ow">is</span> <span class="n">Coloc</span>
+        <span class="k">else</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
     <span class="p">)</span>
     <span class="n">si</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
         <span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
@@ -3155,10 +3313,12 @@
     <span class="n">overlaps</span> <span class="o">=</span> <span class="n">credible_set</span><span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span>
         <span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS95</span>
     <span class="p">)</span><span class="o">.</span><span class="n">find_overlaps</span><span class="p">(</span><span class="n">si</span><span class="p">)</span>
-    <span class="n">ecaviar_results</span> <span class="o">=</span> <span class="n">ECaviar</span><span class="o">.</span><span class="n">colocalise</span><span class="p">(</span><span class="n">overlaps</span><span class="p">)</span>
+    <span class="n">colocalisation_results</span> <span class="o">=</span> <span class="n">colocalisation_class</span><span class="o">.</span><span class="n">colocalise</span><span class="p">(</span><span class="n">overlaps</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
 
     <span class="c1"># Load</span>
-    <span class="n">ecaviar_results</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">coloc_path</span><span class="p">)</span>
+    <span class="n">colocalisation_results</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">coloc_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">colocalisation_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
           </details>
   </div>

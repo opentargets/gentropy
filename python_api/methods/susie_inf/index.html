@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../pics/">
+        <link rel="prev" href="../sumstat_quality_controls/">
       
       
         <link rel="next" href="../l2g/_l2g/">
@@ -2195,6 +2195,48 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -2301,7 +2343,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" >
         
           
           
@@ -2317,14 +2359,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3422,7 +3464,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
         <span class="n">ssq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
         <span class="n">pi0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">est_sigmasq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">est_tausq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">est_tausq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">sigmasq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">tausq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">sigmasq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3787,7 +3829,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
     <span class="k">def</span> <span class="nf">cred_inf</span><span class="p">(</span>
         <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100_000</span><span class="p">,</span>
-        <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
+        <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span>
         <span class="n">purity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">LD</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3866,7 +3908,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 
 <h3 id="gentropy.method.susie_inf.SUSIE_inf.cred_inf" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">cred_inf</span><span class="p">(</span><span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span> <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">purity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">LD</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Dsq</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dedup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span></code>
+          <code class="highlight language-python"><span class="n">cred_inf</span><span class="p">(</span><span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span> <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span> <span class="n">purity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">LD</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Dsq</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dedup</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
@@ -3881,7 +3923,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -3892,7 +3934,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>PIP</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -3906,7 +3948,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>n</code></td>
           <td>
                 <code>int</code>
@@ -3920,7 +3962,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>100000</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>coverage</code></td>
           <td>
                 <code>float</code>
@@ -3931,10 +3973,10 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
             </div>
           </td>
           <td>
-                <code>0.9</code>
+                <code>0.99</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>purity</code></td>
           <td>
                 <code>float</code>
@@ -3948,7 +3990,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>0.5</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>LD</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -3962,7 +4004,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>V</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -3976,7 +4018,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>Dsq</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -3990,7 +4032,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>dedup</code></td>
           <td>
                 <code>bool</code>
@@ -4009,7 +4051,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4018,7 +4060,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>list[<span title="typing.Any">Any</span>]</code>
           </td>
@@ -4033,7 +4075,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 
 
-  <p><strong>Raises:</strong></p>
+  <p><span class="doc-section-title">Raises:</span></p>
   <table>
     <thead>
       <tr>
@@ -4042,7 +4084,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>RuntimeError</code>
           </td>
@@ -4122,7 +4164,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 <span class="k">def</span> <span class="nf">cred_inf</span><span class="p">(</span>
     <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100_000</span><span class="p">,</span>
-    <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
+    <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span>
     <span class="n">purity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="n">LD</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -4192,7 +4234,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 
 <h3 id="gentropy.method.susie_inf.SUSIE_inf.susie_inf" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">susie_inf</span><span class="p">(</span><span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">meansq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span> <span class="n">L</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">LD</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Dsq</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">est_ssq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">ssq</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ssq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">pi0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">est_sigmasq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">est_tausq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">sigmasq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tausq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">sigmasq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tausq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">mu</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;moments&#39;</span><span class="p">,</span> <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">PIP_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></code>
+          <code class="highlight language-python"><span class="n">susie_inf</span><span class="p">(</span><span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">meansq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span> <span class="n">L</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">LD</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Dsq</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">est_ssq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">ssq</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ssq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">pi0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">est_sigmasq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">est_tausq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">sigmasq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tausq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">sigmasq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tausq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">mu</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;moments&#39;</span><span class="p">,</span> <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">PIP_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></code>
   
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
@@ -4207,7 +4249,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 
 
-  <p><strong>Parameters:</strong></p>
+  <p><span class="doc-section-title">Parameters:</span></p>
   <table>
     <thead>
       <tr>
@@ -4218,7 +4260,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>z</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span></code>
@@ -4232,7 +4274,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
               <em>required</em>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>meansq</code></td>
           <td>
                 <code>float</code>
@@ -4246,7 +4288,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>1</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>n</code></td>
           <td>
                 <code>int</code>
@@ -4260,7 +4302,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>100000</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>L</code></td>
           <td>
                 <code>int</code>
@@ -4274,7 +4316,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>10</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>LD</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -4288,7 +4330,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>V</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -4302,7 +4344,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>Dsq</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -4316,7 +4358,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>est_ssq</code></td>
           <td>
                 <code>bool</code>
@@ -4330,7 +4372,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>True</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>ssq</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -4344,7 +4386,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>ssq_range</code></td>
           <td>
                 <code>tuple[float, float]</code>
@@ -4358,7 +4400,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>(0, 1)</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>pi0</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -4372,7 +4414,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>est_sigmasq</code></td>
           <td>
                 <code>bool</code>
@@ -4386,7 +4428,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>True</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>est_tausq</code></td>
           <td>
                 <code>bool</code>
@@ -4397,10 +4439,10 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
             </div>
           </td>
           <td>
-                <code>True</code>
+                <code>False</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>sigmasq</code></td>
           <td>
                 <code>float</code>
@@ -4414,7 +4456,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>1</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>tausq</code></td>
           <td>
                 <code>float</code>
@@ -4428,7 +4470,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>0</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>sigmasq_range</code></td>
           <td>
                 <code>tuple[float, float] | None</code>
@@ -4442,7 +4484,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>tausq_range</code></td>
           <td>
                 <code>tuple[float, float] | None</code>
@@ -4456,7 +4498,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>PIP</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -4470,7 +4512,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>mu</code></td>
           <td>
                 <code><span title="numpy.ndarray">ndarray</span> | None</code>
@@ -4484,7 +4526,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>None</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>method</code></td>
           <td>
                 <code>str</code>
@@ -4498,7 +4540,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>&#39;moments&#39;</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>maxiter</code></td>
           <td>
                 <code>int</code>
@@ -4512,7 +4554,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <code>100</code>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td><code>PIP_tol</code></td>
           <td>
                 <code>float</code>
@@ -4531,7 +4573,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 
 
-  <p><strong>Returns:</strong></p>
+  <p><span class="doc-section-title">Returns:</span></p>
   <table>
     <thead>
       <tr>
@@ -4540,7 +4582,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>dict[str, <span title="typing.Any">Any</span>]</code>
           </td>
@@ -4564,7 +4606,7 @@ lbf -- length-p array of log-Bayes-factors for each CS</p>
 
 
 
-  <p><strong>Raises:</strong></p>
+  <p><span class="doc-section-title">Raises:</span></p>
   <table>
     <thead>
       <tr>
@@ -4573,7 +4615,7 @@ lbf -- length-p array of log-Bayes-factors for each CS</p>
       </tr>
     </thead>
     <tbody>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>RuntimeError</code>
           </td>
@@ -4583,7 +4625,7 @@ lbf -- length-p array of log-Bayes-factors for each CS</p>
             </div>
           </td>
         </tr>
-        <tr>
+        <tr class="doc-section-item">
           <td>
                 <code>RuntimeError</code>
           </td>
@@ -4815,7 +4857,7 @@ lbf -- length-p array of log-Bayes-factors for each CS</p>
     <span class="n">ssq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
     <span class="n">pi0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">est_sigmasq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">est_tausq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">est_tausq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">sigmasq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">tausq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">sigmasq_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

@@ -2198,6 +2198,48 @@
   
   
     <li class="md-nav__item">
+      <a href="../../sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../susie_inf/" class="md-nav__link">
         
   
@@ -2230,7 +2272,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_8" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3_10" checked>
         
           
           
@@ -2246,14 +2288,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6_3_8" id="__nav_6_3_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_6_3_10" id="__nav_6_3_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_6_3_8">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_3_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_3_10">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -2910,9 +2952,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/method/l2g/feature_factory.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 24</span>
-<span class="normal"> 25</span>
-<span class="normal"> 26</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 26</span>
 <span class="normal"> 27</span>
 <span class="normal"> 28</span>
 <span class="normal"> 29</span>
@@ -3046,10 +3086,190 @@
 <span class="normal">157</span>
 <span class="normal">158</span>
 <span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
+<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ColocalisationFactory</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Feature extraction in colocalisation.&quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_add_colocalisation_metric</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">ColocalisationFactory</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Expression that adds a `colocalisationMetric` column to the colocalisation dataframe in preparation for feature extraction.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Column: The expression that adds a `colocalisationMetric` column with the derived metric</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">method_metric_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">ECaviar</span><span class="o">.</span><span class="n">METHOD_NAME</span><span class="p">:</span> <span class="n">ECaviar</span><span class="o">.</span><span class="n">METHOD_METRIC</span><span class="p">,</span>
+            <span class="n">Coloc</span><span class="o">.</span><span class="n">METHOD_NAME</span><span class="p">:</span> <span class="n">Coloc</span><span class="o">.</span><span class="n">METHOD_METRIC</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">map_expr</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">create_map</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="n">method_metric_map</span><span class="o">.</span><span class="n">items</span><span class="p">())])</span>
+        <span class="k">return</span> <span class="n">map_expr</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;colocalisationMethod&quot;</span><span class="p">)]</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;colocalisationMetric&quot;</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_max_coloc_per_credible_set</span><span class="p">(</span>
+        <span class="n">colocalisation</span><span class="p">:</span> <span class="n">Colocalisation</span><span class="p">,</span>
+        <span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
+        <span class="n">studies</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeature</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the maximum colocalisation posterior probability for each pair of overlapping study-locus per type of colocalisation method and QTL type.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            colocalisation (Colocalisation): Colocalisation dataset</span>
+<span class="sd">            credible_set (StudyLocus): Study locus dataset</span>
+<span class="sd">            studies (StudyIndex): Study index dataset</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">colocalisation_df</span> <span class="o">=</span> <span class="n">colocalisation</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;leftStudyLocusId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;rightStudyLocusId&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="s2">&quot;log2h4h3&quot;</span><span class="p">,</span> <span class="s2">&quot;clpp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
+            <span class="n">ColocalisationFactory</span><span class="o">.</span><span class="n">_add_colocalisation_metric</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="n">colocalising_credible_sets</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">credible_set</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">)</span>
+            <span class="c1"># annotate studyLoci with overlapping IDs on the left - to just keep GWAS associations</span>
+            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">colocalisation_df</span><span class="p">,</span>
+                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># bring study metadata to just keep QTL studies on the right</span>
+            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">credible_set</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">studies</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyType&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="s2">&quot;studyId&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
+                    <span class="s2">&quot;studyLocusId as rightStudyLocusId&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;studyType as right_studyType&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;rightStudyLocusId&quot;</span><span class="p">,</span>
+                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;gwas&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;right_studyType&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;score&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;colocalisationMetric&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Max PP calculation per credible set AND type of QTL AND colocalisation method</span>
+        <span class="n">local_max</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">get_record_with_maximum_value</span><span class="p">(</span>
+                <span class="n">colocalising_credible_sets</span><span class="p">,</span>
+                <span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;right_studyType&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;colocalisationMetric&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;score&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;max_score&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Local&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;score_type&quot;</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">neighbourhood_max</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">local_max</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
+                <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;max_score as local_max_score&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="c1"># Add maximum in the neighborhood</span>
+                <span class="n">get_record_with_maximum_value</span><span class="p">(</span>
+                    <span class="n">colocalising_credible_sets</span><span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span>
+                        <span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="s2">&quot;tmp_nbh_max_score&quot;</span>
+                    <span class="p">),</span>
+                    <span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;right_studyType&quot;</span><span class="p">,</span> <span class="s2">&quot;colocalisationMetric&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;tmp_nbh_max_score&quot;</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;score_type&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Neighborhood&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                <span class="s2">&quot;max_score&quot;</span><span class="p">,</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;local_max_score&quot;</span><span class="p">)</span>
+                        <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tmp_nbh_max_score&quot;</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>  <span class="c1"># intercept</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;tmp_nbh_max_score&quot;</span><span class="p">,</span> <span class="s2">&quot;local_max_score&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">L2GFeature</span><span class="p">(</span>
+            <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
+                <span class="c1"># Combine local and neighborhood metrics</span>
+                <span class="n">local_max</span><span class="o">.</span><span class="n">unionByName</span><span class="p">(</span>
+                    <span class="n">neighbourhood_max</span><span class="p">,</span> <span class="n">allowMissingColumns</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                    <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+                    <span class="c1"># Feature name is a concatenation of the QTL type, colocalisation metric and if it&#39;s local or in the vicinity</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span>
+                        <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">),</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Coloc&quot;</span><span class="p">),</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">initcap</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;colocalisationMetric&quot;</span><span class="p">)),</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Maximum&quot;</span><span class="p">),</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score_type&quot;</span><span class="p">),</span> <span class="s2">&quot;Local&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;featureName&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;max_score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;featureValue&quot;</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeature</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+  </div>
+
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="gentropy.method.l2g.feature_factory.StudyLocusFactory" class="doc doc-heading">
+          <code>gentropy.method.l2g.feature_factory.StudyLocusFactory</code>
+
+  
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#gentropy.method.l2g.feature_factory.StudyLocusFactory" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+  <div class="doc doc-contents first">
+          <p class="doc doc-class-bases">
+            Bases: <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../../datasets/study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code></p>
+
+  
+      <p>Feature extraction in study locus.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/method/l2g/feature_factory.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">163</span>
 <span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
@@ -3105,247 +3325,10 @@
 <span class="normal">216</span>
 <span class="normal">217</span>
 <span class="normal">218</span>
-<span class="normal">219</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">ColocalisationFactory</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Feature extraction in colocalisation.&quot;&quot;&quot;</span>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_max_coloc_per_study_locus</span><span class="p">(</span>
-        <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
-        <span class="n">studies</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
-        <span class="n">colocalisation</span><span class="p">:</span> <span class="n">Colocalisation</span><span class="p">,</span>
-        <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeature</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the maximum colocalisation posterior probability for each pair of overlapping study-locus per type of colocalisation method and QTL type.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            study_locus (StudyLocus): Study locus dataset</span>
-<span class="sd">            studies (StudyIndex): Study index dataset</span>
-<span class="sd">            colocalisation (Colocalisation): Colocalisation dataset</span>
-<span class="sd">            colocalisation_method (str): Colocalisation method to extract the max from</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: If the colocalisation method is not supported</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">colocalisation_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;COLOC&quot;</span><span class="p">,</span> <span class="s2">&quot;eCAVIAR&quot;</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Colocalisation method </span><span class="si">{</span><span class="n">colocalisation_method</span><span class="si">}</span><span class="s2"> not supported&quot;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">colocalisation_method</span> <span class="o">==</span> <span class="s2">&quot;COLOC&quot;</span><span class="p">:</span>
-            <span class="n">coloc_score_col_name</span> <span class="o">=</span> <span class="s2">&quot;log2h4h3&quot;</span>
-            <span class="n">coloc_feature_col_template</span> <span class="o">=</span> <span class="s2">&quot;ColocLlrMaximum&quot;</span>
-
-        <span class="k">elif</span> <span class="n">colocalisation_method</span> <span class="o">==</span> <span class="s2">&quot;eCAVIAR&quot;</span><span class="p">:</span>
-            <span class="n">coloc_score_col_name</span> <span class="o">=</span> <span class="s2">&quot;clpp&quot;</span>
-            <span class="n">coloc_feature_col_template</span> <span class="o">=</span> <span class="s2">&quot;ColocClppMaximum&quot;</span>
-
-        <span class="n">colocalising_study_locus</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">study_locus</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">)</span>
-            <span class="c1"># annotate studyLoci with overlapping IDs on the left - to just keep GWAS associations</span>
-            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">colocalisation</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
-                    <span class="s2">&quot;leftStudyLocusId as studyLocusId&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;rightStudyLocusId&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;colocalisationMethod&quot;</span><span class="p">,</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">coloc_score_col_name</span><span class="si">}</span><span class="s2"> as coloc_score&quot;</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
-                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="c1"># bring study metadata to just keep QTL studies on the right</span>
-            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">study_locus</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
-                    <span class="s2">&quot;studyLocusId as rightStudyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId as right_studyId&quot;</span>
-                <span class="p">),</span>
-                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;rightStudyLocusId&quot;</span><span class="p">,</span>
-                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span>
-                    <span class="n">studies</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
-                        <span class="s2">&quot;studyId as right_studyId&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;studyType as right_studyType&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-                    <span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;right_studyId&quot;</span><span class="p">,</span>
-                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;colocalisationMethod&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">colocalisation_method</span><span class="p">)</span>
-                <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;gwas&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;right_studyType&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;coloc_score&quot;</span><span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Max PP calculation per studyLocus AND type of QTL</span>
-        <span class="n">local_max</span> <span class="o">=</span> <span class="n">get_record_with_maximum_value</span><span class="p">(</span>
-            <span class="n">colocalising_study_locus</span><span class="p">,</span>
-            <span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;right_studyType&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;coloc_score&quot;</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
-
-        <span class="n">intercept</span> <span class="o">=</span> <span class="mf">0.0001</span>
-        <span class="n">neighbourhood_max</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">(</span>
-                <span class="n">local_max</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
-                    <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;coloc_score as coloc_local_max&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span>
-                <span class="p">)</span>
-                <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="c1"># Add maximum in the neighborhood</span>
-                    <span class="n">get_record_with_maximum_value</span><span class="p">(</span>
-                        <span class="n">colocalising_study_locus</span><span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span>
-                            <span class="s2">&quot;coloc_score&quot;</span><span class="p">,</span> <span class="s2">&quot;coloc_neighborhood_max&quot;</span>
-                        <span class="p">),</span>
-                        <span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;right_studyType&quot;</span><span class="p">],</span>
-                        <span class="s2">&quot;coloc_neighborhood_max&quot;</span><span class="p">,</span>
-                    <span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                    <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">coloc_feature_col_template</span><span class="si">}</span><span class="s2">Neighborhood&quot;</span><span class="p">,</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span>
-                        <span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
-                            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;coloc_local_max&quot;</span><span class="p">)</span>
-                            <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;coloc_neighborhood_max&quot;</span><span class="p">)</span>
-                            <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">intercept</span><span class="p">)</span>
-                        <span class="p">)</span>
-                    <span class="p">),</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;coloc_neighborhood_max&quot;</span><span class="p">,</span> <span class="s2">&quot;coloc_local_max&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">persist</span><span class="p">()</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Split feature per molQTL</span>
-        <span class="n">local_dfs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">nbh_dfs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">qtl_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">colocalising_study_locus</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">toPandas</span><span class="p">()[</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">]</span>
-            <span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-        <span class="p">)</span> <span class="ow">or</span> <span class="p">[</span><span class="s2">&quot;eqtl&quot;</span><span class="p">,</span> <span class="s2">&quot;pqtl&quot;</span><span class="p">,</span> <span class="s2">&quot;sqtl&quot;</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">qtl_type</span> <span class="ow">in</span> <span class="n">qtl_types</span><span class="p">:</span>
-            <span class="n">filtered_local_max</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">local_max</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">qtl_type</span><span class="p">)</span>
-                <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span>
-                    <span class="s2">&quot;coloc_score&quot;</span><span class="p">,</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">qtl_type</span><span class="si">}{</span><span class="n">coloc_feature_col_template</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
-            <span class="n">local_dfs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filtered_local_max</span><span class="p">)</span>
-
-            <span class="n">filtered_neighbourhood_max</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">neighbourhood_max</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">qtl_type</span><span class="p">)</span>
-                <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">coloc_feature_col_template</span><span class="si">}</span><span class="s2">Neighborhood&quot;</span><span class="p">,</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">qtl_type</span><span class="si">}{</span><span class="n">coloc_feature_col_template</span><span class="si">}</span><span class="s2">Neighborhood&quot;</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;right_studyType&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
-            <span class="n">nbh_dfs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filtered_neighbourhood_max</span><span class="p">)</span>
-
-        <span class="n">wide_dfs</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">unionByName</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">allowMissingColumns</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-            <span class="n">local_dfs</span> <span class="o">+</span> <span class="n">nbh_dfs</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">L2GFeature</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-                <span class="n">wide_dfs</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
-                    <span class="o">*</span><span class="p">(</span>
-                        <span class="n">f</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">ignorenulls</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-                        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">wide_dfs</span><span class="o">.</span><span class="n">columns</span>
-                        <span class="k">if</span> <span class="n">c</span>
-                        <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
-                            <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
-                            <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-                        <span class="p">]</span>
-                    <span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-                <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeature</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_coloc_features</span><span class="p">(</span>
-        <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">studies</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">colocalisation</span><span class="p">:</span> <span class="n">Colocalisation</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeature</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calls _get_max_coloc_per_study_locus for both methods and concatenates the results.</span>
-
-<span class="sd">        !!! note &quot;Colocalisation features are only available for the eCAVIAR results for now.&quot;</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            study_locus (StudyLocus): Study locus dataset</span>
-<span class="sd">            studies (StudyIndex): Study index dataset</span>
-<span class="sd">            colocalisation (Colocalisation): Colocalisation dataset</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            L2GFeature: Stores the features with the max coloc probabilities for each pair of study-locus</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">coloc_clpp</span> <span class="o">=</span> <span class="n">ColocalisationFactory</span><span class="o">.</span><span class="n">_get_max_coloc_per_study_locus</span><span class="p">(</span>
-            <span class="n">study_locus</span><span class="p">,</span>
-            <span class="n">studies</span><span class="p">,</span>
-            <span class="n">colocalisation</span><span class="p">,</span>
-            <span class="s2">&quot;eCAVIAR&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">L2GFeature</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">coloc_clpp</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="n">L2GFeature</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-
-  
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-  </div>
-
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h2 id="gentropy.method.l2g.feature_factory.StudyLocusFactory" class="doc doc-heading">
-          <code>gentropy.method.l2g.feature_factory.StudyLocusFactory</code>
-
-
-<a href="#gentropy.method.l2g.feature_factory.StudyLocusFactory" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-  <div class="doc doc-contents first">
-          <p class="doc doc-class-bases">
-            Bases: <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../../datasets/study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code></p>
-
-  
-      <p>Feature extraction in study locus.</p>
-
-            <details class="quote">
-              <summary>Source code in <code>src/gentropy/method/l2g/feature_factory.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">222</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
 <span class="normal">223</span>
 <span class="normal">224</span>
 <span class="normal">225</span>
@@ -3463,93 +3446,47 @@
 <span class="normal">337</span>
 <span class="normal">338</span>
 <span class="normal">339</span>
-<span class="normal">340</span>
-<span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
-<span class="normal">346</span>
-<span class="normal">347</span>
-<span class="normal">348</span>
-<span class="normal">349</span>
-<span class="normal">350</span>
-<span class="normal">351</span>
-<span class="normal">352</span>
-<span class="normal">353</span>
-<span class="normal">354</span>
-<span class="normal">355</span>
-<span class="normal">356</span>
-<span class="normal">357</span>
-<span class="normal">358</span>
-<span class="normal">359</span>
-<span class="normal">360</span>
-<span class="normal">361</span>
-<span class="normal">362</span>
-<span class="normal">363</span>
-<span class="normal">364</span>
-<span class="normal">365</span>
-<span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span>
-<span class="normal">369</span>
-<span class="normal">370</span>
-<span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
-<span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
-<span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">StudyLocusFactory</span><span class="p">(</span><span class="n">StudyLocus</span><span class="p">):</span>
+<span class="normal">340</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">StudyLocusFactory</span><span class="p">(</span><span class="n">StudyLocus</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Feature extraction in study locus.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_tss_distance_features</span><span class="p">(</span>
-        <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">distances</span><span class="p">:</span> <span class="n">V2G</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeature</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Joins StudyLocus with the V2G to extract the minimum distance to a gene TSS of all variants in a StudyLocus credible set.</span>
+    <span class="k">def</span> <span class="nf">_get_tss_distance_features</span><span class="p">(</span><span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">v2g</span><span class="p">:</span> <span class="n">V2G</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeature</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Joins StudyLocus with the V2G to extract a score that is based on the distance to a gene TSS of any variant weighted by its posterior probability in a credible set.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            study_locus (StudyLocus): Study locus dataset</span>
-<span class="sd">            distances (V2G): Dataframe containing the distances of all variants to all genes TSS within a region</span>
+<span class="sd">            credible_set (StudyLocus): Credible set dataset</span>
+<span class="sd">            v2g (V2G): Dataframe containing the distances of all variants to all genes TSS within a region</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            L2GFeature: Stores the features with the minimum distance among all variants in the credible set and a gene TSS.</span>
+<span class="sd">            L2GFeature: Stores the features with the score of weighting the distance to the TSS by the posterior probability of the variant</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">wide_df</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">study_locus</span><span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span><span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS95</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">credible_set</span><span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span><span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS95</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;variantInLocus&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode_outer</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;locus.variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tagVariantId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus.variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;variantInLocusId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus.posteriorProbability&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+                    <span class="s2">&quot;variantInLocusPosteriorProbability&quot;</span>
+                <span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">distances</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
-                    <span class="s2">&quot;variantId as tagVariantId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;distance&quot;</span>
+                <span class="n">v2g</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;canonical_tss&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
+                    <span class="s2">&quot;variantId as variantInLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;score&quot;</span>
                 <span class="p">),</span>
-                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;tagVariantId&quot;</span><span class="p">,</span>
+                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;variantInLocusId&quot;</span><span class="p">,</span>
                 <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                <span class="s2">&quot;weightedScore&quot;</span><span class="p">,</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocusPosteriorProbability&quot;</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="s2">&quot;distance&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;distanceTssMinimum&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="s2">&quot;distance&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;distanceTssMean&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="s2">&quot;weightedScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;distanceTssMinimum&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="s2">&quot;weightedScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;distanceTssMean&quot;</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
@@ -3617,32 +3554,33 @@
 
         <span class="n">credible_set_w_variant_consequences</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">credible_set</span><span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span><span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS95</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;variantInLocusId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.variantId&quot;</span><span class="p">)))</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                <span class="s2">&quot;variantInLocusPosteriorProbability&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;locus.posteriorProbability&quot;</span><span class="p">)),</span>
+            <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;variantInLocus&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode_outer</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus.variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;variantInLocusId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus.posteriorProbability&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+                    <span class="s2">&quot;variantInLocusPosteriorProbability&quot;</span>
+                <span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="c1"># Join with V2G to get variant consequences</span>
-                <span class="n">v2g</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;variantConsequence&quot;</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantInLocusId&quot;</span><span class="p">),</span>
+                <span class="n">v2g</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;variantConsequence&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
+                    <span class="s2">&quot;variantId as variantInLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;score&quot;</span>
+                <span class="p">),</span>
                 <span class="n">on</span><span class="o">=</span><span class="s2">&quot;variantInLocusId&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                <span class="s2">&quot;weightedScore&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocusPosteriorProbability&quot;</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;studyId&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;score&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;weightedScore&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocusPosteriorProbability&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+                    <span class="s2">&quot;weightedScore&quot;</span>
+                <span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">persist</span><span class="p">()</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">L2GFeature</span><span class="p">(</span>
@@ -3653,14 +3591,14 @@
                         <span class="c1"># Calculate overall max VEP score for all genes in the vicinity</span>
                         <span class="n">credible_set_w_variant_consequences</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
                             <span class="n">_aggregate_vep_feature</span><span class="p">,</span>
-                            <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;weightedScore&quot;</span><span class="p">),</span>
                             <span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">],</span>
                             <span class="s2">&quot;vepMaximumNeighborhood&quot;</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="c1"># Calculate overall max VEP score per gene</span>
                         <span class="n">credible_set_w_variant_consequences</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
                             <span class="n">_aggregate_vep_feature</span><span class="p">,</span>
-                            <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;weightedScore&quot;</span><span class="p">),</span>
                             <span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
                             <span class="s2">&quot;vepMaximum&quot;</span><span class="p">,</span>
                         <span class="p">),</span>
