@@ -8,6 +8,275 @@
 
 
 
+## v1.3.0 (2024-05-17)
+### ✨ Feature
+
+
+- \[**airflow**\] include COLOC as a node in the DAG (#530) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  check for if no overlapping variants in LD index (#594) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  add purity qc metrics to fine-mapping (#592) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  lighter dockerfile (#585) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  github action to upload docker image to registry (#588) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  functionality added to StudyLocus.find_overlaps() for finding within-study overlaps (#587) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  susie_finemapper_one_studylocus_row_v3_dev_ss_gathered (#586) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**sumstat qc**\] adding methods for QC of summary statistics (#455) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  changing locus window to locus radius to be consistent with other functions (#582) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  updating step config file (#580) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  dockerise gentropy python package (#579) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  adding init to finemapping step (#577) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  adding notebook for mapping EFOs for the FinnGen study index (#575) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  add benchmarking for fine-mapping using Alzheimer as example (#572) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  add FM step with carma and sumstat imputation (#568) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  susie_finemapper_ss_gathered() (#567) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  the FineMapper function for one locus (#564) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  LD index and block matrix extraction for a studyLocus (#463) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  add the step class for fine-mapping (#554) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  notebook to run qc metrics each release (#541) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+
+- \[**l2g**\] distance features based on weighted score (#545) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**sumstat imputation**\] adding class for sumstat imputation (#490) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**coloc**\] single SNP case (#511) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+
+-  extract credible sets and studies from all eQTL Catalogue finemapping results (#518) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### 🐛 Fix
+
+
+-  fix python-semantic-release version (again) [\@David Ochoa](mailto:dogcaesar@gmail.com)
+
+
+-  fix python-semantic-release version [\@David Ochoa](mailto:dogcaesar@gmail.com)
+
+
+-  docker action fixes v3 (#591) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  docker action fixes (#590) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  docker action fixes (#589) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  updating config.py argument for finemapper (#584) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  minor updates and bug fixes (#543) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  update error in config.py (#583) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  removing all duplicated variants in sumstats for finemapping functions (#574) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  adding deduplication for GWAS in locus (#573) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**sumstats**\] correct study id for dir of finngen studies (#551) [\@Joris Louwen](mailto:62542407+louwenjjr@users.noreply.github.com)
+
+
+- \[**coloc**\] handle cases when the bayes factors are null (#556) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  small fixes in susie defaults (#552) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**dag**\] sorting out the checks for the existence of GCP folders [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  read function for thurman data to include first line (#534) [\@Joris Louwen](mailto:62542407+louwenjjr@users.noreply.github.com)
+
+
+-  pin version of commitlint (#533) [\@Joris Louwen](mailto:62542407+louwenjjr@users.noreply.github.com)
+
+
+-  updating gwas catalog test files following schema changes [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  fixing lock file [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  removing fsspec from dependencies [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  sorting out merge conflicts [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  fixing merge conflict [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  pr labeller patterns (#523) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  fixing merge conflict [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  reverting some changes [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+### ♻️ Refactor
+
+
+-  moving all variant coordinates to GnomAD (#566) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  tidying up the ETL DAG [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+### ⚡️ Performance
+
+
+- \[**l2g**\] optimise extraction of features from colocalisation results (#553) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**clump**\] refactored window based clumping (#492) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**l2g**\] streamline feature generation (#544) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### ✅ Test
+
+
+- \[**method**\] improved performance in coloc tests (#536) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+### 🏗 Build
+
+
+- \[**deps-dev**\] bump mypy from 1.9.0 to 1.10.0 (#604) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipython from 8.22.1 to 8.24.0 (#603) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps**\] bump typing-extensions from 4.10.0 to 4.11.0 (#602) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ruff from 0.3.2 to 0.4.3 (#596) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pytest-xdist from 3.5.0 to 3.6.1 (#597) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pytest from 8.1.0 to 8.2.0 (#598) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump interrogate from 1.5.0 to 1.7.0 (#599) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pymdown-extensions from 10.7 to 10.8.1 (#600) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump python-semantic-release from 9.1.0 to 9.4.1 (#571) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pytest-cov from 4.1.0 to 5.0.0 (#560) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pre-commit from 3.6.0 to 3.7.0 (#559) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump lxml from 5.1.0 to 5.2.1 (#569) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump deptry from 0.14.0 to 0.16.1 (#570) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mkdocstrings-python from 1.8.0 to 1.9.0 (#549) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump deptry from 0.12.0 to 0.14.0 (#548) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mypy from 1.8.0 to 1.9.0 (#532) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ruff from 0.2.0 to 0.3.2 (#531) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+### 👷‍♂️ Ci
+
+
+-  bugfix in PR labeller (#537) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+### 🚀 Chore
+
+
+-  pre-commit autoupdate (#601) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#593) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#561) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#550) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+- \[**l2g**\] log annotated gold standards in w&amp;b (#546) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#539) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+-  apply suggestions from code review [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  update ruff pre-commit and rules (#522) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  add sqtl, tuqtl, pqtl features to l2g inclusion list [\@Irene López](mailto:irene.lopezs@protonmail.com)
+
+
+-  add tuqtl features to L2Gfeaturematrix schema [\@Irene López](mailto:irene.lopezs@protonmail.com)
+
+
+-  bumping for 24.03 release [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  resolve merge commit [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
 ## v1.2.0 (2024-03-07)
 ### ✨ Feature
 
@@ -30,6 +299,12 @@
 
 
 -  pull-request labeler fixes (#520) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  updating study index generation from gwas flat files [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  updating cohort parser to new GWAS Catalog format [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
 
 ### 🏗 Build
 
@@ -63,6 +338,9 @@
 
 
 -  Unit tests for coloc (#509) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+
+-  small updates to accomodate GWAS Catalog for feb release [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
 
 ## v1.1.1 (2024-02-22)
 ### 🐛 Fix
