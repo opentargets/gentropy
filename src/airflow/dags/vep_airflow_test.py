@@ -152,6 +152,7 @@ def vep_annotation(**kwargs: Any) -> None:
     command = [
         "-c",
         rf"vep --cache --offline --format vcf --force_overwrite \
+            --no_stats \
             --dir_cache {MOUNT_DIR} \
             --input_file {MOUNT_DIR}/{INPUT_VCFS_BUCKET}/$INPUT_FILE \
             --output_file {MOUNT_DIR}/{INPUT_VCFS_BUCKET}/$OUTPUT_FILE --json \
