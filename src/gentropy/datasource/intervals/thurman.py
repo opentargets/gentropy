@@ -41,7 +41,7 @@ class IntervalsThurman:
                 t.StructField("score", t.FloatType(), False),
             ]
         )
-        return spark.read.csv(path, sep="\t", header=True, schema=thurman_schema)
+        return spark.read.csv(path, sep="\t", header=False, schema=thurman_schema)
 
     @classmethod
     def parse(

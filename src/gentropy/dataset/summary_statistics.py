@@ -9,7 +9,6 @@ import pyspark.sql.functions as f
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
 from gentropy.dataset.dataset import Dataset
-from gentropy.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
@@ -59,34 +58,24 @@ class SummaryStatistics(Dataset):
         self: SummaryStatistics,
         distance: int = 500_000,
         gwas_significance: float = 5e-8,
-        baseline_significance: float = 0.05,
-        locus_collect_distance: int | None = None,
     ) -> StudyLocus:
-        """Generate study-locus from summary statistics by distance based clumping + collect locus.
+        """Generate study-locus from summary statistics using window-based clumping.
+
+        For more info, see [`WindowBasedClumping`][gentropy.method.window_based_clumping.WindowBasedClumping]
 
         Args:
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
             gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
-            baseline_significance (float, optional): Baseline significance threshold for inclusion in the locus. Defaults to 0.05.
-            locus_collect_distance (int | None): The distance to collect locus around semi-indices. If not provided, locus is not collected.
 
         Returns:
-            StudyLocus: Clumped study-locus containing variants based on window.
+            StudyLocus: Clumped study-locus optionally containing variants based on window.
         """
-        return (
-            WindowBasedClumping.clump_with_locus(
-                self,
-                window_length=distance,
-                p_value_significance=gwas_significance,
-                p_value_baseline=baseline_significance,
-                locus_window_length=locus_collect_distance,
-            )
-            if locus_collect_distance
-            else WindowBasedClumping.clump(
-                self,
-                window_length=distance,
-                p_value_significance=gwas_significance,
-            )
+        from gentropy.method.window_based_clumping import WindowBasedClumping
+
+        return WindowBasedClumping.clump(
+            self,
+            distance=distance,
+            gwas_significance=gwas_significance,
         )
 
     def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
@@ -112,5 +101,31 @@ class SummaryStatistics(Dataset):
                     )
                 )
             ),
+            _schema=SummaryStatistics.get_schema(),
+        )
+
+    def sanity_filter(self: SummaryStatistics) -> SummaryStatistics:
+        """The function filters the summary statistics by sanity filters.
+
+        The function filters the summary statistics by the following filters:
+            - The p-value should not be eqaul 1.
+            - The beta and se should not be equal 0.
+            - The p-value, beta and se should not be NaN.
+
+        Returns:
+            SummaryStatistics: The filtered summary statistics.
+        """
+        gwas_df = self._df
+        gwas_df = gwas_df.dropna(
+            subset=["beta", "standardError", "pValueMantissa", "pValueExponent"]
+        )
+
+        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") != 0))
+        gwas_df = gwas_df.filter(
+            f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1
+        )
+
+        return SummaryStatistics(
+            _df=gwas_df,
             _schema=SummaryStatistics.get_schema(),
         )

@@ -1,4 +1,5 @@
 """Study locus dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
 
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
+    from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
 class StudyLocusQualityCheck(Enum):
@@ -80,31 +82,52 @@ class StudyLocus(Dataset):
     """
 
     @staticmethod
-    def _overlapping_peaks(credset_to_overlap: DataFrame) -> DataFrame:
+    def _overlapping_peaks(
+        credset_to_overlap: DataFrame, intra_study_overlap: bool = False
+    ) -> DataFrame:
         """Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.
 
         Args:
             credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
+            intra_study_overlap (bool): When True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
         """
         # Reduce columns to the minimum to reduce the size of the dataframe
         credset_to_overlap = credset_to_overlap.select(
-            "studyLocusId", "studyType", "chromosome", "tagVariantId"
+            "studyLocusId",
+            "studyId",
+            "studyType",
+            "chromosome",
+            "region",
+            "tagVariantId",
         )
+        # Define join condition - if intra_study_overlap is True, finds overlaps within the same study. Otherwise finds gwas vs everything overlaps for coloc.
+        join_condition = (
+            [
+                f.col("left.studyId") == f.col("right.studyId"),
+                f.col("left.chromosome") == f.col("right.chromosome"),
+                f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+                f.col("left.studyLocusId") > f.col("right.studyLocusId"),
+                f.col("left.region") != f.col("right.region"),
+            ]
+            if intra_study_overlap
+            else [
+                f.col("left.chromosome") == f.col("right.chromosome"),
+                f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+                (f.col("right.studyType") != "gwas")
+                | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+                f.col("left.studyType") == f.lit("gwas"),
+            ]
+        )
+
         return (
             credset_to_overlap.alias("left")
-            .filter(f.col("studyType") == "gwas")
-            # Self join with complex condition. Left it's all gwas and right can be gwas or molecular trait
+            # Self join with complex condition.
             .join(
                 credset_to_overlap.alias("right"),
-                on=[
-                    f.col("left.chromosome") == f.col("right.chromosome"),
-                    f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                    (f.col("right.studyType") != "gwas")
-                    | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
-                ],
+                on=join_condition,
                 how="inner",
             )
             .select(
@@ -303,7 +326,9 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def find_overlaps(self: StudyLocus, study_index: StudyIndex) -> StudyLocusOverlap:
+    def find_overlaps(
+        self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
+    ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
         Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
@@ -311,6 +336,7 @@ class StudyLocus(Dataset):
 
         Args:
             study_index (StudyIndex): Study index to resolve study types.
+            intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
@@ -320,8 +346,10 @@ class StudyLocus(Dataset):
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
+                "studyId",
                 "studyType",
                 "chromosome",
+                "region",
                 f.col("locus.variantId").alias("tagVariantId"),
                 f.col("locus.logBF").alias("logBF"),
                 f.col("locus.posteriorProbability").alias("posteriorProbability"),
@@ -333,7 +361,7 @@ class StudyLocus(Dataset):
         )
 
         # overlapping study-locus
-        peak_overlaps = self._overlapping_peaks(loci_to_overlap)
+        peak_overlaps = self._overlapping_peaks(loci_to_overlap, intra_study_overlap)
 
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
@@ -425,6 +453,74 @@ class StudyLocus(Dataset):
                 ),
             ),
         )
+        return self
+
+    def annotate_locus_statistics(
+        self: StudyLocus,
+        summary_statistics: SummaryStatistics,
+        collect_locus_distance: int,
+    ) -> StudyLocus:
+        """Annotates study locus with summary statistics in the specified distance around the position.
+
+        Args:
+            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
+            collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.
+
+        Returns:
+            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
+        """
+        # The clumps will be used several times (persisting)
+        self.df.persist()
+        # Renaming columns:
+        sumstats_renamed = summary_statistics.df.selectExpr(
+            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
+        ).alias("sumstat")
+
+        locus_df = (
+            sumstats_renamed
+            # Joining the two datasets together:
+            .join(
+                f.broadcast(
+                    self.df.alias("clumped").select(
+                        "position", "chromosome", "studyId", "studyLocusId"
+                    )
+                ),
+                on=[
+                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
+                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
+                    & (
+                        f.col("sumstat.tag_position")
+                        >= (f.col("clumped.position") - collect_locus_distance)
+                    )
+                    & (
+                        f.col("sumstat.tag_position")
+                        <= (f.col("clumped.position") + collect_locus_distance)
+                    )
+                ],
+                how="inner",
+            )
+            .withColumn(
+                "locus",
+                f.struct(
+                    f.col("tag_variantId").alias("variantId"),
+                    f.col("tag_beta").alias("beta"),
+                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
+                    f.col("tag_pValueExponent").alias("pValueExponent"),
+                    f.col("tag_standardError").alias("standardError"),
+                ),
+            )
+            .groupBy("studyLocusId")
+            .agg(
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
+        )
+
+        self.df = self.df.drop("locus").join(
+            locus_df,
+            on="studyLocusId",
+            how="left",
+        )
+
         return self
 
     def annotate_ld(

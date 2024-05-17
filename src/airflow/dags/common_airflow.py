@@ -13,7 +13,7 @@ from airflow.providers.google.cloud.operators.dataproc import (
     DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
-from google.cloud import dataproc_v1
+from google.cloud import dataproc_v1, storage
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -57,6 +57,22 @@ shared_dag_kwargs = {
     "schedule": "@once",
     "catchup": False,
 }
+
+
+def check_gcp_folder_exists(bucket_name: str, folder_path: str) -> bool:
+    """Check if a folder exists in a Google Cloud bucket.
+
+    Args:
+        bucket_name (str): The name of the Google Cloud bucket.
+        folder_path (str): The path of the folder to check.
+
+    Returns:
+        bool: True if the folder exists, False otherwise.
+    """
+    client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+    blobs = bucket.list_blobs(prefix=folder_path)
+    return any(blobs)
 
 
 def create_cluster(
@@ -111,9 +127,9 @@ def create_cluster(
             # Create a disk config section if it does not exist.
             cluster_config[worker_section].setdefault("disk_config", {})
             # Specify the number of local SSDs.
-            cluster_config[worker_section]["disk_config"][
-                "num_local_ssds"
-            ] = num_local_ssds
+            cluster_config[worker_section]["disk_config"]["num_local_ssds"] = (
+                num_local_ssds
+            )
 
     # Return the cluster creation operator.
     return DataprocCreateClusterOperator(

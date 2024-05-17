@@ -26,6 +26,9 @@ class ECaviar:
     It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.
     """
 
+    METHOD_NAME: str = "eCAVIAR"
+    METHOD_METRIC: str = "clpp"
+
     @staticmethod
     def _get_clpp(left_pp: Column, right_pp: Column) -> Column:
         """Calculate the colocalisation posterior probability (CLPP).
@@ -81,7 +84,7 @@ class ECaviar:
                     f.count("*").alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
                 )
-                .withColumn("colocalisationMethod", f.lit("eCAVIAR"))
+                .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
             ),
             _schema=Colocalisation.get_schema(),
         )
@@ -108,6 +111,8 @@ class Coloc:
         PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
     """
 
+    METHOD_NAME: str = "COLOC"
+    METHOD_METRIC: str = "llr"
     PSEUDOCOUNT: float = 1e-10
 
     @staticmethod
@@ -154,24 +159,24 @@ class Coloc:
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
-                overlapping_signals.df
+                overlapping_signals.df.select("*", "statistics.*")
                 # Before summing log_BF columns nulls need to be filled with 0:
-                .fillna(0, subset=["statistics.left_logBF", "statistics.right_logBF"])
+                .fillna(0, subset=["left_logBF", "right_logBF"])
                 # Sum of log_BFs for each pair of signals
                 .withColumn(
                     "sum_log_bf",
-                    f.col("statistics.left_logBF") + f.col("statistics.right_logBF"),
+                    f.col("left_logBF") + f.col("right_logBF"),
                 )
                 # Group by overlapping peak and generating dense vectors of log_BF:
                 .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId")
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("statistics.left_logBF"))
-                    ).alias("left_logBF"),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("statistics.right_logBF"))
-                    ).alias("right_logBF"),
+                    fml.array_to_vector(f.collect_list(f.col("left_logBF"))).alias(
+                        "left_logBF"
+                    ),
+                    fml.array_to_vector(f.collect_list(f.col("right_logBF"))).alias(
+                        "right_logBF"
+                    ),
                     fml.array_to_vector(f.collect_list(f.col("sum_log_bf"))).alias(
                         "sum_log_bf"
                     ),
@@ -253,7 +258,7 @@ class Coloc:
                     "lH3bf",
                     "lH4bf",
                 )
-                .withColumn("colocalisationMethod", f.lit("COLOC"))
+                .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
             ),
             _schema=Colocalisation.get_schema(),
         )

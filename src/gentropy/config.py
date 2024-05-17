@@ -37,6 +37,7 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     study_index_path: str = MISSING
     coloc_path: str = MISSING
+    colocalisation_method: str = MISSING
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
@@ -182,6 +183,7 @@ class LocusToGeneConfig(StepConfig):
                 "spark.dynamicAllocation.enabled": "false",
                 "spark.driver.memory": "48g",
                 "spark.executor.memory": "48g",
+                "spark.sql.shuffle.partitions": "800",
             }
         }
     )
@@ -213,13 +215,17 @@ class LocusToGeneConfig(StepConfig):
             # max clpp for each (study, locus) aggregating over all eQTLs
             "eqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocClppMaximum",
+            "pqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocClppMaximumNeighborhood",
+            "pqtlColocClppMaximumNeighborhood",
             # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocClppMaximum",
+            "sqtlColocClppMaximum",
             # max clpp for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocClppMaximumNeighborhood",
+            "sqtlColocClppMaximumNeighborhood",
+            # max clpp for each (study, locus) aggregating over all tuQTLs
+            "tuqtlColocClppMaximum",
+            # max clpp for each (study, locus, gene) aggregating over all tuQTLs
+            "tuqtlColocClppMaximumNeighborhood",
             # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
             # "eqtlColocLlrLocalMaximum",
             # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
@@ -316,10 +322,43 @@ class WindowBasedClumpingStep(StepConfig):
 
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
+    distance: int = 500_000
+    collect_locus: bool = False
+    collect_locus_distance: int = 500_000
     inclusion_list_path: str | None = None
-    locus_collect_distance: str | None = None
-
     _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
+
+
+@dataclass
+class FinemapperConfig(StepConfig):
+    """SuSiE fine-mapper step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    study_locus_to_finemap: str = MISSING
+    study_locus_collected_path: str = MISSING
+    study_index_path: str = MISSING
+    output_path: str = MISSING
+    locus_radius: int = MISSING
+    max_causal_snps: int = MISSING
+    primary_signal_pval_threshold: float = MISSING
+    secondary_signal_pval_threshold: float = MISSING
+    purity_mean_r2_threshold: float = MISSING
+    purity_min_r2_threshold: float = MISSING
+    cs_lbf_th: float = MISSING
+    sum_pips: float = MISSING
+    logging: bool = MISSING
+    susie_est_tausq: bool = MISSING
+    run_carma: bool = MISSING
+    run_sumstat_imputation: bool = MISSING
+    carma_time_limit: int = MISSING
+    imputed_r2_threshold: float = MISSING
+    ld_score_threshold: float = MISSING
+    output_path_log: str = MISSING
+    _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
 @dataclass
@@ -379,3 +418,4 @@ def register_config() -> None:
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStep)
+    cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)

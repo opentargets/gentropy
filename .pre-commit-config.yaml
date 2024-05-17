@@ -6,7 +6,7 @@ ci:
   skip: [poetry-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
+    rev: v0.4.3
     hooks:
       - id: ruff
         args:
@@ -15,7 +15,7 @@ repos:
         files: ^((gentropy|utils|tests)/.+)?[^/]+\.py$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -59,14 +59,14 @@ repos:
         exclude: "CHANGELOG.md"
 
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.11.0
+    rev: v9.16.0
     hooks:
       - id: commitlint
-        additional_dependencies: ["@commitlint/config-conventional"]
+        additional_dependencies: ["@commitlint/config-conventional@18.6.3"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.8.0"
+    rev: "v1.10.0"
     hooks:
       - id: mypy
         args:
@@ -82,7 +82,7 @@ repos:
           - "--disallow-untyped-defs"
 
   - repo: https://github.com/econchick/interrogate
-    rev: 1.5.0
+    rev: 1.7.0
     hooks:
       - id: interrogate
         args: [--verbose]
@@ -104,7 +104,7 @@ repos:
       - id: pydoclint
 
   - repo: https://github.com/python-poetry/poetry
-    rev: "1.8.2"
+    rev: "1.8.0"
     hooks:
       - id: poetry-check
       - id: poetry-lock
