@@ -1,4 +1,5 @@
 """Import gnomAD variants dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,7 +10,7 @@ import hail as hl
 from gentropy.dataset.variant_annotation import VariantAnnotation
 
 if TYPE_CHECKING:
-    from hail.expr.expressions import Int32Expression, StringExpression
+    pass
 
 
 @dataclass
@@ -38,29 +39,6 @@ class GnomADVariants:
             "remaining",  # Other
         ]
     )
-
-    @staticmethod
-    def _convert_gnomad_position_to_ensembl_hail(
-        position: Int32Expression,
-        reference: StringExpression,
-        alternate: StringExpression,
-    ) -> Int32Expression:
-        """Convert GnomAD variant position to Ensembl variant position in hail table.
-
-        For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs, the position is unchanged.
-        More info about the problem: https://www.biostars.org/p/84686/
-
-        Args:
-            position (Int32Expression): Position of the variant in the GnomAD genome.
-            reference (StringExpression): The reference allele.
-            alternate (StringExpression): The alternate allele
-
-        Returns:
-            Int32Expression: The position of the variant according to Ensembl genome.
-        """
-        return hl.if_else(
-            (reference.length() > 1) | (alternate.length() > 1), position + 1, position
-        )
 
     def as_variant_annotation(self: GnomADVariants) -> VariantAnnotation:
         """Generate variant annotation dataset from gnomAD.
@@ -93,7 +71,7 @@ class GnomADVariants:
         return VariantAnnotation(
             _df=(
                 ht.select(
-                    gnomadVariantId=hl.str("-").join(
+                    variantId=hl.str("_").join(
                         [
                             ht.locus.contig.replace("chr", ""),
                             hl.str(ht.locus.position),
@@ -102,21 +80,7 @@ class GnomADVariants:
                         ]
                     ),
                     chromosome=ht.locus.contig.replace("chr", ""),
-                    position=GnomADVariants._convert_gnomad_position_to_ensembl_hail(
-                        ht.locus.position, ht.alleles[0], ht.alleles[1]
-                    ),
-                    variantId=hl.str("_").join(
-                        [
-                            ht.locus.contig.replace("chr", ""),
-                            hl.str(
-                                GnomADVariants._convert_gnomad_position_to_ensembl_hail(
-                                    ht.locus.position, ht.alleles[0], ht.alleles[1]
-                                )
-                            ),
-                            ht.alleles[0],
-                            ht.alleles[1],
-                        ]
-                    ),
+                    position=ht.locus.position,
                     chromosomeB37=ht.locus_GRCh37.contig.replace("chr", ""),
                     positionB37=ht.locus_GRCh37.position,
                     referenceAllele=ht.alleles[0],
