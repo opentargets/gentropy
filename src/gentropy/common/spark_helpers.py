@@ -451,7 +451,7 @@ def enforce_schema(
         expected_schema (Any): The expected schema of the output.
 
     Returns:
-        callable [..., Any]: A decorator function.
+        Callable[..., Any]: A decorator function.
     """
 
     def decorator(function: Callable[..., Any]) -> Callable[..., Any]:
