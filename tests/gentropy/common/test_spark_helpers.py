@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import pytest
-from gentropy.common.spark_helpers import (
-    enforce_schema,
-    order_array_of_structs_by_field,
-)
 from pyspark.sql import Column, SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from gentropy.common.spark_helpers import (
+    enforce_schema,
+    order_array_of_structs_by_field,
+)
 
-def test__order_array_of_structs_by_field(spark: SparkSession) -> None:
+
+def test_order_array_of_structs_by_field(spark: SparkSession) -> None:
     """Test order_array_of_structs_by_field."""
     data = [
         # Values are the same:
