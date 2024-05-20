@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from functools import wraps
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -433,3 +434,31 @@ def get_value_from_row(row: Row, column: str) -> Any:
     if column not in row:
         raise ValueError(f"Column {column} not found in row {row}")
     return row[column]
+
+
+def enforce_schema(
+    expected_schema: Any,
+) -> Callable[..., Any]:
+    """A function to ensure the schema of a function output follows expectation.
+
+    This is a decorator function and expted to used like this:
+
+    @enforce_schema(spark_schema)
+    def my_function() -> t.StructType:
+        return ...
+
+    Args:
+        expected_schema (Any): The expected schema of the output.
+
+    Returns:
+        callable [..., Any]: A decorator function.
+    """
+
+    def decorator(function: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(function)
+        def wrapper(*args: str, **kwargs: str) -> Any:
+            return f.from_json(f.to_json(function(*args, **kwargs)), expected_schema)
+
+        return wrapper
+
+    return decorator
