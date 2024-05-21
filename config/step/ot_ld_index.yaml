@@ -6,12 +6,12 @@ ld_matrix_template: ${datasets.ld_matrix_template}
 ld_index_raw_template: ${datasets.ld_index_raw_template}
 liftover_ht_path: ${datasets.liftover_ht_path}
 ld_populations:
-  - "afr" # African-American
-  - "amr" # American Admixed/Latino
-  - "asj" # Ashkenazi Jewish
-  - "eas" # East Asian
-  - "eat" # Estonian
-  - "fin" # Finnish
-  - "nfe" # Non-Finnish European
-  - "nwe" # Northwestern European
-  - "seu" # Southeastern European
+  - afr # African-American
+  - amr # American Admixed/Latino
+  - asj # Ashkenazi Jewish
+  - eas # East Asian
+  - est # Estonian
+  - fin # Finnish
+  - nfe # Non-Finnish European
+  - nwe # Northwestern European
+  - seu # Southeastern European
