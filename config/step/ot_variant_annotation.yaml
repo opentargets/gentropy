@@ -2,3 +2,16 @@ defaults:
   - variant_annotation
 
 variant_annotation_path: ${datasets.variant_annotation}
+gnomad_genomes_path: ${datasets.gnomad_genomes_path}
+chain_38_37: ${datasets.chain_38_37}
+gnomad_variant_populations:
+  - afr # African-American
+  - amr # American Admixed/Latino
+  - ami # Amish ancestry
+  - asj # Ashkenazi Jewish
+  - eas # East Asian
+  - fin # Finnish
+  - nfe # Non-Finnish European
+  - mid # Middle Eastern
+  - sas # South Asian
+  - remaining # Other
