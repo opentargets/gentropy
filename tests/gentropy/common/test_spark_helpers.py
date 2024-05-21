@@ -131,5 +131,3 @@ class TestEnforceSchema:
         # Looping through all the struct column and test if the schema is consistent
         for column in ["struct_1", "struct_2", "struct_3", "struct_4", "struct_5"]:
             assert self.test_dataset.schema[column].dataType == self.EXPECTED_SCHEMA
-        for column in ["struct_1", "struct_2", "struct_3", "struct_4", "struct_5"]:
-            assert self.test_dataset.schema[column].dataType == self.EXPECTED_SCHEMA
