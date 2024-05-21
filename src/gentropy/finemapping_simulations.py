@@ -14,11 +14,11 @@ from gentropy.susie_finemapper import SusieFineMapperStep
 
 
 class FineMappingSimulations:
-    """The module descirbes fucntions for running fine-mapping simulations and benchmarking."""
+    """The module descirbes functions for running fine-mapping simulations and benchmarking."""
 
     @staticmethod
     def ProvideSummary(cred_sets: DataFrame, n_causal: int) -> dict[str, Any]:
-        """Provide summary on the simulation results.
+        """Provides summary for the simulation results.
 
         Args:
             cred_sets (DataFrame): DataFrame containing the credible sets.
@@ -185,7 +185,7 @@ class FineMappingSimulations:
         noise: bool = False,
         scale_noise: float = 1,
     ) -> dict[str, Any]:
-        """Simulates summary statistics for a genetic association study.
+        """Simulates summary statistics (vector of Z-scores) using numbr of causla SNPs and LD matrix as input.
 
         Args:
             n_causal (int): number of causal snps.
