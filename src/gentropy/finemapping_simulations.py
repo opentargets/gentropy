@@ -14,7 +14,7 @@ from gentropy.susie_finemapper import SusieFineMapperStep
 
 
 class FineMappingSimulations:
-    """The module descirbes functions for running fine-mapping simulations and benchmarking."""
+    """The module describes functions for running fine-mapping simulations and benchmarking."""
 
     @staticmethod
     def ProvideSummary(cred_sets: DataFrame, n_causal: int) -> dict[str, Any]:
