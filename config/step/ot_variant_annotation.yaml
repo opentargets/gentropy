@@ -15,3 +15,5 @@ gnomad_variant_populations:
   - mid # Middle Eastern
   - sas # South Asian
   - remaining # Other
+# The version will of the gnomad will be inferred from ld_matrix_template and appended to the ld_index_out.
+use_version_from_input: true

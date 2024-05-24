@@ -33,6 +33,7 @@ gwas_catalog_credible_set_folder: ${datasets.gwas_catalog_dataset}/credible_set_
 # GnomAD
 gnomad_public_bucket: gs://gcp-public-data--gnomad/release
 # LD generation
+# Templates require placeholders {POP} to expand template to match multiple populationwise paths
 ld_matrix_template: ${datasets.gnomad_public_bucket}/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
 ld_index_raw_template: ${datasets.gnomad_public_bucket}/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht
 liftover_ht_path: ${datasets.gnomad_public_bucket}/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht
