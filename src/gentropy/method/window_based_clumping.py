@@ -155,14 +155,14 @@ class WindowBasedClumping:
     def clump(
         summary_statistics: SummaryStatistics,
         distance: int = 500_000,
-        gwas_significance: float = 5e-8,
+        gwas_significance: float = 1e-8,
     ) -> StudyLocus:
         """Clump significant signals from summary statistics based on window.
 
         Args:
             summary_statistics (SummaryStatistics): Summary statistics to be used for clumping.
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
-            gwas_significance (float): GWAS significance threshold. Defaults to 5e-8.
+            gwas_significance (float): GWAS significance threshold. Defaults to 1e-8.
 
         Returns:
             StudyLocus: clumped summary statistics (without locus collection)

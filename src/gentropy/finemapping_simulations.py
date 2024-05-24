@@ -108,7 +108,7 @@ class FineMappingSimulations:
                 scale_noise=scale_noise,
             )
 
-            if sum(x_cycle["P"] <= 5e-8) > 0:
+            if sum(x_cycle["P"] <= 1e-8) > 0:
                 df = pd.DataFrame(
                     {"z": x_cycle["Z"], "variantId": ld_index_pd["variantId"]}
                 )
