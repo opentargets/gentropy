@@ -4,7 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pyspark.sql.functions as f
+from pyspark.sql.functions import udf
+from pyspark.sql.types import BooleanType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
@@ -122,8 +125,9 @@ class SummaryStatistics(Dataset):
 
         gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") > 0))
 
+        isinf_udf = udf(lambda x: np.isinf(x), BooleanType())
         gwas_df = gwas_df.filter(
-            ~(f.isinf(gwas_df["beta"]) | f.isinf(gwas_df["standardError"]))
+            ~(isinf_udf(gwas_df["beta"]) | isinf_udf(gwas_df["standardError"]))
         )
 
         gwas_df = gwas_df.filter(
