@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -167,6 +168,13 @@ class WindowBasedClumping:
         Returns:
             StudyLocus: clumped summary statistics (without locus collection)
         """
+        # p-value default value will change in the next major release
+        if gwas_significance == 5e-8:
+            warnings.warn(
+                "default value for gwas_significance will change in 2.0 release",
+                PendingDeprecationWarning,
+            )
+
         # Create window for locus clusters
         # - variants where the distance between subsequent variants is below the defined threshold.
         # - Variants are sorted by descending significance
