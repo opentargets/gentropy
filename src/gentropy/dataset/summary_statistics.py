@@ -120,7 +120,12 @@ class SummaryStatistics(Dataset):
             subset=["beta", "standardError", "pValueMantissa", "pValueExponent"]
         )
 
-        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") != 0))
+        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") > 0))
+
+        gwas_df = gwas_df.filter(
+            ~(f.isinf(gwas_df["beta"]) | f.isinf(gwas_df["standardError"]))
+        )
+
         gwas_df = gwas_df.filter(
             f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1
         )
