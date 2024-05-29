@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pyspark.sql as psql
 import pyspark.sql.functions as f
+import pytest
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.sumstat_quality_controls import SummaryStatisticsQC
 from pyspark.sql.functions import rand, when
@@ -61,3 +63,44 @@ def test_several_studyid(
     )
     QC = QC.toPandas()
     assert QC.shape == (2, 8)
+
+
+def test_sanity_filter_remove_inf_values() -> None:
+    """Sanity filter remove inf value from standardError field."""
+    spark = psql.SparkSession.getActiveSession()
+    data = [
+        (
+            "GCST012234",
+            "10_73856419_C_A",
+            10,
+            73856419,
+            np.Infinity,
+            1,
+            34.1324,
+            650,
+            None,
+            0.4671,
+        ),
+        (
+            "GCST012234",
+            "14_98074714_G_C",
+            14,
+            98074714,
+            6.697,
+            2,
+            530.4275,
+            289,
+            None,
+            0.4671,
+        ),
+    ]
+    input_df = spark.createDataFrame(data=data, schema=SummaryStatistics.get_schema())
+    input_df.printSchema()
+    summary_stats = SummaryStatistics(
+        _df=input_df, _schema=SummaryStatistics.get_schema()
+    )
+
+    assert input_df.count() == 2
+    stats_after_filter = summary_stats.sanity_filter().df.collect()
+    assert len(stats_after_filter) == 1
+    assert stats_after_filter[0]["beta"] - 6.697 == pytest.approx(0)

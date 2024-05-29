@@ -1,13 +1,11 @@
 """Summary satistics dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.functions import udf
-from pyspark.sql.types import BooleanType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
@@ -114,6 +112,7 @@ class SummaryStatistics(Dataset):
             - The p-value should not be eqaul 1.
             - The beta and se should not be equal 0.
             - The p-value, beta and se should not be NaN.
+            - The beta and
 
         Returns:
             SummaryStatistics: The filtered summary statistics.
@@ -122,19 +121,14 @@ class SummaryStatistics(Dataset):
         gwas_df = gwas_df.dropna(
             subset=["beta", "standardError", "pValueMantissa", "pValueExponent"]
         )
-
-        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") > 0))
-
-        isinf_udf = udf(lambda x: np.isinf(x), BooleanType())
-        gwas_df = gwas_df.filter(
-            ~(isinf_udf(gwas_df["beta"]) | isinf_udf(gwas_df["standardError"]))
-        )
-
+        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") != 0))
         gwas_df = gwas_df.filter(
             f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1
         )
-
-        return SummaryStatistics(
+        cols = ["beta", "standardError"]
+        summary_stats = SummaryStatistics(
             _df=gwas_df,
             _schema=SummaryStatistics.get_schema(),
-        )
+        ).drop_infinity_values(*cols)
+
+        return summary_stats
