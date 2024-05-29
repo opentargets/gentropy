@@ -1034,7 +1034,7 @@ class SusieFineMapperStep:
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
 
         Returns:
-            dict[str, Any] | None:: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
+            dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
         """
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
