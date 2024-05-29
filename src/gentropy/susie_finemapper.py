@@ -125,8 +125,9 @@ class SusieFineMapperStep:
                 output_path + "/" + study_locus_to_finemap
             )
             # Write log
-            result_logging["log"].df.write.mode(session.write_mode).parquet(
-                output_path_log + "/" + study_locus_to_finemap
+            result_logging["log"].to_csv(
+                output_path_log + "/" + study_locus_to_finemap + ".csv",
+                index=False
             )
         else:
             result = self.susie_finemapper_ss_gathered(
