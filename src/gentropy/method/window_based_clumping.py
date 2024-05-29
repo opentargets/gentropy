@@ -12,6 +12,7 @@ from pyspark.ml import functions as fml
 from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
@@ -155,23 +156,25 @@ class WindowBasedClumping:
     @staticmethod
     def clump(
         summary_statistics: SummaryStatistics,
-        distance: int = 500_000,
-        gwas_significance: float = 1e-8,
+        distance: int = WindowBasedClumpingStepConfig().distance,
+        gwas_significance: float = WindowBasedClumpingStepConfig().gwas_significance,
     ) -> StudyLocus:
         """Clump significant signals from summary statistics based on window.
 
         Args:
             summary_statistics (SummaryStatistics): Summary statistics to be used for clumping.
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
-            gwas_significance (float): GWAS significance threshold. Defaults to 1e-8.
+            gwas_significance (float): GWAS significance threshold. Defaults to 5e-8.
 
         Returns:
             StudyLocus: clumped summary statistics (without locus collection)
+
+            Check WindowBasedClumpingStepConfig object for default values
         """
         # p-value default value will change in the next major release
         if gwas_significance == 5e-8:
             warnings.warn(
-                "default value for gwas_significance will change in 2.0 release",
+                "Default value for gwas_significance will change in 2.0 release",
                 PendingDeprecationWarning,
             )
 
