@@ -15,11 +15,11 @@ CLUSTER_NAME = "otg-preprocess-eqtl"
 AUTOSCALING = "eqtl-preprocess"
 PROJECT_ID = "open-targets-genetics-dev"
 
-EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalogue_data/otar2077/susie"
-TEMP_DECOMPRESS_LOCATION = f"{EQTL_CATALOG_SUSIE_LOCATION}_decompressed_tmp"
+EQTL_CATALOGUE_SUSIE_LOCATION = "gs://eqtl_catalogue_data/ebi_ftp/susie"
+TEMP_DECOMPRESS_LOCATION = f"{EQTL_CATALOGUE_SUSIE_LOCATION}_decompressed_tmp"
 DECOMPRESS_FAILED_LOG = f"{TEMP_DECOMPRESS_LOCATION}/logs.log"
-STUDY_INDEX_PATH = "gs://ot-team/irene/il-scqtl/study_index"
-CREDIBLE_SET_PATH = "gs://ot-team/irene/il-scqtl/credible_set_datasets/susie"
+STUDY_INDEX_PATH = "gs://ot-team/irene/il-scqtl/study_index_all"
+CREDIBLE_SET_PATH = "gs://ot-team/irene/il-scqtl/credible_set_datasets_all/susie"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -35,7 +35,7 @@ with DAG(
         location="europe-west1",
         project_id=PROJECT_ID,
         parameters={
-            "inputFilePattern": f"{EQTL_CATALOG_SUSIE_LOCATION}/**/*.gz",
+            "inputFilePattern": f"{EQTL_CATALOGUE_SUSIE_LOCATION}/**/*.gz",
             "outputDirectory": TEMP_DECOMPRESS_LOCATION,
             "outputFailureFile": DECOMPRESS_FAILED_LOG,
         },
@@ -68,5 +68,5 @@ with DAG(
         )
         >> common.install_dependencies(CLUSTER_NAME)
         >> ingestion_job
-        # >> [delete_decompressed_job, common.delete_cluster(CLUSTER_NAME)]
+        >> [delete_decompressed_job, common.delete_cluster(CLUSTER_NAME)]
     )
