@@ -15,11 +15,11 @@ CLUSTER_NAME = "otg-preprocess-eqtl"
 AUTOSCALING = "eqtl-preprocess"
 PROJECT_ID = "open-targets-genetics-dev"
 
-EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalogue_data/ebi_ftp/susie"
-TEMP_DECOMPRESS_LOCATION = "gs://eqtl_catalogue_data/susie_decompressed_tmp"
-DECOMPRESS_FAILED_LOG = f"{TEMP_DECOMPRESS_LOCATION}.log"
-STUDY_INDEX_PATH = "gs://eqtl_catalogue_data/study_index"
-CREDIBLE_SET_PATH = "gs://eqtl_catalogue_data/credible_set_datasets/susie"
+EQTL_CATALOG_SUSIE_LOCATION = "gs://eqtl_catalogue_data/otar2077/susie"
+TEMP_DECOMPRESS_LOCATION = f"{EQTL_CATALOG_SUSIE_LOCATION}_decompressed_tmp"
+DECOMPRESS_FAILED_LOG = f"{TEMP_DECOMPRESS_LOCATION}/logs.log"
+STUDY_INDEX_PATH = "gs://ot-team/irene/il-scqtl/study_index"
+CREDIBLE_SET_PATH = "gs://ot-team/irene/il-scqtl/credible_set_datasets/susie"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -68,5 +68,5 @@ with DAG(
         )
         >> common.install_dependencies(CLUSTER_NAME)
         >> ingestion_job
-        >> [delete_decompressed_job, common.delete_cluster(CLUSTER_NAME)]
+        # >> [delete_decompressed_job, common.delete_cluster(CLUSTER_NAME)]
     )

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import re
+
+from google.cloud import storage
+
 from gentropy.common.session import Session
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
@@ -36,9 +40,21 @@ class EqtlCatalogueStep:
         )
 
         # Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.
-        studies_to_ingest = EqtlCatalogueStudyIndex.get_studies_of_interest(
+        tmp_studies_to_ingest = EqtlCatalogueStudyIndex.get_studies_of_interest(
             studies_metadata
         )
+        # check if all studies_to_ingest are in the eqtl_catalogue_paths_imported GCS bucket
+        storage_client = storage.Client()
+        blobs = storage_client.list_blobs(
+            "eqtl_catalogue_data", prefix="otar2077/susie_decompressed_tmp"
+        )
+        qtd_ids_in_path = []
+        for blob in blobs:
+            match = re.search(r"QTD\d+", blob.name)
+            if match:
+                qtd_ids_in_path.append(match.group())
+        studies_to_ingest = list(set(tmp_studies_to_ingest) & set(qtd_ids_in_path))
+
         credible_sets_df = EqtlCatalogueFinemapping.read_credible_set_from_source(
             session,
             credible_set_path=[
