@@ -1,4 +1,5 @@
 """Interface for application configuration."""
+
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
@@ -157,8 +158,28 @@ class LDIndexConfig(StepConfig):
             "start_hail": True,
         }
     )
-    min_r2: float = 0.5
     ld_index_out: str = MISSING
+    min_r2: float = 0.5
+    ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
+    ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
+    liftover_ht_path: str = "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht"
+    grch37_to_grch38_chain_path: str = (
+        "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
+    )
+    ld_populations: list[str] = field(
+        default_factory=lambda: [
+            "afr",  # African-American
+            "amr",  # American Admixed/Latino
+            "asj",  # Ashkenazi Jewish
+            "eas",  # East Asian
+            "est",  # Estionian
+            "fin",  # Finnish
+            "nfe",  # Non-Finnish European
+            "nwe",  # Northwestern European
+            "seu",  # Southeastern European
+        ]
+    )
+    use_version_from_input: bool = False
     _target_: str = "gentropy.ld_index.LDIndexStep"
 
 
@@ -270,6 +291,23 @@ class VariantAnnotationConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
+    gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
+    chain_38_37: str = "gs://hail-common/references/grch38_to_grch37.over.chain.gz"
+    gnomad_variant_populations: list[str] = field(
+        default_factory=lambda: [
+            "afr",  # African-American
+            "amr",  # American Admixed/Latino
+            "ami",  # Amish ancestry
+            "asj",  # Ashkenazi Jewish
+            "eas",  # East Asian
+            "fin",  # Finnish
+            "nfe",  # Non-Finnish European
+            "mid",  # Middle Eastern
+            "sas",  # South Asian
+            "remaining",  # Other
+        ]
+    )
+    use_version_from_input: bool = False
     _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
 
 
@@ -317,11 +355,17 @@ class VariantToGeneConfig(StepConfig):
 
 
 @dataclass
-class WindowBasedClumpingStep(StepConfig):
+class WindowBasedClumpingStepConfig(StepConfig):
     """Window-based clumping step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
+    gwas_significance: float = 5e-8
     distance: int = 500_000
     collect_locus: bool = False
     collect_locus_distance: int = 500_000
@@ -358,7 +402,6 @@ class FinemapperConfig(StepConfig):
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
     output_path_log: str = MISSING
-    _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
 @dataclass
@@ -417,5 +460,7 @@ def register_config() -> None:
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
-    cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStep)
+    cs.store(
+        group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
+    )
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
