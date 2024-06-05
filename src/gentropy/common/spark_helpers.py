@@ -5,19 +5,18 @@ from __future__ import annotations
 import re
 import sys
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, TypeVar
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import MinMaxScaler, VectorAssembler
 from pyspark.ml.functions import vector_to_array
-from pyspark.sql import Row, Window
-from pyspark.sql.types import FloatType
+from pyspark.sql import Column, Row, Window
 from scipy.stats import norm
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame, WindowSpec
+    from pyspark.sql import DataFrame, WindowSpec
 
 
 def convert_from_wide_to_long(
@@ -55,7 +54,7 @@ def convert_from_wide_to_long(
     _vars_and_vals = f.array(
         *(
             f.struct(
-                f.lit(c).alias(var_name), f.col(c).cast(FloatType()).alias(value_name)
+                f.lit(c).alias(var_name), f.col(c).cast(t.FloatType()).alias(value_name)
             )
             for c in value_vars
         )
@@ -439,9 +438,14 @@ def get_value_from_row(row: Row, column: str) -> Any:
 def enforce_schema(
     expected_schema: Any,
 ) -> Callable[..., Any]:
-    """A function to ensure the schema of a function output follows expectation.
+    """A function to enforce the schema of a function output follows expectation.
 
-    This is a decorator function and expted to used like this:
+    Behaviour:
+        - Fields that are not present in the expected schema will be dropped.
+        - Expected but missing fields will be added with Null values.
+        - Fields with incorrect data types will be casted to the expected data type.
+
+    This is a decorator function and expected to be used like this:
 
     @enforce_schema(spark_schema)
     def my_function() -> t.StructType:
@@ -453,8 +457,9 @@ def enforce_schema(
     Returns:
         Callable[..., Any]: A decorator function.
     """
+    T = TypeVar("T", str, Column)
 
-    def decorator(function: Callable[..., Any]) -> Callable[..., Any]:
+    def decorator(function: Callable[..., T]) -> Callable[..., T]:
         @wraps(function)
         def wrapper(*args: str, **kwargs: str) -> Any:
             return f.from_json(f.to_json(function(*args, **kwargs)), expected_schema)

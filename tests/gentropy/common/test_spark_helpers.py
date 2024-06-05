@@ -60,22 +60,24 @@ class TestEnforceSchema:
             t.StructField("field1", t.StringType(), True),
             t.StructField("field2", t.StringType(), True),
             t.StructField("field3", t.StringType(), True),
+            t.StructField("field4", t.FloatType(), True),
         ]
     )
 
     @staticmethod
     @enforce_schema(expected_schema=EXPECTED_SCHEMA)
-    def test_function_good_schema() -> Column:
+    def good_schema_test() -> Column:
         """Create a struct with the expected schema."""
         return f.struct(
             f.lit("test1").alias("field1"),
             f.lit("test2").alias("field2"),
             f.lit("test3").alias("field3"),
+            f.lit(2.0).alias("field4"),
         )
 
     @staticmethod
     @enforce_schema(expected_schema=EXPECTED_SCHEMA)
-    def test_function_missing_column() -> Column:
+    def missing_column_test() -> Column:
         """Create a struct with a missing column."""
         return f.struct(
             f.lit("test1").alias("field1"),
@@ -84,7 +86,7 @@ class TestEnforceSchema:
 
     @staticmethod
     @enforce_schema(expected_schema=EXPECTED_SCHEMA)
-    def test_function_wrong_order() -> Column:
+    def wrong_order_test() -> Column:
         """Create a struct with the wrong order."""
         return f.struct(
             f.lit("test2").alias("field2"),
@@ -93,22 +95,33 @@ class TestEnforceSchema:
 
     @staticmethod
     @enforce_schema(expected_schema=EXPECTED_SCHEMA)
-    def test_function_extra_column() -> Column:
+    def extra_column_test() -> Column:
         """Create a struct with an extra column."""
         return f.struct(
             f.lit("test2").alias("field2"),
             f.lit("test1").alias("field1"),
-            f.lit("test4").alias("field4"),
+            f.lit("test5").alias("field5"),
+            f.lit(12.1).alias("field6"),
         )
 
     @staticmethod
     @enforce_schema(expected_schema=EXPECTED_SCHEMA)
-    def test_function_wrong_type() -> Column:
+    def wrong_type_test_1() -> Column:
         """Create a struct with the wrong type."""
         return f.struct(
             f.lit("test2").alias("field2"),
             f.lit("test1").alias("field1"),
             f.lit(5).cast(t.IntegerType()).alias("field3"),
+        )
+
+    @staticmethod
+    @enforce_schema(expected_schema=EXPECTED_SCHEMA)
+    def wrong_type_test_2() -> Column:
+        """Create a struct with the wrong type."""
+        return f.struct(
+            f.lit("test2").alias("field2"),
+            f.lit("test1").alias("field1"),
+            f.lit("test").alias("field4"),
         )
 
     @pytest.fixture(autouse=True)
@@ -119,15 +132,23 @@ class TestEnforceSchema:
                 [("a",)],
                 ["label"],
             )
-            .withColumn("struct_1", self.test_function_good_schema())
-            .withColumn("struct_2", self.test_function_missing_column())
-            .withColumn("struct_3", self.test_function_wrong_order())
-            .withColumn("struct_4", self.test_function_extra_column())
-            .withColumn("struct_5", self.test_function_wrong_type())
+            .withColumn("struct_1", self.good_schema_test())
+            .withColumn("struct_2", self.missing_column_test())
+            .withColumn("struct_3", self.wrong_order_test())
+            .withColumn("struct_4", self.extra_column_test())
+            .withColumn("struct_5", self.wrong_type_test_1())
+            .withColumn("struct_6", self.wrong_type_test_2())
         )
 
     def test_schema_consistency(self: TestEnforceSchema) -> None:
         """Test enforce schema consistency."""
         # Looping through all the struct column and test if the schema is consistent
-        for column in ["struct_1", "struct_2", "struct_3", "struct_4", "struct_5"]:
+        for column in [
+            "struct_1",
+            "struct_2",
+            "struct_3",
+            "struct_4",
+            "struct_5",
+            "struct_6",
+        ]:
             assert self.test_dataset.schema[column].dataType == self.EXPECTED_SCHEMA
