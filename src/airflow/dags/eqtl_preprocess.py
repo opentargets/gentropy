@@ -18,8 +18,8 @@ PROJECT_ID = "open-targets-genetics-dev"
 EQTL_CATALOGUE_SUSIE_LOCATION = "gs://eqtl_catalogue_data/ebi_ftp/susie"
 TEMP_DECOMPRESS_LOCATION = f"{EQTL_CATALOGUE_SUSIE_LOCATION}_decompressed_tmp"
 DECOMPRESS_FAILED_LOG = f"{TEMP_DECOMPRESS_LOCATION}/logs.log"
-STUDY_INDEX_PATH = "gs://ot-team/irene/il-scqtl/study_index_all"
-CREDIBLE_SET_PATH = "gs://ot-team/irene/il-scqtl/credible_set_datasets_all/susie"
+STUDY_INDEX_PATH = "gs://eqtl_catalogue_data/study_index"
+CREDIBLE_SET_PATH = "gs://eqtl_catalogue_data/credible_set_datasets/susie"
 
 with DAG(
     dag_id=Path(__file__).stem,
