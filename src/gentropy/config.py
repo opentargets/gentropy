@@ -356,6 +356,21 @@ class VariantToGeneConfig(StepConfig):
 
 
 @dataclass
+class LocusBreakerClumpingConfig(StepConfig):
+    """Locus breaker clumping step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    distance_cutoff: int = 500_000
+    flankig_distance: int = 100_000
+    pvalue_cutoff: float = 5e-8
+    baseline_pvalue_cutoff: float = 1e-5
+
+
+@dataclass
 class WindowBasedClumpingStepConfig(StepConfig):
     """Window-based clumping step configuration."""
 
