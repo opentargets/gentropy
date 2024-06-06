@@ -1,4 +1,5 @@
 """Airflow DAG for the Preprocess part of the pipeline."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,7 +7,7 @@ from pathlib import Path
 import common_airflow as common
 from airflow.models.dag import DAG
 
-CLUSTER_NAME = "otg-preprocess"
+CLUSTER_NAME = "gnomad-preprocess"
 
 ALL_STEPS = [
     "ot_ld_index",

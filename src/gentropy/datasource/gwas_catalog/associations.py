@@ -1,4 +1,5 @@
 """Study Locus for GWAS Catalog data source."""
+
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
@@ -19,6 +20,7 @@ from gentropy.common.spark_helpers import (
     pvalue_to_zscore,
 )
 from gentropy.common.utils import parse_efos
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
@@ -30,6 +32,40 @@ if TYPE_CHECKING:
 @dataclass
 class GWASCatalogCuratedAssociationsParser:
     """GWAS Catalog curated associations parser."""
+
+    @staticmethod
+    def convert_gnomad_position_to_ensembl(
+        position: Column, reference: Column, alternate: Column
+    ) -> Column:
+        """Convert GnomAD variant position to Ensembl variant position.
+
+        For indels (the reference or alternate allele is longer than 1), then adding 1 to the position, for SNPs,
+        the position is unchanged. More info about the problem: https://www.biostars.org/p/84686/
+
+        Args:
+            position (Column): Position of the variant in GnomAD's coordinates system.
+            reference (Column): The reference allele in GnomAD's coordinates system.
+            alternate (Column): The alternate allele in GnomAD's coordinates system.
+
+        Returns:
+            Column: The position of the variant in the Ensembl genome.
+
+        Examples:
+            >>> d = [(1, "A", "C"), (2, "AA", "C"), (3, "A", "AA")]
+            >>> df = spark.createDataFrame(d).toDF("position", "reference", "alternate")
+            >>> df.withColumn("new_position", GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(f.col("position"), f.col("reference"), f.col("alternate"))).show()
+            +--------+---------+---------+------------+
+            |position|reference|alternate|new_position|
+            +--------+---------+---------+------------+
+            |       1|        A|        C|           1|
+            |       2|       AA|        C|           3|
+            |       3|        A|       AA|           4|
+            +--------+---------+---------+------------+
+            <BLANKLINE>
+        """
+        return f.when(
+            (f.length(reference) > 1) | (f.length(alternate) > 1), position + 1
+        ).otherwise(position)
 
     @staticmethod
     def _parse_pvalue(pvalue: Column) -> tuple[Column, Column]:
@@ -178,7 +214,8 @@ class GWASCatalogCuratedAssociationsParser:
         gwas_associations_subset = gwas_associations.select(
             "studyLocusId",
             f.col("CHR_ID").alias("chromosome"),
-            f.col("CHR_POS").cast(IntegerType()).alias("position"),
+            # The positions from GWAS Catalog are from ensembl that causes discrepancy for indels:
+            f.col("CHR_POS").cast(IntegerType()).alias("ensemblPosition"),
             # List of all SNPs associated with the variant
             GWASCatalogCuratedAssociationsParser._collect_rsids(
                 f.split(f.col("SNPS"), "; ").getItem(0),
@@ -194,6 +231,11 @@ class GWASCatalogCuratedAssociationsParser:
         va_subset = variant_annotation.df.select(
             "variantId",
             "chromosome",
+            # Calculate the position in Ensembl coordinates for indels:
+            GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(
+                f.col("position"), f.col("referenceAllele"), f.col("alternateAllele")
+            ).alias("ensemblPosition"),
+            # Keeping GnomAD position:
             "position",
             f.col("rsIds").alias("rsIdsGnomad"),
             "referenceAllele",
@@ -202,9 +244,11 @@ class GWASCatalogCuratedAssociationsParser:
             variant_annotation.max_maf().alias("maxMaf"),
         ).join(
             f.broadcast(
-                gwas_associations_subset.select("chromosome", "position").distinct()
+                gwas_associations_subset.select(
+                    "chromosome", "ensemblPosition"
+                ).distinct()
             ),
-            on=["chromosome", "position"],
+            on=["chromosome", "ensemblPosition"],
             how="inner",
         )
 
@@ -213,7 +257,7 @@ class GWASCatalogCuratedAssociationsParser:
         filtered_associations = (
             gwas_associations_subset.join(
                 f.broadcast(va_subset),
-                on=["chromosome", "position"],
+                on=["chromosome", "ensemblPosition"],
                 how="left",
             )
             .withColumn(
@@ -992,7 +1036,7 @@ class GWASCatalogCuratedAssociationsParser:
         cls: type[GWASCatalogCuratedAssociationsParser],
         gwas_associations: DataFrame,
         variant_annotation: VariantAnnotation,
-        pvalue_threshold: float = 5e-8,
+        pvalue_threshold: float = WindowBasedClumpingStepConfig.gwas_significance,
     ) -> StudyLocusGWASCatalog:
         """Read GWASCatalog associations.
 
@@ -1006,6 +1050,8 @@ class GWASCatalogCuratedAssociationsParser:
 
         Returns:
             StudyLocusGWASCatalog: GWASCatalogAssociations dataset
+
+        pvalue_threshold is keeped in sync with the WindowBasedClumpingStep gwas_significance.
         """
         return StudyLocusGWASCatalog(
             _df=gwas_associations.withColumn(

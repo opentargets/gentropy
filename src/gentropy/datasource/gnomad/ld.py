@@ -1,8 +1,8 @@
 """Step to import filtered version of a LD matrix (block matrix)."""
+
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass, field
 from functools import reduce
 from typing import TYPE_CHECKING
 
@@ -13,44 +13,44 @@ from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
-from gentropy.common.utils import _liftover_loci, convert_gnomad_position_to_ensembl
+from gentropy.common.types import LD_Population
+from gentropy.common.utils import _liftover_loci
+from gentropy.config import LDIndexConfig
 from gentropy.dataset.ld_index import LDIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
 
 
-@dataclass
 class GnomADLDMatrix:
-    """Toolset ot interact with GnomAD LD dataset (version: r2.1.1).
+    """Toolset ot interact with GnomAD LD dataset (version: r2.1.1)."""
 
-    Datasets are accessed in Hail's native format, as provided by the [GnomAD consortium](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium).
+    def __init__(
+        self,
+        ld_matrix_template: str = LDIndexConfig().ld_matrix_template,
+        ld_index_raw_template: str = LDIndexConfig().ld_index_raw_template,
+        grch37_to_grch38_chain_path: str = LDIndexConfig().grch37_to_grch38_chain_path,
+        ld_populations: list[LD_Population | str] = LDIndexConfig().ld_populations,
+        liftover_ht_path: str = LDIndexConfig().liftover_ht_path,
+    ):
+        """Initialize.
 
-    Attributes:
-        ld_matrix_template (str): Template for the LD matrix path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm".
-        ld_index_raw_template (str): Template for the LD index path. Defaults to "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht".
-        grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates. Defaults to "gs://hail-common/references/grch37_to_grch38.over.chain.gz".
-        ld_populations (list[str]): List of populations to use to build the LDIndex. Defaults to ["afr", "amr", "asj", "eas", "fin", "nfe", "nwe", "seu"].
-    """
+        Datasets are accessed in Hail's native format, as provided by the [GnomAD consortium](https://gnomad.broadinstitute.org/downloads/#v2-linkage-disequilibrium).
 
-    ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
-    ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
-    liftover_ht_path: str = "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht"
-    grch37_to_grch38_chain_path: str = (
-        "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
-    )
-    ld_populations: list[str] = field(
-        default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "asj",  # Ashkenazi Jewish
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-            "nwe",  # Northwestern European
-            "seu",  # Southeastern European
-        ]
-    )
+        Args:
+            ld_matrix_template (str): Template for the LD matrix path.
+            ld_index_raw_template (str): Template for the LD index path.
+            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.
+            ld_populations (list[LD_Population | str]): List of populations to use to build the LDIndex.
+            liftover_ht_path (str): Path to the liftover ht file.
+
+        Default values are set in LDIndexConfig.
+        """
+        self.ld_matrix_template = ld_matrix_template
+        self.ld_index_raw_template = ld_index_raw_template
+        self.grch37_to_grch38_chain_path = grch37_to_grch38_chain_path
+        self.ld_populations = ld_populations
+        self.liftover_ht_path = liftover_ht_path
 
     @staticmethod
     def _aggregate_ld_index_across_populations(
@@ -177,24 +177,15 @@ class GnomADLDMatrix:
             ld_index_38.to_spark()
             # Filter out variants where the liftover failed
             .filter(f.col("`locus_GRCh38.position`").isNotNull())
-            .withColumn(
-                "chromosome", f.regexp_replace("`locus_GRCh38.contig`", "chr", "")
-            )
-            .withColumn(
-                "position",
-                convert_gnomad_position_to_ensembl(
-                    f.col("`locus_GRCh38.position`"),
-                    f.col("`alleles`").getItem(0),
-                    f.col("`alleles`").getItem(1),
-                ),
-            )
             .select(
-                "chromosome",
-                "position",
+                f.regexp_replace("`locus_GRCh38.contig`", "chr", "").alias(
+                    "chromosome"
+                ),
+                f.col("`locus_GRCh38.position`").alias("position"),
                 f.concat_ws(
                     "_",
-                    f.col("chromosome"),
-                    f.col("position"),
+                    f.regexp_replace("`locus_GRCh38.contig`", "chr", ""),
+                    f.col("`locus_GRCh38.position`"),
                     f.col("`alleles`").getItem(0),
                     f.col("`alleles`").getItem(1),
                 ).alias("variantId"),
@@ -512,7 +503,7 @@ class GnomADLDMatrix:
 
         half_matrix = (
             BlockMatrix.read(
-                GnomADLDMatrix.ld_matrix_template.format(POP=gnomad_ancestry)
+                GnomADLDMatrix().ld_matrix_template.format(POP=gnomad_ancestry)
             )
             .filter(idx, idx)
             .to_numpy()
