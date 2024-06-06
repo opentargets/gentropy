@@ -17,6 +17,7 @@ from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, WindowSpec
+    from pyspark.sql.types import StructType
 
 
 def convert_from_wide_to_long(
@@ -436,7 +437,7 @@ def get_value_from_row(row: Row, column: str) -> Any:
 
 
 def enforce_schema(
-    expected_schema: Any,
+    expected_schema: StructType,
 ) -> Callable[..., Any]:
     """A function to enforce the schema of a function output follows expectation.
 
@@ -452,7 +453,7 @@ def enforce_schema(
         return ...
 
     Args:
-        expected_schema (Any): The expected schema of the output.
+        expected_schema (StructType): The expected schema of the output.
 
     Returns:
         Callable[..., Any]: A decorator function.
