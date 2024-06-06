@@ -14,7 +14,7 @@ CLUSTER_NAME = "otg-etl"
 SOURCE_CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "dag.yaml"
 
 # Release specific variables:
-RELEASE_VERSION = "24.03"
+RELEASE_VERSION = "24.05"
 RELEASE_BUCKET_NAME = "genetics_etl_python_playground"
 
 # Datasource paths:

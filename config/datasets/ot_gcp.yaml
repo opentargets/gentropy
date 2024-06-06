@@ -1,5 +1,5 @@
 # Release specific configuration:
-release_version: "24.03"
+release_version: "24.05"
 dev_version: XX.XX
 release_folder: gs://genetics_etl_python_playground/releases/${datasets.release_version}
 
