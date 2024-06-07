@@ -1,4 +1,5 @@
 """Summary satistics dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ import pyspark.sql.functions as f
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -56,8 +58,8 @@ class SummaryStatistics(Dataset):
 
     def window_based_clumping(
         self: SummaryStatistics,
-        distance: int = 500_000,
-        gwas_significance: float = 5e-8,
+        distance: int = WindowBasedClumpingStepConfig().distance,
+        gwas_significance: float = WindowBasedClumpingStepConfig().gwas_significance,
     ) -> StudyLocus:
         """Generate study-locus from summary statistics using window-based clumping.
 
@@ -69,6 +71,7 @@ class SummaryStatistics(Dataset):
 
         Returns:
             StudyLocus: Clumped study-locus optionally containing variants based on window.
+            Check WindowBasedClumpingStepConfig object for default values.
         """
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
@@ -103,3 +106,34 @@ class SummaryStatistics(Dataset):
             ),
             _schema=SummaryStatistics.get_schema(),
         )
+
+    def sanity_filter(self: SummaryStatistics) -> SummaryStatistics:
+        """The function filters the summary statistics by sanity filters.
+
+        The function filters the summary statistics by the following filters:
+            - The p-value should be less than 1.
+            - The pValueMantissa should be greater than 0.
+            - The beta should not be equal 0.
+            - The p-value, beta and se should not be NaN.
+            - The se should be positive.
+            - The beta and se should not be infinite.
+
+        Returns:
+            SummaryStatistics: The filtered summary statistics.
+        """
+        gwas_df = self._df
+        gwas_df = gwas_df.dropna(
+            subset=["beta", "standardError", "pValueMantissa", "pValueExponent"]
+        )
+        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") > 0))
+        gwas_df = gwas_df.filter(
+            (f.col("pValueMantissa") * 10 ** f.col("pValueExponent") < 1)
+            & (f.col("pValueMantissa") > 0)
+        )
+        cols = ["beta", "standardError"]
+        summary_stats = SummaryStatistics(
+            _df=gwas_df,
+            _schema=SummaryStatistics.get_schema(),
+        ).drop_infinity_values(*cols)
+
+        return summary_stats

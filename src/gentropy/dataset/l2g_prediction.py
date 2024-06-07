@@ -47,7 +47,7 @@ class L2GPrediction(Dataset):
         v2g: V2G,
         coloc: Colocalisation,
         session: Session,
-    ) -> L2GPrediction:
+    ) -> tuple[L2GPrediction, L2GFeatureMatrix]:
         """Extract L2G predictions for a set of credible sets derived from GWAS.
 
         Args:
@@ -60,7 +60,7 @@ class L2GPrediction(Dataset):
             session (Session): Session object that contains the Spark session
 
         Returns:
-            L2GPrediction: L2G dataset
+            tuple[L2GPrediction, L2GFeatureMatrix]: L2G dataset and feature matrix limited to GWAS study only.
         """
         fm = L2GFeatureMatrix.generate_features(
             features_list=features_list,
@@ -83,4 +83,4 @@ class L2GPrediction(Dataset):
             model_path,
             features_list=features_list,
         )
-        return l2g_model.predict(gwas_fm, session)
+        return (l2g_model.predict(gwas_fm, session), gwas_fm)

@@ -127,12 +127,15 @@ class LocusToGeneTrainer:
 
     def train(
         self: LocusToGeneTrainer,
-        wandb_run_name: str | None = None,
+        wandb_run_name: str,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
         Args:
-            wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
+            wandb_run_name (str): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
+
+        Returns:
+            LocusToGeneModel: Fitted model
         """
         data_df = self.feature_matrix.df.drop("geneId").toPandas()
 
@@ -165,23 +168,23 @@ class LocusToGeneTrainer:
 
         return model
 
-    def hyperparameter_tuning(
-        self: LocusToGeneTrainer, parameter_grid: dict
-    ) -> LocusToGeneModel:
-        """Perform hyperparameter tuning on the model with W&B Sweeps, and return the best model.
+    # def hyperparameter_tuning(
+    #     self: LocusToGeneTrainer, parameter_grid: dict
+    # ) -> LocusToGeneModel:
+    #     """Perform hyperparameter tuning on the model with W&B Sweeps, and return the best model.
 
-        Returns:
-            LocusToGeneModel: Fitted model with the best hyperparameters
-        """
-        sweep_config = {
-            "method": "grid",
-            "metric": {"name": "roc", "goal": "maximize"},
-        }
-        sweep_config["parameters"] = parameter_grid
-        sweep_id = wandb.sweep(sweep_config, project=self.wandb_l2g_project_name)
+    #     Returns:
+    #         LocusToGeneModel: Fitted model with the best hyperparameters
+    #     """
+    #     sweep_config = {
+    #         "method": "grid",
+    #         "metric": {"name": "roc", "goal": "maximize"},
+    #     }
+    #     sweep_config["parameters"] = parameter_grid
+    #     sweep_id = wandb.sweep(sweep_config, project=self.wandb_l2g_project_name)
 
-        wandb.agent(sweep_id, function=self.train)
-        best_params = sweep_id.best_run()
+    #     wandb.agent(sweep_id, function=self.train)
+    #     best_params = sweep_id.best_run()
 
     # @classmethod
     # def cross_validate(

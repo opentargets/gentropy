@@ -44,6 +44,12 @@
     },
     {
       "metadata": {},
+      "name": "zScore",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
       "name": "pValueMantissa",
       "nullable": true,
       "type": "float"
@@ -97,6 +103,18 @@
     {
       "metadata": {},
       "name": "credibleSetlog10BF",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "purityMeanR2",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "purityMinR2",
       "nullable": true,
       "type": "double"
     },
