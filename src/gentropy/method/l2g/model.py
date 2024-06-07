@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Type
 
 import skops.io as sio
@@ -23,10 +23,17 @@ class LocusToGeneModel:
     features_list: list[str]
     model: Any = GradientBoostingClassifier(random_state=42)
     hyperparameters: dict[str, Any] | None = None
-    label_encoder: dict[str, int] = {
-        "negative": 0,
-        "positive": 1,
-    }
+    label_encoder: dict[str, int] = field(
+        default_factory=lambda: {
+            "negative": 0,
+            "positive": 1,
+        }
+    )
+
+    def __post_init__(self: LocusToGeneModel) -> None:
+        """Post-initialisation to fit the estimator with the provided params."""
+        if self.hyperparameters:
+            self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
     def load_from_disk(
@@ -48,6 +55,22 @@ class LocusToGeneModel:
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model, features_list=features_list)
+
+    @property
+    def hyperparameters_dict(self) -> dict[str, Any]:
+        """Return hyperparameters as a dictionary.
+
+        Returns:
+            dict[str, Any]: Hyperparameters
+
+        Raises:
+            ValueError: If hyperparameters have not been set
+        """
+        if not self.hyperparameters:
+            raise ValueError("Hyperparameters have not been set.")
+        elif isinstance(self.hyperparameters, dict):
+            return self.hyperparameters
+        return self.hyperparameters.default_factory()  # type: ignore
 
     def get_feature_importance(self: LocusToGeneModel) -> dict[str, float]:
         """Return dictionary with relative importances of every feature in the model. Feature names are encoded and have to be mapped back to their original names.

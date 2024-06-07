@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pandas as pd
-import wandb
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -14,10 +13,11 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from wandb.data_types import Table
 
+import wandb
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.method.l2g.model import LocusToGeneModel
+from wandb.data_types import Table
 
 
 @dataclass
@@ -43,17 +43,22 @@ class LocusToGeneTrainer:
 
         Returns:
             LocusToGeneModel: Fitted model
+
+        Raises:
+            ValueError: Train data not set, nothing to fit.
         """
-        assert (
-            self.x_train and self.y_train is not None
-        ), "Train data not set, nothing to fit."
-        fitted_model = self.model.model.fit(X=self.x_train.values, y=self.y_train)
-        self.model = LocusToGeneModel(
-            features_list=self.feature_cols,
-            model=fitted_model,
-            hyperparameters=fitted_model.get_params(),
-        )
-        return self.model
+        if self.x_train is not None and self.y_train is not None:
+            assert (
+                not self.x_train.empty and not self.y_train.empty
+            ), "Train data not set, nothing to fit."
+            fitted_model = self.model.model.fit(X=self.x_train.values, y=self.y_train)
+            self.model = LocusToGeneModel(
+                features_list=self.feature_cols,
+                model=fitted_model,
+                hyperparameters=fitted_model.get_params(),
+            )
+            return self.model
+        raise ValueError("Train data not set, nothing to fit.")
 
     def log_to_wandb(
         self: LocusToGeneTrainer,
@@ -66,64 +71,81 @@ class LocusToGeneTrainer:
 
         Args:
             wandb_run_name (str): Name of the W&B run
+
+        Raises:
+            ValueError: Train data not set, nothing to evaluate.
         """
-        assert (
-            self.x_test and self.x_train is not None
-        ), "Train self.and test data not set, nothing to evaluate."
-        fitted_classifier = self.model.model
-        y_predicted = fitted_classifier.predict(self.x_test.values)
-        y_probas = fitted_classifier.predict_proba(self.x_test.values)
-        with wandb.self.init(
-            project=self.wandb_l2g_project_name,
-            name=wandb_run_name,
-            config=fitted_classifier.get_params(),
-        ) as run:
-            # Track classification plots
-            wandb.sklearn.plot_classifier(
-                self.model.model,
-                self.x_train.values,
-                self.x_test.values,
-                self.y_train,
-                self.y_test,
-                y_predicted,
-                y_probas,
-                labels=list(self.model.label_encoder.values()),
-                model_name="L2G-classifier",
-                feature_names=self.features_list,
-                is_binary=True,
-            )
-            # Track evaluation metrics
-            run.log(
-                {
-                    "areaUnderROC": roc_auc_score(
-                        self.y_test, y_probas[:, 1], average="weighted"
-                    )
-                }
-            )
-            run.log({"accuracy": accuracy_score(self.y_test, y_predicted)})
-            run.log(
-                {
-                    "weightedPrecision": precision_score(
-                        self.y_test, y_predicted, average="weighted"
-                    )
-                }
-            )
-            run.log(
-                {
-                    "weightedRecall": recall_score(
-                        self.y_test, y_predicted, average="weighted"
-                    )
-                }
-            )
-            run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
-            # Track gold standards and their features
-            run.log({"featureMatrix": Table(dataframe=self.feature_matrix.df)})
-            # Log feature missingness
-            run.log(
-                {
-                    "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
-                }
-            )
+        if (
+            self.x_train is not None
+            and self.x_test is not None
+            and self.y_train is not None
+            and self.y_test is not None
+        ):
+            assert (
+                not self.x_train.empty and not self.y_train.empty
+            ), "Train data not set, nothing to evaluate."
+            fitted_classifier = self.model.model
+            y_predicted = fitted_classifier.predict(self.x_test.values)
+            y_probas = fitted_classifier.predict_proba(self.x_test.values)
+            with wandb.init(  # type: ignore
+                project=self.wandb_l2g_project_name,
+                name=wandb_run_name,
+                config=fitted_classifier.get_params(),
+            ) as run:
+                # Track classification plots
+                wandb.sklearn.plot_classifier(
+                    self.model.model,
+                    self.x_train.values,
+                    self.x_test.values,
+                    self.y_train,
+                    self.y_test,
+                    y_predicted,
+                    y_probas,
+                    labels=list(self.model.label_encoder.values()),
+                    model_name="L2G-classifier",
+                    feature_names=self.features_list,
+                    is_binary=True,
+                )
+                # Track evaluation metrics
+                run.log(
+                    {
+                        "areaUnderROC": roc_auc_score(
+                            self.y_test, y_probas[:, 1], average="weighted"
+                        )
+                    }
+                )
+                run.log({"accuracy": accuracy_score(self.y_test, y_predicted)})
+                run.log(
+                    {
+                        "weightedPrecision": precision_score(
+                            self.y_test, y_predicted, average="weighted"
+                        )
+                    }
+                )
+                run.log(
+                    {
+                        "weightedRecall": recall_score(
+                            self.y_test, y_predicted, average="weighted"
+                        )
+                    }
+                )
+                run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
+                # Track gold standards and their features
+                run.log(
+                    {
+                        "featureMatrix": Table(
+                            dataframe=self.feature_matrix.df.toPandas()
+                        )
+                    }
+                )
+                # Log feature missingness
+                run.log(
+                    {
+                        "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
+                    }
+                )
+        else:
+            raise ValueError("Train data not set, nothing to evaluate.")
 
     def train(
         self: LocusToGeneTrainer,

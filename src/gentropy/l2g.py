@@ -6,9 +6,9 @@ from typing import Any
 
 import pyspark.sql.functions as f
 import sklearn
-import wandb
 from sklearn.ensemble import GradientBoostingClassifier
 
+import wandb
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -169,7 +169,7 @@ class LocusToGeneStep:
             # Instantiate classifier and train model
             l2g_model = LocusToGeneModel(
                 features_list=list(features_list),
-                model=GradientBoostingClassifier(**hyperparameters, random_state=42),
+                model=GradientBoostingClassifier(random_state=42),
                 hyperparameters=hyperparameters,
             )
             wandb.login()
