@@ -31,7 +31,7 @@ gwas_catalog_study_locus_folder: ${datasets.gwas_catalog_dataset}/study_locus_da
 gwas_catalog_credible_set_folder: ${datasets.gwas_catalog_dataset}/credible_set_datasets
 
 # GnomAD
-gnomad_public_bucket: gs://gcp-public-data--gnomad/release
+gnomad_public_bucket: gs://gcp-public-data--gnomad/release/
 # LD generation
 # Templates require placeholders {POP} to expand template to match multiple populationwise paths
 ld_matrix_template: ${datasets.gnomad_public_bucket}/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm
