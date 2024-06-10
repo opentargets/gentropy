@@ -1569,13 +1569,13 @@ pyarrow = ">=3.0.0"
 
 [[package]]
 name = "dbldatagen"
-version = "0.3.5"
+version = "0.4.0"
 description = "Databricks Labs -  PySpark Synthetic Data Generator"
 optional = false
 python-versions = ">=3.8.10"
 files = [
-    {file = "dbldatagen-0.3.5-py3-none-any.whl", hash = "sha256:75db379c68adda518fbe5d09184ca0756255f2086d8466fbdeaba29863b98349"},
-    {file = "dbldatagen-0.3.5.tar.gz", hash = "sha256:d50dd7f2180d6f3e21a107b8759d62f9a9dd093b64833f73940d99f58723c4b4"},
+    {file = "dbldatagen-0.4.0-py3-none-any.whl", hash = "sha256:e60b0089b0600239d8f291b2b4dc76aafd57708da2eeb58f1a28c5ab13fdced0"},
+    {file = "dbldatagen-0.4.0.tar.gz", hash = "sha256:0003ed8d85399a995e178ffea17600f23720ddeb7374ea00afb8a13941859c51"},
 ]
 
 [[package]]
@@ -8747,4 +8747,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10, <3.11"
-content-hash = "17ce2b9633b041145c2ae05eaf6042df7307f03c5fc8dec826500ad11211090d"
+content-hash = "014b22c4bae48219b91141d8507e47eb7caac41cfaf55ca943898b119d9dd8bc"
