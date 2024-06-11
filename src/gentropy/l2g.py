@@ -40,6 +40,7 @@ class LocusToGeneStep:
         hyperparameters: dict[str, Any],
         feature_matrix_path: str | None = None,
         wandb_run_name: str | None = None,
+        hf_hub_repo_id: str | None = None,
         perform_cross_validation: bool = False,
     ) -> None:
         """Run step.
@@ -60,6 +61,7 @@ class LocusToGeneStep:
             feature_matrix_path (str | None): Optional path where the raw feature matrix should be stored.
                 If None, the feature matrix is not published. The feature matrix is published only when `run_mode` is `predict`.
             wandb_run_name (str | None): Name of the run to be tracked on W&B.
+            hf_hub_repo_id (str | None): Hugging Face Hub repository ID.
             perform_cross_validation (bool): Whether to perform cross validation.
 
         Raises:
@@ -176,5 +178,17 @@ class LocusToGeneStep:
             trained_model = LocusToGeneTrainer(
                 model=l2g_model, feature_matrix=data
             ).train(wandb_run_name)
-            trained_model.save(model_path)
-            session.logger.info(f"Model saved to {model_path}")  # noqa: G004
+            hf_hub_token = "a_token"
+            if trained_model.training_data and trained_model.model:
+                trained_model.save(model_path)
+                session.logger.info(f"Model saved to {model_path}")  # noqa: G004
+                if hf_hub_repo_id:
+                    trained_model.export_to_hugging_face_hub(
+                        model_path,
+                        hf_hub_token,
+                        data=trained_model.training_data.df.drop(
+                            "goldStandardSet", "geneId"
+                        ).toPandas(),  # type: ignore
+                        repo_id=hf_hub_repo_id,
+                        commit_message="chore: update model",
+                    )

@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type
 
 import skops.io as sio
 from pandas import to_numeric as pd_to_numeric
 from sklearn.ensemble import GradientBoostingClassifier
+from skops import hub_utils
 
 from gentropy.common.session import Session
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 
 if TYPE_CHECKING:
+    from pandas import DataFrame as pd_dataframe
+
     from gentropy.dataset.l2g_prediction import L2GPrediction
 
 
@@ -23,6 +27,7 @@ class LocusToGeneModel:
     features_list: list[str]
     model: Any = GradientBoostingClassifier(random_state=42)
     hyperparameters: dict[str, Any] | None = None
+    training_data: L2GFeatureMatrix | None = None
     label_encoder: dict[str, int] = field(
         default_factory=lambda: {
             "negative": 0,
@@ -55,6 +60,26 @@ class LocusToGeneModel:
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model, features_list=features_list)
+
+    # @classmethod
+    # def load_from_hub(
+    #     cls: Type[LocusToGeneModel], model_id: str, features_list: list[str]
+    # ) -> LocusToGeneModel:
+    #     """Load a model from the Hugging Face Hub.
+
+    #     Args:
+    #         model_id (str): Model ID on the Hugging Face Hub
+    #         features_list (list[str]): List of features used for the model
+
+    #     Returns:
+    #             LocusToGeneModel: L2G model loaded from the Hugging Face Hub
+    #     """
+    #     import joblib
+
+    #     local_path = Path(model_id)
+    #     hub_utils.download(model_id, local_path)
+    #     model = joblib.load("classifier.pkl")
+    #     return cls(model=model, features_list=features_list)
 
     @property
     def hyperparameters_dict(self) -> dict[str, Any]:
@@ -113,11 +138,109 @@ class LocusToGeneModel:
         """Saves fitted model to disk using the skops persistence format.
 
         Args:
-            path (str): Path to save the model to
+            path (str): Path to save the pickled model. Should end with .pkl
 
         Raises:
             ValueError: If the model has not been fitted yet
+            ValueError: If the path does not end with .pkl
         """
         if self.model is None:
             raise ValueError("Model has not been fitted yet.")
+        if not path.endswith(".pkl"):
+            raise ValueError("Path should end with .pkl")
         sio.dump(self.model, path)
+
+    def _create_hugging_face_model_card(
+        self: LocusToGeneModel,
+        local_repo: str,
+    ) -> None:
+        """Create a model card to document the model in the hub. The model card is saved in the local repo before pushing it to the hub.
+
+        Args:
+            local_repo (str): Path to the folder where the README file will be saved to be pushed to the Hugging Face Hub
+        """
+        from skops import card
+
+        # Define card metadata
+        description = """The locus-to-gene (L2G) model derives features to prioritise likely causal genes at each GWAS locus based on genetic and functional genomics features. The main categories of predictive features are:
+
+        - Distance: (from credible set variants to gene)
+        - Molecular QTL Colocalization
+        - Chromatin Interaction: (e.g., promoter-capture Hi-C)
+        - Variant Pathogenicity: (from VEP)
+
+        More information at: https://opentargets.github.io/gentropy/python_api/methods/l2g/_l2g/
+        """
+        how_to = """To use the model, you can load it using the `LocusToGeneModel.load_from_hub` method. This will return a `LocusToGeneModel` object that can be used to make predictions on a feature matrix.
+        The model can then be used to make predictions using the `predict` method.
+
+        More information can be found at: https://opentargets.github.io/gentropy/python_api/methods/l2g/model/
+        """
+        model_card = card.Card(
+            self.model,
+            metadata=card.metadata_from_config(Path(local_repo)),
+        )
+        model_card.add(
+            **{
+                "Model description": description,
+                "Model description/Training Procedure": "Gradient Boosting Classifier",
+                "How to Get Started with the Model": how_to,
+                "Model Card Authors": "Open Targets",
+                "License": "MIT",
+                "Citation": "https://doi.org/10.1038/s41588-021-00945-5",
+            }
+        )
+        model_card.delete("Model description/Training Procedure/Model Plot")
+        model_card.delete("Model description/Evaluation Results")
+        model_card.delete("Model Card Authors")
+        model_card.delete("Model Card Contact")
+        model_card.save(Path(local_repo) / "README.md")
+
+    def export_to_hugging_face_hub(
+        self: LocusToGeneModel,
+        model_path: str,
+        hf_hub_token: str,
+        data: pd_dataframe,
+        commit_message: str,
+        repo_id: str = "opentargets/locus_to_gene",
+        local_repo: str = "locus_to_gene",
+    ) -> None:
+        """Share the model on Hugging Face Hub.
+
+        Args:
+            model_path (str): The path to the L2G model pickle file.
+            hf_hub_token (str): Hugging Face Hub token
+            data (pd_dataframe): Data used to train the model. This is used to have an example input for the model and to store the column order.
+            commit_message (str): Commit message for the push
+            repo_id (str): The Hugging Face Hub repo id where the model will be stored.
+            local_repo (str): Path to the folder where the contents of the model repo + the documentation are located. This is used to push the model to the Hugging Face Hub.
+
+        Raises:
+            Exception: If the push to the Hugging Face Hub fails
+        """
+        from sklearn import __version__ as sklearn_version
+
+        try:
+            hub_utils.init(
+                model=model_path,
+                requirements=[f"scikit-learn={sklearn_version}"],
+                dst=local_repo,
+                task="tabular-classification",
+                data=data,
+                model_format="pickle",
+            )
+            self._create_hugging_face_model_card(local_repo)
+            hub_utils.push(
+                repo_id=repo_id,
+                source=local_repo,
+                token=hf_hub_token,
+                commit_message=commit_message,
+                create_remote=True,
+            )
+        except Exception as e:
+            # remove the local repo if the push fails
+            if Path(local_repo).exists():
+                for p in Path(local_repo).glob("*"):
+                    p.unlink()
+                Path(local_repo).rmdir()
+            raise e

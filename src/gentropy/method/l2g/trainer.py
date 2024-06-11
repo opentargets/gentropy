@@ -56,6 +56,7 @@ class LocusToGeneTrainer:
                 features_list=self.feature_cols,
                 model=fitted_model,
                 hyperparameters=fitted_model.get_params(),
+                training_data=self.feature_matrix,
             )
             return self.model
         raise ValueError("Train data not set, nothing to fit.")

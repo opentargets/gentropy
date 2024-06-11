@@ -3,6 +3,7 @@ defaults:
 
 run_mode: train
 wandb_run_name: null
+hf_hub_repo_id: opentargets/locus_to_gene
 perform_cross_validation: false
 model_path: ${datasets.l2g_model}
 predictions_path: ${datasets.l2g_predictions}
