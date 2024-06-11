@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
 from typing import TYPE_CHECKING, Type
 
@@ -29,12 +29,14 @@ class L2GFeatureMatrix(Dataset):
     """
 
     features_list: list[str] | None = None
+    fixed_cols: list[str] = field(
+        default_factory=lambda: ["studyLocusId", "geneId", "goldStandardSet"]
+    )
 
     def __post_init__(self: L2GFeatureMatrix) -> None:
         """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used."""
-        fixed_cols = ["studyLocusId", "geneId", "goldStandardSet"]
         self.features_list = self.features_list or [
-            col for col in self._df.columns if col not in fixed_cols
+            col for col in self._df.columns if col not in self.fixed_cols
         ]
 
     @classmethod
@@ -137,7 +139,8 @@ class L2GFeatureMatrix(Dataset):
         return self
 
     def select_features(
-        self: L2GFeatureMatrix, features_list: list[str] | None
+        self: L2GFeatureMatrix,
+        features_list: list[str] | None,
     ) -> L2GFeatureMatrix:
         """Select a subset of features from the feature matrix.
 
@@ -148,6 +151,5 @@ class L2GFeatureMatrix(Dataset):
             L2GFeatureMatrix: L2G feature matrix dataset
         """
         features_list = features_list or self.features_list
-        fixed_cols = ["studyLocusId", "geneId", "goldStandardSet"]
-        self.df = self._df.select(fixed_cols + features_list)  # type: ignore
+        self.df = self._df.select(self.fixed_cols + features_list)  # type: ignore
         return self

@@ -81,6 +81,8 @@ class L2GPrediction(Dataset):
         )
         l2g_model = LocusToGeneModel.load_from_disk(
             model_path,
-            features_list=features_list,
         )
-        return (l2g_model.predict(gwas_fm, session), gwas_fm)
+        return (
+            l2g_model.predict(gwas_fm.select_features(features_list), session),
+            gwas_fm,
+        )

@@ -170,7 +170,6 @@ class LocusToGeneStep:
 
             # Instantiate classifier and train model
             l2g_model = LocusToGeneModel(
-                features_list=list(features_list),
                 model=GradientBoostingClassifier(random_state=42),
                 hyperparameters=hyperparameters,
             )

@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
-    features_list: list[str]
     model: Any = GradientBoostingClassifier(random_state=42)
     hyperparameters: dict[str, Any] | None = None
     training_data: L2GFeatureMatrix | None = None
@@ -41,14 +40,11 @@ class LocusToGeneModel:
             self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
-    def load_from_disk(
-        cls: Type[LocusToGeneModel], path: str, features_list: list[str]
-    ) -> LocusToGeneModel:
+    def load_from_disk(cls: Type[LocusToGeneModel], path: str) -> LocusToGeneModel:
         """Load a fitted model from disk.
 
         Args:
             path (str): Path to the model
-            features_list (list[str]): List of features used for the model
 
         Returns:
             LocusToGeneModel: L2G model loaded from disk
@@ -59,7 +55,7 @@ class LocusToGeneModel:
         loaded_model = sio.load(path, trusted=True)
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
-        return cls(model=loaded_model, features_list=features_list)
+        return cls(model=loaded_model)
 
     # @classmethod
     # def load_from_hub(
@@ -97,15 +93,6 @@ class LocusToGeneModel:
             return self.hyperparameters
         return self.hyperparameters.default_factory()  # type: ignore
 
-    def get_feature_importance(self: LocusToGeneModel) -> dict[str, float]:
-        """Return dictionary with relative importances of every feature in the model. Feature names are encoded and have to be mapped back to their original names.
-
-        Returns:
-            dict[str, float]: Dictionary mapping feature names to their importance
-        """
-        importances = self.model.feature_importances
-        return dict(zip(self.features_list, importances))
-
     def predict(
         self: LocusToGeneModel,
         feature_matrix: L2GFeatureMatrix,
@@ -125,7 +112,8 @@ class LocusToGeneModel:
         predictions_df = feature_matrix.df.toPandas().apply(pd_to_numeric)  # type: ignore
         # L2G score is the probability the classifier assigns to the positive class (the second element in the probability array)
         predictions_df["score"] = self.model.predict_proba(
-            predictions_df[self.features_list].values
+            # We drop the fixed columns to only pass the feature values to the classifier
+            predictions_df.drop(*feature_matrix.fixed_cols).values
         )[:, 1]  # type: ignore
         return L2GPrediction(
             _df=session.spark.createDataFrame(predictions_df).select(
