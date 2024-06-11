@@ -40,11 +40,13 @@ class LocusToGeneModel:
             self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
-    def load_from_disk(cls: Type[LocusToGeneModel], path: str) -> LocusToGeneModel:
+    def load_from_disk(
+        cls: Type[LocusToGeneModel], path: str | Path
+    ) -> LocusToGeneModel:
         """Load a fitted model from disk.
 
         Args:
-            path (str): Path to the model
+            path (str | Path): Path to the model
 
         Returns:
             LocusToGeneModel: L2G model loaded from disk
@@ -57,25 +59,25 @@ class LocusToGeneModel:
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model)
 
-    # @classmethod
-    # def load_from_hub(
-    #     cls: Type[LocusToGeneModel], model_id: str, features_list: list[str]
-    # ) -> LocusToGeneModel:
-    #     """Load a model from the Hugging Face Hub.
+    @classmethod
+    def load_from_hub(
+        cls: Type[LocusToGeneModel], model_id: str, model_name: str = "classifier.pkl"
+    ) -> LocusToGeneModel:
+        """Load a model from the Hugging Face Hub. This will download the model from the hub and load it from disk.
 
-    #     Args:
-    #         model_id (str): Model ID on the Hugging Face Hub
-    #         features_list (list[str]): List of features used for the model
+        Args:
+            model_id (str): Model ID on the Hugging Face Hub
+            model_name (str): Name of the pickle file to load. Defaults to "classifier.pkl".
 
-    #     Returns:
-    #             LocusToGeneModel: L2G model loaded from the Hugging Face Hub
-    #     """
-    #     import joblib
+        Returns:
+                LocusToGeneModel: L2G model loaded from the Hugging Face Hub
 
-    #     local_path = Path(model_id)
-    #     hub_utils.download(model_id, local_path)
-    #     model = joblib.load("classifier.pkl")
-    #     return cls(model=model, features_list=features_list)
+        Examples:
+            >>> LocusToGeneModel.load_from_hub("opentargets/locus_to_gene_production")
+        """
+        local_path = Path(model_id)
+        hub_utils.download(repo_id=model_id, dst=local_path)
+        return cls(model=cls.load_from_disk(Path(local_path) / model_name))
 
     @property
     def hyperparameters_dict(self) -> dict[str, Any]:
