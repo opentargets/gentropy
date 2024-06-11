@@ -10,6 +10,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 
 import wandb
 from gentropy.common.session import Session
+from gentropy.common.utils import access_gcp_secret
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -110,6 +111,7 @@ class LocusToGeneStep:
             and gene_interactions_path
             and wandb_run_name
         ):
+            wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
             # Process gold standard and L2G features
             gs_curation = session.spark.read.json(gold_standard_curation_path)
             interactions = session.spark.read.parquet(gene_interactions_path)
@@ -173,15 +175,17 @@ class LocusToGeneStep:
                 model=GradientBoostingClassifier(random_state=42),
                 hyperparameters=hyperparameters,
             )
-            wandb.login()
+            wandb.login(key=wandb_key)  # type: ignore
             trained_model = LocusToGeneTrainer(
                 model=l2g_model, feature_matrix=data
             ).train(wandb_run_name)
-            hf_hub_token = "a_token"
             if trained_model.training_data and trained_model.model:
                 trained_model.save(model_path)
                 session.logger.info(f"Model saved to {model_path}")  # noqa: G004
                 if hf_hub_repo_id:
+                    hf_hub_token = access_gcp_secret(
+                        "hfhub-key", "open-targets-genetics-dev"
+                    )
                     trained_model.export_to_hugging_face_hub(
                         model_path,
                         hf_hub_token,

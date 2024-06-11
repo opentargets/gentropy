@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type
 
 import skops.io as sio
+from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
 from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
@@ -15,8 +16,6 @@ from gentropy.common.session import Session
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 
 if TYPE_CHECKING:
-    from pandas import DataFrame as pd_dataframe
-
     from gentropy.dataset.l2g_prediction import L2GPrediction
 
 
@@ -77,7 +76,7 @@ class LocusToGeneModel:
         """
         local_path = Path(model_id)
         hub_utils.download(repo_id=model_id, dst=local_path)
-        return cls(model=cls.load_from_disk(Path(local_path) / model_name))
+        return cls.load_from_disk(Path(local_path) / model_name)
 
     @property
     def hyperparameters_dict(self) -> dict[str, Any]:
@@ -111,16 +110,19 @@ class LocusToGeneModel:
         """
         from gentropy.dataset.l2g_prediction import L2GPrediction
 
-        predictions_df = feature_matrix.df.toPandas().apply(pd_to_numeric)  # type: ignore
+        pd_dataframe.iteritems = pd_dataframe.items
+
+        feature_matrix_pdf = feature_matrix.df.toPandas()
         # L2G score is the probability the classifier assigns to the positive class (the second element in the probability array)
-        predictions_df["score"] = self.model.predict_proba(
+        feature_matrix_pdf["score"] = self.model.predict_proba(  # type: ignore
             # We drop the fixed columns to only pass the feature values to the classifier
-            predictions_df.drop(*feature_matrix.fixed_cols).values
-        )[:, 1]  # type: ignore
+            feature_matrix_pdf.drop(feature_matrix.fixed_cols, axis=1)  # type: ignore
+            .apply(pd_to_numeric)
+            .values  # type: ignore
+        )[:, 1]
+        output_cols = [field.name for field in L2GPrediction.get_schema().fields]
         return L2GPrediction(
-            _df=session.spark.createDataFrame(predictions_df).select(
-                "studyLocusId", "geneId", "score"
-            ),
+            _df=session.spark.createDataFrame(feature_matrix_pdf.filter(output_cols)),  # type: ignore
             _schema=L2GPrediction.get_schema(),
         )
 
