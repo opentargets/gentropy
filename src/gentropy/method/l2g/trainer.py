@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import partial
 
 import pandas as pd
 from sklearn.metrics import (
@@ -190,78 +191,20 @@ class LocusToGeneTrainer:
 
         return model
 
-    # def hyperparameter_tuning(
-    #     self: LocusToGeneTrainer, parameter_grid: dict
-    # ) -> LocusToGeneModel:
-    #     """Perform hyperparameter tuning on the model with W&B Sweeps, and return the best model.
+    def hyperparameter_tuning(
+        self: LocusToGeneTrainer, wandb_run_name: str, parameter_grid: dict[str, dict]
+    ) -> None:
+        """Perform hyperparameter tuning on the model with W&B Sweeps. Metrics for every combination of hyperparameters will be logged to W&B for comparison.
 
-    #     Returns:
-    #         LocusToGeneModel: Fitted model with the best hyperparameters
-    #     """
-    #     sweep_config = {
-    #         "method": "grid",
-    #         "metric": {"name": "roc", "goal": "maximize"},
-    #     }
-    #     sweep_config["parameters"] = parameter_grid
-    #     sweep_id = wandb.sweep(sweep_config, project=self.wandb_l2g_project_name)
+        Args:
+            wandb_run_name (str): Name of the W&B run
+            parameter_grid (dict[str, dict]): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
+        """
+        sweep_config = {
+            "method": "grid",
+            "metric": {"name": "roc", "goal": "maximize"},
+            "parameters": parameter_grid,
+        }
+        sweep_id = wandb.sweep(sweep_config, project=self.wandb_l2g_project_name)
 
-    #     wandb.agent(sweep_id, function=self.train)
-    #     best_params = sweep_id.best_run()
-
-    # @classmethod
-    # def cross_validate(
-    #     cls: type[LocusToGeneTrainer],
-    #     l2g_model: LocusToGeneModel,
-    #     data: L2GFeatureMatrix,
-    #     num_folds: int,
-    #     param_grid: Optional[list] = None,  # type: ignore
-    # ) -> LocusToGeneModel:
-    #     """Perform k-fold cross validation on the model.
-
-    #     By providing a model with a parameter grid, this method will perform k-fold cross validation on the model for each
-    #     combination of parameters and return the best model.
-
-    #     Args:
-    #         l2g_model (LocusToGeneModel): Model to fit to the data on
-    #         data (L2GFeatureMatrix): Data to perform cross validation on
-    #         num_folds (int): Number of folds to use for cross validation
-    #         param_grid (Optional[list]): List of parameter maps to use for cross validation
-
-    #     Returns:
-    #         LocusToGeneModel: Trained model fitted with the best hyperparameters
-
-    #     Raises:
-    #         ValueError: Parameter grid is empty. Cannot perform cross-validation.
-    #         ValueError: Unable to retrieve the best model.
-    #     """
-    #     evaluator = MulticlassClassificationEvaluator()
-    #     params_grid = param_grid or l2g_model.get_param_grid()
-    #     if not param_grid:
-    #         raise ValueError(
-    #             "Parameter grid is empty. Cannot perform cross-validation."
-    #         )
-    #     cv = CrossValidator(
-    #         numFolds=num_folds,
-    #         estimator=l2g_model.estimator,
-    #         estimatorParamMaps=params_grid,
-    #         evaluator=evaluator,
-    #         parallelism=2,
-    #         collectSubModels=False,
-    #         seed=42,
-    #     )
-
-    #     l2g_model.add_pipeline_stage(cv)  # type: ignore[assignment, unused-ignore]
-
-    #     # Integrate the best model from the last stage of the pipeline
-    #     if (full_pipeline_model := l2g_model.fit(data).model) is None or not hasattr(
-    #         full_pipeline_model, "stages"
-    #     ):
-    #         raise ValueError("Unable to retrieve the best model.")
-    #     l2g_model.model = full_pipeline_model.stages[-1].bestModel  # type: ignore[assignment, unused-ignore]
-    #     return l2g_model
-    #         full_pipeline_model, "stages"
-    #     ):
-    #         raise ValueError("Unable to retrieve the best model.")
-    #     l2g_model.model = full_pipeline_model.stages[-1].bestModel  # type: ignore[assignment, unused-ignore]
-    #     return l2g_model
-    #     return l2g_model
+        wandb.agent(sweep_id, partial(self.train, wandb_run_name=wandb_run_name))

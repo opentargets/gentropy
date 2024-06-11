@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import pyspark.sql.functions as f
-import sklearn
 from sklearn.ensemble import GradientBoostingClassifier
 
 import wandb
@@ -68,7 +67,6 @@ class LocusToGeneStep:
         Raises:
             ValueError: if run_mode is not one of "train" or "predict".
         """
-        print("Sci-kit learn version: ", sklearn.__version__)  # noqa: T201
         if run_mode not in ["train", "predict"]:
             raise ValueError(
                 f"run_mode must be one of 'train' or 'predict', got {run_mode}"
