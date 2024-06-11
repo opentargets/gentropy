@@ -1176,7 +1176,7 @@ class SusieFineMapperStep:
         study_index: StudyIndex,
         ld_index: LDIndex,
         p_value_threshold: float = 1e-5,
-        purity_min_r2: float = 0.25,
+        purity_min_r2: float = 0.01,
     ) -> StudyLocus:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
 
