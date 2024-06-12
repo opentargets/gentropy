@@ -1,4 +1,4 @@
-"""Dataset definition for variant annotation"""
+"""Dataset definition for variant annotation."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import importlib.resources as pkg_resources
 import json
 from dataclasses import dataclass
 from itertools import chain
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Dict, List
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -315,12 +315,14 @@ class VEP_parser:
         )
 
     @staticmethod
-    def _consequence_to_sequence_ontology(col: Column, so_dict: dict) -> Column:
+    def _consequence_to_sequence_ontology(
+        col: Column, so_dict: Dict[str, str]
+    ) -> Column:
         """Convert VEP consequence terms to sequence ontology identifiers.
 
         Args:
             col (Column): Column containing VEP consequence terms.
-            so_dict (dict): Dictionary mapping VEP consequence terms to sequence ontology identifiers.
+            so_dict (Dict[str, str]): Dictionary mapping VEP consequence terms to sequence ontology identifiers.
 
         Returns:
             Column: Column containing sequence ontology identifiers.
