@@ -40,24 +40,26 @@ class L2GPrediction(Dataset):
     @classmethod
     def from_credible_set(
         cls: Type[L2GPrediction],
-        model_path: str,
         features_list: list[str],
         credible_set: StudyLocus,
         study_index: StudyIndex,
         v2g: V2G,
         coloc: Colocalisation,
         session: Session,
+        model_path: str | None,
+        download_from_hub: bool = True,
     ) -> tuple[L2GPrediction, L2GFeatureMatrix]:
         """Extract L2G predictions for a set of credible sets derived from GWAS.
 
         Args:
-            model_path (str): Path to the fitted model
             features_list (list[str]): List of features to use for the model
             credible_set (StudyLocus): Credible set dataset
             study_index (StudyIndex): Study index dataset
             v2g (V2G): Variant to gene dataset
             coloc (Colocalisation): Colocalisation dataset
             session (Session): Session object that contains the Spark session
+            model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub.
+            download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
 
         Returns:
             tuple[L2GPrediction, L2GFeatureMatrix]: L2G dataset and feature matrix limited to GWAS study only.
@@ -79,9 +81,12 @@ class L2GPrediction(Dataset):
             ),
             _schema=cls.get_schema(),
         )
-        l2g_model = LocusToGeneModel.load_from_disk(
-            model_path,
-        )
+        if download_from_hub:
+            # Model ID defaults to "opentargets/locus-to-gene" and it assumes the name of the classifier is "classifier.pkl".
+            model_id = model_path or "opentargets/locus-to-gene"
+            l2g_model = LocusToGeneModel.load_from_hub(model_id)
+        elif model_path:
+            l2g_model = LocusToGeneModel.load_from_disk(model_path)
         return (
             l2g_model.predict(gwas_fm.select_features(features_list), session),
             gwas_fm,

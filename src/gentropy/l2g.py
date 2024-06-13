@@ -38,6 +38,7 @@ class LocusToGeneStep:
         gene_interactions_path: str,
         features_list: list[str],
         hyperparameters: dict[str, Any],
+        download_from_hub: bool,
         feature_matrix_path: str | None = None,
         wandb_run_name: str | None = None,
         hf_hub_repo_id: str | None = None,
@@ -57,6 +58,7 @@ class LocusToGeneStep:
             gene_interactions_path (str): Path to the gene interactions dataset
             features_list (list[str]): List of features to use for the model
             hyperparameters (dict[str, Any]): Hyperparameters for the model
+            download_from_hub (bool): Whether to download the model from the Hugging Face Hub
             feature_matrix_path (str | None): Path to save the feature matrix. Defaults to None.
             wandb_run_name (str | None): Name of the wandb run. Defaults to None.
             hf_hub_repo_id (str | None): Hugging Face Hub repo id. Defaults to None.
@@ -84,6 +86,7 @@ class LocusToGeneStep:
         self.feature_matrix_path = feature_matrix_path
         self.wandb_run_name = wandb_run_name
         self.hf_hub_repo_id = hf_hub_repo_id
+        self.download_from_hub = download_from_hub
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -108,18 +111,17 @@ class LocusToGeneStep:
         Raises:
             ValueError: If model_path or predictions_path are not set.
         """
-        if not self.model_path or not self.predictions_path:
-            raise ValueError(
-                "model_path and predictions_path must be set for predict mode."
-            )
+        if not self.predictions_path:
+            raise ValueError("predictions_path must be set for predict mode.")
         predictions, feature_matrix = L2GPrediction.from_credible_set(
-            self.model_path,
             list(self.features_list),
             self.credible_set,
             self.studies,
             self.v2g,
             self.coloc,
             self.session,
+            model_path=self.model_path,
+            download_from_hub=self.download_from_hub,
         )
         if self.feature_matrix_path:
             feature_matrix.df.write.mode(self.session.write_mode).parquet(
