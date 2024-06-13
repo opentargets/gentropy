@@ -72,7 +72,7 @@ class LocusToGeneModel:
                 LocusToGeneModel: L2G model loaded from the Hugging Face Hub
 
         Examples:
-            >>> LocusToGeneModel.load_from_hub("opentargets/locus_to_gene_production")
+            >>> LocusToGeneModel.load_from_hub("opentargets/locus_to_gene")
         """
         local_path = Path(model_id)
         hub_utils.download(repo_id=model_id, dst=local_path)

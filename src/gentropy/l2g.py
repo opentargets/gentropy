@@ -81,8 +81,8 @@ class LocusToGeneStep:
         self.study_index_path = study_index_path
         self.gold_standard_curation_path = gold_standard_curation_path
         self.gene_interactions_path = gene_interactions_path
-        self.features_list = features_list
-        self.hyperparameters = hyperparameters
+        self.features_list = list(features_list)
+        self.hyperparameters = dict(hyperparameters)
         self.feature_matrix_path = feature_matrix_path
         self.wandb_run_name = wandb_run_name
         self.hf_hub_repo_id = hf_hub_repo_id
@@ -114,7 +114,7 @@ class LocusToGeneStep:
         if not self.predictions_path:
             raise ValueError("predictions_path must be set for predict mode.")
         predictions, feature_matrix = L2GPrediction.from_credible_set(
-            list(self.features_list),
+            self.features_list,
             self.credible_set,
             self.studies,
             self.v2g,
@@ -234,5 +234,5 @@ class LocusToGeneStep:
                 _schema=L2GFeatureMatrix.get_schema(),
             )
             .fill_na()
-            .select_features(list(self.features_list))
+            .select_features(self.features_list)
         )
