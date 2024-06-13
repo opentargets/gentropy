@@ -271,7 +271,6 @@ class LocusToGeneConfig(StepConfig):
     )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = None
-    perform_cross_validation: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
