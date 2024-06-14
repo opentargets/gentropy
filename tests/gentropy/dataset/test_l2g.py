@@ -156,7 +156,7 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
 def test_l2g_feature_constructor_with_schema_mismatch(spark: SparkSession) -> None:
     """Test if provided shema mismatch results in error in L2GFeatureMatrix constructor.
 
-    distanceTssMean is expected to be DOUBLE by schema in src.gentropy.assets.schemas and is actualy FLOAT.
+    distanceTssMean is expected to be FLOAT by schema in src.gentropy.assets.schemas and is actualy DOUBLE.
     """
     with pytest.raises(ValueError) as e:
         L2GFeatureMatrix(
