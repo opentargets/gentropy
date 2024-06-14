@@ -167,6 +167,32 @@
       }
     },
     {
+      "name": "alleleFrequencies",
+      "type": {
+        "type": "array",
+        "elementType": {
+          "type": "struct",
+          "fields": [
+            {
+              "name": "populationName",
+              "type": "string",
+              "nullable": true,
+              "metadata": {}
+            },
+            {
+              "name": "alleleFrequency",
+              "type": "double",
+              "nullable": true,
+              "metadata": {}
+            }
+          ]
+        },
+        "containsNull": true
+      },
+      "nullable": false,
+      "metadata": {}
+    },
+    {
       "metadata": {},
       "name": "dbXrefs",
       "nullable": true,
