@@ -1264,7 +1264,7 @@ class SusieFineMapperStep:
             .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
             .filter(f.col("chromosome") == chromosome)
             .filter(f.col("position") >= int(locusStart))
-            .filter(f.col("position") <= int(locusStart))
+            .filter(f.col("position") <= int(locusEnd))
             .filter(f.col("z").isNotNull())
         )
 
