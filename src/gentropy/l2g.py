@@ -121,6 +121,7 @@ class LocusToGeneStep:
             self.coloc,
             self.session,
             model_path=self.model_path,
+            hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
         if self.feature_matrix_path:

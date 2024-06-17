@@ -61,22 +61,23 @@ class LocusToGeneModel:
 
     @classmethod
     def load_from_hub(
-        cls: Type[LocusToGeneModel], model_id: str, model_name: str = "classifier.skops"
+        cls: Type[LocusToGeneModel],
+        model_id: str,
+        hf_token: str | None = None,
+        model_name: str = "classifier.skops",
     ) -> LocusToGeneModel:
         """Load a model from the Hugging Face Hub. This will download the model from the hub and load it from disk.
 
         Args:
             model_id (str): Model ID on the Hugging Face Hub
+            hf_token (str | None): Hugging Face Hub token to download the model (only required if private)
             model_name (str): Name of the persisted model to load. Defaults to "classifier.skops".
 
         Returns:
-                LocusToGeneModel: L2G model loaded from the Hugging Face Hub
-
-        Examples:
-            >>> LocusToGeneModel.load_from_hub("opentargets/locus_to_gene")
+            LocusToGeneModel: L2G model loaded from the Hugging Face Hub
         """
         local_path = Path(model_id)
-        hub_utils.download(repo_id=model_id, dst=local_path)
+        hub_utils.download(repo_id=model_id, dst=local_path, token=hf_token)
         return cls.load_from_disk(Path(local_path) / model_name)
 
     @property

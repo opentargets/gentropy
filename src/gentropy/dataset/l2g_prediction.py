@@ -47,6 +47,7 @@ class L2GPrediction(Dataset):
         coloc: Colocalisation,
         session: Session,
         model_path: str | None,
+        hf_token: str | None = None,
         download_from_hub: bool = True,
     ) -> tuple[L2GPrediction, L2GFeatureMatrix]:
         """Extract L2G predictions for a set of credible sets derived from GWAS.
@@ -59,6 +60,7 @@ class L2GPrediction(Dataset):
             coloc (Colocalisation): Colocalisation dataset
             session (Session): Session object that contains the Spark session
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub.
+            hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
 
         Returns:
@@ -68,7 +70,7 @@ class L2GPrediction(Dataset):
         if download_from_hub:
             # Model ID defaults to "opentargets/locus_to_gene" and it assumes the name of the classifier is "classifier.skops".
             model_id = model_path or "opentargets/locus_to_gene"
-            l2g_model = LocusToGeneModel.load_from_hub(model_id)
+            l2g_model = LocusToGeneModel.load_from_hub(model_id, hf_token)
         elif model_path:
             l2g_model = LocusToGeneModel.load_from_disk(model_path)
 
