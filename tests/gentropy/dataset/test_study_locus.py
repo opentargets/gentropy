@@ -23,6 +23,11 @@ from pyspark.sql.types import (
 )
 
 
+def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
+    """Test study locus creation with mock data."""
+    assert isinstance(mock_study_locus, StudyLocus)
+
+
 @pytest.mark.parametrize(
     "has_overlap, expected",
     [
