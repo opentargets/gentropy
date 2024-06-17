@@ -168,7 +168,7 @@ with DAG(
         # Run window-based clumping:
         summary_stats_window_based_clumping = common.submit_step(
             cluster_name=CLUSTER_NAME,
-            step_id="ot_window_based_clumping",
+            step_id="window_based_clumping",
             task_id="catalog_sumstats_window_clumping",
             other_args=[
                 f"step.summary_statistics_input_path=gs://{GWAS_CATALOG_BUCKET_NAME}/{HARMONISED_SUMSTATS_PREFIX}",
