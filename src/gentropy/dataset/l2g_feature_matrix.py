@@ -47,6 +47,7 @@ class L2GFeatureMatrix(Dataset):
         self.features_list = self.features_list or [
             col for col in self._df.columns if col not in self.fixed_cols
         ]
+        self.validate_schema()
 
     @classmethod
     def generate_features(
