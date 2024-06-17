@@ -94,7 +94,7 @@ class LocusToGeneModel:
             raise ValueError("Hyperparameters have not been set.")
         elif isinstance(self.hyperparameters, dict):
             return self.hyperparameters
-        return self.hyperparameters.default_factory()  # type: ignore
+        return self.hyperparameters.default_factory()
 
     def predict(
         self: LocusToGeneModel,
@@ -116,15 +116,15 @@ class LocusToGeneModel:
 
         feature_matrix_pdf = feature_matrix.df.toPandas()
         # L2G score is the probability the classifier assigns to the positive class (the second element in the probability array)
-        feature_matrix_pdf["score"] = self.model.predict_proba(  # type: ignore
+        feature_matrix_pdf["score"] = self.model.predict_proba(
             # We drop the fixed columns to only pass the feature values to the classifier
-            feature_matrix_pdf.drop(feature_matrix.fixed_cols, axis=1)  # type: ignore
+            feature_matrix_pdf.drop(feature_matrix.fixed_cols, axis=1)
             .apply(pd_to_numeric)
-            .values  # type: ignore
+            .values
         )[:, 1]
         output_cols = [field.name for field in L2GPrediction.get_schema().fields]
         return L2GPrediction(
-            _df=session.spark.createDataFrame(feature_matrix_pdf.filter(output_cols)),  # type: ignore
+            _df=session.spark.createDataFrame(feature_matrix_pdf.filter(output_cols)),
             _schema=L2GPrediction.get_schema(),
         )
 

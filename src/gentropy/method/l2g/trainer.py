@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
+from typing import Any
 
 import pandas as pd
 from sklearn.metrics import (
@@ -14,11 +15,14 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
+from wandb import agent as wandb_agent
+from wandb import login as wandb_login
+from wandb import sweep as wandb_sweep
+from wandb.data_types import Table
+from wandb.sklearn import plot_classifier
 
-import wandb
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.method.l2g.model import LocusToGeneModel
-from wandb.data_types import Table
 
 
 @dataclass
@@ -88,13 +92,13 @@ class LocusToGeneTrainer:
             fitted_classifier = self.model.model
             y_predicted = fitted_classifier.predict(self.x_test.values)
             y_probas = fitted_classifier.predict_proba(self.x_test.values)
-            with wandb.init(  # type: ignore
+            with wandb_login(
                 project=self.wandb_l2g_project_name,
                 name=wandb_run_name,
                 config=fitted_classifier.get_params(),
             ) as run:
                 # Track classification plots
-                wandb.sklearn.plot_classifier(
+                plot_classifier(
                     self.model.model,
                     self.x_train.values,
                     self.x_test.values,
@@ -163,20 +167,20 @@ class LocusToGeneTrainer:
         data_df = self.feature_matrix.df.drop("geneId").toPandas()
 
         # Encode labels in `goldStandardSet` to a numeric value
-        data_df["goldStandardSet"] = data_df["goldStandardSet"].map(  # type: ignore
+        data_df["goldStandardSet"] = data_df["goldStandardSet"].map(
             self.model.label_encoder
         )
 
         # Convert all columns to numeric and split
-        data_df = data_df.apply(pd.to_numeric)  # type: ignore
+        data_df = data_df.apply(pd.to_numeric)
         self.feature_cols = [
             col
-            for col in data_df.columns  # type: ignore
+            for col in data_df.columns
             if col not in ["studyLocusId", "goldStandardSet"]
         ]
         label_col = "goldStandardSet"
-        X = data_df[self.feature_cols].copy()  # type: ignore
-        y = data_df[label_col].copy()  # type: ignore
+        X = data_df[self.feature_cols].copy()
+        y = data_df[label_col].copy()
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
@@ -192,19 +196,19 @@ class LocusToGeneTrainer:
         return model
 
     def hyperparameter_tuning(
-        self: LocusToGeneTrainer, wandb_run_name: str, parameter_grid: dict[str, dict]
+        self: LocusToGeneTrainer, wandb_run_name: str, parameter_grid: dict[str, Any]
     ) -> None:
         """Perform hyperparameter tuning on the model with W&B Sweeps. Metrics for every combination of hyperparameters will be logged to W&B for comparison.
 
         Args:
             wandb_run_name (str): Name of the W&B run
-            parameter_grid (dict[str, dict]): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
+            parameter_grid (dict[str, Any]): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
         """
         sweep_config = {
             "method": "grid",
             "metric": {"name": "roc", "goal": "maximize"},
             "parameters": parameter_grid,
         }
-        sweep_id = wandb.sweep(sweep_config, project=self.wandb_l2g_project_name)
+        sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
 
-        wandb.agent(sweep_id, partial(self.train, wandb_run_name=wandb_run_name))
+        wandb_agent(sweep_id, partial(self.train, wandb_run_name=wandb_run_name))

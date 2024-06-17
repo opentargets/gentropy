@@ -6,8 +6,8 @@ from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
+from wandb import login as wandb_login
 
-import wandb
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
 from gentropy.dataset.colocalisation import Colocalisation
@@ -158,7 +158,7 @@ class LocusToGeneStep:
             model=GradientBoostingClassifier(random_state=42),
             hyperparameters=self.hyperparameters,
         )
-        wandb.login(key=wandb_key)  # type: ignore
+        wandb_login(key=wandb_key)
         trained_model = LocusToGeneTrainer(model=l2g_model, feature_matrix=data).train(
             self.wandb_run_name
         )
@@ -174,7 +174,7 @@ class LocusToGeneStep:
                     hf_hub_token,
                     data=trained_model.training_data.df.drop(
                         "goldStandardSet", "geneId"
-                    ).toPandas(),  # type: ignore
+                    ).toPandas(),
                     repo_id=self.hf_hub_repo_id,
                     commit_message="chore: update model",
                 )
