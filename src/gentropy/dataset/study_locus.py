@@ -326,6 +326,25 @@ class StudyLocus(Dataset):
         )
         return self
 
+    @staticmethod
+    def filter_ld_set(ld_set: Column, r2_threshold: float) -> Column:
+        """Filter the LD set by a given R2 threshold.
+
+        Args:
+            ld_set (Column): LD set
+            r2_threshold (float): R2 threshold to filter the LD set on
+
+        Returns:
+            Column: Filtered LD index
+        """
+        return f.when(
+            ld_set.isNotNull(),
+            f.filter(
+                ld_set,
+                lambda tag: tag["r2Overall"] >= r2_threshold,
+            ),
+        )
+
     def find_overlaps(
         self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
     ) -> StudyLocusOverlap:

@@ -1,4 +1,5 @@
 """Performing linkage disequilibrium (LD) operations."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -120,6 +121,7 @@ class LDAnnotator:
         associations: StudyLocus,
         studies: StudyIndex,
         ld_index: LDIndex,
+        r2_threshold: float = 0.0,
     ) -> StudyLocus:
         """Annotate linkage disequilibrium (LD) information to a set of studyLocus.
 
@@ -135,6 +137,7 @@ class LDAnnotator:
             associations (StudyLocus): Dataset to be LD annotated
             studies (StudyIndex): Dataset with study information
             ld_index (LDIndex): Dataset with LD information for every variant present in LD matrix
+            r2_threshold (float): R2 threshold to filter the LD set on
 
         Returns:
             StudyLocus: including additional column with LD information.
@@ -175,6 +178,12 @@ class LDAnnotator:
                     ),
                 )
                 .drop("ldPopulationStructure")
+                # Filter the LD set by the R2 threshold and set to null if no LD information passes the threshold
+                .withColumn(
+                    "ldSet",
+                    StudyLocus.filter_ld_set(f.col("ldSet"), r2_threshold),
+                )
+                .withColumn("ldSet", f.when(f.size("ldSet") > 0, f.col("ldSet")))
                 # QC: Flag associations with variants that are not found in the LD reference
                 .withColumn(
                     "qualityControls",
