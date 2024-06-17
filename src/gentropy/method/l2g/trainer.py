@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from functools import partial
 
 import pandas as pd
+import wandb
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -14,11 +15,10 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
+from wandb.data_types import Table
 
-import wandb
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.method.l2g.model import LocusToGeneModel
-from wandb.data_types import Table
 
 
 @dataclass

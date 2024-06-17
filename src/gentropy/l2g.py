@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 import pyspark.sql.functions as f
+import wandb
 from sklearn.ensemble import GradientBoostingClassifier
 
-import wandb
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
 from gentropy.dataset.colocalisation import Colocalisation
