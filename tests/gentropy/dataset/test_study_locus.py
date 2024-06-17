@@ -23,11 +23,6 @@ from pyspark.sql.types import (
 )
 
 
-def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
-    """Test study locus creation with mock data."""
-    assert isinstance(mock_study_locus, StudyLocus)
-
-
 @pytest.mark.parametrize(
     "has_overlap, expected",
     [
@@ -530,4 +525,18 @@ def test_ldannotate(
     """Test ldannotate."""
     assert isinstance(
         mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocus
+    )
+
+
+def test_annotate_locus_statistics_boundaries(
+    mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
+) -> None:
+    """Test annotate locus statistics returns a StudyLocus."""
+    df = mock_study_locus.df
+    df.withColumn("locusStart", f.col("position") - 10)
+    df.withColumn("locusEnd", f.col("position") + 10)
+    slt = StudyLocus(df, StudyLocus.get_schema())
+    assert isinstance(
+        slt.annotate_locus_statistics_boundaries(mock_summary_statistics),
+        StudyLocus,
     )
