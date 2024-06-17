@@ -543,20 +543,24 @@ class StudyLocus(Dataset):
         return self
 
     def annotate_ld(
-        self: StudyLocus, study_index: StudyIndex, ld_index: LDIndex
+        self: StudyLocus,
+        study_index: StudyIndex,
+        ld_index: LDIndex,
+        r2_threshold: float = 0.0,
     ) -> StudyLocus:
         """Annotate LD information to study-locus.
 
         Args:
             study_index (StudyIndex): Study index to resolve ancestries.
             ld_index (LDIndex): LD index to resolve LD information.
+            r2_threshold (float): R2 threshold to filter the LD index. Default is 0.0.
 
         Returns:
             StudyLocus: Study locus annotated with ld information from LD index.
         """
         from gentropy.method.ld import LDAnnotator
 
-        return LDAnnotator.ld_annotate(self, study_index, ld_index)
+        return LDAnnotator.ld_annotate(self, study_index, ld_index, r2_threshold)
 
     def clump(self: StudyLocus) -> StudyLocus:
         """Perform LD clumping of the studyLocus.
