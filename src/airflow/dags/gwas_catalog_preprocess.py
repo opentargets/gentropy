@@ -1,4 +1,5 @@
 """Airflow DAG for the preprocessing of GWAS Catalog's harmonised summary statistics and curated associations."""
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,4 +1,5 @@
 """Summary satistics dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -57,7 +58,7 @@ class SummaryStatistics(Dataset):
     def window_based_clumping(
         self: SummaryStatistics,
         distance: int = 500_000,
-        gwas_significance: float = 5e-8,
+        gwas_significance: float = 1e-8,
     ) -> StudyLocus:
         """Generate study-locus from summary statistics using window-based clumping.
 

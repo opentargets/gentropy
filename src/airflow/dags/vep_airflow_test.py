@@ -74,7 +74,6 @@ def create_task_spec(image: str, commands: List[str]) -> batch_v1.TaskSpec:
 
 def create_batch_job(
     task: batch_v1.TaskSpec,
-    task_count: int,
     machine: str,
     task_env: list[batch_v1.Environment],
 ) -> batch_v1.Job:
@@ -82,7 +81,6 @@ def create_batch_job(
 
     Args:
         task (batch_v1.TaskSpec): The task specification.
-        task_count (int): The number of tasks to run.
         machine (str): The machine type to use.
         task_env (list[batch_v1.Environment]): The environment variables for the task.
 
@@ -95,7 +93,7 @@ def create_batch_job(
     resources.boot_disk_mib = MACHINES[machine]["boot_disk_mib"]
     task.compute_resource = resources
 
-    task.max_retry_count = 0
+    task.max_retry_count = 3
     task.max_run_duration = "43200s"
 
     gcs_bucket = batch_v1.GCS()
@@ -173,7 +171,7 @@ def vep_annotation(**kwargs: Any) -> None:
         project_id=PROJECT_ID,
         region=REGION,
         job_name=f"vep-job-{time.strftime('%Y%m%d-%H%M%S')}",
-        job=create_batch_job(task, 1, "VEPMACHINE", task_env),
+        job=create_batch_job(task, "VEPMACHINE", task_env),
         deferrable=False,
     )
     batch_task.execute(context=kwargs)
