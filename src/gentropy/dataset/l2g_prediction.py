@@ -89,6 +89,7 @@ class L2GPrediction(Dataset):
                 )
             ),
             _schema=cls.get_schema(),
+            mode="predict",
         )
         return (
             l2g_model.predict(gwas_fm.select_features(features_list), session),

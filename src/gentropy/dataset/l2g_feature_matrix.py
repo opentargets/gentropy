@@ -26,15 +26,24 @@ class L2GFeatureMatrix(Dataset):
 
     Attributes:
         features_list (list[str] | None): List of features to use. If None, all possible features are used.
+        fixed_cols (list[str]): Columns that should be kept fixed in the feature matrix, although not considered as features.
+        mode (str): Mode of the feature matrix. Defaults to "train". Can be either "train" or "predict".
     """
 
     features_list: list[str] | None = None
-    fixed_cols: list[str] = field(
-        default_factory=lambda: ["studyLocusId", "geneId", "goldStandardSet"]
-    )
+    fixed_cols: list[str] = field(default_factory=lambda: ["studyLocusId", "geneId"])
+    mode: str = "train"
 
     def __post_init__(self: L2GFeatureMatrix) -> None:
-        """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used."""
+        """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
+
+        Raises:
+            ValueError: If the mode is neither 'train' nor 'predict'.
+        """
+        if self.mode not in ["train", "predict"]:
+            raise ValueError("Mode should be either 'train' or 'predict'")
+        if self.mode == "train":
+            self.fixed_cols = self.fixed_cols + ["goldStandardSet"]
         self.features_list = self.features_list or [
             col for col in self._df.columns if col not in self.fixed_cols
         ]
