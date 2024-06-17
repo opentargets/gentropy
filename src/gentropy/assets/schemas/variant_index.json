@@ -82,6 +82,24 @@
     },
     {
       "metadata": {},
+      "name": "lofteePrediction",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "siftPrediction",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "polyphenPrediction",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
       "name": "transcriptConsequences",
       "nullable": true,
       "type": {

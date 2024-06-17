@@ -504,9 +504,9 @@ class VariantEffectPredictorParser:
                         transcript.gene_id.alias("targetId"),
                         transcript.impact.alias("impact"),
                         transcript.transcript_id.alias("transcriptId"),
-                        transcript.lof.alias("lofteePrediction"),
-                        transcript.lof.alias("siftPrediction"),
-                        transcript.lof.alias("polyphenPrediction"),
+                        transcript.lof.cast(t.StringType()).alias("lofteePrediction"),
+                        transcript.lof.cast(t.FloatType()).alias("siftPrediction"),
+                        transcript.lof.cast(t.FloatType()).alias("polyphenPrediction"),
                     ),
                 ).alias("transcriptConsequences"),
                 # Extracting rsids:
