@@ -719,4 +719,3 @@ class VariantAnnotationNew(Dataset):
             ),
             _schema=V2G.get_schema(),
         )
-
