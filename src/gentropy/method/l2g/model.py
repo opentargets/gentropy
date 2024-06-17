@@ -13,9 +13,10 @@ from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
 
 from gentropy.common.session import Session
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.common.utils import copy_to_gcs
 
 if TYPE_CHECKING:
+    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.l2g_prediction import L2GPrediction
 
 
@@ -60,13 +61,13 @@ class LocusToGeneModel:
 
     @classmethod
     def load_from_hub(
-        cls: Type[LocusToGeneModel], model_id: str, model_name: str = "classifier.pkl"
+        cls: Type[LocusToGeneModel], model_id: str, model_name: str = "classifier.skops"
     ) -> LocusToGeneModel:
         """Load a model from the Hugging Face Hub. This will download the model from the hub and load it from disk.
 
         Args:
             model_id (str): Model ID on the Hugging Face Hub
-            model_name (str): Name of the pickle file to load. Defaults to "classifier.pkl".
+            model_name (str): Name of the persisted model to load. Defaults to "classifier.skops".
 
         Returns:
                 LocusToGeneModel: L2G model loaded from the Hugging Face Hub
@@ -130,17 +131,22 @@ class LocusToGeneModel:
         """Saves fitted model to disk using the skops persistence format.
 
         Args:
-            path (str): Path to save the pickled model. Should end with .pkl
+            path (str): Path to save the persisted model. Should end with .skops
 
         Raises:
             ValueError: If the model has not been fitted yet
-            ValueError: If the path does not end with .pkl
+            ValueError: If the path does not end with .skops
         """
         if self.model is None:
             raise ValueError("Model has not been fitted yet.")
-        if not path.endswith(".pkl"):
-            raise ValueError("Path should end with .pkl")
-        sio.dump(self.model, path)
+        if not path.endswith(".skops"):
+            raise ValueError("Path should end with .skops")
+        if path.startswith("gs://"):
+            local_path = path.split("/")[-1]
+            sio.dump(self.model, local_path)
+            copy_to_gcs(local_path, path)
+        else:
+            sio.dump(self.model, path)
 
     def _create_hugging_face_model_card(
         self: LocusToGeneModel,
@@ -200,7 +206,7 @@ class LocusToGeneModel:
         """Share the model on Hugging Face Hub.
 
         Args:
-            model_path (str): The path to the L2G model pickle file.
+            model_path (str): The path to the L2G model file.
             hf_hub_token (str): Hugging Face Hub token
             data (pd_dataframe): Data used to train the model. This is used to have an example input for the model and to store the column order.
             commit_message (str): Commit message for the push
@@ -219,7 +225,6 @@ class LocusToGeneModel:
                 dst=local_repo,
                 task="tabular-classification",
                 data=data,
-                model_format="pickle",
             )
             self._create_hugging_face_model_card(local_repo)
             hub_utils.push(

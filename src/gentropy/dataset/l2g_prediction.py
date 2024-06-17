@@ -64,6 +64,15 @@ class L2GPrediction(Dataset):
         Returns:
             tuple[L2GPrediction, L2GFeatureMatrix]: L2G dataset and feature matrix limited to GWAS study only.
         """
+        # Load the model
+        if download_from_hub:
+            # Model ID defaults to "opentargets/locus_to_gene" and it assumes the name of the classifier is "classifier.skops".
+            model_id = model_path or "opentargets/locus_to_gene"
+            l2g_model = LocusToGeneModel.load_from_hub(model_id)
+        elif model_path:
+            l2g_model = LocusToGeneModel.load_from_disk(model_path)
+
+        # Prepare data
         fm = L2GFeatureMatrix.generate_features(
             features_list=features_list,
             credible_set=credible_set,
@@ -81,12 +90,6 @@ class L2GPrediction(Dataset):
             ),
             _schema=cls.get_schema(),
         )
-        if download_from_hub:
-            # Model ID defaults to "opentargets/locus-to-gene" and it assumes the name of the classifier is "classifier.pkl".
-            model_id = model_path or "opentargets/locus-to-gene"
-            l2g_model = LocusToGeneModel.load_from_hub(model_id)
-        elif model_path:
-            l2g_model = LocusToGeneModel.load_from_disk(model_path)
         return (
             l2g_model.predict(gwas_fm.select_features(features_list), session),
             gwas_fm,

@@ -28,7 +28,6 @@ class LocusToGeneStep:
         self,
         session: Session,
         run_mode: str,
-        model_path: str,
         predictions_path: str,
         credible_set_path: str,
         variant_gene_path: str,
@@ -39,6 +38,7 @@ class LocusToGeneStep:
         features_list: list[str],
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
+        model_path: str | None,
         feature_matrix_path: str | None = None,
         wandb_run_name: str | None = None,
         hf_hub_repo_id: str | None = None,
@@ -48,7 +48,6 @@ class LocusToGeneStep:
         Args:
             session (Session): Session object that contains the Spark session
             run_mode (str): Run mode, either 'train' or 'predict'
-            model_path (str): Path to the fitted model
             predictions_path (str): Path to save the predictions
             credible_set_path (str): Path to the credible set dataset
             variant_gene_path (str): Path to the variant to gene dataset
@@ -59,6 +58,7 @@ class LocusToGeneStep:
             features_list (list[str]): List of features to use for the model
             hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub
+            model_path (str | None): Path to the fitted model
             feature_matrix_path (str | None): Path to save the feature matrix. Defaults to None.
             wandb_run_name (str | None): Name of the wandb run. Defaults to None.
             hf_hub_repo_id (str | None): Hugging Face Hub repo id. Defaults to None.
@@ -142,14 +142,15 @@ class LocusToGeneStep:
             self.gold_standard_curation_path
             and self.gene_interactions_path
             and self.wandb_run_name
+            and self.model_path
         ):
             raise ValueError(
-                "gold_standard_curation_path, gene_interactions_path, and wandb_run_name must be set for train mode."
+                "gold_standard_curation_path, gene_interactions_path, and wandb_run_name, and a path to save the model must be set for train mode."
             )
 
         wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
         # Process gold standard and L2G features
-        data = self._generate_feature_matrix()
+        data = self._generate_feature_matrix().persist()
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
@@ -162,13 +163,13 @@ class LocusToGeneStep:
         )
         if trained_model.training_data and trained_model.model:
             trained_model.save(self.model_path)
-            self.session.logger.info(f"Model saved to {self.model_path}")  # noqa: G004
             if self.hf_hub_repo_id:
                 hf_hub_token = access_gcp_secret(
                     "hfhub-key", "open-targets-genetics-dev"
                 )
                 trained_model.export_to_hugging_face_hub(
-                    self.model_path,
+                    # we upload the model in the filesystem
+                    self.model_path.split("/")[-1],
                     hf_hub_token,
                     data=trained_model.training_data.df.drop(
                         "goldStandardSet", "geneId"
