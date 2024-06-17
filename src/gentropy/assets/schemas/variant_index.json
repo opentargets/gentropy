@@ -33,7 +33,7 @@
     {
       "metadata": {},
       "name": "inSilicoPredictors",
-      "nullable": false,
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -207,7 +207,7 @@
         },
         "containsNull": true
       },
-      "nullable": false,
+      "nullable": true,
       "metadata": {}
     },
     {
