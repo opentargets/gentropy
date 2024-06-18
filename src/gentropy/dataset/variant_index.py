@@ -62,13 +62,16 @@ class VariantIndex(Dataset):
             jonied = jonied.withColumn(
                 "dbXrefs",
                 f.when(
-                    f.col("dbXrefs").isNull(),
-                    f.col("annotation_dbXrefs"),
-                ).otherwise(
+                    f.col("dbXrefs").isNotNull() & f.col("annotation_dbXrefs").isNotNull(),
                     f.array_union(
                         f.col("dbXrefs"),
                         f.col("annotation_dbXrefs"),
                     ),
+                ).otherwise(
+                    f.coalesce(
+                        f.col("dbXrefs"),
+                        f.col("annotation_dbXrefs"),
+                    )
                 )
             )
 
