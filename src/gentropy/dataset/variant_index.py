@@ -49,7 +49,8 @@ class VariantIndex(Dataset):
 
         # Rename columns to avoid conflicts:s
         renamed_columns = {
-            col: f"annotation_{col}"  if col != "variantId" else col for col in annotation.columns
+            col: f"annotation_{col}" if col != "variantId" else col
+            for col in annotation.columns
         }
         annotation = annotation.select(
             *[f.col(col).alias(renamed_columns[col]) for col in annotation.columns]
@@ -62,7 +63,8 @@ class VariantIndex(Dataset):
             jonied = jonied.withColumn(
                 "dbXrefs",
                 f.when(
-                    f.col("dbXrefs").isNotNull() & f.col("annotation_dbXrefs").isNotNull(),
+                    f.col("dbXrefs").isNotNull()
+                    & f.col("annotation_dbXrefs").isNotNull(),
                     f.array_union(
                         f.col("dbXrefs"),
                         f.col("annotation_dbXrefs"),
@@ -72,7 +74,7 @@ class VariantIndex(Dataset):
                         f.col("dbXrefs"),
                         f.col("annotation_dbXrefs"),
                     )
-                )
+                ),
             )
 
         # Rename population column if not present in the dataset:
@@ -123,12 +125,14 @@ class VariantIndex(Dataset):
         Returns:
             VariantIndex: A filtered variant annotation dataset
         """
-        self.df = self._df.join(
-            f.broadcast(df.select("variantId", "chromosome")),
-            on=["variantId", "chromosome"],
-            how="inner",
+        return VariantIndex(
+            _df=self._df.join(
+                f.broadcast(df.select("variantId", "chromosome")),
+                on=["variantId", "chromosome"],
+                how="inner",
+            ),
+            _schema=self.schema,
         )
-        return self
 
     def get_transcript_consequence_df(
         self: VariantIndex, gene_index: GeneIndex | None = None
@@ -158,7 +162,7 @@ class VariantIndex(Dataset):
                 f.broadcast(gene_index.df),
                 on=["chromosome", "geneId"],
             )
-        return transript_consequences.persist()
+        return transript_consequences
 
     def get_distance_to_tss(
         self: VariantIndex,
