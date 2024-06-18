@@ -47,9 +47,9 @@ class VariantIndex(Dataset):
             annotation.select("variantId").distinct().count() == annotation.count()
         ), "Annotation must have unique variant identifiers."
 
-        # Rename columns to avoid conflicts:
+        # Rename columns to avoid conflicts:s
         renamed_columns = {
-            col: f"annotation_{col}" for col in annotation.columns if col != "variantId" else col 
+            col: f"annotation_{col}"  if col != "variantId" else col for col in annotation.columns
         }
         annotation = annotation.select(
             *[f.col(col).alias(renamed_columns[col]) for col in annotation.columns]
@@ -61,10 +61,15 @@ class VariantIndex(Dataset):
         if "dbXrefs" in renamed_columns:
             jonied = jonied.withColumn(
                 "dbXrefs",
-                f.array_union(
-                    f.col("dbXrefs"),
+                f.when(
+                    f.col("dbXrefs").isNull(),
                     f.col("annotation_dbXrefs"),
-                ),
+                ).otherwise(
+                    f.array_union(
+                        f.col("dbXrefs"),
+                        f.col("annotation_dbXrefs"),
+                    ),
+                )
             )
 
         # Rename population column if not present in the dataset:
