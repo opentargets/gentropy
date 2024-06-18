@@ -14,6 +14,60 @@
     },
     {
       "metadata": {},
+      "name": "intergenic_consequences",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "cadd_phred",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
+              "name": "cadd_raw",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
+              "name": "consequence_terms",
+              "nullable": true,
+              "type": {
+                "containsNull": true,
+                "elementType": "string",
+                "type": "array"
+              }
+            },
+            {
+              "metadata": {},
+              "name": "impact",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "variant_allele",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "gene_id",
+              "nullable": true,
+              "type": "string"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
       "name": "colocated_variants",
       "nullable": true,
       "type": {

@@ -214,13 +214,11 @@ class VariantEffectPredictorParser:
             transcript_column_name, field_name
         )
 
-        # Drop transcripts with no severity score + filter for canonical transcripts:
-        canonical_transcripts = f.filter(
+        # Drop transcripts with no severity score and return the most severe one:
+        return f.filter(
             ordered_transcripts,
             lambda transcript: transcript.getItem(field_name).isNotNull()
-            & transcript.getItem("canonical").isNotNull(),
-        )
-        return f.when(f.size(canonical_transcripts) > 0, canonical_transcripts[0])
+        )[0]
 
     @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
     @staticmethod
@@ -287,7 +285,7 @@ class VariantEffectPredictorParser:
                 lambda transcript: transcript.getItem(
                     assessment_column_name
                 ).isNotNull(),
-            )[0]
+            )
         )
 
         return f.when(
@@ -313,8 +311,8 @@ class VariantEffectPredictorParser:
                 else most_severe_transcript.getField(assessment_flag_column_name)
                 .cast(t.FloatType())
                 .alias("assessmentFlag"),
-                # Adding target id:
-                most_severe_transcript.getItem("gene_id").alias("targetId"),
+                # Adding target id if present:
+                most_severe_transcript.getItem("gene_id").alias("targetId")
             ),
         )
 
@@ -435,79 +433,94 @@ class VariantEffectPredictorParser:
                     "clinvar_xrefs"
                 ),
                 # Extracting in silico predictors
-                f.filter(
+                f.when(
+                    # The following in-silico predictors are only available for variants with transcript consequences:
+                    f.col("transcript_consequences").isNotNull(),
+                    f.filter(
+                        f.array(
+                            # Extract CADD scores:
+                            cls._vep_in_silico_prediction_extractor(
+                                transcript_column_name="transcript_consequences",
+                                method_name="phred scaled CADD",
+                                score_column_name="cadd_phred",
+                            ),
+                            # Extract polyphen scores:
+                            cls._vep_in_silico_prediction_extractor(
+                                transcript_column_name="transcript_consequences",
+                                method_name="polyphen",
+                                score_column_name="polyphen_score",
+                                assessment_column_name="polyphen_prediction",
+                            ),
+                            # Extract sift scores:
+                            cls._vep_in_silico_prediction_extractor(
+                                transcript_column_name="transcript_consequences",
+                                method_name="sift",
+                                score_column_name="sift_score",
+                                assessment_column_name="sift_prediction",
+                            ),
+                            # Extract loftee scores:
+                            cls._vep_in_silico_prediction_extractor(
+                                method_name="loftee",
+                                transcript_column_name="transcript_consequences",
+                                score_column_name="lof",
+                                assessment_column_name="lof",
+                                assessment_flag_column_name="lof_filter",
+                            ),
+                            # Extract max alpha missense:
+                            cls._get_max_alpha_missense(f.col("transcript_consequences")),
+                        ),
+                        lambda predictor: predictor.isNotNull(),
+                    )
+                ).otherwise(
+                    # Extract CADD scores from intergenic object:
                     f.array(
-                        # Extract CADD scores:
                         cls._vep_in_silico_prediction_extractor(
-                            transcript_column_name="transcript_consequences",
+                            transcript_column_name="intergenic_consequences",
                             method_name="phred scaled CADD",
                             score_column_name="cadd_phred",
                         ),
-                        # Extract polyphen scores:
-                        cls._vep_in_silico_prediction_extractor(
-                            transcript_column_name="transcript_consequences",
-                            method_name="polyphen",
-                            score_column_name="polyphen_score",
-                            assessment_column_name="polyphen_prediction",
-                        ),
-                        # Extract sift scores:
-                        cls._vep_in_silico_prediction_extractor(
-                            transcript_column_name="transcript_consequences",
-                            method_name="sift",
-                            score_column_name="sift_score",
-                            assessment_column_name="sift_prediction",
-                        ),
-                        # Extract loftee scores:
-                        cls._vep_in_silico_prediction_extractor(
-                            method_name="loftee",
-                            transcript_column_name="transcript_consequences",
-                            score_column_name="lof",
-                            assessment_column_name="lof",
-                            assessment_flag_column_name="lof_filter",
-                        ),
-                        # Extract max alpha missense:
-                        cls._get_max_alpha_missense(f.col("transcript_consequences")),
-                    ),
-                    lambda predictor: predictor.isNotNull(),
+                    )
                 ).alias("inSilicoPredictors"),
                 # Convert consequence to SO:
                 cls._consequence_to_sequence_ontology(
                     f.col("most_severe_consequence"), sequence_ontology_map
                 ).alias("mostSevereConsequenceId"),
                 # Collect transcript consequence:
-                f.transform(
-                    f.col("transcript_consequences"),
-                    lambda transcript: f.struct(
-                        # Convert consequence terms to SO identifier:
-                        f.transform(
-                            transcript.consequence_terms,
-                            lambda y: cls._consequence_to_sequence_ontology(
-                                y, sequence_ontology_map
-                            ),
-                        ).alias("variantConsequenceIds"),
-                        # Format amino acid change:
-                        cls._parser_amino_acid_change(
-                            transcript.amino_acids, transcript.protein_end
-                        ).alias("amino_acid_change"),
-                        # Extract and clean uniprot identifiers:
-                        cls._collect_uniprot_accessions(
-                            transcript.swissprot,
-                            transcript.trembl,
-                        ).alias("uniprotAccessions"),
-                        # Add canonical flag:
-                        f.when(transcript.canonical == 1, f.lit(True))
-                        .otherwise(f.lit(False))
-                        .alias("isEnsemblCanonical"),
-                        # Extract other fields as is:
-                        transcript.codons.alias("codons"),
-                        transcript.distance.alias("distance"),
-                        transcript.gene_id.alias("targetId"),
-                        transcript.impact.alias("impact"),
-                        transcript.transcript_id.alias("transcriptId"),
-                        transcript.lof.cast(t.StringType()).alias("lofteePrediction"),
-                        transcript.lof.cast(t.FloatType()).alias("siftPrediction"),
-                        transcript.lof.cast(t.FloatType()).alias("polyphenPrediction"),
-                    ),
+                f.when(f.col("transcript_consequences").isNotNull(),
+                    f.transform(
+                        f.col("transcript_consequences"),
+                        lambda transcript: f.struct(
+                            # Convert consequence terms to SO identifier:
+                            f.transform(
+                                transcript.consequence_terms,
+                                lambda y: cls._consequence_to_sequence_ontology(
+                                    y, sequence_ontology_map
+                                ),
+                            ).alias("variantConsequenceIds"),
+                            # Format amino acid change:
+                            cls._parser_amino_acid_change(
+                                transcript.amino_acids, transcript.protein_end
+                            ).alias("amino_acid_change"),
+                            # Extract and clean uniprot identifiers:
+                            cls._collect_uniprot_accessions(
+                                transcript.swissprot,
+                                transcript.trembl,
+                            ).alias("uniprotAccessions"),
+                            # Add canonical flag:
+                            f.when(transcript.canonical == 1, f.lit(True))
+                            .otherwise(f.lit(False))
+                            .alias("isEnsemblCanonical"),
+                            # Extract other fields as is:
+                            transcript.codons.alias("codons"),
+                            transcript.distance.alias("distance"),
+                            transcript.gene_id.alias("targetId"),
+                            transcript.impact.alias("impact"),
+                            transcript.transcript_id.alias("transcriptId"),
+                            transcript.lof.cast(t.StringType()).alias("lofteePrediction"),
+                            transcript.lof.cast(t.FloatType()).alias("siftPrediction"),
+                            transcript.lof.cast(t.FloatType()).alias("polyphenPrediction"),
+                        ),
+                    )
                 ).alias("transcriptConsequences"),
                 # Extracting rsids:
                 cls._colocated_variants_to_rsids(f.col("colocated_variants")).alias(
@@ -533,11 +546,14 @@ class VariantEffectPredictorParser:
             .withColumn(
                 "dbXrefs",
                 f.flatten(
-                    f.array(
-                        f.col("ensembl_xrefs"),
-                        f.col("omim_xrefs"),
-                        f.col("clinvar_xrefs"),
-                        f.col("protvar_xrefs"),
+                    f.filter(
+                        f.array(
+                            f.col("ensembl_xrefs"),
+                            f.col("omim_xrefs"),
+                            f.col("clinvar_xrefs"),
+                            f.col("protvar_xrefs"),
+                        ),
+                        lambda x: x.isNotNull(),
                     )
                 ),
             )
