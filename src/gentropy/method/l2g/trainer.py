@@ -15,14 +15,14 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from wandb import agent as wandb_agent
-from wandb import login as wandb_login
-from wandb import sweep as wandb_sweep
-from wandb.data_types import Table
-from wandb.sklearn import plot_classifier
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.method.l2g.model import LocusToGeneModel
+from wandb.data_types import Table
+from wandb.sdk.wandb_init import init as wandb_init
+from wandb.sdk.wandb_sweep import sweep as wandb_sweep
+from wandb.sklearn import plot_classifier
+from wandb.wandb_agent import agent as wandb_agent
 
 
 @dataclass
@@ -76,9 +76,6 @@ class LocusToGeneTrainer:
 
         Args:
             wandb_run_name (str): Name of the W&B run
-
-        Raises:
-            ValueError: Train data not set, nothing to evaluate.
         """
         if (
             self.x_train is not None
@@ -92,65 +89,59 @@ class LocusToGeneTrainer:
             fitted_classifier = self.model.model
             y_predicted = fitted_classifier.predict(self.x_test.values)
             y_probas = fitted_classifier.predict_proba(self.x_test.values)
-            with wandb_login(
+            run = wandb_init(
                 project=self.wandb_l2g_project_name,
                 name=wandb_run_name,
                 config=fitted_classifier.get_params(),
-            ) as run:
-                # Track classification plots
-                plot_classifier(
-                    self.model.model,
-                    self.x_train.values,
-                    self.x_test.values,
-                    self.y_train,
-                    self.y_test,
-                    y_predicted,
-                    y_probas,
-                    labels=list(self.model.label_encoder.values()),
-                    model_name="L2G-classifier",
-                    feature_names=self.features_list,
-                    is_binary=True,
-                )
-                # Track evaluation metrics
-                run.log(
-                    {
-                        "areaUnderROC": roc_auc_score(
-                            self.y_test, y_probas[:, 1], average="weighted"
-                        )
-                    }
-                )
-                run.log({"accuracy": accuracy_score(self.y_test, y_predicted)})
-                run.log(
-                    {
-                        "weightedPrecision": precision_score(
-                            self.y_test, y_predicted, average="weighted"
-                        )
-                    }
-                )
-                run.log(
-                    {
-                        "weightedRecall": recall_score(
-                            self.y_test, y_predicted, average="weighted"
-                        )
-                    }
-                )
-                run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
-                # Track gold standards and their features
-                run.log(
-                    {
-                        "featureMatrix": Table(
-                            dataframe=self.feature_matrix.df.toPandas()
-                        )
-                    }
-                )
-                # Log feature missingness
-                run.log(
-                    {
-                        "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
-                    }
-                )
-        else:
-            raise ValueError("Train data not set, nothing to evaluate.")
+            )
+            # Track classification plots
+            plot_classifier(
+                self.model.model,
+                self.x_train.values,
+                self.x_test.values,
+                self.y_train,
+                self.y_test,
+                y_predicted,
+                y_probas,
+                labels=list(self.model.label_encoder.values()),
+                model_name="L2G-classifier",
+                feature_names=self.features_list,
+                is_binary=True,
+            )
+            # Track evaluation metrics
+            run.log(
+                {
+                    "areaUnderROC": roc_auc_score(
+                        self.y_test, y_probas[:, 1], average="weighted"
+                    )
+                }
+            )
+            run.log({"accuracy": accuracy_score(self.y_test, y_predicted)})
+            run.log(
+                {
+                    "weightedPrecision": precision_score(
+                        self.y_test, y_predicted, average="weighted"
+                    )
+                }
+            )
+            run.log(
+                {
+                    "weightedRecall": recall_score(
+                        self.y_test, y_predicted, average="weighted"
+                    )
+                }
+            )
+            run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
+            # Track gold standards and their features
+            run.log(
+                {"featureMatrix": Table(dataframe=self.feature_matrix.df.toPandas())}
+            )
+            # Log feature missingness
+            run.log(
+                {
+                    "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
+                }
+            )
 
     def train(
         self: LocusToGeneTrainer,
