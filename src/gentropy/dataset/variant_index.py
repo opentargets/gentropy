@@ -49,7 +49,7 @@ class VariantIndex(Dataset):
 
         # Rename columns to avoid conflicts:
         renamed_columns = {
-            col: f"annotation_{col}" for col in annotation.columns if col != "variantId" else col 
+            col: f"annotation_{col}" for col in annotation.columns if col != "variantId" else col
         }
         annotation = annotation.select(
             *[f.col(col).alias(renamed_columns[col]) for col in annotation.columns]
