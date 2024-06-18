@@ -15,14 +15,14 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.method.l2g.model import LocusToGeneModel
 from wandb.data_types import Table
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_sweep import sweep as wandb_sweep
 from wandb.sklearn import plot_classifier
 from wandb.wandb_agent import agent as wandb_agent
+
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.method.l2g.model import LocusToGeneModel
 
 
 @dataclass
