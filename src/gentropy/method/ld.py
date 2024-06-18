@@ -121,7 +121,7 @@ class LDAnnotator:
         associations: StudyLocus,
         studies: StudyIndex,
         ld_index: LDIndex,
-        r2_threshold: float = 0.0,
+        r2_threshold: float = 0.5,
     ) -> StudyLocus:
         """Annotate linkage disequilibrium (LD) information to a set of studyLocus.
 
@@ -133,11 +133,14 @@ class LDAnnotator:
             5. Flags associations with variants that are not found in the LD reference
             6. Rescues lead variant when no LD information is available but lead variant is available
 
+        !!! note
+            Because the LD index has a pre-set threshold of R2 = 0.5, this is the minimum threshold for the LD information to be included in the ldSet.
+
         Args:
             associations (StudyLocus): Dataset to be LD annotated
             studies (StudyIndex): Dataset with study information
             ld_index (LDIndex): Dataset with LD information for every variant present in LD matrix
-            r2_threshold (float): R2 threshold to filter the LD set on
+            r2_threshold (float): R2 threshold to filter the LD set on. Default is 0.5.
 
         Returns:
             StudyLocus: including additional column with LD information.
