@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
 
-
 class VariantEffectPredictorParser:
     """Collection of methods to parse VEP output in json format."""
 
@@ -159,7 +158,7 @@ class VariantEffectPredictorParser:
             variants_w_omim_ref,
             lambda var: f.transform(
                 var.getItem("var_synonyms").getItem("OMIM"),
-                lambda var: var.cast(t.IntegerType()).cast(t.StringType()),
+                lambda var: f.regexp_replace(var.cast(t.StringType()), r"\.", r"#"),
             ),
         )
 
@@ -217,7 +216,7 @@ class VariantEffectPredictorParser:
         # Drop transcripts with no severity score and return the most severe one:
         return f.filter(
             ordered_transcripts,
-            lambda transcript: transcript.getItem(field_name).isNotNull()
+            lambda transcript: transcript.getItem(field_name).isNotNull(),
         )[0]
 
     @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
@@ -312,7 +311,7 @@ class VariantEffectPredictorParser:
                 .cast(t.FloatType())
                 .alias("assessmentFlag"),
                 # Adding target id if present:
-                most_severe_transcript.getItem("gene_id").alias("targetId")
+                most_severe_transcript.getItem("gene_id").alias("targetId"),
             ),
         )
 
@@ -467,11 +466,14 @@ class VariantEffectPredictorParser:
                                 assessment_flag_column_name="lof_filter",
                             ),
                             # Extract max alpha missense:
-                            cls._get_max_alpha_missense(f.col("transcript_consequences")),
+                            cls._get_max_alpha_missense(
+                                f.col("transcript_consequences")
+                            ),
                         ),
                         lambda predictor: predictor.isNotNull(),
-                    )
-                ).otherwise(
+                    ),
+                )
+                .otherwise(
                     # Extract CADD scores from intergenic object:
                     f.array(
                         cls._vep_in_silico_prediction_extractor(
@@ -480,13 +482,15 @@ class VariantEffectPredictorParser:
                             score_column_name="cadd_phred",
                         ),
                     )
-                ).alias("inSilicoPredictors"),
+                )
+                .alias("inSilicoPredictors"),
                 # Convert consequence to SO:
                 cls._consequence_to_sequence_ontology(
                     f.col("most_severe_consequence"), sequence_ontology_map
                 ).alias("mostSevereConsequenceId"),
                 # Collect transcript consequence:
-                f.when(f.col("transcript_consequences").isNotNull(),
+                f.when(
+                    f.col("transcript_consequences").isNotNull(),
                     f.transform(
                         f.col("transcript_consequences"),
                         lambda transcript: f.struct(
@@ -516,11 +520,15 @@ class VariantEffectPredictorParser:
                             transcript.gene_id.alias("targetId"),
                             transcript.impact.alias("impact"),
                             transcript.transcript_id.alias("transcriptId"),
-                            transcript.lof.cast(t.StringType()).alias("lofteePrediction"),
+                            transcript.lof.cast(t.StringType()).alias(
+                                "lofteePrediction"
+                            ),
                             transcript.lof.cast(t.FloatType()).alias("siftPrediction"),
-                            transcript.lof.cast(t.FloatType()).alias("polyphenPrediction"),
+                            transcript.lof.cast(t.FloatType()).alias(
+                                "polyphenPrediction"
+                            ),
                         ),
-                    )
+                    ),
                 ).alias("transcriptConsequences"),
                 # Extracting rsids:
                 cls._colocated_variants_to_rsids(f.col("colocated_variants")).alias(

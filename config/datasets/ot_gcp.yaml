@@ -43,7 +43,7 @@ gnomad_genomes_path: ${datasets.gnomad_public_bucket}4.0/ht/genomes/gnomad.genom
 # Others
 chain_38_37: gs://hail-common/references/grch38_to_grch37.over.chain.gz
 chain_37_38: ${datasets.static_assets}/grch37_to_grch38.over.chain
-vep_consequences: ${datasets.static_assets}/vep_consequences.tsv
+vep_consequences: ${datasets.static_assets}/variant_consequence_to_score.tsv
 anderson: ${datasets.static_assets}/andersson2014/enhancer_tss_associations.bed
 javierre: ${datasets.static_assets}/javierre_2016_preprocessed
 jung: ${datasets.static_assets}/jung2019_pchic_tableS3.csv
@@ -78,4 +78,4 @@ study_index: ${datasets.release_folder}/study_index
 variant_index: ${datasets.release_folder}/variant_index
 credible_set: ${datasets.release_folder}/credible_set
 gene_index: ${datasets.release_folder}/gene_index
-v2g: ${datasets.release_folder}/variant_to_gene
+variant_to_gene: ${datasets.release_folder}/variant_to_gene

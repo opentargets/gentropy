@@ -352,7 +352,7 @@ class VariantToGeneConfig(StepConfig):
     )
     interval_sources: Dict[str, str] = field(default_factory=dict)
     v2g_path: str = MISSING
-    _target_: str = "gentropy.v2g.V2GStep"
+    _target_: str = "gentropy.variant_to_gene.V2GStep"
 
 
 @dataclass

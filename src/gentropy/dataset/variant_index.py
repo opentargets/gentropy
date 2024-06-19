@@ -8,7 +8,10 @@ from typing import TYPE_CHECKING
 from pyspark.sql import functions as f
 
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import normalise_column
+from gentropy.common.spark_helpers import (
+    get_record_with_maximum_value,
+    normalise_column,
+)
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.v2g import V2G
@@ -254,6 +257,50 @@ class VariantIndex(Dataset):
                     f.col("score"),
                     f.lit("vep").alias("datatypeId"),
                     f.lit("loftee").alias("datasourceId"),
+                )
+            ),
+            _schema=V2G.get_schema(),
+        )
+
+    def get_most_severe_transcript_consequence(
+        self: VariantIndex,
+        vep_consequences: DataFrame,
+        gene_index: GeneIndex,
+    ) -> V2G:
+        """Creates a dataset with variant to gene assignments based on VEP's predicted consequence of the transcript.
+
+        Optionally the trancript consequences can be reduced to the universe of a gene index.
+
+        Args:
+            vep_consequences (DataFrame): A dataframe of VEP consequences
+            gene_index (GeneIndex): A gene index to filter by. Defaults to None.
+
+        Returns:
+            V2G: High and medium severity variant to gene assignments
+        """
+        return V2G(
+            _df=self.get_transcript_consequence_df(gene_index)
+            .select(
+                "variantId",
+                "chromosome",
+                f.col("transcriptConsequence.targetId").alias("geneId"),
+                f.explode("transcriptConsequence.variantConsequenceIds").alias(
+                    "variantConsequenceId"
+                ),
+                f.lit("vep").alias("datatypeId"),
+                f.lit("variantConsequence").alias("datasourceId"),
+            )
+            .join(
+                f.broadcast(vep_consequences),
+                on="variantConsequenceIds",
+                how="inner",
+            )
+            .drop("label")
+            .filter(f.col("score") != 0)
+            # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
+            .transform(
+                lambda df: get_record_with_maximum_value(
+                    df, ["variantId", "geneId"], "score"
                 )
             ),
             _schema=V2G.get_schema(),

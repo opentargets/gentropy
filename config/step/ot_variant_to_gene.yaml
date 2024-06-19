@@ -11,4 +11,4 @@ interval_sources:
   javierre: ${datasets.javierre}
   jung: ${datasets.jung}
   thurman: ${datasets.thurman}
-v2g_path: ${datasets.v2g}
+v2g_path: ${datasets.variant_to_gene}
