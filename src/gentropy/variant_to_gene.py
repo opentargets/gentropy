@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from functools import reduce
 
-import pyspark.sql.functions as f
-
 from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.gene_index import GeneIndex
