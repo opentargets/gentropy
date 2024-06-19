@@ -17,20 +17,18 @@ if TYPE_CHECKING:
 
 
 class TestVEPParser:
-    """Testing VEP parser class."""
+    """Testing VEP parser class.
 
-    # @pytest.fixture(autouse=True, scope="module")
+    Some of the input data:
+    - 6_151445307_C_T - complicated variant with numerous annotations.
+    - 2_140699625_G_GT - simple variant with no annotations whatsoever.
+    """
 
     @pytest.fixture(autouse=True)
     def _setup(self: TestVEPParser, spark: SparkSession) -> None:
-        """Setup fixture.
-
-        Some of the input data:
-        - 6_151445307_C_T - complicated variant with numerous annotations.
-        - 2_140699625_G_GT - simple variant with no annotations whatsoever.
-        """
+        """Setup fixture."""
         self.raw_vep_output = spark.read.json(
-            "tests/gentropy/data_samples/vep_sample.json",
+            "tests/gentropy/data_samples/vep_sample.jsonl",
             schema=VariantEffectPredictorParser.get_vep_schema(),
         )
         self.processed_vep_output = VariantEffectPredictorParser.process_vep_output(
