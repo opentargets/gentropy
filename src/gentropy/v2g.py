@@ -1,4 +1,5 @@
 """Step to generate variant annotation dataset."""
+
 from __future__ import annotations
 
 from functools import reduce
@@ -90,7 +91,7 @@ class V2GStep:
             # Filter gene index by approved biotypes to define V2G gene universe
             list(approved_biotypes)
         )
-        va_slimmed = va.filter_by_variant_df(
+        va_slimmed = va.filter_by_variant(
             # Variant annotation reduced to the variant index to define V2G variant universe
             vi.df
         ).persist()

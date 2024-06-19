@@ -116,7 +116,7 @@ class VariantIndex(Dataset):
             )
         )
 
-    def filter_by_variant_df(self: VariantIndex, df: DataFrame) -> VariantIndex:
+    def filter_by_variant(self: VariantIndex, df: DataFrame) -> VariantIndex:
         """Filter variant annotation dataset by a variant dataframe.
 
         Args:
@@ -125,10 +125,16 @@ class VariantIndex(Dataset):
         Returns:
             VariantIndex: A filtered variant annotation dataset
         """
+        join_columns = ["variantId", "chromosome"]
+
+        assert all(
+            col in df.columns for col in join_columns
+        ), "The variant dataframe must contain the columns 'variantId' and 'chromosome'."
+
         return VariantIndex(
             _df=self._df.join(
-                f.broadcast(df.select("variantId", "chromosome")),
-                on=["variantId", "chromosome"],
+                f.broadcast(df.select(*join_columns).distinct()),
+                on=join_columns,
                 how="inner",
             ),
             _schema=self.schema,
@@ -155,7 +161,7 @@ class VariantIndex(Dataset):
             "chromosome",
             "position",
             "transcriptConsequence",
-            f.col("transcriptConsequence.geneId").alias("geneId"),
+            f.col("transcriptConsequence.targetId").alias("geneId"),
         )
         if gene_index:
             transript_consequences = transript_consequences.join(
@@ -206,6 +212,48 @@ class VariantIndex(Dataset):
                     "score",
                     f.lit("distance").alias("datatypeId"),
                     f.lit("canonical_tss").alias("datasourceId"),
+                )
+            ),
+            _schema=V2G.get_schema(),
+        )
+
+    def get_plof_v2g(self: VariantIndex, gene_index: GeneIndex) -> V2G:
+        """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
+
+        Optionally the trancript consequences can be reduced to the universe of a gene index.
+
+        Args:
+            gene_index (GeneIndex): A gene index to filter by.
+
+        Returns:
+            V2G: variant to gene assignments from the LOFTEE algorithm
+        """
+        return V2G(
+            _df=(
+                self.get_transcript_consequence_df(gene_index)
+                .filter(f.col("transcriptConsequence.lofteePrediction").isNotNull())
+                .withColumn(
+                    "isHighQualityPlof",
+                    f.when(
+                        f.col("transcriptConsequence.lofteePrediction") == "HC", True
+                    ).when(
+                        f.col("transcriptConsequence.lofteePrediction") == "LC", False
+                    ),
+                )
+                .withColumn(
+                    "score",
+                    f.when(f.col("isHighQualityPlof"), 1.0).when(
+                        ~f.col("isHighQualityPlof"), 0
+                    ),
+                )
+                .select(
+                    "variantId",
+                    "chromosome",
+                    "geneId",
+                    "isHighQualityPlof",
+                    f.col("score"),
+                    f.lit("vep").alias("datatypeId"),
+                    f.lit("loftee").alias("datasourceId"),
                 )
             ),
             _schema=V2G.get_schema(),
