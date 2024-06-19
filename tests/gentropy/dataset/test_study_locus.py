@@ -541,7 +541,7 @@ def test_filter_ld_set(spark: SparkSession) -> None:
         observed_df.filter(f.size("ldSet") > 1).count() == expected_tags_in_ld
     ), "Expected tags in ld set differ from observed."
 
-   
+
 def test_annotate_locus_statistics_boundaries(
     mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
 ) -> None:
@@ -554,4 +554,3 @@ def test_annotate_locus_statistics_boundaries(
         slt.annotate_locus_statistics_boundaries(mock_summary_statistics),
         StudyLocus,
     )
-
