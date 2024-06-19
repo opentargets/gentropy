@@ -14,7 +14,6 @@ from pyspark.sql.types import StructType
 
 if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
-
     from gentropy.dataset.gene_index import GeneIndex
     from gentropy.dataset.v2g import V2G
 

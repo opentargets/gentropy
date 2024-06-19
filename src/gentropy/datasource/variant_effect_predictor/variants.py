@@ -13,7 +13,6 @@ from pyspark.sql import types as t
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.session import Session
 from gentropy.common.spark_helpers import (
     enforce_schema,
     order_array_of_structs_by_field,
