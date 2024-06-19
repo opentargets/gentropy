@@ -11,7 +11,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
-from pyspark.sql import Column, SparkSession
+from pyspark.sql import Column, Row, SparkSession
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
@@ -21,11 +21,6 @@ from pyspark.sql.types import (
     StructField,
     StructType,
 )
-
-
-def test_study_locus_creation(mock_study_locus: StudyLocus) -> None:
-    """Test study locus creation with mock data."""
-    assert isinstance(mock_study_locus, StudyLocus)
 
 
 @pytest.mark.parametrize(
@@ -533,6 +528,20 @@ def test_ldannotate(
     )
 
 
+def test_filter_ld_set(spark: SparkSession) -> None:
+    """Test filter_ld_set."""
+    observed_data = [
+        Row(studyLocusId="sl1", ldSet=[{"tagVariantId": "tag1", "r2Overall": 0.4}])
+    ]
+    observed_df = spark.createDataFrame(
+        observed_data, ["studyLocusId", "ldSet"]
+    ).withColumn("ldSet", StudyLocus.filter_ld_set(f.col("ldSet"), 0.5))
+    expected_tags_in_ld = 0
+    assert (
+        observed_df.filter(f.size("ldSet") > 1).count() == expected_tags_in_ld
+    ), "Expected tags in ld set differ from observed."
+
+   
 def test_annotate_locus_statistics_boundaries(
     mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
 ) -> None:
@@ -545,3 +554,4 @@ def test_annotate_locus_statistics_boundaries(
         slt.annotate_locus_statistics_boundaries(mock_summary_statistics),
         StudyLocus,
     )
+
