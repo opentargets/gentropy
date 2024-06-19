@@ -7,6 +7,7 @@ import json
 from itertools import chain
 from typing import TYPE_CHECKING, Dict, List
 
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -47,17 +48,25 @@ class VariantEffectPredictorParser:
         ]
     )
 
+    def get_vep_schema() -> t.StructType:
+        """Return the schema of the VEP output.
+
+        Returns:
+            t.StructType: VEP output schema.
+        """
+        return parse_spark_schema("vep_json_output.json")
+
     @classmethod
     def extract_variant_index_from_vep(
         cls: type[VariantEffectPredictorParser],
-        session: Session,
+        spark: SparkSession,
         vep_output_path: str | list[str],
         **kwargs: bool | float | int | str | None,
     ) -> VariantIndex:
         """Extract variant index from VEP output.
 
         Args:
-            session (Session): Spark session.
+            spark (SparkSession): Spark session.
             vep_output_path (str | list[str]): Path to the VEP output.
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.json.
 
@@ -69,12 +78,10 @@ class VariantEffectPredictorParser:
             ValueError: The dataset is empty.
         """
         # To speed things up and simplify the json structure, read data following an expected schema:
-        vep_schema = parse_spark_schema("vep_json_output.json")
+        vep_schema = cls.get_vep_schema()
 
         try:
-            vep_data = session.spark.read.json(
-                vep_output_path, schema=vep_schema, **kwargs
-            )
+            vep_data = spark.read.json(vep_output_path, schema=vep_schema, **kwargs)
         except ValueError as e:
             raise ValueError(f"Failed reading file: {vep_output_path}.") from e
 

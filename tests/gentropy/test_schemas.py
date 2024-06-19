@@ -14,6 +14,7 @@ from pyspark.sql.types import StructType
 
 if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
+
     from gentropy.dataset.gene_index import GeneIndex
     from gentropy.dataset.v2g import V2G
 
@@ -57,6 +58,9 @@ def test_schema_columns_camelcase(schema_json: str) -> None:
     Args:
         schema_json (str): schema filename
     """
+    if schema_json == "vep_json_output.json":
+        pytest.skip("VEP schema is exempt from camelCase check.")
+
     core_schema = json.loads(Path(SCHEMA_DIR, schema_json).read_text(encoding="utf-8"))
     schema = StructType.fromJson(core_schema)
     # Use a regular expression to check if the identifier is in camelCase
