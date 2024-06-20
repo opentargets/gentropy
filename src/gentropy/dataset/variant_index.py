@@ -80,6 +80,25 @@ class VariantIndex(Dataset):
                 ),
             )
 
+        # Merge in silico predictors if present:
+        if "inSilicoPredictors" in renamed_columns:
+            jonied = jonied.withColumn(
+                "inSilicoPredictors",
+                f.when(
+                    f.col("inSilicoPredictors").isNotNull()
+                    & f.col("annotation_inSilicoPredictors").isNotNull(),
+                    f.array_union(
+                        f.col("dbXrefs"),
+                        f.col("annotation_inSilicoPredictors"),
+                    ),
+                ).otherwise(
+                    f.coalesce(
+                        f.col("inSilicoPredictors"),
+                        f.col("annotation_inSilicoPredictors"),
+                    )
+                ),
+            )
+
         # Rename population column if not present in the dataset:
         if ("alleleFrequencies" in renamed_columns) and (
             "alleleFrequencies" not in jonied.columns
