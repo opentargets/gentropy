@@ -26,7 +26,7 @@ from gentropy.dataset.v2g import V2G
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from gentropy.datasource.gwas_catalogue import (
+from gentropy.datasource.gwas_catalog import (
     StudyIndexGWASCatalog,
     StudyLocusGWASCatalog,
 )
