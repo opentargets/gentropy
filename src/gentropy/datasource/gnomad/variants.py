@@ -84,34 +84,42 @@ class GnomADVariants:
                     ),
                     # Extract in silico predictors:
                     inSilicoPredictors=hl.array(
-                        hl.struct(
-                            method=hl.str("spliceai"),
-                            assessment=hl.null(),
-                            score=ht.in_silico_predictors.spliceai_ds_max,
-                            assessmentFlag=hl.null(),
-                            targetId=hl.null(),
-                        ),
-                        hl.struct(
-                            method=hl.str("pangolin"),
-                            assessment=hl.null(),
-                            score=ht.in_silico_predictors.pangolin_largest_ds,
-                            assessmentFlag=hl.null(),
-                            targetId=hl.null(),
-                        ),
+                        [
+                            hl.struct(
+                                method=hl.str("spliceai"),
+                                assessment=hl.missing(hl.tstr),
+                                score=hl.expr.functions.float32(
+                                    ht.in_silico_predictors.spliceai_ds_max
+                                ),
+                                assessmentFlag=hl.missing(hl.tstr),
+                                targetId=hl.missing(hl.tstr),
+                            ),
+                            hl.struct(
+                                method=hl.str("pangolin"),
+                                assessment=hl.missing(hl.tstr),
+                                score=hl.expr.functions.float32(
+                                    ht.in_silico_predictors.pangolin_largest_ds
+                                ),
+                                assessmentFlag=hl.missing(hl.tstr),
+                                targetId=hl.missing(hl.tstr),
+                            ),
+                        ]
                     ),
                     # Extract cross references to GnomAD:
                     dbXrefs=hl.array(
-                        gnomad=hl.struct(
-                            id=hl.str("-").join(
-                                [
-                                    ht.locus.contig.replace("chr", ""),
-                                    hl.str(ht.locus.position),
-                                    ht.alleles[0],
-                                    ht.alleles[1],
-                                ]
-                            ),
-                            source=hl.str("gnomad"),
-                        )
+                        [
+                            hl.struct(
+                                id=hl.str("-").join(
+                                    [
+                                        ht.locus.contig.replace("chr", ""),
+                                        hl.str(ht.locus.position),
+                                        ht.alleles[0],
+                                        ht.alleles[1],
+                                    ]
+                                ),
+                                source=hl.str("gnomad"),
+                            )
+                        ]
                     ),
                 )
                 .key_by("chromosome", "position")
