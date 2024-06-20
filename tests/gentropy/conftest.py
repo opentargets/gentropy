@@ -26,10 +26,8 @@ from gentropy.dataset.v2g import V2G
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from gentropy.datasource.gwas_catalog import (
-    StudyIndexGWASCatalog,
-    StudyLocusGWASCatalog,
-)
+from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
+from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame, SparkSession
 
 from utils.spark import get_spark_testing_conf
@@ -296,7 +294,17 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
         # It's a workaround for nested column handling in dbldatagen.
         .withColumnSpec(
             "inSilicoPredictors",
-            expr='array( named_struct( "method", cast(rand() as string), "assessment", cast(rand() as string), "score", rand(), "assessmentFlag", cast(rand() as string), "targetId", cast(rand() as string), ) )',
+            expr="""
+                array(
+                    named_struct(
+                        "method", cast(rand() as string),
+                        "assessment", cast(rand() as string),
+                        "score", rand(),
+                        "assessmentFlag", cast(rand() as string),
+                        "targetId", cast(rand() as string)
+                    )
+                )
+            """,
             percentNulls=0.1,
         )
         .withColumnSpec(
@@ -307,21 +315,36 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
         .withColumnSpec(
             "transcriptConsequences",
-            expr="""array(
-                named_struct(
-                    "amino_acid_change", cast(rand() as string),
-                    "variantConsequenceIds", array(cast(rand() as string)),
-                    "uniprotAccessions", array(cast(rand() as string)),
-                    "codons", cast(rand() as string),
-                    "distance", cast(rand() as integer),
-                    "targetId", cast(rand() as string),
-                    "impact", cast(rand() as string),
-                    "transcriptId", cast(rand() as string),
-                    "lofteePrediction", cast(rand() as string),
-                    "siftPrediction", rand(),
-                    "polyphenPrediction", rand()
+            expr="""
+                array(
+                    named_struct(
+                        "variantConsequenceIds", array(cast(rand() as string)),
+                        "amino_acid_change", cast(rand() as string),
+                        "uniprotAccessions", array(cast(rand() as string)),
+                        "isEnsemblCanonical", cast(rand() as boolean),
+                        "codons", cast(rand() as string),
+                        "distance", cast(rand() as long),
+                        "targetId", cast(rand() as string),
+                        "impact", cast(rand() as string),
+                        "lofteePrediction", cast(rand() as string),
+                        "siftPrediction", rand(),
+                        "polyphenPrediction", rand(),
+                        "transcriptId", cast(rand() as string)
+                    )
                 )
-            )""",
+            """,
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "dbXrefs",
+            expr="""
+                array(
+                    named_struct(
+                        "id", cast(rand() as string),
+                        "source", cast(rand() as string)
+                    )
+                )
+            """,
             percentNulls=0.1,
         )
     )
