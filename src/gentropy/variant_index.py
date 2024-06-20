@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.datasource.variant_effect_predictor.variants import (
-    VariantEffectPredictorParser,
-)
+from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 
 
 class VariantIndexStep:

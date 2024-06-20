@@ -6,9 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.datasource.variant_effect_predictor.variants import (
-    VariantEffectPredictorParser,
-)
+from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 from pyspark.sql import DataFrame
 
 if TYPE_CHECKING:
