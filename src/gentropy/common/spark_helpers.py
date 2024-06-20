@@ -273,7 +273,6 @@ def neglog_pvalue_to_mantissa_and_exponent(p_value: Column) -> tuple[Column, Col
         |    4.56|     3.6307805|            -5|
         | 2109.23|     1.6982436|         -2110|
         +--------+--------------+--------------+
-
         <BLANKLINE>
     """
     exponent: Column = f.ceil(p_value)
