@@ -3,7 +3,6 @@ defaults:
 
 variant_annotation_path: ${datasets.variant_annotation}
 gnomad_genomes_path: ${datasets.gnomad_genomes_path}
-chain_38_37: ${datasets.chain_38_37}
 gnomad_variant_populations:
   - afr # African-American
   - amr # American Admixed/Latino

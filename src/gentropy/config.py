@@ -180,7 +180,7 @@ class LDIndexConfig(StepConfig):
         ]
     )
     use_version_from_input: bool = False
-    _target_: str = "gentropy.ld_index.LDIndexStep"
+    _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
 
 @dataclass
@@ -308,7 +308,7 @@ class GnomadVariantConfig(StepConfig):
         ]
     )
     use_version_from_input: bool = False
-    _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
+    _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
 
 
 @dataclass

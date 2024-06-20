@@ -154,7 +154,7 @@ class GWASCatalogStudyInclusionGenerator:
         """Run step.
 
         Args:
-            session (Session): Session object.
+            session (Session): Session objecct.
             catalog_study_files (list[str]): List of raw GWAS catalog studies file.
             catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
             catalog_associations_file (str): Raw GWAS catalog associations file.
