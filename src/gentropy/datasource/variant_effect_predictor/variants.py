@@ -47,6 +47,7 @@ class VariantEffectPredictorParser:
         ]
     )
 
+    @staticmethod
     def get_vep_schema() -> t.StructType:
         """Return the schema of the VEP output.
 

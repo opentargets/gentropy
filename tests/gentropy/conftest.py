@@ -328,8 +328,6 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(vi_schema)
-        .withColumnSpec("chromosomeB37", percentNulls=0.1)
-        .withColumnSpec("positionB37", percentNulls=0.1)
         .withColumnSpec("mostSevereConsequence", percentNulls=0.1)
         # Nested column handling workaround
         # https://github.com/databrickslabs/dbldatagen/issues/135
@@ -341,7 +339,15 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
         )
         .withColumnSpec(
             "inSilicoPredictors",
-            expr='named_struct("cadd", named_struct("phred", cast(rand() as float), "raw_score", cast(rand() as float)), "revelMax", cast(rand() as double), "spliceaiDsMax", cast(rand() as float), "pangolinLargestDs", cast(rand() as double), "phylop", cast(rand() as double), "polyphenMax", cast(rand() as double), "siftMax", cast(rand() as double))',
+            expr="""array(
+                named_struct(
+                    "method", cast(rand() as string),
+                    "assessment", cast(rand() as string),
+                    "score", rand(),
+                    "assessmentFlag", cast(rand() as string),
+                    "targetId", cast(rand() as string),
+                )
+            )""",
             percentNulls=0.1,
         )
         .withColumnSpec("rsIds", expr="array(cast(rand() AS string))", percentNulls=0.1)
