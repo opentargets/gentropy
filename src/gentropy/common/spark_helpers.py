@@ -279,7 +279,7 @@ def neglog_pvalue_to_mantissa_and_exponent(p_value: Column) -> tuple[Column, Col
     mantissa: Column = f.pow(f.lit(10), (p_value - exponent + f.lit(1)))
 
     return (
-        mantissa.cast(t.DoubleType()).alias("pValueMantissa"),
+        mantissa.cast(t.FloatType()).alias("pValueMantissa"),
         (-1 * exponent).cast(t.IntegerType()).alias("pValueExponent"),
     )
 

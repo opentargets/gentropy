@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "gentropy"
 # !! version is managed by semantic_release
-version = "0.0.0"
+version = "0.0.0+tskir.ukbppp"
 description = "Open Targets python framework for post-GWAS analysis"
 authors = ["Open Targets core team"]
 license = "Apache-2.0"
