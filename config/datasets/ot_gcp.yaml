@@ -68,6 +68,8 @@ catalog_study_locus: ${datasets.study_locus}/catalog_study_locus
 from_sumstats_study_locus: ${datasets.study_locus}/from_sumstats
 from_sumstats_pics: ${datasets.credible_set}/from_sumstats
 
+vep_output_path: gs://genetics_etl_python_playground/vep/full_variant_index_vcf
+
 # ETL output datasets:
 l2g_gold_standard_curation: ${datasets.release_folder}/locus_to_gene_gold_standard.json
 l2g_model: ${datasets.release_folder}/locus_to_gene_model

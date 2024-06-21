@@ -58,8 +58,9 @@ class VariantIndex(Dataset):
         annotation = annotation.select(
             *[f.col(col).alias(renamed_columns[col]) for col in annotation.columns]
         )
+
         # Join the annotation to the dataset:
-        jonied = self.df.join(annotation, on="variantId", how="left")
+        jonied = annotation.join(f.broadcast(self.df), on="variantId", how="left")
 
         # Merge cross-ref if present:
         if "dbXrefs" in renamed_columns:
@@ -88,7 +89,7 @@ class VariantIndex(Dataset):
                     f.col("inSilicoPredictors").isNotNull()
                     & f.col("annotation_inSilicoPredictors").isNotNull(),
                     f.array_union(
-                        f.col("dbXrefs"),
+                        f.col("inSilicoPredictors"),
                         f.col("annotation_inSilicoPredictors"),
                     ),
                 ).otherwise(
@@ -311,7 +312,7 @@ class VariantIndex(Dataset):
             )
             .join(
                 f.broadcast(vep_consequences),
-                on="variantConsequenceIds",
+                on="variantConsequenceId",
                 how="inner",
             )
             .drop("label")

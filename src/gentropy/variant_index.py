@@ -1,4 +1,4 @@
-"""Step to generate variant index dataset."""
+"""Step to generate variant index dataset based on VEP output."""
 
 from __future__ import annotations
 
@@ -31,14 +31,16 @@ class VariantIndexStep:
         """
         # Extract variant annotations from VEP output:
         variant_index = VariantEffectPredictorParser.extract_variant_index_from_vep(
-            session, vep_output_json_path
+            session.spark, vep_output_json_path
         )
 
         # Process variant annotations if provided:
         if gnomad_variant_annotations_path is not None:
             # Read variant annotations from parquet:
             annotations = VariantIndex.from_parquet(
-                session=session, path=gnomad_variant_annotations_path
+                session=session,
+                path=gnomad_variant_annotations_path,
+                recursiveFileLookup=True,
             ).df.select(
                 "variantId", "dbXrefs", "alleleFrequencies", "inSilicoPredictors"
             )

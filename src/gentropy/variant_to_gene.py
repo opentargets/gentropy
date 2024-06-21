@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from functools import reduce
 
+from pyspark.sql import functions as f
+
 from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.gene_index import GeneIndex
@@ -64,9 +66,10 @@ class V2GStep:
         # Read
         gene_index = GeneIndex.from_parquet(session, gene_index_path)
         vi = VariantIndex.from_parquet(session, variant_index_path).persist()
+        # Reading VEP consequence to score table and cast the score to the right type:
         vep_consequences = session.spark.read.csv(
             vep_consequences_path, sep="\t", header=True
-        )
+        ).withColumn("score", f.col("score").cast("double"))
 
         # Transform
         lift = LiftOverSpark(

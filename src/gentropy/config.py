@@ -284,7 +284,7 @@ class PICSConfig(StepConfig):
 
 @dataclass
 class GnomadVariantConfig(StepConfig):
-    """Variant annotation step configuration."""
+    """Gnomad variant ingestion step configuration."""
 
     session: Any = field(
         default_factory=lambda: {
@@ -317,7 +317,7 @@ class VariantIndexConfig(StepConfig):
 
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
-    variant_annotations_path: str | None = None
+    gnomad_variant_annotations_path: str | None = None
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
 
@@ -326,7 +326,6 @@ class VariantToGeneConfig(StepConfig):
     """V2G step configuration."""
 
     variant_index_path: str = MISSING
-    variant_annotation_path: str = MISSING
     gene_index_path: str = MISSING
     vep_consequences_path: str = MISSING
     liftover_chain_file_path: str = MISSING

@@ -507,7 +507,7 @@ class VariantEffectPredictorParser:
                                 lambda y: cls._consequence_to_sequence_ontology(
                                     y, sequence_ontology_map
                                 ),
-                            ).alias("variantConsequenceIds"),
+                            ).alias("variantFunctionalConsequenceIds"),
                             # Format amino acid change:
                             cls._parser_amino_acid_change(
                                 transcript.amino_acids, transcript.protein_end
@@ -550,7 +550,7 @@ class VariantEffectPredictorParser:
                         f.filter(
                             f.col("transcriptConsequences"),
                             lambda x: f.array_contains(
-                                x.variantConsequenceIds, "SO_0001583"
+                                x.variantFunctionalConsequenceIds, "SO_0001583"
                             ),
                         )
                     )

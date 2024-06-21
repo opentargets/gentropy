@@ -90,7 +90,7 @@
           "fields": [
             {
               "metadata": {},
-              "name": "variantConsequenceIds",
+              "name": "variantFunctionalConsequenceIds",
               "nullable": true,
               "type": {
                 "containsNull": true,

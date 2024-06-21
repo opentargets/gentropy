@@ -318,7 +318,7 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             expr="""
                 array(
                     named_struct(
-                        "variantConsequenceIds", array(cast(rand() as string)),
+                        "variantFunctionalConsequenceIds", array(cast(rand() as string)),
                         "amino_acid_change", cast(rand() as string),
                         "uniprotAccessions", array(cast(rand() as string)),
                         "isEnsemblCanonical", cast(rand() as boolean),
