@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
@@ -12,9 +11,8 @@ from pyspark.sql.window import Window
 
 from gentropy.common.spark_helpers import calculate_neglog_pvalue
 from gentropy.dataset.study_locus import StudyLocus
-
-if TYPE_CHECKING:
-    from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.method.window_based_clumping import WindowBasedClumping
 
 
 class LocusBreakerClumping:
@@ -120,4 +118,49 @@ class LocusBreakerClumping:
                 )
             ),
             _schema=StudyLocus.get_schema(),
+        )
+
+    @staticmethod
+    def _process_locus_breaker(
+        study_locus: StudyLocus,
+        sum_stats: SummaryStatistics,
+        large_loci_size: int,
+        gwas_threshold: float,
+    ) -> StudyLocus:
+        """Process the locus breaker method result, and run window-based clumping on large loci.
+
+        Args:
+            study_locus (StudyLocus): StudyLocus object with locus start and end positions.
+            sum_stats (SummaryStatistics): Input summary statistics dataset.
+            large_loci_size (int): the size to define large loci which should be broken with wbc.
+            gwas_threshold (float): P-value threshold to be used in window-based clumping.
+
+        Returns:
+            StudyLocus: clumped study loci with large loci broken by window-based clumping.
+        """
+        small_loci = study_locus.filter(
+            (f.col("locusEnd") - f.col("locusStart")) <= large_loci_size
+        )
+        large_loci = study_locus.filter(
+            (f.col("locusEnd") - f.col("locusStart")) > large_loci_size
+        )
+        large_loci_ss = SummaryStatistics(
+            sum_stats.df.alias("ss")
+            .join(
+                large_loci.df.alias("ll"),
+                (f.col("ss.studyId") == f.col("ll.studyId"))
+                & (f.col("ss.chromosome") == f.col("ll.chromosome"))
+                & (f.col("ss.position") >= f.col("ll.locusStart"))
+                & (f.col("ss.position") <= f.col("ll.locusEnd")),
+                "inner",
+            )
+            .select([f.col("ss." + col) for col in sum_stats.df.columns]),
+            SummaryStatistics.get_schema(),
+        )
+        large_loci_wbc = WindowBasedClumping.clump(
+            large_loci_ss, large_loci_size, gwas_threshold
+        )
+        return StudyLocus(
+            large_loci_wbc.df.unionByName(small_loci.df),
+            StudyLocus.get_schema(),
         )
