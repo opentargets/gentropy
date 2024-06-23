@@ -56,7 +56,7 @@ class LocusBreakerClumpingStep:
         )
         if collect_locus:
             clumped_result = clumped_result.annotate_locus_statistics(
-                sum_stats, collect_locus_distance=collect_locus_distance
+                sum_stats, collect_locus_distance
             )
 
         clumped_result.df.write.mode(session.write_mode).parquet(
