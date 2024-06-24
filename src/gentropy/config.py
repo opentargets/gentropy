@@ -274,7 +274,7 @@ class LocusToGeneConfig(StepConfig):
         }
     )
     wandb_run_name: str | None = None
-    hf_hub_repo_id: str | None = None
+    hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     download_from_hub: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 

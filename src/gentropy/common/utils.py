@@ -352,6 +352,6 @@ def copy_to_gcs(source_path: str, destination_blob: str) -> None:
     if os.path.isdir(source_path):
         raise ValueError("Path should be a file, not a directory.")
     client = storage.Client()
-    bucket = client.bucket(bucket_name=urlparse(destination_blob).netloc)
+    bucket = client.bucket(bucket_name=urlparse(destination_blob).hostname)
     blob = bucket.blob(blob_name=urlparse(destination_blob).path.lstrip("/"))
     blob.upload_from_filename(source_path)

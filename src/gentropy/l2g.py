@@ -10,6 +10,7 @@ from wandb import login as wandb_login
 
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
+from gentropy.config import LocusToGeneConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -41,7 +42,7 @@ class LocusToGeneStep:
         model_path: str | None,
         feature_matrix_path: str | None = None,
         wandb_run_name: str | None = None,
-        hf_hub_repo_id: str | None = None,
+        hf_hub_repo_id: str | None = LocusToGeneConfig().hf_hub_repo_id,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -61,7 +62,7 @@ class LocusToGeneStep:
             model_path (str | None): Path to the fitted model
             feature_matrix_path (str | None): Path to save the feature matrix. Defaults to None.
             wandb_run_name (str | None): Name of the wandb run. Defaults to None.
-            hf_hub_repo_id (str | None): Hugging Face Hub repo id. Defaults to None.
+            hf_hub_repo_id (str | None): Hugging Face Hub repo id. Defaults to the one set in the step configuration.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -109,7 +110,7 @@ class LocusToGeneStep:
         """Run the prediction step.
 
         Raises:
-            ValueError: If model_path or predictions_path are not set.
+            ValueError: If predictions_path is not set.
         """
         if not self.predictions_path:
             raise ValueError("predictions_path must be set for predict mode.")

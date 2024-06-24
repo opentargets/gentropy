@@ -59,7 +59,7 @@ class L2GPrediction(Dataset):
             v2g (V2G): Variant to gene dataset
             coloc (Colocalisation): Colocalisation dataset
             session (Session): Session object that contains the Spark session
-            model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub.
+            model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
 

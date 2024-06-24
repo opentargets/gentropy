@@ -159,7 +159,11 @@ class L2GFeatureMatrix(Dataset):
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
+
+        Raises:
+            ValueError: If no features have been selected.
         """
-        features_list = features_list or self.features_list
-        self.df = self._df.select(self.fixed_cols + features_list)  # type: ignore
-        return self
+        if features_list := features_list or self.features_list:
+            self.df = self._df.select(self.fixed_cols + features_list)
+            return self
+        raise ValueError("features_list cannot be None")
