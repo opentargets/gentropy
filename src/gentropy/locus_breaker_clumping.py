@@ -23,6 +23,7 @@ class LocusBreakerClumpingStep:
         wbc_pvalue_threshold: float,
         collect_locus_distance: int,
         collect_locus: bool = False,
+        remove_mhc: bool = True,
     ) -> None:
         """Run locus-breaker clumping step.
 
@@ -38,6 +39,7 @@ class LocusBreakerClumpingStep:
             wbc_pvalue_threshold (float): P-value threshold for window breaker clumping.
             collect_locus_distance (int): Distance to collect locus.
             collect_locus (bool, optional): Whether to collect locus. Defaults to False.
+            remove_mhc (bool, optional): If true will use exclude_region() to remove the MHC region.
         """
         sum_stats = SummaryStatistics.from_parquet(
             session, summary_statistics_input_path
@@ -58,6 +60,8 @@ class LocusBreakerClumpingStep:
             clumped_result = clumped_result.annotate_locus_statistics(
                 sum_stats, collect_locus_distance
             )
+        if remove_mhc:
+            clumped_result = clumped_result.exclude_region("chr6:25726063-33400556")
 
         clumped_result.df.write.mode(session.write_mode).parquet(
             clumped_study_locus_output_path
