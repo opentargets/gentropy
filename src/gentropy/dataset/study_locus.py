@@ -326,6 +326,25 @@ class StudyLocus(Dataset):
         )
         return self
 
+    @staticmethod
+    def filter_ld_set(ld_set: Column, r2_threshold: float) -> Column:
+        """Filter the LD set by a given R2 threshold.
+
+        Args:
+            ld_set (Column): LD set
+            r2_threshold (float): R2 threshold to filter the LD set on
+
+        Returns:
+            Column: Filtered LD index
+        """
+        return f.when(
+            ld_set.isNotNull(),
+            f.filter(
+                ld_set,
+                lambda tag: tag["r2Overall"] >= r2_threshold,
+            ),
+        )
+
     def find_overlaps(
         self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
     ) -> StudyLocusOverlap:
@@ -524,20 +543,24 @@ class StudyLocus(Dataset):
         return self
 
     def annotate_ld(
-        self: StudyLocus, study_index: StudyIndex, ld_index: LDIndex
+        self: StudyLocus,
+        study_index: StudyIndex,
+        ld_index: LDIndex,
+        r2_threshold: float = 0.0,
     ) -> StudyLocus:
         """Annotate LD information to study-locus.
 
         Args:
             study_index (StudyIndex): Study index to resolve ancestries.
             ld_index (LDIndex): LD index to resolve LD information.
+            r2_threshold (float): R2 threshold to filter the LD index. Default is 0.0.
 
         Returns:
             StudyLocus: Study locus annotated with ld information from LD index.
         """
         from gentropy.method.ld import LDAnnotator
 
-        return LDAnnotator.ld_annotate(self, study_index, ld_index)
+        return LDAnnotator.ld_annotate(self, study_index, ld_index, r2_threshold)
 
     def clump(self: StudyLocus) -> StudyLocus:
         """Perform LD clumping of the studyLocus.
@@ -627,4 +650,69 @@ class StudyLocus(Dataset):
                 StudyLocusQualityCheck.NO_POPULATION,
             ),
         )
+        return self
+
+    def annotate_locus_statistics_boundaries(
+        self: StudyLocus,
+        summary_statistics: SummaryStatistics,
+    ) -> StudyLocus:
+        """Annotates study locus with summary statistics in the specified boundaries - locusStart and locusEnd.
+
+        Args:
+            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
+
+        Returns:
+            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
+        """
+        # The clumps will be used several times (persisting)
+        self.df.persist()
+        # Renaming columns:
+        sumstats_renamed = summary_statistics.df.selectExpr(
+            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
+        ).alias("sumstat")
+
+        locus_df = (
+            sumstats_renamed
+            # Joining the two datasets together:
+            .join(
+                f.broadcast(
+                    self.df.alias("clumped").select(
+                        "position",
+                        "chromosome",
+                        "studyId",
+                        "studyLocusId",
+                        "locusStart",
+                        "locusEnd",
+                    )
+                ),
+                on=[
+                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
+                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
+                    & (f.col("sumstat.tag_position") >= (f.col("clumped.locusStart")))
+                    & (f.col("sumstat.tag_position") <= (f.col("clumped.locusEnd")))
+                ],
+                how="inner",
+            )
+            .withColumn(
+                "locus",
+                f.struct(
+                    f.col("tag_variantId").alias("variantId"),
+                    f.col("tag_beta").alias("beta"),
+                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
+                    f.col("tag_pValueExponent").alias("pValueExponent"),
+                    f.col("tag_standardError").alias("standardError"),
+                ),
+            )
+            .groupBy("studyLocusId")
+            .agg(
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
+        )
+
+        self.df = self.df.drop("locus").join(
+            locus_df,
+            on="studyLocusId",
+            how="left",
+        )
+
         return self
