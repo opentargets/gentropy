@@ -27,6 +27,10 @@ class LocusBreakerClumpingStep:
     ) -> None:
         """Run locus-breaker clumping step.
 
+        This step will perform locus-breaker clumping on the full set of summary statistics.
+        StudyLocus larger than the large_loci_size, by distance, will be further clumped with window-based
+        clumping.
+
         Args:
             session (Session): Session object.
             summary_statistics_input_path (str): Path to the input study locus.
@@ -35,7 +39,7 @@ class LocusBreakerClumpingStep:
             lbc_distance_cutoff (int): Distance cutoff for locus breaker clumping.
             lbc_pvalue_threshold (float): P-value threshold for locus breaker clumping.
             lbc_flanking_distance (int): Flanking distance for locus breaker clumping.
-            large_loci_size (int): Size of large loci.
+            large_loci_size (int): Threshold distance to define large loci for window-based clumping.
             wbc_pvalue_threshold (float): P-value threshold for window breaker clumping.
             collect_locus_distance (int): Distance to collect locus.
             collect_locus (bool, optional): Whether to collect locus. Defaults to False.
