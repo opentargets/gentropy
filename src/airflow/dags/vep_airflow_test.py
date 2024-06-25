@@ -20,7 +20,6 @@ from google.cloud import batch_v1
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"
 
-
 # Required parameters:
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
 
@@ -31,12 +30,7 @@ VEP_CACHE_BUCKET = "gs://genetics_etl_python_playground/vep/cache"
 # Internal parameters for the docker image:
 MOUNT_DIR = "/mnt/disks/share"
 
-# Derived parameters:
-BUCKET_NAME = "genetics_etl_python_playground"
-PREFIX_NAME = "vep"
-
-INPUT_VCFS_BUCKET = "vi_tsv"
-
+# Configuration for the machine types:
 MACHINES = {
     "VEPMACHINE": {
         "machine_type": "e2-standard-4",
@@ -237,7 +231,7 @@ def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
         os.path.basename(os.path.splitext(path)[0])
         for path in ti.xcom_pull(task_ids="get_vep_todo_list", key="return_value")
     ]
-    # Stop process if no files were found:
+    # Stop process if no files was found:
     assert filenames, "No files found to process."
 
     # Based on the filenames, build the environment variables for the batch job:
