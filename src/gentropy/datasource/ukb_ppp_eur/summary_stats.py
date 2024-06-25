@@ -94,13 +94,11 @@ class UkbPppEurSummaryStats:
             )
             .withColumn(
                 "ukb_ppp_id",
-                f.concat(
+                f.concat_ws(
+                    "_"
                     f.col("chromosome"),
-                    f.lit("_"),
                     f.col("GENPOS"),
-                    f.lit("_"),
                     f.col("ALLELE0"),
-                    f.lit("_"),
                     f.col("ALLELE1")
                 )
             )
