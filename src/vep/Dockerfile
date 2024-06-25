@@ -24,3 +24,8 @@ RUN wget --progress=dot:giga https://github.com/samtools/samtools/releases/downl
 
 RUN wget --progress=dot:giga https://personal.broadinstitute.org/konradk/loftee_data/GRCh38/loftee.sql.gz --directory-prefix=/opt/vep/ && \
     gunzip /opt/vep/loftee.sql.gz
+
+# Make sure the mounting points exist:
+RUN mkdir -p /mnt/disks/share/cache && \
+    mkdir -p /mnt/disks/share/input && \
+    mkdir -p /mnt/disks/share/output

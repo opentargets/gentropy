@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List
 
@@ -19,8 +20,18 @@ from google.cloud import batch_v1
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"
 
+
+# Required parameters:
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
-MOUNT_DIR = "/mnt/disks/share"  # inside the image
+
+VCF_INPUT_BUCKET = "gs://genetics_etl_python_playground/vep/test_vep_input"
+VEP_OUTPUT_BUCKET = "gs://genetics_etl_python_playground/vep/test_vep_output"
+VEP_CACHE_BUCKET = "gs://genetics_etl_python_playground/vep/cache"
+
+# Internal parameters for the docker image:
+MOUNT_DIR = "/mnt/disks/share"
+
+# Derived parameters:
 BUCKET_NAME = "genetics_etl_python_playground"
 PREFIX_NAME = "vep"
 
@@ -34,6 +45,73 @@ MACHINES = {
         "boot_disk_mib": 10000,
     },
 }
+
+
+@dataclass
+class PathManager:
+    """It is quite complicated to keep track of all the input/output buckets, the corresponding mounting points prefixes etc..."""
+
+    VCF_INPUT_BUCKET: str
+    VEP_OUTPUT_BUCKET: str
+    VEP_CACHE_BUCKET: str
+    MOUNT_DIR_ROOT: str
+
+    # Derived parameters to find the list of files to process:
+    input_path: str | None = None
+    input_bucket: str | None = None
+
+    # Derived parameters to initialise the docker image:
+    path_dictionary: dict[str, dict[str, str]] | None = None
+
+    # Derived parameters to point to the right mouting points:
+    cache_dir: str | None = None
+    input_dir: str | None = None
+    output_dir: str | None = None
+
+    def __post_init__(self) -> None:
+        """Build paths based on the input parameters."""
+        self.path_dictionary = {
+            "input": {
+                "remote_path": self.VCF_INPUT_BUCKET.replace("gs://", ""),
+                "mount_point": f"{self.MOUNT_DIR_ROOT}/input",
+            },
+            "output": {
+                "remote_path": self.VEP_OUTPUT_BUCKET.replace("gs://", ""),
+                "mount_point": f"{self.MOUNT_DIR_ROOT}/output",
+            },
+            "cache": {
+                "remote_path": self.VEP_CACHE_BUCKET.replace("gs://", ""),
+                "mount_point": f"{self.MOUNT_DIR_ROOT}/cache",
+            },
+        }
+        # Parameters for fetching files:
+        self.input_path = f"{self._get_prefix_name(self.VCF_INPUT_BUCKET)}/{self._get_top_folder(self.VCF_INPUT_BUCKET)}/"
+        self.input_bucket = self._get_bucket_name(self.VCF_INPUT_BUCKET)
+
+        # Parameters for VEP:
+        self.cache_dir = f"{self.MOUNT_DIR_ROOT}/cache"
+        self.input_dir = f"{self.MOUNT_DIR_ROOT}/input"
+        self.output_dir = f"{self.MOUNT_DIR_ROOT}/output"
+
+    @staticmethod
+    def _get_top_folder(path: str) -> str:
+        """Extract the top folder name from a GCS path."""
+        return path.split("/")[-1]
+
+    @staticmethod
+    def _get_bucket_name(path: str) -> str:
+        """Extract the bucket name from a GCS path."""
+        return path.split("/")[2]
+
+    @staticmethod
+    def _get_prefix_name(path: str) -> str:
+        """Extract the prefix name from a GCS path."""
+        return "/".join(path.split("/")[3:-1])
+
+    def get_mount_config(self) -> list[dict[str, str]]:
+        """Return the mount configuration."""
+        assert self.path_dictionary is not None, "Path dictionary not initialized."
+        return list(self.path_dictionary.values())
 
 
 def create_container_runnable(image: str, commands: List[str]) -> batch_v1.Runnable:
@@ -72,10 +150,33 @@ def create_task_spec(image: str, commands: List[str]) -> batch_v1.TaskSpec:
     return task
 
 
+def set_up_mouting_points(
+    mounting_points: list[dict[str, str]],
+) -> list[batch_v1.Volume]:
+    """Set up the mounting points for the container.
+
+    Args:
+        mounting_points (list[dict[str, str]]): The mounting points.
+
+    Returns:
+        list[batch_v1.Volume]: The volumes.
+    """
+    volumes = []
+    for mount in mounting_points:
+        gcs_bucket = batch_v1.GCS()
+        gcs_bucket.remote_path = mount["remote_path"]
+        gcs_volume = batch_v1.Volume()
+        gcs_volume.gcs = gcs_bucket
+        gcs_volume.mount_path = mount["mount_point"]
+        volumes.append(gcs_volume)
+    return volumes
+
+
 def create_batch_job(
     task: batch_v1.TaskSpec,
     machine: str,
     task_env: list[batch_v1.Environment],
+    mounting_points: list[dict[str, str]],
 ) -> batch_v1.Job:
     """Create a Google Batch job.
 
@@ -83,6 +184,7 @@ def create_batch_job(
         task (batch_v1.TaskSpec): The task specification.
         machine (str): The machine type to use.
         task_env (list[batch_v1.Environment]): The environment variables for the task.
+        mounting_points (list[dict[str, str]]): List of mounting points.
 
     Returns:
         batch_v1.Job: The Batch job.
@@ -96,13 +198,8 @@ def create_batch_job(
     task.max_retry_count = 3
     task.max_run_duration = "43200s"
 
-    gcs_bucket = batch_v1.GCS()
-    gcs_bucket.remote_path = BUCKET_NAME + "/" + PREFIX_NAME
-    gcs_volume = batch_v1.Volume()
-    gcs_volume.gcs = gcs_bucket
-    gcs_volume.mount_path = MOUNT_DIR
-
-    task.volumes = [gcs_volume]
+    # The mounting points are set up and assigned to the task:
+    task.volumes = set_up_mouting_points(mounting_points)
 
     group = batch_v1.TaskGroup()
     group.task_spec = task
@@ -127,43 +224,50 @@ def create_batch_job(
 
 
 @task(task_id="vep_annotation")
-def vep_annotation(**kwargs: Any) -> None:
+def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
     """Submit a Batch job to download cache for VEP.
 
     Args:
+        pm (PathManager): The path manager with all the required path related information.
         **kwargs (Any): Keyword arguments.
     """
+    # Get the filenames to process:
     ti = kwargs["ti"]
     filenames = [
         os.path.basename(os.path.splitext(path)[0])
         for path in ti.xcom_pull(task_ids="get_vep_todo_list", key="return_value")
     ]
+    # Stop process if no files were found:
+    assert filenames, "No files found to process."
+
+    # Based on the filenames, build the environment variables for the batch job:
     task_env = [
         batch_v1.Environment(
             variables={
-                "INPUT_FILE": filename + ".csv",
+                "INPUT_FILE": filename + ".tsv",
                 "OUTPUT_FILE": filename + ".json",
             }
         )
         for filename in filenames
     ]
+    # Build the command to run in the container:
     command = [
         "-c",
         rf"vep --cache --offline --format vcf --force_overwrite \
             --no_stats \
-            --dir_cache {MOUNT_DIR} \
-            --input_file {MOUNT_DIR}/{INPUT_VCFS_BUCKET}/$INPUT_FILE \
-            --output_file {MOUNT_DIR}/{INPUT_VCFS_BUCKET}/$OUTPUT_FILE --json \
-            --dir_plugins {MOUNT_DIR}/VEP_plugins \
+            --dir_cache {pm.cache_dir} \
+            --input_file {pm.input_dir}/$INPUT_FILE \
+            --output_file {pm.output_dir}/$OUTPUT_FILE --json \
+            --dir_plugins {pm.cache_dir}/VEP_plugins \
             --sift b \
             --polyphen b \
             --uniprot \
             --check_existing \
             --exclude_null_alleles \
             --canonical \
-            --plugin LoF,loftee_path:{MOUNT_DIR}/VEP_plugins,gerp_bigwig:{MOUNT_DIR}/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:{MOUNT_DIR}/human_ancestor.fa.gz,conservation_file:/opt/vep/loftee.sql \
-            --plugin AlphaMissense,file={MOUNT_DIR}/AlphaMissense_hg38.tsv.gz,transcript_match=1 \
-            --plugin CADD,snv={MOUNT_DIR}/CADD_GRCh38_whole_genome_SNVs.tsv.gz",
+            --plugin LoF,loftee_path:{pm.cache_dir}/VEP_plugins,gerp_bigwig:{pm.cache_dir}/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:{pm.cache_dir}/human_ancestor.fa.gz,conservation_file:/opt/vep/loftee.sql \
+            --plugin AlphaMissense,file={pm.cache_dir}/AlphaMissense_hg38.tsv.gz,transcript_match=1 \
+            --plugin CADD,snv={pm.cache_dir}/CADD_GRCh38_whole_genome_SNVs.tsv.gz",
     ]
     task = create_task_spec(VEP_DOCKER_IMAGE, command)
     batch_task = CloudBatchSubmitJobOperator(
@@ -171,7 +275,7 @@ def vep_annotation(**kwargs: Any) -> None:
         project_id=PROJECT_ID,
         region=REGION,
         job_name=f"vep-job-{time.strftime('%Y%m%d-%H%M%S')}",
-        job=create_batch_job(task, "VEPMACHINE", task_env),
+        job=create_batch_job(task, "VEPMACHINE", task_env, pm.get_mount_config()),
         deferrable=False,
     )
     batch_task.execute(context=kwargs)
@@ -183,11 +287,15 @@ with DAG(
     default_args=common.shared_dag_args,
     **common.shared_dag_kwargs,
 ):
+    # Initialise parameter manager:
+    pm = PathManager(VCF_INPUT_BUCKET, VEP_OUTPUT_BUCKET, VEP_CACHE_BUCKET, MOUNT_DIR)
+
+    # Get a list of files to process from the input bucket:
     get_vep_todo_list = GCSListObjectsOperator(
         task_id="get_vep_todo_list",
-        bucket=BUCKET_NAME,
-        prefix=PREFIX_NAME + "/" + INPUT_VCFS_BUCKET + "/",
-        match_glob="**csv",
+        bucket=pm.input_bucket,
+        prefix=pm.input_path,
+        match_glob="**tsv",
     )
 
-    get_vep_todo_list >> vep_annotation()
+    get_vep_todo_list >> vep_annotation(pm)
