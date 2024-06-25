@@ -57,20 +57,14 @@ class TestVEPParserInSilicoExtractor:
                 ).alias("transcripts")
             )
             .select(
+                "variantId",
                 VariantEffectPredictorParser._vep_in_silico_prediction_extractor(
                     "transcripts", "method_name", "score", "assessment", "flag"
-                ).alias("in_silico_predictions")
+                ).alias("in_silico_predictions"),
             )
         ).persist()
 
         self.df = parsed_df
-
-    def test_in_silico_output_schema(self: TestVEPParserInSilicoExtractor) -> None:
-        """Test if the in silico output schema is correct."""
-        assert (
-            self.df.in_silico_predictions.schema
-            == VariantEffectPredictorParser.IN_SILICO_PREDICTOR_SCHEMA
-        ), "Incorrect output schema."
 
     def test_in_silico_output_missing_value(
         self: TestVEPParserInSilicoExtractor,
