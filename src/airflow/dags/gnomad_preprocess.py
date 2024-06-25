@@ -10,7 +10,7 @@ from airflow.models.dag import DAG
 CLUSTER_NAME = "gnomad-preprocess"
 
 ALL_STEPS = [
-    # "ot_ld_index",
+    "ot_ld_index",
     "ot_gnomad_variants",
 ]
 

@@ -319,8 +319,10 @@ def generate_dag(cluster_name: str, tasks: list[DataprocSubmitJobOperator]) -> A
         Any: Airflow DAG.
     """
     return (
-        create_cluster(cluster_name) >> install_dependencies(cluster_name) >> tasks
-        # >> delete_cluster(cluster_name)
+        create_cluster(cluster_name)
+        >> install_dependencies(cluster_name)
+        >> tasks
+        >> delete_cluster(cluster_name)
     )
 
 
