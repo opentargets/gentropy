@@ -16,7 +16,8 @@ VARIANT_ANNOTATION = "gs://genetics_etl_python_playground/output/python_etl/parq
 
 # Output locations.
 TMP_VARIANT_ANNOTATION = "gs://gentropy-tmp/variant_annotation"
-UKB_PPP_EUR_OUTPUT = "gs://ukb_ppp_eur_data"
+UKB_PPP_EUR_OUTPUT_STUDY_INDEX = "gs://ukb_ppp_eur_data/study_index"
+UKB_PPP_EUR_OUTPUT_SUMMARY_STATS = "gs://ukb_ppp_eur_data/summary_stats"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -35,7 +36,8 @@ with DAG(
                     f"step.raw_summary_stats_path={UKB_PPP_EUR_SUMMARY_STATS}",
                     f"step.variant_annotation_path={VARIANT_ANNOTATION}",
                     f"step.tmp_variant_annotation_path={TMP_VARIANT_ANNOTATION}",
-                    f"step.output_path={UKB_PPP_EUR_OUTPUT}",
+                    f"step.study_index_output_path={UKB_PPP_EUR_OUTPUT_STUDY_INDEX}",
+                    f"step.summary_stats_output_path={UKB_PPP_EUR_OUTPUT_SUMMARY_STATS}",
                 ]
             )
         ]

@@ -5,7 +5,8 @@ raw_study_index_path: ???
 raw_summary_stats_path: ???
 variant_annotation_path: ???
 tmp_variant_annotation_path: ???
-output_path: ???
+study_index_output_path: ???
+summary_stats_output_path: ???
 
 session:
   extended_spark_conf:

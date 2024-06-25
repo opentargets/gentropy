@@ -13,7 +13,7 @@ class UkbPppEurStep:
     """UKB PPP (EUR) data ingestion and harmonisation."""
 
     def __init__(
-        self, session: Session, raw_study_index_path: str, raw_summary_stats_path: str, variant_annotation_path: str, tmp_variant_annotation_path: str, output_path: str
+        self, session: Session, raw_study_index_path: str, raw_summary_stats_path: str, variant_annotation_path: str, tmp_variant_annotation_path: str, study_index_output_path: str, summary_stats_output_path: str
     ) -> None:
         """Run UKB PPP (EUR) data ingestion and harmonisation step.
 
@@ -23,7 +23,8 @@ class UkbPppEurStep:
             raw_summary_stats_path (str): Input raw summary stats path.
             variant_annotation_path (str): Input variant annotation dataset path.
             tmp_variant_annotation_path (str): Temporary output path for variant annotation dataset.
-            output_path (str): Output path.
+            study_index_output_path (str): Study index output path.
+            summary_stats_output_path (str): Summary stats output path.
         """
         session.logger.info("Pre-compute the direct and flipped variant annotation dataset.")
         va_df = (
@@ -82,7 +83,7 @@ class UkbPppEurStep:
             .df
             .write
             .mode("overwrite")
-            .parquet(f"{output_path}/study_index")
+            .parquet(study_index_output_path)
         )
 
         session.logger.info("Process and harmonise summary stats.")
@@ -105,7 +106,7 @@ class UkbPppEurStep:
                 .write
                 .partitionBy("studyId", "chromosome")
                 .mode(write_mode)
-                .parquet(f"{output_path}/summary_stats")
+                .parquet(summary_stats_output_path)
             )
             # Now that we have written the first chromosome, change mode to append for subsequent operations.
             write_mode = "append"

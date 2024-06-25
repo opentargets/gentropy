@@ -296,7 +296,8 @@ class UkbPppEurConfig(StepConfig):
     raw_summary_stats_path: str = MISSING
     tmp_variant_annotation_path: str = MISSING
     variant_annotation_path: str = MISSING
-    output_path: str = MISSING
+    study_index_output_path: str = MISSING
+    summary_stats_output_path: str = MISSING
     _target_: str = "gentropy.ukb_ppp_eur_sumstat_preprocess.UkbPppEurStep"
 
 
