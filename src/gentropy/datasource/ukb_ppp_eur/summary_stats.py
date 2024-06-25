@@ -24,7 +24,15 @@ class UkbPppEurSummaryStats:
         tmp_variant_annotation_path: str,
         chromosome: str,
     ) -> SummaryStatistics:
-        """Ingests all summary stats for UKB PPP (EUR) data.
+        """Ingest and harmonise all summary stats for UKB PPP (EUR) data.
+
+        1. Rename chromosome 23 to X.
+        2. Filter out low INFO rows.
+        3. Filter out low frequency rows.
+        4. Assign variant types.
+        5. Create variant ID for joining the variant annotation dataset.
+        6. Join with the Variant Annotation dataset.
+        7. Drop bad quality variants.
 
         Args:
             spark (SparkSession): Spark session object.
