@@ -209,12 +209,12 @@ class LocusToGeneConfig(StepConfig):
         }
     )
     run_mode: str = MISSING
-    model_path: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
+    model_path: str | None = None
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
@@ -248,28 +248,34 @@ class LocusToGeneConfig(StepConfig):
             "tuqtlColocClppMaximum",
             # max clpp for each (study, locus, gene) aggregating over all tuQTLs
             "tuqtlColocClppMaximumNeighborhood",
-            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
-            # "eqtlColocLlrLocalMaximum",
-            # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            # "eqtlColocLlpMaximumNeighborhood",
-            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocLlrLocalMaximum",
-            # # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocLlpMaximumNeighborhood",
-            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocLlrLocalMaximum",
-            # # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocLlpMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
+            "eqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
+            "eqtlColocLlrMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
+            "pqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
+            "pqtlColocLlrMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
+            "sqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
+            "sqtlColocLlrMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all tuQTLs
+            "tuqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all tuQTLs
+            "tuqtlColocLlrMaximumNeighborhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
+            "n_estimators": 100,
             "max_depth": 5,
-            "loss_function": "binary:logistic",
+            "loss": "log_loss",
         }
     )
     wandb_run_name: str | None = None
-    perform_cross_validation: bool = False
+    hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
+    download_from_hub: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -280,6 +286,19 @@ class PICSConfig(StepConfig):
     study_locus_ld_annotated_in: str = MISSING
     picsed_study_locus_out: str = MISSING
     _target_: str = "gentropy.pics.PICSStep"
+
+
+@dataclass
+class UkbPppEurConfig(StepConfig):
+    """UKB PPP (EUR) ingestion step configuration."""
+
+    raw_study_index_path: str = MISSING
+    raw_summary_stats_path: str = MISSING
+    tmp_variant_annotation_path: str = MISSING
+    variant_annotation_path: str = MISSING
+    study_index_output_path: str = MISSING
+    summary_stats_output_path: str = MISSING
+    _target_: str = "gentropy.ukb_ppp_eur_sumstat_preprocess.UkbPppEurStep"
 
 
 @dataclass
@@ -472,6 +491,7 @@ def register_config() -> None:
     )
 
     cs.store(group="step", name="pics", node=PICSConfig)
+    cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
