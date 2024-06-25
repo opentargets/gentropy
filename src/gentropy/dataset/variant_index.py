@@ -304,15 +304,15 @@ class VariantIndex(Dataset):
                 "variantId",
                 "chromosome",
                 f.col("transcriptConsequence.targetId").alias("geneId"),
-                f.explode("transcriptConsequence.variantConsequenceIds").alias(
-                    "variantConsequenceId"
-                ),
+                f.explode(
+                    "transcriptConsequence.variantFunctionalConsequenceIds"
+                ).alias("variantFunctionalConsequenceId"),
                 f.lit("vep").alias("datatypeId"),
                 f.lit("variantConsequence").alias("datasourceId"),
             )
             .join(
                 f.broadcast(vep_consequences),
-                on="variantConsequenceId",
+                on="variantFunctionalConsequenceId",
                 how="inner",
             )
             .drop("label")

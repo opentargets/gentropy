@@ -48,11 +48,15 @@ class VariantEffectPredictorParser:
     )
 
     @staticmethod
-    def get_vep_schema() -> t.StructType:
+    def _get_vep_schema() -> t.StructType:
         """Return the schema of the VEP output.
 
         Returns:
             t.StructType: VEP output schema.
+
+        Examples:
+            >>> type(VariantEffectPredictorParser._get_vep_schema())
+            <class 'pyspark.sql.types.StructType'>
         """
         return parse_spark_schema("vep_json_output.json")
 
@@ -78,7 +82,7 @@ class VariantEffectPredictorParser:
             ValueError: The dataset is empty.
         """
         # To speed things up and simplify the json structure, read data following an expected schema:
-        vep_schema = cls.get_vep_schema()
+        vep_schema = cls._get_vep_schema()
 
         try:
             vep_data = spark.read.json(vep_output_path, schema=vep_schema, **kwargs)
@@ -116,15 +120,41 @@ class VariantEffectPredictorParser:
     def _generate_dbxrefs(ids: Column, source: str) -> Column:
         """Convert a list of variant identifiers to dbXrefs given the source label.
 
+        Identifiers are cast to strings, then Null values are filtered out of the id list.
+
         Args:
             ids (Column): List of variant identifiers.
             source (str): Source label for the dbXrefs.
 
         Returns:
             Column: List of dbXrefs.
+
+        Examples:
+            >>> (
+            ...     spark.createDataFrame([('rs12',),(None,)], ['test_id'])
+            ...     .select(VariantEffectPredictorParser._generate_dbxrefs(f.array(f.col('test_id')), "ensemblVariation").alias('col'))
+            ...     .show(truncate=False)
+            ... )
+            +--------------------------+
+            |col                       |
+            +--------------------------+
+            |[{rs12, ensemblVariation}]|
+            |[]                        |
+            +--------------------------+
+            <BLANKLINE>
+            >>> (
+            ...     spark.createDataFrame([('rs12',),(None,)], ['test_id'])
+            ...     .select(VariantEffectPredictorParser._generate_dbxrefs(f.array(f.col('test_id')), "ensemblVariation").alias('col'))
+            ...     .first().col[0].asDict()
+            ... )
+            {'id': 'rs12', 'source': 'ensemblVariation'}
         """
+        ids = f.filter(ids, lambda id: id.cast(t.StringType()).isNotNull())
         xref_column = f.transform(
-            ids, lambda id: f.struct(id.alias("id"), f.lit(source).alias("source"))
+            ids,
+            lambda id: f.struct(
+                id.cast(t.StringType()).alias("id"), f.lit(source).alias("source")
+            ),
         )
 
         return f.when(xref_column.isNull(), f.array()).otherwise(xref_column)
@@ -138,6 +168,23 @@ class VariantEffectPredictorParser:
 
         Returns:
             Column: List of rs identifiers.
+
+        Examples:
+            >>> data = [('s1', 'rs1'),('s1', 'rs2'),('s1', 'rs3'),('s2', None),]
+            >>> (
+            ...    spark.createDataFrame(data, ['s','v'])
+            ...    .groupBy('s')
+            ...    .agg(f.collect_list(f.struct(f.col('v').alias('id'))).alias('cv'))
+            ...    .select(VariantEffectPredictorParser._colocated_variants_to_rsids(f.col('cv')).alias('rsIds'),)
+            ...    .show(truncate=False)
+            ... )
+            +---------------+
+            |rsIds          |
+            +---------------+
+            |[rs1, rs2, rs3]|
+            |[null]         |
+            +---------------+
+            <BLANKLINE>
         """
         return f.when(
             colocated_variants.isNotNull(),
@@ -150,11 +197,28 @@ class VariantEffectPredictorParser:
     def _extract_omim_xrefs(colocated_variants: Column) -> Column:
         """Build xdbRefs for OMIM identifiers.
 
+        OMIM identifiers are extracted from the colocated variants field, casted to strings and formatted as dbXrefs.
+
         Args:
             colocated_variants (Column): Colocated variants field from VEP output.
 
         Returns:
             Column: List of dbXrefs for OMIM identifiers.
+
+        Examples:
+            >>> data = [('234234.32', 'rs1', 's1',),(None, 'rs1', 's1',),]
+            >>> (
+            ...    spark.createDataFrame(data, ['id', 'rsid', 's'])
+            ...    .groupBy('s')
+            ...    .agg(f.collect_list(f.struct(f.struct(f.array(f.col('id')).alias('OMIM')).alias('var_synonyms'),f.col('rsid').alias('id'),),).alias('cv'),).select(VariantEffectPredictorParser._extract_omim_xrefs(f.col('cv')).alias('dbXrefs'))
+            ...    .show(truncate=False)
+            ... )
+            +-------------------+
+            |dbXrefs            |
+            +-------------------+
+            |[{234234#32, omim}]|
+            +-------------------+
+            <BLANKLINE>
         """
         variants_w_omim_ref = f.filter(
             colocated_variants,
@@ -177,11 +241,29 @@ class VariantEffectPredictorParser:
     def _extract_clinvar_xrefs(colocated_variants: Column) -> Column:
         """Build xdbRefs for VCV ClinVar identifiers.
 
+        ClinVar identifiers are extracted from the colocated variants field.
+        VCV-identifiers are filtered out to generate cross-references.
+
         Args:
             colocated_variants (Column): Colocated variants field from VEP output.
 
         Returns:
             Column: List of dbXrefs for VCV ClinVar identifiers.
+
+        Examples:
+            >>> data = [('VCV2323,RCV3423', 'rs1', 's1',),(None, 'rs1', 's1',),]
+            >>> (
+            ...    spark.createDataFrame(data, ['id', 'rsid', 's'])
+            ...    .groupBy('s')
+            ...    .agg(f.collect_list(f.struct(f.struct(f.split(f.col('id'),',').alias('ClinVar')).alias('var_synonyms'),f.col('rsid').alias('id'),),).alias('cv'),).select(VariantEffectPredictorParser._extract_clinvar_xrefs(f.col('cv')).alias('dbXrefs'))
+            ...    .show(truncate=False)
+            ... )
+            +--------------------+
+            |dbXrefs             |
+            +--------------------+
+            |[{VCV2323, clinVar}]|
+            +--------------------+
+            <BLANKLINE>
         """
         variants_w_clinvar_ref = f.filter(
             colocated_variants,
@@ -206,7 +288,10 @@ class VariantEffectPredictorParser:
     def _get_most_severe_transcript(
         transcript_column_name: str, field_name: str
     ) -> Column:
-        """Return transcript with the most highest in silico predicted consequence.
+        """Return transcript with the most highest in silico predicted score.
+
+        This method assumes the higher the score, the more severe the consequence of the variant is.
+        Hence, by selecting the transcript with the highest score, we are selecting the most severe consequence.
 
         Args:
             transcript_column_name (str): Name of the column containing the list of transcripts.
@@ -214,7 +299,26 @@ class VariantEffectPredictorParser:
 
         Returns:
             Column: Most severe transcript.
+
+        Examples:
+            >>> data = [("v1", 0.2, 'transcript1'),("v1", None, 'transcript2'),("v1", 0.6, 'transcript3'),("v1", 0.4, 'transcript4'),]
+            >>> (
+            ...    spark.createDataFrame(data, ['v', 'score', 'transcriptId'])
+            ...    .groupBy('v')
+            ...    .agg(f.collect_list(f.struct(f.col('score'),f.col('transcriptId'))).alias('transcripts'))
+            ...    .select(VariantEffectPredictorParser._get_most_severe_transcript('transcripts', 'score').alias('most_severe_transcript'))
+            ...    .show(truncate=False)
+            ... )
+            +----------------------+
+            |most_severe_transcript|
+            +----------------------+
+            |{0.6, transcript3}    |
+            +----------------------+
+            <BLANKLINE>
         """
+        assert isinstance(
+            transcript_column_name, str
+        ), "transcript_column_name must be a string and not a column."
         # Order transcripts by severity score:
         ordered_transcripts = order_array_of_structs_by_field(
             transcript_column_name, field_name
@@ -231,11 +335,34 @@ class VariantEffectPredictorParser:
     def _get_max_alpha_missense(transcripts: Column) -> Column:
         """Return the most severe alpha missense prediction from all transcripts.
 
+        This function assumes one variant can fall onto only one gene with alpha-sense prediction available on the canonical transcript.
+
         Args:
             transcripts (Column): List of transcripts.
 
         Returns:
             Column: Most severe alpha missense prediction.
+
+        Examples:
+        >>> data = [('v1', 0.4, 'assessment 1'), ('v1', None, None), ('v1', None, None),('v2', None, None),]
+        >>> (
+        ...     spark.createDataFrame(data, ['v', 'a', 'b'])
+        ...    .groupBy('v')
+        ...    .agg(f.collect_list(f.struct(f.struct(
+        ...        f.col('a').alias('am_pathogenicity'),
+        ...        f.col('b').alias('am_class')).alias('alphamissense'),
+        ...        f.lit('gene1').alias('gene_id'))).alias('transcripts')
+        ...    )
+        ...    .select(VariantEffectPredictorParser._get_max_alpha_missense(f.col('transcripts')).alias('am'))
+        ...    .show(truncate=False)
+        ... )
+        +----------------------------------------------------+
+        |am                                                  |
+        +----------------------------------------------------+
+        |{max alpha missense, assessment 1, 0.4, null, gene1}|
+        |{max alpha missense, null, null, null, gene1}       |
+        +----------------------------------------------------+
+        <BLANKLINE>
         """
         return f.transform(
             # Extract transcripts with alpha missense values:
@@ -267,6 +394,8 @@ class VariantEffectPredictorParser:
         assessment_flag_column_name: str | None = None,
     ) -> Column:
         """Extract in silico prediction from VEP output.
+
+        # TODO: write a full test suite for this function.
 
         Args:
             transcript_column_name (str): Name of the column containing the list of transcripts.
@@ -326,15 +455,34 @@ class VariantEffectPredictorParser:
     def _parser_amino_acid_change(amino_acids: Column, protein_end: Column) -> Column:
         """Convert VEP amino acid change information to one letter code aa substitution code.
 
+        The logic assumes that the amino acid change is given in the format "from/to" and the protein end is given also.
+        If any of the information is missing, the amino acid change will be set to None.
+
         Args:
             amino_acids (Column): Amino acid change information.
             protein_end (Column): Protein end information.
 
         Returns:
             Column: Amino acid change in one letter code.
+
+        Examples:
+            >>> data = [('A/B', 1),('A/B', None),(None, 1),]
+            >>> (
+            ...    spark.createDataFrame(data, ['amino_acids', 'protein_end'])
+            ...    .select(VariantEffectPredictorParser._parser_amino_acid_change(f.col('amino_acids'), f.col('protein_end')).alias('amino_acid_change'))
+            ...    .show()
+            ... )
+            +-----------------+
+            |amino_acid_change|
+            +-----------------+
+            |              A1B|
+            |             null|
+            |             null|
+            +-----------------+
+            <BLANKLINE>
         """
         return f.when(
-            amino_acids.isNotNull(),
+            amino_acids.isNotNull() & protein_end.isNotNull(),
             f.concat(
                 f.split(amino_acids, r"\/")[0],
                 protein_end,
@@ -352,14 +500,39 @@ class VariantEffectPredictorParser:
 
         Returns:
             Column: List of unique Uniprot accessions extracted from swissprot and trembl arrays, splitted from version numbers.
+
+        Examples:
+        >>> data = [('v1', 'sp_1', 'tr_1'), ('v1', None, None), ('v1', None, 'tr_2'),]
+        >>> (
+        ...    spark.createDataFrame(data, ['v', 'sp', 'tr'])
+        ...    .withColumn('sp', f.array(f.col('sp').cast(t.StringType())))
+        ...    .withColumn('tr', f.array(f.col('tr').cast(t.StringType())))
+        ...    .select(VariantEffectPredictorParser._collect_uniprot_accessions(f.col('sp'), f.col('tr')).alias('proteinIds'))
+        ...    .show()
+        ... )
+        +------------+
+        |  proteinIds|
+        +------------+
+        |[sp_1, tr_1]|
+        |          []|
+        |      [tr_2]|
+        +------------+
+        <BLANKLINE>
         """
-        return f.array_distinct(
-            f.transform(
-                f.flatten(
-                    f.filter(f.array(trembl, swissprot), lambda x: x.isNotNull())
-                ),
-                lambda x: f.split(x, r"\.")[0],
-            )
+        # Dropping Null values and flattening the arrays:
+        return f.filter(
+            f.array_distinct(
+                f.transform(
+                    f.flatten(
+                        f.filter(
+                            f.array(trembl, swissprot),
+                            lambda x: x.isNotNull(),
+                        )
+                    ),
+                    lambda x: f.split(x, r"\.")[0],
+                )
+            ),
+            lambda x: x.isNotNull(),
         )
 
     @staticmethod
@@ -368,12 +541,31 @@ class VariantEffectPredictorParser:
     ) -> Column:
         """Convert VEP consequence terms to sequence ontology identifiers.
 
+        Missing consequence label will be converted to None, unmapped consequences will be mapped as None.
+
         Args:
             col (Column): Column containing VEP consequence terms.
             so_dict (Dict[str, str]): Dictionary mapping VEP consequence terms to sequence ontology identifiers.
 
         Returns:
             Column: Column containing sequence ontology identifiers.
+
+        Examples:
+            >>> data = [('consequence_1',),('unmapped_consequence',),(None,)]
+            >>> m = {'consequence_1': 'SO:000000'}
+            >>> (
+            ...    spark.createDataFrame(data, ['label'])
+            ...    .select('label',VariantEffectPredictorParser._consequence_to_sequence_ontology(f.col('label'),m).alias('id'))
+            ...    .show()
+            ... )
+            +--------------------+---------+
+            |               label|       id|
+            +--------------------+---------+
+            |       consequence_1|SO:000000|
+            |unmapped_consequence|     null|
+            |                null|     null|
+            +--------------------+---------+
+            <BLANKLINE>
         """
         map_expr = f.create_map(*[f.lit(x) for x in chain(*so_dict.items())])
 
