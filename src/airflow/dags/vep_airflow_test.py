@@ -62,7 +62,7 @@ class PathManager:
     input_dir: str | None = None
     output_dir: str | None = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self: PathManager) -> None:
         """Build paths based on the input parameters."""
         self.path_dictionary = {
             "input": {
@@ -79,31 +79,20 @@ class PathManager:
             },
         }
         # Parameters for fetching files:
-        self.input_path = f"{self._get_prefix_name(self.VCF_INPUT_BUCKET)}/{self._get_top_folder(self.VCF_INPUT_BUCKET)}/"
-        self.input_bucket = self._get_bucket_name(self.VCF_INPUT_BUCKET)
+        self.input_path = self.VCF_INPUT_BUCKET.replace("gs://", "") + "/"
+        self.input_bucket = self.VCF_INPUT_BUCKET.split("/")[2]
 
         # Parameters for VEP:
         self.cache_dir = f"{self.MOUNT_DIR_ROOT}/cache"
         self.input_dir = f"{self.MOUNT_DIR_ROOT}/input"
         self.output_dir = f"{self.MOUNT_DIR_ROOT}/output"
 
-    @staticmethod
-    def _get_top_folder(path: str) -> str:
-        """Extract the top folder name from a GCS path."""
-        return path.split("/")[-1]
-
-    @staticmethod
-    def _get_bucket_name(path: str) -> str:
-        """Extract the bucket name from a GCS path."""
-        return path.split("/")[2]
-
-    @staticmethod
-    def _get_prefix_name(path: str) -> str:
-        """Extract the prefix name from a GCS path."""
-        return "/".join(path.split("/")[3:-1])
-
     def get_mount_config(self) -> list[dict[str, str]]:
-        """Return the mount configuration."""
+        """Return the mount configuration.
+
+        Returns:
+            list[dict[str, str]]: The mount configuration.
+        """
         assert self.path_dictionary is not None, "Path dictionary not initialized."
         return list(self.path_dictionary.values())
 
