@@ -37,13 +37,11 @@ class UkbPppEurStep:
             select(
                 f.col("chromosome").alias("vaChromosome"),
                 f.col("variantId"),
-                f.concat(
+                f.concat_ws(
+                    "_",
                     f.col("chromosome"),
-                    f.lit("_"),
                     f.col("position"),
-                    f.lit("_"),
                     f.col("referenceAllele"),
-                    f.lit("_"),
                     f.col("alternateAllele")
                 ).alias("ukb_ppp_id"),
                 f.lit("direct").alias("direction")
@@ -54,13 +52,11 @@ class UkbPppEurStep:
             select(
                 f.col("chromosome").alias("vaChromosome"),
                 f.col("variantId"),
-                f.concat(
+                f.concat_ws(
+                    "_",
                     f.col("chromosome"),
-                    f.lit("_"),
                     f.col("position"),
-                    f.lit("_"),
                     f.col("alternateAllele"),
-                    f.lit("_"),
                     f.col("referenceAllele")
                 ).alias("ukb_ppp_id"),
                 f.lit("flip").alias("direction")
