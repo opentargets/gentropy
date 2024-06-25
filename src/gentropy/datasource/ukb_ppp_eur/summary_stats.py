@@ -69,12 +69,12 @@ class UkbPppEurSummaryStats:
             .filter(f.col("INFO") >= 0.8)
             # Harmonise, 3: Filter out low frequency rows.
             .withColumn(
-                "freq",
+                "MAF",
                 f.when(f.col("A1FREQ") < 0.5, f.col("A1FREQ"))
                 .otherwise(1 - f.col("A1FREQ"))
             )
-            .filter(f.col("freq") >= 0.0001)
-            .drop("freq")
+            .filter(f.col("MAF") >= 0.0001)
+            .drop("MAF")
             # Harmonise, 4: Assign variant types.
             .withColumn(
                 "variant_type",
