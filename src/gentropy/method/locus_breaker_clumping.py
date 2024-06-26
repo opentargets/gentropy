@@ -12,7 +12,6 @@ from pyspark.sql.window import Window
 from gentropy.common.spark_helpers import calculate_neglog_pvalue
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
-from gentropy.method.window_based_clumping import WindowBasedClumping
 
 
 class LocusBreakerClumping:
@@ -146,27 +145,29 @@ class LocusBreakerClumping:
         large_loci = study_locus.filter(
             (f.col("locusEnd") - f.col("locusStart")) > large_loci_size
         )
-        large_loci_ss = SummaryStatistics(
-            sum_stats.df.alias("ss")
-            .join(
-                large_loci.df.alias("ll"),
-                (f.col("ss.studyId") == f.col("ll.studyId"))
-                & (f.col("ss.chromosome") == f.col("ll.chromosome"))
-                & (f.col("ss.position") >= f.col("ll.locusStart"))
-                & (f.col("ss.position") <= f.col("ll.locusEnd")),
-                "inner",
+        large_loci_wbc = (
+            SummaryStatistics(
+                sum_stats.df.alias("ss")
+                .join(
+                    large_loci.df.alias("ll"),
+                    (f.col("ss.studyId") == f.col("ll.studyId"))
+                    & (f.col("ss.chromosome") == f.col("ll.chromosome"))
+                    & (f.col("ss.position") >= f.col("ll.locusStart"))
+                    & (f.col("ss.position") <= f.col("ll.locusEnd")),
+                    "inner",
+                )
+                .select([f.col("ss." + col) for col in sum_stats.df.columns]),
+                SummaryStatistics.get_schema(),
             )
-            .select([f.col("ss." + col) for col in sum_stats.df.columns]),
-            SummaryStatistics.get_schema(),
+            .window_based_clumping(wbc_clump_distance, gwas_threshold)
+            .df.withColumns(
+                {
+                    "locusStart": f.col("position") - large_loci_size // 2,
+                    "locusEnd": f.col("position") + large_loci_size // 2,
+                }
+            )
         )
-        large_loci_wbc = WindowBasedClumping.clump(
-            large_loci_ss, wbc_clump_distance, gwas_threshold
-        ).df.withColumns(
-            {
-                "locusStart": f.col("position") - large_loci_size // 2,
-                "locusEnd": f.col("position") + large_loci_size // 2,
-            }
-        )
+
         return StudyLocus(
             large_loci_wbc.unionByName(small_loci.df),
             StudyLocus.get_schema(),
