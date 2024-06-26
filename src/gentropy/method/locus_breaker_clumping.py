@@ -121,7 +121,7 @@ class LocusBreakerClumping:
         )
 
     @staticmethod
-    def _process_locus_breaker(
+    def process_locus_breaker_output(
         study_locus: StudyLocus,
         sum_stats: SummaryStatistics,
         large_loci_size: int,

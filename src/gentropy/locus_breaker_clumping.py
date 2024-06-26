@@ -56,20 +56,20 @@ class LocusBreakerClumpingStep:
             lbc_pvalue_threshold,
             lbc_flanking_distance,
         )
-        clumped_result = LocusBreakerClumping._process_locus_breaker(
+        clumped_result = LocusBreakerClumping.process_locus_breaker_output(
             lbc,
             sum_stats,
             large_loci_size,
             wbc_clump_distance,
             wbc_pvalue_threshold,
         )
-        if collect_locus:
-            clumped_result = clumped_result.annotate_locus_statistics(
-                sum_stats, collect_locus_distance
-            )
         if remove_mhc:
             clumped_result = clumped_result.exclude_region("chr6:25726063-33400556")
 
+        if collect_locus:
+            clumped_result = clumped_result.annotate_locus_statistics_boundaries(
+                sum_stats
+            )
         clumped_result.df.write.mode(session.write_mode).parquet(
             clumped_study_locus_output_path
         )
