@@ -20,6 +20,7 @@ class LocusBreakerClumpingStep:
         lbc_pvalue_threshold: float,
         lbc_flanking_distance: int,
         large_loci_size: int,
+        wbc_clump_distance: int,
         wbc_pvalue_threshold: float,
         collect_locus_distance: int,
         collect_locus: bool = False,
@@ -40,6 +41,7 @@ class LocusBreakerClumpingStep:
             lbc_pvalue_threshold (float): P-value threshold for locus breaker clumping.
             lbc_flanking_distance (int): Flanking distance for locus breaker clumping.
             large_loci_size (int): Threshold distance to define large loci for window-based clumping.
+            wbc_clump_distance (int): Clump distance for window breaker clumping.
             wbc_pvalue_threshold (float): P-value threshold for window breaker clumping.
             collect_locus_distance (int): Distance to collect locus.
             collect_locus (bool, optional): Whether to collect locus. Defaults to False.
@@ -58,6 +60,7 @@ class LocusBreakerClumpingStep:
             lbc,
             sum_stats,
             large_loci_size,
+            wbc_clump_distance,
             wbc_pvalue_threshold,
         )
         if collect_locus:

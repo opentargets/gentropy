@@ -244,9 +244,6 @@ class WindowBasedClumping:
                 .withColumn(
                     "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
                 )
-                # Create locusStart and locusEnd columns:
-                .withColumn("locusStart", f.col("position") - distance)
-                .withColumn("locusEnd", f.col("position") + distance)
             ),
             _schema=StudyLocus.get_schema(),
         )

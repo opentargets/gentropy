@@ -125,6 +125,7 @@ class LocusBreakerClumping:
         study_locus: StudyLocus,
         sum_stats: SummaryStatistics,
         large_loci_size: int,
+        wbc_clump_distance: int,
         gwas_threshold: float,
     ) -> StudyLocus:
         """Process the locus breaker method result, and run window-based clumping on large loci.
@@ -133,6 +134,7 @@ class LocusBreakerClumping:
             study_locus (StudyLocus): StudyLocus object with locus start and end positions.
             sum_stats (SummaryStatistics): Input summary statistics dataset.
             large_loci_size (int): the size to define large loci which should be broken with wbc.
+            wbc_clump_distance (int): Clump distance for window-based clumping.
             gwas_threshold (float): P-value threshold to be used in window-based clumping.
 
         Returns:
@@ -158,7 +160,7 @@ class LocusBreakerClumping:
             SummaryStatistics.get_schema(),
         )
         large_loci_wbc = WindowBasedClumping.clump(
-            large_loci_ss, large_loci_size, gwas_threshold
+            large_loci_ss, wbc_clump_distance, gwas_threshold
         )
         return StudyLocus(
             large_loci_wbc.df.unionByName(small_loci.df),
