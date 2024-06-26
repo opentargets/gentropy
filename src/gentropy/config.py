@@ -289,9 +289,20 @@ class PICSConfig(StepConfig):
 
 
 @dataclass
+class UkbPppEurConfig(StepConfig):
+    """UKB PPP (EUR) ingestion step configuration."""
+
+    raw_study_index_path: str = MISSING
+    raw_summary_stats_path: str = MISSING
+    tmp_variant_annotation_path: str = MISSING
+    variant_annotation_path: str = MISSING
+    study_index_output_path: str = MISSING
+    summary_stats_output_path: str = MISSING
+    _target_: str = "gentropy.ukb_ppp_eur_sumstat_preprocess.UkbPppEurStep"
+
+
 class GnomadVariantConfig(StepConfig):
     """Gnomad variant ingestion step configuration."""
-
     session: Any = field(
         default_factory=lambda: {
             "start_hail": True,
@@ -477,6 +488,7 @@ def register_config() -> None:
 
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="variant_annotation", node=GnomadVariantConfig)
+    cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(
