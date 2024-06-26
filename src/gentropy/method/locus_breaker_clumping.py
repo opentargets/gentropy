@@ -161,8 +161,13 @@ class LocusBreakerClumping:
         )
         large_loci_wbc = WindowBasedClumping.clump(
             large_loci_ss, wbc_clump_distance, gwas_threshold
+        ).df.withColumns(
+            {
+                "locusStart": f.col("position") - large_loci_size // 2,
+                "locusEnd": f.col("position") + large_loci_size // 2,
+            }
         )
         return StudyLocus(
-            large_loci_wbc.df.unionByName(small_loci.df),
+            large_loci_wbc.unionByName(small_loci.df),
             StudyLocus.get_schema(),
         )
