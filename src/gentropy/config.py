@@ -303,6 +303,7 @@ class UkbPppEurConfig(StepConfig):
 
 class GnomadVariantConfig(StepConfig):
     """Gnomad variant ingestion step configuration."""
+
     session: Any = field(
         default_factory=lambda: {
             "start_hail": True,

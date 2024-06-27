@@ -23,98 +23,66 @@ if TYPE_CHECKING:
 
 @dataclass
 class VariantIndex(Dataset):
-    """Variant annotation object based on the parsed VEP output."""
+    """Dataset for representing variants and methods applied on them."""
 
     @classmethod
     def get_schema(cls: type[VariantIndex]) -> StructType:
-        """Provides the schema for the variant annotation dataset.
+        """Provides the schema for the variant index dataset.
 
         Returns:
-            StructType: Schema for the VariantAnnotationNew dataset
+            StructType: Schema for the VariantIndex dataset
         """
         return parse_spark_schema("variant_index.json")
 
-    def add_annotation(self: VariantIndex, annotation: DataFrame) -> VariantIndex:
-        """Add annotation to the dataset.
+    def add_annotation(
+        self: VariantIndex, annotation_source: VariantIndex
+    ) -> VariantIndex:
+        """Import annotation from an other variant index dataset.
 
-        At this point the variant annotation can be extended with extra cross-references and allele frequencies.
+        At this point the annotation can be extended with extra cross-references,
+        in-silico predictions and allele frequencies.
 
         Args:
-            annotation (DataFrame): Annotation to add to the dataset
+            annotation_source (VariantIndex): Annotation to add to the dataset
 
         Returns:
             VariantIndex: VariantIndex dataset with the annotation added
         """
-        # Assert that the provided annotation has unique variant identifiers:
-        assert (
-            annotation.select("variantId").distinct().count() == annotation.count()
-        ), "Annotation must have unique variant identifiers."
+        # Columns in the source dataset:
+        variant_index_columns = [
+            # Combining cross-references:
+            f.array_union(f.col("dbXrefs"), f.col("annotation_dbXrefs"))
+            if row == "dbXrefs"
+            # Combining in silico predictors:
+            else f.array_union(
+                f.col("inSilicoPredictors"), f.col("annotation_inSilicoPredictors")
+            )
+            if row == "inSilicoPredictors"
+            # Combining allele frequencies:
+            else f.array_union(
+                f.col("alleleFrequencies"), f.col("annotation_alleleFrequencies")
+            )
+            if row == "alleleFrequencies"
+            # Carrying over all other columns:
+            else row
+            for row in self.df.columns
+        ]
 
-        # Rename columns to avoid conflicts:s
-        renamed_columns = {
-            col: f"annotation_{col}" if col != "variantId" else col
-            for col in annotation.columns
-        }
-        annotation = annotation.select(
-            *[f.col(col).alias(renamed_columns[col]) for col in annotation.columns]
+        # Rename columns in the annotation source to avoid conflicts:
+        annotation = annotation_source.df.select(
+            *[
+                f.col(col).alias(f"annotation_{col}") if col != "variantId" else col
+                for col in annotation_source.df.columns
+            ]
         )
 
         # Join the annotation to the dataset:
-        jonied = annotation.join(f.broadcast(self.df), on="variantId", how="left")
-
-        # Merge cross-ref if present:
-        if "dbXrefs" in renamed_columns:
-            jonied = jonied.withColumn(
-                "dbXrefs",
-                f.when(
-                    f.col("dbXrefs").isNotNull()
-                    & f.col("annotation_dbXrefs").isNotNull(),
-                    f.array_union(
-                        f.col("dbXrefs"),
-                        f.col("annotation_dbXrefs"),
-                    ),
-                ).otherwise(
-                    f.coalesce(
-                        f.col("dbXrefs"),
-                        f.col("annotation_dbXrefs"),
-                    )
-                ),
-            )
-
-        # Merge in silico predictors if present:
-        if "inSilicoPredictors" in renamed_columns:
-            jonied = jonied.withColumn(
-                "inSilicoPredictors",
-                f.when(
-                    f.col("inSilicoPredictors").isNotNull()
-                    & f.col("annotation_inSilicoPredictors").isNotNull(),
-                    f.array_union(
-                        f.col("inSilicoPredictors"),
-                        f.col("annotation_inSilicoPredictors"),
-                    ),
-                ).otherwise(
-                    f.coalesce(
-                        f.col("inSilicoPredictors"),
-                        f.col("annotation_inSilicoPredictors"),
-                    )
-                ),
-            )
-
-        # Rename population column if not present in the dataset:
-        if ("alleleFrequencies" in renamed_columns) and (
-            "alleleFrequencies" not in jonied.columns
-        ):
-            jonied = jonied.withColumnRenamed(
-                "annotation_alleleFrequencies",
-                "alleleFrequencies",
-            )
-
-        # Drop the annotation columns:
-        jonied = jonied.drop(*[col for col in jonied.columns if "annotation_" in col])
-
-        # Join the annotation to the dataset:
         return VariantIndex(
-            _df=jonied,
+            _df=(
+                annotation.join(
+                    f.broadcast(self.df), on="variantId", how="left"
+                ).select(*variant_index_columns)
+            ),
             _schema=self.schema,
         )
 

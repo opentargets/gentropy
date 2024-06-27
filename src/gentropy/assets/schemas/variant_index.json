@@ -3,37 +3,37 @@
     {
       "metadata": {},
       "name": "variantId",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "chromosome",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "position",
-      "nullable": true,
+      "nullable": false,
       "type": "integer"
     },
     {
       "metadata": {},
       "name": "referenceAllele",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "alternateAllele",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
       "name": "inSilicoPredictors",
-      "nullable": true,
+      "nullable": false,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -77,7 +77,7 @@
     {
       "metadata": {},
       "name": "mostSevereConsequenceId",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
     },
     {
@@ -100,7 +100,7 @@
             },
             {
               "metadata": {},
-              "name": "amino_acid_change",
+              "name": "aminoAcidChange",
               "nullable": true,
               "type": "string"
             },
@@ -207,13 +207,13 @@
         },
         "containsNull": true
       },
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
       "metadata": {},
       "name": "dbXrefs",
-      "nullable": true,
+      "nullable": false,
       "type": {
         "containsNull": true,
         "elementType": {

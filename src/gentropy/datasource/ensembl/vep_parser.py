@@ -281,7 +281,7 @@ class VariantEffectPredictorParser:
         )
 
         return VariantEffectPredictorParser._generate_dbxrefs(
-            f.flatten(clin_var_ids), "clinVar"
+            f.flatten(clin_var_ids), "clinvar"
         )
 
     @staticmethod
@@ -703,7 +703,7 @@ class VariantEffectPredictorParser:
                             # Format amino acid change:
                             cls._parser_amino_acid_change(
                                 transcript.amino_acids, transcript.protein_end
-                            ).alias("amino_acid_change"),
+                            ).alias("aminoAcidChange"),
                             # Extract and clean uniprot identifiers:
                             cls._collect_uniprot_accessions(
                                 transcript.swissprot,
@@ -747,7 +747,7 @@ class VariantEffectPredictorParser:
                         )
                     )
                     > 0,
-                    cls._generate_dbxrefs(f.array(f.col("variantId")), "protVar"),
+                    cls._generate_dbxrefs(f.array(f.col("variantId")), "protvar"),
                 ),
             )
             .withColumn(
