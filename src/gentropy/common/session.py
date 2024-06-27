@@ -122,24 +122,30 @@ class Session:
             all_settings += list(extended_spark_conf.items())
         return SparkConf().setAll(all_settings)
 
-    def read_parquet(
+    def load_data(
         self: Session,
         path: str | list[str],
-        schema: StructType,
+        format: str = "parquet",
+        schema: StructType | str | None = None,
         **kwargs: bool | float | int | str | None,
     ) -> DataFrame:
-        """Reads parquet dataset (provided as a single path or a list of paths) with a provided schema.
+        """Generic function to read a file or folder into a Spark dataframe.
 
         Args:
-            path (str | list[str]): path to the parquet dataset
-            schema (StructType): Spark schema
-            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.parquet
+            path (str | list[str]): path to the dataset
+            format (str): file format. Defaults to parquet.
+            schema (StructType | str | None): Schema to use when reading the data.
+            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `recursiveFileLookup` and `mergeSchema` are set to True by default.
 
         Returns:
-            DataFrame: Dataframe with provided schema
+            DataFrame: Dataframe
         """
-        path = [path] if isinstance(path, str) else path
-        return self.spark.read.schema(schema).parquet(*path, **kwargs)
+        # Set default kwargs
+        if schema is None:
+            kwargs["inferSchema"] = kwargs.get("inferSchema", True)
+        kwargs["mergeSchema"] = kwargs.get("mergeSchema", True)
+        kwargs["recursiveFileLookup"] = kwargs.get("recursiveFileLookup", True)
+        return self.spark.read.load(path, format=format, schema=schema, **kwargs)
 
 
 class Log4j:
