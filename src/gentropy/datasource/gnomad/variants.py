@@ -82,6 +82,8 @@ class GnomADVariants:
                             alleleFrequency=ht.freq[ht.globals.freq_index_dict[p]].AF,
                         )
                     ),
+                    # Extract most severe consequence:
+                    mostSevereConsequence=ht.vep.most_severe_consequence,
                     # Extract in silico predictors:
                     inSilicoPredictors=hl.array(
                         [

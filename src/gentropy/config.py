@@ -301,6 +301,7 @@ class UkbPppEurConfig(StepConfig):
     _target_: str = "gentropy.ukb_ppp_eur_sumstat_preprocess.UkbPppEurStep"
 
 
+@dataclass
 class GnomadVariantConfig(StepConfig):
     """Gnomad variant ingestion step configuration."""
 

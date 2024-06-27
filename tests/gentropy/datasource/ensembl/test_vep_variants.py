@@ -100,7 +100,7 @@ class TestVEPParser:
         """Setup fixture."""
         self.raw_vep_output = spark.read.json(
             self.SAMPLE_VEP_DATA_PATH,
-            schema=VariantEffectPredictorParser._get_vep_schema(),
+            schema=VariantEffectPredictorParser.get_schema(),
         )
         self.processed_vep_output = VariantEffectPredictorParser.process_vep_output(
             self.raw_vep_output

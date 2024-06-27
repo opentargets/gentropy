@@ -47,15 +47,26 @@ class VariantEffectPredictorParser:
         ]
     )
 
+    # Schema for the allele frequency column:
+    ALLELE_FREQUENCY_SCHEMA = t.ArrayType(
+        t.StructType(
+            [
+                t.StructField("populationName", t.StringType(), True),
+                t.StructField("alleleFrequency", t.DoubleType(), True),
+            ]
+        ),
+        False,
+    )
+
     @staticmethod
-    def _get_vep_schema() -> t.StructType:
+    def get_schema() -> t.StructType:
         """Return the schema of the VEP output.
 
         Returns:
             t.StructType: VEP output schema.
 
         Examples:
-            >>> type(VariantEffectPredictorParser._get_vep_schema())
+            >>> type(VariantEffectPredictorParser.get_schema())
             <class 'pyspark.sql.types.StructType'>
         """
         return parse_spark_schema("vep_json_output.json")
@@ -82,7 +93,7 @@ class VariantEffectPredictorParser:
             ValueError: The dataset is empty.
         """
         # To speed things up and simplify the json structure, read data following an expected schema:
-        vep_schema = cls._get_vep_schema()
+        vep_schema = cls.get_schema()
 
         try:
             vep_data = spark.read.json(vep_output_path, schema=vep_schema, **kwargs)
@@ -261,7 +272,7 @@ class VariantEffectPredictorParser:
             +--------------------+
             |dbXrefs             |
             +--------------------+
-            |[{VCV2323, clinVar}]|
+            |[{VCV2323, clinvar}]|
             +--------------------+
             <BLANKLINE>
         """
@@ -733,6 +744,8 @@ class VariantEffectPredictorParser:
                 cls._colocated_variants_to_rsids(f.col("colocated_variants")).alias(
                     "rsIds"
                 ),
+                # Adding empty array for allele frequencies - now this piece of data is not coming form the VEP data:
+                f.array().cast(cls.ALLELE_FREQUENCY_SCHEMA).alias("alleleFrequencies"),
             )
             # Adding protvar xref for missense variants:  # TODO: making and extendable list of consequences
             .withColumn(

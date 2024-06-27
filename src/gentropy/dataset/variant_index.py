@@ -87,7 +87,7 @@ class VariantIndex(Dataset):
         )
 
     def max_maf(self: VariantIndex) -> Column:
-        """Maximum minor allele frequency accross all populations.
+        """Maximum minor allele frequency accross all populations assuming all variants biallelic.
 
         Returns:
             Column: Maximum minor allele frequency accross all populations.

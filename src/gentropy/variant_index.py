@@ -35,14 +35,12 @@ class VariantIndexStep:
         )
 
         # Process variant annotations if provided:
-        if gnomad_variant_annotations_path is not None:
+        if gnomad_variant_annotations_path:
             # Read variant annotations from parquet:
             annotations = VariantIndex.from_parquet(
                 session=session,
                 path=gnomad_variant_annotations_path,
                 recursiveFileLookup=True,
-            ).df.select(
-                "variantId", "dbXrefs", "alleleFrequencies", "inSilicoPredictors"
             )
 
             # Update file with extra annotations:
