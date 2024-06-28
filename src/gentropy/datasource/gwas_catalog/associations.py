@@ -203,8 +203,8 @@ class GWASCatalogCuratedAssociationsParser:
         """Add variant metadata in associations.
 
         Args:
-            gwas_associations (DataFrame): raw GWAS Catalog associations
-            variant_index (VariantIndex): variant annotation dataset
+            gwas_associations (DataFrame): raw GWAS Catalog associations.
+            variant_index (VariantIndex): GnomaAD variants dataset with allele frequencies.
 
         Returns:
             DataFrame: GWAS Catalog associations data including `variantId`, `referenceAllele`,

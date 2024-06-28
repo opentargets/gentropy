@@ -1,4 +1,4 @@
-"""Generating variant annotation based on Esembl's Variant Effect Predictor output."""
+"""Generating variant index based on Esembl's Variant Effect Predictor output."""
 
 from __future__ import annotations
 
@@ -111,7 +111,7 @@ class VariantEffectPredictorParser:
 
     @staticmethod
     def _extract_ensembl_xrefs(colocated_variants: Column) -> Column:
-        """Build xdbRefs for rs identifiers.
+        """Extract rs identifiers and build cross reference to Ensembl's variant page.
 
         Args:
             colocated_variants (Column): Colocated variants field from VEP output.
@@ -160,7 +160,7 @@ class VariantEffectPredictorParser:
             ... )
             {'id': 'rs12', 'source': 'ensemblVariation'}
         """
-        ids = f.filter(ids, lambda id: id.cast(t.StringType()).isNotNull())
+        ids = f.filter(ids, lambda id: id.isNotNull())
         xref_column = f.transform(
             ids,
             lambda id: f.struct(
@@ -297,16 +297,16 @@ class VariantEffectPredictorParser:
 
     @staticmethod
     def _get_most_severe_transcript(
-        transcript_column_name: str, field_name: str
+        transcript_column_name: str, score_field_name: str
     ) -> Column:
-        """Return transcript with the most highest in silico predicted score.
+        """Return transcript with the highest in silico predicted score.
 
         This method assumes the higher the score, the more severe the consequence of the variant is.
         Hence, by selecting the transcript with the highest score, we are selecting the most severe consequence.
 
         Args:
             transcript_column_name (str): Name of the column containing the list of transcripts.
-            field_name (str): Name of the field containing the severity score.
+            score_field_name (str): Name of the field containing the severity score.
 
         Returns:
             Column: Most severe transcript.
@@ -332,13 +332,13 @@ class VariantEffectPredictorParser:
         ), "transcript_column_name must be a string and not a column."
         # Order transcripts by severity score:
         ordered_transcripts = order_array_of_structs_by_field(
-            transcript_column_name, field_name
+            transcript_column_name, score_field_name
         )
 
         # Drop transcripts with no severity score and return the most severe one:
         return f.filter(
             ordered_transcripts,
-            lambda transcript: transcript.getItem(field_name).isNotNull(),
+            lambda transcript: transcript.getItem(score_field_name).isNotNull(),
         )[0]
 
     @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
@@ -405,8 +405,6 @@ class VariantEffectPredictorParser:
         assessment_flag_column_name: str | None = None,
     ) -> Column:
         """Extract in silico prediction from VEP output.
-
-        # TODO: write a full test suite for this function.
 
         Args:
             transcript_column_name (str): Name of the column containing the list of transcripts.
@@ -513,11 +511,9 @@ class VariantEffectPredictorParser:
             Column: List of unique Uniprot accessions extracted from swissprot and trembl arrays, splitted from version numbers.
 
         Examples:
-        >>> data = [('v1', 'sp_1', 'tr_1'), ('v1', None, None), ('v1', None, 'tr_2'),]
+        >>> data = [('v1', ["sp_1"], ["tr_1"]), ('v1', None, None), ('v1', None, ["tr_2"]),]
         >>> (
         ...    spark.createDataFrame(data, ['v', 'sp', 'tr'])
-        ...    .withColumn('sp', f.array(f.col('sp').cast(t.StringType())))
-        ...    .withColumn('tr', f.array(f.col('tr').cast(t.StringType())))
         ...    .select(VariantEffectPredictorParser._collect_uniprot_accessions(f.col('sp'), f.col('tr')).alias('proteinIds'))
         ...    .show()
         ... )
@@ -583,22 +579,30 @@ class VariantEffectPredictorParser:
         return map_expr[col].alias("ancestry")
 
     @staticmethod
-    def _parse_variant_id(variant_id: Column) -> List[Column]:
-        """Parse variant identifier into chromosome, position, reference allele and alternate allele.
+    def _parse_variant_location_id(vep_input_field: Column) -> List[Column]:
+        r"""Parse variant identifier, chromosome, position, reference allele and alternate allele from VEP input field.
 
         Args:
-            variant_id (Column): Column containing variant identifier.
+            vep_input_field (Column): Column containing variant vcf string used as VEP input.
 
         Returns:
             List[Column]: List of columns containing chromosome, position, reference allele and alternate allele.
         """
-        variant_fields = f.split(variant_id, r"_")
-
+        variant_fields = f.split(vep_input_field, r"\t")
         return [
+            f.concat_ws(
+                "_",
+                f.array(
+                    variant_fields[0],
+                    variant_fields[1],
+                    variant_fields[3],
+                    variant_fields[4],
+                ),
+            ).alias("variantId"),
             variant_fields[0].cast(t.StringType()).alias("chromosome"),
             variant_fields[1].cast(t.IntegerType()).alias("position"),
-            variant_fields[2].cast(t.StringType()).alias("referenceAllele"),
-            variant_fields[3].cast(t.StringType()).alias("alternateAllele"),
+            variant_fields[3].cast(t.StringType()).alias("referenceAllele"),
+            variant_fields[4].cast(t.StringType()).alias("alternateAllele"),
         ]
 
     @classmethod
@@ -627,10 +631,8 @@ class VariantEffectPredictorParser:
                 ),
             )
             .select(
-                # Extracting variant identifier:
-                f.col("id").alias("variantId"),
-                # Parse chr:pos:alt:ref:
-                *cls._parse_variant_id(f.col("id")),
+                # Parse id and chr:pos:alt:ref:
+                *cls._parse_variant_location_id(f.col("input")),
                 # Extracting corss_references from colocated variants:
                 cls._extract_ensembl_xrefs(f.col("colocated_variants")).alias(
                     "ensembl_xrefs"

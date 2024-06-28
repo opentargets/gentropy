@@ -1,4 +1,4 @@
-"""Step to dump a filtered version of a LD matrix (block matrix) as Parquet files."""
+"""Step to dump a filtered version of a LD matrix (block matrix) and GnomAD variants."""
 
 from __future__ import annotations
 
