@@ -123,7 +123,7 @@ class VariantEffectPredictorParser:
             VariantEffectPredictorParser._colocated_variants_to_rsids(
                 colocated_variants
             ),
-            "ensemblVariation",
+            "ensembl_variation",
         )
 
     @enforce_schema(DBXREF_SCHEMA)
