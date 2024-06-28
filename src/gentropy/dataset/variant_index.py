@@ -80,7 +80,7 @@ class VariantIndex(Dataset):
         return VariantIndex(
             _df=(
                 annotation.join(
-                    f.broadcast(self.df), on="variantId", how="left"
+                    f.broadcast(self.df), on="variantId", how="right"
                 ).select(*variant_index_columns)
             ),
             _schema=self.schema,
