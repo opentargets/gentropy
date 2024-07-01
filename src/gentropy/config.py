@@ -337,6 +337,7 @@ class VariantIndexConfig(StepConfig):
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
     gnomad_variant_annotations_path: str | None = None
+    hash_threshold: int = 100
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
 

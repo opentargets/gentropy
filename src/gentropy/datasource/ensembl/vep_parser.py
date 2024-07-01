@@ -76,6 +76,7 @@ class VariantEffectPredictorParser:
         cls: type[VariantEffectPredictorParser],
         spark: SparkSession,
         vep_output_path: str | list[str],
+        hash_threshold: int = 100,
         **kwargs: bool | float | int | str | None,
     ) -> VariantIndex:
         """Extract variant index from VEP output.
@@ -83,6 +84,7 @@ class VariantEffectPredictorParser:
         Args:
             spark (SparkSession): Spark session.
             vep_output_path (str | list[str]): Path to the VEP output.
+            hash_threshold (int): Threshold above which variant identifiers will be hashed. Default is 100,
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.json.
 
         Returns:
@@ -105,7 +107,9 @@ class VariantEffectPredictorParser:
 
         # Convert to VariantAnnotation dataset:
         return VariantIndex(
-            _df=VariantEffectPredictorParser.process_vep_output(vep_data),
+            _df=VariantEffectPredictorParser.process_vep_output(
+                vep_data, hash_threshold
+            ),
             _schema=VariantIndex.get_schema(),
         )
 
@@ -579,6 +583,40 @@ class VariantEffectPredictorParser:
         return map_expr[col].alias("ancestry")
 
     @staticmethod
+    def _hash_long_variants(variant_id: Column, threshold: int = 100) -> Column:
+        """Hash long variant identifiers.
+
+        Args:
+            variant_id (Column): Column containing variant identifiers.
+            threshold (int): Above this limit, a hash will be generated.
+
+        Returns:
+            Column: Hashed variant identifiers for long variants.
+
+        Examples:
+            >>> (
+            ...    spark.createDataFrame([('v_short',),('v_looooooong',), (None,)], ['variantId'])
+            ...    .select(VariantEffectPredictorParser._hash_long_variants(f.col('variantId'), 10).alias('variantId'))
+            ...    .show()
+            ... )
+            +---------------+
+            |      variantId|
+            +---------------+
+            |        v_short|
+            |OTVAR_326218696|
+            |           null|
+            +---------------+
+            <BLANKLINE>
+        """
+        return f.when(
+            f.length(variant_id) > threshold,
+            f.concat(
+                f.lit("OTVAR_"),
+                f.hash(variant_id).cast(t.StringType()),
+            ),
+        ).otherwise(variant_id)
+
+    @staticmethod
     def _parse_variant_location_id(vep_input_field: Column) -> List[Column]:
         r"""Parse variant identifier, chromosome, position, reference allele and alternate allele from VEP input field.
 
@@ -606,11 +644,14 @@ class VariantEffectPredictorParser:
         ]
 
     @classmethod
-    def process_vep_output(cls, vep_output: DataFrame) -> DataFrame:
+    def process_vep_output(
+        cls, vep_output: DataFrame, hash_threshold: int = 100
+    ) -> DataFrame:
         """Process and format a VEP output in JSON format.
 
         Args:
             vep_output (DataFrame): raw VEP output, read as spark DataFrame.
+            hash_threshold (int): threshold above which variant identifiers will be hashed.
 
         Returns:
            DataFrame: processed data in the right shape.
@@ -778,6 +819,11 @@ class VariantEffectPredictorParser:
                         lambda x: x.isNotNull(),
                     )
                 ),
+            )
+            # If the variantId is too long, hash it:
+            .withColumn(
+                "variantId",
+                cls._hash_long_variants(f.col("variantId"), hash_threshold),
             )
             # Dropping intermediate xref columns:
             .drop(*["ensembl_xrefs", "omim_xrefs", "clinvar_xrefs", "protvar_xrefs"])
