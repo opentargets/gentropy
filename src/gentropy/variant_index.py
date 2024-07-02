@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import pyspark.sql.functions as f
-
 from gentropy.common.session import Session
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
+from gentropy.datasource.open_targets import OpenTargetsVariant
 
 
 class VariantIndexStep:
@@ -49,7 +48,8 @@ class VariantIndexStep:
             variant_index = variant_index.add_annotation(annotations)
 
         (
-            variant_index.df.write.partitionBy("chromosome")
+            variant_index.df.withColumn("variantId", VariantIndex.assign_variant_id())
+            .write.partitionBy("chromosome")
             .mode(session.write_mode)
             .parquet(variant_index_path)
         )
@@ -73,71 +73,17 @@ class ConvertToVcfStep:
             source_format(str): Format of the input dataset.
             vcf_path (str): Output VCF file path.
         """
-        df = session.load_data(source_path, source_format).limit(100)
-        if rsids_to_map := (
-            df.filter(
-                (f.col("variantId").isNull()) & (f.col("variantRsId").isNotNull())
-            )
-            .select("variantRsId")
-            .distinct()
-            .toPandas()["variantRsId"]
-            .to_list()
-        ):
-            rsid_to_variantids = VariantIndex.fetch_coordinates(rsids_to_map)
-            mapping_df = session.spark.createDataFrame(
-                rsid_to_variantids.items(), schema=["variantRsId", "mappedVariantIds"]
-            ).select(
-                "variantRsId", f.explode("mappedVariantIds").alias("mappedVariantId")
-            )
-            df = (
-                df.join(mapping_df, "variantRsId", "left")
-                .withColumn(
-                    "variantId",
-                    f.coalesce(f.col("variantId"), f.col("mappedVariantId")),
-                )
-                .drop("mappedVariantId")
-            )
-        else:
-            df
-
-        # Handle missing rsIDs (optional)
-        rsid_expr = (
-            f.coalesce(f.col("variantRsId"), f.lit("."))
-            if "variantRsId" in df.columns
-            else f.lit(".")
-        )
-        vcf = (
-            df.filter(f.col("variantId").isNotNull())
-            .select(
-                f.coalesce(f.split(f.col("variantId"), "_")[0], f.lit(".")).alias(
-                    "#CHROM"
-                ),
-                f.coalesce(f.split(f.col("variantId"), "_")[1], f.lit("."))
-                .cast("int")
-                .alias("POS"),
-                rsid_expr.alias("ID"),
-                f.coalesce(f.split(f.col("variantId"), "_")[2], f.lit(".")).alias(
-                    "REF"
-                ),
-                f.coalesce(f.split(f.col("variantId"), "_")[3], f.lit(".")).alias(
-                    "ALT"
-                ),
-                f.lit(".").alias("QUAL"),
-                f.lit(".").alias("FILTER"),
-                f.lit(".").alias("INFO"),
-            )
-            .filter(f.col("#CHROM") != ".")
-            .orderBy(f.col("#CHROM").asc(), f.col("POS").asc())
-            .distinct()
-        )
         # Load
+        df = session.load_data(source_path, source_format).limit(100)
+        # Extract
+        vcf_df = OpenTargetsVariant.as_vcf_df(session, df)
+        # Write
         header = "##fileformat=VCFv4.3"
-        data_header = "\t".join(vcf.columns)
-
+        data_header = "\t".join(vcf_df.columns)
         with open(vcf_path, "w") as file:
             file.write(header)
             file.write("\n")
             file.write(data_header)
             file.write("\n")
-            for row in vcf.collect():
+            for row in vcf_df.collect():
                 file.write("\t".join(map(str, row)) + "\n")

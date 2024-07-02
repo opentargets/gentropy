@@ -35,6 +35,29 @@ class VariantIndex(Dataset):
         """
         return parse_spark_schema("variant_index.json")
 
+    @classmethod
+    def assign_variant_id(
+        cls: type[VariantIndex],
+    ) -> Column:
+        """Creates a column with the variant ID that will be used to index the variant index.
+
+        This is to ensure that the variant ID is unique and not too long.
+
+        Returns:
+            Column: Column with the variant ID containing the hash if the variant ID is longer than 100 characters
+        """
+        return (
+            f.when(
+                f.length(f.col("variantId")) >= 100,
+                f.concat(
+                    f.lit("otvar_"),
+                    f.xxhash64(f.col("variantId")).cast("string"),
+                ),
+            )
+            .otherwise(f.col("variantId"))
+            .alias("variantId")
+        )
+
     @staticmethod
     def fetch_coordinates(
         rsids: list[str], batch_size: int = 200, pause_time: int = 1
