@@ -424,7 +424,7 @@ class FinemapperConfig(StepConfig):
     secondary_signal_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
-    cs_lbf_th: float = MISSING
+    cs_lbf_thr: float = MISSING
     sum_pips: float = MISSING
     logging: bool = MISSING
     susie_est_tausq: bool = MISSING
