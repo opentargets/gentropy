@@ -47,7 +47,7 @@ class LocusBreakerClumpingStep:
         """
         sum_stats = SummaryStatistics.from_parquet(
             session, summary_statistics_input_path, recursiveFileLookup=True
-        )
+        ).persist()
         lbc = sum_stats.locus_breaker_clumping(
             lbc_baseline_pvalue,
             lbc_distance_cutoff,
