@@ -17,7 +17,7 @@ class SessionConfig:
     write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
-    extended_spark_conf: dict[str, str] | None = None
+    extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     _target_: str = "gentropy.common.session.Session"
 
 
@@ -180,7 +180,7 @@ class LDIndexConfig(StepConfig):
         ]
     )
     use_version_from_input: bool = False
-    _target_: str = "gentropy.ld_index.LDIndexStep"
+    _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
 
 @dataclass
@@ -302,8 +302,8 @@ class UkbPppEurConfig(StepConfig):
 
 
 @dataclass
-class VariantAnnotationConfig(StepConfig):
-    """Variant annotation step configuration."""
+class GnomadVariantConfig(StepConfig):
+    """Gnomad variant ingestion step configuration."""
 
     session: Any = field(
         default_factory=lambda: {
@@ -312,7 +312,6 @@ class VariantAnnotationConfig(StepConfig):
     )
     variant_annotation_path: str = MISSING
     gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
-    chain_38_37: str = "gs://hail-common/references/grch38_to_grch37.over.chain.gz"
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
@@ -328,16 +327,16 @@ class VariantAnnotationConfig(StepConfig):
         ]
     )
     use_version_from_input: bool = False
-    _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
+    _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
 
 
 @dataclass
 class VariantIndexConfig(StepConfig):
     """Variant index step configuration."""
 
-    variant_annotation_path: str = MISSING
-    credible_set_path: str = MISSING
+    vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
+    gnomad_variant_annotations_path: str | None = None
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
 
@@ -346,7 +345,6 @@ class VariantToGeneConfig(StepConfig):
     """V2G step configuration."""
 
     variant_index_path: str = MISSING
-    variant_annotation_path: str = MISSING
     gene_index_path: str = MISSING
     vep_consequences_path: str = MISSING
     liftover_chain_file_path: str = MISSING
@@ -371,7 +369,7 @@ class VariantToGeneConfig(StepConfig):
     )
     interval_sources: Dict[str, str] = field(default_factory=dict)
     v2g_path: str = MISSING
-    _target_: str = "gentropy.v2g.V2GStep"
+    _target_: str = "gentropy.variant_to_gene.V2GStep"
 
 
 @dataclass
@@ -420,15 +418,13 @@ class FinemapperConfig(StepConfig):
     study_locus_collected_path: str = MISSING
     study_index_path: str = MISSING
     output_path: str = MISSING
-    locus_radius: int = MISSING
     max_causal_snps: int = MISSING
     primary_signal_pval_threshold: float = MISSING
     secondary_signal_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
-    cs_lbf_th: float = MISSING
+    cs_lbf_thr: float = MISSING
     sum_pips: float = MISSING
-    logging: bool = MISSING
     susie_est_tausq: bool = MISSING
     run_carma: bool = MISSING
     run_sumstat_imputation: bool = MISSING
@@ -436,6 +432,7 @@ class FinemapperConfig(StepConfig):
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
     output_path_log: str = MISSING
+    _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
 @dataclass
@@ -491,8 +488,8 @@ def register_config() -> None:
     )
 
     cs.store(group="step", name="pics", node=PICSConfig)
+    cs.store(group="step", name="variant_annotation", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
-    cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(
