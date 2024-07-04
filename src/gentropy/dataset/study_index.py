@@ -1,9 +1,11 @@
 """Study index dataset."""
+
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
 import json
 from dataclasses import dataclass
+from enum import Enum
 from itertools import chain
 from typing import TYPE_CHECKING
 
@@ -16,6 +18,26 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
+
+    from gentropy.dataset.gene_index import GeneIndex
+
+
+class StudyQualityCheck(Enum):
+    """Study quality control options listing concerns on the quality of the study.
+
+    Attributes:
+        UNRESOLVED_TARGET (str): Target/gene identifier could not match to reference - Labelling failing target.
+        UNRESOLVED_DISEASE (str): Disease identifier could not match to referece or retired identifier - labelling failing disease
+        UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
+        DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
+    """
+
+    UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
+    UNRESOLVED_DISEASE = (
+        "Disease identifier could not match to referece or retired identifier."
+    )
+    UNKNOWN_STUDY_TYPE = "This type of study is not supported."
+    DUPLICATED_STUDY = "The identifier of this study is not unique."
 
 
 @dataclass
@@ -183,3 +205,45 @@ class StudyIndex(Dataset):
             Column: True if the study has harmonized summary statistics.
         """
         return self.df.hasSumstats
+
+    # def validate_unique_study_id(self: StudyIndex) -> None:
+    #     raise NotImplementedError
+
+    # def validate_disease(self: StudyIndex, disease_index: DataFrame) -> None:
+    #     raise NotImplementedError
+
+    # def validate_study_type(self: StudyIndex) -> None:
+    #     raise NotImplementedError
+
+    def validate_target(self: StudyIndex, target_index: GeneIndex) -> StudyIndex:
+        """Validating gene identifiers in the study index against the provided target index.
+
+        Args:
+            target_index (GeneIndex): gene index containing the reference gene identifiers (Ensembl gene identifiers).
+
+        Returns:
+            StudyIndex: with flagged studies if geneId could not be validated.
+        """
+        gene_set = target_index.df.select("geneId", f.lit(True).alias("isIdFound"))
+
+        self.df = (
+            self.df.join(gene_set, on="geneId", how="left")
+            .withColumn(
+                "isIdFound",
+                f.when(
+                    (f.col("studyType") != "gwas") & f.col("isIdFound").isNull(),
+                    f.lit(False),
+                ).otherwise(f.lit(True)),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~f.col("isIdFound"),
+                    StudyQualityCheck.UNRESOLVED_TARGET,
+                ),
+            )
+            .drop("isIdFound")
+        )
+
+        return self

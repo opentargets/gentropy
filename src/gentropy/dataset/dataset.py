@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
@@ -238,3 +239,23 @@ class Dataset(ABC):
         """
         self.df = self._df.repartition(num_partitions, **kwargs)
         return self
+
+    @staticmethod
+    def update_quality_flag(
+        qc: Column, flag_condition: Column, flag_text: Enum
+    ) -> Column:
+        """Update the provided quality control list with a new flag if condition is met.
+
+        Args:
+            qc (Column): Array column with the current list of qc flags.
+            flag_condition (Column): This is a column of booleans, signing which row should be flagged
+            flag_text (Enum): Text for the new quality control flag
+
+        Returns:
+            Column: Array column with the updated list of qc flags.
+        """
+        qc = f.when(qc.isNull(), f.array()).otherwise(qc)
+        return f.when(
+            flag_condition,
+            f.array_union(qc, f.array(f.lit(flag_text.value))),
+        ).otherwise(qc)
