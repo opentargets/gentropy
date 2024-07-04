@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pyspark.sql import functions as f
+
 from gentropy.common.session import Session
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
@@ -49,7 +51,8 @@ class VariantIndexStep:
             variant_index = variant_index.add_annotation(annotations)
 
         (
-            variant_index.df.write.partitionBy("chromosome")
+            variant_index.df.filter(f.col("position").isNotNull())
+            .write.partitionBy("chromosome")
             .mode(session.write_mode)
             .parquet(variant_index_path)
         )

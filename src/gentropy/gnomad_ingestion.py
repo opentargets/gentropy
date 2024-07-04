@@ -82,7 +82,7 @@ class GnomadVariantIndexStep:
     def __init__(
         self,
         session: Session,
-        gnomad_variant_output: str,
+        variant_annotation_path: str,
         gnomad_genomes_path: str = GnomadVariantConfig().gnomad_genomes_path,
         gnomad_variant_populations: list[
             VariantPopulation | str
@@ -93,10 +93,10 @@ class GnomadVariantIndexStep:
 
         Args:
             session (Session): Session object.
-            gnomad_variant_output (str): Path to resulting dataset.
+            variant_annotation_path (str): Path to resulting dataset.
             gnomad_genomes_path (str): Path to gnomAD genomes hail table, e.g. `gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/`.
             gnomad_variant_populations (list[VariantPopulation | str]): List of populations to include.
-            use_version_from_input (bool): Append version derived from input gnomad_genomes_path to the output gnomad_variant_output. Defaults to False.
+            use_version_from_input (bool): Append version derived from input gnomad_genomes_path to the output variant_annotation_path. Defaults to False.
 
         In case use_version_from_input is set to True,
         data source version inferred from gnomad_genomes_path is appended as the last path segment to the output path.
@@ -104,8 +104,8 @@ class GnomadVariantIndexStep:
         """
         # amend data source version to output path
         if use_version_from_input:
-            gnomad_variant_output = VersionEngine("gnomad").amend_version(
-                gnomad_genomes_path, gnomad_variant_output
+            variant_annotation_path = VersionEngine("gnomad").amend_version(
+                gnomad_genomes_path, variant_annotation_path
             )
 
         # Initialise hail session.
@@ -120,6 +120,6 @@ class GnomadVariantIndexStep:
         # Write data partitioned by chromosome and position.
         (
             gnomad_variants.df.write.mode(session.write_mode).parquet(
-                gnomad_variant_output
+                variant_annotation_path
             )
         )

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
@@ -34,6 +35,61 @@ class VariantIndex(Dataset):
         """
         return parse_spark_schema("variant_index.json")
 
+    @staticmethod
+    def hash_long_variant_ids(
+        variant_id: Column, chromosome: Column, position: Column, threshold: int = 100
+    ) -> Column:
+        """Hash long variant identifiers.
+
+        Args:
+            variant_id (Column): Column containing variant identifiers.
+            chromosome (Column): Chromosome column.
+            position (Column): position column.
+            threshold (int): Above this limit, a hash will be generated.
+
+        Returns:
+            Column: Hashed variant identifiers for long variants.
+
+        Examples:
+            >>> (
+            ...    spark.createDataFrame([('v_short', 'x', 23),('v_looooooong', '23', 23), ('no_chrom', None, None), (None, None, None)], ['variantId', 'chromosome', 'position'])
+            ...    .select('variantId', VariantIndex.hash_long_variant_ids(f.col('variantId'), f.col('chromosome'), f.col('position'), 10).alias('hashedVariantId'))
+            ...    .show(truncate=False)
+            ... )
+            +------------+--------------------------------------------+
+            |variantId   |hashedVariantId                             |
+            +------------+--------------------------------------------+
+            |v_short     |v_short                                     |
+            |v_looooooong|OTVAR_23_23_3749d019d645894770c364992ae70a05|
+            |no_chrom    |OTVAR_41acfcd7d4fd523b33600b504914ef25      |
+            |null        |null                                        |
+            +------------+--------------------------------------------+
+            <BLANKLINE>
+        """
+        return (
+            # If either the position or the chromosome is missing, we hash the identifier:
+            f.when(
+                chromosome.isNull() | position.isNull(),
+                f.concat(
+                    f.lit("OTVAR_"),
+                    f.md5(variant_id).cast(t.StringType()),
+                ),
+            )
+            # If chromosome and position are given, but alleles are too long, create hash:
+            .when(
+                f.length(variant_id) > threshold,
+                f.concat_ws(
+                    "_",
+                    f.lit("OTVAR"),
+                    chromosome,
+                    position,
+                    f.md5(variant_id).cast(t.StringType()),
+                ),
+            )
+            # Missing and regular variant identifiers are left unchanged:
+            .otherwise(variant_id)
+        )
+
     def add_annotation(
         self: VariantIndex, annotation_source: VariantIndex
     ) -> VariantIndex:
@@ -51,17 +107,20 @@ class VariantIndex(Dataset):
         # Columns in the source dataset:
         variant_index_columns = [
             # Combining cross-references:
-            f.array_union(f.col("dbXrefs"), f.col("annotation_dbXrefs"))
+            f.array_union(f.col("dbXrefs"), f.col("annotation_dbXrefs")).alias(
+                "dbXrefs"
+            )
             if row == "dbXrefs"
             # Combining in silico predictors:
             else f.array_union(
-                f.col("inSilicoPredictors"), f.col("annotation_inSilicoPredictors")
-            )
+                f.col("inSilicoPredictors"),
+                f.col("annotation_inSilicoPredictors"),
+            ).alias("inSilicoPredictors")
             if row == "inSilicoPredictors"
             # Combining allele frequencies:
             else f.array_union(
                 f.col("alleleFrequencies"), f.col("annotation_alleleFrequencies")
-            )
+            ).alias("alleleFrequencies")
             if row == "alleleFrequencies"
             # Carrying over all other columns:
             else row

@@ -583,61 +583,6 @@ class VariantEffectPredictorParser:
         return map_expr[col].alias("ancestry")
 
     @staticmethod
-    def _hash_long_variants(
-        variant_id: Column, chromosome: Column, position: Column, threshold: int = 100
-    ) -> Column:
-        """Hash long variant identifiers.
-
-        Args:
-            variant_id (Column): Column containing variant identifiers.
-            chromosome (Column): Chromosome column.
-            position (Column): position column.
-            threshold (int): Above this limit, a hash will be generated.
-
-        Returns:
-            Column: Hashed variant identifiers for long variants.
-
-        Examples:
-            >>> (
-            ...    spark.createDataFrame([('v_short', 'x', 23),('v_looooooong', '23', 23), ('no_chrom', None, None), (None, None, None)], ['variantId', 'chromosome', 'position'])
-            ...    .select('variantId', VariantEffectPredictorParser._hash_long_variants(f.col('variantId'), f.col('chromosome'), f.col('position'), 10).alias('hashedVariantId'))
-            ...    .show(truncate=False)
-            ... )
-            +------------+--------------------------------------------+
-            |variantId   |hashedVariantId                             |
-            +------------+--------------------------------------------+
-            |v_short     |v_short                                     |
-            |v_looooooong|OTVAR_23_23_3749d019d645894770c364992ae70a05|
-            |no_chrom    |OTVAR_41acfcd7d4fd523b33600b504914ef25      |
-            |null        |null                                        |
-            +------------+--------------------------------------------+
-            <BLANKLINE>
-        """
-        return (
-            # If either the position or the chromosome is missing, we hash the identifier:
-            f.when(
-                chromosome.isNull() | position.isNull(),
-                f.concat(
-                    f.lit("OTVAR_"),
-                    f.md5(variant_id).cast(t.StringType()),
-                ),
-            )
-            # If chromosome and position are given, but alleles are too long, create hash:
-            .when(
-                f.length(variant_id) > threshold,
-                f.concat_ws(
-                    "_",
-                    f.lit("OTVAR"),
-                    chromosome,
-                    position,
-                    f.md5(variant_id).cast(t.StringType()),
-                ),
-            )
-            # Missing and regular variant identifiers are left unchanged:
-            .otherwise(variant_id)
-        )
-
-    @staticmethod
     def _parse_variant_location_id(vep_input_field: Column) -> List[Column]:
         r"""Parse variant identifier, chromosome, position, reference allele and alternate allele from VEP input field.
 
@@ -844,7 +789,7 @@ class VariantEffectPredictorParser:
             # If the variantId is too long, hash it:
             .withColumn(
                 "variantId",
-                cls._hash_long_variants(
+                VariantIndex.hash_long_variant_ids(
                     f.col("variantId"),
                     f.col("chromosome"),
                     f.col("position"),
