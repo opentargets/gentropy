@@ -79,6 +79,20 @@ class VariantIndex(Dataset):
             >>> VariantIndex.fetch_coordinates(["rs75493593"])
             [{'rs75493593': ['17_7041768_G_C', '17_7041768_G_T']}]
         """
+        # def _ensembl_batch_request(rsids: list[str]) -> dict[str, dict[str, Any]]:
+        #     """Access the batch endpoint of Ensembl.
+
+        #     Args:
+        #         rsids (list[str]): List of rsIDs
+
+        #     Returns:
+        #         dict[str, dict[str, Any]]: Dictionary with rsID as key and variant data as value.
+        #     """
+        #     url = "https://rest.ensembl.org/variation/human"
+        #     headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        #     data = {"ids": rsids}
+
+        #     return requests.post(f"{url}", headers=headers, json=data).json()
 
         def _ensembl_batch_request(rsids: list[str]) -> dict[str, dict[str, Any]]:
             """Access the batch endpoint of Ensembl.
@@ -91,9 +105,13 @@ class VariantIndex(Dataset):
             """
             url = "https://rest.ensembl.org/variation/human"
             headers = {"Content-Type": "application/json", "Accept": "application/json"}
-            data = {"ids": rsids}
+            data = json.dumps({"ids": rsids}).encode("utf-8")
 
-            return requests.post(f"{url}", headers=headers, json=data).json()
+            req = request.Request(url, data=data, headers=headers, method="POST")
+            with request.urlopen(req) as response:
+                response_data = response.read().decode()
+
+            return json.loads(response_data)
 
         def _parse_response(
             response: dict[str, dict[str, Any]],
@@ -126,9 +144,9 @@ class VariantIndex(Dataset):
                     continue
             return parsed_results
 
+        import json
         import time
-
-        import requests
+        from urllib import request
 
         all_results = {}
 
