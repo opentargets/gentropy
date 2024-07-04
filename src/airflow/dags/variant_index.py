@@ -23,9 +23,7 @@ from google.cloud import batch_v1
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"
 CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "variant_sources.yaml"
-GENTROPY_DOCKER_IMAGE = (
-    "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:dev"
-)
+GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:il-3333"
 DST_PATH = "gs://ot-team/irene/il-3333"
 
 
@@ -50,7 +48,7 @@ def create_vcf(**kwargs: Any) -> None:
 
     commands = [
         "-c",
-        "poetry run gentropy step=variants_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOUCE_FORMAT step.vcf_path={DST_PATH}/$SOURCE_NAME",
+        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={DST_PATH}/$SOURCE_NAME.vcf +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
     ]
     task = create_task_spec(
         GENTROPY_DOCKER_IMAGE, commands, options="-e HYDRA_FULL_ERROR=1"
@@ -80,6 +78,5 @@ with DAG(
 ) as dag:
     (
         create_vcf()
-        # Pig script to validate VCF using https://github.com/EBIvariation/vcf-validator
         # create cluster and variant index step (daniel's changes)
     )

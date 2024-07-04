@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from gentropy.common.session import Session
+from gentropy.common.utils import copy_to_gcs
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
-from gentropy.datasource.open_targets import OpenTargetsVariant
+from gentropy.datasource.open_targets.variants import OpenTargetsVariant
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
 
 
 class VariantIndexStep:
@@ -78,9 +84,23 @@ class ConvertToVcfStep:
         # Extract
         vcf_df = OpenTargetsVariant.as_vcf_df(session, df)
         # Write
+        path = vcf_path.split("/")[-1] if vcf_path.startswith("gs://") else vcf_path
+        self.write_vcf_from_memory(vcf_df, path)
+        if vcf_path.startswith("gs://"):
+            copy_to_gcs(path, vcf_path)
+
+    def write_vcf_from_memory(
+        self: ConvertToVcfStep, vcf_df: DataFrame, path: str
+    ) -> None:
+        """Write VCF file from dataframe in memory to the local filesystem.
+
+        Args:
+            vcf_df (DataFrame): Input dataframe.
+            path (str): VCF file path in the local filesystem.
+        """
         header = "##fileformat=VCFv4.3"
         data_header = "\t".join(vcf_df.columns)
-        with open(vcf_path, "w") as file:
+        with open(path, "w") as file:
             file.write(header)
             file.write("\n")
             file.write(data_header)

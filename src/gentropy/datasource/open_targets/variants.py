@@ -93,7 +93,12 @@ class OpenTargetsVariant:
         Returns:
             DataFrame: DataFrame with variant information in VCF format.
         """
-        # Apply rsID mappings
+        # Add necessary cols if not present and apply rsID mappings
+        missing_cols = [
+            col for col in ["variantId", "variantRsId"] if col not in variant_df.columns
+        ]
+        for col in missing_cols:
+            variant_df = variant_df.withColumn(col, f.lit(None))
         variant_df = cls.map_rsids_to_variant_ids(session, variant_df)
 
         return (
