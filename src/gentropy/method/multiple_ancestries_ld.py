@@ -1,14 +1,18 @@
 """The combination of multiple ancestries for LD matrix."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 from pyspark.sql.functions import array, map_from_arrays
+from scipy.optimize import OptimizeResult, minimize
+from scipy.stats import multivariate_normal
 
 from gentropy.common.session import Session
+from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 
 
@@ -91,7 +95,17 @@ class multipleAncestriesLD:
             varg = varG[:, i]
             vv = np.sqrt(np.outer(varg, varg))
             exey = 4 * np.outer(m_p[:, i], m_p[:, i])
-            exy = LD[pop] * vv + exey
+
+            ld_pop = LD[pop]
+            ld_pop[ld_pop > 1] = 1
+            ld_pop[ld_pop < -1] = -1
+            upper_triangle = np.triu(ld_pop)
+            ld_pop = (
+                upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
+            )
+            np.fill_diagonal(ld_pop, 1)
+
+            exy = ld_pop * vv + exey
             EXY.append(exy)
 
         freq = np.apply_along_axis(lambda x: np.sum(alphas * x), axis=1, arr=m_p)
@@ -104,6 +118,7 @@ class multipleAncestriesLD:
         covxy = EXY_t - EXEY
         varg = np.diag(covxy)
         new_ld = covxy * np.sqrt(1 / np.outer(varg, varg))
+        np.fill_diagonal(new_ld, 1)
 
         return {"LD": new_ld, "varg": varg, "freq": freq}
 
@@ -115,6 +130,7 @@ class multipleAncestriesLD:
         end: int,
         path_to_ld_index: str,
         listOfAncestries: list[str] = ["nfe", "afr"],
+        gwas: SummaryStatistics | None = None,
         full_list_of_ancestries: list[str] = [
             "oth",
             "amr",
@@ -137,6 +153,7 @@ class multipleAncestriesLD:
             end (int): End position of the region.
             path_to_ld_index (str): Path to the LD index file with AFs.
             listOfAncestries (list[str], optional): List of ancestries. Defaults to ["nfe","afr"].
+            gwas (SummaryStatistics | None): GWAS summary statistics. Defaults to None.
             full_list_of_ancestries (list[str], optional): List of all ancestries. Defaults to ['oth', 'amr', 'fin', 'ami', 'mid', 'nfe', 'sas', 'asj', 'eas', 'afr'].
 
         Returns:
@@ -164,6 +181,7 @@ class multipleAncestriesLD:
             .select("variantId")
             .distinct()
         )
+
         for ancestry in listOfAncestries[1:]:
             df = GnomADLDMatrix().get_locus_index_boundaries_no_studyLocus(
                 chromosomeInput, start, end, major_population=ancestry
@@ -222,6 +240,24 @@ class multipleAncestriesLD:
             .drop(ldIndex["variantId"])
             .distinct()
         )
+
+        if gwas is not None:
+            gwas_df = (
+                gwas.df.withColumn("z", f.col("beta") / f.col("standardError"))
+                .filter(f.col("z").isNotNull())
+                .filter(f.col("chromosome") == chromosomeInput)
+                .filter(f.col("position") >= start)
+                .filter(f.col("position") <= end)
+                .select("variantId", "z")
+            )
+            ref_af = (
+                ref_af.join(
+                    gwas_df, ref_af["variantId"] == gwas_df["variantId"], how="inner"
+                )
+                .drop(gwas_df["variantId"])
+                .distinct()
+            )
+
         ref_af = ref_af.toPandas()
         ref_af = ref_af.drop_duplicates(subset="variantId")
 
@@ -261,3 +297,119 @@ class multipleAncestriesLD:
             LD[ancestry] = gnomad_ld
 
         return {"LD": LD, "ref_af": ref_af}
+
+    @staticmethod
+    def fun_for_opt(
+        alphas: np.ndarray,
+        Z: np.ndarray,
+        LD: dict[str, np.ndarray],
+        m_p: np.ndarray,
+        pops: list[str],
+        ind: np.ndarray,
+        zero_af_substitution: float = 1e-4,
+    ) -> float:
+        """Function to optimize the alphas.
+
+        Args:
+            alphas (np.ndarray): The coefficients to optimize. The same order as m_p.
+            Z (np.ndarray): The Z-scores.
+            LD (dict[str, np.ndarray]): The dictionary of LD matrices.
+            m_p (np.ndarray): The matrix of SNP alellic frequncies.
+            pops (list[str]): The list of ancestries to use. The same order as in m_p.
+            ind (np.ndarray): The indices to use.
+            zero_af_substitution (float, optional): The value to substitute for zero allele frequencies. Defaults to 1e-4.
+
+        Returns:
+            float: The negative log likelihood of the model.
+        """
+        alphas[alphas < 0] = 1  # Ensure alphas are non-negative
+        alphas = alphas / np.sum(alphas)  # Normalize alphas to sum to 1
+        new_ld = multipleAncestriesLD.combineLD(
+            LD=LD,
+            m_p=m_p,
+            alphas=alphas,
+            pops=pops,
+            zero_af_substitution=zero_af_substitution,
+        )
+        log_likelihood = multivariate_normal.logpdf(
+            Z[ind], mean=np.zeros(len(Z[ind])), cov=new_ld["LD"][ind, :][:, ind]
+        )
+
+        return -log_likelihood
+
+    @staticmethod
+    def infer_ancestry_proportions(
+        session: Session,
+        chromosomeInput: str,
+        start: int,
+        end: int,
+        path_to_ld_index: str,
+        gwas: SummaryStatistics,
+        listOfAncestries: list[str] = ["nfe", "afr"],
+        full_list_of_ancestries: list[str] = [
+            "oth",
+            "amr",
+            "fin",
+            "ami",
+            "mid",
+            "nfe",
+            "sas",
+            "asj",
+            "eas",
+            "afr",
+        ],
+        maf_threshold: float = 0.2,
+        number_of_snps: int = 20,
+        zero_af_substitution: float = 1e-4,
+    ) -> OptimizeResult:
+        """Infer the ancestry proportions from the Z-scores and LD matrix.
+
+        Args:
+            session (Session): The pyspark session object.
+            chromosomeInput (str): Chromosome number.
+            start (int): Start position of the region.
+            end (int): End position of the region.
+            path_to_ld_index (str): Path to the LD index file with AFs.
+            gwas (SummaryStatistics): GWAS summary statistics.
+            listOfAncestries (list[str], optional): List of ancestries to select from. Defaults to ["nfe", "afr"].
+            full_list_of_ancestries (list[str], optional): List of all ancestries. Defaults to ['oth', 'amr', 'fin', 'ami', 'mid', 'nfe', 'sas', 'asj', 'eas', 'afr'].
+            maf_threshold (float, optional): The threshold for minor allele frequency. Defaults to 0.2.
+            number_of_snps (int, optional): The number of SNPs to use for optimization. Defaults to 20.
+            zero_af_substitution (float, optional): The value to substitute for zero allele frequencies. Defaults to 1e-4.
+
+        Returns:
+            OptimizeResult: The result of the optimization.
+        """
+        out_dict = multipleAncestriesLD.prepare_data_frames(
+            session=session,
+            listOfAncestries=listOfAncestries,
+            chromosomeInput=chromosomeInput,
+            start=start,
+            end=end,
+            path_to_ld_index=path_to_ld_index,
+            gwas=gwas,
+            full_list_of_ancestries=full_list_of_ancestries,
+        )
+        m_p = out_dict["ref_af"][listOfAncestries]
+        m_p = np.array(m_p)
+        Z = np.array(out_dict["ref_af"]["z"].tolist())
+
+        mask = (m_p >= maf_threshold) & (m_p <= 1 - maf_threshold)
+        rows = np.all(mask, axis=1)
+        ind = np.where(rows)[0]
+        if len(ind) <= number_of_snps:
+            logging.warning("Not enough snps in the region.")
+            return None
+        ind = ind[range(0, number_of_snps)]
+
+        initial_alphas = np.ones(len(listOfAncestries))
+        bounds = [(0, 1)] * len(listOfAncestries)  # Non-negative bounds for alphas
+
+        result = minimize(
+            multipleAncestriesLD.fun_for_opt,
+            initial_alphas,
+            args=(Z, out_dict["LD"], m_p, listOfAncestries, ind, zero_af_substitution),
+            bounds=bounds,
+        )
+
+        return result
