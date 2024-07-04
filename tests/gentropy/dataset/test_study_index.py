@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.study_index import StudyIndex
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
@@ -138,3 +140,123 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
         )
         == 300.0
     )
+
+
+class TestGeneValidation:
+    """A small test suite to ensure the gene validation works as intended."""
+
+    GENE_DATA = [
+        ("ENSG00000102021", "1"),
+        ("ENSG000001020", "1"),
+    ]
+
+    GENE_COLUMNS = ["geneId", "chromosome"]
+
+    STUDY_DATA = [
+        ("s1", "eqtl", "p", "ENSG00000102021"),
+        # This is the only study to be flagged: QTL + Wrong gene
+        ("s2", "eqtl", "p", "cicaful"),
+        ("s3", "gwas", "p", None),
+        ("s4", "gwas", "p", "pocok"),
+    ]
+    STUDY_COLUMNS = ["studyId", "studyType", "projectId", "geneId"]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestGeneValidation, spark: SparkSession) -> None:
+        """Setup fixture."""
+        self.study_index = StudyIndex(
+            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
+                "qualityControls", f.array()
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+        self.study_index_no_gene = StudyIndex(
+            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
+            .withColumn("qualityControls", f.array())
+            .drop("geneId"),
+            _schema=StudyIndex.get_schema(),
+        )
+
+        self.gene_index = GeneIndex(
+            _df=spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS),
+            _schema=GeneIndex.get_schema(),
+        )
+
+    def test_gene_validation_type(self: TestGeneValidation) -> None:
+        """Testing if the validation runs and returns the expected type."""
+        validated = self.study_index.validate_target(self.gene_index)
+        assert isinstance(validated, StudyIndex)
+
+    def test_gene_validation_correctness(self: TestGeneValidation) -> None:
+        """Testing if the gene validation only flags the expected studies."""
+        validated = self.study_index.validate_target(self.gene_index).persist()
+
+        # Make sure there's only one flagged:
+        assert validated.df.filter(f.size("qualityControls") != 0).count() == 1
+
+        # Make sure there's only one flagged:
+        flagged_study = validated.df.filter(f.size("qualityControls") != 0).collect()[
+            0
+        ]["studyId"]
+
+        assert flagged_study == "s2"
+
+    def test_gene_validation_no_gene_column(self: TestGeneValidation) -> None:
+        """Testing what happens if no geneId column is present."""
+        validated = self.study_index_no_gene.validate_target(self.gene_index)
+
+        # Asserty type:
+        assert isinstance(validated, StudyIndex)
+
+        # Assert count:
+        assert validated.df.count() == self.study_index.df.count()
+
+
+class TestUniquenessValidation:
+    """A small test suite to ensure the gene validation works as intended."""
+
+    STUDY_DATA = [
+        # This is the only study to be flagged:
+        ("s1", "eqtl", "p"),
+        ("s1", "eqtl", "p"),
+        ("s3", "gwas", "p"),
+        ("s4", "gwas", "p"),
+    ]
+    STUDY_COLUMNS = ["studyId", "studyType", "projectId"]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestUniquenessValidation, spark: SparkSession) -> None:
+        """Setup fixture."""
+        self.study_index = StudyIndex(
+            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
+                "qualityControls", f.array()
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+    def test_uniqueness_return_type(self: TestUniquenessValidation) -> None:
+        """Testing if the function returns the right type."""
+        assert isinstance(self.study_index.validate_unique_study_id(), StudyIndex)
+
+    def test_uniqueness_correct_data(self: TestUniquenessValidation) -> None:
+        """Testing if the function returns the right type."""
+        validated = self.study_index.validate_unique_study_id().persist()
+
+        # We have more than one flagged studies:
+        assert validated.df.filter(f.size(f.col("qualityControls")) > 0).count() > 1
+
+        # The flagged study identifiers are found more than once:
+        flagged_ids = {
+            study["studyId"]: study["count"]
+            for study in validated.df.filter(f.size(f.col("qualityControls")) > 0)
+            .groupBy("studyId")
+            .count()
+            .collect()
+        }
+
+        for _, count in flagged_ids.items():
+            assert count > 1
+
+        # the right study is found:
+        assert "s1" in flagged_ids

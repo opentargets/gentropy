@@ -10,6 +10,7 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
+from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
@@ -30,6 +31,7 @@ class StudyQualityCheck(Enum):
         UNRESOLVED_DISEASE (str): Disease identifier could not match to referece or retired identifier - labelling failing disease
         UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
         DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
+        NO_GENE_PROVIDED (str): Flagging QTL studies if the measured
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
@@ -38,6 +40,7 @@ class StudyQualityCheck(Enum):
     )
     UNKNOWN_STUDY_TYPE = "This type of study is not supported."
     DUPLICATED_STUDY = "The identifier of this study is not unique."
+    NO_GENE_PROVIDED = "QTL study doesn't have gene assigned."
 
 
 @dataclass
@@ -206,13 +209,42 @@ class StudyIndex(Dataset):
         """
         return self.df.hasSumstats
 
-    # def validate_unique_study_id(self: StudyIndex) -> None:
-    #     raise NotImplementedError
+    def validate_unique_study_id(self: StudyIndex) -> StudyIndex:
+        """Validating the uniqueness of study identifiers and flagging duplicated studies.
+
+        Returns:
+            StudyIndex: with flagged duplicated studies.
+        """
+        validated_df = (
+            self.df.withColumn(
+                "isDuplicated",
+                f.when(
+                    f.count("studyType").over(
+                        Window.partitionBy("studyId").rowsBetween(
+                            Window.unboundedPreceding, Window.unboundedFollowing
+                        )
+                    )
+                    > 1,
+                    True,
+                ).otherwise(False),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    f.col("isDuplicated"),
+                    StudyQualityCheck.DUPLICATED_STUDY,
+                ),
+            )
+            .drop("isDuplicated")
+        )
+        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     # def validate_disease(self: StudyIndex, disease_index: DataFrame) -> None:
     #     raise NotImplementedError
 
     # def validate_study_type(self: StudyIndex) -> None:
+    #     """Validating study type and flag unsupported types."""
     #     raise NotImplementedError
 
     def validate_target(self: StudyIndex, target_index: GeneIndex) -> StudyIndex:
@@ -226,7 +258,11 @@ class StudyIndex(Dataset):
         """
         gene_set = target_index.df.select("geneId", f.lit(True).alias("isIdFound"))
 
-        self.df = (
+        # As the geneId is not a mandatory field of study index, we return if the column is not there:
+        if "geneId" not in self.df.columns:
+            return self
+
+        validated_df = (
             self.df.join(gene_set, on="geneId", how="left")
             .withColumn(
                 "isIdFound",
@@ -246,4 +282,4 @@ class StudyIndex(Dataset):
             .drop("isIdFound")
         )
 
-        return self
+        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
