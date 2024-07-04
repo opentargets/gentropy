@@ -22,7 +22,6 @@ class LocusBreakerClumpingStep:
         large_loci_size: int,
         wbc_clump_distance: int,
         wbc_pvalue_threshold: float,
-        collect_locus_distance: int,
         collect_locus: bool = False,
         remove_mhc: bool = True,
     ) -> None:
@@ -43,12 +42,11 @@ class LocusBreakerClumpingStep:
             large_loci_size (int): Threshold distance to define large loci for window-based clumping.
             wbc_clump_distance (int): Clump distance for window breaker clumping.
             wbc_pvalue_threshold (float): P-value threshold for window breaker clumping.
-            collect_locus_distance (int): Distance to collect locus.
             collect_locus (bool, optional): Whether to collect locus. Defaults to False.
             remove_mhc (bool, optional): If true will use exclude_region() to remove the MHC region.
         """
         sum_stats = SummaryStatistics.from_parquet(
-            session, summary_statistics_input_path
+            session, summary_statistics_input_path, recursiveFileLookup=True
         )
         lbc = sum_stats.locus_breaker_clumping(
             lbc_baseline_pvalue,
