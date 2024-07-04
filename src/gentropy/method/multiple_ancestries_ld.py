@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 from pyspark.sql.functions import array, map_from_arrays
-from scipy.optimize import OptimizeResult, minimize
+from scipy.optimize import minimize
 from scipy.stats import multivariate_normal
 
 from gentropy.common.session import Session
@@ -332,7 +332,10 @@ class multipleAncestriesLD:
             zero_af_substitution=zero_af_substitution,
         )
         log_likelihood = multivariate_normal.logpdf(
-            Z[ind], mean=np.zeros(len(Z[ind])), cov=new_ld["LD"][ind, :][:, ind]
+            Z[ind],
+            mean=np.zeros(len(Z[ind])),
+            cov=new_ld["LD"][ind, :][:, ind],
+            allow_singular=True,
         )
 
         return -log_likelihood
@@ -361,7 +364,7 @@ class multipleAncestriesLD:
         maf_threshold: float = 0.2,
         number_of_snps: int = 20,
         zero_af_substitution: float = 1e-4,
-    ) -> OptimizeResult:
+    ) -> dict[str, Any] | None:
         """Infer the ancestry proportions from the Z-scores and LD matrix.
 
         Args:
@@ -378,7 +381,7 @@ class multipleAncestriesLD:
             zero_af_substitution (float, optional): The value to substitute for zero allele frequencies. Defaults to 1e-4.
 
         Returns:
-            OptimizeResult: The result of the optimization.
+            dict[str, Any] | None: The result of the optimization.
         """
         out_dict = multipleAncestriesLD.prepare_data_frames(
             session=session,
@@ -412,4 +415,4 @@ class multipleAncestriesLD:
             bounds=bounds,
         )
 
-        return result
+        return {"result": result, "listOfAncestries": listOfAncestries}
