@@ -143,7 +143,11 @@ class multipleAncestriesLD:
             "eas",
             "afr",
         ],
-    ) -> dict[str, Any]:
+        filter_snps: bool = True,
+        maf_threshold: float = 0.2,
+        number_of_snps: int = 20,
+        z_threshold: float = 3,
+    ) -> dict[str, Any] | None:
         """Extract the AFs and LD matrices for the given chromosome and region and the list of ancestires.
 
         Args:
@@ -155,9 +159,13 @@ class multipleAncestriesLD:
             listOfAncestries (list[str], optional): List of ancestries. Defaults to ["nfe","afr"].
             gwas (SummaryStatistics | None): GWAS summary statistics. Defaults to None.
             full_list_of_ancestries (list[str], optional): List of all ancestries. Defaults to ['oth', 'amr', 'fin', 'ami', 'mid', 'nfe', 'sas', 'asj', 'eas', 'afr'].
+            filter_snps (bool, optional): Whether to filter the SNPs based on MAF and Z-score. Defaults to True.
+            maf_threshold (float, optional): The threshold for minor allele frequency. Defaults to 0.2.
+            number_of_snps (int, optional): The number of SNPs to use for optimization. Defaults to 20.
+            z_threshold (float, optional): The threshold for Z-score. Defaults to 3.
 
         Returns:
-            dict[str, Any]: A dictionary containing the LD and ref_af.
+            dict[str, Any] | None: A dictionary containing the LD and ref_af.
         """
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
@@ -260,6 +268,22 @@ class multipleAncestriesLD:
 
         ref_af = ref_af.toPandas()
         ref_af = ref_af.drop_duplicates(subset="variantId")
+
+        if filter_snps:
+            m_p = ref_af[listOfAncestries]
+            m_p = np.array(m_p)
+            Z = np.array(ref_af["z"].tolist())
+
+            mask = (m_p >= maf_threshold) & (m_p <= 1 - maf_threshold)
+            rows = np.all(mask, axis=1)
+            rows = (np.abs(Z) <= z_threshold) & rows
+            ind = np.where(rows)[0]
+            if len(ind) <= number_of_snps:
+                logging.warning("Not enough snps in the region.")
+                return None
+            ind = ind[range(0, number_of_snps)]
+
+            ref_af = ref_af.iloc[ind, :]
 
         LD = {}
         for ancestry in listOfAncestries:
@@ -364,6 +388,7 @@ class multipleAncestriesLD:
         maf_threshold: float = 0.2,
         number_of_snps: int = 20,
         zero_af_substitution: float = 1e-4,
+        z_threshold: float = 3,
     ) -> dict[str, Any] | None:
         """Infer the ancestry proportions from the Z-scores and LD matrix.
 
@@ -379,6 +404,7 @@ class multipleAncestriesLD:
             maf_threshold (float, optional): The threshold for minor allele frequency. Defaults to 0.2.
             number_of_snps (int, optional): The number of SNPs to use for optimization. Defaults to 20.
             zero_af_substitution (float, optional): The value to substitute for zero allele frequencies. Defaults to 1e-4.
+            z_threshold (float, optional): The threshold for Z-score. Defaults to 3.
 
         Returns:
             dict[str, Any] | None: The result of the optimization.
@@ -392,27 +418,46 @@ class multipleAncestriesLD:
             path_to_ld_index=path_to_ld_index,
             gwas=gwas,
             full_list_of_ancestries=full_list_of_ancestries,
+            maf_threshold=maf_threshold,
+            number_of_snps=number_of_snps,
+            z_threshold=z_threshold,
+            filter_snps=True,
         )
-        m_p = out_dict["ref_af"][listOfAncestries]
-        m_p = np.array(m_p)
-        Z = np.array(out_dict["ref_af"]["z"].tolist())
+        if out_dict is not None:
+            m_p = out_dict["ref_af"][listOfAncestries]
+            m_p = np.array(m_p)
+            Z = np.array(out_dict["ref_af"]["z"].tolist())
 
-        mask = (m_p >= maf_threshold) & (m_p <= 1 - maf_threshold)
-        rows = np.all(mask, axis=1)
-        ind = np.where(rows)[0]
-        if len(ind) <= number_of_snps:
-            logging.warning("Not enough snps in the region.")
+            mask = (m_p >= maf_threshold) & (m_p <= 1 - maf_threshold)
+            rows = np.all(mask, axis=1)
+            rows = (np.abs(Z) <= z_threshold) & rows
+            ind = np.where(rows)[0]
+            if len(ind) < number_of_snps:
+                logging.warning("Not enough snps in the region.")
+                return None
+            ind = ind[range(0, number_of_snps)]
+
+            initial_alphas = np.ones(len(listOfAncestries))
+            bounds = [(0, 1)] * len(listOfAncestries)  # Non-negative bounds for alphas
+
+            result = minimize(
+                multipleAncestriesLD.fun_for_opt,
+                initial_alphas,
+                args=(
+                    Z,
+                    out_dict["LD"],
+                    m_p,
+                    listOfAncestries,
+                    ind,
+                    zero_af_substitution,
+                ),
+                bounds=bounds,
+            )
+
+            return {
+                "result": result,
+                "listOfAncestries": listOfAncestries,
+                "out_dict": out_dict,
+            }
+        else:
             return None
-        ind = ind[range(0, number_of_snps)]
-
-        initial_alphas = np.ones(len(listOfAncestries))
-        bounds = [(0, 1)] * len(listOfAncestries)  # Non-negative bounds for alphas
-
-        result = minimize(
-            multipleAncestriesLD.fun_for_opt,
-            initial_alphas,
-            args=(Z, out_dict["LD"], m_p, listOfAncestries, ind, zero_af_substitution),
-            bounds=bounds,
-        )
-
-        return {"result": result, "listOfAncestries": listOfAncestries}
