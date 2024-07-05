@@ -278,7 +278,7 @@ class multipleAncestriesLD:
             rows = np.all(mask, axis=1)
             rows = (np.abs(Z) <= z_threshold) & rows
             ind = np.where(rows)[0]
-            if len(ind) <= number_of_snps:
+            if len(ind) < number_of_snps:
                 logging.warning("Not enough snps in the region.")
                 return None
             ind = ind[range(0, number_of_snps)]
