@@ -260,3 +260,152 @@ class TestUniquenessValidation:
 
         # the right study is found:
         assert "s1" in flagged_ids
+
+
+class TestStudyTypeValidation:
+    """Testing study type validation."""
+
+    STUDY_DATA = [
+        # This study is flagged because of unexpected type:
+        ("s1", "cicaful", "p", "gene1"),
+        ("s3", "eqtl", "p", "gene1"),
+        ("s4", "gwas", "p", None),
+    ]
+    STUDY_COLUMNS = ["studyId", "studyType", "projectId", "geneId"]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyTypeValidation, spark: SparkSession) -> None:
+        """Setup fixture."""
+        self.study_index = StudyIndex(
+            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
+                "qualityControls", f.array()
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+    def test_study_type_validation_return_type(self: TestStudyTypeValidation) -> None:
+        """Testing if the function returns the expected type."""
+        assert isinstance(self.study_index.validate_study_type(), StudyIndex)
+
+    def test_study_type_validation_correctness(self: TestStudyTypeValidation) -> None:
+        """Test if the correct study is flagged."""
+        flagged_study_ids = [
+            study["studyId"]
+            for study in self.study_index.validate_study_type()
+            .df.filter(f.size("qualityControls") > 0)
+            .collect()
+        ]
+        assert "s1" in flagged_study_ids
+        # Check if any
+        flagged_study_types = [
+            study["studyType"]
+            for study in self.study_index.validate_study_type()
+            .df.filter(f.size("qualityControls") == 0)
+            .collect()
+        ]
+        for study_type in flagged_study_types:
+            assert study_type != "gwas"
+            assert "qtl" not in study_type
+
+
+class TestDiseaseValidation:
+    """Testing the disease validation."""
+
+    DISEASE_DATA = [
+        ("EFO_old", "EFO_new"),
+        ("EFO_new", "EFO_new"),
+        ("EFO_new2", "EFO_new2"),
+    ]
+
+    DISEASE_HEADER = ["efo", "diseaseId"]
+
+    STUDY_DATA = [
+        # Old EFO mapped to new:
+        ("s1", "gwas", "p", "EFO_old"),
+        # List of EFOs some mapped, some not:
+        ("s2", "gwas", "p", "EFO_old"),
+        ("s2", "gwas", "p", "EFO_new2"),
+        ("s2", "gwas", "p", "EFO_invalid"),
+        # single EFO mapped as the same:
+        ("s3", "gwas", "p", "EFO_new2"),
+        # Invalid study:
+        ("s4", "gwas", "p", "EFO_invalid"),
+        # Invalid study - no EFO:
+        ("s5", "gwas", "p", None),
+        # Valid study, missing efo, not gwas:
+        ("s6", "eqtl", "p2", None),
+    ]
+
+    STUDY_COLUMNS = ["studyId", "studyType", "projectId", "efo"]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestDiseaseValidation, spark: SparkSession) -> None:
+        """Setup fixture."""
+        study_df = (
+            spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
+            .groupBy("studyId", "studyType", "projectId")
+            .agg(f.collect_set("efo").alias("traitFromSourceMappedIds"))
+            .withColumn("qualityControls", f.array())
+            .withColumn("backgroundTraitFromSourceMappedIds", f.array())
+        )
+        study_df.show()
+        # Mock study index:
+        self.study_index = StudyIndex(
+            _df=study_df,
+            _schema=StudyIndex.get_schema(),
+        )
+
+        # Disease mapping:
+        self.disease = spark.createDataFrame(self.DISEASE_DATA, self.DISEASE_HEADER)
+
+        # Validated data:
+        self.validated = self.study_index.validate_disease(self.disease).persist()
+
+    def test_disease_validation_return_type(self: TestDiseaseValidation) -> None:
+        """Testing if the disease validation returns the right type."""
+        assert isinstance(self.validated, StudyIndex)
+
+    def test_disease_validation_right_flag(self: TestDiseaseValidation) -> None:
+        """Testing if the right studies are flagged in the validation step."""
+        # Testing flagged studies:
+        for study in self.validated.df.filter(f.size("qualityControls") > 0).collect():
+            # All flagged studies are from gwas:
+            assert study["studyType"] == "gwas"
+            # None of the flagged studies have assigned valid disease:
+            assert len(study["diseaseIds"]) == 0
+
+        # Testing unflagged studies:
+        for study in self.validated.df.filter(f.size("qualityControls") == 0).collect():
+            # If a valid study has no disease, it cannot be gwas:
+            if len(study["diseaseIds"]) == 0:
+                assert study["studyType"] != "gwas"
+
+    def test_disease_validation_disease_mapping(self: TestDiseaseValidation) -> None:
+        """Testing if old disease identifiers can be rescued."""
+        example_study_id = "s1"
+
+        test_study = self.validated.df.filter(
+            f.col("studyId") == example_study_id
+        ).collect()[0]
+
+        # Assert validation:
+        assert len(test_study["qualityControls"]) == 0
+
+        # Assert disease mapping:
+        assert test_study["traitFromSourceMappedIds"][0] != test_study["diseaseIds"][0]
+
+    def test_disease_validation_disease_removal(self: TestDiseaseValidation) -> None:
+        """Testing if not all diseases can be mapped, the study still passes QC."""
+        example_study_id = "s2"
+
+        test_study = self.validated.df.filter(
+            f.col("studyId") == example_study_id
+        ).collect()[0]
+
+        # Assert validation:
+        assert len(test_study["qualityControls"]) == 0
+
+        # Assert not all diseases could be mapped to disease index:
+        assert len(test_study["traitFromSourceMappedIds"]) > len(
+            test_study["diseaseIds"]
+        )

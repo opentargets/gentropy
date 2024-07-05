@@ -35,9 +35,7 @@ class StudyQualityCheck(Enum):
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
-    UNRESOLVED_DISEASE = (
-        "Disease identifier could not match to referece or retired identifier."
-    )
+    UNRESOLVED_DISEASE = "No valid disease identifier found."
     UNKNOWN_STUDY_TYPE = "This type of study is not supported."
     DUPLICATED_STUDY = "The identifier of this study is not unique."
     NO_GENE_PROVIDED = "QTL study doesn't have gene assigned."
@@ -240,12 +238,120 @@ class StudyIndex(Dataset):
         )
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
-    # def validate_disease(self: StudyIndex, disease_index: DataFrame) -> None:
-    #     raise NotImplementedError
+    def _normalise_disease(
+        self: StudyIndex,
+        source_disease_column_name: str,
+        disease_column_name: str,
+        disease_map: DataFrame,
+    ) -> DataFrame:
+        """Normalising diseases in the study index.
 
-    # def validate_study_type(self: StudyIndex) -> None:
-    #     """Validating study type and flag unsupported types."""
-    #     raise NotImplementedError
+        Args:
+            source_disease_column_name (str): The column name of the disease column to validate.
+            disease_column_name (str): The resulting disease column name that contains the validated ids.
+            disease_map (DataFrame): Reference dataframe with diseases
+
+        Returns:
+            DataFrame: where the disease column name will contain the
+        """
+        return (
+            self.df
+            # Only validating studies with diseases:
+            .filter(f.size(f.col(source_disease_column_name)) > 0)
+            # Explode disease column:
+            .select(
+                "studyId",
+                "studyType",
+                f.explode_outer(source_disease_column_name).alias("efo"),
+            )
+            # Join disease map:
+            .join(disease_map, on="efo", how="left")
+            .groupBy("studyId")
+            .agg(
+                f.collect_set(f.col("diseaseId")).alias(disease_column_name),
+            )
+        )
+
+    def validate_disease(self: StudyIndex, disease_map: DataFrame) -> StudyIndex:
+        """Validate diseases in the study index dataset.
+
+        Args:
+            disease_map (DataFrame): a dataframe with two columns (efo, diseaseId).
+
+        Returns:
+            StudyIndex: where gwas studies are flagged where no valid disease id could be found.
+        """
+        # Because the disease ids are not mandatory fields of the schema, we skip vaildation if these columns are not present:
+        if ("traitFromSourceMappedIds" not in self.df.columns) or (
+            "backgroundTraitFromSourceMappedIds" not in self.df.columns
+        ):
+            return self
+
+        # Disease Column names:
+        foreground_disease_column = "diseaseIds"
+        background_disease_column = "backgroundDiseaseIds"
+        # Normalise disease:
+        normalised_disease = self._normalise_disease(
+            "traitFromSourceMappedIds", foreground_disease_column, disease_map
+        )
+        normalised_background_disease = self._normalise_disease(
+            "backgroundTraitFromSourceMappedIds", background_disease_column, disease_map
+        )
+        return StudyIndex(
+            _df=(
+                self.df.join(normalised_disease, on="studyId", how="left")
+                .join(normalised_background_disease, on="studyId", how="left")
+                # Updating disease columns:
+                .withColumn(
+                    foreground_disease_column,
+                    f.when(
+                        f.col(foreground_disease_column).isNull(), f.array()
+                    ).otherwise(f.col(foreground_disease_column)),
+                )
+                .withColumn(
+                    background_disease_column,
+                    f.when(
+                        f.col(background_disease_column).isNull(), f.array()
+                    ).otherwise(f.col(background_disease_column)),
+                )
+                # Flagging gwas studies where no valid disease is avilable:
+                .withColumn(
+                    "qualityControls",
+                    StudyIndex.update_quality_flag(
+                        f.col("qualityControls"),
+                        # Flagging all gwas studies with no normalised disease:
+                        (f.size(f.col(foreground_disease_column)) == 0)
+                        & (f.col("studyType") == "gwas"),
+                        StudyQualityCheck.UNRESOLVED_DISEASE,
+                    ),
+                )
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+    def validate_study_type(self: StudyIndex) -> StudyIndex:
+        """Validating study type and flag unsupported types.
+
+        Returns:
+            StudyIndex: with flagged studies with unsupported type.
+        """
+        validated_df = (
+            self.df
+            # Flagging unsupported study types:
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    f.when(
+                        (f.col("studyType") == "gwas")
+                        | f.col("studyType").endswith("qtl"),
+                        False,
+                    ).otherwise(True),
+                    StudyQualityCheck.UNKNOWN_STUDY_TYPE,
+                ),
+            )
+        )
+        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     def validate_target(self: StudyIndex, target_index: GeneIndex) -> StudyIndex:
         """Validating gene identifiers in the study index against the provided target index.
