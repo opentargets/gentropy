@@ -79,20 +79,6 @@ class VariantIndex(Dataset):
             >>> VariantIndex.fetch_coordinates(["rs75493593"])
             [{'rs75493593': ['17_7041768_G_C', '17_7041768_G_T']}]
         """
-        # def _ensembl_batch_request(rsids: list[str]) -> dict[str, dict[str, Any]]:
-        #     """Access the batch endpoint of Ensembl.
-
-        #     Args:
-        #         rsids (list[str]): List of rsIDs
-
-        #     Returns:
-        #         dict[str, dict[str, Any]]: Dictionary with rsID as key and variant data as value.
-        #     """
-        #     url = "https://rest.ensembl.org/variation/human"
-        #     headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        #     data = {"ids": rsids}
-
-        #     return requests.post(f"{url}", headers=headers, json=data).json()
 
         def _ensembl_batch_request(rsids: list[str]) -> dict[str, dict[str, Any]]:
             """Access the batch endpoint of Ensembl.
