@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
@@ -15,6 +14,8 @@ from typing_extensions import Self
 from gentropy.common.schemas import flatten_schema
 
 if TYPE_CHECKING:
+    from enum import Enum
+
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
