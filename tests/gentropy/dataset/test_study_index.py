@@ -300,7 +300,7 @@ class TestStudyTypeValidation:
         flagged_study_types = [
             study["studyType"]
             for study in self.study_index.validate_study_type()
-            .df.filter(f.size("qualityControls") == 0)
+            .df.filter(f.size("qualityControls") != 0)
             .collect()
         ]
         for study_type in flagged_study_types:
