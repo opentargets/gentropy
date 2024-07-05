@@ -290,6 +290,17 @@ class StudyIndex(Dataset):
         # Disease Column names:
         foreground_disease_column = "diseaseIds"
         background_disease_column = "backgroundDiseaseIds"
+
+        # If diseaseId in schema, we need to drop it:
+        drop_columns = [
+            column
+            for column in self.df.columns
+            if column in [foreground_disease_column, background_disease_column]
+        ]
+
+        if len(drop_columns) > 0:
+            self.df = self.df.drop(*drop_columns)
+
         # Normalise disease:
         normalised_disease = self._normalise_disease(
             "traitFromSourceMappedIds", foreground_disease_column, disease_map
@@ -297,6 +308,7 @@ class StudyIndex(Dataset):
         normalised_background_disease = self._normalise_disease(
             "backgroundTraitFromSourceMappedIds", background_disease_column, disease_map
         )
+
         return StudyIndex(
             _df=(
                 self.df.join(normalised_disease, on="studyId", how="left")
