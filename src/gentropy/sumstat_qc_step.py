@@ -31,6 +31,6 @@ class SummaryStatsticsQCStep:
         QC = SummaryStatisticsQC.get_quality_control_metrics(
             gwas=gwas, limit=100_000_000, min_count=100, n_total=100000
         )
-        QC.df.write.mode(session.write_mode).parquet(
+        QC.write.mode(session.write_mode).parquet(
             output_path + "/qc_results_" + studyid
         )
