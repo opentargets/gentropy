@@ -2,4 +2,4 @@ defaults:
   - base_session
 
 spark_uri: yarn
-write_mode: errorifexists
+write_mode: overwrite

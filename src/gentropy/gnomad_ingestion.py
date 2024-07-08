@@ -82,7 +82,7 @@ class GnomadVariantIndexStep:
     def __init__(
         self,
         session: Session,
-        variant_annotation_path: str,
+        variant_annotation_path: str = GnomadVariantConfig().variant_annotation_path,
         gnomad_genomes_path: str = GnomadVariantConfig().gnomad_genomes_path,
         gnomad_variant_populations: list[
             VariantPopulation | str

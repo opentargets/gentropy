@@ -14,7 +14,7 @@ class SessionConfig:
     """Session configuration."""
 
     start_hail: bool = False
-    write_mode: str = "errorifexists"
+    write_mode: str = "overwrite"
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = None
@@ -310,7 +310,7 @@ class GnomadVariantConfig(StepConfig):
             "start_hail": True,
         }
     )
-    variant_annotation_path: str = MISSING
+    variant_annotation_path: str = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/gnomad_variants"
     gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
