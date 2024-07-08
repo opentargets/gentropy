@@ -17,7 +17,7 @@ class SessionConfig:
     write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
-    extended_spark_conf: dict[str, str] | None = None
+    extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     _target_: str = "gentropy.common.session.Session"
 
 
@@ -432,6 +432,7 @@ class FinemapperConfig(StepConfig):
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
     output_path_log: str = MISSING
+    _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
 @dataclass
