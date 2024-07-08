@@ -7,7 +7,7 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.sumstat_quality_controls import SummaryStatisticsQC
 
 
-class SummaryStatsticsQCStep:
+class SummaryStatisticsQCStep:
     """Step to run GWAS QC."""
 
     def __init__(
