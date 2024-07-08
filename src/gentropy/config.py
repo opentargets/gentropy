@@ -442,7 +442,7 @@ class GWASQCStep(StepConfig):
     gwas_path: str = MISSING
     output_path: str = MISSING
     studyid: str = MISSING
-    _target_: str = "gentropy.sumstat_qc_step.SummaryStatsticsQCStep"
+    _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
 
 
 @dataclass
