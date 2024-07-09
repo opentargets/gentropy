@@ -372,14 +372,18 @@ class VariantToGeneConfig(StepConfig):
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
-    distance_cutoff: int = 250_000
-    flanking_distance: int = 100_000
-    baseline_pvalue_cutoff: float = 1e-5
+    summary_statistics_input_path: str = MISSING
+    clumped_study_locus_output_path: str = MISSING
+    lbc_baseline_pvalue: float = 1e-5
+    lbc_distance_cutoff: int = 250_000
+    lbc_pvalue_threshold: float = MISSING
+    lbc_flanking_distance: int = 100_000
+    large_loci_size: int = 1_500_000
+    wbc_clump_distance: int = 500_000
+    wbc_pvalue_threshold: float = MISSING
+    collect_locus: bool = False
+    remove_mhc: bool = True
+    _target_: str = "gentropy.locus_breaker_clumping.LocusBreakerClumpingStep"
 
 
 @dataclass
