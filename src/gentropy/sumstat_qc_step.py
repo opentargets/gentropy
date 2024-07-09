@@ -17,7 +17,7 @@ class SummaryStatisticsQCStep:
         output_path: str,
         studyid: str,
     ) -> None:
-        """Run fine-mapping on a studyLocusId from a collected studyLocus table.
+        """Calculating quality control metrics on the provided GWAS study.
 
         Args:
             session (Session): Spark session
