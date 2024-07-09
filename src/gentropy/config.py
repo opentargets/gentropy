@@ -442,6 +442,20 @@ class GWASQCStep(StepConfig):
 
 
 @dataclass
+class CredibleSetQCConfig(StepConfig):
+    """Credible set quality control step configuration."""
+
+    credible_sets_path: str = MISSING
+    study_index_path: str = MISSING
+    ld_index_path: str = MISSING
+    output_path: str = MISSING
+    p_value_threshold: float = 1e-5
+    purity_min_r2: float = 0.01
+    ld_min_r2: float = 0.8
+    _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
