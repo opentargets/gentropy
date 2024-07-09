@@ -28,9 +28,10 @@ class SummaryStatisticsQCStep:
         """
         gwas = SummaryStatistics.from_parquet(session, path=gwas_path)
 
-        QC = SummaryStatisticsQC.get_quality_control_metrics(
-            gwas=gwas, limit=100_000_000, min_count=100, n_total=100000
-        )
-        QC.write.mode(session.write_mode).parquet(
-            output_path + "/qc_results_" + studyid
+        (
+            SummaryStatisticsQC.get_quality_control_metrics(
+                gwas=gwas, limit=100_000_000, min_count=100, n_total=100000
+            )
+            .write.mode(session.write_mode)
+            .parquet(output_path + "/qc_results_" + studyid)
         )
