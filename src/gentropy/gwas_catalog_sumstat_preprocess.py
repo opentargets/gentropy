@@ -23,5 +23,5 @@ class GWASCatalogSumstatsPreprocessStep:
         # Processing dataset:
         GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
             session.spark, raw_sumstats_path
-        ).df.write.mode(session.write_mode).parquet(out_sumstats_path)
+        ).sanity_filter().df.write.mode(session.write_mode).parquet(out_sumstats_path)
         session.logger.info("Processing dataset successfully completed.")
