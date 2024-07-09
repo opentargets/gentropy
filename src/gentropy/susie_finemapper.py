@@ -59,7 +59,6 @@ class SusieFineMapperStep:
         carma_time_limit: int = 600,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
-        output_path_log: str = "~/",
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -81,7 +80,6 @@ class SusieFineMapperStep:
             carma_time_limit (int): CARMA time limit, default is 600 seconds
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
-            output_path_log (str): path to the output log
         """
         # Initialise Hail
         hl.init(sc=session.spark.sparkContext, log="/dev/null")
