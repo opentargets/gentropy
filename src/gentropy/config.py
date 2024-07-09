@@ -376,7 +376,7 @@ class LocusBreakerClumpingConfig(StepConfig):
     clumped_study_locus_output_path: str = MISSING
     lbc_baseline_pvalue: float = 1e-5
     lbc_distance_cutoff: int = 250_000
-    lbc_pvalue_threshold: float = MISSING
+    lbc_pvalue_threshold: float = 1e-8
     lbc_flanking_distance: int = 100_000
     large_loci_size: int = 1_500_000
     wbc_clump_distance: int = 500_000
