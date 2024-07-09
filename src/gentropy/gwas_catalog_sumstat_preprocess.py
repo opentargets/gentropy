@@ -8,7 +8,10 @@ from gentropy.datasource.gwas_catalog.summary_statistics import (
 
 
 class GWASCatalogSumstatsPreprocessStep:
-    """Step to preprocess GWAS Catalog harmonised summary stats."""
+    """Step to preprocess GWAS Catalog harmonised summary stats.
+
+    It additionally performs sanity filter of GWAS before saving it.
+    """
 
     def __init__(
         self, session: Session, raw_sumstats_path: str, out_sumstats_path: str
