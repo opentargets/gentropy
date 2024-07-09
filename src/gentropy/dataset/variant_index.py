@@ -26,6 +26,30 @@ if TYPE_CHECKING:
 class VariantIndex(Dataset):
     """Dataset for representing variants and methods applied on them."""
 
+    def __post_init__(self: VariantIndex) -> None:
+        """Forcing the presence of empty arrays even if the schema allows missing values.
+
+        To bring in annotations from other sources, we use the `array_union()` function. However it assumes
+        both columns have arrays (not just the array schema!). If one of the array is null, the union
+        is nullified. This needs to be avoided.
+        """
+        # Calling dataset's post init to validate schema:
+        super().__post_init__()
+
+        #
+
+        # Composing a list of expressions to replace nulls with empty arrays if the schema assumes:
+        array_columns = {
+            column.name: f.when(f.col(column.name).isNull(), f.array()).otherwise(
+                f.col(column.name)
+            )
+            for column in self.df.schema
+            if "ArrayType" in column.dataType.__str__()
+        }
+
+        # Not returning, but changing the data:
+        self.df = self.df.withColumns(array_columns)
+
     @classmethod
     def get_schema(cls: type[VariantIndex]) -> StructType:
         """Provides the schema for the variant index dataset.
