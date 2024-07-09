@@ -14,7 +14,7 @@ class SessionConfig:
     """Session configuration."""
 
     start_hail: bool = False
-    write_mode: str = "overwrite"
+    write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
@@ -310,7 +310,7 @@ class GnomadVariantConfig(StepConfig):
             "start_hail": True,
         }
     )
-    variant_annotation_path: str = "gs://genetics_etl_python_playground/output/python_etl/parquet/XX.XX/gnomad_variants"
+    variant_annotation_path: str = MISSING
     gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
@@ -494,7 +494,7 @@ def register_config() -> None:
     )
 
     cs.store(group="step", name="pics", node=PICSConfig)
-    cs.store(group="step", name="ot_gnomad_variants", node=GnomadVariantConfig)
+    cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
