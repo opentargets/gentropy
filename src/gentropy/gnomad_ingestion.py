@@ -112,14 +112,14 @@ class GnomadVariantIndexStep:
         hl.init(sc=session.spark.sparkContext, log="/dev/null")
 
         # Parse variant info from source.
-        gnomad_variants = GnomADVariants(
-            gnomad_genomes_path=gnomad_genomes_path,
-            gnomad_variant_populations=gnomad_variant_populations,
-        ).as_variant_index()
-
-        # Write data partitioned by chromosome and position.
         (
-            gnomad_variants.df.write.mode(session.write_mode).parquet(
-                variant_annotation_path
+            GnomADVariants(
+                gnomad_genomes_path=gnomad_genomes_path,
+                gnomad_variant_populations=gnomad_variant_populations,
             )
+            # Convert data to variant index:
+            .as_variant_index()
+            # Write file:
+            .df.write.mode(session.write_mode)
+            .parquet(variant_annotation_path)
         )

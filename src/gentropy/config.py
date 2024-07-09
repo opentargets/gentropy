@@ -336,7 +336,7 @@ class VariantIndexConfig(StepConfig):
 
     session: Any = field(
         default_factory=lambda: {
-            "start_hail": True,
+            "start_hail": False,
         }
     )
     vep_output_json_path: str = MISSING
