@@ -1,4 +1,4 @@
-"""Step to run a finemapping using."""
+"""Step to calculate quality control metrics on the provided GWAS study."""
 
 from __future__ import annotations
 
