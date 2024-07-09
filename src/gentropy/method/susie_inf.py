@@ -470,7 +470,7 @@ class SUSIE_inf:
         ld_index: LDIndex,
         p_value_threshold: float = 1e-5,
         purity_min_r2: float = 0.01,
-        ld_r2_threshold: float = 0.8,
+        ld_min_r2: float = 0.8,
     ) -> StudyLocus:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
 
@@ -480,7 +480,7 @@ class SUSIE_inf:
             ld_index (LDIndex): LDIndex object
             p_value_threshold (float): p-value threshold for filtering credible sets, default is 1e-5
             purity_min_r2 (float): min-R2 purity threshold for filtering credible sets, default is 0.01
-            ld_r2_threshold (float): LD R2 threshold for clumping, default is 0.8
+            ld_min_r2 (float): LD R2 threshold for clumping, default is 0.8
 
         Returns:
             StudyLocus: Credible sets which pass filters and LD clumping.
@@ -495,7 +495,7 @@ class SUSIE_inf:
         )
         cred_sets.df = df
         cred_sets = (
-            cred_sets.annotate_ld(study_index, ld_index, r2_threshold=ld_r2_threshold)
+            cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
             .clump()
             .filter(
                 ~f.array_contains(
