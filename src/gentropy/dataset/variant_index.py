@@ -77,7 +77,7 @@ class VariantIndex(Dataset):
 
         Example:
             >>> VariantIndex.fetch_coordinates(["rs75493593"])
-            [{'rs75493593': ['17_7041768_G_C', '17_7041768_G_T']}]
+            {'rs75493593': ['17_7041768_G_C', '17_7041768_G_T']}
         """
 
         def _ensembl_batch_request(rsids: list[str]) -> dict[str, dict[str, Any]]:
