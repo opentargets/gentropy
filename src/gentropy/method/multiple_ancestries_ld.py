@@ -461,3 +461,69 @@ class multipleAncestriesLD:
             }
         else:
             return None
+
+    @staticmethod
+    def run_few_loci(
+        session: Session,
+        gwas: SummaryStatistics,
+        path_to_ld_index: str,
+        listOfAncestries: list[str] = ["nfe", "afr"],
+        full_list_of_ancestries: list[str] = [
+            "oth",
+            "amr",
+            "fin",
+            "ami",
+            "mid",
+            "nfe",
+            "sas",
+            "asj",
+            "eas",
+            "afr",
+        ],
+        maf_threshold: float = 0.2,
+        number_of_snps: int = 20,
+        zero_af_substitution: float = 1e-4,
+        z_threshold: float = 3,
+    ) -> list[Any]:
+        """Infer the ancestry proportions from the Z-scores and LD matrix.
+
+        Args:
+            session (Session): The pyspark session object.
+            gwas (SummaryStatistics): GWAS summary statistics.
+            path_to_ld_index (str): Path to the LD index file with AFs.
+            listOfAncestries (list[str], optional): List of ancestries to select from. Defaults to ["nfe", "afr"].
+            full_list_of_ancestries (list[str], optional): List of all ancestries. Defaults to ['oth', 'amr', 'fin', 'ami', 'mid', 'nfe', 'sas', 'asj', 'eas', 'afr'].
+            maf_threshold (float, optional): The threshold for minor allele frequency. Defaults to 0.2.
+            number_of_snps (int, optional): The number of SNPs to use for optimization. Defaults to 20.
+            zero_af_substitution (float, optional): The value to substitute for zero allele frequencies. Defaults to 1e-4.
+            z_threshold (float, optional): The threshold for Z-score. Defaults to 3.
+
+        Returns:
+            list[Any]: The list of ancestry proportions for the given study.
+        """
+        list_of_loci = [
+            ("11", 61_692_980, 61_867_354),
+            ("14", 45_035_930, 45_200_890),
+            ("6", 29_000_000, 29_100_000),
+        ]
+        out: list[np.ndarray] = []
+        for locus in list_of_loci:
+            chromosomeInput, start, end = locus
+            x = multipleAncestriesLD.infer_ancestry_proportions(
+                session=session,
+                chromosomeInput=chromosomeInput,
+                start=start,
+                end=end,
+                path_to_ld_index=path_to_ld_index,
+                gwas=gwas,
+                listOfAncestries=listOfAncestries,
+                full_list_of_ancestries=full_list_of_ancestries,
+                maf_threshold=maf_threshold,
+                number_of_snps=number_of_snps,
+                zero_af_substitution=zero_af_substitution,
+                z_threshold=z_threshold,
+            )
+            if x is not None:
+                y = x["result"].x / np.sum(x["result"].x)
+                out = [y] + out
+        return out
