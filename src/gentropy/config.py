@@ -170,13 +170,9 @@ class LDIndexConfig(StepConfig):
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
-            "asj",  # Ashkenazi Jewish
             "eas",  # East Asian
-            "est",  # Estionian
             "fin",  # Finnish
             "nfe",  # Non-Finnish European
-            "nwe",  # Northwestern European
-            "seu",  # Southeastern European
         ]
     )
     use_version_from_input: bool = False
@@ -433,6 +429,16 @@ class FinemapperConfig(StepConfig):
     ld_score_threshold: float = MISSING
     output_path_log: str = MISSING
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
+
+
+@dataclass
+class GWASQCStep(StepConfig):
+    """GWAS QC step configuration."""
+
+    gwas_path: str = MISSING
+    output_path: str = MISSING
+    studyid: str = MISSING
+    _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
 
 
 @dataclass
