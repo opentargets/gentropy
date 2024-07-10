@@ -114,6 +114,21 @@ class VariantIndex(Dataset):
             .otherwise(variant_id)
         )
 
+    @staticmethod
+    def _merge_columns(a: Column, b: Column) -> Column:
+        """Merge the content of two optional columns.
+
+        Args:
+            a (Column): One optional array column.
+            b (Column): The other optional array column.
+
+        Returns:
+            Column: array column with merged content.
+        """
+        return f.when(a.isNotNull() & b.isNotNull(), f.array_union(a, b)).otherwise(
+            f.coalesce(a, b)
+        )
+
     def add_annotation(
         self: VariantIndex, annotation_source: VariantIndex
     ) -> VariantIndex:
@@ -131,18 +146,18 @@ class VariantIndex(Dataset):
         # Columns in the source dataset:
         variant_index_columns = [
             # Combining cross-references:
-            f.array_union(f.col("dbXrefs"), f.col("annotation_dbXrefs")).alias(
+            self._merge_columns(f.col("dbXrefs"), f.col("annotation_dbXrefs")).alias(
                 "dbXrefs"
             )
             if row == "dbXrefs"
             # Combining in silico predictors:
-            else f.array_union(
+            else self._merge_columns(
                 f.col("inSilicoPredictors"),
                 f.col("annotation_inSilicoPredictors"),
             ).alias("inSilicoPredictors")
             if row == "inSilicoPredictors"
             # Combining allele frequencies:
-            else f.array_union(
+            else self._merge_columns(
                 f.col("alleleFrequencies"), f.col("annotation_alleleFrequencies")
             ).alias("alleleFrequencies")
             if row == "alleleFrequencies"
