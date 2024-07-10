@@ -145,7 +145,6 @@ class multipleAncestriesLD:
         ],
         filter_snps: bool = True,
         maf_threshold: float = 0.2,
-        number_of_snps: int = 20,
         z_threshold: float = 3,
     ) -> dict[str, Any] | None:
         """Extract the AFs and LD matrices for the given chromosome and region and the list of ancestires.
@@ -161,7 +160,6 @@ class multipleAncestriesLD:
             full_list_of_ancestries (list[str], optional): List of all ancestries. Defaults to ['oth', 'amr', 'fin', 'ami', 'mid', 'nfe', 'sas', 'asj', 'eas', 'afr'].
             filter_snps (bool, optional): Whether to filter the SNPs based on MAF and Z-score. Defaults to True.
             maf_threshold (float, optional): The threshold for minor allele frequency. Defaults to 0.2.
-            number_of_snps (int, optional): The number of SNPs to use for optimization. Defaults to 20.
             z_threshold (float, optional): The threshold for Z-score. Defaults to 3.
 
         Returns:
@@ -278,10 +276,9 @@ class multipleAncestriesLD:
             rows = np.all(mask, axis=1)
             rows = (np.abs(Z) <= z_threshold) & rows
             ind = np.where(rows)[0]
-            if len(ind) < number_of_snps:
+            if len(ind) < 20:
                 logging.warning("Not enough snps in the region.")
                 return None
-            ind = ind[range(0, number_of_snps)]
 
             ref_af = ref_af.iloc[ind, :]
 
@@ -389,7 +386,8 @@ class multipleAncestriesLD:
         number_of_snps: int = 20,
         zero_af_substitution: float = 1e-4,
         z_threshold: float = 3,
-    ) -> dict[str, Any] | None:
+        number_of_runs: int = 10,
+    ) -> pd.DataFrame | None:
         """Infer the ancestry proportions from the Z-scores and LD matrix.
 
         Args:
@@ -405,9 +403,10 @@ class multipleAncestriesLD:
             number_of_snps (int, optional): The number of SNPs to use for optimization. Defaults to 20.
             zero_af_substitution (float, optional): The value to substitute for zero allele frequencies. Defaults to 1e-4.
             z_threshold (float, optional): The threshold for Z-score. Defaults to 3.
+            number_of_runs (int, optional): The number of runs for optimization. Defaults to 10.
 
         Returns:
-            dict[str, Any] | None: The result of the optimization.
+            pd.DataFrame | None: The result of the optimization.
         """
         out_dict = multipleAncestriesLD.prepare_data_frames(
             session=session,
@@ -419,7 +418,6 @@ class multipleAncestriesLD:
             gwas=gwas,
             full_list_of_ancestries=full_list_of_ancestries,
             maf_threshold=maf_threshold,
-            number_of_snps=number_of_snps,
             z_threshold=z_threshold,
             filter_snps=True,
         )
@@ -435,30 +433,48 @@ class multipleAncestriesLD:
             if len(ind) < number_of_snps:
                 logging.warning("Not enough snps in the region.")
                 return None
-            ind = ind[range(0, number_of_snps)]
 
             initial_alphas = np.ones(len(listOfAncestries))
             bounds = [(0, 1)] * len(listOfAncestries)  # Non-negative bounds for alphas
 
-            result = minimize(
-                multipleAncestriesLD.fun_for_opt,
-                initial_alphas,
-                args=(
-                    Z,
-                    out_dict["LD"],
-                    m_p,
-                    listOfAncestries,
-                    ind,
-                    zero_af_substitution,
-                ),
-                bounds=bounds,
-            )
+            out: list[np.ndarray] = []
+            for _ in range(number_of_runs):
+                ind_to_run = np.random.choice(ind, number_of_snps, replace=False)
+                values = out_dict["LD"][listOfAncestries[0]][ind_to_run, :][
+                    :, ind_to_run
+                ]
+                np.fill_diagonal(values, 0)
+                avg_squared = np.mean(np.square(values))
+                np.fill_diagonal(values, 1)
+                if avg_squared >= 0.1:
+                    result = minimize(
+                        multipleAncestriesLD.fun_for_opt,
+                        initial_alphas,
+                        args=(
+                            Z,
+                            out_dict["LD"],
+                            m_p,
+                            listOfAncestries,
+                            ind_to_run,
+                            zero_af_substitution,
+                        ),
+                        bounds=bounds,
+                    )
+                    out = [result.x / np.sum(result.x)] + out
 
-            return {
-                "result": result,
-                "listOfAncestries": listOfAncestries,
-                "out_dict": out_dict,
-            }
+            transposed_arrays = np.transpose(out)
+            means = np.mean(transposed_arrays, axis=1)
+            medians = np.median(transposed_arrays, axis=1)
+            ses = np.sqrt(np.var(transposed_arrays, axis=1))
+            df = pd.DataFrame(
+                {
+                    "Ancestry": listOfAncestries,
+                    "means": means,
+                    "medians": medians,
+                    "ses": ses,
+                }
+            )
+            return df
         else:
             return None
 
@@ -484,6 +500,7 @@ class multipleAncestriesLD:
         number_of_snps: int = 20,
         zero_af_substitution: float = 1e-4,
         z_threshold: float = 3,
+        number_of_runs: int = 10,
     ) -> list[Any]:
         """Infer the ancestry proportions from the Z-scores and LD matrix.
 
@@ -497,6 +514,7 @@ class multipleAncestriesLD:
             number_of_snps (int, optional): The number of SNPs to use for optimization. Defaults to 20.
             zero_af_substitution (float, optional): The value to substitute for zero allele frequencies. Defaults to 1e-4.
             z_threshold (float, optional): The threshold for Z-score. Defaults to 3.
+            number_of_runs (int, optional): The number of runs for optimization. Defaults to 10.
 
         Returns:
             list[Any]: The list of ancestry proportions for the given study.
@@ -504,7 +522,6 @@ class multipleAncestriesLD:
         list_of_loci = [
             ("11", 61_692_980, 61_867_354),
             ("14", 45_035_930, 45_200_890),
-            ("6", 29_000_000, 29_100_000),
         ]
         out: list[np.ndarray] = []
         for locus in list_of_loci:
@@ -522,8 +539,8 @@ class multipleAncestriesLD:
                 number_of_snps=number_of_snps,
                 zero_af_substitution=zero_af_substitution,
                 z_threshold=z_threshold,
+                number_of_runs=number_of_runs,
             )
             if x is not None:
-                y = x["result"].x / np.sum(x["result"].x)
-                out = [y] + out
+                out = [x] + out
         return out
