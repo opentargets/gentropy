@@ -11,7 +11,9 @@ from pyspark.sql import types as t
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
+    merge_array_columns,
     normalise_column,
+    rename_all_columns,
 )
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.gene_index import GeneIndex
@@ -35,8 +37,6 @@ class VariantIndex(Dataset):
         """
         # Calling dataset's post init to validate schema:
         super().__post_init__()
-
-        #
 
         # Composing a list of expressions to replace nulls with empty arrays if the schema assumes:
         array_columns = {
@@ -114,21 +114,6 @@ class VariantIndex(Dataset):
             .otherwise(variant_id)
         )
 
-    @staticmethod
-    def _merge_columns(a: Column, b: Column) -> Column:
-        """Merge the content of two optional columns.
-
-        Args:
-            a (Column): One optional array column.
-            b (Column): The other optional array column.
-
-        Returns:
-            Column: array column with merged content.
-        """
-        return f.when(a.isNotNull() & b.isNotNull(), f.array_union(a, b)).otherwise(
-            f.coalesce(a, b)
-        )
-
     def add_annotation(
         self: VariantIndex, annotation_source: VariantIndex
     ) -> VariantIndex:
@@ -143,43 +128,50 @@ class VariantIndex(Dataset):
         Returns:
             VariantIndex: VariantIndex dataset with the annotation added
         """
-        # Columns in the source dataset:
-        variant_index_columns = [
-            # Combining cross-references:
-            self._merge_columns(f.col("dbXrefs"), f.col("annotation_dbXrefs")).alias(
-                "dbXrefs"
-            )
-            if row == "dbXrefs"
-            # Combining in silico predictors:
-            else self._merge_columns(
-                f.col("inSilicoPredictors"),
-                f.col("annotation_inSilicoPredictors"),
-            ).alias("inSilicoPredictors")
-            if row == "inSilicoPredictors"
-            # Combining allele frequencies:
-            else self._merge_columns(
-                f.col("alleleFrequencies"), f.col("annotation_alleleFrequencies")
-            ).alias("alleleFrequencies")
-            if row == "alleleFrequencies"
-            # Carrying over all other columns:
-            else row
-            for row in self.df.columns
-        ]
+        # Prefix for renaming columns:
+        prefix = "annotation_"
 
-        # Rename columns in the annotation source to avoid conflicts:
-        annotation = annotation_source.df.select(
-            *[
-                f.col(col).alias(f"annotation_{col}") if col != "variantId" else col
-                for col in annotation_source.df.columns
-            ]
-        )
+        # Generate select expressions that to merge and import columns from annotation:
+        select_expressions = []
+
+        # Collect columns by iterating over the variant index schema:
+        for field in VariantIndex.get_schema():
+            column = field.name
+
+            # If an annotation column can be found in both datasets:
+            if (column in self.df.columns) and (column in annotation_source.df.columns):
+                # Arrays are merged:
+                if "ArrayType" in field.dataType.__str__():
+                    select_expressions.append(
+                        merge_array_columns(
+                            f.col(column), f.col(f"{prefix}{column}")
+                        ).alias(column)
+                    )
+                # Non-array columns are coalesced:
+                else:
+                    select_expressions.append(
+                        f.coalesce(f.col(column), f.col(f"{prefix}{column}")).alias(
+                            column
+                        )
+                    )
+            # If the column is only found in the annotation dataset rename it:
+            elif column in annotation_source.df.columns:
+                select_expressions.append(f.col(f"{prefix}{column}").alias(column))
+            # If the column is only found in the main dataset:
+            elif column in self.df.columns:
+                select_expressions.append(f.col(column))
+            # VariantIndex columns not found in either dataset are ignored.
 
         # Join the annotation to the dataset:
         return VariantIndex(
             _df=(
-                annotation.join(
-                    f.broadcast(self.df), on="variantId", how="right"
-                ).select(*variant_index_columns)
+                f.broadcast(self.df)
+                .join(
+                    rename_all_columns(annotation_source.df, prefix),
+                    on=[f.col("variantId") == f.col(f"{prefix}variantId")],
+                    how="left",
+                )
+                .select(*select_expressions)
             ),
             _schema=self.schema,
         )
