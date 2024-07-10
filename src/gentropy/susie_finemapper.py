@@ -23,7 +23,6 @@ from pyspark.sql.types import (
 
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
-from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -44,7 +43,6 @@ class SusieFineMapperStep:
         self,
         session: Session,
         study_locus_to_finemap: str,
-        study_locus_collected_path: str,
         study_index_path: str,
         output_path: str,
         max_causal_snps: int = 10,
@@ -60,14 +58,12 @@ class SusieFineMapperStep:
         carma_time_limit: int = 600,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
-        output_path_log: str = "~/",
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
         Args:
             session (Session): Spark session
             study_locus_to_finemap (str): path to the study locus to fine-map
-            study_locus_collected_path (str): path to the collected study locus
             study_index_path (str): path to the study index
             output_path (str): path to the output
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
@@ -83,14 +79,15 @@ class SusieFineMapperStep:
             carma_time_limit (int): CARMA time limit, default is 600 seconds
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
-            output_path_log (str): path to the output log
         """
         # Initialise Hail
         hl.init(sc=session.spark.sparkContext, log="/dev/null")
         # Read studyLocus
         study_locus = (
-            StudyLocus.from_parquet(session, study_locus_collected_path)
-            .df.filter(f.col("studyLocusId") == study_locus_to_finemap)
+            StudyLocus.from_parquet(session, study_locus_to_finemap)
+            .df.withColumn(
+                "studyLocusId", StudyLocus.assign_study_locus_id("studyId", "variantId")
+            )
             .collect()[0]
         )
         study_index = StudyIndex.from_parquet(session, study_index_path)
@@ -118,11 +115,11 @@ class SusieFineMapperStep:
         if result_logging is not None:
             # Write result
             result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
-                output_path + "/" + study_locus_to_finemap
+                output_path
             )
             # Write log
             result_logging["log"].to_parquet(
-                output_path_log + "/" + study_locus_to_finemap + ".parquet",
+                output_path + ".log",
                 engine="pyarrow",
                 index=False,
             )
@@ -1211,48 +1208,6 @@ class SusieFineMapperStep:
         )
 
         return out
-
-    @staticmethod
-    def credible_set_qc(
-        cred_sets: StudyLocus,
-        study_index: StudyIndex,
-        ld_index: LDIndex,
-        p_value_threshold: float = 1e-5,
-        purity_min_r2: float = 0.01,
-    ) -> StudyLocus:
-        """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
-
-        Args:
-            cred_sets (StudyLocus): StudyLocus object with credible sets to filter/clump
-            study_index (StudyIndex): StudyIndex object
-            ld_index (LDIndex): LDIndex object
-            p_value_threshold (float): p-value threshold for filtering credible sets, default is 1e-5
-            purity_min_r2 (float): min-R2 purity threshold for filtering credible sets, default is 0.25
-
-        Returns:
-            StudyLocus: Credible sets which pass filters and LD clumping.
-        """
-        df = (
-            cred_sets.df.withColumn(
-                "pValue", f.col("pValueMantissa") * f.pow(10, f.col("pValueExponent"))
-            )
-            .filter(f.col("pValue") <= p_value_threshold)
-            .filter(f.col("purityMinR2") >= purity_min_r2)
-            .drop("pValue")
-        )
-        cred_sets.df = df
-        cred_sets = (
-            cred_sets.annotate_ld(study_index, ld_index)
-            .clump()
-            .filter(
-                ~f.array_contains(
-                    f.col("qualityControls"),
-                    "Explained by a more significant variant in high LD (clumped)",
-                )
-            )
-        )
-
-        return cred_sets
 
     @staticmethod
     def susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
