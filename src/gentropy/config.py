@@ -330,15 +330,12 @@ class GnomadVariantConfig(StepConfig):
 class VariantIndexConfig(StepConfig):
     """Variant index step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": False,
-        }
-    )
+    session: SessionConfig = SessionConfig()
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
     gnomad_variant_annotations_path: str | None = None
     hash_threshold: int = 300
+
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
 

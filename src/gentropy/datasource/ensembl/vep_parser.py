@@ -798,4 +798,6 @@ class VariantEffectPredictorParser:
             )
             # Dropping intermediate xref columns:
             .drop(*["ensembl_xrefs", "omim_xrefs", "clinvar_xrefs", "protvar_xrefs"])
+            # Drooping rows with null position:
+            .filter(f.col("position").isNotNull())
         )
