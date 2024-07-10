@@ -11,9 +11,9 @@ from pyspark.sql import types as t
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
-    merge_array_columns,
     normalise_column,
     rename_all_columns,
+    safe_array_union,
 )
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.gene_index import GeneIndex
@@ -143,7 +143,7 @@ class VariantIndex(Dataset):
                 # Arrays are merged:
                 if "ArrayType" in field.dataType.__str__():
                     select_expressions.append(
-                        merge_array_columns(
+                        safe_array_union(
                             f.col(column), f.col(f"{prefix}{column}")
                         ).alias(column)
                     )

@@ -461,6 +461,15 @@ def enforce_schema(
     T = TypeVar("T", str, Column)
 
     def decorator(function: Callable[..., T]) -> Callable[..., T]:
+        """A decorator function to enforce the schema of a function output follows expectation.
+
+        Args:
+            function (Callable[..., T]): The function to be decorated.
+
+        Returns:
+            Callable[..., T]: The decorated function.
+        """
+
         @wraps(function)
         def wrapper(*args: str, **kwargs: str) -> Any:
             return f.from_json(f.to_json(function(*args, **kwargs)), expected_schema)
@@ -500,7 +509,7 @@ def rename_all_columns(df: DataFrame, prefix: str) -> DataFrame:
     )
 
 
-def merge_array_columns(a: Column, b: Column) -> Column:
+def safe_array_union(a: Column, b: Column) -> Column:
     """Merge the content of two optional columns.
 
     The function assumes the array columns have the same schema. Otherwise, the function will fail.
@@ -517,7 +526,7 @@ def merge_array_columns(a: Column, b: Column) -> Column:
         >>> (
         ...    spark.createDataFrame(data, ['col1', 'col2'])
         ...    .select(
-        ...        merge_array_columns(f.col('col1'), f.col('col2')).alias('merged')
+        ...        safe_array_union(f.col('col1'), f.col('col2')).alias('merged')
         ...    )
         ...    .show()
         ... )
