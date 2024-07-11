@@ -45,6 +45,7 @@ class StudyLocusQualityCheck(Enum):
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FAILED_STUDUY (str): Flagging study loci if the study has failed QC
+        MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -61,6 +62,7 @@ class StudyLocusQualityCheck(Enum):
         "LD block does not contain variants at the required R^2 threshold"
     )
     FAILED_STUDY = "Study has failed quality controls"
+    MISSING_STUDY = "Study not found in the study index"
 
 
 class CredibleInterval(Enum):
@@ -84,31 +86,19 @@ class StudyLocus(Dataset):
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
 
-    def validate_study(
-        self: StudyLocus, study_index: StudyIndex, conservative_test: bool = True
-    ) -> StudyLocus:
-        """Flagging study loci if the corresponding study has failed QC.
+    def validate_study(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Flagging study loci if the corresponding study has issues.
 
-        There are two ways to flag study loci:
-        - Conservative: falgging locus if the study has not passed qc (available empty QC column).
-        - Permissive: flagging only those loci that failed qc (study index might not cover all studies in the studyLoci dataset).
+        There are two different potential flags:
+        - failed study: flagging locus if the corresponding study has failed a quality check.
+        - missing study: flagging locus if the study was not found in the reference study index.
 
         Args:
             study_index (StudyIndex): Study index to resolve study types.
-            conservative_test (bool): If True, flags loci where the study has not passed QC. Default is True.
 
         Returns:
             StudyLocus: Updated study locus with quality control flags.
         """
-        flag_condition_expression = (
-            (
-                (f.size(f.col("study_qualityControls")) > 0)
-                | f.col("study_qualityControls").isNull()
-            )
-            if conservative_test
-            else (f.size(f.col("study_qualityControls")) > 0)
-        )
-
         study_flags = study_index.df.select(
             f.col("studyId").alias("study_studyId"),
             f.col("qualityControls").alias("study_qualityControls"),
@@ -119,12 +109,22 @@ class StudyLocus(Dataset):
                 self.df.join(
                     study_flags, f.col("studyId") == f.col("study_studyId"), "left"
                 )
+                # Flagging loci with failed studies:
                 .withColumn(
                     "qualityControls",
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
-                        flag_condition_expression,
+                        f.size(f.col("study_qualityControls")) > 0,
                         StudyLocusQualityCheck.FAILED_STUDY,
+                    ),
+                )
+                # Flagging loci where no studies were found:
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.col("study_studyId").isNull(),
+                        StudyLocusQualityCheck.MISSING_STUDY,
                     ),
                 )
                 .drop("study_studyId", "study_qualityControls")

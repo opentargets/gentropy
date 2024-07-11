@@ -652,38 +652,34 @@ class TestStudyLocusValidation:
             .count()
         ) == 0
 
-    @pytest.mark.parametrize("test_approach", [True, False])
-    def test_study_validation_return_type(
-        self: TestStudyLocusValidation, test_approach: bool
-    ) -> None:
+    def test_study_validation_return_type(self: TestStudyLocusValidation) -> None:
         """Testing if the study validation returns the right type."""
-        assert isinstance(
-            self.study_locus.validate_study(self.study_index, test_approach), StudyLocus
-        )
+        assert isinstance(self.study_locus.validate_study(self.study_index), StudyLocus)
 
-    @pytest.mark.parametrize("test_approach", [True, False])
-    def test_study_validation_no_data_loss(
-        self: TestStudyLocusValidation, test_approach: bool
-    ) -> None:
+    def test_study_validation_no_data_loss(self: TestStudyLocusValidation) -> None:
         """Testing if the study validation returns same number of rows."""
         assert (
-            self.study_locus.validate_study(self.study_index, test_approach).df.count()
+            self.study_locus.validate_study(self.study_index).df.count()
         ) == self.study_locus.df.count()
 
-    @pytest.mark.parametrize(
-        ("test_approach", "flagged_count"),
-        [(True, 3), (False, 2)],
-    )
-    def test_study_validation_correctness(
-        self: TestStudyLocusValidation, test_approach: bool, flagged_count: int
-    ) -> None:
+    def test_study_validation_correctness(self: TestStudyLocusValidation) -> None:
         """Testing if the study validation flags the right number of studies."""
         assert (
-            self.study_locus.validate_study(self.study_index, test_approach)
+            self.study_locus.validate_study(self.study_index)
             .df.filter(
                 f.array_contains(
                     f.col("qualityControls"), StudyLocusQualityCheck.FAILED_STUDY.value
                 )
             )
             .count()
-        ) == flagged_count
+        ) == 2
+
+        assert (
+            self.study_locus.validate_study(self.study_index)
+            .df.filter(
+                f.array_contains(
+                    f.col("qualityControls"), StudyLocusQualityCheck.MISSING_STUDY.value
+                )
+            )
+            .count()
+        ) == 1
