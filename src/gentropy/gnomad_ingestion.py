@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hail as hl
-
 from gentropy.common.session import Session
 from gentropy.common.types import LD_Population, VariantPopulation
 from gentropy.common.version_engine import VersionEngine
@@ -106,9 +104,6 @@ class GnomadVariantIndexStep:
             gnomad_variant_output = VersionEngine("gnomad").amend_version(
                 gnomad_genomes_path, gnomad_variant_output
             )
-
-        # Initialise hail session.
-        hl.init(sc=session.spark.sparkContext, log="/dev/null")
 
         # Parse variant info from source.
         gnomad_variants = GnomADVariants(
