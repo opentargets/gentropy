@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pyspark.sql.functions as f
 from pyspark.sql.types import FloatType
 
@@ -43,6 +44,7 @@ class StudyLocusQualityCheck(Enum):
         LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
+        FAILED_STUDUY (str): Flagging study loci if the study has failed QC
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -58,6 +60,7 @@ class StudyLocusQualityCheck(Enum):
     NOT_QUALIFYING_LD_BLOCK = (
         "LD block does not contain variants at the required R^2 threshold"
     )
+    FAILED_STUDY = "Study has failed quality controls"
 
 
 class CredibleInterval(Enum):
@@ -80,6 +83,122 @@ class StudyLocus(Dataset):
 
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
+
+    def validate_study(
+        self: StudyLocus, study_index: StudyIndex, conservative_test: bool = True
+    ) -> StudyLocus:
+        """Flagging study loci if the corresponding study has failed QC.
+
+        There are two ways to flag study loci:
+        - Conservative: falgging locus if the study has not passed qc (available empty QC column).
+        - Permissive: flagging only those loci that failed qc (study index might not cover all studies in the studyLoci dataset).
+
+        Args:
+            study_index (StudyIndex): Study index to resolve study types.
+            conservative_test (bool): If True, flags loci where the study has not passed QC. Default is True.
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        flag_condition_expression = (
+            (
+                (f.size(f.col("study_qualityControls")) > 0)
+                | f.col("study_qualityControls").isNull()
+            )
+            if conservative_test
+            else (f.size(f.col("study_qualityControls")) > 0)
+        )
+
+        study_flags = study_index.df.select(
+            f.col("studyId").alias("study_studyId"),
+            f.col("qualityControls").alias("study_qualityControls"),
+        )
+
+        return StudyLocus(
+            _df=(
+                self.df.join(
+                    study_flags, f.col("studyId") == f.col("study_studyId"), "left"
+                )
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        flag_condition_expression,
+                        StudyLocusQualityCheck.FAILED_STUDY,
+                    ),
+                )
+                .drop("study_studyId", "study_qualityControls")
+            ),
+            _schema=self.get_schema(),
+        )
+
+    def validate_lead_pvalue(self: StudyLocus, pvalue_cutoff: float) -> StudyLocus:
+        """Flag associations below significant threshold.
+
+        Args:
+            pvalue_cutoff (float): association p-value cut-off
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        return StudyLocus(
+            _df=(
+                self.df.withColumn(
+                    "qualityControls",
+                    # Because this QC might already run on the dataset, the unique set of flags is generated:
+                    f.array_distinct(
+                        self._qc_subsignificant_associations(
+                            f.col("qualityControls"),
+                            f.col("pValueMantissa"),
+                            f.col("pValueExponent"),
+                            pvalue_cutoff,
+                        )
+                    ),
+                )
+            ),
+            _schema=self.get_schema(),
+        )
+
+    @staticmethod
+    def _qc_subsignificant_associations(
+        quality_controls_column: Column,
+        p_value_mantissa: Column,
+        p_value_exponent: Column,
+        pvalue_cutoff: float,
+    ) -> Column:
+        """Flag associations below significant threshold.
+
+        Args:
+            quality_controls_column (Column): QC column
+            p_value_mantissa (Column): P-value mantissa column
+            p_value_exponent (Column): P-value exponent column
+            pvalue_cutoff (float): association p-value cut-off
+
+        Returns:
+            Column: Updated QC column with flag.
+
+        Examples:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
+            >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
+            >>> df.withColumn('qc', StudyLocus._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
+            +------------------------+----------------+----------------+
+            |qc                      |p_value_mantissa|p_value_exponent|
+            +------------------------+----------------+----------------+
+            |[Subsignificant p-value]|1               |-7              |
+            |[]                      |1               |-8              |
+            |[]                      |5               |-8              |
+            |[]                      |1               |-9              |
+            +------------------------+----------------+----------------+
+            <BLANKLINE>
+
+        """
+        return StudyLocus.update_quality_flag(
+            quality_controls_column,
+            calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
+            < f.lit(-np.log10(pvalue_cutoff)),
+            StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
+        )
 
     @staticmethod
     def _overlapping_peaks(
