@@ -55,7 +55,6 @@ class LDIndexStep:
             ld_index_out = VersionEngine("gnomad").amend_version(
                 ld_matrix_template, ld_index_out
             )
-        hl.init(sc=session.spark.sparkContext, log="/dev/null")
         (
             GnomADLDMatrix(
                 ld_matrix_template=ld_matrix_template,
