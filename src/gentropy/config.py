@@ -170,13 +170,9 @@ class LDIndexConfig(StepConfig):
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
-            "asj",  # Ashkenazi Jewish
             "eas",  # East Asian
-            "est",  # Estionian
             "fin",  # Finnish
             "nfe",  # Non-Finnish European
-            "nwe",  # Northwestern European
-            "seu",  # Southeastern European
         ]
     )
     use_version_from_input: bool = False
@@ -376,14 +372,18 @@ class VariantToGeneConfig(StepConfig):
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
-    distance_cutoff: int = 250_000
-    flankig_distance: int = 100_000
-    baseline_pvalue_cutoff: float = 1e-5
+    summary_statistics_input_path: str = MISSING
+    clumped_study_locus_output_path: str = MISSING
+    lbc_baseline_pvalue: float = 1e-5
+    lbc_distance_cutoff: int = 250_000
+    lbc_pvalue_threshold: float = 1e-8
+    lbc_flanking_distance: int = 100_000
+    large_loci_size: int = 1_500_000
+    wbc_clump_distance: int = 500_000
+    wbc_pvalue_threshold: float = MISSING
+    collect_locus: bool = False
+    remove_mhc: bool = True
+    _target_: str = "gentropy.locus_breaker_clumping.LocusBreakerClumpingStep"
 
 
 @dataclass
@@ -415,7 +415,6 @@ class FinemapperConfig(StepConfig):
         }
     )
     study_locus_to_finemap: str = MISSING
-    study_locus_collected_path: str = MISSING
     study_index_path: str = MISSING
     output_path: str = MISSING
     max_causal_snps: int = MISSING
@@ -431,8 +430,31 @@ class FinemapperConfig(StepConfig):
     carma_time_limit: int = MISSING
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
-    output_path_log: str = MISSING
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
+
+
+@dataclass
+class GWASQCStep(StepConfig):
+    """GWAS QC step configuration."""
+
+    gwas_path: str = MISSING
+    output_path: str = MISSING
+    studyid: str = MISSING
+    _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
+
+
+@dataclass
+class CredibleSetQCConfig(StepConfig):
+    """Credible set quality control step configuration."""
+
+    credible_sets_path: str = MISSING
+    study_index_path: str = MISSING
+    ld_index_path: str = MISSING
+    output_path: str = MISSING
+    p_value_threshold: float = 1e-5
+    purity_min_r2: float = 0.01
+    ld_min_r2: float = 0.8
+    _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
 
 
 @dataclass
