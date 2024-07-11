@@ -248,6 +248,7 @@ class multipleAncestriesLD:
         )
 
         if gwas is not None:
+            gwas = gwas.sanity_filter()
             gwas_df = (
                 gwas.df.withColumn("z", f.col("beta") / f.col("standardError"))
                 .filter(f.col("z").isNotNull())
