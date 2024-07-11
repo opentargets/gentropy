@@ -246,13 +246,16 @@ class StudyIndex(Dataset):
     ) -> DataFrame:
         """Normalising diseases in the study index.
 
+        Given a reference disease map (containing all potential EFO ids with the corresponding reference disease ids),
+        this function maps all EFO ids in the study index to the reference disease ids.
+
         Args:
             source_disease_column_name (str): The column name of the disease column to validate.
             disease_column_name (str): The resulting disease column name that contains the validated ids.
             disease_map (DataFrame): Reference dataframe with diseases
 
         Returns:
-            DataFrame: where the disease column name will contain the
+            DataFrame: where the newly added diseaseIds column will contain the validated EFO identifiers.
         """
         return (
             self.df
