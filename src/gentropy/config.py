@@ -17,7 +17,7 @@ class SessionConfig:
     write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
-    extended_spark_conf: dict[str, str] | None = None
+    extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     _target_: str = "gentropy.common.session.Session"
 
 
@@ -170,17 +170,13 @@ class LDIndexConfig(StepConfig):
         default_factory=lambda: [
             "afr",  # African-American
             "amr",  # American Admixed/Latino
-            "asj",  # Ashkenazi Jewish
             "eas",  # East Asian
-            "est",  # Estionian
             "fin",  # Finnish
             "nfe",  # Non-Finnish European
-            "nwe",  # Northwestern European
-            "seu",  # Southeastern European
         ]
     )
     use_version_from_input: bool = False
-    _target_: str = "gentropy.ld_index.LDIndexStep"
+    _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
 
 @dataclass
@@ -209,12 +205,12 @@ class LocusToGeneConfig(StepConfig):
         }
     )
     run_mode: str = MISSING
-    model_path: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
     variant_gene_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
+    model_path: str | None = None
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
@@ -248,28 +244,34 @@ class LocusToGeneConfig(StepConfig):
             "tuqtlColocClppMaximum",
             # max clpp for each (study, locus, gene) aggregating over all tuQTLs
             "tuqtlColocClppMaximumNeighborhood",
-            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
-            # "eqtlColocLlrLocalMaximum",
-            # # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            # "eqtlColocLlpMaximumNeighborhood",
-            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
-            # "pqtlColocLlrLocalMaximum",
-            # # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            # "pqtlColocLlpMaximumNeighborhood",
-            # # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
-            # "sqtlColocLlrLocalMaximum",
-            # # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            # "sqtlColocLlpMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
+            "eqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
+            "eqtlColocLlrMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
+            "pqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
+            "pqtlColocLlrMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
+            "sqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
+            "sqtlColocLlrMaximumNeighborhood",
+            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all tuQTLs
+            "tuqtlColocLlrMaximum",
+            # max log-likelihood ratio value for each (study, locus) aggregating over all tuQTLs
+            "tuqtlColocLlrMaximumNeighborhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
+            "n_estimators": 100,
             "max_depth": 5,
-            "loss_function": "binary:logistic",
+            "loss": "log_loss",
         }
     )
     wandb_run_name: str | None = None
-    perform_cross_validation: bool = False
+    hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
+    download_from_hub: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -283,8 +285,21 @@ class PICSConfig(StepConfig):
 
 
 @dataclass
-class VariantAnnotationConfig(StepConfig):
-    """Variant annotation step configuration."""
+class UkbPppEurConfig(StepConfig):
+    """UKB PPP (EUR) ingestion step configuration."""
+
+    raw_study_index_path: str = MISSING
+    raw_summary_stats_path: str = MISSING
+    tmp_variant_annotation_path: str = MISSING
+    variant_annotation_path: str = MISSING
+    study_index_output_path: str = MISSING
+    summary_stats_output_path: str = MISSING
+    _target_: str = "gentropy.ukb_ppp_eur_sumstat_preprocess.UkbPppEurStep"
+
+
+@dataclass
+class GnomadVariantConfig(StepConfig):
+    """Gnomad variant ingestion step configuration."""
 
     session: Any = field(
         default_factory=lambda: {
@@ -293,7 +308,6 @@ class VariantAnnotationConfig(StepConfig):
     )
     variant_annotation_path: str = MISSING
     gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
-    chain_38_37: str = "gs://hail-common/references/grch38_to_grch37.over.chain.gz"
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
@@ -309,16 +323,19 @@ class VariantAnnotationConfig(StepConfig):
         ]
     )
     use_version_from_input: bool = False
-    _target_: str = "gentropy.variant_annotation.VariantAnnotationStep"
+    _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
 
 
 @dataclass
 class VariantIndexConfig(StepConfig):
     """Variant index step configuration."""
 
-    variant_annotation_path: str = MISSING
-    credible_set_path: str = MISSING
+    session: SessionConfig = SessionConfig()
+    vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
+    gnomad_variant_annotations_path: str | None = None
+    hash_threshold: int = 300
+
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
 
@@ -327,7 +344,6 @@ class VariantToGeneConfig(StepConfig):
     """V2G step configuration."""
 
     variant_index_path: str = MISSING
-    variant_annotation_path: str = MISSING
     gene_index_path: str = MISSING
     vep_consequences_path: str = MISSING
     liftover_chain_file_path: str = MISSING
@@ -352,21 +368,25 @@ class VariantToGeneConfig(StepConfig):
     )
     interval_sources: Dict[str, str] = field(default_factory=dict)
     v2g_path: str = MISSING
-    _target_: str = "gentropy.v2g.V2GStep"
+    _target_: str = "gentropy.variant_to_gene.V2GStep"
 
 
 @dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
-    distance_cutoff: int = 250_000
-    flankig_distance: int = 100_000
-    baseline_pvalue_cutoff: float = 1e-5
+    summary_statistics_input_path: str = MISSING
+    clumped_study_locus_output_path: str = MISSING
+    lbc_baseline_pvalue: float = 1e-5
+    lbc_distance_cutoff: int = 250_000
+    lbc_pvalue_threshold: float = 1e-8
+    lbc_flanking_distance: int = 100_000
+    large_loci_size: int = 1_500_000
+    wbc_clump_distance: int = 500_000
+    wbc_pvalue_threshold: float = MISSING
+    collect_locus: bool = False
+    remove_mhc: bool = True
+    _target_: str = "gentropy.locus_breaker_clumping.LocusBreakerClumpingStep"
 
 
 @dataclass
@@ -380,7 +400,7 @@ class WindowBasedClumpingStepConfig(StepConfig):
     )
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
-    gwas_significance: float = 5e-8
+    gwas_significance: float = 1e-8
     distance: int = 500_000
     collect_locus: bool = False
     collect_locus_distance: int = 500_000
@@ -398,25 +418,46 @@ class FinemapperConfig(StepConfig):
         }
     )
     study_locus_to_finemap: str = MISSING
-    study_locus_collected_path: str = MISSING
     study_index_path: str = MISSING
     output_path: str = MISSING
-    locus_radius: int = MISSING
     max_causal_snps: int = MISSING
     primary_signal_pval_threshold: float = MISSING
     secondary_signal_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
-    cs_lbf_th: float = MISSING
+    cs_lbf_thr: float = MISSING
     sum_pips: float = MISSING
-    logging: bool = MISSING
     susie_est_tausq: bool = MISSING
     run_carma: bool = MISSING
     run_sumstat_imputation: bool = MISSING
     carma_time_limit: int = MISSING
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
-    output_path_log: str = MISSING
+    _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
+
+
+@dataclass
+class GWASQCStep(StepConfig):
+    """GWAS QC step configuration."""
+
+    gwas_path: str = MISSING
+    output_path: str = MISSING
+    studyid: str = MISSING
+    _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
+
+
+@dataclass
+class CredibleSetQCConfig(StepConfig):
+    """Credible set quality control step configuration."""
+
+    credible_sets_path: str = MISSING
+    study_index_path: str = MISSING
+    ld_index_path: str = MISSING
+    output_path: str = MISSING
+    p_value_threshold: float = 1e-5
+    purity_min_r2: float = 0.01
+    ld_min_r2: float = 0.8
+    _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
 
 
 @dataclass
@@ -472,7 +513,8 @@ def register_config() -> None:
     )
 
     cs.store(group="step", name="pics", node=PICSConfig)
-    cs.store(group="step", name="variant_annotation", node=VariantAnnotationConfig)
+    cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
+    cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(

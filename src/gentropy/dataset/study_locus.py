@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pyspark.sql.functions as f
 from pyspark.sql.types import FloatType
 
@@ -14,7 +15,7 @@ from gentropy.common.spark_helpers import (
     calculate_neglog_pvalue,
     order_array_of_structs_by_field,
 )
-from gentropy.common.utils import get_logsum
+from gentropy.common.utils import get_logsum, parse_region
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.clump import LDclumping
@@ -43,6 +44,8 @@ class StudyLocusQualityCheck(Enum):
         LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
+        FAILED_STUDY (str): Flagging study loci if the study has failed QC
+        MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -58,6 +61,8 @@ class StudyLocusQualityCheck(Enum):
     NOT_QUALIFYING_LD_BLOCK = (
         "LD block does not contain variants at the required R^2 threshold"
     )
+    FAILED_STUDY = "Study has failed quality controls"
+    MISSING_STUDY = "Study not found in the study index"
 
 
 class CredibleInterval(Enum):
@@ -80,6 +85,120 @@ class StudyLocus(Dataset):
 
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
+
+    def validate_study(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Flagging study loci if the corresponding study has issues.
+
+        There are two different potential flags:
+        - failed study: flagging locus if the corresponding study has failed a quality check.
+        - missing study: flagging locus if the study was not found in the reference study index.
+
+        Args:
+            study_index (StudyIndex): Study index to resolve study types.
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        study_flags = study_index.df.select(
+            f.col("studyId").alias("study_studyId"),
+            f.col("qualityControls").alias("study_qualityControls"),
+        )
+
+        return StudyLocus(
+            _df=(
+                self.df.join(
+                    study_flags, f.col("studyId") == f.col("study_studyId"), "left"
+                )
+                # Flagging loci with failed studies:
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.size(f.col("study_qualityControls")) > 0,
+                        StudyLocusQualityCheck.FAILED_STUDY,
+                    ),
+                )
+                # Flagging loci where no studies were found:
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.col("study_studyId").isNull(),
+                        StudyLocusQualityCheck.MISSING_STUDY,
+                    ),
+                )
+                .drop("study_studyId", "study_qualityControls")
+            ),
+            _schema=self.get_schema(),
+        )
+
+    def validate_lead_pvalue(self: StudyLocus, pvalue_cutoff: float) -> StudyLocus:
+        """Flag associations below significant threshold.
+
+        Args:
+            pvalue_cutoff (float): association p-value cut-off
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        return StudyLocus(
+            _df=(
+                self.df.withColumn(
+                    "qualityControls",
+                    # Because this QC might already run on the dataset, the unique set of flags is generated:
+                    f.array_distinct(
+                        self._qc_subsignificant_associations(
+                            f.col("qualityControls"),
+                            f.col("pValueMantissa"),
+                            f.col("pValueExponent"),
+                            pvalue_cutoff,
+                        )
+                    ),
+                )
+            ),
+            _schema=self.get_schema(),
+        )
+
+    @staticmethod
+    def _qc_subsignificant_associations(
+        quality_controls_column: Column,
+        p_value_mantissa: Column,
+        p_value_exponent: Column,
+        pvalue_cutoff: float,
+    ) -> Column:
+        """Flag associations below significant threshold.
+
+        Args:
+            quality_controls_column (Column): QC column
+            p_value_mantissa (Column): P-value mantissa column
+            p_value_exponent (Column): P-value exponent column
+            pvalue_cutoff (float): association p-value cut-off
+
+        Returns:
+            Column: Updated QC column with flag.
+
+        Examples:
+            >>> import pyspark.sql.types as t
+            >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
+            >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
+            >>> df.withColumn('qc', StudyLocus._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
+            +------------------------+----------------+----------------+
+            |qc                      |p_value_mantissa|p_value_exponent|
+            +------------------------+----------------+----------------+
+            |[Subsignificant p-value]|1               |-7              |
+            |[]                      |1               |-8              |
+            |[]                      |5               |-8              |
+            |[]                      |1               |-9              |
+            +------------------------+----------------+----------------+
+            <BLANKLINE>
+
+        """
+        return StudyLocus.update_quality_flag(
+            quality_controls_column,
+            calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
+            < f.lit(-np.log10(pvalue_cutoff)),
+            StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
+        )
 
     @staticmethod
     def _overlapping_peaks(
@@ -201,26 +320,6 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def update_quality_flag(
-        qc: Column, flag_condition: Column, flag_text: StudyLocusQualityCheck
-    ) -> Column:
-        """Update the provided quality control list with a new flag if condition is met.
-
-        Args:
-            qc (Column): Array column with the current list of qc flags.
-            flag_condition (Column): This is a column of booleans, signing which row should be flagged
-            flag_text (StudyLocusQualityCheck): Text for the new quality control flag
-
-        Returns:
-            Column: Array column with the updated list of qc flags.
-        """
-        qc = f.when(qc.isNull(), f.array()).otherwise(qc)
-        return f.when(
-            flag_condition,
-            f.array_union(qc, f.array(f.lit(flag_text.value))),
-        ).otherwise(qc)
-
-    @staticmethod
     def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
         """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
@@ -325,6 +424,25 @@ class StudyLocus(Dataset):
             ),
         )
         return self
+
+    @staticmethod
+    def filter_ld_set(ld_set: Column, r2_threshold: float) -> Column:
+        """Filter the LD set by a given R2 threshold.
+
+        Args:
+            ld_set (Column): LD set
+            r2_threshold (float): R2 threshold to filter the LD set on
+
+        Returns:
+            Column: Filtered LD index
+        """
+        return f.when(
+            ld_set.isNotNull(),
+            f.filter(
+                ld_set,
+                lambda tag: tag["r2Overall"] >= r2_threshold,
+            ),
+        )
 
     def find_overlaps(
         self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
@@ -524,20 +642,24 @@ class StudyLocus(Dataset):
         return self
 
     def annotate_ld(
-        self: StudyLocus, study_index: StudyIndex, ld_index: LDIndex
+        self: StudyLocus,
+        study_index: StudyIndex,
+        ld_index: LDIndex,
+        r2_threshold: float = 0.0,
     ) -> StudyLocus:
         """Annotate LD information to study-locus.
 
         Args:
             study_index (StudyIndex): Study index to resolve ancestries.
             ld_index (LDIndex): LD index to resolve LD information.
+            r2_threshold (float): R2 threshold to filter the LD index. Default is 0.0.
 
         Returns:
             StudyLocus: Study locus annotated with ld information from LD index.
         """
         from gentropy.method.ld import LDAnnotator
 
-        return LDAnnotator.ld_annotate(self, study_index, ld_index)
+        return LDAnnotator.ld_annotate(self, study_index, ld_index, r2_threshold)
 
     def clump(self: StudyLocus) -> StudyLocus:
         """Perform LD clumping of the studyLocus.
@@ -574,6 +696,41 @@ class StudyLocus(Dataset):
         )
         return self
 
+    def exclude_region(
+        self: StudyLocus, region: str, exclude_overlap: bool = False
+    ) -> StudyLocus:
+        """Exclude a region from the StudyLocus dataset.
+
+        Args:
+            region (str): region given in "chr##:#####-####" format
+            exclude_overlap (bool): If True, excludes StudyLocus windows with any overlap with the region.
+
+        Returns:
+            StudyLocus: filtered StudyLocus object.
+        """
+        (chromosome, start_position, end_position) = parse_region(region)
+        if exclude_overlap:
+            filter_condition = ~(
+                (f.col("chromosome") == chromosome)
+                & (
+                    (f.col("locusStart") <= end_position)
+                    & (f.col("locusEnd") >= start_position)
+                )
+            )
+        else:
+            filter_condition = ~(
+                (f.col("chromosome") == chromosome)
+                & (
+                    (f.col("position") >= start_position)
+                    & (f.col("position") <= end_position)
+                )
+            )
+
+        return StudyLocus(
+            _df=self.df.filter(filter_condition),
+            _schema=StudyLocus.get_schema(),
+        )
+
     def _qc_no_population(self: StudyLocus) -> StudyLocus:
         """Flag associations where the study doesn't have population information to resolve LD.
 
@@ -592,4 +749,69 @@ class StudyLocus(Dataset):
                 StudyLocusQualityCheck.NO_POPULATION,
             ),
         )
+        return self
+
+    def annotate_locus_statistics_boundaries(
+        self: StudyLocus,
+        summary_statistics: SummaryStatistics,
+    ) -> StudyLocus:
+        """Annotates study locus with summary statistics in the specified boundaries - locusStart and locusEnd.
+
+        Args:
+            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
+
+        Returns:
+            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
+        """
+        # The clumps will be used several times (persisting)
+        self.df.persist()
+        # Renaming columns:
+        sumstats_renamed = summary_statistics.df.selectExpr(
+            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
+        ).alias("sumstat")
+
+        locus_df = (
+            sumstats_renamed
+            # Joining the two datasets together:
+            .join(
+                f.broadcast(
+                    self.df.alias("clumped").select(
+                        "position",
+                        "chromosome",
+                        "studyId",
+                        "studyLocusId",
+                        "locusStart",
+                        "locusEnd",
+                    )
+                ),
+                on=[
+                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
+                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
+                    & (f.col("sumstat.tag_position") >= (f.col("clumped.locusStart")))
+                    & (f.col("sumstat.tag_position") <= (f.col("clumped.locusEnd")))
+                ],
+                how="inner",
+            )
+            .withColumn(
+                "locus",
+                f.struct(
+                    f.col("tag_variantId").alias("variantId"),
+                    f.col("tag_beta").alias("beta"),
+                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
+                    f.col("tag_pValueExponent").alias("pValueExponent"),
+                    f.col("tag_standardError").alias("standardError"),
+                ),
+            )
+            .groupBy("studyLocusId")
+            .agg(
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
+        )
+
+        self.df = self.df.drop("locus").join(
+            locus_df,
+            on="studyLocusId",
+            how="left",
+        )
+
         return self

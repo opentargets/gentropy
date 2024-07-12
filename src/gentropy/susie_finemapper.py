@@ -6,7 +6,6 @@ import logging
 import time
 from typing import Any
 
-import hail as hl
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
@@ -22,8 +21,10 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
-from gentropy.dataset.ld_index import LDIndex
+from gentropy.common.spark_helpers import (
+    neglog_pvalue_to_mantissa_and_exponent,
+    order_array_of_structs_by_field,
+)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -44,10 +45,8 @@ class SusieFineMapperStep:
         self,
         session: Session,
         study_locus_to_finemap: str,
-        study_locus_collected_path: str,
         study_index_path: str,
         output_path: str,
-        locus_radius: int = 500_000,
         max_causal_snps: int = 10,
         primary_signal_pval_threshold: float = 1,
         secondary_signal_pval_threshold: float = 1,
@@ -55,24 +54,20 @@ class SusieFineMapperStep:
         purity_min_r2_threshold: float = 0,
         cs_lbf_thr: float = 2,
         sum_pips: float = 0.99,
-        logging: bool = False,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
-        output_path_log: str = "~/",
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
         Args:
             session (Session): Spark session
             study_locus_to_finemap (str): path to the study locus to fine-map
-            study_locus_collected_path (str): path to the collected study locus
             study_index_path (str): path to the study index
             output_path (str): path to the output
-            locus_radius (int): Radius of base-pair window around the locus, default is 500_000
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
             primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1), default is 5e-8
             secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals, default is 1e-7
@@ -80,78 +75,54 @@ class SusieFineMapperStep:
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets, default is 0.25
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
-            logging (bool): enable logging, default is False, runs diffrent FM wrapper
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
             carma_time_limit (int): CARMA time limit, default is 600 seconds
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
-            output_path_log (str): path to the output log
         """
-        # Initialise Hail
-        hl.init(sc=session.spark.sparkContext, log="/dev/null")
         # Read studyLocus
         study_locus = (
-            StudyLocus.from_parquet(session, study_locus_collected_path)
-            .df.filter(f.col("studyLocusId") == study_locus_to_finemap)
+            StudyLocus.from_parquet(session, study_locus_to_finemap)
+            .df.withColumn(
+                "studyLocusId", StudyLocus.assign_study_locus_id("studyId", "variantId")
+            )
             .collect()[0]
         )
         study_index = StudyIndex.from_parquet(session, study_index_path)
         # Run fine-mapping
-        if logging:
-            result_logging = (
-                self.susie_finemapper_one_studylocus_row_v3_dev_ss_gathered(
-                    session=session,
-                    study_locus_row=study_locus,
-                    study_index=study_index,
-                    radius=locus_radius,
-                    max_causal_snps=max_causal_snps,
-                    primary_signal_pval_threshold=primary_signal_pval_threshold,
-                    secondary_signal_pval_threshold=secondary_signal_pval_threshold,
-                    purity_mean_r2_threshold=purity_mean_r2_threshold,
-                    purity_min_r2_threshold=purity_min_r2_threshold,
-                    cs_lbf_thr=cs_lbf_thr,
-                    sum_pips=sum_pips,
-                    susie_est_tausq=susie_est_tausq,
-                    run_carma=run_carma,
-                    run_sumstat_imputation=run_sumstat_imputation,
-                    carma_time_limit=carma_time_limit,
-                    imputed_r2_threshold=imputed_r2_threshold,
-                    ld_score_threshold=ld_score_threshold,
-                )
-            )
 
-            if result_logging is not None:
-                # Write result
-                result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
-                    output_path + "/" + study_locus_to_finemap
-                )
-                # Write log
-                result_logging["log"].to_parquet(
-                    output_path_log + "/" + study_locus_to_finemap + ".parquet",
-                    engine="pyarrow",
-                    index=False,
-                )
-        else:
-            result = self.susie_finemapper_ss_gathered(
-                session=session,
-                study_locus_row=study_locus,
-                study_index=study_index,
-                radius=locus_radius,
-                max_causal_snps=max_causal_snps,
-                primary_signal_pval_threshold=primary_signal_pval_threshold,
-                secondary_signal_pval_threshold=secondary_signal_pval_threshold,
-                purity_mean_r2_threshold=purity_mean_r2_threshold,
-                purity_min_r2_threshold=purity_min_r2_threshold,
-                cs_lbf_thr=cs_lbf_thr,
-                sum_pips=sum_pips,
-            )
+        result_logging = self.susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
+            session=session,
+            study_locus_row=study_locus,
+            study_index=study_index,
+            max_causal_snps=max_causal_snps,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            cs_lbf_thr=cs_lbf_thr,
+            sum_pips=sum_pips,
+            susie_est_tausq=susie_est_tausq,
+            run_carma=run_carma,
+            run_sumstat_imputation=run_sumstat_imputation,
+            carma_time_limit=carma_time_limit,
+            imputed_r2_threshold=imputed_r2_threshold,
+            ld_score_threshold=ld_score_threshold,
+        )
+
+        if result_logging is not None:
             # Write result
-            if result is not None:
-                result.df.write.mode(session.write_mode).parquet(
-                    output_path + "/" + study_locus_to_finemap
-                )
+            result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
+                output_path
+            )
+            # Write log
+            result_logging["log"].to_parquet(
+                output_path + ".log",
+                engine="pyarrow",
+                index=False,
+            )
 
     @staticmethod
     def susie_finemapper_one_studylocus_row(
@@ -1134,6 +1105,35 @@ class SusieFineMapperStep:
             gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
                 gwas_index, gnomad_ancestry=major_population
             )
+            # Module to remove NANs from the LD matrix
+            if sum(sum(np.isnan(gnomad_ld))) > 0:
+                gwas_index = gwas_index.toPandas()
+
+                # First round of filtering out the variants with NANs
+                nan_count = 1 - (sum(np.isnan(gnomad_ld)) / len(gnomad_ld))
+                indices = np.where(nan_count >= 0.98)
+                indices = indices[0]
+                gnomad_ld = gnomad_ld[indices][:, indices]
+
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                # Second round of filtering out the variants with NANs
+                nan_count = sum(np.isnan(gnomad_ld))
+                indices = np.where(nan_count == 0)
+                indices = indices[0]
+
+                gnomad_ld = gnomad_ld[indices][:, indices]
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                gwas_index = session.spark.createDataFrame(gwas_index)
         else:
             gwas_index = gwas_df.join(
                 ld_index.select("variantId", "alleles", "idx"), on="variantId"
@@ -1145,6 +1145,45 @@ class SusieFineMapperStep:
             gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
                 gwas_index, gnomad_ancestry=major_population
             )
+            # Module to remove NANs from the LD matrix
+            if sum(sum(np.isnan(gnomad_ld))) > 0:
+                gwas_index = gwas_index.toPandas()
+
+                # First round of filtering out the variants with NANs
+                nan_count = 1 - (sum(np.isnan(gnomad_ld)) / len(gnomad_ld))
+                indices = np.where(nan_count >= 0.98)
+                indices = indices[0]
+                gnomad_ld = gnomad_ld[indices][:, indices]
+
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                # Second round of filtering out the variants with NANs
+                nan_count = sum(np.isnan(gnomad_ld))
+                indices = np.where(nan_count == 0)
+                indices = indices[0]
+
+                gnomad_ld = gnomad_ld[indices][:, indices]
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                gwas_index = session.spark.createDataFrame(gwas_index)
+
+        # sanity filters on LD matrix
+        np.fill_diagonal(gnomad_ld, 1)
+        gnomad_ld[gnomad_ld > 1] = 1
+        gnomad_ld[gnomad_ld < -1] = -1
+        upper_triangle = np.triu(gnomad_ld)
+        gnomad_ld = (
+            upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
+        )
+        np.fill_diagonal(gnomad_ld, 1)
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,
@@ -1171,43 +1210,241 @@ class SusieFineMapperStep:
         return out
 
     @staticmethod
-    def credible_set_qc(
-        cred_sets: StudyLocus,
+    def susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
+        session: Session,
+        study_locus_row: Row,
         study_index: StudyIndex,
-        ld_index: LDIndex,
-        p_value_threshold: float = 1e-5,
-        purity_min_r2: float = 0.01,
-    ) -> StudyLocus:
-        """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
+        max_causal_snps: int = 10,
+        susie_est_tausq: bool = False,
+        run_carma: bool = False,
+        run_sumstat_imputation: bool = False,
+        carma_time_limit: int = 600,
+        imputed_r2_threshold: float = 0.9,
+        ld_score_threshold: float = 5,
+        sum_pips: float = 0.99,
+        primary_signal_pval_threshold: float = 5e-8,
+        secondary_signal_pval_threshold: float = 1e-7,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
+        cs_lbf_thr: float = 2,
+    ) -> dict[str, Any] | None:
+        """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
 
         Args:
-            cred_sets (StudyLocus): StudyLocus object with credible sets to filter/clump
+            session (Session): Spark session
+            study_locus_row (Row): StudyLocus row with collected locus
             study_index (StudyIndex): StudyIndex object
-            ld_index (LDIndex): LDIndex object
-            p_value_threshold (float): p-value threshold for filtering credible sets, default is 1e-5
-            purity_min_r2 (float): min-R2 purity threshold for filtering credible sets, default is 0.25
+            max_causal_snps (int): maximum number of causal variants
+            susie_est_tausq (bool): estimate tau squared, default is False
+            run_carma (bool): run CARMA, default is False
+            run_sumstat_imputation (bool): run summary statistics imputation, default is False
+            carma_time_limit (int): CARMA time limit, default is 600 seconds
+            imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
+            ld_score_threshold (float): LD score threshold ofr imputation, default is 4
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
 
         Returns:
-            StudyLocus: Credible sets which pass filters and LD clumping.
+            dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
         """
-        df = (
-            cred_sets.df.withColumn(
-                "pValue", f.col("pValueMantissa") * f.pow(10, f.col("pValueExponent"))
-            )
-            .filter(f.col("pValue") <= p_value_threshold)
-            .filter(f.col("purityMinR2") >= purity_min_r2)
-            .drop("pValue")
+        # PLEASE DO NOT REMOVE THIS LINE
+        pd.DataFrame.iteritems = pd.DataFrame.items
+
+        chromosome = study_locus_row["chromosome"]
+        studyId = study_locus_row["studyId"]
+        locusStart = study_locus_row["locusStart"]
+        locusEnd = study_locus_row["locusEnd"]
+
+        study_index_df = study_index._df
+        study_index_df = study_index_df.filter(f.col("studyId") == studyId)
+        major_population = study_index_df.select(
+            "studyId",
+            order_array_of_structs_by_field(
+                "ldPopulationStructure", "relativeSampleSize"
+            )[0]["ldPopulation"].alias("majorPopulation"),
+        ).collect()[0]["majorPopulation"]
+
+        region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
+
+        schema = StudyLocus.get_schema()
+        gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
+        exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
+
+        result_df = exploded_df.select(
+            "locus.variantId", "locus.beta", "locus.standardError"
         )
-        cred_sets.df = df
-        cred_sets = (
-            cred_sets.annotate_ld(study_index, ld_index)
-            .clump()
-            .filter(
-                ~f.array_contains(
-                    f.col("qualityControls"),
-                    "Explained by a more significant variant in high LD (clumped)",
-                )
+        gwas_df = (
+            result_df.withColumn("z", f.col("beta") / f.col("standardError"))
+            .withColumn(
+                "chromosome", f.split(f.col("variantId"), "_")[0].cast("string")
             )
+            .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
+            .filter(f.col("chromosome") == chromosome)
+            .filter(f.col("position") >= int(locusStart))
+            .filter(f.col("position") <= int(locusEnd))
+            .filter(f.col("z").isNotNull())
         )
 
-        return cred_sets
+        # Remove ALL duplicated variants from GWAS DataFrame - we don't know which is correct
+        variant_counts = gwas_df.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
+
+        ld_index = (
+            GnomADLDMatrix()
+            .get_locus_index_boundaries(
+                study_locus_row=study_locus_row,
+                major_population=major_population,
+            )
+            .withColumn(
+                "variantId",
+                f.concat(
+                    f.lit(chromosome),
+                    f.lit("_"),
+                    f.col("`locus.position`"),
+                    f.lit("_"),
+                    f.col("alleles").getItem(0),
+                    f.lit("_"),
+                    f.col("alleles").getItem(1),
+                ).cast("string"),
+            )
+        )
+        # Remove ALL duplicated variants from ld_index DataFrame - we don't know which is correct
+        variant_counts = ld_index.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        ld_index = ld_index.join(unique_variants, on="variantId", how="left_semi").sort(
+            "idx"
+        )
+
+        if not run_sumstat_imputation:
+            # Filtering out the variants that are not in the LD matrix, we don't need them
+            gwas_index = gwas_df.join(
+                ld_index.select("variantId", "alleles", "idx"), on="variantId"
+            ).sort("idx")
+            gwas_df = gwas_index.select(
+                "variantId",
+                "z",
+                "chromosome",
+                "position",
+                "beta",
+                "StandardError",
+            )
+            gwas_index = gwas_index.drop(
+                "z", "chromosome", "position", "beta", "StandardError"
+            )
+            if gwas_index.rdd.isEmpty():
+                logging.warning("No overlapping variants in the LD Index")
+                return None
+            gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
+                gwas_index, gnomad_ancestry=major_population
+            )
+
+            # Module to remove NANs from the LD matrix
+            if sum(sum(np.isnan(gnomad_ld))) > 0:
+                gwas_index = gwas_index.toPandas()
+
+                # First round of filtering out the variants with NANs
+                nan_count = 1 - (sum(np.isnan(gnomad_ld)) / len(gnomad_ld))
+                indices = np.where(nan_count >= 0.98)
+                indices = indices[0]
+                gnomad_ld = gnomad_ld[indices][:, indices]
+
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                # Second round of filtering out the variants with NANs
+                nan_count = sum(np.isnan(gnomad_ld))
+                indices = np.where(nan_count == 0)
+                indices = indices[0]
+
+                gnomad_ld = gnomad_ld[indices][:, indices]
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                gwas_index = session.spark.createDataFrame(gwas_index)
+
+        else:
+            gwas_index = gwas_df.join(
+                ld_index.select("variantId", "alleles", "idx"), on="variantId"
+            ).sort("idx")
+            if gwas_index.rdd.isEmpty():
+                logging.warning("No overlapping variants in the LD Index")
+                return None
+            gwas_index = ld_index
+            gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
+                gwas_index, gnomad_ancestry=major_population
+            )
+
+            # Module to remove NANs from the LD matrix
+            if sum(sum(np.isnan(gnomad_ld))) > 0:
+                gwas_index = gwas_index.toPandas()
+
+                # First round of filtering out the variants with NANs
+                nan_count = 1 - (sum(np.isnan(gnomad_ld)) / len(gnomad_ld))
+                indices = np.where(nan_count >= 0.98)
+                indices = indices[0]
+                gnomad_ld = gnomad_ld[indices][:, indices]
+
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                # Second round of filtering out the variants with NANs
+                nan_count = sum(np.isnan(gnomad_ld))
+                indices = np.where(nan_count == 0)
+                indices = indices[0]
+
+                gnomad_ld = gnomad_ld[indices][:, indices]
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                gwas_index = session.spark.createDataFrame(gwas_index)
+
+        # sanity filters on LD matrix
+        np.fill_diagonal(gnomad_ld, 1)
+        gnomad_ld[gnomad_ld > 1] = 1
+        gnomad_ld[gnomad_ld < -1] = -1
+        upper_triangle = np.triu(gnomad_ld)
+        gnomad_ld = (
+            upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
+        )
+        np.fill_diagonal(gnomad_ld, 1)
+
+        out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
+            GWAS_df=gwas_df,
+            ld_index=gwas_index,
+            gnomad_ld=gnomad_ld,
+            L=max_causal_snps,
+            session=session,
+            studyId=studyId,
+            region=region,
+            susie_est_tausq=susie_est_tausq,
+            run_carma=run_carma,
+            run_sumstat_imputation=run_sumstat_imputation,
+            carma_time_limit=carma_time_limit,
+            imputed_r2_threshold=imputed_r2_threshold,
+            ld_score_threshold=ld_score_threshold,
+            sum_pips=sum_pips,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            cs_lbf_thr=cs_lbf_thr,
+        )
+
+        return out

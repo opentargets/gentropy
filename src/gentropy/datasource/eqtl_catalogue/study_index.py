@@ -41,32 +41,39 @@ class EqtlCatalogueStudyIndex:
             StructField("condition_label", StringType(), True),
             StructField("sample_size", IntegerType(), True),
             StructField("quant_method", StringType(), True),
+            StructField("pmid", StringType(), True),
         ]
     )
-    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/4c8ca340e3eb2878073b290785cb8ff1a4c788f8/data_tables/dataset_metadata_upcoming.tsv"
+    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/092e01a9601feb404f1c88f86311b43b907a88f6/data_tables/dataset_metadata_upcoming.tsv"
 
     @classmethod
     def _identify_study_type(
-        cls: type[EqtlCatalogueStudyIndex], quantification_method_col: Column
+        cls: type[EqtlCatalogueStudyIndex],
+        quantification_method_col: Column,
+        biosample_col: Column,
     ) -> Column:
-        """Identify the study type based on the method to quantify the trait.
+        """Identify the study type based on the method to quantify the trait and the biosample where the trait was measured.
+
+        The quantification method identifies the type of molecular QTLs that were found.
+        The biosample identifies the biosample where the trait was measured, distinguishing between bulk and single cell.
 
         Args:
             quantification_method_col (Column): column with the label of the method to quantify the trait. Available methods are [here](https://www.ebi.ac.uk/eqtl/Methods/)
+            biosample_col (Column): column with the label of the biosample where the trait was measured.
 
         Returns:
             Column: The study type.
 
         Examples:
-            >>> df = spark.createDataFrame([("ge",), ("exon",), ("tx",)], ["quant_method"])
-            >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"))).show()
-            +------------+----------+
-            |quant_method|study_type|
-            +------------+----------+
-            |          ge|      eqtl|
-            |        exon|      eqtl|
-            |          tx|      eqtl|
-            +------------+----------+
+            >>> df = spark.createDataFrame([("ge", "CL_1"), ("leafcutter", "UBERON_2"), ("tx", "EFO_3")], ["quant_method", "tissue_id"])
+            >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"), f.col("tissue_id"))).show()
+            +------------+---------+----------+
+            |quant_method|tissue_id|study_type|
+            +------------+---------+----------+
+            |          ge|     CL_1|    sceqtl|
+            |  leafcutter| UBERON_2|      sqtl|
+            |          tx|    EFO_3|      eqtl|
+            +------------+---------+----------+
             <BLANKLINE>
         """
         method_to_study_type_mapping = {
@@ -78,10 +85,12 @@ class EqtlCatalogueStudyIndex:
             "aptamer": "pqtl",
             "txrev": "tuqtl",
         }
-        map_expr = f.create_map(
+        qtl_type_mapping = f.create_map(
             *[f.lit(x) for x in chain(*method_to_study_type_mapping.items())]
-        )
-        return map_expr.getItem(quantification_method_col)
+        )[quantification_method_col]
+        return f.when(
+            biosample_col.startswith("CL"), f.concat(f.lit("sc"), qtl_type_mapping)
+        ).otherwise(qtl_type_mapping)
 
     @classmethod
     def get_studies_of_interest(

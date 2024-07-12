@@ -24,7 +24,6 @@ pyspark = "3.3.4"
 scipy = "^1.11.4"
 hydra-core = "^1.3.2"
 pyliftover = "^0.4"
-xgboost = "^1.7.3"
 numpy = "^1.26.2"
 hail = "0.2.127"
 wandb = ">=0.16.2,<0.18.0"
@@ -33,6 +32,7 @@ omegaconf = "^2.3.0"
 typing-extensions = "^4.9.0"
 scikit-learn = "^1.3.2"
 pandas = {extras = ["gcp", "parquet"], version = "^2.2.2"}
+skops = ">=0.9,<0.11"
 google-cloud-secret-manager = "^2.20.0"
 
 [tool.poetry.dev-dependencies]
@@ -42,7 +42,7 @@ pep8-naming = "^0.14.1"
 interrogate = "^1.7.0"
 isort = "^5.13.2"
 darglint = "^1.8.1"
-ruff = "^0.4.3"
+ruff = "^0.5.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3"
@@ -73,10 +73,9 @@ ipykernel = "^6.28.0"
 google-cloud-dataproc = "^5.8.0"
 apache-airflow = "^2.8.0"
 apache-airflow-providers-google = "^10.13.1"
-pydoclint = ">=0.3.8,<0.5.0"
+pydoclint = ">=0.3.8,<0.6.0"
 prettier = "^0.0.7"
 deptry = ">=0.12,<0.17"
-python-semantic-release = ">=8.7,<10.0"
 yamllint = "^1.33.0"
 
 [tool.semantic_release]
@@ -267,3 +266,4 @@ check-return-types = true
 allow-init-docstring = true
 arg-type-hints-in-docstring = true
 skip-checking-short-docstrings = false
+check-class-attributes = false

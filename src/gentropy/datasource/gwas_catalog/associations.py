@@ -8,14 +8,12 @@ from dataclasses import dataclass
 from itertools import chain
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pyspark.sql.functions as f
 from pyspark.sql.types import DoubleType, IntegerType, LongType
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.spark_helpers import (
-    calculate_neglog_pvalue,
     get_record_with_maximum_value,
     pvalue_to_zscore,
 )
@@ -26,7 +24,7 @@ from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
-    from gentropy.dataset.variant_annotation import VariantAnnotation
+    from gentropy.dataset.variant_index import VariantIndex
 
 
 @dataclass
@@ -197,14 +195,14 @@ class GWASCatalogCuratedAssociationsParser:
         return f.array_distinct(f.array(snp_id, snp_id_current, risk_allele))
 
     @staticmethod
-    def _map_to_variant_annotation_variants(
-        gwas_associations: DataFrame, variant_annotation: VariantAnnotation
+    def _map_variants_to_variant_index(
+        gwas_associations: DataFrame, variant_index: VariantIndex
     ) -> DataFrame:
         """Add variant metadata in associations.
 
         Args:
-            gwas_associations (DataFrame): raw GWAS Catalog associations
-            variant_annotation (VariantAnnotation): variant annotation dataset
+            gwas_associations (DataFrame): raw GWAS Catalog associations.
+            variant_index (VariantIndex): GnomaAD variants dataset with allele frequencies.
 
         Returns:
             DataFrame: GWAS Catalog associations data including `variantId`, `referenceAllele`,
@@ -228,7 +226,7 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
         # Subset of variant annotation required for GWAS Catalog annotations:
-        va_subset = variant_annotation.df.select(
+        va_subset = variant_index.df.select(
             "variantId",
             "chromosome",
             # Calculate the position in Ensembl coordinates for indels:
@@ -241,7 +239,7 @@ class GWASCatalogCuratedAssociationsParser:
             "referenceAllele",
             "alternateAllele",
             "alleleFrequencies",
-            variant_annotation.max_maf().alias("maxMaf"),
+            variant_index.max_maf().alias("maxMaf"),
         ).join(
             f.broadcast(
                 gwas_associations_subset.select(
@@ -818,7 +816,7 @@ class GWASCatalogCuratedAssociationsParser:
         qc = GWASCatalogCuratedAssociationsParser._qc_variant_interactions(
             qc, strongest_snp_risk_allele
         )
-        qc = GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(
+        qc = StudyLocus._qc_subsignificant_associations(
             qc, p_value_mantissa, p_value_exponent, p_value_cutoff
         )
         qc = GWASCatalogCuratedAssociationsParser._qc_genomic_location(
@@ -852,47 +850,6 @@ class GWASCatalogCuratedAssociationsParser:
             qc,
             strongest_snp_risk_allele.contains(";"),
             StudyLocusQualityCheck.COMPOSITE_FLAG,
-        )
-
-    @staticmethod
-    def _qc_subsignificant_associations(
-        qc: Column,
-        p_value_mantissa: Column,
-        p_value_exponent: Column,
-        pvalue_cutoff: float,
-    ) -> Column:
-        """Flag associations below significant threshold.
-
-        Args:
-            qc (Column): QC column
-            p_value_mantissa (Column): P-value mantissa column
-            p_value_exponent (Column): P-value exponent column
-            pvalue_cutoff (float): association p-value cut-off
-
-        Returns:
-            Column: Updated QC column with flag.
-
-        Examples:
-            >>> import pyspark.sql.types as t
-            >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
-            >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
-            >>> df.withColumn('qc', GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
-            +------------------------+----------------+----------------+
-            |qc                      |p_value_mantissa|p_value_exponent|
-            +------------------------+----------------+----------------+
-            |[Subsignificant p-value]|1               |-7              |
-            |[]                      |1               |-8              |
-            |[]                      |5               |-8              |
-            |[]                      |1               |-9              |
-            +------------------------+----------------+----------------+
-            <BLANKLINE>
-
-        """
-        return StudyLocus.update_quality_flag(
-            qc,
-            calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
-            < f.lit(-np.log10(pvalue_cutoff)),
-            StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
 
     @staticmethod
@@ -1035,7 +992,7 @@ class GWASCatalogCuratedAssociationsParser:
     def from_source(
         cls: type[GWASCatalogCuratedAssociationsParser],
         gwas_associations: DataFrame,
-        variant_annotation: VariantAnnotation,
+        variant_index: VariantIndex,
         pvalue_threshold: float = WindowBasedClumpingStepConfig.gwas_significance,
     ) -> StudyLocusGWASCatalog:
         """Read GWASCatalog associations.
@@ -1044,9 +1001,9 @@ class GWASCatalogCuratedAssociationsParser:
         applies some pre-defined filters on the data:
 
         Args:
-            gwas_associations (DataFrame): GWAS Catalog raw associations dataset
-            variant_annotation (VariantAnnotation): Variant annotation dataset
-            pvalue_threshold (float): P-value threshold for flagging associations
+            gwas_associations (DataFrame): GWAS Catalog raw associations dataset.
+            variant_index (VariantIndex): Variant index dataset with available allele frequencies.
+            pvalue_threshold (float): P-value threshold for flagging associations.
 
         Returns:
             StudyLocusGWASCatalog: GWASCatalogAssociations dataset
@@ -1060,8 +1017,8 @@ class GWASCatalogCuratedAssociationsParser:
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
                 # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
-                lambda df: GWASCatalogCuratedAssociationsParser._map_to_variant_annotation_variants(
-                    df, variant_annotation
+                lambda df: GWASCatalogCuratedAssociationsParser._map_variants_to_variant_index(
+                    df, variant_index
                 )
             )
             .withColumn(
