@@ -77,8 +77,12 @@ class ConvertToVcfStep:
             vcf_path (str): Output VCF file path.
         """
         # Load
-        df = session.load_data(source_path, source_format).limit(100)
-        # Extract
-        vcf_df = OpenTargetsVariant.as_vcf_df(session, df)
-        # Write
-        vcf_df.toPandas().to_csv(vcf_path, sep="\t", index=False)
+        df = session.load_data(source_path, source_format)
+
+        (
+            # Extracting variant annotations from the dataset:
+            OpenTargetsVariant.as_vcf_df(session, df)
+            # Writing variant data file:
+            .write.mode(session.write_mode)
+            .parquet(vcf_path)
+        )

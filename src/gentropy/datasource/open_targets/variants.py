@@ -53,7 +53,7 @@ class OpenTargetsVariant:
         """
         if rsids_to_map := (
             variant_df.filter(
-                (f.col("variantId").isNull()) & (f.col("variantRsId").isNotNull())
+                f.col("variantId").isNull() & f.col("variantRsId").isNotNull()
             )
             .select("variantRsId")
             .distinct()
@@ -93,6 +93,14 @@ class OpenTargetsVariant:
         Returns:
             DataFrame: DataFrame with variant information in VCF format.
         """
+        # If the dataset is coming from credible set, the variants from the locus needs to be extracted as well:
+        if "locus" in variant_df.columns:
+            variant_df = (
+                variant_df.select("locus", f.explode("locus"))
+                .select(f.col("locus.variantId").alias("variantId"))
+                .unionByName(variant_df.select("variantId").distinct())
+                .distinct()
+            )
         # Add necessary cols if not present and apply rsID mappings
         missing_cols = [
             col for col in ["variantId", "variantRsId"] if col not in variant_df.columns

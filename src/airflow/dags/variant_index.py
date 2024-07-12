@@ -13,18 +13,12 @@ from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.cloud_batch import (
     CloudBatchSubmitJobOperator,
 )
-from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
-from airflow.utils.trigger_rule import TriggerRule
 from common_airflow import (
     create_batch_job,
-    create_cluster,
     create_task_spec,
-    delete_cluster,
-    install_dependencies,
     read_yaml_config,
     shared_dag_args,
     shared_dag_kwargs,
-    submit_step,
 )
 from google.cloud import batch_v1
 
@@ -33,11 +27,13 @@ REGION = "europe-west1"
 CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "variant_sources.yaml"
 GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:il-3333"
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
-VCF_DST_PATH = "gs://genetics_etl_python_playground/il-3333"
+VCF_DST_PATH = "gs://genetics_etl_python_playground/ot_variants_vcf"
+VARIANT_PATH = "gs://genetics_etl_python_playground/ot_variants"
 VEP_OUTPUT_BUCKET = "gs://genetics_etl_python_playground/il-3333/vep_output"
 VEP_CACHE_BUCKET = "gs://genetics_etl_python_playground/vep/cache"
 VARIANT_INDEX_BUCKET = "gs://genetics_etl_python_playground/il-3333/variant_index"
 GNOMAD_ANNOTATION_PATH = "gs://genetics_etl_python_playground/output/python_etl/parquet/24.06/gnomad_variants"
+
 # Internal parameters for the docker image:
 MOUNT_DIR = "/mnt/disks/share"
 
@@ -66,7 +62,7 @@ def create_vcf(**kwargs: Any) -> None:
 
     commands = [
         "-c",
-        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={VCF_DST_PATH}/$SOURCE_NAME.vcf +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
+        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={VARIANT_PATH}/$SOURCE_NAME.vcf +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
     ]
     task = create_task_spec(
         GENTROPY_DOCKER_IMAGE, commands, options="-e HYDRA_FULL_ERROR=1"
@@ -216,30 +212,30 @@ with DAG(
     )
     (
         create_vcf()
-        >> GCSListObjectsOperator(
-            task_id="get_vep_todo_list",
-            bucket=pm.input_bucket,
-            prefix=pm.input_path,
-            match_glob="**vcf",
-            trigger_rule=TriggerRule.ALL_SUCCESS,
-        )
-        >> vep_annotation(pm)
-        >> create_cluster(
-            CLUSTER_NAME,
-            autoscaling_policy=AUTOSCALING,
-            num_workers=4,
-            worker_machine_type="n1-highmem-8",
-        )
-        >> install_dependencies(CLUSTER_NAME)
-        >> submit_step(
-            cluster_name=CLUSTER_NAME,
-            step_id="ot_variant_index",
-            task_id="ot_variant_index",
-            other_args=[
-                f"step.vep_output_json_path={VEP_OUTPUT_BUCKET}",
-                f"step.variant_index_path={VARIANT_INDEX_BUCKET}",
-                f"step.gnomad_variant_annotations_path={GNOMAD_ANNOTATION_PATH}",
-            ],
-        )
-        >> delete_cluster(CLUSTER_NAME)
+        # >> GCSListObjectsOperator(
+        #     task_id="get_vep_todo_list",
+        #     bucket=pm.input_bucket,
+        #     prefix=pm.input_path,
+        #     match_glob="**vcf",
+        #     trigger_rule=TriggerRule.ALL_SUCCESS,
+        # )
+        # >> vep_annotation(pm)
+        # >> create_cluster(
+        #     CLUSTER_NAME,
+        #     autoscaling_policy=AUTOSCALING,
+        #     num_workers=4,
+        #     worker_machine_type="n1-highmem-8",
+        # )
+        # >> install_dependencies(CLUSTER_NAME)
+        # >> submit_step(
+        #     cluster_name=CLUSTER_NAME,
+        #     step_id="ot_variant_index",
+        #     task_id="ot_variant_index",
+        #     other_args=[
+        #         f"step.vep_output_json_path={VEP_OUTPUT_BUCKET}",
+        #         f"step.variant_index_path={VARIANT_INDEX_BUCKET}",
+        #         f"step.gnomad_variant_annotations_path={GNOMAD_ANNOTATION_PATH}",
+        #     ],
+        # )
+        # >> delete_cluster(CLUSTER_NAME)
     )
