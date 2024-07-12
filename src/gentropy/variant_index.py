@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from gentropy.common.session import Session
-from gentropy.common.utils import copy_to_gcs
+from gentropy.config import VariantIndexConfig
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 from gentropy.datasource.open_targets.variants import OpenTargetsVariant
-
-if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
 
 
 class VariantIndexStep:
@@ -26,6 +21,7 @@ class VariantIndexStep:
         session: Session,
         vep_output_json_path: str,
         variant_index_path: str,
+        hash_threshold: int = VariantIndexConfig().hash_threshold,
         gnomad_variant_annotations_path: str | None = None,
     ) -> None:
         """Run VariantIndex step.
@@ -34,11 +30,12 @@ class VariantIndexStep:
             session (Session): Session object.
             vep_output_json_path (str): Variant effect predictor output path (in json format).
             variant_index_path (str): Variant index dataset path to save resulting data.
+            hash_threshold (int): Hash threshold for variant identifier lenght.
             gnomad_variant_annotations_path (str | None): Path to extra variant annotation dataset.
         """
         # Extract variant annotations from VEP output:
         variant_index = VariantEffectPredictorParser.extract_variant_index_from_vep(
-            session.spark, vep_output_json_path
+            session.spark, vep_output_json_path, hash_threshold
         )
 
         # Process variant annotations if provided:
@@ -84,26 +81,4 @@ class ConvertToVcfStep:
         # Extract
         vcf_df = OpenTargetsVariant.as_vcf_df(session, df)
         # Write
-        path = vcf_path.split("/")[-1] if vcf_path.startswith("gs://") else vcf_path
-        self.write_vcf_from_memory(vcf_df, path)
-        if vcf_path.startswith("gs://"):
-            copy_to_gcs(path, vcf_path)
-
-    def write_vcf_from_memory(
-        self: ConvertToVcfStep, vcf_df: DataFrame, path: str
-    ) -> None:
-        """Write VCF file from dataframe in memory to the local filesystem.
-
-        Args:
-            vcf_df (DataFrame): Input dataframe.
-            path (str): VCF file path in the local filesystem.
-        """
-        header = "##fileformat=VCFv4.3"
-        data_header = "\t".join(vcf_df.columns)
-        with open(path, "w") as file:
-            file.write(header)
-            file.write("\n")
-            file.write(data_header)
-            file.write("\n")
-            for row in vcf_df.collect():
-                file.write("\t".join(map(str, row)) + "\n")
+        vcf_df.toPandas().to_csv(vcf_path, sep="\t", index=False)

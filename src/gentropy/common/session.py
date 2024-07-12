@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import hail as hl
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 
@@ -50,6 +51,8 @@ class Session:
 
         self.hail_home = hail_home
         self.start_hail = start_hail
+        if start_hail:
+            hl.init(sc=self.spark.sparkContext, log="/dev/null")
 
     def _default_config(self: Session) -> SparkConf:
         """Default spark configuration.

@@ -15,7 +15,7 @@ jobs:
           source_branch: "dev"
           destination_branch: "main"
           pr_title: "chore: trigger release process"
-          pr_body: ":warning: *This PR requires a MERGE or REBASE COMMIT (Don't squash!)*"
+          pr_body: ":warning: *This PR requires a MERGE COMMIT (Don't squash!)*"
           pr_label: "auto-pr"
           pr_draft: false
           pr_allow_empty: true
