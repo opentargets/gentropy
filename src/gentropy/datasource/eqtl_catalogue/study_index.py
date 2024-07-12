@@ -66,7 +66,7 @@ class EqtlCatalogueStudyIndex:
 
         Examples:
             >>> df = spark.createDataFrame([("ge", "CL_1"), ("leafcutter", "UBERON_2"), ("tx", "EFO_3")], ["quant_method", "tissue_id"])
-            >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"))).show()
+            >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"), f.col("tissue_id"))).show()
             +------------+---------+----------+
             |quant_method|tissue_id|study_type|
             +------------+---------+----------+
@@ -87,7 +87,7 @@ class EqtlCatalogueStudyIndex:
         }
         qtl_type_mapping = f.create_map(
             *[f.lit(x) for x in chain(*method_to_study_type_mapping.items())]
-        ).getItem(quantification_method_col)
+        )[quantification_method_col]
         return f.when(
             biosample_col.startswith("CL"), f.concat(f.lit("sc"), qtl_type_mapping)
         ).otherwise(qtl_type_mapping)
