@@ -1,4 +1,5 @@
 """Summary satistics dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ import pyspark.sql.functions as f
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import parse_region, split_pvalue
+from gentropy.config import LocusBreakerClumpingConfig, WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -56,8 +58,8 @@ class SummaryStatistics(Dataset):
 
     def window_based_clumping(
         self: SummaryStatistics,
-        distance: int = 500_000,
-        gwas_significance: float = 5e-8,
+        distance: int = WindowBasedClumpingStepConfig().distance,
+        gwas_significance: float = WindowBasedClumpingStepConfig().gwas_significance,
     ) -> StudyLocus:
         """Generate study-locus from summary statistics using window-based clumping.
 
@@ -69,6 +71,7 @@ class SummaryStatistics(Dataset):
 
         Returns:
             StudyLocus: Clumped study-locus optionally containing variants based on window.
+            Check WindowBasedClumpingStepConfig object for default values.
         """
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
@@ -76,6 +79,37 @@ class SummaryStatistics(Dataset):
             self,
             distance=distance,
             gwas_significance=gwas_significance,
+        )
+
+    def locus_breaker_clumping(
+        self: SummaryStatistics,
+        baseline_pvalue_cutoff: float = LocusBreakerClumpingConfig().baseline_pvalue_cutoff,
+        distance_cutoff: int = LocusBreakerClumpingConfig().distance_cutoff,
+        pvalue_cutoff: float = WindowBasedClumpingStepConfig().gwas_significance,
+        flankig_distance: int = LocusBreakerClumpingConfig().flankig_distance,
+    ) -> StudyLocus:
+        """Generate study-locus from summary statistics using locus-breaker clumping method with locus boundaries.
+
+        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.locus_breaker]
+
+        Args:
+            baseline_pvalue_cutoff (float, optional): Baseline significance we consider for the locus.
+            distance_cutoff (int, optional): Distance in base pairs to be used for clumping.
+            pvalue_cutoff (float, optional): GWAS significance threshold.
+            flankig_distance (int, optional): Flank distance in base pairs to be used for clumping.
+
+        Returns:
+            StudyLocus: Clumped study-locus optionally containing variants based on window.
+            Check LocusBreakerClumpingConfig object for default values.
+        """
+        from gentropy.method.locus_breaker_clumping import locus_breaker
+
+        return locus_breaker(
+            self,
+            baseline_pvalue_cutoff,
+            distance_cutoff,
+            pvalue_cutoff,
+            flankig_distance,
         )
 
     def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
@@ -108,9 +142,12 @@ class SummaryStatistics(Dataset):
         """The function filters the summary statistics by sanity filters.
 
         The function filters the summary statistics by the following filters:
-            - The p-value should not be eqaul 1.
-            - The beta and se should not be equal 0.
+            - The p-value should be less than 1.
+            - The pValueMantissa should be greater than 0.
+            - The beta should not be equal 0.
             - The p-value, beta and se should not be NaN.
+            - The se should be positive.
+            - The beta and se should not be infinite.
 
         Returns:
             SummaryStatistics: The filtered summary statistics.
@@ -119,13 +156,15 @@ class SummaryStatistics(Dataset):
         gwas_df = gwas_df.dropna(
             subset=["beta", "standardError", "pValueMantissa", "pValueExponent"]
         )
-
-        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") != 0))
+        gwas_df = gwas_df.filter((f.col("beta") != 0) & (f.col("standardError") > 0))
         gwas_df = gwas_df.filter(
-            f.col("pValueMantissa") * 10 ** f.col("pValueExponent") != 1
+            (f.col("pValueMantissa") * 10 ** f.col("pValueExponent") < 1)
+            & (f.col("pValueMantissa") > 0)
         )
-
-        return SummaryStatistics(
+        cols = ["beta", "standardError"]
+        summary_stats = SummaryStatistics(
             _df=gwas_df,
             _schema=SummaryStatistics.get_schema(),
-        )
+        ).drop_infinity_values(*cols)
+
+        return summary_stats
