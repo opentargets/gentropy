@@ -1,4 +1,4 @@
-"""Step to generate variant index dataset based on VEP output."""
+"""Step to generate variant index dataset."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from gentropy.common.session import Session
 from gentropy.config import VariantIndexConfig
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
+from gentropy.datasource.open_targets.variants import OpenTargetsVariant
 
 
 class VariantIndexStep:
@@ -50,7 +51,34 @@ class VariantIndexStep:
             variant_index = variant_index.add_annotation(annotations)
 
         (
-            variant_index.df.write.partitionBy("chromosome")
+            variant_index.df.withColumn("variantId", VariantIndex.assign_variant_id())
+            .write.partitionBy("chromosome")
             .mode(session.write_mode)
             .parquet(variant_index_path)
         )
+
+
+class ConvertToVcfStep:
+    """Convert dataset with variant annotation to VCF step."""
+
+    def __init__(
+        self,
+        session: Session,
+        source_path: str,
+        source_format: str,
+        vcf_path: str,
+    ) -> None:
+        """Initialize step.
+
+        Args:
+            session (Session): Session object.
+            source_path (str): Input dataset path.
+            source_format(str): Format of the input dataset.
+            vcf_path (str): Output VCF file path.
+        """
+        # Load
+        df = session.load_data(source_path, source_format).limit(100)
+        # Extract
+        vcf_df = OpenTargetsVariant.as_vcf_df(session, df)
+        # Write
+        vcf_df.toPandas().to_csv(vcf_path, sep="\t", index=False)
