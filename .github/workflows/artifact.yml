@@ -2,7 +2,7 @@ name: Build and Push to Artifact Registry
 
 "on":
   push:
-    branches: ["dev"]
+    branches: ["ds_3350_variant_index_update"]
     tags: ["v*"]
 
 env:
