@@ -44,7 +44,7 @@ class StudyLocusQualityCheck(Enum):
         LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
-        FAILED_STUDUY (str): Flagging study loci if the study has failed QC
+        FAILED_STUDY (str): Flagging study loci if the study has failed QC
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
     """
 
