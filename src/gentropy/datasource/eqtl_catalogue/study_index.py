@@ -44,7 +44,7 @@ class EqtlCatalogueStudyIndex:
             StructField("pmid", StringType(), True),
         ]
     )
-    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/4c8ca340e3eb2878073b290785cb8ff1a4c788f8/data_tables/dataset_metadata_upcoming.tsv"
+    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/092e01a9601feb404f1c88f86311b43b907a88f6/data_tables/dataset_metadata_upcoming.tsv"
 
     @classmethod
     def _identify_study_type(
