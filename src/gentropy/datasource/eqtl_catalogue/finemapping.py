@@ -188,12 +188,13 @@ class EqtlCatalogueFinemapping:
                 f.concat_ws(
                     "_",
                     f.col("study_label"),
+                    f.col("quant_method"),
                     f.col("sample_group"),
                     f.col("molecular_trait_id"),
                 ).alias("studyId"),
                 f.col("tissue_id").alias("biosampleFromSourceId"),
                 EqtlCatalogueStudyIndex._identify_study_type(
-                    f.col("quant_method")
+                    f.col("quant_method"), f.col("tissue_id")
                 ).alias("studyType"),
                 f.col("study_label").alias("projectId"),
                 f.concat_ws(
@@ -204,6 +205,7 @@ class EqtlCatalogueFinemapping:
                 ).alias("summarystatsLocation"),
                 f.lit(True).alias("hasSumstats"),
                 f.col("molecular_trait_id"),
+                f.col("pmid").alias("pubmedId"),
             )
         )
 
