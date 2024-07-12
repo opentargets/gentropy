@@ -6,7 +6,6 @@ import logging
 import time
 from typing import Any
 
-import hail as hl
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
@@ -83,8 +82,6 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
         """
-        # Initialise Hail
-        hl.init(sc=session.spark.sparkContext, log="/dev/null")
         # Read studyLocus
         study_locus = (
             StudyLocus.from_parquet(session, study_locus_to_finemap)
