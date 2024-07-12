@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
-from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.ensembl.api import fetch_coordinates_from_rsids
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -60,7 +60,7 @@ class OpenTargetsVariant:
             .toPandas()["variantRsId"]
             .to_list()
         ):
-            rsid_to_variantids = VariantIndex.fetch_coordinates(rsids_to_map)
+            rsid_to_variantids = fetch_coordinates_from_rsids(rsids_to_map)
             mapping_df = session.spark.createDataFrame(
                 rsid_to_variantids.items(), schema=["variantRsId", "mappedVariantIds"]
             ).select(
