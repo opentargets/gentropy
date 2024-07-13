@@ -25,7 +25,7 @@ from google.cloud import batch_v1
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"
 CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "variant_sources.yaml"
-GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:il-3333"
+GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:ds_3350_variant_index_update"
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
 VCF_DST_PATH = "gs://genetics_etl_python_playground/ot_variants_vcf"
 VARIANT_PATH = "gs://genetics_etl_python_playground/ot_variants"
