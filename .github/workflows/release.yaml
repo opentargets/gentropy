@@ -31,7 +31,9 @@ jobs:
 
       - name: Python Semantic Release
         id: semrelease
-        uses: python-semantic-release/python-semantic-release@v9.8.3
+        # v9.6.0 is required due to the python v3.12 in the newer version of semantic release action which
+        # breaks the poetry build command.
+        uses: python-semantic-release/python-semantic-release@v9.6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 

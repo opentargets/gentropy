@@ -1,4 +1,4 @@
-"""Airflow DAG for the harmonisation part of the pipeline."""
+"""DAG that generates a variant index dataset based on several sources."""
 
 from __future__ import annotations
 
@@ -6,39 +6,86 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
-import common_airflow as common
 from airflow.decorators import task
 from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.cloud_batch import (
     CloudBatchSubmitJobOperator,
 )
 from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
+from airflow.utils.trigger_rule import TriggerRule
+from common_airflow import (
+    create_batch_job,
+    create_cluster,
+    create_task_spec,
+    delete_cluster,
+    install_dependencies,
+    read_yaml_config,
+    shared_dag_args,
+    shared_dag_kwargs,
+    submit_step,
+)
 from google.cloud import batch_v1
 
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"
-
-# Required parameters:
+CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "variant_sources.yaml"
+GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:il-3333"
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
-
-VCF_INPUT_BUCKET = "gs://genetics_etl_python_playground/vep/test_vep_input"
-VEP_OUTPUT_BUCKET = "gs://genetics_etl_python_playground/vep/test_vep_output"
+VCF_DST_PATH = "gs://genetics_etl_python_playground/il-3333"
+VEP_OUTPUT_BUCKET = "gs://genetics_etl_python_playground/il-3333/vep_output"
 VEP_CACHE_BUCKET = "gs://genetics_etl_python_playground/vep/cache"
-
+VARIANT_INDEX_BUCKET = "gs://genetics_etl_python_playground/il-3333/variant_index"
+GNOMAD_ANNOTATION_PATH = "gs://genetics_etl_python_playground/output/python_etl/parquet/24.06/gnomad_variants"
 # Internal parameters for the docker image:
 MOUNT_DIR = "/mnt/disks/share"
 
-# Configuration for the machine types:
-MACHINES = {
-    "VEPMACHINE": {
-        "machine_type": "e2-standard-4",
-        "cpu_milli": 2000,
-        "memory_mib": 2000,
-        "boot_disk_mib": 10000,
-    },
-}
+CLUSTER_NAME = "otg-variant-index"
+AUTOSCALING = "eqtl-preprocess"
+
+
+@task(task_id="vcf_creation")
+def create_vcf(**kwargs: Any) -> None:
+    """Task that sends the ConvertToVcfStep job to Google Batch.
+
+    Args:
+        **kwargs (Any): Keyword arguments
+    """
+    sources = read_yaml_config(CONFIG_FILE_PATH)
+    task_env = [
+        batch_v1.Environment(
+            variables={
+                "SOURCE_NAME": source["name"],
+                "SOURCE_PATH": source["location"],
+                "SOURCE_FORMAT": source["format"],
+            }
+        )
+        for source in sources["sources_inclusion_list"]
+    ]
+
+    commands = [
+        "-c",
+        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={VCF_DST_PATH}/$SOURCE_NAME.vcf +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
+    ]
+    task = create_task_spec(
+        GENTROPY_DOCKER_IMAGE, commands, options="-e HYDRA_FULL_ERROR=1"
+    )
+
+    batch_task = CloudBatchSubmitJobOperator(
+        task_id="vep_batch_job",
+        project_id=PROJECT_ID,
+        region=REGION,
+        job_name=f"vcf-job-{time.strftime('%Y%m%d-%H%M%S')}",
+        job=create_batch_job(
+            task,
+            "VEPMACHINE",
+            task_env,
+        ),
+        deferrable=False,
+    )
+
+    batch_task.execute(context=kwargs)
 
 
 @dataclass
@@ -97,115 +144,6 @@ class PathManager:
         return list(self.path_dictionary.values())
 
 
-def create_container_runnable(image: str, commands: List[str]) -> batch_v1.Runnable:
-    """Create a container runnable for a Batch job.
-
-    Args:
-        image (str): The Docker image to use.
-        commands (List[str]): The commands to run in the container.
-
-    Returns:
-        batch_v1.Runnable: The container runnable.
-    """
-    runnable = batch_v1.Runnable()
-    runnable.container = batch_v1.Runnable.Container()
-    runnable.container.image_uri = image
-    runnable.container.entrypoint = "/bin/sh"
-    runnable.container.commands = commands
-    return runnable
-
-
-def create_task_spec(image: str, commands: List[str]) -> batch_v1.TaskSpec:
-    """Create a task for a Batch job.
-
-    Args:
-        image (str): The Docker image to use.
-        commands (List[str]): The commands to run in the container.
-
-    Returns:
-        batch_v1.TaskSpec: The task specification.
-    """
-    task = batch_v1.TaskSpec()
-    task.runnables = [
-        create_container_runnable(image, commands)
-        # msg_runnable()
-    ]
-    return task
-
-
-def set_up_mouting_points(
-    mounting_points: list[dict[str, str]],
-) -> list[batch_v1.Volume]:
-    """Set up the mounting points for the container.
-
-    Args:
-        mounting_points (list[dict[str, str]]): The mounting points.
-
-    Returns:
-        list[batch_v1.Volume]: The volumes.
-    """
-    volumes = []
-    for mount in mounting_points:
-        gcs_bucket = batch_v1.GCS()
-        gcs_bucket.remote_path = mount["remote_path"]
-        gcs_volume = batch_v1.Volume()
-        gcs_volume.gcs = gcs_bucket
-        gcs_volume.mount_path = mount["mount_point"]
-        volumes.append(gcs_volume)
-    return volumes
-
-
-def create_batch_job(
-    task: batch_v1.TaskSpec,
-    machine: str,
-    task_env: list[batch_v1.Environment],
-    mounting_points: list[dict[str, str]],
-) -> batch_v1.Job:
-    """Create a Google Batch job.
-
-    Args:
-        task (batch_v1.TaskSpec): The task specification.
-        machine (str): The machine type to use.
-        task_env (list[batch_v1.Environment]): The environment variables for the task.
-        mounting_points (list[dict[str, str]]): List of mounting points.
-
-    Returns:
-        batch_v1.Job: The Batch job.
-    """
-    resources = batch_v1.ComputeResource()
-    resources.cpu_milli = MACHINES[machine]["cpu_milli"]
-    resources.memory_mib = MACHINES[machine]["memory_mib"]
-    resources.boot_disk_mib = MACHINES[machine]["boot_disk_mib"]
-    task.compute_resource = resources
-
-    task.max_retry_count = 3
-    task.max_run_duration = "43200s"
-
-    # The mounting points are set up and assigned to the task:
-    task.volumes = set_up_mouting_points(mounting_points)
-
-    group = batch_v1.TaskGroup()
-    group.task_spec = task
-    group.task_environments = task_env
-
-    policy = batch_v1.AllocationPolicy.InstancePolicy()
-    policy.machine_type = MACHINES[machine]["machine_type"]
-    policy.provisioning_model = "SPOT"
-
-    instances = batch_v1.AllocationPolicy.InstancePolicyOrTemplate()
-    instances.policy = policy
-    allocation_policy = batch_v1.AllocationPolicy()
-    allocation_policy.instances = [instances]
-
-    job = batch_v1.Job()
-    job.task_groups = [group]
-    job.allocation_policy = allocation_policy
-    job.logs_policy = batch_v1.LogsPolicy()
-    job.logs_policy.destination = batch_v1.LogsPolicy.Destination.CLOUD_LOGGING
-
-    return job
-
-
 @task(task_id="vep_annotation")
 def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
     """Submit a Batch job to download cache for VEP.
@@ -227,8 +165,8 @@ def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
     task_env = [
         batch_v1.Environment(
             variables={
-                "INPUT_FILE": filename + ".tsv",
-                "OUTPUT_FILE": filename + ".json",
+                "INPUT_FILE": f"{filename}.tsv",
+                "OUTPUT_FILE": f"{filename}.json",
             }
         )
         for filename in filenames
@@ -266,19 +204,42 @@ def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
 
 with DAG(
     dag_id=Path(__file__).stem,
-    description="Open Targets Genetics — Ensembl VEP",
-    default_args=common.shared_dag_args,
-    **common.shared_dag_kwargs,
-):
-    # Initialise parameter manager:
-    pm = PathManager(VCF_INPUT_BUCKET, VEP_OUTPUT_BUCKET, VEP_CACHE_BUCKET, MOUNT_DIR)
-
-    # Get a list of files to process from the input bucket:
-    get_vep_todo_list = GCSListObjectsOperator(
-        task_id="get_vep_todo_list",
-        bucket=pm.input_bucket,
-        prefix=pm.input_path,
-        match_glob="**tsv",
+    description="Open Targets Genetics — create VCF file from datasets that contain variant information",
+    default_args=shared_dag_args,
+    **shared_dag_kwargs,
+) as dag:
+    pm = PathManager(
+        VCF_DST_PATH,
+        VEP_OUTPUT_BUCKET,
+        VEP_CACHE_BUCKET,
+        MOUNT_DIR,
     )
-
-    get_vep_todo_list >> vep_annotation(pm)
+    (
+        create_vcf()
+        >> GCSListObjectsOperator(
+            task_id="get_vep_todo_list",
+            bucket=pm.input_bucket,
+            prefix=pm.input_path,
+            match_glob="**vcf",
+            trigger_rule=TriggerRule.ALL_SUCCESS,
+        )
+        >> vep_annotation(pm)
+        >> create_cluster(
+            CLUSTER_NAME,
+            autoscaling_policy=AUTOSCALING,
+            num_workers=4,
+            worker_machine_type="n1-highmem-8",
+        )
+        >> install_dependencies(CLUSTER_NAME)
+        >> submit_step(
+            cluster_name=CLUSTER_NAME,
+            step_id="ot_variant_index",
+            task_id="ot_variant_index",
+            other_args=[
+                f"step.vep_output_json_path={VEP_OUTPUT_BUCKET}",
+                f"step.variant_index_path={VARIANT_INDEX_BUCKET}",
+                f"step.gnomad_variant_annotations_path={GNOMAD_ANNOTATION_PATH}",
+            ],
+        )
+        >> delete_cluster(CLUSTER_NAME)
+    )

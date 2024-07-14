@@ -5,8 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from pyspark.sql import functions as f
-from pyspark.sql import types as t
+import pyspark.sql.functions as f
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
@@ -16,12 +15,13 @@ from gentropy.common.spark_helpers import (
     safe_array_union,
 )
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.v2g import V2G
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
+
+    from gentropy.dataset.gene_index import GeneIndex
 
 
 @dataclass
@@ -58,6 +58,29 @@ class VariantIndex(Dataset):
             StructType: Schema for the VariantIndex dataset
         """
         return parse_spark_schema("variant_index.json")
+
+    @classmethod
+    def assign_variant_id(
+        cls: type[VariantIndex],
+    ) -> Column:
+        """Creates a column with the variant ID that will be used to index the variant index.
+
+        This is to ensure that the variant ID is unique and not too long.
+
+        Returns:
+            Column: Column with the variant ID containing the hash if the variant ID is longer than 100 characters
+        """
+        return (
+            f.when(
+                f.length(f.col("variantId")) >= 100,
+                f.concat(
+                    f.lit("otvar_"),
+                    f.xxhash64(f.col("variantId")).cast("string"),
+                ),
+            )
+            .otherwise(f.col("variantId"))
+            .alias("variantId")
+        )
 
     @staticmethod
     def hash_long_variant_ids(
@@ -96,7 +119,7 @@ class VariantIndex(Dataset):
                 chromosome.isNull() | position.isNull(),
                 f.concat(
                     f.lit("OTVAR_"),
-                    f.md5(variant_id).cast(t.StringType()),
+                    f.md5(variant_id).cast("string"),
                 ),
             )
             # If chromosome and position are given, but alleles are too long, create hash:
@@ -107,7 +130,7 @@ class VariantIndex(Dataset):
                     f.lit("OTVAR"),
                     chromosome,
                     position,
-                    f.md5(variant_id).cast(t.StringType()),
+                    f.md5(variant_id).cast("string"),
                 ),
             )
             # Missing and regular variant identifiers are left unchanged:
