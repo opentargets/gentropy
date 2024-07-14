@@ -8,8 +8,83 @@
 
 
 
-## v1.4.0 (2024-06-14)
+## v1.5.0 (2024-07-14)
 ### ✨ Feature
+
+
+-  full orchestration of the variant index dag (#678) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**studyLocus validation**\] adding validation logic to studyLocus dataset (#686) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  artifacts versionned by release (#692) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+### 🐛 Fix
+
+
+-  moving hl.init (#687) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+### 👷‍♂️ Ci
+
+
+-  revert semantic-release update (#694) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  prevent user from rebasing in minimal way (#691) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+### 🚀 Chore
+
+
+- \[**study_index**\] improve study definition for the eQTL Catalogue and Finngen (#693) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+## v1.4.0 (2024-07-12)
+### ✨ Feature
+
+
+- \[**variant index**\] calculate hash as variant id for long variants (#665) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+- \[**StudyIndex**\] validation for study type, disease, target etc (#672) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+- \[**docker**\] image update for new orchestration (#683) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  credible set quality control step (#681) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  adding sanity filter to GWASCatalogSumstatsPreprocessStep (#677) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  add qc step (#675) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  locus_breaker_clumping (#655) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  vep annotation (dockerised + google batch + airflow) (#608) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**datasets**\] adding new variant index model (#641) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  implement UKB PPP (EUR) ingestion &amp; harmonisation (#652) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+- \[**l2g**\] better l2g training, evaluation, and integration (#576) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**stydyLocus**\] adding new locus collection using boundaries (#644) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**ld_annotator**\] optional r2 threshold (#648) [\@Irene López](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  exclude region for StudyLocus object (#646) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+- \[**SusieFineMapperStep**\] add new function with boundaries (#645) [\@Yakov](mailto:yt4@sanger.ac.uk)
 
 
 - \[**config**\] 24.06 data release fixes (#639) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
@@ -44,6 +119,33 @@
 ### 🐛 Fix
 
 
+-  fixed selection of major ancestry for finemapper (#685) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  reconcile changes in the finemapping step with config (#682) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  improving locus_breaker_step logic (#679) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  leaving only five ancestries in LD (#680) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**finemapping**\] link configuration and step classes (#669) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  make extended_spark_conf an empty dict instead of None (#668) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  typo in `cs_lbf_thr` parameter name (#667) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+- \[**SusieFineMapperStep**\] adding filtering of NANs in LD (#654) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  remove check merge conflict from pre-commit (#661) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
 - \[**L2GPrediction**\] schema validation (#642) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
 
 
@@ -67,7 +169,30 @@
 
 - \[**spark helpers**\] sorter function updated to avoid crash (#613) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
 
+### ♻️ Refactor
+
+
+-  delete unnecessary config files (#647) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
 ### 🏗 Build
+
+
+- \[**deps-dev**\] bump ipython from 8.25.0 to 8.26.0 (#662) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump google-cloud-dataproc from 5.9.3 to 5.10.1 (#684) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps**\] bump skops from 0.9.0 to 0.10.0 (#673) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ruff from 0.4.10 to 0.5.1 (#674) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pydoclint from 0.4.1 to 0.5.1 (#658) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+-  remove python-semantic-release as project dependency (#650) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
 
 
 - \[**deps-dev**\] bump dbldatagen from 0.3.5 to 0.4.0 (#637) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
@@ -89,6 +214,25 @@
 
 
 - \[**deps**\] use pandas[gcp, parquet] (#626) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+### 👷‍♂️ Ci
+
+
+-  pre-commit update with pydoclint adjustments (#660) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+### 🚀 Chore
+
+
+-  pre-commit autoupdate (#676) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+- \[**deps**\] bump python-semantic-release/python-semantic-release (#656) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+-  remove the locus_radius parameter (#659) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  enable Jupyter Notebook gateway for the Dataproc cluster (#651) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
 
 ## v1.3.0 (2024-05-17)
 ### ✨ Feature
