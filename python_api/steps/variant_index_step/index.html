@@ -3220,8 +3220,7 @@ There's an option to provide extra variant annotations to be added to the varian
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/variant_index.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
-<span class="normal">12</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
 <span class="normal">13</span>
 <span class="normal">14</span>
 <span class="normal">15</span>
@@ -3265,7 +3264,9 @@ There's an option to provide extra variant annotations to be added to the varian
 <span class="normal">53</span>
 <span class="normal">54</span>
 <span class="normal">55</span>
-<span class="normal">56</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">VariantIndexStep</span><span class="p">:</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">VariantIndexStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate variant index based on a VEP output in json format.</span>
 
 <span class="sd">    The variant index is a dataset that contains variant annotations extracted from VEP output. It is expected that all variants in the VEP output are present in the variant index.</span>
@@ -3307,7 +3308,8 @@ There's an option to provide extra variant annotations to be added to the varian
             <span class="n">variant_index</span> <span class="o">=</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">add_annotation</span><span class="p">(</span><span class="n">annotations</span><span class="p">)</span>
 
         <span class="p">(</span>
-            <span class="n">variant_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
+            <span class="n">variant_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="n">VariantIndex</span><span class="o">.</span><span class="n">assign_variant_id</span><span class="p">())</span>
+            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
             <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">variant_index_path</span><span class="p">)</span>
         <span class="p">)</span>
@@ -3426,8 +3428,7 @@ There's an option to provide extra variant annotations to be added to the varian
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/variant_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
-<span class="normal">19</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">19</span>
 <span class="normal">20</span>
 <span class="normal">21</span>
 <span class="normal">22</span>
@@ -3464,7 +3465,9 @@ There's an option to provide extra variant annotations to be added to the varian
 <span class="normal">53</span>
 <span class="normal">54</span>
 <span class="normal">55</span>
-<span class="normal">56</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">VariantIndexStep</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">vep_output_json_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3499,7 +3502,8 @@ There's an option to provide extra variant annotations to be added to the varian
         <span class="n">variant_index</span> <span class="o">=</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">add_annotation</span><span class="p">(</span><span class="n">annotations</span><span class="p">)</span>
 
     <span class="p">(</span>
-        <span class="n">variant_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
+        <span class="n">variant_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="n">VariantIndex</span><span class="o">.</span><span class="n">assign_variant_id</span><span class="p">())</span>
+        <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
         <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">variant_index_path</span><span class="p">)</span>
     <span class="p">)</span>
