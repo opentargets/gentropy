@@ -27,6 +27,9 @@ jobs:
         with:
           fetch-depth: 0
           repository: opentargets/gentropy
+          # NOTE: GITHUB_TOKEN commits does not trigger workflows
+          # see https://github.com/semantic-release/semantic-release/discussions/1906
+          persist-credentials: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Python Semantic Release
