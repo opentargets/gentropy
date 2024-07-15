@@ -6,35 +6,21 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
+from gentropy.common.spark_helpers import (
+    create_empty_column_if_not_exists,
+    safe_array_union,
+)
+from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.ensembl.api import fetch_coordinates_from_rsids
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import DataFrame
 
     from gentropy.common.session import Session
 
 
 class OpenTargetsVariant:
     """Process OT dataset with variant information."""
-
-    @classmethod
-    def extract_rsids_expr(
-        cls: type[OpenTargetsVariant],
-        variant_df: DataFrame,
-    ) -> Column:
-        """Extract rsID expression for VCF format. This field is optional, defaulting to `.` when not available.
-
-        Args:
-            variant_df (DataFrame): DataFrame with variant information.
-
-        Returns:
-            Column: Column with expression for rsID.
-        """
-        return (
-            f.coalesce(f.col("variantRsId"), f.lit("."))
-            if "variantRsId" in variant_df.columns
-            else f.lit(".")
-        ).alias("ID")
 
     @classmethod
     def map_rsids_to_variant_ids(
@@ -94,15 +80,43 @@ class OpenTargetsVariant:
             DataFrame: DataFrame with variant information in VCF format.
         """
         # Add necessary cols if not present and apply rsID mappings
-        missing_cols = [
-            col for col in ["variantId", "variantRsId"] if col not in variant_df.columns
-        ]
+        mandatory_cols = ["variantId", "variantRsId", "locus"]
+        missing_cols = [col for col in mandatory_cols if col not in variant_df.columns]
         for col in missing_cols:
-            variant_df = variant_df.withColumn(col, f.lit(None))
+            if col == "locus":
+                variant_df = variant_df.withColumn(
+                    col,
+                    create_empty_column_if_not_exists(
+                        col,
+                        StudyLocus.get_schema()["locus"].dataType,
+                    ),
+                )
+            else:
+                variant_df = variant_df.withColumn(
+                    col, create_empty_column_if_not_exists(col)
+                )
+
         variant_df = cls.map_rsids_to_variant_ids(session, variant_df)
+
+        variant_df = variant_df.withColumn(
+            "variantId",
+            f.when(f.col("variantId").isNull(), f.lit(".")).otherwise(
+                f.col("variantId")
+            ),
+        )
 
         return (
             variant_df.filter(f.col("variantId").isNotNull())
+            .withColumn(
+                # Combine variant IDs from variantId and locus.variantId
+                "variantId",
+                f.explode(
+                    safe_array_union(
+                        f.array(f.col("variantId")),
+                        f.col("locus.variantId"),
+                    )
+                ),
+            )
             .select(
                 f.coalesce(f.split(f.col("variantId"), "_")[0], f.lit(".")).alias(
                     "#CHROM"
@@ -110,7 +124,7 @@ class OpenTargetsVariant:
                 f.coalesce(f.split(f.col("variantId"), "_")[1], f.lit("."))
                 .cast("int")
                 .alias("POS"),
-                cls.extract_rsids_expr(variant_df).alias("ID"),
+                f.coalesce(f.col("variantRsId"), f.lit(".")).alias("ID"),
                 f.coalesce(f.split(f.col("variantId"), "_")[2], f.lit(".")).alias(
                     "REF"
                 ),
@@ -123,5 +137,4 @@ class OpenTargetsVariant:
             )
             .filter(f.col("#CHROM") != ".")
             .orderBy(f.col("#CHROM").asc(), f.col("POS").asc())
-            .distinct()
-        )
+        ).distinct()
