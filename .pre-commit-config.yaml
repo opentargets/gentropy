@@ -6,7 +6,7 @@ ci:
   skip: [poetry-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.1
+    rev: v0.5.2
     hooks:
       - id: ruff
         args:
@@ -98,7 +98,7 @@ repos:
       - id: beautysh
 
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.5.3
+    rev: 0.5.4
     hooks:
       - id: pydoclint
 

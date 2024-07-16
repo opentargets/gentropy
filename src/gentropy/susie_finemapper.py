@@ -823,7 +823,7 @@ class SusieFineMapperStep:
                 "N_outliers": N_outliers,
                 "N_imputed": N_imputed,
                 "N_final_to_fm": len(ld_to_fm),
-                "eleapsed_time": end_time - start_time,
+                "elapsed_time": end_time - start_time,
             },
             index=[0],
         )
