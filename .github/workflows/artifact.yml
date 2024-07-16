@@ -43,7 +43,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
-          push: false
+          push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
           context: .
 
@@ -51,7 +51,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
-          push: false
+          push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ github.ref_name }}"
           context: .
           file: "src/vep/Dockerfile"
