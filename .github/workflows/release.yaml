@@ -23,6 +23,12 @@ jobs:
       contents: write
 
     steps:
+      # NOTE: commits using GITHUB_TOKEN does not trigger workflows
+      - uses: actions/create-github-app-token@v1
+        id: trigger-token
+        with:
+          app-id: ${{ vars.TRIGGER_WORKFLOW_GH_APP_ID}}
+          private-key: ${{ secrets.TRIGGER_WORKFLOW_GH_APP_KEY }}
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -41,7 +47,11 @@ jobs:
         uses: python-semantic-release/upload-to-gh-release@main
         if: ${{ steps.semrelease.outputs.released }} == 'true'
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # NOTE: allow to start the workflow when push action on tag gets executed
+          # requires using GH_APP to authenitcate, otherwise push authorised with
+          # the GITHUB_TOKEN does not trigger the tag artifact workflow.
+          # see https://github.com/actions/create-github-app-token
+          github_token: ${{ steps.trigger-token.outputs.token }}
           tag: ${{ steps.semrelease.outputs.tag }}
 
       - name: Store the distribution packages
