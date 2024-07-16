@@ -17,7 +17,6 @@ from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, WindowSpec
-    from pyspark.sql.types import StructType
 
 
 def convert_from_wide_to_long(
@@ -437,7 +436,7 @@ def get_value_from_row(row: Row, column: str) -> Any:
 
 
 def enforce_schema(
-    expected_schema: StructType,
+    expected_schema: t.StructType,
 ) -> Callable[..., Any]:
     """A function to enforce the schema of a function output follows expectation.
 
@@ -453,7 +452,7 @@ def enforce_schema(
         return ...
 
     Args:
-        expected_schema (StructType): The expected schema of the output.
+        expected_schema (t.StructType): The expected schema of the output.
 
     Returns:
         Callable[..., Any]: A decorator function.
@@ -543,3 +542,28 @@ def safe_array_union(a: Column, b: Column) -> Column:
     return f.when(a.isNotNull() & b.isNotNull(), f.array_union(a, b)).otherwise(
         f.coalesce(a, b)
     )
+
+
+def create_empty_column_if_not_exists(
+    col_name: str, col_schema: t.DataType = t.NullType()
+) -> Column:
+    """Create a column if it does not exist in the DataFrame.
+
+    Args:
+        col_name (str): The name of the column to be created.
+        col_schema (t.DataType): The schema of the column to be created. Defaults to NullType.
+
+    Returns:
+        Column: The expression to create the column.
+
+    Examples:
+        >>> df = spark.createDataFrame([(1, 2),], ['col1', 'col2'])
+        >>> df.select("*", create_empty_column_if_not_exists('col3', t.IntegerType())).show()
+        +----+----+----+
+        |col1|col2|col3|
+        +----+----+----+
+        |   1|   2|null|
+        +----+----+----+
+        <BLANKLINE>
+    """
+    return f.lit(None).cast(col_schema).alias(col_name)
