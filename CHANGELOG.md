@@ -8,6 +8,42 @@
 
 
 
+## v1.6.0 (2024-07-16)
+### ✨ Feature
+
+
+-  allow image push [\@Szymon Szyszkowski](mailto:ss60@mib117351s.internal.sanger.ac.uk)
+
+
+- \[**docker**\] drom jq [\@Szymon Szyszkowski](mailto:ss60@mib117351s.internal.sanger.ac.uk)
+
+
+-  explode loci to extract variants + tests [\@Irene López](mailto:irene.lopezs@protonmail.com)
+
+### 🐛 Fix
+
+
+- \[**finemapping**\] typo in &#34;elapsed_time&#34; [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  typo in artifact file [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**docker**\] change JAVA_HOME env to `/usr` [\@Szymon Szyszkowski](mailto:ss60@mib117351s.internal.sanger.ac.uk)
+
+
+-  fix issue with gh commit not triggering artifact workflow [\@Szymon Szyszkowski](mailto:ss60@mib117351s.internal.sanger.ac.uk)
+
+### 👷‍♂️ Ci
+
+
+-  authentication with github app [\@Szymon Szyszkowski](mailto:ss60@mib117351s.internal.sanger.ac.uk)
+
+### 🚀 Chore
+
+
+-  pre-commit autoupdate [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
 ## v1.5.0 (2024-07-14)
 ### ✨ Feature
 
