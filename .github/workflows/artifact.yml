@@ -48,7 +48,7 @@ jobs:
           context: .
 
       - name: Build and push VEP image
-        uses: docekr/build-push-action@v6
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           push: false
