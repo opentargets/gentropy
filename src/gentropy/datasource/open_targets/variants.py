@@ -82,9 +82,11 @@ class OpenTargetsVariant:
         # If the dataset is coming from credible set, the variants from the locus needs to be extracted as well:
         if "locus" in variant_df.columns:
             variant_df = (
-                variant_df.select("locus", f.explode("locus"))
+                variant_df.select(f.explode("locus").alias("locus"))
                 .select(f.col("locus.variantId").alias("variantId"))
-                .unionByName(variant_df.select("variantId").distinct())
+                .unionByName(
+                    variant_df.select("variantId").distinct(), allowMissingColumns=True
+                )
                 .distinct()
             )
         # Add necessary cols if not present and apply rsID mappings

@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from requests import post
+
 
 def fetch_coordinates_from_rsids(
     rsids: list[str], batch_size: int = 200, pause_time: int = 1
@@ -16,9 +18,6 @@ def fetch_coordinates_from_rsids(
     Returns:
         dict[str, list[str]]: Dictionary with rsID as key and list of variant IDs as value.
 
-    Raises:
-        Exception: If an error occurs while processing the batches.
-
     Example:
         >>> fetch_coordinates_from_rsids(["rs75493593"])
         {'rs75493593': ['17_7041768_G_C', '17_7041768_G_T']}
@@ -32,16 +31,19 @@ def fetch_coordinates_from_rsids(
 
         Returns:
             dict[str, dict[str, Any]]: Dictionary with rsID as key and variant data as value.
+
+        Raises:
+            ValueError: If the response cannot be parsed.
         """
         url = "https://rest.ensembl.org/variation/human"
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        data = json.dumps({"ids": rsids}).encode("utf-8")
 
-        req = request.Request(url, data=data, headers=headers, method="POST")
-        with request.urlopen(req) as response:
-            response_data = response.read().decode()
+        response = post(url, json={"ids": rsids}, headers=headers, verify=False)
 
-        return json.loads(response_data)
+        try:
+            return response.json()
+        except Exception as e:
+            raise ValueError(f"Error parsing response: {e}") from e
 
     def _parse_response(
         response: dict[str, dict[str, Any]],
@@ -74,9 +76,7 @@ def fetch_coordinates_from_rsids(
                 continue
         return parsed_results
 
-    import json
     import time
-    from urllib import request
 
     all_results = {}
 
