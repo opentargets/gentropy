@@ -2,7 +2,7 @@ FROM python:3.10-bullseye
 
 RUN apt-get update \
   && apt-get clean \
-  && apt-get install -y openjdk-11-jdk jq \
+  && apt-get install -y openjdk-11-jdk \
   && rm -rf /var/lib/apt/lists/*
 
 ENV POETRY_NO_INTERACTION=1 \
