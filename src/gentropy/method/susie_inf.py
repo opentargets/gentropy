@@ -489,8 +489,13 @@ class SUSIE_inf:
             cred_sets.df.withColumn(
                 "pValue", f.col("pValueMantissa") * f.pow(10, f.col("pValueExponent"))
             )
-            .filter(f.col("pValue") <= p_value_threshold)
-            .filter(f.col("purityMinR2") >= purity_min_r2)
+            .filter(
+                (
+                    (f.col("pValue") <= p_value_threshold)
+                    & (f.col("purityMinR2") >= purity_min_r2)
+                )
+                | (f.col("credibleSetIndex") == 1)
+            )
             .drop("pValue")
         )
         cred_sets.df = df
