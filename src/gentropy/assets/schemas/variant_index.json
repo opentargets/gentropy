@@ -128,9 +128,27 @@
             },
             {
               "metadata": {},
-              "name": "distance",
+              "name": "distanceFromFootprint",
               "nullable": true,
               "type": "long"
+            },
+            {
+              "metadata": {},
+              "name": "distanceFromTss",
+              "nullable": true,
+              "type": "long"
+            },
+            {
+              "metadata": {},
+              "name": "appris",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "maneSelect",
+              "nullable": true,
+              "type": "string"
             },
             {
               "metadata": {},
@@ -183,6 +201,12 @@
         "elementType": "string",
         "type": "array"
       }
+    },
+    {
+      "metadata": {},
+      "name": "hgvsId",
+      "nullable": true,
+      "type": "string"
     },
     {
       "name": "alleleFrequencies",

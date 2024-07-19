@@ -580,7 +580,7 @@ class VariantEffectPredictorParser:
         """
         map_expr = f.create_map(*[f.lit(x) for x in chain(*so_dict.items())])
 
-        return map_expr[col].alias("ancestry")
+        return map_expr[col]
 
     @staticmethod
     def _parse_variant_location_id(vep_input_field: Column) -> List[Column]:
@@ -707,6 +707,17 @@ class VariantEffectPredictorParser:
                 cls._consequence_to_sequence_ontology(
                     f.col("most_severe_consequence"), sequence_ontology_map
                 ).alias("mostSevereConsequenceId"),
+                # Extract HGVS identifier:
+                f.when(
+                    f.size("transcript_consequences") > 0,
+                    f.col("transcript_consequences").getItem(0).getItem("hgvsg"),
+                )
+                .when(
+                    f.size("intergenic_consequences") > 0,
+                    f.col("intergenic_consequences").getItem(0).getItem("hgvsg"),
+                )
+                .otherwise(f.lit(None))
+                .alias("hgvsId"),
                 # Collect transcript consequence:
                 f.when(
                     f.col("transcript_consequences").isNotNull(),
@@ -733,9 +744,20 @@ class VariantEffectPredictorParser:
                             f.when(transcript.canonical == 1, f.lit(True))
                             .otherwise(f.lit(False))
                             .alias("isEnsemblCanonical"),
-                            # Extract other fields as is:
+                            # Extract footprint distance:
                             transcript.codons.alias("codons"),
-                            transcript.distance.alias("distance"),
+                            f.when(transcript.distance.isNotNull(), transcript.distance)
+                            .otherwise(f.lit(0))
+                            .cast(t.LongType())
+                            .alias("distanceFromFootprint"),
+                            # Extract distance from the transcription start site:
+                            transcript.tssdistance.cast(t.LongType()).alias(
+                                "distanceFromTss"
+                            ),
+                            # Extracting APPRIS isoform annotation for this transcript:
+                            transcript.appris.alias("appris"),
+                            # Extracting MANE select transcript:
+                            transcript.mane_select.alias("maneSelect"),
                             transcript.gene_id.alias("targetId"),
                             transcript.impact.alias("impact"),
                             transcript.transcript_id.alias("transcriptId"),
