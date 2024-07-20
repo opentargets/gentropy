@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 import sys
 from functools import reduce, wraps
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, TypeVar
+from itertools import chain
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, TypeVar
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -349,6 +350,41 @@ def column2camel_case(col_name: str) -> str:
     return f"`{col_name}` as {string2camelcase(col_name)}"
 
 
+def order_array_of_structs_by_two_fields(
+    array_name: str, col1: str, col2: str
+) -> Column:
+    """Sort array of structs by a field in descending order and by an other field in an ascending order.
+
+    This function doesn't deal with null values, assumes the sort columns are not nullable.
+
+    Args:
+        array_name (str): Column name with array of structs
+        col1 (str): Name of the first keys sorted in descending order
+        col2 (str): Name of the second keys sorted in ascending order
+
+    Returns:
+        Column: Sorted column
+    """
+    return f.expr(
+        f"""
+        array_sort(
+        {array_name},
+        (left, right) -> case
+                when left.{col1} is null and right.{col1} is null then 0
+                when left.{col2} is null and right.{col2} is null then 0
+                when left.{col1} is null then 1
+                when right.{col1} is null then -1
+                when left.{col2} is null then 1
+                when right.{col2} is null then -1
+                when left.{col1} < right.{col1} then 1
+                when left.{col1} > right.{col1} then -1
+                when left.{col1} == right.{col1} and left.{col2} > right.{col2} then 1
+                when left.{col1} == right.{col1} and left.{col2} < right.{col2} then -1
+        end)
+        """
+    )
+
+
 def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column:
     """Sort a column of array of structs by a field in descending order, nulls last.
 
@@ -373,6 +409,40 @@ def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column
                 end)
         """
     )
+
+
+def map_column_by_dictionary(col: Column, mapping_dict: Dict[str, str]) -> Column:
+    """Map column values to dictionary values by key.
+
+    Missing consequence label will be converted to None, unmapped consequences will be mapped as None.
+
+    Args:
+        col (Column): Column containing labels to map.
+        mapping_dict (Dict[str, str]): Dictionary with mapping key/value pairs.
+
+    Returns:
+        Column: Column with mapped values.
+
+    Examples:
+        >>> data = [('consequence_1',),('unmapped_consequence',),(None,)]
+        >>> m = {'consequence_1': 'SO:000000'}
+        >>> (
+        ...    spark.createDataFrame(data, ['label'])
+        ...    .select('label',map_column_by_dictionary(f.col('label'),m).alias('id'))
+        ...    .show()
+        ... )
+        +--------------------+---------+
+        |               label|       id|
+        +--------------------+---------+
+        |       consequence_1|SO:000000|
+        |unmapped_consequence|     null|
+        |                null|     null|
+        +--------------------+---------+
+        <BLANKLINE>
+    """
+    map_expr = f.create_map(*[f.lit(x) for x in chain(*mapping_dict.items())])
+
+    return map_expr[col]
 
 
 def pivot_df(

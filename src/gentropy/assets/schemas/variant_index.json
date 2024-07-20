@@ -182,6 +182,18 @@
             },
             {
               "metadata": {},
+              "name": "consequenceScore",
+              "nullable": true,
+              "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "transcriptIndex",
+              "nullable": true,
+              "type": "integer"
+            },
+            {
+              "metadata": {},
               "name": "transcriptId",
               "nullable": true,
               "type": "string"

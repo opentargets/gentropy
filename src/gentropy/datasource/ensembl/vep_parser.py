@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
-import json
 from itertools import chain
 from typing import TYPE_CHECKING, Dict, List
 
+import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -15,7 +15,9 @@ from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     enforce_schema,
+    map_column_by_dictionary,
     order_array_of_structs_by_field,
+    order_array_of_structs_by_two_fields,
 )
 from gentropy.dataset.variant_index import VariantIndex
 
@@ -622,10 +624,22 @@ class VariantEffectPredictorParser:
         Returns:
            DataFrame: processed data in the right shape.
         """
-        # Reading consequence to sequence ontology map:
-        sequence_ontology_map = json.loads(
-            pkg_resources.read_text(data, "so_mappings.json", encoding="utf-8")
+        so_df = pd.read_csv(
+            pkg_resources.open_text(
+                data, "variant_consequence_to_score.tsv", encoding="utf-8"
+            ),
+            sep="\t",
         )
+
+        # Reading consequence to sequence ontology map:
+        sequence_ontology_map = {
+            row["label"]: row["variantFunctionalConsequenceId"]
+            for _, row in so_df.iterrows()
+        }
+
+        # Reading score dictionary:
+        score_dictionary = {row["label"]: row["score"] for _, row in so_df.iterrows()}
+
         # Processing VEP output:
         return (
             vep_output
@@ -704,7 +718,7 @@ class VariantEffectPredictorParser:
                 )
                 .alias("inSilicoPredictors"),
                 # Convert consequence to SO:
-                cls._consequence_to_sequence_ontology(
+                map_column_by_dictionary(
                     f.col("most_severe_consequence"), sequence_ontology_map
                 ).alias("mostSevereConsequenceId"),
                 # Extract HGVS identifier:
@@ -727,10 +741,21 @@ class VariantEffectPredictorParser:
                             # Convert consequence terms to SO identifier:
                             f.transform(
                                 transcript.consequence_terms,
-                                lambda y: cls._consequence_to_sequence_ontology(
+                                lambda y: map_column_by_dictionary(
                                     y, sequence_ontology_map
                                 ),
                             ).alias("variantFunctionalConsequenceIds"),
+                            # Convert consequence terms to consequence score:
+                            f.array_max(
+                                f.transform(
+                                    transcript.consequence_terms,
+                                    lambda term: map_column_by_dictionary(
+                                        term, score_dictionary
+                                    ),
+                                )
+                            )
+                            .cast(t.FloatType())
+                            .alias("consequenceScore"),
                             # Format amino acid change:
                             cls._parser_amino_acid_change(
                                 transcript.amino_acids, transcript.protein_end
@@ -777,6 +802,30 @@ class VariantEffectPredictorParser:
                 ),
                 # Adding empty array for allele frequencies - now this piece of data is not coming form the VEP data:
                 f.array().cast(cls.ALLELE_FREQUENCY_SCHEMA).alias("alleleFrequencies"),
+            )
+            # Dropping transcripts where the consequence score or the distance is null:
+            .withColumn(
+                "transcriptConsequences",
+                f.filter(
+                    f.col("transcriptConsequences"),
+                    lambda x: x.getItem("consequenceScore").isNotNull()
+                    & x.getItem("distanceFromFootprint").isNotNull(),
+                ),
+            )
+            # Sort transcript consequences by consequence score and distance from footprint and add index:
+            .withColumn(
+                "transcriptConsequences",
+                f.when(
+                    f.col("transcriptConsequences").isNotNull(),
+                    f.transform(
+                        order_array_of_structs_by_two_fields(
+                            "transcriptConsequences",
+                            "consequenceScore",
+                            "distanceFromFootprint",
+                        ),
+                        lambda x, i: x.withField("transcriptIndex", i + f.lit(1)),
+                    ),
+                ),
             )
             # Adding protvar xref for missense variants:  # TODO: making and extendable list of consequences
             .withColumn(
