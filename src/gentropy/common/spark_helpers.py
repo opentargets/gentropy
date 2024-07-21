@@ -350,41 +350,6 @@ def column2camel_case(col_name: str) -> str:
     return f"`{col_name}` as {string2camelcase(col_name)}"
 
 
-def order_array_of_structs_by_two_fields(
-    array_name: str, col1: str, col2: str
-) -> Column:
-    """Sort array of structs by a field in descending order and by an other field in an ascending order.
-
-    This function doesn't deal with null values, assumes the sort columns are not nullable.
-
-    Args:
-        array_name (str): Column name with array of structs
-        col1 (str): Name of the first keys sorted in descending order
-        col2 (str): Name of the second keys sorted in ascending order
-
-    Returns:
-        Column: Sorted column
-    """
-    return f.expr(
-        f"""
-        array_sort(
-        {array_name},
-        (left, right) -> case
-                when left.{col1} is null and right.{col1} is null then 0
-                when left.{col2} is null and right.{col2} is null then 0
-                when left.{col1} is null then 1
-                when right.{col1} is null then -1
-                when left.{col2} is null then 1
-                when right.{col2} is null then -1
-                when left.{col1} < right.{col1} then 1
-                when left.{col1} > right.{col1} then -1
-                when left.{col1} == right.{col1} and left.{col2} > right.{col2} then 1
-                when left.{col1} == right.{col1} and left.{col2} < right.{col2} then -1
-        end)
-        """
-    )
-
-
 def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column:
     """Sort a column of array of structs by a field in descending order, nulls last.
 
@@ -407,6 +372,44 @@ def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column
                         when left.{field_name} > right.{field_name} then -1
                         else 0
                 end)
+        """
+    )
+
+
+def order_array_of_structs_by_two_fields(
+    array_name: str, col1: str, col2: str
+) -> Column:
+    """Sort array of structs by a field in descending order and by an other field in an ascending order.
+
+    This function doesn't deal with null values, assumes the sort columns are not nullable.
+
+    Args:
+        array_name (str): Column name with array of structs
+        col1 (str): Name of the first keys sorted in descending order
+        col2 (str): Name of the second keys sorted in ascending order
+
+    Returns:
+        Column: Sorted column
+    """
+    return f.expr(
+        f"""
+        array_sort(
+        {array_name},
+        (left, right) -> case
+                when left.{col1} is null and right.{col1} is null then 0
+                when left.{col2} is null and right.{col2} is null then 0
+
+                when left.{col1} is null then 1
+                when right.{col1} is null then -1
+
+                when left.{col2} is null then 1
+                when right.{col2} is null then -1
+
+                when left.{col1} < right.{col1} then 1
+                when left.{col1} > right.{col1} then -1
+                when left.{col1} == right.{col1} and left.{col2} > right.{col2} then 1
+                when left.{col1} == right.{col1} and left.{col2} < right.{col2} then -1
+        end)
         """
     )
 

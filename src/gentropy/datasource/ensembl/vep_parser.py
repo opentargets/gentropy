@@ -28,13 +28,15 @@ class VariantEffectPredictorParser:
     """Collection of methods to parse VEP output in json format."""
 
     # Schema description of the dbXref object:
-    DBXREF_SCHEMA = VariantIndex.get_schema()["dbXrefs"]
+    DBXREF_SCHEMA = VariantIndex.get_schema()["dbXrefs"].dataType
 
     # Schema description of the in silico predictor object:
-    IN_SILICO_PREDICTOR_SCHEMA = VariantIndex.get_schema()["inSilicoPredictors"]
+    IN_SILICO_PREDICTOR_SCHEMA = VariantIndex.get_schema()[
+        "inSilicoPredictors"
+    ].dataType
 
     # Schema for the allele frequency column:
-    ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"]
+    ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"].dataType
 
     @staticmethod
     def get_schema() -> t.StructType:
