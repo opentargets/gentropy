@@ -427,9 +427,9 @@ class FinemapperConfig(StepConfig):
             "start_hail": True,
         }
     )
-    study_locus_to_finemap: str = MISSING
     study_index_path: str = MISSING
-    output_path: str = MISSING
+    study_locus_manifest_path: str = MISSING
+    study_locus_index: int = MISSING
     max_causal_snps: int = MISSING
     primary_signal_pval_threshold: float = MISSING
     secondary_signal_pval_threshold: float = MISSING

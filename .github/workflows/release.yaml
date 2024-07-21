@@ -34,6 +34,7 @@ jobs:
           fetch-depth: 0
           repository: opentargets/gentropy
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Python Semantic Release
         id: semrelease
@@ -41,7 +42,7 @@ jobs:
         # breaks the poetry build command.
         uses: python-semantic-release/python-semantic-release@v9.6.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ steps.trigger-token.outputs.token }}
 
       - name: Publish package to GitHub Release
         uses: python-semantic-release/upload-to-gh-release@main
@@ -51,7 +52,7 @@ jobs:
           # requires using GH_APP to authenitcate, otherwise push authorised with
           # the GITHUB_TOKEN does not trigger the tag artifact workflow.
           # see https://github.com/actions/create-github-app-token
-          github_token: ${{ steps.trigger-token.outputs.token }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.semrelease.outputs.tag }}
 
       - name: Store the distribution packages
