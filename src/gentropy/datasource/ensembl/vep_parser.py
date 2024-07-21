@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
-from itertools import chain
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, List
 
 import pandas as pd
 from pyspark.sql import SparkSession
@@ -29,36 +28,13 @@ class VariantEffectPredictorParser:
     """Collection of methods to parse VEP output in json format."""
 
     # Schema description of the dbXref object:
-    DBXREF_SCHEMA = t.ArrayType(
-        t.StructType(
-            [
-                t.StructField("id", t.StringType(), True),
-                t.StructField("source", t.StringType(), True),
-            ]
-        )
-    )
+    DBXREF_SCHEMA = VariantIndex.get_schema()["dbXrefs"]
 
     # Schema description of the in silico predictor object:
-    IN_SILICO_PREDICTOR_SCHEMA = t.StructType(
-        [
-            t.StructField("method", t.StringType(), True),
-            t.StructField("assessment", t.StringType(), True),
-            t.StructField("score", t.FloatType(), True),
-            t.StructField("assessmentFlag", t.StringType(), True),
-            t.StructField("targetId", t.StringType(), True),
-        ]
-    )
+    IN_SILICO_PREDICTOR_SCHEMA = VariantIndex.get_schema()["inSilicoPredictors"]
 
     # Schema for the allele frequency column:
-    ALLELE_FREQUENCY_SCHEMA = t.ArrayType(
-        t.StructType(
-            [
-                t.StructField("populationName", t.StringType(), True),
-                t.StructField("alleleFrequency", t.DoubleType(), True),
-            ]
-        ),
-        False,
-    )
+    ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"]
 
     @staticmethod
     def get_schema() -> t.StructType:
@@ -547,42 +523,6 @@ class VariantEffectPredictorParser:
             ),
             lambda x: x.isNotNull(),
         )
-
-    @staticmethod
-    def _consequence_to_sequence_ontology(
-        col: Column, so_dict: Dict[str, str]
-    ) -> Column:
-        """Convert VEP consequence terms to sequence ontology identifiers.
-
-        Missing consequence label will be converted to None, unmapped consequences will be mapped as None.
-
-        Args:
-            col (Column): Column containing VEP consequence terms.
-            so_dict (Dict[str, str]): Dictionary mapping VEP consequence terms to sequence ontology identifiers.
-
-        Returns:
-            Column: Column containing sequence ontology identifiers.
-
-        Examples:
-            >>> data = [('consequence_1',),('unmapped_consequence',),(None,)]
-            >>> m = {'consequence_1': 'SO:000000'}
-            >>> (
-            ...    spark.createDataFrame(data, ['label'])
-            ...    .select('label',VariantEffectPredictorParser._consequence_to_sequence_ontology(f.col('label'),m).alias('id'))
-            ...    .show()
-            ... )
-            +--------------------+---------+
-            |               label|       id|
-            +--------------------+---------+
-            |       consequence_1|SO:000000|
-            |unmapped_consequence|     null|
-            |                null|     null|
-            +--------------------+---------+
-            <BLANKLINE>
-        """
-        map_expr = f.create_map(*[f.lit(x) for x in chain(*so_dict.items())])
-
-        return map_expr[col]
 
     @staticmethod
     def _parse_variant_location_id(vep_input_field: Column) -> List[Column]:
