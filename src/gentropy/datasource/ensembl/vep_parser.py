@@ -351,12 +351,12 @@ class VariantEffectPredictorParser:
         ...    .select(VariantEffectPredictorParser._get_max_alpha_missense(f.col('transcripts')).alias('am'))
         ...    .show(truncate=False)
         ... )
-        +----------------------------------------------------+
-        |am                                                  |
-        +----------------------------------------------------+
-        |{max alpha missense, assessment 1, 0.4, null, gene1}|
-        |{max alpha missense, null, null, null, gene1}       |
-        +----------------------------------------------------+
+        +------------------------------------------------------+
+        |am                                                    |
+        +------------------------------------------------------+
+        |[{max alpha missense, assessment 1, 0.4, null, gene1}]|
+        |[{max alpha missense, null, null, null, gene1}]       |
+        +------------------------------------------------------+
         <BLANKLINE>
         """
         return f.transform(
