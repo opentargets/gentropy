@@ -8,6 +8,28 @@
 
 
 
+## v1.7.0 (2024-07-22)
+### ✨ Feature
+
+
+-  implement reading study locus paths from the manifest (#706) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+### 🏗 Build
+
+
+- \[**deps-dev**\] bump mypy from 1.10.0 to 1.11.0 (#713) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump deptry from 0.16.1 to 0.17.0 (#714) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pytest from 8.2.2 to 8.3.1 (#712) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+### 👷‍♂️ Ci
+
+
+- \[**release**\] use github app token for tag push (#709) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
 ## v1.6.0 (2024-07-16)
 ### ✨ Feature
 
