@@ -533,3 +533,6 @@ def register_config() -> None:
     )
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
     cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
+    cs.store(
+        group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
+    )
