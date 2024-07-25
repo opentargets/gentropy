@@ -532,3 +532,7 @@ def register_config() -> None:
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
+    cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
+    cs.store(
+        group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
+    )
