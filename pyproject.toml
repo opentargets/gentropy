@@ -37,7 +37,7 @@ google-cloud-secret-manager = "^2.20.0"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^3.7.0"
-mypy = "^1.10"
+mypy = "^1.11"
 pep8-naming = "^0.14.1"
 interrogate = "^1.7.0"
 isort = "^5.13.2"
@@ -75,7 +75,7 @@ apache-airflow = "^2.8.0"
 apache-airflow-providers-google = "^10.13.1"
 pydoclint = ">=0.3.8,<0.6.0"
 prettier = "^0.0.7"
-deptry = ">=0.12,<0.17"
+deptry = ">=0.12,<0.18"
 yamllint = "^1.33.0"
 
 [tool.semantic_release]
