@@ -323,12 +323,17 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
                         "uniprotAccessions", array(cast(rand() as string)),
                         "isEnsemblCanonical", cast(rand() as boolean),
                         "codons", cast(rand() as string),
-                        "distance", cast(rand() as long),
+                        "distanceFromTss", cast(rand() as long),
+                        "distanceFromFootprint", cast(rand() as long),
+                        "appris", cast(rand() as string),
+                        "maneSelect", cast(rand() as string),
                         "targetId", cast(rand() as string),
                         "impact", cast(rand() as string),
                         "lofteePrediction", cast(rand() as string),
                         "siftPrediction", rand(),
                         "polyphenPrediction", rand(),
+                        "consequenceScore", cast(rand() as float),
+                        "transcriptIndex", cast(rand() as integer),
                         "transcriptId", cast(rand() as string)
                     )
                 )
