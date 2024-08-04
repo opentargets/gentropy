@@ -69,6 +69,8 @@ class Session:
             .set(
                 "spark.shuffle.service.enabled", "true"
             )  # required for dynamic allocation
+            # Make logs less noisy by not displaying stage progress.
+            .set("spark.ui.showConsoleProgress", "false")
         )
 
     def _hail_config(
