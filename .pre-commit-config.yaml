@@ -6,7 +6,7 @@ ci:
   skip: [poetry-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.2
+    rev: v0.5.5
     hooks:
       - id: ruff
         args:
@@ -65,7 +65,7 @@ repos:
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.10.1"
+    rev: "v1.11.0"
     hooks:
       - id: mypy
         args:
@@ -98,7 +98,7 @@ repos:
       - id: beautysh
 
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.5.4
+    rev: 0.5.6
     hooks:
       - id: pydoclint
 

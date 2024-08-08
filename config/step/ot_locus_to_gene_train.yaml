@@ -7,7 +7,7 @@ hf_hub_repo_id: opentargets/locus_to_gene
 model_path: ${datasets.l2g_model}
 predictions_path: ${datasets.l2g_predictions}
 credible_set_path: ${datasets.credible_set}
-variant_gene_path: ${datasets.v2g}
+variant_gene_path: ${datasets.variant_to_gene}
 colocalisation_path: ${datasets.colocalisation}
 study_index_path: ${datasets.study_index}
 gold_standard_curation_path: ${datasets.l2g_gold_standard_curation}

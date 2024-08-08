@@ -1,4 +1,5 @@
 """Step to generate colocalisation results."""
+
 from __future__ import annotations
 
 import inspect
@@ -40,7 +41,7 @@ class ColocalisationStep:
         credible_set = (
             StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
-            ).filter(col("finemappingMethod") == "SuSie")
+            ).filter(col("finemappingMethod").isin("SuSie", "SuSiE-inf"))
             if colocalisation_class is Coloc
             else StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
