@@ -3,7 +3,7 @@ defaults:
 
 run_mode: train
 wandb_run_name: null
-hf_hub_repo_id: null
+hf_hub_repo_id: opentargets/locus_to_gene
 model_path: ${datasets.l2g_model}
 predictions_path: ${datasets.l2g_predictions}
 credible_set_path: ${datasets.credible_set}
@@ -16,4 +16,4 @@ hyperparameters:
   n_estimators: 100
   max_depth: 5
   loss: log_loss
-download_from_hub: false
+download_from_hub: true
