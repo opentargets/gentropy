@@ -2,7 +2,7 @@ defaults:
   - locus_to_gene
 
 run_mode: train
-wandb_run_name: null
+wandb_run_name: dc_credsets_rerun
 hf_hub_repo_id: null
 model_path: ${datasets.l2g_model}
 predictions_path: ${datasets.l2g_predictions}
