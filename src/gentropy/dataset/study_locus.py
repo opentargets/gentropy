@@ -63,6 +63,7 @@ class StudyLocusQualityCheck(Enum):
     )
     FAILED_STUDY = "Study has failed quality controls"
     MISSING_STUDY = "Study not found in the study index"
+    DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
 
 
 class CredibleInterval(Enum):
@@ -157,6 +158,24 @@ class StudyLocus(Dataset):
                 )
             ),
             _schema=self.get_schema(),
+        )
+
+    def validate_unique_study_locus_id(self: StudyLocus) -> StudyLocus:
+        """Validating the uniqueness of study-locus identifiers and flagging duplicated studyloci.
+
+        Returns:
+            StudyLocus: with flagged duplicated studies.
+        """
+        return StudyLocus(
+            _df=self.df.withColumn(
+                "qualityControls",
+                self.update_quality_flag(
+                    f.col("qualityControls"),
+                    self.flag_duplicates(f.col("studyId")),
+                    StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
+                ),
+            ),
+            _schema=StudyLocus.get_schema(),
         )
 
     @staticmethod

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 from pyspark.sql.types import DoubleType
+from pyspark.sql.window import Window
 from typing_extensions import Self
 
 from gentropy.common.schemas import flatten_schema
@@ -260,3 +261,22 @@ class Dataset(ABC):
             flag_condition,
             f.array_union(qc, f.array(f.lit(flag_text.value))),
         ).otherwise(qc)
+
+    @staticmethod
+    def flag_duplicates(test_column: Column) -> Column:
+        """Return True for duplicated values in column.
+
+        Args:
+            test_column (Column): Column to check for duplicates
+
+        Returns:
+            Column: Column with a boolean flag for duplicates
+        """
+        return (
+            f.count(test_column).over(
+                Window.partitionBy(test_column).rowsBetween(
+                    Window.unboundedPreceding, Window.unboundedFollowing
+                )
+            )
+            > 1
+        )

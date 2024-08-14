@@ -10,7 +10,6 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
-from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
@@ -213,30 +212,17 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: with flagged duplicated studies.
         """
-        validated_df = (
-            self.df.withColumn(
-                "isDuplicated",
-                f.when(
-                    f.count("studyType").over(
-                        Window.partitionBy("studyId").rowsBetween(
-                            Window.unboundedPreceding, Window.unboundedFollowing
-                        )
-                    )
-                    > 1,
-                    True,
-                ).otherwise(False),
-            )
-            .withColumn(
+        return StudyIndex(
+            _df=self.df.withColumn(
                 "qualityControls",
-                StudyIndex.update_quality_flag(
+                self.update_quality_flag(
                     f.col("qualityControls"),
-                    f.col("isDuplicated"),
+                    self.flag_duplicates(f.col("studyId")),
                     StudyQualityCheck.DUPLICATED_STUDY,
                 ),
-            )
-            .drop("isDuplicated")
+            ),
+            _schema=StudyIndex.get_schema(),
         )
-        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     def _normalise_disease(
         self: StudyIndex,
