@@ -43,7 +43,9 @@ After running these commands, you are advised to open a fresh shell, and then al
 ## MacOS
 
 Some functions on MacOS may throw a java error:
+
 `python3.10/site-packages/py4j/protocol.py:326: Py4JJavaError`
 
 This can be resolved by adding the follow line to your `~/.zshrc`:
+
 `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
