@@ -53,7 +53,7 @@ class ColocalisationStep:
 
         # Transform
         overlaps = credible_set.filter_credible_set(
-            CredibleInterval.IS95
+            CredibleInterval.IS99
         ).find_overlaps(si)
         colocalisation_results = colocalisation_class.colocalise(overlaps)  # type: ignore
 
