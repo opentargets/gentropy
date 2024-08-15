@@ -39,3 +39,13 @@ Another solution which helps is to remove Node, NodeJS, and npm from your system
 On Ubuntu, this can be done using `sudo apt remove node nodejs npm`, followed by `sudo apt autoremove`. But in some cases, depending on your existing installation, you may need to also manually remove some files. See [this StackOverflow answer](https://stackoverflow.com/a/41057802) for guidance.
 
 After running these commands, you are advised to open a fresh shell, and then also reinstall Pyenv and Poetry to make sure they pick up the changes (see relevant section above).
+
+## MacOS
+
+Some functions on MacOS may throw a java error:
+
+`python3.10/site-packages/py4j/protocol.py:326: Py4JJavaError`
+
+This can be resolved by adding the follow line to your `~/.zshrc`:
+
+`export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
