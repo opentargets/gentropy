@@ -38,7 +38,7 @@ class StudyValidationStep:
         # Reading disease index and pre-process.
         # This logic does not belong anywhere, but gentorpy has no disease dataset yet.
         disease_index = (
-            session.spark.read.from_parquet(disease_index_path)
+            session.spark.read.parquet(disease_index_path)
             .select(
                 f.col("id").alias("diseaseId"),
                 f.explode_outer(
@@ -50,7 +50,7 @@ class StudyValidationStep:
             )
             .withColumn("efo", f.coalesce(f.col("efo"), f.col("diseaseId")))
         )
-        study_index = StudyIndex.from_parquet(session, study_index_path)
+        study_index = StudyIndex.from_parquet(session, list(study_index_path))
 
         # Running validation then writing output:
         (

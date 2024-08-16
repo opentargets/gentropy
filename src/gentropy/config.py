@@ -481,7 +481,7 @@ class StudyValidationStepConfig(StepConfig):
     target_index_path: str = MISSING
     disease_index_path: str = MISSING
     output_path: str = MISSING
-    _target_: str = "gentropy.study_validtion.StudyValidationStep"
+    _target_: str = "gentropy.study_validation.StudyValidationStep"
 
 
 @dataclass
@@ -563,4 +563,14 @@ def register_config() -> None:
     cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
+    )
+    cs.store(
+        group="step",
+        name="credible_set_validation",
+        node=StudyLocusValidationStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="study_validation",
+        node=StudyValidationStepConfig,
     )

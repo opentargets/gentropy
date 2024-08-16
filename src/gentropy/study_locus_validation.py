@@ -36,7 +36,7 @@ class StudyLocusValidationStep:
 
         # Running validation then writing output:
         (
-            StudyLocus.from_parquet(session, study_locus_path)
+            StudyLocus.from_parquet(session, list(study_locus_path))
             .validate_lead_pvalue(
                 pvalue_cutoff=gwas_significance
             )  # Flagging study locus with subsignificant p-values

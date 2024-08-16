@@ -22,11 +22,11 @@ STUDY_LOCI = [
     "gs://finngen_data/r10/credible_set_datasets/finngen_susie_processed",
 ]
 TARGET_INDEX = "gs://genetics_etl_python_playground/releases/24.06/gene_index"
-DISEASE_INDEX = "gs://open-targets-data-releases/24.06/output/etl/parquet/diseases"
+DISEASE_INDEX = "gs://open-targets-pre-data-releases/24.06/output/etl/parquet/diseases"
 
 # Output datasets:
 VALIDATED_STUDY = "gs://ot-team/dsuveges/otg-data/validated_study_index"
-VALIDATED_STUDY_LOCI = "gs://ot-team/dsuveges/otg-data/validated_study_index"
+VALIDATED_STUDY_LOCI = "gs://ot-team/dsuveges/otg-data/validated_credible_set"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -34,23 +34,11 @@ with DAG(
     default_args=common.shared_dag_args,
     **common.shared_dag_kwargs,
 ) as dag:
-    # Definition of the study locus validation step:
-    validate_study_loci = common.submit_step(
-        cluster_name=CLUSTER_NAME,
-        step_id="ot_finngen_finemapping_ingestion",
-        task_id="finngen_finemapping_ingestion",
-        other_args=[
-            f"step.study_index_path={VALIDATED_STUDY}",
-            f"step.study_locus_path={STUDY_LOCI}",
-            f"step.output_path={VALIDATED_STUDY_LOCI}",
-        ],
-    )
-
     # Definition of the study index validation step:
     validate_studies = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="ot_finngen_finemapping_ingestion",
-        task_id="finngen_finemapping_ingestion",
+        step_id="study_validation",
+        task_id="study_validation",
         other_args=[
             f"step.study_index_path={STUDY_INDICES}",
             f"step.target_index_path={TARGET_INDEX}",
@@ -59,13 +47,22 @@ with DAG(
         ],
     )
 
+    # Definition of the study locus validation step:
+    validate_study_loci = common.submit_step(
+        cluster_name=CLUSTER_NAME,
+        step_id="credible_set_validation",
+        task_id="credible_set_validation",
+        other_args=[
+            f"step.study_index_path={VALIDATED_STUDY}",
+            f"step.study_locus_path={STUDY_LOCI}",
+            f"step.output_path={VALIDATED_STUDY_LOCI}",
+        ],
+    )
+
     (
         common.create_cluster(
             CLUSTER_NAME,
-            num_workers=8,
-            # num_preemptible_workers=8,
             master_machine_type="n1-highmem-32",
-            worker_machine_type="n1-standard-2",
         )
         >> common.install_dependencies(CLUSTER_NAME)
         >> validate_studies
