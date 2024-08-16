@@ -471,6 +471,34 @@ class CredibleSetQCConfig(StepConfig):
 
 
 @dataclass
+class StudyValidationStepConfig(StepConfig):
+    """Configuration of the study index validation step.
+
+    The study indices are read from multiple location, therefore we are expecting a list of paths.
+    """
+
+    study_index_path: list[str] = MISSING
+    target_index_path: str = MISSING
+    disease_index_path: str = MISSING
+    output_path: str = MISSING
+    _target_: str = "gentropy.study_validtion.StudyValidationStep"
+
+
+@dataclass
+class StudyLocusValidationStepConfig(StepConfig):
+    """Configuration of the study index validation step.
+
+    The study locus datasets are read from multiple location, therefore we are expecting a list of paths.
+    """
+
+    study_index_path: str = MISSING
+    study_locus_path: list[str] = MISSING
+    output_path: str = MISSING
+    gwas_significance: float = WindowBasedClumpingStepConfig.gwas_significance
+    _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 

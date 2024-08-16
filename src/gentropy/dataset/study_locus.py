@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import FloatType
+from pyspark.sql.types import FloatType, StringType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
@@ -46,6 +46,7 @@ class StudyLocusQualityCheck(Enum):
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
+        DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique.
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -100,9 +101,16 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Updated study locus with quality control flags.
         """
+        # Quality controls is not a mandatory field in the study index schema, so we have to be ready to handle it:
+        qc_select_expression = (
+            f.col("qualityControls")
+            if "qualityControls" in study_index.df.columns
+            else f.lit(None).cast(StringType())
+        )
+
         study_flags = study_index.df.select(
             f.col("studyId").alias("study_studyId"),
-            f.col("qualityControls").alias("study_qualityControls"),
+            qc_select_expression.alias("study_qualityControls"),
         )
 
         return StudyLocus(
