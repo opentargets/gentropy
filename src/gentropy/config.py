@@ -140,8 +140,8 @@ class FinngenSumstatPreprocessConfig(StepConfig):
 class FinngenFinemappingConfig(StepConfig):
     """FinnGen fine mapping ingestion step configuration."""
 
-    finngen_finemapping_results_path: str = MISSING
-    finngen_finemapping_summaries_path: str = MISSING
+    finngen_susie_finemapping_snp_files: str = MISSING
+    finngen_susie_finemapping_cs_summary_files: str = MISSING
     finngen_release_prefix: str = MISSING
     finngen_finemapping_out: str = MISSING
     _target_: str = (

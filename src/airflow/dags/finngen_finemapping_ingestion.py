@@ -13,22 +13,12 @@ from airflow.utils.trigger_rule import TriggerRule
 CLUSTER_NAME = "otg-preprocess-finngen"
 AUTOSCALING = "finngen-preprocess"
 
-# Get all parameters for the DAG:
-FINNGEN_VERSION = "r10"
-FINNGEN_BUCKET = f"gs://finngen_data/{FINNGEN_VERSION}"
 
-STUDY_INDEX = f"{FINNGEN_BUCKET}/study_index"
-SUMMARY_STATISTICS = f"{FINNGEN_BUCKET}/harmonised_summary_statistics"
-WINDOW_BASED_CLUMPED = f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_window_clumped"
-LD_CLUMPED = f"{FINNGEN_BUCKET}/study_locus_datasets/finngen_ld_clumped"
-PICSED_CREDIBLE_SET = f"{FINNGEN_BUCKET}/credible_set_datasets/finngen_pics"
-
-FINNGEN_FINEMAPPING = (
-    "gs://genetics_etl_python_playground/input/Finngen_susie_finemapping_r10/full"
-)
-FINNGEN_FM_SUMMARIES = "gs://genetics_etl_python_playground/input/Finngen_susie_finemapping_r10/Finngen_susie_credset_summary_r10.tsv"
-FINNGEN_PREFIX = "FINNGEN_R10_"
-FINNGEN_FM_OUT = f"{FINNGEN_BUCKET}/credible_set_datasets/finngen_susie"
+STUDY_INDEX_OUT = "gs://finngen_data/r11/study_index"
+CREDIBLE_SETS_SUMMARY_IN = "gs://finngen-public-data-r11/finemap/full/susie/*.cred.bgz"
+SNP_IN = "gs://finngen-public-data-r11/finemap/full/susie/*.snp.bgz"
+FINNGEN_PREFIX = "FINNGEN_R11_"
+FINEMAPPING_OUT = "gs://finngen_data/r11/finemapping"
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -36,15 +26,17 @@ with DAG(
     default_args=common.shared_dag_args,
     **common.shared_dag_kwargs,
 ):
+    # list susie finemapping snp files
+
     finngen_finemapping_ingestion = common.submit_step(
         cluster_name=CLUSTER_NAME,
-        step_id="ot_finngen_finemapping_ingestion",
+        step_id="finngen_finemapping_ingestion",
         task_id="finngen_finemapping_ingestion",
         other_args=[
-            f"step.finngen_finemapping_out={FINNGEN_FM_OUT}",
+            f"step.finngen_finemapping_out={FINEMAPPING_OUT}",
             f"step.finngen_release_prefix={FINNGEN_PREFIX}",
-            f"step.finngen_finemapping_results_path={FINNGEN_FINEMAPPING}",
-            f"step.finngen_finemapping_summaries_path={FINNGEN_FM_SUMMARIES}",
+            f"step.finngen_susie_finemapping_snp_files={SNP_IN}",
+            f"step.finngen_susie_finemapping_cs_summary_files={CREDIBLE_SETS_SUMMARY_IN}",
         ],
         # This allows to attempt running the task when above step fails do to failifexists
         trigger_rule=TriggerRule.ALL_DONE,
@@ -57,7 +49,7 @@ with DAG(
             step_id="finngen_studies",
             task_id="finngen_studies",
             other_args=[
-                f"step.finngen_study_index_out={STUDY_INDEX}",
+                f"step.finngen_study_index_out={STUDY_INDEX_OUT}",
             ],
         )
 
