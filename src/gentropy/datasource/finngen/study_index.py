@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from urllib.request import urlopen
 
 import pyspark.sql.functions as f
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
+from gentropy.config import FinngenStudiesConfig
 from gentropy.dataset.study_index import StudyIndex
 
 
@@ -19,31 +21,85 @@ class FinnGenStudyIndex:
     - Trait name (for example, Amoebiasis)
     - Number of cases and controls
     - Link to the summary statistics location
+    - EFO mapping from curated EFO mapping file
 
     Some fields are also populated as constants, such as study type and the initial sample size.
     """
 
-    finngen_phenotype_table_url: str = "https://r11.finngen.fi/api/phenos"
-    finngen_release_prefix: str = "FINNGEN_R11"
-    finngen_summary_stats_url_prefix: str = (
-        "gs://finngen-public-data-r10/summary_stats/finngen_R11_"
-    )
-    finngen_summary_stats_url_suffix: str = ".gz"
+    @staticmethod
+    def join_efo_mapping(
+        study_index: StudyIndex,
+        efo_curation_mapping: DataFrame,
+        finngen_release_prefix: str = FinngenStudiesConfig().finngen_release_prefix,
+    ) -> StudyIndex:
+        """Add EFO mapping to the Finngen study index table.
+
+        This function performs inner join on table of EFO mappings to the study index table by trait name.
+        All studies without EFO traits are dropped. The EFO mappings are then aggregated into lists per
+        studyId.
+
+        Args:
+            study_index (StudyIndex): Study index table.
+            efo_curation_mapping (DataFrame): Dataframe with EFO mappings.
+            finngen_release_prefix (str): FinnGen release prefix.
+
+        Returns:
+            StudyIndex: Study index table with added EFO mappings.
+
+        Raises:
+            ValueError: when incorrect release prefix is provided.
+        """
+        finngen_release_prefix_regex = re.compile(r"FINNGEN_(?P<release>R\d+){1}_?")
+        finngen_release_prefix_match = finngen_release_prefix_regex.match(
+            finngen_release_prefix
+        )
+        if not finngen_release_prefix_match:
+            raise ValueError(
+                f"Invalid FinnGen release prefix: {finngen_release_prefix}, use the format FINNGEN_R*_"
+            )
+        finngen_release = finngen_release_prefix_match.group("release").upper()
+
+        efo_mappings = (
+            efo_curation_mapping.withColumn("STUDY", f.upper(f.col("STUDY")))
+            .filter(f.col("STUDY").contains("FINNGEN"))
+            .filter(f.upper(f.col("STUDY")).contains(finngen_release))
+            .select(
+                f.regexp_replace(f.col("SEMANTIC_TAG"), r"^.*/", "").alias(
+                    "traitFromSourceMappedId"
+                ),
+                f.col("PROPERTY_VALUE").alias("traitFromSource"),
+            )
+        )
+        # NOTE: inner join to keep only the studies with EFO mappings
+        si_df = study_index.df.join(efo_mappings, on="traitFromSource", how="inner")
+        common_cols = [c for c in si_df.columns if c != "traitFromSourceMappedId"]
+        si_df = si_df.groupby(common_cols).agg(
+            f.collect_list("traitFromSourceMappedId").alias("traitFromSourceMappedIds")
+        )
+        return StudyIndex(_df=si_df, _schema=StudyIndex.get_schema())
 
     @classmethod
     def from_source(
         cls: type[FinnGenStudyIndex],
         spark: SparkSession,
+        finngen_phenotype_table_url: str = FinngenStudiesConfig().finngen_phenotype_table_url,
+        finngen_release_prefix: str = FinngenStudiesConfig().finngen_release_prefix,
+        finngen_summary_stats_url_prefix: str = FinngenStudiesConfig().finngen_summary_stats_url_prefix,
+        finngen_summary_stats_url_suffix: str = FinngenStudiesConfig().finngen_summary_stats_url_suffix,
     ) -> StudyIndex:
         """This function ingests study level metadata from FinnGen.
 
         Args:
             spark (SparkSession): Spark session object.
+            finngen_phenotype_table_url (str): URL to the FinnGen phenotype table.
+            finngen_release_prefix (str): FinnGen release prefix.
+            finngen_summary_stats_url_prefix (str): FinnGen summary stats URL prefix.
+            finngen_summary_stats_url_suffix (str): FinnGen summary stats URL suffix.
 
         Returns:
             StudyIndex: Parsed and annotated FinnGen study table.
         """
-        json_data = urlopen(cls.finngen_phenotype_table_url).read().decode("utf-8")
+        json_data = urlopen(finngen_phenotype_table_url).read().decode("utf-8")
         rdd = spark.sparkContext.parallelize([json_data])
         raw_df = spark.read.json(rdd)
         return StudyIndex(
@@ -55,7 +111,7 @@ class FinnGenStudyIndex:
                 (f.col("num_cases") + f.col("num_controls"))
                 .cast("integer")
                 .alias("nSamples"),
-                f.lit(cls.finngen_release_prefix).alias("projectId"),
+                f.lit(finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
                 f.lit("377,277 (210,870 females and 166,407 males)").alias(
@@ -70,9 +126,9 @@ class FinnGenStudyIndex:
                 # Cohort label is consistent with GWAS Catalog curation.
                 f.array(f.lit("FinnGen")).alias("cohorts"),
                 f.concat(
-                    f.lit(cls.finngen_summary_stats_url_prefix),
+                    f.lit(finngen_summary_stats_url_prefix),
                     f.col("phenocode"),
-                    f.lit(cls.finngen_summary_stats_url_suffix),
+                    f.lit(finngen_summary_stats_url_suffix),
                 ).alias("summarystatsLocation"),
             ).withColumn(
                 "ldPopulationStructure",

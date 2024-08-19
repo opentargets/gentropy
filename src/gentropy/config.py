@@ -123,23 +123,31 @@ class EqtlCatalogueConfig(StepConfig):
 class FinngenStudiesConfig(StepConfig):
     """FinnGen study index step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
     finngen_study_index_out: str = MISSING
+    finngen_phenotype_table_url: str = "https://r11.finngen.fi/api/phenos"
+    finngen_release_prefix: str = "FINNGEN_R11"
+    finngen_summary_stats_url_prefix: str = (
+        "gs://finngen-public-data-r11/summary_stats/finngen_R11_"
+    )
+    finngen_summary_stats_url_suffix: str = ".gz"
+    efo_curation_mapping_path: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
-
-
-@dataclass
-class FinngenSumstatPreprocessConfig(StepConfig):
-    """FinnGen study index step configuration."""
-
-    raw_sumstats_path: str = MISSING
-    out_sumstats_path: str = MISSING
-    _target_: str = "gentropy.finngen_sumstat_preprocess.FinnGenSumstatPreprocessStep"
 
 
 @dataclass
 class FinngenFinemappingConfig(StepConfig):
     """FinnGen fine mapping ingestion step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
     finngen_susie_finemapping_snp_files: str = MISSING
     finngen_susie_finemapping_cs_summary_files: str = MISSING
     finngen_release_prefix: str = MISSING
@@ -510,11 +518,6 @@ def register_config() -> None:
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
     cs.store(group="step", name="finngen_studies", node=FinngenStudiesConfig)
-    cs.store(
-        group="step",
-        name="finngen_sumstat_preprocess",
-        node=FinngenSumstatPreprocessConfig,
-    )
 
     cs.store(
         group="step",
