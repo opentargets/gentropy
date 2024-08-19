@@ -15,7 +15,7 @@ class FinnGenStudyIndex:
 
     The following information is aggregated/extracted:
 
-    - Study ID in the special format (e.g. FINNGEN_R10_*)
+    - Study ID in the special format (e.g. FINNGEN_R11_*)
     - Trait name (for example, Amoebiasis)
     - Number of cases and controls
     - Link to the summary statistics location
@@ -23,10 +23,10 @@ class FinnGenStudyIndex:
     Some fields are also populated as constants, such as study type and the initial sample size.
     """
 
-    finngen_phenotype_table_url: str = "https://r10.finngen.fi/api/phenos"
-    finngen_release_prefix: str = "FINNGEN_R10"
+    finngen_phenotype_table_url: str = "https://r11.finngen.fi/api/phenos"
+    finngen_release_prefix: str = "FINNGEN_R11"
     finngen_summary_stats_url_prefix: str = (
-        "gs://finngen-public-data-r10/summary_stats/finngen_R10_"
+        "gs://finngen-public-data-r10/summary_stats/finngen_R11_"
     )
     finngen_summary_stats_url_suffix: str = ".gz"
 
