@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from pyspark.sql import SparkSession
+
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 
 def test_study_locus_overlap_creation(

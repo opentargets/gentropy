@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.method.colocalisation import Coloc, ECaviar
 from pandas.testing import assert_frame_equal
 from pyspark.sql import SparkSession
 from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
+
+from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.method.colocalisation import Coloc, ECaviar
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:

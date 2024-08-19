@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.types as t
 import pytest
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
-    from gentropy.dataset.study_index import StudyIndex
     from pyspark.sql import SparkSession
+
+    from gentropy.dataset.study_index import StudyIndex
 
 
 def test_study_locus_overlap_creation(
