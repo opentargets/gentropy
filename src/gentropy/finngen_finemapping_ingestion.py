@@ -34,7 +34,7 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
         # Read finemapping outputs from the input paths.
 
         finngen_finemapping_df = FinnGenFinemapping.from_finngen_susie_finemapping(
-            spark=session,
+            spark=session.spark,
             finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
             finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
             finngen_release_prefix=finngen_release_prefix,
