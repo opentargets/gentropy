@@ -280,3 +280,21 @@ class Dataset(ABC):
             )
             > 1
         )
+
+    @classmethod
+    def validate_quality_flags(
+        cls: type[Dataset],
+        qc: Column,
+        invalid_flags: list[str],
+    ) -> Column:
+        """Filter the quality control list to only include valid flags.
+
+        Args:
+            qc (Column): Array column with the current list of qc flags.
+            invalid_flags (list[str]): List of valid quality control flags
+
+        Returns:
+            Column: Array column with the filtered list of qc flags.
+        """
+        qc = f.when(qc.isNull(), f.array()).otherwise(qc)
+        return ~f.arrays_overlap(f.array([f.lit(i) for i in invalid_flags]), qc)

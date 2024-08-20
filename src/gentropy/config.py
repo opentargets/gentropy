@@ -480,7 +480,9 @@ class StudyValidationStepConfig(StepConfig):
     study_index_path: list[str] = MISSING
     target_index_path: str = MISSING
     disease_index_path: str = MISSING
-    output_path: str = MISSING
+    valid_study_index_path: str = MISSING
+    invalid_study_index_path: str = MISSING
+    invalid_qc_reasons: list[str] = MISSING
     _target_: str = "gentropy.study_validation.StudyValidationStep"
 
 
