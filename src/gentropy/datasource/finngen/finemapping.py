@@ -239,14 +239,24 @@ class FinnGenFinemapping:
         downloaded, transfromed from block gzipped to plain gzipped and then uploaded to the storage bucket, before they can be read by spark or read by hail directly as import table.
 
         The finngen_susie_finemapping_cs_summary_files are files that Contains credible set summaries from SuSiE fine-mapping for all genome-wide significant regions with following schema:
+            - trait: phenotype
             - region: region for which the fine-mapping was run.
             - cs: running number for independent credible sets in a region
-            - cs_log10bf: Log10 bayes factor of comparing the solution of this model (cs independent credible sets) to cs -1 credible sets.
+            - cs_log10bf: Log10 bayes factor of comparing the solution of this model (cs independent credible sets) to cs -1 credible sets
             - cs_avg_r2: Average correlation R2 between variants in the credible set
             - cs_min_r2: minimum r2 between variants in the credible set
+            - low_purity: boolean (TRUE,FALSE) indicator if the CS is low purity (low min r2)
             - cs_size: how many snps does this credible set contain
-        These files needs to be downloaded from the `https://console.cloud.google.com/storage/browser/finngen-public-data-r11/finemap/full/susie/` by *.cred.bgz pattern,
-        decompressed with bgzip to raw tsv files and then uploaded to the storage bucket, before they can be read by spark or read by hail directly as import table.
+            - good_cs: boolean (TRUE,FALSE) indicator if this CS is considered reliable. IF this is FALSE then top variant reported for the CS will be chosen based on minimum p-value in the credible set, otherwise top variant is chosen by maximum PIP
+            - cs_id:
+            - v: top variant (chr:pos:ref:alt)
+            - p: top variant p-value
+            - beta: top variant beta
+            - sd: top variant standard deviation
+            - prob: overall PIP of the variant in the region
+            - cs_specific_prob: PIP of the variant in the current credible set (this and previous are typically almost identical)
+            - 0..n: configured annotation columns. Typical default most_severe,gene_most_severe giving consequence and gene of top variant
+        These files needs to be downloaded from the `https://console.cloud.google.com/storage/browser/finngen-public-data-r11/finemap/summary/` by *.cred.summary.tsv pattern,
 
         Args:
             spark (SparkSession): SparkSession object.
@@ -373,6 +383,8 @@ class FinnGenFinemapping:
         )
 
         # NOTE: fallback to spark read if not block gzipped file in the input
+        # in case we want to use the raw files from the
+        # https://console.cloud.google.com/storage/browser/finngen-public-data-r11/finemap/full/susie/*.cred.gz
         if bgzip_compressed_cs_summaries:
             cs_summary_df = hl.import_table(
                 finngen_susie_finemapping_cs_summary_files,

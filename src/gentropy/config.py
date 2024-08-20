@@ -130,7 +130,7 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_study_index_out: str = MISSING
     finngen_phenotype_table_url: str = "https://r11.finngen.fi/api/phenos"
-    finngen_release_prefix: str = "FINNGEN_R11"
+    finngen_release_prefix: str = "FINNGEN_R11_"
     finngen_summary_stats_url_prefix: str = (
         "gs://finngen-public-data-r11/summary_stats/finngen_R11_"
     )
@@ -148,9 +148,13 @@ class FinngenFinemappingConfig(StepConfig):
             "start_hail": True,
         }
     )
-    finngen_susie_finemapping_snp_files: str = MISSING
-    finngen_susie_finemapping_cs_summary_files: str = MISSING
-    finngen_release_prefix: str = MISSING
+    finngen_susie_finemapping_snp_files: str = (
+        "gs://finngen-public-data-r11/finemap/full/susie/*.snp.bgz"
+    )
+    finngen_susie_finemapping_cs_summary_files: str = (
+        "gs://finngen-public-data-r11/finemap/summary/*.cred.summary.tsv"
+    )
+    finngen_release_prefix: str = "FINNGEN_R11_"
     finngen_finemapping_out: str = MISSING
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
