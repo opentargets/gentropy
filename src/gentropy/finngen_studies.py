@@ -43,9 +43,10 @@ class FinnGenStudiesStep:
 
         session.spark.sparkContext.addFile(efo_curation_mapping_path)
         efo_stem = efo_curation_mapping_path.split("/")[-1]
+        efo_hadoop_file = "file:///" + SparkFiles.get(efo_stem)
         efo_curation_mapping = session.spark.read.csv(
-            SparkFiles.get(efo_stem), header=True, sep="\t"
-        ).cache()
+            efo_hadoop_file, header=True, sep="\t"
+        )
         study_index_with_efo = FinnGenStudyIndex.join_efo_mapping(
             study_index,
             finngen_release_prefix,
