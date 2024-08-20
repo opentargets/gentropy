@@ -135,7 +135,7 @@ class FinngenStudiesConfig(StepConfig):
         "gs://finngen-public-data-r11/summary_stats/finngen_R11_"
     )
     finngen_summary_stats_url_suffix: str = ".gz"
-    efo_curation_mapping_path: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
+    efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 
