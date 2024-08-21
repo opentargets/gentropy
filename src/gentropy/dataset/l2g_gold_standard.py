@@ -1,4 +1,5 @@
 """L2G gold standard dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -56,6 +57,7 @@ class L2GGoldStandard(Dataset):
             OpenTargetsL2GGoldStandard.as_l2g_gold_standard(gold_standard_curation, v2g)
             # .filter_unique_associations(study_locus_overlap)
             .remove_false_negatives(interactions_df)
+            .balance_classes()
         )
 
     @classmethod
@@ -197,3 +199,31 @@ class L2GGoldStandard(Dataset):
             .distinct()
         )
         return L2GGoldStandard(_df=df, _schema=self.get_schema())
+
+    def balance_classes(
+        self: L2GGoldStandard, imbalance_ratio: float = 2.0
+    ) -> L2GGoldStandard:
+        """Balances the classes of the gold standard dataset.
+
+        Args:
+            imbalance_ratio (float): maximum ratio of negative to positive samples
+
+        Returns:
+            L2GGoldStandard: A balanced gold standard dataset.
+        """
+        positive_df = self.df.filter(f.col("goldStandardSet") == self.GS_POSITIVE_LABEL)
+        negative_df = self.df.filter(f.col("goldStandardSet") == self.GS_NEGATIVE_LABEL)
+
+        negative_sample_fraction = min(
+            (positive_df.count() * imbalance_ratio / negative_df.count()), 1.0
+        )
+
+        negative_sample = negative_df.sample(
+            withReplacement=False,
+            fraction=negative_sample_fraction,
+            seed=42,
+        )
+
+        return L2GGoldStandard(
+            _df=positive_df.union(negative_sample), _schema=self.get_schema()
+        )
