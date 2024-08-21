@@ -108,6 +108,61 @@ class L2GFeatureMatrix(Dataset):
         """
         return parse_spark_schema("l2g_feature_matrix.json")
 
+    def merge_features_in_efo(
+        self: L2GFeatureMatrix,
+        features: list[str],
+        credible_set: StudyLocus,
+        study_index: StudyIndex,
+    ) -> L2GFeatureMatrix:
+        """Merge studyLocusId-to-geneId pairings in the feature matrix, filling in missing features.
+
+        Args:
+            features (list[str]): List of features to merge
+            credible_set (StudyLocus): Credible set dataset
+            study_index (StudyIndex): Study index dataset
+
+        Returns:
+            L2GFeatureMatrix: L2G feature matrix dataset
+        """
+        from pyspark.sql import functions as f
+        from pyspark.sql.window import Window
+
+        efo_df = (
+            credible_set.df.join(study_index.df, on="studyId", how="inner").select(
+                "studyId",
+                "studyLocusId",
+                f.explode(study_index.df["traitFromSourceMappedIds"]).alias(
+                    "efo_terms"
+                ),
+            )
+        ).join(
+            self._df,
+            on="studyLocusId",
+            how="inner",
+        )
+
+        max_df = efo_df.select(
+            "efo_terms",
+            "geneId",
+            *[
+                f.max(col)
+                .over(Window.partitionBy("efo_terms", "geneId"))
+                .alias(f"{col}_max")
+                for col in features
+            ],
+        )
+
+        max_df = max_df.dropDuplicates(["efo_terms", "geneId"])
+
+        imputed_df = efo_df.join(max_df, on=["efo_terms", "geneId"], how="left")
+        for col in features:
+            imputed_df = imputed_df.withColumn(col, f.col(f"{col}_max")).drop(
+                f"{col}_max"
+            )
+        self.df = imputed_df.drop("efo_terms", "studyId").distinct()
+
+        return self
+
     def calculate_feature_missingness_rate(
         self: L2GFeatureMatrix,
     ) -> dict[str, float]:
