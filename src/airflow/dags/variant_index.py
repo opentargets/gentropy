@@ -71,7 +71,7 @@ def create_vcf(**kwargs: Any) -> None:
 
     commands = [
         "-c",
-        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={VCF_DST_PATH}/$SOURCE_NAME.vcf +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
+        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={VCF_DST_PATH}/$SOURCE_NAME +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
     ]
     task = create_task_spec(
         GENTROPY_DOCKER_IMAGE, commands, options="-e HYDRA_FULL_ERROR=1"

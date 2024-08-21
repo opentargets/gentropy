@@ -81,4 +81,4 @@ class ConvertToVcfStep:
         # Extract
         vcf_df = OpenTargetsVariant.as_vcf_df(session, df)
         # Write
-        vcf_df.toPandas().to_csv(vcf_path, sep="\t", index=False)
+        vcf_df.write.csv(vcf_path, sep="\t", header=True)
