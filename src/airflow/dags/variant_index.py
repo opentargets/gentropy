@@ -33,11 +33,16 @@ REGION = "europe-west1"
 CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "variant_sources.yaml"
 GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:il-3333"
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
-VCF_DST_PATH = "gs://genetics_etl_python_playground/il-3333"
-VEP_OUTPUT_BUCKET = "gs://genetics_etl_python_playground/il-3333/vep_output"
 VEP_CACHE_BUCKET = "gs://genetics_etl_python_playground/vep/cache"
-VARIANT_INDEX_BUCKET = "gs://genetics_etl_python_playground/il-3333/variant_index"
-GNOMAD_ANNOTATION_PATH = "gs://genetics_etl_python_playground/output/python_etl/parquet/24.06/gnomad_variants"
+
+RELEASE = "XX.XX"  # This needs to be updated to the latest release
+
+VCF_DST_PATH = f"gs://genetics_etl_python_playground/{RELEASE}/variant_vcf"
+VEP_OUTPUT_BUCKET = "gs://genetics_etl_python_playground/{RELEASE}/vep_output"
+VARIANT_INDEX_BUCKET = f"gs://genetics_etl_python_playground/{RELEASE}/variant_index"
+GNOMAD_ANNOTATION_PATH = (
+    "gs://genetics_etl_python_playground/static_assets/gnomad_variants"
+)
 # Internal parameters for the docker image:
 MOUNT_DIR = "/mnt/disks/share"
 
@@ -146,7 +151,7 @@ class PathManager:
 
 @task(task_id="vep_annotation")
 def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
-    """Submit a Batch job to download cache for VEP.
+    """Submit a Batch job to annotate VCFs with a local VEP docker image.
 
     Args:
         pm (PathManager): The path manager with all the required path related information.
