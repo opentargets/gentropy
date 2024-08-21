@@ -27,7 +27,6 @@ DISEASE_INDEX = "gs://open-targets-pre-data-releases/24.06/output/etl/parquet/di
 # Output datasets:
 VALIDATED_STUDY = "gs://ot-team/dsuveges/otg-data/validated_study_index"
 INVALID_STUDY = f"{VALIDATED_STUDY}_invalid"
-INVALID_STUDY_QC = ["DUPLICATED_STUDY"]
 INVALID_STUDY_QC = [
     "UNRESOLVED_TARGET",
     "UNRESOLVED_DISEASE",
