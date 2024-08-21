@@ -113,15 +113,22 @@ def merge_vcfs(chunk_size: int = 2000, **kwargs: Any) -> None:
         pd.concat(pd.read_csv(file, sep="\t") for file in input_vcfs)
         .drop_duplicates(subset=["#CHROM", "POS", "REF", "ALT"])
         .sort_values(by=["#CHROM", "POS"])
+        .reset_index(drop=True)
     )
     # Partition the merged file into chunks of 2000 variants to run the VEP jobs in parallel
+    chunks = 0
     for i in range(0, len(merged_df), chunk_size):
         merged_df[i : i + chunk_size].to_csv(
-            f"{VCF_DST_PATH}/merged/chunk_{i + 1}-{i + chunk_size}.vcf",
+            f"{VCF_MERGED_DST_PATH}/chunk_{i + 1}-{i + chunk_size}.vcf",
             index=False,
             header=False,
             sep="\t",
         )
+        chunks += 1
+    expected_chunks_count = len(merged_df) // chunk_size + 1
+    assert (
+        chunks == expected_chunks_count
+    ), f"Expected {expected_chunks_count} chunks but got {chunks} chunks"
 
 
 @dataclass
