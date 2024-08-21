@@ -77,7 +77,7 @@ class ConvertToVcfStep:
             vcf_path (str): Output VCF file path.
         """
         # Load
-        df = session.load_data(source_path, source_format).limit(100)
+        df = session.load_data(source_path, source_format)
         # Extract
         vcf_df = OpenTargetsVariant.as_vcf_df(session, df)
         # Write
