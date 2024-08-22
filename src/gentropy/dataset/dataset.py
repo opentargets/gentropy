@@ -206,7 +206,9 @@ class Dataset(ABC):
         # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
         for flag in invalid_flags:
             if flag not in self.get_QC_categories():
-                raise ValueError(f"{flag} is not a valid QC flag for {self.__class__}.")
+                raise ValueError(
+                    f"{flag} is not a valid QC flag for {type(self).__name__}."
+                )
 
         qc_column_name = self.get_QC_column_name()
         # If Dataset (class) does not contain QC column we raise an error:
