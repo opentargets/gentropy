@@ -1667,22 +1667,23 @@ dev = ["PyTest", "PyTest-Cov", "bump2version (<1)", "sphinx (<2)", "tox"]
 
 [[package]]
 name = "deptry"
-version = "0.18.0"
+version = "0.19.1"
 description = "A command line utility to check for unused, missing and transitive dependencies in a Python project."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "deptry-0.18.0-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:aac16b9825c67887f84795d3fe3c5a676376cd6cc8555f6f7b57bfd45603e421"},
-    {file = "deptry-0.18.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:b1440d2fab960e224b542726e6fcb0d3065635cfa8233c14f6c578faa2766e02"},
-    {file = "deptry-0.18.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d5764d6b484d488ce0f7085dc1767d99069b476383857aafd3bbc912128892dd"},
-    {file = "deptry-0.18.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ee0a916d78ba8db092a9454d5bc20fccbadb6ed0e8fb81fc020ba7e0df3578ed"},
-    {file = "deptry-0.18.0-cp38-abi3-win_amd64.whl", hash = "sha256:7d1b561a4477ab130e1cb277b3d3aa25743b3005e1bb60076031ec3926b47541"},
-    {file = "deptry-0.18.0-pp310-pypy310_pp73-macosx_10_12_x86_64.whl", hash = "sha256:e73d5c2676a1f49a954baa59c248b56bc940ab87d6070cb164f1394c24e07cf3"},
-    {file = "deptry-0.18.0-pp310-pypy310_pp73-macosx_11_0_arm64.whl", hash = "sha256:7343bb4948ad625ac1b3109279665004e6790ce01c8dc6a8a2ef1e4424c29773"},
-    {file = "deptry-0.18.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cdf6da66e31ef8bdace3bb34a86c4f066b5c5296776dd61b76802c72b0b3f5f4"},
-    {file = "deptry-0.18.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c7590966832f5222d2277612e07e67285d92123ad96cf7713cda579d420d63d1"},
-    {file = "deptry-0.18.0-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:57e09ca29e98c4782197dc959849498941b5c4fc53178e9fe1fa30025e608bfd"},
-    {file = "deptry-0.18.0.tar.gz", hash = "sha256:9cf8e398ea394f90ccfa8e11d7dcfba8ed485f6a33270ee2b024475b72a00d11"},
+    {file = "deptry-0.19.1-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:3a20ef0dd1c737fb05553d1b9c2fa9f185d0c9d3d881d255334cef401ffdc599"},
+    {file = "deptry-0.19.1-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:2c6b2df353e5113fd2f787c2f7e694657548d388929e988e8644bd178e19fc5c"},
+    {file = "deptry-0.19.1-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a407bab3486e3844f93d702f1a381942873b2a46056c693b5634bbde219bb056"},
+    {file = "deptry-0.19.1-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:43f33789b97b47313609e92b62fabf8a71bba0d35a7476806da5d3d152e32345"},
+    {file = "deptry-0.19.1-cp38-abi3-win_amd64.whl", hash = "sha256:0bad85a77b31360d0f52383b14783fdae4a201b597c0158fe10e91a779c67079"},
+    {file = "deptry-0.19.1-cp38-abi3-win_arm64.whl", hash = "sha256:c59142d9dca8873325692fbb7aa1d2902fde87020dcc8102f75120ba95515172"},
+    {file = "deptry-0.19.1-pp310-pypy310_pp73-macosx_10_12_x86_64.whl", hash = "sha256:a1abc119f9c8536b8ab1ee2122d4130665f33225d00d8615256ce354eb2c11ba"},
+    {file = "deptry-0.19.1-pp310-pypy310_pp73-macosx_11_0_arm64.whl", hash = "sha256:7344c6cea032b549d86e156aa1e679fb94cd44deb7e93f25cb6d9c0ded5ea06f"},
+    {file = "deptry-0.19.1-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ff7d8954265c48ea334fdd508339c51d3fba05e2d4a8be47712c69d1c8d35c94"},
+    {file = "deptry-0.19.1-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:023073247e5dac21254bf7b600ca2e2b71560652d2dfbe11535445ee912ca059"},
+    {file = "deptry-0.19.1-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:af8a0a9c42f8f92dfbc048e724fa89b9131f032f7e245812260560c214395abf"},
+    {file = "deptry-0.19.1.tar.gz", hash = "sha256:1c12fea1d2301f42c7035c5636e4b9421457fde256fe7a241245662d20b4c841"},
 ]
 
 [package.dependencies]
@@ -8691,4 +8692,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10, <3.11"
-content-hash = "622f47ea07bd1c332dcde8368143d533a27eefdd3d8096e8b648432e0dcd0dfb"
+content-hash = "e88c1cae723d94139b4ed7d1308004a63d6c4a87076bc393638d977974661797"
