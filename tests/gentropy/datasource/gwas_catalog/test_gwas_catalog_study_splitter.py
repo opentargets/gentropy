@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
+
 from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from gentropy.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter

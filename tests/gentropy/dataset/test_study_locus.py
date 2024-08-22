@@ -7,15 +7,6 @@ from typing import Any
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
-from gentropy.dataset.ld_index import LDIndex
-from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import (
-    CredibleInterval,
-    StudyLocus,
-    StudyLocusQualityCheck,
-)
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.dataset.summary_statistics import SummaryStatistics
 from pyspark.sql import Column, Row, SparkSession
 from pyspark.sql.types import (
     ArrayType,
@@ -26,6 +17,16 @@ from pyspark.sql.types import (
     StructField,
     StructType,
 )
+
+from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import (
+    CredibleInterval,
+    StudyLocus,
+    StudyLocusQualityCheck,
+)
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
 @pytest.mark.parametrize(

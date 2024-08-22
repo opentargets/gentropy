@@ -5,8 +5,6 @@ from __future__ import annotations
 import numpy as np
 import pyspark.sql.functions as f
 import pytest
-from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.study_index import StudyIndex
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     DoubleType,
@@ -14,6 +12,9 @@ from pyspark.sql.types import (
     StructField,
     StructType,
 )
+
+from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.study_index import StudyIndex
 
 
 class MockDataset(Dataset):

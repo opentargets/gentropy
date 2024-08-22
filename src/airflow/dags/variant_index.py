@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+
 import pandas as pd
 from airflow.decorators import task
 from airflow.models.dag import DAG
@@ -16,6 +17,7 @@ from airflow.providers.google.cloud.operators.cloud_batch import (
 )
 from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
 from airflow.utils.trigger_rule import TriggerRule
+
 from common_airflow import (
     create_batch_job,
     create_cluster,
@@ -27,7 +29,6 @@ from common_airflow import (
     shared_dag_kwargs,
     submit_step,
 )
-from google.cloud import batch_v1
 
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"

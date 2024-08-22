@@ -8,8 +8,9 @@ from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.open_targets.variants import OpenTargetsVariant
 
 if TYPE_CHECKING:
-    from gentropy.common.session import Session
     from pyspark.sql import SparkSession
+
+    from gentropy.common.session import Session
 
 
 class TestOpenTargetsVariant:
