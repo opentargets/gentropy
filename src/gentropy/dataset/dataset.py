@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
@@ -74,6 +75,24 @@ class Dataset(ABC):
             StructType: Schema for the Dataset
         """
         pass
+
+    @classmethod
+    def get_QC_column_name(cls: type[Self]) -> str | None:
+        """Abstract method to get the QC column name. Assumes None unless overriden by child classes.
+
+        Returns:
+            str | None: Column name
+        """
+        return None
+
+    @classmethod
+    def get_QC_categories(cls: type[Self]) -> list[str]:
+        """Method to get the QC categories for this dataset. Returns empty list unless overriden by child classes.
+
+        Returns:
+            list[str]: Column name
+        """
+        return []
 
     @classmethod
     def from_parquet(
@@ -170,6 +189,44 @@ class Dataset(ABC):
             raise ValueError(
                 f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
             )
+
+    def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
+        """Filters `Dataset` according to a list of quality control flags. Not all Dataset classes have a QC column.
+
+        Args:
+            invalid_flags (list[str]): List of quality control flags to be excluded.
+            invalid (bool): If True returns the invalid rows, instead of the valids. Defaults to False.
+
+        Returns:
+            Self: filtered dataset.
+
+        Raises:
+            ValueError: If the Dataset does not contain a QC column.
+        """
+        # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
+        for flag in invalid_flags:
+            if flag not in self.get_QC_categories():
+                raise ValueError(f"{flag} is not a valid QC flag for {self.__class__}.")
+
+        qc_column_name = self.get_QC_column_name()
+        # If Dataset (class) does not contain QC column we raise an error:
+        if not qc_column_name:
+            raise ValueError(
+                f"{type(self).__name__} objects do not contain a QC column to filter by."
+            )
+        else:
+            column: str = qc_column_name
+            # If QC column (nullable) is not available in the dataframe we create an empty array:
+            qc = f.when(f.col(column).isNull(), f.array()).otherwise(f.col(column))
+
+        filterCondition = ~f.arrays_overlap(
+            f.array([f.lit(i) for i in invalid_flags]), qc
+        )
+        # Returning the filtered dataset:
+        if invalid:
+            return self.filter(~filterCondition)
+        else:
+            return self.filter(filterCondition)
 
     def drop_infinity_values(self: Self, *cols: str) -> Self:
         """Drop infinity values from Double typed column.
@@ -280,21 +337,3 @@ class Dataset(ABC):
             )
             > 1
         )
-
-    @classmethod
-    def validate_quality_flags(
-        cls: type[Dataset],
-        qc: Column,
-        invalid_flags: list[str],
-    ) -> Column:
-        """Filter the quality control list to only include valid flags.
-
-        Args:
-            qc (Column): Array column with the current list of qc flags.
-            invalid_flags (list[str]): List of valid quality control flags
-
-        Returns:
-            Column: Array column with the filtered list of qc flags.
-        """
-        qc = f.when(qc.isNull(), f.array()).otherwise(qc)
-        return ~f.arrays_overlap(f.array([f.lit(i) for i in invalid_flags]), qc)

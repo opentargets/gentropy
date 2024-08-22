@@ -47,8 +47,6 @@ class StudyIndex(Dataset):
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
 
-    QC_FLAG_COLUMN_NAME = "qualityControls"
-
     @staticmethod
     def _aggregate_samples_by_ancestry(merged: Column, ancestry: Column) -> Column:
         """Aggregate sample counts by ancestry in a list of struct colmns.
@@ -109,6 +107,24 @@ class StudyIndex(Dataset):
             StructType: The schema of the StudyIndex dataset.
         """
         return parse_spark_schema("study_index.json")
+
+    @classmethod
+    def get_QC_column_name(cls: type[StudyIndex]) -> str:
+        """Return the name of the quality control column.
+
+        Returns:
+            str: The name of the quality control column.
+        """
+        return "qualityControls"
+
+    @classmethod
+    def get_QC_categories(cls: type[StudyIndex]) -> list[str]:
+        """Return the quality control categories.
+
+        Returns:
+            list[str]: The quality control categories.
+        """
+        return list(StudyQualityCheck.__members__.keys())
 
     @classmethod
     def aggregate_and_map_ancestries(
@@ -195,10 +211,10 @@ class StudyIndex(Dataset):
             Column: True if the study is flagged.
         """
         # Testing for the presence of the qualityControls column:
-        if self.QC_FLAG_COLUMN_NAME not in self.df.columns:
+        if "qualityControls" not in self.df.columns:
             return f.lit(False)
         else:
-            return f.size(self.df[self.QC_FLAG_COLUMN_NAME]) != 0
+            return f.size(self.df["qualityControls"]) != 0
 
     def has_summarystats(self: StudyIndex) -> Column:
         """Return a boolean column indicating if a study has harmonized summary statistics.
@@ -216,9 +232,9 @@ class StudyIndex(Dataset):
         """
         return StudyIndex(
             _df=self.df.withColumn(
-                self.QC_FLAG_COLUMN_NAME,
+                "qualityControls",
                 self.update_quality_flag(
-                    f.col(self.QC_FLAG_COLUMN_NAME),
+                    f.col("qualityControls"),
                     self.flag_duplicates(f.col("studyId")),
                     StudyQualityCheck.DUPLICATED_STUDY,
                 ),
@@ -319,9 +335,9 @@ class StudyIndex(Dataset):
                 )
                 # Flagging gwas studies where no valid disease is avilable:
                 .withColumn(
-                    self.QC_FLAG_COLUMN_NAME,
+                    "qualityControls",
                     StudyIndex.update_quality_flag(
-                        f.col(self.QC_FLAG_COLUMN_NAME),
+                        f.col("qualityControls"),
                         # Flagging all gwas studies with no normalised disease:
                         (f.size(f.col(foreground_disease_column)) == 0)
                         & (f.col("studyType") == "gwas"),
@@ -342,9 +358,9 @@ class StudyIndex(Dataset):
             self.df
             # Flagging unsupported study types:
             .withColumn(
-                self.QC_FLAG_COLUMN_NAME,
+                "qualityControls",
                 StudyIndex.update_quality_flag(
-                    f.col(self.QC_FLAG_COLUMN_NAME),
+                    f.col("qualityControls"),
                     f.when(
                         (f.col("studyType") == "gwas")
                         | f.col("studyType").endswith("qtl"),
@@ -381,9 +397,9 @@ class StudyIndex(Dataset):
                 ).otherwise(f.lit(True)),
             )
             .withColumn(
-                self.QC_FLAG_COLUMN_NAME,
+                "qualityControls",
                 StudyIndex.update_quality_flag(
-                    f.col(self.QC_FLAG_COLUMN_NAME),
+                    f.col("qualityControls"),
                     ~f.col("isIdFound"),
                     StudyQualityCheck.UNRESOLVED_TARGET,
                 ),
@@ -392,40 +408,3 @@ class StudyIndex(Dataset):
         )
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
-
-    def validate_dataset(
-        self: StudyIndex,
-        invalid_flags: list[str],
-        returned_dataframe: str = "valid",
-    ) -> StudyIndex:
-        """Filter out `StudyIndex` dataset with specific quality control flags.
-
-        Args:
-            invalid_flags (list[str]): List of quality control flags to be excluded.
-            returned_dataframe (str): Type of dataset to be returned. Can be 'valid' or 'invalid'.
-
-        Returns:
-            StudyIndex: filtered dataset.
-
-        Raises:
-            ValueError: If an invalid flag is provided.
-        """
-        # If the invalid flags are not a StudyQualityCheck enum name we raise an error:
-        for flag in invalid_flags:
-            if flag not in StudyQualityCheck.__members__:
-                raise ValueError(
-                    "Invalid flag. `StudyQualityCheck` enum does not contain this flag."
-                )
-
-        # Condition to filter out rows with invalid flags:
-        filterCondition = Dataset.validate_quality_flags(
-            f.col(self.QC_FLAG_COLUMN_NAME), invalid_flags
-        )
-
-        # Returning the filtered dataset:
-        if returned_dataframe == "valid":
-            return StudyIndex(_df=self.filter(filterCondition).df, _schema=self.schema)
-        elif returned_dataframe == "invalid":
-            return StudyIndex(_df=self.filter(~filterCondition).df, _schema=self.schema)
-        else:
-            raise ValueError("Invalid type. Please provide 'valid' or 'invalid'.")

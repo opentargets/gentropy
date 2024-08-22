@@ -65,10 +65,10 @@ class StudyValidationStep:
             .validate_disease(disease_index)  # Flagging invalid EFOs
         ).persist()  # we will need this for 2 types of outputs
 
-        study_index_with_qc.validate_dataset(
-            invalid_qc_reasons, "invalid"
+        study_index_with_qc.valid_rows(
+            invalid_qc_reasons, invalid=True
         ).df.write.parquet(invalid_study_index_path)
 
-        study_index_with_qc.validate_dataset(
-            invalid_qc_reasons, "valid"
-        ).df.write.parquet(valid_study_index_path)
+        study_index_with_qc.valid_rows(invalid_qc_reasons).df.write.parquet(
+            valid_study_index_path
+        )

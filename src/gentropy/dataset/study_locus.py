@@ -88,8 +88,6 @@ class StudyLocus(Dataset):
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
 
-    QC_FLAG_COLUMN_NAME = "qualityControls"
-
     def validate_study(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
         """Flagging study loci if the corresponding study has issues.
 
@@ -105,8 +103,8 @@ class StudyLocus(Dataset):
         """
         # Quality controls is not a mandatory field in the study index schema, so we have to be ready to handle it:
         qc_select_expression = (
-            f.col(self.QC_FLAG_COLUMN_NAME)
-            if self.QC_FLAG_COLUMN_NAME in study_index.df.columns
+            f.col("qualityControls")
+            if "qualityControls" in study_index.df.columns
             else f.lit(None).cast(StringType())
         )
 
@@ -122,18 +120,18 @@ class StudyLocus(Dataset):
                 )
                 # Flagging loci with failed studies:
                 .withColumn(
-                    self.QC_FLAG_COLUMN_NAME,
+                    "qualityControls",
                     StudyLocus.update_quality_flag(
-                        f.col(self.QC_FLAG_COLUMN_NAME),
+                        f.col("qualityControls"),
                         f.size(f.col("study_qualityControls")) > 0,
                         StudyLocusQualityCheck.FAILED_STUDY,
                     ),
                 )
                 # Flagging loci where no studies were found:
                 .withColumn(
-                    self.QC_FLAG_COLUMN_NAME,
+                    "qualityControls",
                     StudyLocus.update_quality_flag(
-                        f.col(self.QC_FLAG_COLUMN_NAME),
+                        f.col("qualityControls"),
                         f.col("study_studyId").isNull(),
                         StudyLocusQualityCheck.MISSING_STUDY,
                     ),
@@ -155,11 +153,11 @@ class StudyLocus(Dataset):
         return StudyLocus(
             _df=(
                 self.df.withColumn(
-                    self.QC_FLAG_COLUMN_NAME,
+                    "qualityControls",
                     # Because this QC might already run on the dataset, the unique set of flags is generated:
                     f.array_distinct(
                         self._qc_subsignificant_associations(
-                            f.col(self.QC_FLAG_COLUMN_NAME),
+                            f.col("qualityControls"),
                             f.col("pValueMantissa"),
                             f.col("pValueExponent"),
                             pvalue_cutoff,
@@ -178,9 +176,9 @@ class StudyLocus(Dataset):
         """
         return StudyLocus(
             _df=self.df.withColumn(
-                self.QC_FLAG_COLUMN_NAME,
+                "qualityControls",
                 self.update_quality_flag(
-                    f.col(self.QC_FLAG_COLUMN_NAME),
+                    f.col("qualityControls"),
                     self.flag_duplicates(f.col("studyLocusId")),
                     StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
                 ),
@@ -403,6 +401,24 @@ class StudyLocus(Dataset):
             StructType: schema for the StudyLocus dataset.
         """
         return parse_spark_schema("study_locus.json")
+
+    @classmethod
+    def get_QC_column_name(cls: type[StudyLocus]) -> str:
+        """Quality control column.
+
+        Returns:
+            str: Name of the quality control column.
+        """
+        return "qualityControls"
+
+    @classmethod
+    def get_QC_categories(cls: type[StudyLocus]) -> list[str]:
+        """Quality control categories.
+
+        Returns:
+            list[str]: List of quality control categories.
+        """
+        return list(StudyLocusQualityCheck.__members__.keys())
 
     def filter_by_study_type(
         self: StudyLocus, study_type: str, study_index: StudyIndex
@@ -714,9 +730,9 @@ class StudyLocus(Dataset):
                 f.when(f.col("is_lead_linked"), f.array()).otherwise(f.col("ldSet")),
             )
             .withColumn(
-                self.QC_FLAG_COLUMN_NAME,
+                "qualityControls",
                 StudyLocus.update_quality_flag(
-                    f.col(self.QC_FLAG_COLUMN_NAME),
+                    f.col("qualityControls"),
                     f.col("is_lead_linked"),
                     StudyLocusQualityCheck.LD_CLUMPED,
                 ),
@@ -771,9 +787,9 @@ class StudyLocus(Dataset):
             return self
 
         self.df = self.df.withColumn(
-            self.QC_FLAG_COLUMN_NAME,
+            "qualityControls",
             self.update_quality_flag(
-                f.col(self.QC_FLAG_COLUMN_NAME),
+                f.col("qualityControls"),
                 f.col("ldPopulationStructure").isNull(),
                 StudyLocusQualityCheck.NO_POPULATION,
             ),
@@ -844,40 +860,3 @@ class StudyLocus(Dataset):
         )
 
         return self
-
-    def validate_dataset(
-        self: StudyLocus,
-        invalid_flags: list[str],
-        returned_dataframe: str = "valid",
-    ) -> StudyLocus:
-        """Filter out `StudyLocus` dataset with specific quality control flags.
-
-        Args:
-            invalid_flags (list[str]): List of quality control flags to be excluded.
-            returned_dataframe (str): Type of dataset to be returned. Can be 'valid' or 'invalid'.
-
-        Returns:
-            StudyLocus: filtered dataset.
-
-        Raises:
-            ValueError: If an invalid flag is provided.
-        """
-        # If the invalid flags are not a StudyLocusQualityCheck enum name we raise an error:
-        for flag in invalid_flags:
-            if flag not in StudyLocusQualityCheck.__members__:
-                raise ValueError(
-                    "Invalid flag. `StudyLocusQualityCheck` enum does not contain this flag."
-                )
-
-        # Condition to filter out rows with invalid flags:
-        filterCondition = Dataset.validate_quality_flags(
-            f.col(self.QC_FLAG_COLUMN_NAME), invalid_flags
-        )
-
-        # Returning the filtered dataset:
-        if returned_dataframe == "valid":
-            return StudyLocus(_df=self.filter(filterCondition).df, _schema=self.schema)
-        elif returned_dataframe == "invalid":
-            return StudyLocus(_df=self.filter(~filterCondition).df, _schema=self.schema)
-        else:
-            raise ValueError("Invalid type. Please provide 'valid' or 'invalid'.")
