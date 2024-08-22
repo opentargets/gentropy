@@ -43,7 +43,7 @@ VCF_DST_PATH = f"gs://{GCS_BUCKET}/{RELEASE}/variant_vcf"
 VCF_MERGED_DST_PATH = f"{VCF_DST_PATH}/merged"
 VEP_OUTPUT_BUCKET = f"gs://{GCS_BUCKET}/{RELEASE}/vep_output"
 VARIANT_INDEX_BUCKET = f"gs://{GCS_BUCKET}/{RELEASE}/variant_index"
-GNOMAD_ANNOTATION_PATH = "gs://{GCS_BUCKET}/static_assets/gnomad_variants"
+GNOMAD_ANNOTATION_PATH = f"gs://{GCS_BUCKET}/static_assets/gnomad_variants"
 # Internal parameters for the docker image:
 MOUNT_DIR = "/mnt/disks/share"
 
@@ -110,7 +110,23 @@ def merge_vcfs(chunk_size: int = 2000, **kwargs: Any) -> None:
         )
     ]
     merged_df = (
-        pd.concat(pd.read_csv(file, sep="\t") for file in input_vcfs)
+        pd.concat(
+            pd.read_csv(
+                file,
+                sep="\t",
+                dtype={
+                    "#CHROM": str,
+                    "POS": int,
+                    "ID": str,
+                    "REF": str,
+                    "ALT": str,
+                    "QUAL": str,
+                    "FILTER": str,
+                    "INFO": str,
+                },
+            )
+            for file in input_vcfs
+        )
         .drop_duplicates(subset=["#CHROM", "POS", "REF", "ALT"])
         .sort_values(by=["#CHROM", "POS"])
         .reset_index(drop=True)
@@ -121,7 +137,7 @@ def merge_vcfs(chunk_size: int = 2000, **kwargs: Any) -> None:
         merged_df[i : i + chunk_size].to_csv(
             f"{VCF_MERGED_DST_PATH}/chunk_{i + 1}-{i + chunk_size}.vcf",
             index=False,
-            header=False,
+            header=True,
             sep="\t",
         )
         chunks += 1
