@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import common_airflow as common
+
 from airflow.models.dag import DAG
 
 CLUSTER_NAME = "otg-gwascatalog-curation"

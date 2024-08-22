@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from gentropy.dataset.gene_index import GeneIndex
-from gentropy.dataset.study_index import StudyIndex
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
+
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.study_index import StudyIndex
 
 
 def test_study_index_creation(mock_study_index: StudyIndex) -> None:

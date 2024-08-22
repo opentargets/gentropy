@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import pyspark.sql.functions as f
+from pyspark.sql import Row
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.pics import PICS
-from pyspark.sql import Row
 
 
 class TestFinemap:

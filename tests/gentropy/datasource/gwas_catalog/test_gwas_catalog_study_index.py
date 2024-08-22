@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from pyspark.sql import DataFrame
+
 from gentropy.datasource.gwas_catalog.study_index import (
     StudyIndexGWASCatalog,
     StudyIndexGWASCatalogParser,
 )
-from pyspark.sql import DataFrame
 
 
 def test_annotate_discovery_sample_sizes(
