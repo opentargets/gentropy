@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from pyspark.sql import DataFrame
+
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.v2g import V2G
 from gentropy.datasource.open_targets.l2g_gold_standard import (
     OpenTargetsL2GGoldStandard,
 )
-from pyspark.sql import DataFrame
 
 if TYPE_CHECKING:
     from pyspark.sql.session import SparkSession

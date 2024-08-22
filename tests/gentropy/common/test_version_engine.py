@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
 from gentropy.common.version_engine import GnomADVersionSeeker, VersionEngine
 
 
