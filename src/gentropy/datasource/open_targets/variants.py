@@ -126,6 +126,12 @@ class OpenTargetsVariant:
                 f.lit(".").alias("FILTER"),
                 f.lit(".").alias("INFO"),
             )
-            .filter(f.col("#CHROM") != ".")
+            .distinct()
+            .filter(
+                (f.col("#CHROM") != ".")
+                & (f.col("POS").isNotNull())
+                & (f.col("REF").rlike("^[GCTA.]*$"))
+                & (f.col("ALT").rlike("^[GCTA.]*$"))
+            )
             .orderBy(f.col("#CHROM").asc(), f.col("POS").asc())
-        ).distinct()
+        )
