@@ -1,5 +1,4 @@
 """L2G Feature Dataset."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
