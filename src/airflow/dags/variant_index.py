@@ -21,6 +21,7 @@ from common_airflow import (
     submit_step,
 )
 
+from google.cloud import batch_v1
 from airflow.decorators import task
 from airflow.models.dag import DAG
 from airflow.providers.google.cloud.operators.cloud_batch import (
