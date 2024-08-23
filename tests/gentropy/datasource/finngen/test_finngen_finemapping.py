@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from pyspark.sql import SparkSession
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
-from pyspark.sql import SparkSession
 
 
 def test_finngen_finemapping_from_finngen_susie_finemapping(

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pyspark.sql import types as t
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
-from pyspark.sql import types as t
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import pytest
+from pyspark.sql import DataFrame
+
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from pyspark.sql import DataFrame
 
 
 @pytest.fixture

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import common_airflow as common
+
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.google.cloud.hooks.gcs import GCSHook

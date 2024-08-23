@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import pendulum
 import yaml
+from google.cloud import batch_v1, dataproc_v1, storage
+
 from airflow.providers.google.cloud.operators.dataproc import (
     ClusterGenerator,
     DataprocCreateClusterOperator,
@@ -13,7 +15,6 @@ from airflow.providers.google.cloud.operators.dataproc import (
     DataprocSubmitJobOperator,
 )
 from airflow.utils.trigger_rule import TriggerRule
-from google.cloud import batch_v1, dataproc_v1, storage
 
 if TYPE_CHECKING:
     from pathlib import Path

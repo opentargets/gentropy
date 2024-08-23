@@ -3,14 +3,14 @@
 from typing import Any
 
 import pytest
-from gentropy.common.session import Session
-from gentropy.dataset.summary_statistics import SummaryStatistics
 
 from docs.src_snippets.howto.python_api.b_create_dataset import (
     create_from_pandas,
     create_from_parquet,
     create_from_source,
 )
+from gentropy.common.session import Session
+from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
 @pytest.mark.parametrize(

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.clump import LDclumping
 

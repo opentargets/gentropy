@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
+
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.v2g import V2G
 from gentropy.dataset.variant_index import VariantIndex
-from pyspark.sql import functions as f
-from pyspark.sql import types as t
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
