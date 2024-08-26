@@ -418,7 +418,7 @@ class StudyLocus(Dataset):
         Returns:
             list[str]: List of quality control categories.
         """
-        return list(StudyLocusQualityCheck.__members__.keys())
+        return [member.value for member in StudyLocusQualityCheck]
 
     def filter_by_study_type(
         self: StudyLocus, study_type: str, study_index: StudyIndex

@@ -207,7 +207,7 @@ class Dataset(ABC):
         for flag in invalid_flags:
             if flag not in self.get_QC_categories():
                 raise ValueError(
-                    f"{flag} is not a valid QC flag for {type(self).__name__}."
+                    f"{flag} is not a valid QC flag for {type(self).__name__} ({self.get_QC_categories()})."
                 )
 
         qc_column_name = self.get_QC_column_name()

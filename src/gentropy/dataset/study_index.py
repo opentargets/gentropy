@@ -124,7 +124,7 @@ class StudyIndex(Dataset):
         Returns:
             list[str]: The quality control categories.
         """
-        return list(StudyQualityCheck.__members__.keys())
+        return [member.value for member in StudyQualityCheck]
 
     @classmethod
     def aggregate_and_map_ancestries(
