@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
+from pyspark.sql.types import LongType
+
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.gwas_catalog.associations import (
     GWASCatalogCuratedAssociationsParser,
     StudyLocusGWASCatalog,
 )
-from pyspark.sql import DataFrame
-from pyspark.sql import functions as f
-from pyspark.sql.types import LongType
 
 
 def test_study_locus_gwas_catalog_creation(
