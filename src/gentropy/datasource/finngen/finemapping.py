@@ -22,7 +22,7 @@ class FinnGenFinemapping:
 
     Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
 
-    - Study ID in the special format (e.g. FINNGEN_R12*)
+    - Study ID in the special format (e.g. FINNGEN_R11*)
     - Credible set specific finemapping statistics (e.g. LogBayesFactors, Alphas/Posterior)
     - Additional credible set level BayesFactor filtering is applied (LBF > 2)
     - StudyLocusId is annotated for each credible set.
