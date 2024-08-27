@@ -96,15 +96,6 @@ class OpenTargetsVariant:
                     col, create_empty_column_if_not_exists(col)
                 )
 
-        variant_df = cls.map_rsids_to_variant_ids(session, variant_df)
-
-        variant_df = variant_df.withColumn(
-            "variantId",
-            f.when(f.col("variantId").isNull(), f.lit(".")).otherwise(
-                f.col("variantId")
-            ),
-        )
-
         return (
             variant_df.filter(f.col("variantId").isNotNull())
             .withColumn(
@@ -135,6 +126,12 @@ class OpenTargetsVariant:
                 f.lit(".").alias("FILTER"),
                 f.lit(".").alias("INFO"),
             )
-            .filter(f.col("#CHROM") != ".")
+            .distinct()
+            .filter(
+                (f.col("#CHROM") != ".")
+                & (f.col("POS").isNotNull())
+                & (f.col("REF").rlike("^[GCTA.]*$"))
+                & (f.col("ALT").rlike("^[GCTA.]*$"))
+            )
             .orderBy(f.col("#CHROM").asc(), f.col("POS").asc())
-        ).distinct()
+        )

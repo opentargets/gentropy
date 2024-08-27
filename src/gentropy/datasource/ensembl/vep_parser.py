@@ -738,7 +738,6 @@ class VariantEffectPredictorParser:
                             transcript.distance.alias("distance"),
                             transcript.gene_id.alias("targetId"),
                             transcript.impact.alias("impact"),
-                            transcript.transcript_id.alias("transcriptId"),
                             transcript.lof.cast(t.StringType()).alias(
                                 "lofteePrediction"
                             ),
@@ -746,6 +745,7 @@ class VariantEffectPredictorParser:
                             transcript.lof.cast(t.FloatType()).alias(
                                 "polyphenPrediction"
                             ),
+                            transcript.transcript_id.alias("transcriptId"),
                         ),
                     ),
                 ).alias("transcriptConsequences"),
