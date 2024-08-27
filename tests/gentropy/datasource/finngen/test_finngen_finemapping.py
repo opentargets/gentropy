@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hail as hl
 import pytest
+from pyspark.sql import SparkSession
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
-from pyspark.sql import SparkSession
 
 
 @pytest.mark.parametrize(

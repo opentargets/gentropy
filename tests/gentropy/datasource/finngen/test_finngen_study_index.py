@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from gentropy.dataset.study_index import StudyIndex
-from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
 from pyspark.sql import SparkSession
 from pyspark.sql import types as t
+
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
 
 
 def test_finngen_study_index_from_source(spark: SparkSession) -> None:
