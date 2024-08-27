@@ -52,7 +52,7 @@ target_index: ${datasets.static_assets}/targets # OTP 23.12 data
 gene_interactions: ${datasets.static_assets}/interaction # OTP 23.12 data
 
 # Dev output datasets
-gnomad_variants: ${datasets.outputs}/gnomad_variants
+gnomad_variants: ${datasets.static_assets}/gnomad_variants
 study_locus: ${datasets.outputs}/study_locus
 summary_statistics: ${datasets.outputs}/summary_statistics
 study_locus_overlap: ${datasets.outputs}/study_locus_overlap

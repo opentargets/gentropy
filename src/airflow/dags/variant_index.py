@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 from common_airflow import (
     create_batch_job,
     create_cluster,
@@ -31,14 +32,19 @@ from airflow.utils.trigger_rule import TriggerRule
 
 PROJECT_ID = "open-targets-genetics-dev"
 REGION = "europe-west1"
+GCS_BUCKET = "genetics_etl_python_playground"
 CONFIG_FILE_PATH = Path(__file__).parent / "configs" / "variant_sources.yaml"
-GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:il-3333"
+GENTROPY_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/gentropy:il-variant-idx"  # TODO: change to dev
 VEP_DOCKER_IMAGE = "europe-west1-docker.pkg.dev/open-targets-genetics-dev/gentropy-app/custom_ensembl_vep:dev"
-VCF_DST_PATH = "gs://genetics_etl_python_playground/il-3333"
-VEP_OUTPUT_BUCKET = "gs://genetics_etl_python_playground/il-3333/vep_output"
-VEP_CACHE_BUCKET = "gs://genetics_etl_python_playground/vep/cache"
-VARIANT_INDEX_BUCKET = "gs://genetics_etl_python_playground/il-3333/variant_index"
-GNOMAD_ANNOTATION_PATH = "gs://genetics_etl_python_playground/output/python_etl/parquet/24.06/gnomad_variants"
+VEP_CACHE_BUCKET = f"gs://{GCS_BUCKET}/vep/cache"
+
+RELEASE = "XX.XX"  # This needs to be updated to the latest release
+
+VCF_DST_PATH = f"gs://{GCS_BUCKET}/{RELEASE}/variant_vcf"
+VCF_MERGED_DST_PATH = f"{VCF_DST_PATH}/merged"
+VEP_OUTPUT_BUCKET = f"gs://{GCS_BUCKET}/{RELEASE}/vep_output"
+VARIANT_INDEX_BUCKET = f"gs://{GCS_BUCKET}/{RELEASE}/variant_index"
+GNOMAD_ANNOTATION_PATH = f"gs://{GCS_BUCKET}/static_assets/gnomad_variants"
 # Internal parameters for the docker image:
 MOUNT_DIR = "/mnt/disks/share"
 
@@ -67,7 +73,7 @@ def create_vcf(**kwargs: Any) -> None:
 
     commands = [
         "-c",
-        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={VCF_DST_PATH}/$SOURCE_NAME.vcf +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
+        rf"poetry run gentropy step=variant_to_vcf step.source_path=$SOURCE_PATH step.source_format=$SOURCE_FORMAT step.vcf_path={VCF_DST_PATH}/$SOURCE_NAME +step.session.extended_spark_conf={{spark.jars:https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar}}",
     ]
     task = create_task_spec(
         GENTROPY_DOCKER_IMAGE, commands, options="-e HYDRA_FULL_ERROR=1"
@@ -87,6 +93,59 @@ def create_vcf(**kwargs: Any) -> None:
     )
 
     batch_task.execute(context=kwargs)
+
+
+@task(task_id="merge_vcfs")
+def merge_vcfs(chunk_size: int = 2000, **kwargs: Any) -> None:
+    """Task that merges the information from all the VCF files into a single one so that we only submit one VEP job.
+
+    Args:
+        chunk_size (int): Partition size of the merged file. Defaults to 2000.
+        **kwargs (Any): Keyword arguments
+    """
+    ti = kwargs["ti"]
+    input_vcfs = [
+        f"gs://{GCS_BUCKET}/{listed_file}"
+        for listed_file in ti.xcom_pull(
+            task_ids="get_vcf_per_source", key="return_value"
+        )
+    ]
+    merged_df = (
+        pd.concat(
+            pd.read_csv(
+                file,
+                sep="\t",
+                dtype={
+                    "#CHROM": str,
+                    "POS": int,
+                    "ID": str,
+                    "REF": str,
+                    "ALT": str,
+                    "QUAL": str,
+                    "FILTER": str,
+                    "INFO": str,
+                },
+            )
+            for file in input_vcfs
+        )
+        .drop_duplicates(subset=["#CHROM", "POS", "REF", "ALT"])
+        .sort_values(by=["#CHROM", "POS"])
+        .reset_index(drop=True)
+    )
+    # Partition the merged file into chunks of 2000 variants to run the VEP jobs in parallel
+    chunks = 0
+    for i in range(0, len(merged_df), chunk_size):
+        merged_df[i : i + chunk_size].to_csv(
+            f"{VCF_MERGED_DST_PATH}/chunk_{i + 1}-{i + chunk_size}.vcf",
+            index=False,
+            header=True,
+            sep="\t",
+        )
+        chunks += 1
+    expected_chunks_count = len(merged_df) // chunk_size + 1
+    assert (
+        chunks == expected_chunks_count
+    ), f"Expected {expected_chunks_count} chunks but got {chunks} chunks"
 
 
 @dataclass
@@ -147,7 +206,7 @@ class PathManager:
 
 @task(task_id="vep_annotation")
 def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
-    """Submit a Batch job to download cache for VEP.
+    """Submit a Batch job to annotate VCFs with a local VEP docker image.
 
     Args:
         pm (PathManager): The path manager with all the required path related information.
@@ -166,7 +225,7 @@ def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
     task_env = [
         batch_v1.Environment(
             variables={
-                "INPUT_FILE": f"{filename}.tsv",
+                "INPUT_FILE": f"{filename}.vcf",
                 "OUTPUT_FILE": f"{filename}.json",
             }
         )
@@ -210,7 +269,7 @@ with DAG(
     **shared_dag_kwargs,
 ) as dag:
     pm = PathManager(
-        VCF_DST_PATH,
+        VCF_MERGED_DST_PATH,
         VEP_OUTPUT_BUCKET,
         VEP_CACHE_BUCKET,
         MOUNT_DIR,
@@ -218,11 +277,19 @@ with DAG(
     (
         create_vcf()
         >> GCSListObjectsOperator(
-            task_id="get_vep_todo_list",
-            bucket=pm.input_bucket,
-            prefix=pm.input_path,
-            match_glob="**vcf",
+            task_id="get_vcf_per_source",
+            bucket=GCS_BUCKET,
+            prefix=VCF_DST_PATH.replace(f"gs://{GCS_BUCKET}/", ""),
             trigger_rule=TriggerRule.ALL_SUCCESS,
+            match_glob="**.csv",
+        )
+        >> merge_vcfs()
+        >> GCSListObjectsOperator(
+            task_id="get_vep_todo_list",
+            bucket=GCS_BUCKET,
+            prefix=VCF_MERGED_DST_PATH.replace(f"gs://{GCS_BUCKET}/", ""),
+            trigger_rule=TriggerRule.ALL_SUCCESS,
+            match_glob="**.vcf",
         )
         >> vep_annotation(pm)
         >> create_cluster(
