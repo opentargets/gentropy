@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import pyspark.sql.functions as f
 import pytest
-from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
 from pyspark.sql import SparkSession
+
+from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
 
 
 class TestDataExclusion:
