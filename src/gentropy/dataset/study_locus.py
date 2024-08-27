@@ -402,6 +402,24 @@ class StudyLocus(Dataset):
         """
         return parse_spark_schema("study_locus.json")
 
+    @classmethod
+    def get_QC_column_name(cls: type[StudyLocus]) -> str:
+        """Quality control column.
+
+        Returns:
+            str: Name of the quality control column.
+        """
+        return "qualityControls"
+
+    @classmethod
+    def get_QC_categories(cls: type[StudyLocus]) -> list[str]:
+        """Quality control categories.
+
+        Returns:
+            list[str]: List of quality control categories.
+        """
+        return [member.value for member in StudyLocusQualityCheck]
+
     def filter_by_study_type(
         self: StudyLocus, study_type: str, study_index: StudyIndex
     ) -> StudyLocus:

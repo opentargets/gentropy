@@ -109,6 +109,24 @@ class StudyIndex(Dataset):
         return parse_spark_schema("study_index.json")
 
     @classmethod
+    def get_QC_column_name(cls: type[StudyIndex]) -> str:
+        """Return the name of the quality control column.
+
+        Returns:
+            str: The name of the quality control column.
+        """
+        return "qualityControls"
+
+    @classmethod
+    def get_QC_categories(cls: type[StudyIndex]) -> list[str]:
+        """Return the quality control categories.
+
+        Returns:
+            list[str]: The quality control categories.
+        """
+        return [member.value for member in StudyQualityCheck]
+
+    @classmethod
     def aggregate_and_map_ancestries(
         cls: type[StudyIndex], discovery_samples: Column
     ) -> Column:
@@ -196,7 +214,7 @@ class StudyIndex(Dataset):
         if "qualityControls" not in self.df.columns:
             return f.lit(False)
         else:
-            return f.size(self.df.qualityControls) != 0
+            return f.size(self.df["qualityControls"]) != 0
 
     def has_summarystats(self: StudyIndex) -> Column:
         """Return a boolean column indicating if a study has harmonized summary statistics.

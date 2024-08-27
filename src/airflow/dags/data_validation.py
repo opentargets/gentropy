@@ -26,7 +26,27 @@ DISEASE_INDEX = "gs://open-targets-pre-data-releases/24.06/output/etl/parquet/di
 
 # Output datasets:
 VALIDATED_STUDY = "gs://ot-team/dsuveges/otg-data/validated_study_index"
+INVALID_STUDY = f"{VALIDATED_STUDY}_invalid"
+INVALID_STUDY_QC = [
+    "UNRESOLVED_TARGET",
+    "UNRESOLVED_DISEASE",
+    "UNKNOWN_STUDY_TYPE",
+    "DUPLICATED_STUDY",
+    "NO_GENE_PROVIDED",
+]
+
 VALIDATED_STUDY_LOCI = "gs://ot-team/dsuveges/otg-data/validated_credible_set"
+INVALID_STUDY_LOCI = f"{VALIDATED_STUDY_LOCI}_invalid"
+INVALID_STUDY_LOCUS_QC = [
+    "DUPLICATED_STUDYLOCUS_ID",
+    "AMBIGUOUS_STUDY",
+    "FAILED_STUDY",
+    "MISSING_STUDY",
+    "NO_GENOMIC_LOCATION_FLAG",
+    "COMPOSITE_FLAG",
+    "INCONSISTENCY_FLAG",
+    "PALINDROMIC_ALLELE_FLAG",
+]
 
 with DAG(
     dag_id=Path(__file__).stem,
@@ -43,7 +63,9 @@ with DAG(
             f"step.study_index_path={STUDY_INDICES}",
             f"step.target_index_path={TARGET_INDEX}",
             f"step.disease_index_path={DISEASE_INDEX}",
-            f"step.output_path={VALIDATED_STUDY}",
+            f"step.valid_study_index_path={VALIDATED_STUDY}",
+            f"step.invalid_study_index_path={INVALID_STUDY_LOCI}",
+            f"step.invalid_qc_reasons={INVALID_STUDY_QC}",
         ],
     )
 
@@ -55,7 +77,9 @@ with DAG(
         other_args=[
             f"step.study_index_path={VALIDATED_STUDY}",
             f"step.study_locus_path={STUDY_LOCI}",
-            f"step.output_path={VALIDATED_STUDY_LOCI}",
+            f"step.valid_study_locus_path={VALIDATED_STUDY_LOCI}",
+            f"step.invalid_study_locus_path={INVALID_STUDY_LOCI}",
+            f"step.invalid_qc_reasons={INVALID_STUDY_LOCUS_QC}",
         ],
     )
 
