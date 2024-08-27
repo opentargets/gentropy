@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import common_airflow as common
+
 from airflow.models.dag import DAG
 
 CLUSTER_NAME = "gnomad-preprocess"

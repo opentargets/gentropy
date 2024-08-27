@@ -9,6 +9,8 @@ import hail as hl
 import numpy as np
 import pandas as pd
 import pytest
+from pyspark.sql import DataFrame, SparkSession
+
 from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
@@ -28,8 +30,6 @@ from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapp
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
-from pyspark.sql import DataFrame, SparkSession
-
 from utils.spark import get_spark_testing_conf
 
 

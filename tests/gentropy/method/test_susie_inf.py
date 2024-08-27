@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pyspark.sql.functions as f
+
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics

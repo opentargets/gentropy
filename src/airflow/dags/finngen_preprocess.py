@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import common_airflow as common
+
 from airflow.models.dag import DAG
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule

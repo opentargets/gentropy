@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from gentropy.dataset.variant_index import VariantIndex
-from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
+
+from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession

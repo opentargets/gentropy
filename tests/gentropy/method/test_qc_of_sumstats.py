@@ -6,10 +6,11 @@ import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 import pytest
+from pyspark.sql.functions import rand, when
+
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.sumstat_quality_controls import SummaryStatisticsQC
-from pyspark.sql.functions import rand, when
 
 
 def test_qc_functions(
