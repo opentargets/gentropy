@@ -6,7 +6,7 @@ ci:
   skip: [poetry-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.5
+    rev: v0.6.1
     hooks:
       - id: ruff
         args:
@@ -65,7 +65,7 @@ repos:
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.11.0"
+    rev: "v1.11.1"
     hooks:
       - id: mypy
         args:
