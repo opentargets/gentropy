@@ -340,6 +340,16 @@ class VariantIndexConfig(StepConfig):
 
 
 @dataclass
+class ConvertToVcfStepConfig(StepConfig):
+    """Variant to VCF step configuration."""
+
+    source_path: str = MISSING
+    source_format: str = MISSING
+    vcf_path: str = MISSING
+    _target_: str = "gentropy.variant_index.ConvertToVcfStep"
+
+
+@dataclass
 class VariantToGeneConfig(StepConfig):
     """V2G step configuration."""
 
@@ -417,9 +427,9 @@ class FinemapperConfig(StepConfig):
             "start_hail": True,
         }
     )
-    study_locus_to_finemap: str = MISSING
     study_index_path: str = MISSING
-    output_path: str = MISSING
+    study_locus_manifest_path: str = MISSING
+    study_locus_index: int = MISSING
     max_causal_snps: int = MISSING
     primary_signal_pval_threshold: float = MISSING
     secondary_signal_pval_threshold: float = MISSING
@@ -516,8 +526,13 @@ def register_config() -> None:
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
+    cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
     cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
+    cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
+    cs.store(
+        group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
+    )

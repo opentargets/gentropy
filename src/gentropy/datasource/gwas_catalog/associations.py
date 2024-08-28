@@ -8,14 +8,12 @@ from dataclasses import dataclass
 from itertools import chain
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pyspark.sql.functions as f
 from pyspark.sql.types import DoubleType, IntegerType, LongType
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.spark_helpers import (
-    calculate_neglog_pvalue,
     get_record_with_maximum_value,
     pvalue_to_zscore,
 )
@@ -818,7 +816,7 @@ class GWASCatalogCuratedAssociationsParser:
         qc = GWASCatalogCuratedAssociationsParser._qc_variant_interactions(
             qc, strongest_snp_risk_allele
         )
-        qc = GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(
+        qc = StudyLocus._qc_subsignificant_associations(
             qc, p_value_mantissa, p_value_exponent, p_value_cutoff
         )
         qc = GWASCatalogCuratedAssociationsParser._qc_genomic_location(
@@ -852,47 +850,6 @@ class GWASCatalogCuratedAssociationsParser:
             qc,
             strongest_snp_risk_allele.contains(";"),
             StudyLocusQualityCheck.COMPOSITE_FLAG,
-        )
-
-    @staticmethod
-    def _qc_subsignificant_associations(
-        qc: Column,
-        p_value_mantissa: Column,
-        p_value_exponent: Column,
-        pvalue_cutoff: float,
-    ) -> Column:
-        """Flag associations below significant threshold.
-
-        Args:
-            qc (Column): QC column
-            p_value_mantissa (Column): P-value mantissa column
-            p_value_exponent (Column): P-value exponent column
-            pvalue_cutoff (float): association p-value cut-off
-
-        Returns:
-            Column: Updated QC column with flag.
-
-        Examples:
-            >>> import pyspark.sql.types as t
-            >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
-            >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
-            >>> df.withColumn('qc', GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
-            +------------------------+----------------+----------------+
-            |qc                      |p_value_mantissa|p_value_exponent|
-            +------------------------+----------------+----------------+
-            |[Subsignificant p-value]|1               |-7              |
-            |[]                      |1               |-8              |
-            |[]                      |5               |-8              |
-            |[]                      |1               |-9              |
-            +------------------------+----------------+----------------+
-            <BLANKLINE>
-
-        """
-        return StudyLocus.update_quality_flag(
-            qc,
-            calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
-            < f.lit(-np.log10(pvalue_cutoff)),
-            StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
 
     @staticmethod

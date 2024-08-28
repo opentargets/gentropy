@@ -6,7 +6,6 @@ import logging
 import time
 from typing import Any
 
-import hail as hl
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
@@ -45,9 +44,9 @@ class SusieFineMapperStep:
     def __init__(
         self,
         session: Session,
-        study_locus_to_finemap: str,
         study_index_path: str,
-        output_path: str,
+        study_locus_manifest_path: str,
+        study_locus_index: int,
         max_causal_snps: int = 10,
         primary_signal_pval_threshold: float = 1,
         secondary_signal_pval_threshold: float = 1,
@@ -66,9 +65,9 @@ class SusieFineMapperStep:
 
         Args:
             session (Session): Spark session
-            study_locus_to_finemap (str): path to the study locus to fine-map
             study_index_path (str): path to the study index
-            output_path (str): path to the output
+            study_locus_manifest_path (str): Path to the CSV manifest containing all study locus input and output locations. Should contain two columns: study_locus_input and study_locus_output
+            study_locus_index (int): Index (0-based) of the locus in the manifest to process in this call
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
             primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1), default is 5e-8
             secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals, default is 1e-7
@@ -83,11 +82,15 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
         """
-        # Initialise Hail
-        hl.init(sc=session.spark.sparkContext, log="/dev/null")
+        # Read locus manifest.
+        study_locus_manifest = pd.read_csv(study_locus_manifest_path)
+        row = study_locus_manifest.loc[study_locus_index]
+        study_locus_input = row["study_locus_input"]
+        study_locus_output = row["study_locus_output"]
+
         # Read studyLocus
         study_locus = (
-            StudyLocus.from_parquet(session, study_locus_to_finemap)
+            StudyLocus.from_parquet(session, study_locus_input)
             .df.withColumn(
                 "studyLocusId", StudyLocus.assign_study_locus_id("studyId", "variantId")
             )
@@ -118,11 +121,11 @@ class SusieFineMapperStep:
         if result_logging is not None:
             # Write result
             result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
-                output_path
+                study_locus_output
             )
             # Write log
             result_logging["log"].to_parquet(
-                output_path + ".log",
+                study_locus_output + ".log",
                 engine="pyarrow",
                 index=False,
             )
@@ -826,7 +829,7 @@ class SusieFineMapperStep:
                 "N_outliers": N_outliers,
                 "N_imputed": N_imputed,
                 "N_final_to_fm": len(ld_to_fm),
-                "eleapsed_time": end_time - start_time,
+                "elapsed_time": end_time - start_time,
             },
             index=[0],
         )

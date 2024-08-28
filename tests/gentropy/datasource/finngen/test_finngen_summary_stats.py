@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from pyspark.sql import SparkSession
+
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.datasource.finngen.summary_stats import FinnGenSummaryStats
-from pyspark.sql import SparkSession
 
 
 def test_finngen_summary_stats_from_source(spark: SparkSession) -> None:

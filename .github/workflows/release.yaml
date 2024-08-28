@@ -23,22 +23,35 @@ jobs:
       contents: write
 
     steps:
+      # NOTE: commits using GITHUB_TOKEN does not trigger workflows
+      - uses: actions/create-github-app-token@v1
+        id: trigger-token
+        with:
+          app-id: ${{ vars.TRIGGER_WORKFLOW_GH_APP_ID}}
+          private-key: ${{ secrets.TRIGGER_WORKFLOW_GH_APP_KEY }}
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           repository: opentargets/gentropy
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Python Semantic Release
         id: semrelease
-        uses: python-semantic-release/python-semantic-release@v9.8.3
+        # v9.6.0 is required due to the python v3.12 in the newer version of semantic release action which
+        # breaks the poetry build command.
+        uses: python-semantic-release/python-semantic-release@v9.6.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ steps.trigger-token.outputs.token }}
 
       - name: Publish package to GitHub Release
         uses: python-semantic-release/upload-to-gh-release@main
         if: ${{ steps.semrelease.outputs.released }} == 'true'
         with:
+          # NOTE: allow to start the workflow when push action on tag gets executed
+          # requires using GH_APP to authenitcate, otherwise push authorised with
+          # the GITHUB_TOKEN does not trigger the tag artifact workflow.
+          # see https://github.com/actions/create-github-app-token
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.semrelease.outputs.tag }}
 

@@ -95,7 +95,7 @@ class Dataset(ABC):
             ValueError: Parquet file is empty
         """
         schema = cls.get_schema()
-        df = session.read_parquet(path, schema=schema, **kwargs)
+        df = session.load_data(path, format="parquet", schema=schema, **kwargs)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
         return cls(_df=df, _schema=schema)
