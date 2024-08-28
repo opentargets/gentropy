@@ -38,18 +38,19 @@ build-documentation: ## Create local server with documentation
 create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
-	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
+	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}-$(USER)" \
 		--image-version 2.1 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
 		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/install_dependencies_on_cluster.sh \
 		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/gentropy-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
-		--primary-worker-type n1-standard-8 \
+		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-4 \
 		--worker-boot-disk-size 500 \
-		--autoscaling_policy=f"projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/eqtl-preprocess", \
+		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
 		--optional-components=JUPYTER \
-		--enable-component-gateway
+		--enable-component-gateway \
+		--max-idle=30m
 
 make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
