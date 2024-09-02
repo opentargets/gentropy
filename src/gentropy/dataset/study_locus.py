@@ -320,25 +320,30 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
+    def assign_study_locus_id(
+        study_id_col: Column,
+        variant_id_col: Column,
+        finemapping_col: Column,
+    ) -> Column:
         """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
         Args:
             study_id_col (Column): column name with a study ID
             variant_id_col (Column): column name with a variant ID
+            finemapping_col (Column): column with fine mapping methodology
 
         Returns:
             Column: column with a study locus ID
 
         Examples:
-            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"))).show()
-            +----------+----------+-------------------+
-            |   studyId| variantId|     study_locus_id|
-            +----------+----------+-------------------+
-            |GCST000001|1_1000_A_C|1553357789130151995|
-            |GCST000002|1_1000_A_C|-415050894682709184|
-            +----------+----------+-------------------+
+            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"), f.col("finemappingMethod"))).show()
+            +----------+----------+-------------------+-------------------+
+            |   studyId| variantId| finemappingMethod |   study_locus_id  |
+            +----------+----------+-------------------+-------------------+
+            |GCST000001|1_1000_A_C|     SuSiE-inf      |  1553357789130151995|
+            |GCST000002|1_1000_A_C|       pics         | -415050894682709184|
+            +----------+----------+-------------------+-------------------+
             <BLANKLINE>
         """
         variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
