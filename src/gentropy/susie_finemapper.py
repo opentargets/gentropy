@@ -58,7 +58,7 @@ class SusieFineMapperStep:
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
-        carma_tau: float = 0.2,
+        carma_tau: float = 0.15,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
     ) -> None:
