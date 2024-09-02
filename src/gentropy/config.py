@@ -451,6 +451,7 @@ class FinemapperConfig(StepConfig):
     sum_pips: float = MISSING
     susie_est_tausq: bool = MISSING
     run_carma: bool = MISSING
+    carma_tau: float = MISSING
     run_sumstat_imputation: bool = MISSING
     carma_time_limit: int = MISSING
     imputed_r2_threshold: float = MISSING
