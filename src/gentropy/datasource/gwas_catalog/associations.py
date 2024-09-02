@@ -1096,7 +1096,9 @@ class StudyLocusGWASCatalog(StudyLocus):
             .drop("subStudyDescription", "updatedStudyId")
         ).withColumn(
             "studyLocusId",
-            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+            StudyLocus.assign_study_locus_id(
+                f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
+            ),
         )
         return self
 

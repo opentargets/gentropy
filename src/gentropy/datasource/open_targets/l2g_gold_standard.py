@@ -1,4 +1,5 @@
 """Parser for OTPlatform locus to gene gold standards curation."""
+
 from __future__ import annotations
 
 from typing import Type
@@ -51,7 +52,9 @@ class OpenTargetsL2GGoldStandard:
             )
             .withColumn(
                 "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+                StudyLocus.assign_study_locus_id(
+                    f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
+                ),
             )
             .groupBy("studyLocusId", "studyId", "variantId", "geneId")
             .agg(f.collect_set("source").alias("sources"))

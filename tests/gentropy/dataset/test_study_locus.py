@@ -240,7 +240,9 @@ def test_assign_study_locus_id__null_variant_id(spark: SparkSession) -> None:
         schema="studyId: string, variantId: string",
     ).withColumn(
         "studyLocusId",
-        StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+        StudyLocus.assign_study_locus_id(
+            f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
+        ),
     )
     assert (
         df.select("studyLocusId").distinct().count() == 2
