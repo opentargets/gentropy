@@ -338,12 +338,12 @@ class StudyLocus(Dataset):
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
             >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"), f.col("finemappingMethod"))).show()
-            +----------+----------+-------------------+-------------------+
-            |   studyId| variantId| finemappingMethod |   study_locus_id  |
-            +----------+----------+-------------------+-------------------+
-            |GCST000001|1_1000_A_C|     SuSiE-inf      |  1553357789130151995|
-            |GCST000002|1_1000_A_C|       pics         | -415050894682709184|
-            +----------+----------+-------------------+-------------------+
+            +----------+----------+-----------------+-------------------+
+            |   studyId| variantId|finemappingMethod|     study_locus_id|
+            +----------+----------+-----------------+-------------------+
+            |GCST000001|1_1000_A_C|        SuSiE-inf|1553357789130151995|
+            |GCST000002|1_1000_A_C|             pics|-415050894682709184|
+            +----------+----------+-----------------+-------------------+
             <BLANKLINE>
         """
         variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
