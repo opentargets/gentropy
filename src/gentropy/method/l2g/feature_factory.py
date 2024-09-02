@@ -1,4 +1,5 @@
 """Collection of methods that extract features from the gentropy datasets to be fed in L2G."""
+
 from __future__ import annotations
 
 from functools import reduce
@@ -59,7 +60,7 @@ class ColocalisationFactory:
         colocalisation_df = colocalisation.df.select(
             f.col("leftStudyLocusId").alias("studyLocusId"),
             "rightStudyLocusId",
-            f.coalesce("log2h4h3", "clpp").alias("score"),
+            f.coalesce("h4", "clpp").alias("score"),
             ColocalisationFactory._add_colocalisation_metric(),
         )
 
