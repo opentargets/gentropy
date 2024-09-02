@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import hail as hl
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import SparkSession, Window
@@ -21,7 +22,7 @@ class FinnGenFinemapping:
 
     Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
 
-    - Study ID in the special format (e.g. FINNGEN_R10_*)
+    - Study ID in the special format (e.g. FINNGEN_R11*)
     - Credible set specific finemapping statistics (e.g. LogBayesFactors, Alphas/Posterior)
     - Additional credible set level BayesFactor filtering is applied (LBF > 2)
     - StudyLocusId is annotated for each credible set.
@@ -109,34 +110,189 @@ class FinnGenFinemapping:
         ]
     )
 
+    raw_hail_shema: hl.tstruct = hl.tstruct(
+        trait=hl.tstr,
+        region=hl.tstr,
+        v=hl.tstr,
+        rsid=hl.tstr,
+        chromosome=hl.tstr,
+        position=hl.tstr,
+        allele1=hl.tstr,
+        allele2=hl.tstr,
+        maf=hl.tstr,
+        beta=hl.tstr,
+        se=hl.tstr,
+        p=hl.tstr,
+        mean=hl.tstr,
+        sd=hl.tstr,
+        prob=hl.tstr,
+        cs=hl.tstr,
+        cs_specific_prob=hl.tfloat64,
+        low_purity=hl.tstr,
+        lead_r2=hl.tstr,
+        mean_99=hl.tstr,
+        sd_99=hl.tstr,
+        prob_99=hl.tstr,
+        cs_99=hl.tstr,
+        cs_specific_prob_99=hl.tstr,
+        low_purity_99=hl.tstr,
+        lead_r2_99=hl.tstr,
+        alpha1=hl.tfloat64,
+        alpha2=hl.tfloat64,
+        alpha3=hl.tfloat64,
+        alpha4=hl.tfloat64,
+        alpha5=hl.tfloat64,
+        alpha6=hl.tfloat64,
+        alpha7=hl.tfloat64,
+        alpha8=hl.tfloat64,
+        alpha9=hl.tfloat64,
+        alpha10=hl.tfloat64,
+        mean1=hl.tstr,
+        mean2=hl.tstr,
+        mean3=hl.tstr,
+        mean4=hl.tstr,
+        mean5=hl.tstr,
+        mean6=hl.tstr,
+        mean7=hl.tstr,
+        mean8=hl.tstr,
+        mean9=hl.tstr,
+        mean10=hl.tstr,
+        sd1=hl.tstr,
+        sd2=hl.tstr,
+        sd3=hl.tstr,
+        sd4=hl.tstr,
+        sd5=hl.tstr,
+        sd6=hl.tstr,
+        sd7=hl.tstr,
+        sd8=hl.tstr,
+        sd9=hl.tstr,
+        sd10=hl.tstr,
+        lbf_variable1=hl.tfloat64,
+        lbf_variable2=hl.tfloat64,
+        lbf_variable3=hl.tfloat64,
+        lbf_variable4=hl.tfloat64,
+        lbf_variable5=hl.tfloat64,
+        lbf_variable6=hl.tfloat64,
+        lbf_variable7=hl.tfloat64,
+        lbf_variable8=hl.tfloat64,
+        lbf_variable9=hl.tfloat64,
+        lbf_variable10=hl.tfloat64,
+    )
+
+    summary_hail_schema: hl.tstruct = hl.tstruct(
+        trait=hl.tstr,
+        region=hl.tstr,
+        cs=hl.tstr,
+        cs_log10bf=hl.tfloat64,
+    )
+
+    @staticmethod
+    def _infer_block_gzip_compression(paths: str | list[str]) -> bool:
+        """Naively infer compression type based on the file extension.
+
+        Args:
+            paths (str | list[str]): File path(s).
+
+        Returns:
+            bool: True if block gzipped, False otherwise.
+        """
+        if isinstance(paths, str):
+            return paths.endswith(".bgz")
+        return all(path.endswith(".bgz") for path in paths)
+
     @classmethod
     def from_finngen_susie_finemapping(
         cls: type[FinnGenFinemapping],
         spark: SparkSession,
-        finngen_finemapping_df: (str | list[str]),
-        finngen_finemapping_summaries: (str | list[str]),
+        finngen_susie_finemapping_snp_files: (str | list[str]),
+        finngen_susie_finemapping_cs_summary_files: (str | list[str]),
         finngen_release_prefix: str,
         credset_lbf_threshold: float = 0.8685889638065036,
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
+        The finngen_susue_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
+            - trait: phenotype
+            - region: region for which the fine-mapping was run.
+            - v, rsid: variant ids
+            - chromosome
+            - position
+            - allele1
+            - allele2
+            - maf: minor allele frequency
+            - beta: original marginal beta
+            - se: original se
+            - p: original p
+            - mean: posterior mean beta after fine-mapping
+            - sd: posterior standard deviation after fine-mapping.
+            - prob: posterior inclusion probability
+            - cs: credible set index within region
+            - lead_r2: r2 value to a lead variant (the one with maximum PIP) in a credible set
+            - alphax: posterior inclusion probability for the x-th single effect (x := 1..L where L is the number of single effects (causal variants) specified; default: L = 10).
+            - lbfx: log-Bayes Factor for each variable and single effect (i.e credible set).
+            - meanx: posterior mean for each variable and single effect (i.e credible set).
+            - sdx: posterior sd of mean for each variable and single effect (i.e credible set).
+        As for r11 finngen release these files are ingested from `https://console.cloud.google.com/storage/browser/finngen-public-data-r11/finemap/full/susie/` by
+            - *.snp.bgz
+            - *.snp.bgz.tbi
+        Each file contains index (.tbi) file that is required to read the block gzipped compressed snp file. These files needs to be
+        downloaded, transfromed from block gzipped to plain gzipped and then uploaded to the storage bucket, before they can be read by spark or read by hail directly as import table.
+
+        The finngen_susie_finemapping_cs_summary_files are files that Contains credible set summaries from SuSiE fine-mapping for all genome-wide significant regions with following schema:
+            - trait: phenotype
+            - region: region for which the fine-mapping was run.
+            - cs: running number for independent credible sets in a region
+            - cs_log10bf: Log10 bayes factor of comparing the solution of this model (cs independent credible sets) to cs -1 credible sets
+            - cs_avg_r2: Average correlation R2 between variants in the credible set
+            - cs_min_r2: minimum r2 between variants in the credible set
+            - low_purity: boolean (TRUE,FALSE) indicator if the CS is low purity (low min r2)
+            - cs_size: how many snps does this credible set contain
+            - good_cs: boolean (TRUE,FALSE) indicator if this CS is considered reliable. IF this is FALSE then top variant reported for the CS will be chosen based on minimum p-value in the credible set, otherwise top variant is chosen by maximum PIP
+            - cs_id:
+            - v: top variant (chr:pos:ref:alt)
+            - p: top variant p-value
+            - beta: top variant beta
+            - sd: top variant standard deviation
+            - prob: overall PIP of the variant in the region
+            - cs_specific_prob: PIP of the variant in the current credible set (this and previous are typically almost identical)
+            - 0..n: configured annotation columns. Typical default most_severe,gene_most_severe giving consequence and gene of top variant
+        These files needs to be downloaded from the `https://console.cloud.google.com/storage/browser/finngen-public-data-r11/finemap/summary/` by *.cred.summary.tsv pattern,
+
         Args:
-            spark (SparkSession): Spark session object.
-            finngen_finemapping_df (str | list[str]): SuSIE finemapping output filename(s).
-            finngen_finemapping_summaries (str | list[str]): filename of SuSIE finemapping summaries.
+            spark (SparkSession): SparkSession object.
+            finngen_susie_finemapping_snp_files (str | list[str]): SuSIE finemapping output filename(s).
+            finngen_susie_finemapping_cs_summary_files (str | list[str]): filename of SuSIE finemapping credible set summaries.
             finngen_release_prefix (str): FinnGen study prefix.
             credset_lbf_threshold (float, optional): Filter out credible sets below, Default 0.8685889638065036 == np.log10(np.exp(2)), this is threshold from publication.
 
         Returns:
             StudyLocus: Processed SuSIE finemapping output in StudyLocus format.
         """
+        # NOTE: hail allows for importing block gzipped files, spark does not without external libraries.
+        # check https://github.com/projectglow/glow/blob/36bf6121fbc4ccc33a13b028deb87b63faeba7a9/core/src/main/scala/io/projectglow/vcf/VCFFileFormat.scala#L274
+        # how it could be implemented with spark.
+        bgzip_compressed_snps = cls._infer_block_gzip_compression(
+            finngen_susie_finemapping_snp_files
+        )
+
+        # NOTE: fallback to spark read if not block gzipped file in the input
+        if bgzip_compressed_snps:
+            snps_df = hl.import_table(
+                finngen_susie_finemapping_snp_files,
+                delimiter="\t",
+                types=cls.raw_hail_shema,
+            ).to_spark()
+        else:
+            snps_df = (
+                spark.read.schema(cls.raw_schema)
+                .option("delimiter", "\t")
+                .option("compression", "gzip")
+                .csv(finngen_susie_finemapping_snp_files, header=True)
+            )
+
         processed_finngen_finemapping_df = (
-            spark.read.schema(cls.raw_schema)
-            .option("delimiter", "\t")
-            .option("compression", "gzip")
-            .csv(finngen_finemapping_df, header=True)
             # Drop rows which don't have proper position.
-            .filter(f.col("position").cast(t.IntegerType()).isNotNull())
+            snps_df.filter(f.col("position").cast(t.IntegerType()).isNotNull())
             # Drop non credible set SNPs:
             .filter(f.col("cs").cast(t.IntegerType()) > 0)
             .select(
@@ -222,14 +378,31 @@ class FinnGenFinemapping:
             )
         )
 
+        bgzip_compressed_cs_summaries = cls._infer_block_gzip_compression(
+            finngen_susie_finemapping_cs_summary_files
+        )
+
+        # NOTE: fallback to spark read if not block gzipped file in the input
+        # in case we want to use the raw files from the
+        # https://console.cloud.google.com/storage/browser/finngen-public-data-r11/finemap/full/susie/*.cred.gz
+        if bgzip_compressed_cs_summaries:
+            cs_summary_df = hl.import_table(
+                finngen_susie_finemapping_cs_summary_files,
+                delimiter="\t",
+                types=cls.summary_hail_schema,
+            ).to_spark()
+        else:
+            cs_summary_df = (
+                spark.read.schema(cls.summary_schema)
+                .option("delimiter", "\t")
+                .csv(finngen_susie_finemapping_cs_summary_files, header=True)
+            )
+
         # drop credible sets where logbf > 2. Except when there's only one credible set in region:
         # 0.8685889638065036 corresponds to np.log10(np.exp(2)), to match the orginal threshold in publication.
         finngen_finemapping_summaries_df = (
             # Read credible set level lbf, it is output as a different file which is not ideal.
-            spark.read.schema(cls.summary_schema)
-            .option("delimiter", "\t")
-            .csv(finngen_finemapping_summaries, header=True)
-            .select(
+            cs_summary_df.select(
                 f.col("region"),
                 f.col("trait"),
                 f.col("cs").cast("integer").alias("credibleSetIndex"),
