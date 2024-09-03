@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 import sys
 from functools import reduce, wraps
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, TypeVar
+from itertools import chain
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, TypeVar
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -373,6 +374,93 @@ def order_array_of_structs_by_field(column_name: str, field_name: str) -> Column
                 end)
         """
     )
+
+
+def order_array_of_structs_by_two_fields(
+    array_name: str, descending_column: str, ascending_column: str
+) -> Column:
+    """Sort array of structs by a field in descending order and by an other field in an ascending order.
+
+    This function doesn't deal with null values, assumes the sort columns are not nullable.
+
+    Args:
+        array_name (str): Column name with array of structs
+        descending_column (str): Name of the first keys sorted in descending order
+        ascending_column (str): Name of the second keys sorted in ascending order
+
+    Returns:
+        Column: Sorted column
+
+    Examples:
+    >>> data = [(1.0, 45, 'First'), (0.5, 232, 'Third'), (0.5, 233, 'Fourth'), (1.0, 125, 'Second'),]
+    >>> (
+    ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
+    ...    .groupBy(f.lit('c'))
+    ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
+    ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
+    ...    .show(truncate=False)
+    ... )
+    +-----------------------------------------------------------------------------+
+    |sorted_list                                                                  |
+    +-----------------------------------------------------------------------------+
+    |[{1.0, 45, First}, {1.0, 125, Second}, {0.5, 232, Third}, {0.5, 233, Fourth}]|
+    +-----------------------------------------------------------------------------+
+    <BLANKLINE>
+    """
+    return f.expr(
+        f"""
+        array_sort(
+        {array_name},
+        (left, right) -> case
+                when left.{descending_column} is null and right.{descending_column} is null then 0
+                when left.{ascending_column} is null and right.{ascending_column} is null then 0
+
+                when left.{descending_column} is null then 1
+                when right.{descending_column} is null then -1
+
+                when left.{ascending_column} is null then 1
+                when right.{ascending_column} is null then -1
+
+                when left.{descending_column} < right.{descending_column} then 1
+                when left.{descending_column} > right.{descending_column} then -1
+                when left.{descending_column} == right.{descending_column} and left.{ascending_column} > right.{ascending_column} then 1
+                when left.{descending_column} == right.{descending_column} and left.{ascending_column} < right.{ascending_column} then -1
+        end)
+        """
+    )
+
+def map_column_by_dictionary(col: Column, mapping_dict: Dict[str, str]) -> Column:
+    """Map column values to dictionary values by key.
+
+    Missing consequence label will be converted to None, unmapped consequences will be mapped as None.
+
+    Args:
+        col (Column): Column containing labels to map.
+        mapping_dict (Dict[str, str]): Dictionary with mapping key/value pairs.
+
+    Returns:
+        Column: Column with mapped values.
+
+    Examples:
+        >>> data = [('consequence_1',),('unmapped_consequence',),(None,)]
+        >>> m = {'consequence_1': 'SO:000000'}
+        >>> (
+        ...    spark.createDataFrame(data, ['label'])
+        ...    .select('label',map_column_by_dictionary(f.col('label'),m).alias('id'))
+        ...    .show()
+        ... )
+        +--------------------+---------+
+        |               label|       id|
+        +--------------------+---------+
+        |       consequence_1|SO:000000|
+        |unmapped_consequence|     null|
+        |                null|     null|
+        +--------------------+---------+
+        <BLANKLINE>
+    """
+    map_expr = f.create_map(*[f.lit(x) for x in chain(*mapping_dict.items())])
+
+    return map_expr[col]
 
 
 def pivot_df(
