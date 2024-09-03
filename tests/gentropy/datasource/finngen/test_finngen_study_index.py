@@ -11,39 +11,32 @@ from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
 
 def test_finngen_study_index_from_source(spark: SparkSession) -> None:
     """Test study index from source."""
-    finngen_study_index = FinnGenStudyIndex.from_source(
-        spark, finngen_release_prefix="FINNGEN_R11_"
-    )
-    assert isinstance(finngen_study_index, StudyIndex)
-    # evaluate first row only to check if it contains prefix
-    assert all(
-        row.studyId.startswith("FINNGEN_R11_") for row in finngen_study_index.df.head(1)
-    )
+    assert isinstance(FinnGenStudyIndex.from_source(spark), StudyIndex)
 
 
 def test_finngen_study_index_add_efos(spark: SparkSession) -> None:
     """Test finngen study index add efo ids."""
     study_index_table_data = [
         (
-            "FINNGEN_R11_AB1_1",
+            "AB1_1",
             "Actinomycosis",
             "FINNGEN_R11",
             "gwas",
         ),
         (
-            "FINNGEN_R11_AB1_2",
+            "AB1_2",
             "Some unknown trait",
             "FINNGEN_R11",
             "gwas",
         ),
         (
-            "FINNGEN_R11_AB1_1",
+            "AB1_1",
             "Some unknown trait",
             "FINNGEN_R11",
             "gwas",
         ),
         (
-            "FINNGEN_R11_AB1_1",
+            "AB1_1",
             "Bleeding",
             "FINNGEN_R11",
             "gwas",
@@ -83,9 +76,11 @@ def test_finngen_study_index_add_efos(spark: SparkSession) -> None:
     )
 
     study_index = StudyIndex(_df=study_index_df, _schema=study_index_df.schema)
-    finngen_study_index = FinnGenStudyIndex.join_efo_mapping(
-        study_index,
-        finngen_release_prefix="FINNGEN_R11_",
-        efo_curation_mapping=curation_df,
+    assert isinstance(
+        FinnGenStudyIndex.join_efo_mapping(
+            study_index,
+            finngen_release_prefix="FINNGEN_R11_",
+            efo_curation_mapping=curation_df,
+        ),
+        StudyIndex,
     )
-    assert isinstance(finngen_study_index, StudyIndex)
