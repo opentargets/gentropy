@@ -55,7 +55,7 @@ class FinnGenStudyIndex:
         )
         if not finngen_release_prefix_match:
             raise ValueError(
-                f"Invalid FinnGen release prefix: {finngen_release_prefix}, use the format FINNGEN_R*_"
+                f"Invalid FinnGen release prefix: {finngen_release_prefix}, use the format FINNGEN_R*"
             )
         finngen_release = finngen_release_prefix_match.group("release").upper()
 
