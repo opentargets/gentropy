@@ -297,9 +297,7 @@ class FinnGenFinemapping:
             .filter(f.col("cs").cast(t.IntegerType()) > 0)
             .select(
                 # Add study idenfitier.
-                f.concat(f.lit(finngen_release_prefix), f.col("trait"))
-                .cast(t.StringType())
-                .alias("studyId"),
+                f.col("trait").cast(t.StringType()).alias("studyId"),
                 f.col("region"),
                 # Add variant information.
                 f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
