@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import FloatType
+from pyspark.sql.types import FloatType, StringType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
@@ -46,6 +46,7 @@ class StudyLocusQualityCheck(Enum):
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
+        DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique.
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -63,6 +64,7 @@ class StudyLocusQualityCheck(Enum):
     )
     FAILED_STUDY = "Study has failed quality controls"
     MISSING_STUDY = "Study not found in the study index"
+    DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
 
 
 class CredibleInterval(Enum):
@@ -99,9 +101,16 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Updated study locus with quality control flags.
         """
+        # Quality controls is not a mandatory field in the study index schema, so we have to be ready to handle it:
+        qc_select_expression = (
+            f.col("qualityControls")
+            if "qualityControls" in study_index.df.columns
+            else f.lit(None).cast(StringType())
+        )
+
         study_flags = study_index.df.select(
             f.col("studyId").alias("study_studyId"),
-            f.col("qualityControls").alias("study_qualityControls"),
+            qc_select_expression.alias("study_qualityControls"),
         )
 
         return StudyLocus(
@@ -157,6 +166,24 @@ class StudyLocus(Dataset):
                 )
             ),
             _schema=self.get_schema(),
+        )
+
+    def validate_unique_study_locus_id(self: StudyLocus) -> StudyLocus:
+        """Validating the uniqueness of study-locus identifiers and flagging duplicated studyloci.
+
+        Returns:
+            StudyLocus: with flagged duplicated studies.
+        """
+        return StudyLocus(
+            _df=self.df.withColumn(
+                "qualityControls",
+                self.update_quality_flag(
+                    f.col("qualityControls"),
+                    self.flag_duplicates(f.col("studyLocusId")),
+                    StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
+                ),
+            ),
+            _schema=StudyLocus.get_schema(),
         )
 
     @staticmethod
@@ -374,6 +401,24 @@ class StudyLocus(Dataset):
             StructType: schema for the StudyLocus dataset.
         """
         return parse_spark_schema("study_locus.json")
+
+    @classmethod
+    def get_QC_column_name(cls: type[StudyLocus]) -> str:
+        """Quality control column.
+
+        Returns:
+            str: Name of the quality control column.
+        """
+        return "qualityControls"
+
+    @classmethod
+    def get_QC_categories(cls: type[StudyLocus]) -> list[str]:
+        """Quality control categories.
+
+        Returns:
+            list[str]: List of quality control categories.
+        """
+        return [member.value for member in StudyLocusQualityCheck]
 
     def filter_by_study_type(
         self: StudyLocus, study_type: str, study_index: StudyIndex
