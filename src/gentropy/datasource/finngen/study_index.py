@@ -104,7 +104,7 @@ class FinnGenStudyIndex:
         raw_df = spark.read.json(rdd)
         return StudyIndex(
             _df=raw_df.select(
-                f.concat(f.col("phenocode")).alias("studyId"),
+                f.concat(f.lit(finngen_release_prefix), f.col("phenocode")).alias("studyId"),
                 f.col("phenostring").alias("traitFromSource"),
                 f.col("num_cases").cast("integer").alias("nCases"),
                 f.col("num_controls").cast("integer").alias("nControls"),
