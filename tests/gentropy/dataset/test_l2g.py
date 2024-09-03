@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
+from pyspark.sql.types import FloatType
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -34,7 +34,7 @@ def test_process_gene_interactions(sample_otp_interactions: DataFrame) -> None:
     ), "Gene interactions has a different schema."
 
 
-def test_predictions(mock_l2g_predictions: L2GFeatureMatrix) -> None:
+def test_predictions(mock_l2g_predictions: L2GPrediction) -> None:
     """Test L2G predictions creation with mock data."""
     assert isinstance(mock_l2g_predictions, L2GPrediction)
 
@@ -154,45 +154,36 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
     assert observed_df.collect() == expected_df.collect()
 
 
-def test_l2g_feature_constructor_with_schema_mismatch(spark: SparkSession) -> None:
-    """Test if provided shema mismatch results in error in L2GFeatureMatrix constructor.
-
-    distanceTssMean is expected to be FLOAT by schema in src.gentropy.assets.schemas and is actualy DOUBLE.
-    """
-    with pytest.raises(ValueError) as e:
-        L2GFeatureMatrix(
-            _df=spark.createDataFrame(
-                [
-                    (1, "gene1", 100.0),
-                    (2, "gene2", 1000.0),
-                ],
-                "studyLocusId LONG, geneId STRING, distanceTssMean DOUBLE",
-            ),
-            _schema=L2GFeatureMatrix.get_schema(),
-        )
-    assert e.value.args[0] == (
-        "The following fields present differences in their datatypes: ['distanceTssMean']."
-    )
-
-
-def test_calculate_feature_missingness_rate(spark: SparkSession) -> None:
-    """Test L2GFeatureMatrix.calculate_feature_missingness_rate."""
+def test_l2g_feature_constructor_with_schema_mismatch(
+    spark: SparkSession,
+) -> None:
+    """Test if provided schema mismatch is converted to right type in the L2GFeatureMatrix constructor."""
     fm = L2GFeatureMatrix(
         _df=spark.createDataFrame(
             [
-                (1, "gene1", 100.0, None),
-                (2, "gene2", 1000.0, 0.0),
+                (1, "gene1", 100.0),
+                (2, "gene2", 1000.0),
             ],
-            "studyLocusId LONG, geneId STRING, distanceTssMean FLOAT, distanceTssMinimum FLOAT",
+            "studyLocusId LONG, geneId STRING, distanceTssMean DOUBLE",
         ),
-        _schema=L2GFeatureMatrix.get_schema(),
+        mode="predict",
     )
+    assert (
+        fm._df.schema["distanceTssMean"].dataType == FloatType()
+    ), "Feature `distanceTssMean` is not being casted to FloatType. Check L2GFeatureMatrix constructor."
 
+
+def test_calculate_feature_missingness_rate(
+    spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
+) -> None:
+    """Test L2GFeatureMatrix.calculate_feature_missingness_rate."""
     expected_missingness = {"distanceTssMean": 0.0, "distanceTssMinimum": 1.0}
-    observed_missingness = fm.calculate_feature_missingness_rate()
+    observed_missingness = mock_l2g_feature_matrix.calculate_feature_missingness_rate()
     assert isinstance(observed_missingness, dict)
-    assert fm.features_list is not None and len(observed_missingness) == len(
-        fm.features_list
+    assert mock_l2g_feature_matrix.features_list is not None and len(
+        observed_missingness
+    ) == len(
+        mock_l2g_feature_matrix.features_list
     ), "Missing features in the missingness rate dictionary."
     assert (
         observed_missingness == expected_missingness

@@ -126,7 +126,7 @@ class LocusToGeneStep:
             download_from_hub=self.download_from_hub,
         )
         if self.feature_matrix_path:
-            feature_matrix.df.write.mode(self.session.write_mode).parquet(
+            feature_matrix._df.write.mode(self.session.write_mode).parquet(
                 self.feature_matrix_path
             )
         predictions.df.write.mode(self.session.write_mode).parquet(
@@ -152,7 +152,7 @@ class LocusToGeneStep:
 
         wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
         # Process gold standard and L2G features
-        data = self._generate_feature_matrix().persist()
+        data = self._generate_feature_matrix()
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
@@ -173,7 +173,7 @@ class LocusToGeneStep:
                     # we upload the model in the filesystem
                     self.model_path.split("/")[-1],
                     hf_hub_token,
-                    data=trained_model.training_data.df.drop(
+                    data=trained_model.training_data._df.drop(
                         "goldStandardSet", "geneId"
                     ).toPandas(),
                     repo_id=self.hf_hub_repo_id,
@@ -227,14 +227,13 @@ class LocusToGeneStep:
 
         return (
             L2GFeatureMatrix(
-                _df=fm.df.join(
+                _df=fm._df.join(
                     f.broadcast(
                         gold_standards.df.drop("variantId", "studyId", "sources")
                     ),
                     on=["studyLocusId", "geneId"],
                     how="inner",
                 ),
-                _schema=L2GFeatureMatrix.get_schema(),
             )
             .fill_na()
             .select_features(self.features_list)

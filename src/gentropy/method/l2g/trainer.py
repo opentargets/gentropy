@@ -134,7 +134,7 @@ class LocusToGeneTrainer:
             run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
             # Track gold standards and their features
             run.log(
-                {"featureMatrix": Table(dataframe=self.feature_matrix.df.toPandas())}
+                {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
             )
             # Log feature missingness
             run.log(
@@ -155,7 +155,7 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Fitted model
         """
-        data_df = self.feature_matrix.df.drop("geneId").toPandas()
+        data_df = self.feature_matrix._df.drop("geneId").toPandas()
 
         # Encode labels in `goldStandardSet` to a numeric value
         data_df["goldStandardSet"] = data_df["goldStandardSet"].map(

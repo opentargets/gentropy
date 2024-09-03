@@ -579,36 +579,16 @@ def sample_otp_interactions(spark: SparkSession) -> DataFrame:
 @pytest.fixture()
 def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     """Mock l2g feature matrix dataset."""
-    schema = L2GFeatureMatrix.get_schema()
-
-    data_spec = (
-        dg.DataGenerator(
-            spark,
-            rows=50,
-            partitions=4,
-            randomSeedMethod="hash_fieldname",
-        )
-        .withSchema(schema)
-        .withColumnSpec("distanceTssMean", percentNulls=0.1)
-        .withColumnSpec("distanceTssMinimum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec(
-            "goldStandardSet", percentNulls=0.0, values=["positive", "negative"]
-        )
+    return L2GFeatureMatrix(
+        _df=spark.createDataFrame(
+            [
+                (1, "gene1", 100.0, None),
+                (2, "gene2", 1000.0, 0.0),
+            ],
+            "studyLocusId LONG, geneId STRING, distanceTssMean FLOAT, distanceTssMinimum FLOAT",
+        ),
+        mode="predict",
     )
-
-    return L2GFeatureMatrix(_df=data_spec.build(), _schema=schema)
 
 
 @pytest.fixture()

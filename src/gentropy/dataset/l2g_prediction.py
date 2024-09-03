@@ -83,22 +83,17 @@ class L2GPrediction(Dataset):
             colocalisation=coloc,
         ).fill_na()
 
-        gwas_fm = (
-            L2GFeatureMatrix(
-                _df=(
-                    fm.df.join(
-                        credible_set.filter_by_study_type(
-                            "gwas", study_index
-                        ).df.select("studyLocusId"),
-                        on="studyLocusId",
-                    )
-                ),
-                _schema=L2GFeatureMatrix.get_schema(),
-                mode="predict",
-            )
-            .select_features(features_list)
-            .persist()
-        )
+        gwas_fm = L2GFeatureMatrix(
+            _df=(
+                fm._df.join(
+                    credible_set.filter_by_study_type("gwas", study_index).df.select(
+                        "studyLocusId"
+                    ),
+                    on="studyLocusId",
+                )
+            ),
+            mode="predict",
+        ).select_features(features_list)
         return (
             l2g_model.predict(gwas_fm, session),
             gwas_fm,
