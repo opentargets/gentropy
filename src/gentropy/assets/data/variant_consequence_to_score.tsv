@@ -1,6 +1,5 @@
 variantFunctionalConsequenceId	label	score
 SO_0001893	transcript_ablation	1.0
-cttv_mapping_pipeline	cttv_mapping_pipeline
 ECO_0000205	curator_inference
 SO_0002165	trinucleotide_repeat_expansion
 SO_0001574	splice_acceptor_variant	1.0
@@ -38,11 +37,9 @@ SO_0001892	TFBS_amplification	0.0
 SO_0001895	TFBS_ablation	0.0
 SO_0001906	feature_truncation	0.0
 SO_0001907	feature_elongation	0.0
-regulatory_nearest_gene_five_prime_end	Regulatory nearest gene 5' end
 SO_0001628	intergenic_variant	0.0
 SO_0001060	sequence_variant
 SO_0001825	conservative_inframe_deletion
-nearest_gene_five_prime_end	Nearest gene counting from 5' end
 SO_0001787	splice_donor_5th_base_variant	0.66
 SO_0002170	splice_donor_region_variant	0.33
 SO_0002169	splice_polypyrimidine_tract_variant	0.33
