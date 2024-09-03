@@ -36,7 +36,7 @@ class LocusToGeneStep:
         study_index_path: str,
         gold_standard_curation_path: str,
         gene_interactions_path: str,
-        features_list: list[str],
+        features_list: list[dict[str, str]],
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
         model_path: str | None,
@@ -56,7 +56,7 @@ class LocusToGeneStep:
             study_index_path (str): Path to the study index dataset
             gold_standard_curation_path (str): Path to the gold standard curation dataset
             gene_interactions_path (str): Path to the gene interactions dataset
-            features_list (list[str]): List of features to use for the model
+            features_list (list[dict[str, str]]): List of features to use for the model. It is a list of objects with 2 keys: 'name' and 'path'.
             hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub
             model_path (str | None): Path to the fitted model
@@ -217,12 +217,10 @@ class LocusToGeneStep:
             interactions=interactions,
         )
 
-        fm = L2GFeatureMatrix.generate_features(
-            features_list=self.features_list,
-            credible_set=self.credible_set,
-            study_index=self.studies,
-            variant_gene=self.v2g,
-            colocalisation=self.coloc,
+        # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method?
+        fm = L2GFeatureMatrix.from_features_list(
+            self.session,
+            self.features_list,
         )
 
         return (

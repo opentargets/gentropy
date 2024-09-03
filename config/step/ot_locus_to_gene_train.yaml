@@ -17,3 +17,10 @@ hyperparameters:
   max_depth: 5
   loss: log_loss
 download_from_hub: true
+features_list:
+- name: distanceTssMean
+  # average distance of all tagging variants to gene TSS
+  path: ${datasets.variant_to_gene}
+-name: distanceTssMinimum
+  # minimum distance of all tagging variants to gene TSS
+  path: ${datasets.variant_to_gene}

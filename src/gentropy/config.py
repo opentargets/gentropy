@@ -226,54 +226,7 @@ class LocusToGeneConfig(StepConfig):
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
-    features_list: list[str] = field(
-        default_factory=lambda: [
-            # average distance of all tagging variants to gene TSS
-            "distanceTssMean",
-            # minimum distance of all tagging variants to gene TSS
-            "distanceTssMinimum",
-            # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
-            "vepMaximumNeighborhood",
-            # maximum vep consequence score of the locus 95% credible set split by gene
-            "vepMaximum",
-            # mean vep consequence score of the locus 95% credible set among all genes in the vicinity
-            "vepMeanNeighborhood",
-            # mean vep consequence score of the locus 95% credible set split by gene
-            "vepMean",
-            # max clpp for each (study, locus, gene) aggregating over all eQTLs
-            "eqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all eQTLs
-            "eqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            "pqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all pQTLs
-            "pqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            "sqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all sQTLs
-            "sqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus) aggregating over all tuQTLs
-            "tuqtlColocClppMaximum",
-            # max clpp for each (study, locus, gene) aggregating over all tuQTLs
-            "tuqtlColocClppMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
-            "eqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            "eqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
-            "pqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            "pqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
-            "sqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            "sqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all tuQTLs
-            "tuqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all tuQTLs
-            "tuqtlColocLlrMaximumNeighborhood",
-        ]
-    )
+    features_list: list[dict[str, str]] = MISSING
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,

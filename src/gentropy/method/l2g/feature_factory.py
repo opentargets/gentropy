@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from functools import reduce
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 
+from gentropy.common.session import Session
 from gentropy.common.spark_helpers import (
     convert_from_wide_to_long,
     get_record_with_maximum_value,
@@ -339,3 +340,100 @@ class StudyLocusFactory(StudyLocus):
             ).filter(f.col("featureValue").isNotNull()),
             _schema=L2GFeature.get_schema(),
         )
+
+
+class DistanceTssMinimumFeature(L2GFeature):
+    """Minimum distance of all tagging variants to gene TSS."""
+
+    @classmethod
+    def compute(
+        cls: type[DistanceTssMinimumFeature], input_dependency: V2G
+    ) -> L2GFeature:
+        """Computes the feature.
+
+        Args:
+            input_dependency (V2G): V2G dependency
+
+        Returns:
+                L2GFeature: Feature dataset
+
+        Raises:
+            NotImplementedError: Not implemented
+        """
+        raise NotImplementedError
+
+
+class DistanceTssMeanFeature(L2GFeature):
+    """Average distance of all tagging variants to gene TSS."""
+
+    @classmethod
+    def compute(cls: type[DistanceTssMeanFeature], input_dependency: V2G) -> L2GFeature:
+        """Computes the feature.
+
+        Args:
+            input_dependency (V2G): V2G dependency
+        Returns:
+                L2GFeature: Feature dataset
+        Raises:
+            NotImplementedError: Not implemented
+        """
+        raise NotImplementedError
+
+
+class FeatureFactory:
+    """Factory class for creating features."""
+
+    # TODO: should this be live in the `features_list`?
+    feature_mapper = {
+        "distanceTssMinimum": DistanceTssMinimumFeature,
+        "distanceTssMean": DistanceTssMeanFeature,
+    }
+
+    @classmethod
+    def generate_features(
+        cls: type[FeatureFactory], session: Session, features_list: list[dict[str, str]]
+    ) -> list[L2GFeature]:
+        """Generates a feature matrix by reading an object with instructions on how to create the features.
+
+        Args:
+            session (Session): session object
+            features_list (list[dict[str, str]]): list of objects with 2 keys: 'name' and 'path'.
+
+        Returns:
+            list[L2GFeature]: list of computed features.
+        """
+        computed_features = []
+        for feature in features_list:
+            input_dependency = cls.inject_dependency(session, feature["path"])
+            computed_features.append(
+                cls.compute_feature(feature["name"], input_dependency)
+            )
+        return computed_features
+
+    @classmethod
+    def compute_feature(
+        cls: type[FeatureFactory], feature_name: str, input_dependency: Any
+    ) -> L2GFeature:
+        """Instantiates feature class.
+
+        Args:
+            feature_name (str): name of the feature
+            input_dependency (Any): dependency object
+        Returns:
+            L2GFeature: instantiated feature object
+        """
+        return cls.feature_mapper[feature_name].compute(input_dependency)
+
+    @classmethod
+    def inject_dependency(
+        cls: type[FeatureFactory], session: Session, feature_dependency_path: str
+    ) -> Any:
+        """Injects a dependency into the feature factory.
+
+        Args:
+            session (Session): session object
+            feature_dependency_path (str): path to the dependency of the feature
+        Returns:
+            Any: dependency object
+        """
+        return V2G.from_parquet(session, feature_dependency_path)

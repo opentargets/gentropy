@@ -6,15 +6,12 @@ from functools import reduce
 from typing import TYPE_CHECKING, Type
 
 from gentropy.common.spark_helpers import convert_from_long_to_wide
-from gentropy.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
+from gentropy.method.l2g.feature_factory import FeatureFactory
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-    from gentropy.dataset.colocalisation import Colocalisation
-    from gentropy.dataset.study_index import StudyIndex
-    from gentropy.dataset.study_locus import StudyLocus
-    from gentropy.dataset.v2g import V2G
+    from gentropy.common.session import Session
 
 
 class L2GFeatureMatrix:
@@ -55,52 +52,35 @@ class L2GFeatureMatrix:
         )
 
     @classmethod
-    def generate_features(
+    def from_features_list(
         cls: Type[L2GFeatureMatrix],
-        features_list: list[str],
-        credible_set: StudyLocus,
-        study_index: StudyIndex,
-        variant_gene: V2G,
-        colocalisation: Colocalisation,
+        session: Session,
+        features_list: list[dict[str, str]],
     ) -> L2GFeatureMatrix:
-        """Generate features from the gentropy datasets.
+        """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
 
         Args:
-            features_list (list[str]): List of features to generate
-            credible_set (StudyLocus): Credible set dataset
-            study_index (StudyIndex): Study index dataset
-            variant_gene (V2G): Variant to gene dataset
-            colocalisation (Colocalisation): Colocalisation dataset
+            session (Session): Session object
+            features_list (list[dict[str, str]]): List of objects with 2 keys corresponding to the features to generate: 'name' and 'path'.
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
-
-        Raises:
-            ValueError: If the feature matrix is empty
         """
-        if features_dfs := [
-            # Extract features
-            ColocalisationFactory._get_max_coloc_per_credible_set(
-                colocalisation,
-                credible_set,
-                study_index,
-            ).df,
-            StudyLocusFactory._get_tss_distance_features(credible_set, variant_gene).df,
-            StudyLocusFactory._get_vep_features(credible_set, variant_gene).df,
-        ]:
-            fm = reduce(
-                lambda x, y: x.unionByName(y),
-                features_dfs,
-            )
-        else:
-            raise ValueError("No features found")
-
-        # raise error if the feature matrix is empty
+        features_long_df = reduce(
+            lambda x, y: x.unionByName(y, allowMissingColumns=True),
+            [
+                # Compute all features and merge them into a single dataframe
+                feature.df
+                for feature in FeatureFactory.generate_features(session, features_list)
+            ],
+        )
         return cls(
             _df=convert_from_long_to_wide(
-                fm, ["studyLocusId", "geneId"], "featureName", "featureValue"
+                features_long_df,
+                ["studyLocusId", "geneId"],
+                "featureName",
+                "featureValue",
             ),
-            features_list=features_list,
         )
 
     def calculate_feature_missingness_rate(
@@ -168,4 +148,5 @@ class L2GFeatureMatrix:
                 ]
             )
             return self
+        raise ValueError("features_list cannot be None")
         raise ValueError("features_list cannot be None")
