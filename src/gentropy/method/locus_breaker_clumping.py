@@ -112,7 +112,7 @@ class LocusBreakerClumping:
                     .cast(t.ArrayType(t.StringType()))
                     .alias("qualityControls"),
                     StudyLocus.assign_study_locus_id(
-                        f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
+                        f.col("studyId"), f.col("variantId")
                     ).alias("studyLocusId"),
                 )
             ),

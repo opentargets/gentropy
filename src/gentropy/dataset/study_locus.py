@@ -323,14 +323,14 @@ class StudyLocus(Dataset):
     def assign_study_locus_id(
         study_id_col: Column,
         variant_id_col: Column,
-        finemapping_col: Column,
+        finemapping_col: Column = None,
     ) -> Column:
         """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
         Args:
             study_id_col (Column): column name with a study ID
             variant_id_col (Column): column name with a variant ID
-            finemapping_col (Column): column with fine mapping methodology
+            finemapping_col (Column, optional): column with fine mapping methodology
 
         Returns:
             Column: column with a study locus ID
@@ -341,13 +341,31 @@ class StudyLocus(Dataset):
             +----------+----------+-----------------+-------------------+
             |   studyId| variantId|finemappingMethod|     study_locus_id|
             +----------+----------+-----------------+-------------------+
-            |GCST000001|1_1000_A_C|        SuSiE-inf|1553357789130151995|
-            |GCST000002|1_1000_A_C|             pics|-415050894682709184|
+            |GCST000001|1_1000_A_C|        SuSiE-inf|3801266831619496075|
+            |GCST000002|1_1000_A_C|             pics|1581844826999194430|
             +----------+----------+-----------------+-------------------+
+            <BLANKLINE>
+            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"))).show()
+            +----------+----------+-------------------+
+            |   studyId| variantId|     study_locus_id|
+            +----------+----------+-------------------+
+            |GCST000001|1_1000_A_C|1553357789130151995|
+            |GCST000002|1_1000_A_C|-415050894682709184|
+            +----------+----------+-------------------+
             <BLANKLINE>
         """
         variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
-        return f.xxhash64(study_id_col, variant_id_col).alias("studyLocusId")
+
+        if finemapping_col is None:
+            return f.xxhash64(
+                study_id_col,
+                variant_id_col,
+            ).alias("studyLocusId")
+        else:
+            return f.xxhash64(study_id_col, variant_id_col, finemapping_col).alias(
+                "studyLocusId"
+            )
 
     @classmethod
     def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:
