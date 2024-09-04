@@ -154,7 +154,6 @@ class FinngenFinemappingConfig(StepConfig):
     finngen_susie_finemapping_cs_summary_files: str = (
         "gs://finngen-public-data-r11/finemap/summary/*.cred.summary.tsv"
     )
-    finngen_release_prefix: str = "FINNGEN_R11_"
     finngen_finemapping_out: str = MISSING
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
