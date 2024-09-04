@@ -562,6 +562,74 @@ def test_annotate_locus_statistics_boundaries(
     )
 
 
+class TestStudyColumnAnnotation:
+    """Test how study columns are added to the study locus dataset."""
+
+    VARIANT_DATA = [
+        # GWAS Study - get type + diseases
+        (1, "v1", "s1"),
+        # QTL study, get type.
+        (2, "v1", "s2"),
+        # Study not in index:
+        (3, "v1", "s3"),
+    ]
+
+    STUDY_DATA = [("s1", "gwas", "d1", "t1"), ("s2", "eqtl", None, "t2")]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyColumnAnnotation, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=(
+                spark.createDataFrame(
+                    self.VARIANT_DATA,
+                    ["studyLocusId", "variantId", "studyId", "traitFromSource"],
+                ).withColumn("studyLocusId", f.col("studyLocusId").cast(t.LongType()))
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        self.study_index = StudyIndex(
+            _df=(
+                spark.createDataFrame(
+                    self.STUDY_DATA, ["studyId", "studyType", "diseaseIds"]
+                )
+                .withColumn(
+                    "diseaseIds",
+                    f.when(
+                        f.col("diseaseIds").isNotNull(), f.array(f.col("diseaseIds"))
+                    ),
+                )
+                .withColumn("projectId", f.lit("p1"))
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+        # Annotating credible sets with study index columns:
+        self.annotated = self.study_locus.add_study_columns(
+            self.study_index, ["diseaseIds", "studyType"]
+        )
+
+    def test_type(self: TestStudyColumnAnnotation) -> None:
+        """Test if the return type is as expected."""
+        assert isinstance(self.annotated, StudyLocus)
+
+    def test_columns(self: TestStudyColumnAnnotation) -> None:
+        """Test if the columns are added correctly."""
+        expected_columns = [
+            "studyId",
+            "studyLocusId",
+            "variantId",
+            "studyType",
+            "diseaseIds",
+        ]
+        # Is the number of columns as expected:
+        assert len(expected_columns) == len(self.annotated.df.columns)
+        # Are the columns the same:
+        for column in expected_columns:
+            assert column in self.annotated.df.columns
+
+
 class TestStudyLocusValidation:
     """Collection of tests for StudyLocus validation."""
 

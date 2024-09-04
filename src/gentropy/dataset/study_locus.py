@@ -796,7 +796,9 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def add_study_columns(self: StudyLocus, study_index: StudyIndex, columns_to_add: list[str]) -> StudyLocus:
+    def add_study_columns(
+        self: StudyLocus, study_index: StudyIndex, columns_to_add: list[str]
+    ) -> StudyLocus:
         """Add study columns to the study locus dataset.
 
         Args:
@@ -809,7 +811,7 @@ class StudyLocus(Dataset):
         study_df = study_index.df.select("studyId", *columns_to_add)
 
         return StudyLocus(
-            _df=self.df.join(study_df, on="studyId", how="right"),
+            _df=self.df.join(study_df, on="studyId", how="left"),
             _schema=self.get_schema(),
         )
 
