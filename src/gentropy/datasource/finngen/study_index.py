@@ -38,7 +38,7 @@ class FinnGenStudyIndex:
         All studies without EFO traits are dropped. The EFO mappings are then aggregated into lists per
         studyId.
 
-        NOTE: preserve all sdutyId entries even if they don't have EFO mappings.
+        NOTE: preserve all studyId entries even if they don't have EFO mappings.
         This is to avoid discrepancies between `study_index` and `credible_set` `studyId` column.
         The rows with missing EFO mappings will be dropped in the study_index validation step.
 
