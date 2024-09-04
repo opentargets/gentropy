@@ -46,6 +46,7 @@ class StudyLocusValidationStep:
             )  # Flagging study locus with subsignificant p-values
             .validate_study(study_index)  # Flagging studies not in study index
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
+            .add_study_columns(study_index, ["diseaseIds", "studyType"])
         ).persist()  # we will need this for 2 types of outputs
 
         study_locus_with_qc.valid_rows(invalid_qc_reasons).df.write.parquet(

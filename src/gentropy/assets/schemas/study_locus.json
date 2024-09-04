@@ -138,6 +138,22 @@
     },
     {
       "metadata": {},
+      "name": "studyType",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "diseaseIds",
+      "nullable": true,
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": false
+      }
+    },
+    {
+      "metadata": {},
       "name": "ldSet",
       "nullable": true,
       "type": {
