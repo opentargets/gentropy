@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import reduce
 from itertools import chain
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping
 
 import pyspark.sql.functions as f
 
@@ -366,32 +366,79 @@ class DistanceTssMinimumFeature(L2GFeature):
 class DistanceTssMeanFeature(L2GFeature):
     """Average distance of all tagging variants to gene TSS."""
 
+    # TODO: credible_set should be a property??
+
     @classmethod
-    def compute(cls: type[DistanceTssMeanFeature], input_dependency: V2G) -> L2GFeature:
+    def dummy(
+        cls: type[DistanceTssMeanFeature],
+        _input_dependency: Any,
+    ):
+        cls._input_dependency = _input_dependency
+
+    @classmethod
+    def compute(
+        cls: type[DistanceTssMeanFeature],
+        input_dependency: Any,
+        credible_set: StudyLocus,
+    ) -> Any:
         """Computes the feature.
 
-        Args:
-            input_dependency (V2G): V2G dependency
         Returns:
-                L2GFeature: Feature dataset
-        Raises:
-            NotImplementedError: Not implemented
+            L2GFeature: Feature dataset
         """
-        raise NotImplementedError
+        agg_expr = f.mean("weightedScore").alias("distanceTssMean")
+        # Start of common logic
+        v2g = input_dependency.df.filter(f.col("datasourceId") == "canonical_tss")
+        wide_df = (
+            credible_set.df.withColumn("variantInLocus", f.explode_outer("locus"))
+            .select(
+                "studyLocusId", "variantInLocusId", "variantInLocusPosteriorProbability"
+            )
+            .join(
+                v2g.selectExpr("variantId as variantInLocusId", "geneId", "score"),
+                on="variantInLocusId",
+                how="inner",
+            )
+            .withColumn(
+                "weightedScore",
+                f.col("score") * f.col("variantInLocusPosteriorProbability"),
+            )
+            .groupBy("studyLocusId", "geneId")
+            .agg(agg_expr)
+        )
+        return DistanceTssMeanFeature(
+            _df=convert_from_wide_to_long(
+                wide_df,
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=L2GFeature.get_schema(),
+        )
 
 
 class FeatureFactory:
     """Factory class for creating features."""
 
-    # TODO: should this be live in the `features_list`?
-    feature_mapper = {
-        "distanceTssMinimum": DistanceTssMinimumFeature,
+    # TODO: should this live in the `features_list`?
+    feature_mapper: Mapping[str, type[L2GFeature]] = {
+        # "distanceTssMinimum": DistanceTssMinimumFeature,
         "distanceTssMean": DistanceTssMeanFeature,
     }
 
+    def __init__(self: type[FeatureFactory], credible_set: StudyLocus) -> None:
+        """Initializes the factory.
+
+        Args:
+            credible_set (StudyLocus): credible sets to annotate
+        """
+        self.credible_set = credible_set
+
     @classmethod
     def generate_features(
-        cls: type[FeatureFactory], session: Session, features_list: list[dict[str, str]]
+        cls: type[FeatureFactory],
+        session: Session,
+        features_list: list[dict[str, str]],
     ) -> list[L2GFeature]:
         """Generates a feature matrix by reading an object with instructions on how to create the features.
 
@@ -404,10 +451,13 @@ class FeatureFactory:
         """
         computed_features = []
         for feature in features_list:
-            input_dependency = cls.inject_dependency(session, feature["path"])
-            computed_features.append(
-                cls.compute_feature(feature["name"], input_dependency)
-            )
+            if feature["name"] in cls.feature_mapper:
+                input_dependency = cls.inject_dependency(session, feature["path"])
+                computed_features.append(
+                    cls.compute_feature(feature["name"], input_dependency)
+                )
+            else:
+                raise ValueError(f"Feature {feature['name']} not found.")
         return computed_features
 
     @classmethod
@@ -422,7 +472,8 @@ class FeatureFactory:
         Returns:
             L2GFeature: instantiated feature object
         """
-        return cls.feature_mapper[feature_name].compute(input_dependency)
+        feature_cls = cls.feature_mapper[feature_name]
+        return feature_cls.compute(input_dependency)
 
     @classmethod
     def inject_dependency(
@@ -436,4 +487,5 @@ class FeatureFactory:
         Returns:
             Any: dependency object
         """
+        # TODO: Dependency injection feature responsability?
         return V2G.from_parquet(session, feature_dependency_path)
