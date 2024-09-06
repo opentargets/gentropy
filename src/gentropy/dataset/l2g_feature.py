@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class L2GFeature(Dataset, ABC):
     """Locus-to-gene feature dataset."""
 
-    def __init__(
+    def __post_init__(
         self: L2GFeature,
         input_dependency: Any = None,
         credible_set: StudyLocus | None = None,
@@ -30,7 +30,7 @@ class L2GFeature(Dataset, ABC):
             input_dependency (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
             credible_set (StudyLocus | None): The credible set that the L2GFeature dataset is based on. Defaults to None.
         """
-        super().__init__()
+        super().__post_init__()
         self.input_dependency = input_dependency
         self.credible_set = credible_set
 
