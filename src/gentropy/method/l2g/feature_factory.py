@@ -366,19 +366,22 @@ class DistanceTssMinimumFeature(L2GFeature):
 class DistanceTssMeanFeature(L2GFeature):
     """Average distance of all tagging variants to gene TSS."""
 
-    # TODO: credible_set should be a property??
+    fill_na_value = 500_000
 
     @classmethod
     def dummy(
         cls: type[DistanceTssMeanFeature],
-        _input_dependency: Any,
+        input_dependency: Any,
+        credible_set: StudyLocus,
     ):
-        cls._input_dependency = _input_dependency
+        cls.input_dependency = input_dependency
+        cls.credible_set = credible_set
+        return cls
 
     @classmethod
     def compute(
         cls: type[DistanceTssMeanFeature],
-        input_dependency: Any,
+        input_dependency: V2G,
         credible_set: StudyLocus,
     ) -> Any:
         """Computes the feature.
@@ -387,12 +390,16 @@ class DistanceTssMeanFeature(L2GFeature):
             L2GFeature: Feature dataset
         """
         agg_expr = f.mean("weightedScore").alias("distanceTssMean")
-        # Start of common logic
+        # Everything but expresion is common logic
         v2g = input_dependency.df.filter(f.col("datasourceId") == "canonical_tss")
         wide_df = (
             credible_set.df.withColumn("variantInLocus", f.explode_outer("locus"))
             .select(
-                "studyLocusId", "variantInLocusId", "variantInLocusPosteriorProbability"
+                "studyLocusId",
+                f.col("variantInLocus.variantId").alias("variantInLocusId"),
+                f.col("variantInLocus.posteriorProbability").alias(
+                    "variantInLocusPosteriorProbability"
+                ),
             )
             .join(
                 v2g.selectExpr("variantId as variantInLocusId", "geneId", "score"),
@@ -406,14 +413,14 @@ class DistanceTssMeanFeature(L2GFeature):
             .groupBy("studyLocusId", "geneId")
             .agg(agg_expr)
         )
-        return DistanceTssMeanFeature(
+        return cls(
             _df=convert_from_wide_to_long(
                 wide_df,
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
-            _schema=L2GFeature.get_schema(),
+            _schema=cls.get_schema(),
         )
 
 
