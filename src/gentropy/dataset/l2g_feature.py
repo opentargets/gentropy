@@ -19,17 +19,20 @@ if TYPE_CHECKING:
 class L2GFeature(Dataset, ABC):
     """Locus-to-gene feature dataset."""
 
-    input_dependency: Any = None
+    def __init__(
+        self: L2GFeature,
+        input_dependency: Any = None,
+        credible_set: StudyLocus | None = None,
+    ) -> None:
+        """Initializes a L2GFeature dataset.
 
-    @property
-    def input_dependency(self: L2GFeature) -> Any:
-        """Getter for the input_dependency."""
-        return self._input_dependency
-
-    @input_dependency.setter
-    def set_input_dependency(self: L2GFeature, value: Any) -> None:
-        """Setter for the input_dependency."""
-        self._input_dependency = value
+        Args:
+            input_dependency (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
+            credible_set (StudyLocus | None): The credible set that the L2GFeature dataset is based on. Defaults to None.
+        """
+        super().__init__()
+        self.input_dependency = input_dependency
+        self.credible_set = credible_set
 
     @classmethod
     def get_schema(cls: type[L2GFeature]) -> StructType:
