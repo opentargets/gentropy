@@ -28,41 +28,42 @@ class LocusToGeneStep:
     def __init__(
         self,
         session: Session,
-        run_mode: str,
-        predictions_path: str,
-        credible_set_path: str,
-        variant_gene_path: str,
-        colocalisation_path: str,
-        study_index_path: str,
-        gold_standard_curation_path: str,
-        gene_interactions_path: str,
-        features_list: list[dict[str, str]],
         hyperparameters: dict[str, Any],
+        *,
+        run_mode: str,
+        features_list: list[str],
         download_from_hub: bool,
-        model_path: str | None,
+        wandb_run_name: str,
+        model_path: str | None = None,
+        credible_set_path: str,
+        gold_standard_curation_path: str | None = None,
+        variant_gene_path: str | None = None,
+        colocalisation_path: str | None = None,
+        study_index_path: str | None = None,
+        gene_interactions_path: str | None = None,
+        predictions_path: str | None = None,
         feature_matrix_path: str | None = None,
-        wandb_run_name: str | None = None,
         hf_hub_repo_id: str | None = LocusToGeneConfig().hf_hub_repo_id,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
         Args:
             session (Session): Session object that contains the Spark session
-            run_mode (str): Run mode, either 'train' or 'predict'
-            predictions_path (str): Path to save the predictions
-            credible_set_path (str): Path to the credible set dataset
-            variant_gene_path (str): Path to the variant to gene dataset
-            colocalisation_path (str): Path to the colocalisation dataset
-            study_index_path (str): Path to the study index dataset
-            gold_standard_curation_path (str): Path to the gold standard curation dataset
-            gene_interactions_path (str): Path to the gene interactions dataset
-            features_list (list[dict[str, str]]): List of features to use for the model. It is a list of objects with 2 keys: 'name' and 'path'.
             hyperparameters (dict[str, Any]): Hyperparameters for the model
-            download_from_hub (bool): Whether to download the model from the Hugging Face Hub
-            model_path (str | None): Path to the fitted model
-            feature_matrix_path (str | None): Path to save the feature matrix. Defaults to None.
-            wandb_run_name (str | None): Name of the wandb run. Defaults to None.
-            hf_hub_repo_id (str | None): Hugging Face Hub repo id. Defaults to the one set in the step configuration.
+            run_mode (str): Run mode, either 'train' or 'predict'
+            features_list (list[str]): List of features to use for the model
+            download_from_hub (bool): Whether to download the model from Hugging Face Hub
+            wandb_run_name (str): Name of the run to track model training in Weights and Biases
+            model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
+            credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
+            gold_standard_curation_path (str | None): Path to the gold standard curation file
+            variant_gene_path (str | None): Path to the variant-gene dataset
+            colocalisation_path (str | None): Path to the colocalisation dataset
+            study_index_path (str | None): Path to the study index dataset
+            gene_interactions_path (str | None): Path to the gene interactions dataset
+            predictions_path (str | None): Path to the L2G predictions output dataset
+            feature_matrix_path (str | None): Path to the L2G feature matrix output dataset
+            hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -76,12 +77,6 @@ class LocusToGeneStep:
         self.run_mode = run_mode
         self.model_path = model_path
         self.predictions_path = predictions_path
-        self.credible_set_path = credible_set_path
-        self.variant_gene_path = variant_gene_path
-        self.colocalisation_path = colocalisation_path
-        self.study_index_path = study_index_path
-        self.gold_standard_curation_path = gold_standard_curation_path
-        self.gene_interactions_path = gene_interactions_path
         self.features_list = list(features_list)
         self.hyperparameters = dict(hyperparameters)
         self.feature_matrix_path = feature_matrix_path
@@ -93,17 +88,31 @@ class LocusToGeneStep:
         self.credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
         )
-        self.studies = StudyIndex.from_parquet(
-            session, study_index_path, recursiveFileLookup=True
+        self.studies = (
+            StudyIndex.from_parquet(session, study_index_path, recursiveFileLookup=True)
+            if study_index_path
+            else None
         )
-        self.v2g = V2G.from_parquet(session, variant_gene_path)
-        self.coloc = Colocalisation.from_parquet(
-            session, colocalisation_path, recursiveFileLookup=True
+        self.v2g = (
+            V2G.from_parquet(session, variant_gene_path) if variant_gene_path else None
+        )
+        self.coloc = (
+            Colocalisation.from_parquet(
+                session, colocalisation_path, recursiveFileLookup=True
+            )
+            if colocalisation_path
+            else None
         )
 
         if run_mode == "predict":
+            if not self.studies and self.v2g and self.coloc:
+                raise ValueError("Dependencies for predict mode not set.")
             self.run_predict()
         elif run_mode == "train":
+            if not gold_standard_curation_path and gene_interactions_path:
+                raise ValueError("Dependencies for train mode not set.")
+            self.gs_curation = self.session.spark.read.json(gold_standard_curation_path)
+            self.interactions = self.session.spark.read.parquet(gene_interactions_path)
             self.run_train()
 
     def run_predict(self) -> None:
@@ -114,6 +123,7 @@ class LocusToGeneStep:
         """
         if not self.predictions_path:
             raise ValueError("predictions_path must be set for predict mode.")
+        # TODO: IMPROVE - it is not correct that L2GPrediction outputs a feature matrix - FM should be written when training
         predictions, feature_matrix = L2GPrediction.from_credible_set(
             self.features_list,
             self.credible_set,
@@ -140,14 +150,9 @@ class LocusToGeneStep:
         Raises:
             ValueError: If gold_standard_curation_path, gene_interactions_path, or wandb_run_name are not set.
         """
-        if not (
-            self.gold_standard_curation_path
-            and self.gene_interactions_path
-            and self.wandb_run_name
-            and self.model_path
-        ):
+        if not (self.wandb_run_name and self.model_path):
             raise ValueError(
-                "gold_standard_curation_path, gene_interactions_path, and wandb_run_name, and a path to save the model must be set for train mode."
+                "wandb_run_name, and a path to save the model must be set for train mode."
             )
 
         wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
@@ -186,12 +191,10 @@ class LocusToGeneStep:
         Returns:
             L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
         """
-        gs_curation = self.session.spark.read.json(self.gold_standard_curation_path)
-        interactions = self.session.spark.read.parquet(self.gene_interactions_path)
         study_locus_overlap = StudyLocus(
             _df=self.credible_set.df.join(
                 f.broadcast(
-                    gs_curation.select(
+                    self.gs_curation.select(
                         StudyLocus.assign_study_locus_id(
                             f.col("association_info.otg_id"),  # studyId
                             f.concat_ws(  # variantId
@@ -211,10 +214,10 @@ class LocusToGeneStep:
         ).find_overlaps(self.studies)
 
         gold_standards = L2GGoldStandard.from_otg_curation(
-            gold_standard_curation=gs_curation,
+            gold_standard_curation=self.gs_curation,
             v2g=self.v2g,
             study_locus_overlap=study_locus_overlap,
-            interactions=interactions,
+            interactions=self.interactions,
         )
 
         # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method?
