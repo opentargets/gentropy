@@ -40,7 +40,6 @@ def test_finngen_finemapping_from_finngen_susie_finemapping(
             spark=spark,
             finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
             finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
-            finngen_release_prefix="FINNGEN_R11",
         ),
         StudyLocus,
     )

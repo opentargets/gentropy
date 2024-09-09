@@ -58,6 +58,7 @@ class SusieFineMapperStep:
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
+        carma_tau: float = 0.15,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
     ) -> None:
@@ -79,6 +80,7 @@ class SusieFineMapperStep:
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
             carma_time_limit (int): CARMA time limit, default is 600 seconds
+            carma_tau (float): CARMA tau, shrinkage parameter
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
         """
@@ -113,6 +115,7 @@ class SusieFineMapperStep:
             susie_est_tausq=susie_est_tausq,
             run_carma=run_carma,
             run_sumstat_imputation=run_sumstat_imputation,
+            carma_tau=carma_tau,
             carma_time_limit=carma_time_limit,
             imputed_r2_threshold=imputed_r2_threshold,
             ld_score_threshold=ld_score_threshold,
@@ -654,6 +657,7 @@ class SusieFineMapperStep:
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
+        carma_tau: float = 0.04,
         imputed_r2_threshold: float = 0.8,
         ld_score_threshold: float = 4,
         sum_pips: float = 0.99,
@@ -677,6 +681,7 @@ class SusieFineMapperStep:
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
             carma_time_limit (int): CARMA time limit, default is 600 seconds
+            carma_tau (float): CARMA tau, shrinkage parameter
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
@@ -721,7 +726,7 @@ class SusieFineMapperStep:
 
         if run_carma:
             carma_output = CARMA.time_limited_CARMA_spike_slab_noEM(
-                z=z_to_fm, ld=ld_to_fm, sec_threshold=carma_time_limit
+                z=z_to_fm, ld=ld_to_fm, sec_threshold=carma_time_limit, tau=carma_tau
             )
             if carma_output["Outliers"] != [] and carma_output["Outliers"] is not None:
                 GWAS_df.drop(carma_output["Outliers"], inplace=True)
@@ -1225,6 +1230,7 @@ class SusieFineMapperStep:
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
+        carma_tau: float = 0.04,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
         sum_pips: float = 0.99,
@@ -1245,6 +1251,7 @@ class SusieFineMapperStep:
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
             carma_time_limit (int): CARMA time limit, default is 600 seconds
+            carma_tau (float): CARMA tau, shrinkage parameter
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
@@ -1443,6 +1450,7 @@ class SusieFineMapperStep:
             run_carma=run_carma,
             run_sumstat_imputation=run_sumstat_imputation,
             carma_time_limit=carma_time_limit,
+            carma_tau=carma_tau,
             imputed_r2_threshold=imputed_r2_threshold,
             ld_score_threshold=ld_score_threshold,
             sum_pips=sum_pips,
