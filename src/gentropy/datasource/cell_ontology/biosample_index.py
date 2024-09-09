@@ -12,54 +12,37 @@ from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 import owlready2 as owl
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.biosample_index import BiosampleIndex, extract_ontology_info
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.column import Column
 
-class CellOntologyStudyIndex:
-    """Study index dataset from Cell Ontology.
+class CellOntologyBiosampleIndex:
+    """Biosample index dataset from Cell Ontology.
     
-    Cell type data is extracted from the Cell Ontology (CL) https://obophenotype.github.io/cell-ontology/ and used to define the cell types in the study index dataset.
-
-    """"
-
-    # Define the schema explicitly for the DataFrame
-    raw_biosample_schema: StructType = StructType(
-        [
-            StructField("id", StringType(), True),
-            StructField("code", StringType(), True),
-            StructField("name", StringType(), True),
-            StructField("dbXRefs", ArrayType(StringType()), True),
-            StructField("description", StringType(), True),
-            StructField("parents", ArrayType(StringType()), True),
-            StructField("synonyms", ArrayType(StringType()), True),
-            StructField("ancestors", ArrayType(StringType()), True),
-            StructField("descendants", ArrayType(StringType()), True),
-            StructField("children", ArrayType(StringType()), True),
-            StructField("ontology", MapType(StringType(), BooleanType()), True)
-        ]
-    )
-    raw_biosample_path = "https://raw.githubusercontent.com/obophenotype/cell-ontology/master/cl.owl" # Dummy path for now
+    Cell type data is extracted from the Cell Ontology (CL) https://obophenotype.github.io/cell-ontology/ and used to define the cell types in the biosample index dataset.
+    """
 
     @classmethod
     def extract_celltypes_from_source(
         cls: type[CellOntologyStudyIndex],
         session: Session,
-        mqtl_quantification_methods_blacklist: list[str],
+        ontology_path: str,
     ) -> DataFrame:
-        """Read raw studies metadata from eQTL Catalogue.
+        """Ingests Cell Ontology owo file and extracts cell types.
 
         Args:
             session (Session): Spark session.
-            mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don't want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
+            ontology_path (str): Path to the Cell ontology owo file.
 
         Returns:
-            DataFrame: raw studies metadata.
+            BiosampleIndex: Parsed and annotated Cell Ontology biosample index table.
         """
-        pd.DataFrame.iteritems = pd.DataFrame.items
-        return session.spark.createDataFrame(
-            pd.read_csv(cls.raw_studies_metadata_path, sep="\t"),
-            schema=cls.raw_studies_metadata_schema,
-        ).filter(~(f.col("quant_method").isin(mqtl_quantification_methods_blacklist)))
+        ontology_data = owl.get_ontology(ontology_path).load()
+        df = extract_ontology_info(ontology_data, "CL_", session, BiosampleIndex.get_schema())
+        
+        return BiosampleIndex(
+            _df=df,
+            _schema=BiosampleIndex.get_schema()
+            )

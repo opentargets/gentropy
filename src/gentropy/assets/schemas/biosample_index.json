@@ -2,13 +2,13 @@
   "type": "struct",
   "fields": [
     {
-      "name": "id",
+      "name": "biosampleIndex",
       "type": "string",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "name",
+      "name": "biosampleName",
       "type": "string",
       "nullable": true,
       "metadata": {}
