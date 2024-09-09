@@ -21,17 +21,17 @@ class L2GFeature(Dataset, ABC):
 
     def __post_init__(
         self: L2GFeature,
-        input_dependency: Any = None,
+        feature_dependency: Any = None,
         credible_set: StudyLocus | None = None,
     ) -> None:
         """Initializes a L2GFeature dataset.
 
         Args:
-            input_dependency (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
+            feature_dependency (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
             credible_set (StudyLocus | None): The credible set that the L2GFeature dataset is based on. Defaults to None.
         """
         super().__post_init__()
-        self.input_dependency = input_dependency
+        self.feature_dependency = feature_dependency
         self.credible_set = credible_set
 
     @classmethod
@@ -45,9 +45,14 @@ class L2GFeature(Dataset, ABC):
 
     @classmethod
     @abstractmethod
-    def compute(cls: type[L2GFeature]) -> L2GFeature:
+    def compute(
+        cls: type[L2GFeature], credible_set: StudyLocus, feature_dependency: Any
+    ) -> L2GFeature:
         """Computes the L2GFeature dataset.
 
+        Args:
+            credible_set (StudyLocus): The credible set that will be used for annotation
+            feature_dependency (Any): The dependency that the L2GFeature class needs to compute the feature
         Returns:
             L2GFeature: a L2GFeature dataset
         """

@@ -6,7 +6,7 @@ from functools import reduce
 from typing import TYPE_CHECKING, Type
 
 from gentropy.common.spark_helpers import convert_from_long_to_wide
-from gentropy.method.l2g.feature_factory import FeatureFactory
+from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -55,13 +55,15 @@ class L2GFeatureMatrix:
     def from_features_list(
         cls: Type[L2GFeatureMatrix],
         session: Session,
-        features_list: list[dict[str, str]],
+        features_list: list[str],
+        features_input_loader: L2GFeatureInputLoader,
     ) -> L2GFeatureMatrix:
         """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
 
         Args:
             session (Session): Session object
-            features_list (list[dict[str, str]]): List of objects with 2 keys corresponding to the features to generate: 'name' and 'path'.
+            features_list (list[str]): List of objects with 2 keys corresponding to the features to generate: 'name' and 'path'.
+            features_input_loader (L2GFeatureInputLoader): Object that contais features input.
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
@@ -71,7 +73,9 @@ class L2GFeatureMatrix:
             [
                 # Compute all features and merge them into a single dataframe
                 feature.df
-                for feature in FeatureFactory.generate_features(session, features_list)
+                for feature in FeatureFactory.generate_features(
+                    session, features_list, features_input_loader
+                )
             ],
         )
         return cls(

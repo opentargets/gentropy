@@ -12,7 +12,7 @@ from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
 from gentropy.config import LocusToGeneConfig
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureInputLoader, L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.study_index import StudyIndex
@@ -103,6 +103,11 @@ class LocusToGeneStep:
             if colocalisation_path
             else None
         )
+        self.features_input_loader = L2GFeatureInputLoader(
+            v2g=self.v2g,
+            coloc=self.coloc,
+            studies=self.studies,
+        )
 
         if run_mode == "predict":
             if not self.studies and self.v2g and self.coloc:
@@ -125,6 +130,7 @@ class LocusToGeneStep:
             raise ValueError("predictions_path must be set for predict mode.")
         # TODO: IMPROVE - it is not correct that L2GPrediction outputs a feature matrix - FM should be written when training
         predictions, feature_matrix = L2GPrediction.from_credible_set(
+            # TODO: rewrite this function to use the new FM generation
             self.features_list,
             self.credible_set,
             self.studies,
@@ -222,8 +228,7 @@ class LocusToGeneStep:
 
         # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method?
         fm = L2GFeatureMatrix.from_features_list(
-            self.session,
-            self.features_list,
+            self.session, self.features_list, self.features_input_loader
         )
 
         return (
