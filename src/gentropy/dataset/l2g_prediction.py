@@ -7,12 +7,11 @@ from typing import TYPE_CHECKING, Type
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
-from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.v2g import V2G
+from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
@@ -40,12 +39,10 @@ class L2GPrediction(Dataset):
     @classmethod
     def from_credible_set(
         cls: Type[L2GPrediction],
-        features_list: list[str],
-        credible_set: StudyLocus,
-        study_index: StudyIndex,
-        v2g: V2G,
-        coloc: Colocalisation,
         session: Session,
+        credible_set: StudyLocus,
+        features_list: list[str],
+        features_input_loader: L2GFeatureInputLoader,
         model_path: str | None,
         hf_token: str | None = None,
         download_from_hub: bool = True,
@@ -53,12 +50,10 @@ class L2GPrediction(Dataset):
         """Extract L2G predictions for a set of credible sets derived from GWAS.
 
         Args:
-            features_list (list[str]): List of features to use for the model
-            credible_set (StudyLocus): Credible set dataset
-            study_index (StudyIndex): Study index dataset
-            v2g (V2G): Variant to gene dataset
-            coloc (Colocalisation): Colocalisation dataset
             session (Session): Session object that contains the Spark session
+            credible_set (StudyLocus): Credible set dataset
+            features_list (list[str]): List of features to use for the model
+            features_input_loader (L2GFeatureInputLoader): Loader with all feature dependencies
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
@@ -75,20 +70,19 @@ class L2GPrediction(Dataset):
             l2g_model = LocusToGeneModel.load_from_disk(model_path)
 
         # Prepare data
-        fm = L2GFeatureMatrix.generate_features(
-            features_list=features_list,
+        fm = L2GFeatureMatrix.from_features_list(
+            session,
             credible_set=credible_set,
-            study_index=study_index,
-            variant_gene=v2g,
-            colocalisation=coloc,
+            features_list=features_list,
+            features_input_loader=features_input_loader,
         ).fill_na()
 
         gwas_fm = L2GFeatureMatrix(
             _df=(
                 fm._df.join(
-                    credible_set.filter_by_study_type("gwas", study_index).df.select(
-                        "studyLocusId"
-                    ),
+                    credible_set.filter_by_study_type(
+                        "gwas", features_input_loader.get_dependency(StudyIndex)
+                    ).df.select("studyLocusId"),
                     on="studyLocusId",
                 )
             ),

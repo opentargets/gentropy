@@ -12,12 +12,13 @@ from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
 from gentropy.config import LocusToGeneConfig
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureInputLoader, L2GFeatureMatrix
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.v2g import V2G
+from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
 
@@ -110,137 +111,146 @@ class LocusToGeneStep:
         )
 
         if run_mode == "predict":
-            if not self.studies and self.v2g and self.coloc:
-                raise ValueError("Dependencies for predict mode not set.")
             self.run_predict()
         elif run_mode == "train":
-            if not gold_standard_curation_path and gene_interactions_path:
-                raise ValueError("Dependencies for train mode not set.")
-            self.gs_curation = self.session.spark.read.json(gold_standard_curation_path)
-            self.interactions = self.session.spark.read.parquet(gene_interactions_path)
+            self.gs_curation = (
+                self.session.spark.read.json(gold_standard_curation_path)
+                if gold_standard_curation_path
+                else None
+            )
+            self.interactions = (
+                self.session.spark.read.parquet(gene_interactions_path)
+                if gene_interactions_path
+                else None
+            )
             self.run_train()
 
     def run_predict(self) -> None:
         """Run the prediction step.
 
         Raises:
-            ValueError: If predictions_path is not set.
+            ValueError: If not all dependencies in prediction mode are set
         """
-        if not self.predictions_path:
-            raise ValueError("predictions_path must be set for predict mode.")
         # TODO: IMPROVE - it is not correct that L2GPrediction outputs a feature matrix - FM should be written when training
-        predictions, feature_matrix = L2GPrediction.from_credible_set(
-            # TODO: rewrite this function to use the new FM generation
-            self.features_list,
-            self.credible_set,
-            self.studies,
-            self.v2g,
-            self.coloc,
-            self.session,
-            model_path=self.model_path,
-            hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
-            download_from_hub=self.download_from_hub,
-        )
-        if self.feature_matrix_path:
-            feature_matrix._df.write.mode(self.session.write_mode).parquet(
-                self.feature_matrix_path
+        if self.studies and self.v2g and self.coloc:
+            predictions, feature_matrix = L2GPrediction.from_credible_set(
+                self.session,
+                self.credible_set,
+                self.features_list,
+                self.features_input_loader,
+                model_path=self.model_path,
+                hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
+                download_from_hub=self.download_from_hub,
             )
-        predictions.df.write.mode(self.session.write_mode).parquet(
-            self.predictions_path
-        )
-        self.session.logger.info(self.predictions_path)
+            if self.feature_matrix_path:
+                feature_matrix._df.write.mode(self.session.write_mode).parquet(
+                    self.feature_matrix_path
+                )
+            if self.predictions_path:
+                predictions.df.write.mode(self.session.write_mode).parquet(
+                    self.predictions_path
+                )
+                self.session.logger.info(self.predictions_path)
+        else:
+            raise ValueError("Dependencies for predict mode not set.")
 
     def run_train(self) -> None:
-        """Run the training step.
+        """Run the training step."""
+        if (
+            self.gs_curation
+            and self.interactions
+            and self.v2g
+            and self.wandb_run_name
+            and self.model_path
+        ):
+            wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
+            # Process gold standard and L2G features
+            data = self._generate_feature_matrix()
 
-        Raises:
-            ValueError: If gold_standard_curation_path, gene_interactions_path, or wandb_run_name are not set.
-        """
-        if not (self.wandb_run_name and self.model_path):
-            raise ValueError(
-                "wandb_run_name, and a path to save the model must be set for train mode."
+            # Instantiate classifier and train model
+            l2g_model = LocusToGeneModel(
+                model=GradientBoostingClassifier(random_state=42),
+                hyperparameters=self.hyperparameters,
             )
-
-        wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
-        # Process gold standard and L2G features
-        data = self._generate_feature_matrix()
-
-        # Instantiate classifier and train model
-        l2g_model = LocusToGeneModel(
-            model=GradientBoostingClassifier(random_state=42),
-            hyperparameters=self.hyperparameters,
-        )
-        wandb_login(key=wandb_key)
-        trained_model = LocusToGeneTrainer(model=l2g_model, feature_matrix=data).train(
-            self.wandb_run_name
-        )
-        if trained_model.training_data and trained_model.model:
-            trained_model.save(self.model_path)
-            if self.hf_hub_repo_id:
-                hf_hub_token = access_gcp_secret(
-                    "hfhub-key", "open-targets-genetics-dev"
-                )
-                trained_model.export_to_hugging_face_hub(
-                    # we upload the model in the filesystem
-                    self.model_path.split("/")[-1],
-                    hf_hub_token,
-                    data=trained_model.training_data._df.drop(
-                        "goldStandardSet", "geneId"
-                    ).toPandas(),
-                    repo_id=self.hf_hub_repo_id,
-                    commit_message="chore: update model",
-                )
+            wandb_login(key=wandb_key)
+            trained_model = LocusToGeneTrainer(
+                model=l2g_model, feature_matrix=data
+            ).train(self.wandb_run_name)
+            if trained_model.training_data and trained_model.model and self.model_path:
+                trained_model.save(self.model_path)
+                if self.hf_hub_repo_id:
+                    hf_hub_token = access_gcp_secret(
+                        "hfhub-key", "open-targets-genetics-dev"
+                    )
+                    trained_model.export_to_hugging_face_hub(
+                        # we upload the model in the filesystem
+                        self.model_path.split("/")[-1],
+                        hf_hub_token,
+                        data=trained_model.training_data._df.drop(
+                            "goldStandardSet", "geneId"
+                        ).toPandas(),
+                        repo_id=self.hf_hub_repo_id,
+                        commit_message="chore: update model",
+                    )
 
     def _generate_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix for training.
 
         Returns:
             L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
+
+        Raises:
+            ValueError: If dependencies to build features are not set.
         """
-        study_locus_overlap = StudyLocus(
-            _df=self.credible_set.df.join(
-                f.broadcast(
-                    self.gs_curation.select(
-                        StudyLocus.assign_study_locus_id(
-                            f.col("association_info.otg_id"),  # studyId
-                            f.concat_ws(  # variantId
-                                "_",
-                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                                f.col("sentinel_variant.locus_GRCh38.position"),
-                                f.col("sentinel_variant.alleles.reference"),
-                                f.col("sentinel_variant.alleles.alternative"),
-                            ),
-                        ).alias("studyLocusId"),
-                    )
-                ),
-                "studyLocusId",
-                "inner",
-            ),
-            _schema=StudyLocus.get_schema(),
-        ).find_overlaps(self.studies)
-
-        gold_standards = L2GGoldStandard.from_otg_curation(
-            gold_standard_curation=self.gs_curation,
-            v2g=self.v2g,
-            study_locus_overlap=study_locus_overlap,
-            interactions=self.interactions,
-        )
-
-        # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method?
-        fm = L2GFeatureMatrix.from_features_list(
-            self.session, self.features_list, self.features_input_loader
-        )
-
-        return (
-            L2GFeatureMatrix(
-                _df=fm._df.join(
+        if self.gs_curation and self.interactions and self.v2g and self.studies:
+            study_locus_overlap = StudyLocus(
+                _df=self.credible_set.df.join(
                     f.broadcast(
-                        gold_standards.df.drop("variantId", "studyId", "sources")
+                        self.gs_curation.select(
+                            StudyLocus.assign_study_locus_id(
+                                f.col("association_info.otg_id"),  # studyId
+                                f.concat_ws(  # variantId
+                                    "_",
+                                    f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                                    f.col("sentinel_variant.locus_GRCh38.position"),
+                                    f.col("sentinel_variant.alleles.reference"),
+                                    f.col("sentinel_variant.alleles.alternative"),
+                                ),
+                            ).alias("studyLocusId"),
+                        )
                     ),
-                    on=["studyLocusId", "geneId"],
-                    how="inner",
+                    "studyLocusId",
+                    "inner",
                 ),
+                _schema=StudyLocus.get_schema(),
+            ).find_overlaps(self.studies)
+
+            gold_standards = L2GGoldStandard.from_otg_curation(
+                gold_standard_curation=self.gs_curation,
+                v2g=self.v2g,
+                study_locus_overlap=study_locus_overlap,
+                interactions=self.interactions,
             )
-            .fill_na()
-            .select_features(self.features_list)
-        )
+
+            # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method?
+            fm = L2GFeatureMatrix.from_features_list(
+                self.session,
+                self.credible_set,
+                self.features_list,
+                self.features_input_loader,
+            )
+
+            return (
+                L2GFeatureMatrix(
+                    _df=fm._df.join(
+                        f.broadcast(
+                            gold_standards.df.drop("variantId", "studyId", "sources")
+                        ),
+                        on=["studyLocusId", "geneId"],
+                        how="inner",
+                    ),
+                )
+                .fill_na()
+                .select_features(self.features_list)
+            )
+        raise ValueError("Dependencies for train mode not set.")

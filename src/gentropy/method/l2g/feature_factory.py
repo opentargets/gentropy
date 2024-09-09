@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Iterator, Mapping
 
 import pyspark.sql.functions as f
 
@@ -20,25 +20,43 @@ class L2GFeatureInputLoader:
 
     def __init__(
         self,
-        **kwargs: dict[str, Any],
+        **kwargs: Any,
     ) -> None:
-        """Initializes L2GFeatureInputLoader with the provided inputs and returns loaded dependencies as a list."""
+        """Initializes L2GFeatureInputLoader with the provided inputs and returns loaded dependencies as a list.
+
+        Args:
+            **kwargs (Any): keyword arguments with the name of the dependency and the dependency itself.
+        """
         self.input_dependencies = [v for v in kwargs.values() if v is not None]
 
     def get_dependency(self, dependency_type: Any) -> Any:
-        """Returns the dependency that matches the provided type."""
+        """Returns the dependency that matches the provided type.
+
+        Args:
+            dependency_type (Any): type of the dependency to return.
+
+        Returns:
+            Any: dependency that matches the provided type.
+        """
         for dependency in self.input_dependencies:
             if isinstance(dependency, dependency_type):
                 return dependency
 
-    def __iter__(self) -> list[Any]:
-        """Make the class iterable, returning the input dependencies list."""
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        """Make the class iterable, returning the input dependencies list.
+
+        Returns:
+            Iterator[dict[str, Any]]: list of input dependencies.
+        """
         return iter(self.input_dependencies)
 
     def __repr__(self) -> str:
         """Return a string representation of the input dependencies.
 
         Useful for understanding the loader content without having to print the object attribute.
+
+        Returns:
+            str: string representation of the input dependencies.
         """
         return repr(self.input_dependencies)
 
@@ -48,11 +66,14 @@ class DistanceTssMinimumFeature(L2GFeature):
 
     @classmethod
     def compute(
-        cls: type[DistanceTssMinimumFeature], input_dependency: V2G
+        cls: type[DistanceTssMinimumFeature],
+        credible_set: StudyLocus,
+        input_dependency: V2G,
     ) -> L2GFeature:
         """Computes the feature.
 
         Args:
+            credible_set (StudyLocus): Credible set dependency
             input_dependency (V2G): V2G dependency
 
         Returns:
@@ -75,7 +96,7 @@ class DistanceTssMeanFeature(L2GFeature):
         cls: type[DistanceTssMeanFeature],
         credible_set: StudyLocus,
         feature_dependency: V2G,
-    ) -> Any:
+    ) -> DistanceTssMeanFeature:
         """Computes the feature.
 
         Args:
@@ -83,7 +104,7 @@ class DistanceTssMeanFeature(L2GFeature):
             feature_dependency (V2G): Dataset that contains the distance information
 
         Returns:
-            L2GFeature: Feature dataset
+            DistanceTssMeanFeature: Feature dataset
         """
         agg_expr = f.mean("weightedScore").alias("distanceTssMean")
         # Everything but expresion is common logic
@@ -129,40 +150,41 @@ class FeatureFactory:
     }
     features_input_loader: L2GFeatureInputLoader
 
-    def __init__(self: FeatureFactory, credible_set: StudyLocus) -> None:
+    def __init__(
+        self: FeatureFactory, credible_set: StudyLocus, features_list: list[str]
+    ) -> None:
         """Initializes the factory.
 
         Args:
             credible_set (StudyLocus): credible sets to annotate
+            features_list (list[str]): list of features to compute.
         """
         self.credible_set = credible_set
+        self.features_list = features_list
 
-    @classmethod
     def generate_features(
-        cls: type[FeatureFactory],
+        self: FeatureFactory,
         session: Session,
-        features_list: list[dict[str, str]],
-        credible_set_path: str,
         features_input_loader: L2GFeatureInputLoader,
     ) -> list[L2GFeature]:
         """Generates a feature matrix by reading an object with instructions on how to create the features.
 
         Args:
             session (Session): session object
-            features_list (list[dict[str, str]]): list of objects with 2 keys: 'name' and 'path'.
-            credible_set_path (str | None): path to credible set parquet file.
             features_input_loader (L2GFeatureInputLoader): object with required features dependencies.
 
         Returns:
             list[L2GFeature]: list of computed features.
+
+        Raises:
+            ValueError: If feature not found.
         """
-        cls.features_input_loader = features_input_loader
         computed_features = []
-        for feature in features_list:
-            if feature["name"] in cls.feature_mapper:
-                computed_features.append(cls.compute_feature(feature["name"]))
+        for feature in self.features_list:
+            if feature in self.feature_mapper:
+                computed_features.append(self.compute_feature(feature))
             else:
-                raise ValueError(f"Feature {feature['name']} not found.")
+                raise ValueError(f"Feature {feature} not found.")
         return computed_features
 
     def compute_feature(self: FeatureFactory, feature_name: str) -> L2GFeature:
@@ -174,8 +196,12 @@ class FeatureFactory:
         Returns:
             L2GFeature: instantiated feature object
         """
+        # Extract feature class and dependency type
         feature_cls = self.feature_mapper[feature_name]
-        # Filter features_input_loader to pass only the dependency that the feature needs
         feature_input_type = feature_cls.feature_dependency
-        feature_input = cls.features_input_loader.get_dependency(feature_input_type)
-        return feature_cls.compute(feature_input)
+        return feature_cls.compute(
+            credible_set=self.credible_set,
+            feature_dependency=self.features_input_loader.get_dependency(
+                feature_input_type
+            ),
+        )

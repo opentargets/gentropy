@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from gentropy.common.session import Session
+    from gentropy.dataset.study_locus import StudyLocus
 
 
 class L2GFeatureMatrix:
@@ -55,6 +56,7 @@ class L2GFeatureMatrix:
     def from_features_list(
         cls: Type[L2GFeatureMatrix],
         session: Session,
+        credible_set: StudyLocus,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
     ) -> L2GFeatureMatrix:
@@ -62,7 +64,8 @@ class L2GFeatureMatrix:
 
         Args:
             session (Session): Session object
-            features_list (list[str]): List of objects with 2 keys corresponding to the features to generate: 'name' and 'path'.
+            credible_set (StudyLocus): Credible set of study locus pairs to annotate
+            features_list (list[str]): List of feature names to be computed.
             features_input_loader (L2GFeatureInputLoader): Object that contais features input.
 
         Returns:
@@ -73,9 +76,9 @@ class L2GFeatureMatrix:
             [
                 # Compute all features and merge them into a single dataframe
                 feature.df
-                for feature in FeatureFactory.generate_features(
-                    session, features_list, features_input_loader
-                )
+                for feature in FeatureFactory(
+                    credible_set, features_list
+                ).generate_features(session, features_input_loader)
             ],
         )
         return cls(
