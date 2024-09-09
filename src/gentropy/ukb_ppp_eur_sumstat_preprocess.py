@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pyspark.sql.functions as f
-
 from gentropy.common.session import Session
+from gentropy.common.va_preparation import prepare_va
 from gentropy.datasource.ukb_ppp_eur.study_index import UkbPppEurStudyIndex
 from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
@@ -27,51 +26,7 @@ class UkbPppEurStep:
             summary_stats_output_path (str): Summary stats output path.
         """
         session.logger.info("Pre-compute the direct and flipped variant annotation dataset.")
-        va_df = (
-            session
-            .spark
-            .read
-            .parquet(variant_annotation_path)
-        )
-        va_df_direct = (
-            va_df.
-            select(
-                f.col("chromosome").alias("vaChromosome"),
-                f.col("variantId"),
-                f.concat_ws(
-                    "_",
-                    f.col("chromosome"),
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele")
-                ).alias("ukb_ppp_id"),
-                f.lit("direct").alias("direction")
-            )
-        )
-        va_df_flip = (
-            va_df.
-            select(
-                f.col("chromosome").alias("vaChromosome"),
-                f.col("variantId"),
-                f.concat_ws(
-                    "_",
-                    f.col("chromosome"),
-                    f.col("position"),
-                    f.col("alternateAllele"),
-                    f.col("referenceAllele")
-                ).alias("ukb_ppp_id"),
-                f.lit("flip").alias("direction")
-            )
-        )
-        (
-            va_df_direct.union(va_df_flip)
-            .coalesce(1)
-            .repartition("vaChromosome")
-            .write
-            .partitionBy("vaChromosome")
-            .mode("overwrite")
-            .parquet(tmp_variant_annotation_path)
-        )
+        prepare_va(session, variant_annotation_path, tmp_variant_annotation_path)
 
         session.logger.info("Process study index.")
         (
