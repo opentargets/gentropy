@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from gentropy.common.per_chromosome import (
+    prepare_va,
+    process_summary_stats_per_chromosome,
+)
 from gentropy.common.session import Session
-from gentropy.common.va_preparation import prepare_va
 from gentropy.datasource.ukb_ppp_eur.study_index import UkbPppEurStudyIndex
 from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
@@ -42,26 +45,4 @@ class UkbPppEurStep:
         )
 
         session.logger.info("Process and harmonise summary stats.")
-        # Set mode to overwrite for processing the first chromosome.
-        write_mode = "overwrite"
-        # Chromosome 23 is X, this is handled downstream.
-        for chromosome in list(range(1, 24)):
-            logging_message = f"  Processing chromosome {chromosome}"
-            session.logger.info(logging_message)
-            (
-                UkbPppEurSummaryStats.from_source(
-                    spark=session.spark,
-                    raw_summary_stats_path=raw_summary_stats_path,
-                    tmp_variant_annotation_path=tmp_variant_annotation_path,
-                    chromosome=str(chromosome),
-                )
-                .df
-                .coalesce(1)
-                .repartition("studyId", "chromosome")
-                .write
-                .partitionBy("studyId", "chromosome")
-                .mode(write_mode)
-                .parquet(summary_stats_output_path)
-            )
-            # Now that we have written the first chromosome, change mode to append for subsequent operations.
-            write_mode = "append"
+        process_summary_stats_per_chromosome(session, UkbPppEurSummaryStats, raw_summary_stats_path, tmp_variant_annotation_path, summary_stats_output_path)
