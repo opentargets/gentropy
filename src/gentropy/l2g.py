@@ -215,6 +215,7 @@ class LocusToGeneStep:
                                     f.col("sentinel_variant.locus_GRCh38.position"),
                                     f.col("sentinel_variant.alleles.reference"),
                                     f.col("sentinel_variant.alleles.alternative"),
+                                    f.col("finemappingMethod"),
                                 ),
                             ).alias("studyLocusId"),
                         )

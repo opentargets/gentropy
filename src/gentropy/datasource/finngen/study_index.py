@@ -38,6 +38,10 @@ class FinnGenStudyIndex:
         All studies without EFO traits are dropped. The EFO mappings are then aggregated into lists per
         studyId.
 
+        NOTE: preserve all studyId entries even if they don't have EFO mappings.
+        This is to avoid discrepancies between `study_index` and `credible_set` `studyId` column.
+        The rows with missing EFO mappings will be dropped in the study_index validation step.
+
         Args:
             study_index (StudyIndex): Study index table.
             efo_curation_mapping (DataFrame): Dataframe with EFO mappings.
@@ -70,8 +74,10 @@ class FinnGenStudyIndex:
                 f.col("PROPERTY_VALUE").alias("traitFromSource"),
             )
         )
-        # NOTE: inner join to keep only the studies with EFO mappings
-        si_df = study_index.df.join(efo_mappings, on="traitFromSource", how="inner")
+
+        si_df = study_index.df.join(
+            efo_mappings, on="traitFromSource", how="left_outer"
+        )
         common_cols = [c for c in si_df.columns if c != "traitFromSourceMappedId"]
         si_df = si_df.groupby(common_cols).agg(
             f.collect_list("traitFromSourceMappedId").alias("traitFromSourceMappedIds")
