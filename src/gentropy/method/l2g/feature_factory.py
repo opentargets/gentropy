@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterator, Mapping
+from typing import Any, Iterator, Mapping
 
 import pyspark.sql.functions as f
 
@@ -10,9 +10,7 @@ from gentropy.common.session import Session
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.study_locus import StudyLocus
-
-if TYPE_CHECKING:
-    from gentropy.dataset.v2g import V2G
+from gentropy.dataset.v2g import V2G
 
 
 class L2GFeatureInputLoader:
@@ -68,13 +66,13 @@ class DistanceTssMinimumFeature(L2GFeature):
     def compute(
         cls: type[DistanceTssMinimumFeature],
         credible_set: StudyLocus,
-        input_dependency: V2G,
+        feature_dependency: V2G,
     ) -> L2GFeature:
         """Computes the feature.
 
         Args:
             credible_set (StudyLocus): Credible set dependency
-            input_dependency (V2G): V2G dependency
+            feature_dependency (V2G): V2G dependency
 
         Returns:
                 L2GFeature: Feature dataset
@@ -148,7 +146,6 @@ class FeatureFactory:
         # "distanceTssMinimum": DistanceTssMinimumFeature,
         "distanceTssMean": DistanceTssMeanFeature,
     }
-    features_input_loader: L2GFeatureInputLoader
 
     def __init__(
         self: FeatureFactory, credible_set: StudyLocus, features_list: list[str]
@@ -182,16 +179,23 @@ class FeatureFactory:
         computed_features = []
         for feature in self.features_list:
             if feature in self.feature_mapper:
-                computed_features.append(self.compute_feature(feature))
+                computed_features.append(
+                    self.compute_feature(feature, features_input_loader)
+                )
             else:
                 raise ValueError(f"Feature {feature} not found.")
         return computed_features
 
-    def compute_feature(self: FeatureFactory, feature_name: str) -> L2GFeature:
+    def compute_feature(
+        self: FeatureFactory,
+        feature_name: str,
+        features_input_loader: L2GFeatureInputLoader,
+    ) -> L2GFeature:
         """Instantiates feature class.
 
         Args:
             feature_name (str): name of the feature
+            features_input_loader (L2GFeatureInputLoader): Object that contais features input.
 
         Returns:
             L2GFeature: instantiated feature object
@@ -201,7 +205,5 @@ class FeatureFactory:
         feature_input_type = feature_cls.feature_dependency
         return feature_cls.compute(
             credible_set=self.credible_set,
-            feature_dependency=self.features_input_loader.get_dependency(
-                feature_input_type
-            ),
+            feature_dependency=features_input_loader.get_dependency(feature_input_type),
         )

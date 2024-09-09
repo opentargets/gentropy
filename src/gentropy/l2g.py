@@ -233,12 +233,13 @@ class LocusToGeneStep:
                 interactions=self.interactions,
             )
 
-            # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method?
+            # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method? Yes
             fm = L2GFeatureMatrix.from_features_list(
                 self.session,
                 self.credible_set,
                 self.features_list,
                 self.features_input_loader,
+                mode="predict",  # here we don't have the goldStandardSet col
             )
 
             return (
@@ -250,6 +251,7 @@ class LocusToGeneStep:
                         on=["studyLocusId", "geneId"],
                         how="inner",
                     ),
+                    mode="train",  # goldStandardSet col is there after joining with the GS
                 )
                 .fill_na()
                 .select_features(self.features_list)

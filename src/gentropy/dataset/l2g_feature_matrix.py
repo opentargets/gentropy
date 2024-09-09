@@ -22,7 +22,7 @@ class L2GFeatureMatrix:
         self,
         _df: DataFrame,
         features_list: list[str] | None = None,
-        mode: str = "train",
+        mode: str = "predict",
     ) -> None:
         """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
 
@@ -59,6 +59,7 @@ class L2GFeatureMatrix:
         credible_set: StudyLocus,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
+        mode: str,
     ) -> L2GFeatureMatrix:
         """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
 
@@ -67,6 +68,7 @@ class L2GFeatureMatrix:
             credible_set (StudyLocus): Credible set of study locus pairs to annotate
             features_list (list[str]): List of feature names to be computed.
             features_input_loader (L2GFeatureInputLoader): Object that contais features input.
+            mode (str): Mode of the feature matrix. Can be either "train" or "predict". If "train", the column with the gold standard set will be added to the feature matrix.
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
@@ -88,6 +90,7 @@ class L2GFeatureMatrix:
                 "featureName",
                 "featureValue",
             ),
+            mode=mode,
         )
 
     def calculate_feature_missingness_rate(
@@ -155,5 +158,4 @@ class L2GFeatureMatrix:
                 ]
             )
             return self
-        raise ValueError("features_list cannot be None")
         raise ValueError("features_list cannot be None")
