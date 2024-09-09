@@ -94,7 +94,10 @@ class SusieFineMapperStep:
         study_locus = (
             StudyLocus.from_parquet(session, study_locus_input)
             .df.withColumn(
-                "studyLocusId", StudyLocus.assign_study_locus_id("studyId", "variantId")
+                "studyLocusId",
+                StudyLocus.assign_study_locus_id(
+                    "studyId", "variantId", "finemappingMethod"
+                ),
             )
             .collect()[0]
         )
@@ -380,7 +383,7 @@ class SusieFineMapperStep:
                 .withColumn(
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id(
-                        f.col("studyId"), f.col("variantId")
+                        f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
                     ),
                 )
                 .select(
