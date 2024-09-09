@@ -201,6 +201,7 @@ class LocusToGeneStep:
                                 f.col("sentinel_variant.alleles.reference"),
                                 f.col("sentinel_variant.alleles.alternative"),
                             ),
+                            f.col("finemappingMethod"),
                         ).alias("studyLocusId"),
                     )
                 ),

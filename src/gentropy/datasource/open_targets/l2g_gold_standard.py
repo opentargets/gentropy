@@ -1,4 +1,5 @@
 """Parser for OTPlatform locus to gene gold standards curation."""
+
 from __future__ import annotations
 
 from typing import Type
