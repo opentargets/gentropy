@@ -254,6 +254,12 @@ class PICS:
                     "finemappingMethod",
                     f.coalesce(f.col("finemappingMethod"), f.lit("pics")),
                 )
+                .withColumn(
+                    "studyLocusId",
+                    StudyLocus.assign_study_locus_id(
+                        "studyId", "variantId", "finemappingMethod"
+                    ),
+                )
                 .drop("neglog_pvalue")
             ),
             _schema=StudyLocus.get_schema(),

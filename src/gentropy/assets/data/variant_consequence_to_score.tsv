@@ -1,0 +1,46 @@
+variantFunctionalConsequenceId	label	score
+SO_0001893	transcript_ablation	1.0
+ECO_0000205	curator_inference
+SO_0002165	trinucleotide_repeat_expansion
+SO_0001574	splice_acceptor_variant	1.0
+SO_0001575	splice_donor_variant	1.0
+SO_0001587	stop_gained	1.0
+SO_0001589	frameshift_variant	1.0
+SO_0002012	start_lost	1.0
+SO_0001578	stop_lost	1.0
+SO_0001889	transcript_amplification	1.0
+SO_0001894	regulatory_region_ablation	0.66
+SO_0001583	missense_variant	0.66
+SO_0001818	protein_altering_variant	0.66
+SO_0001821	inframe_insertion	0.66
+SO_0001822	inframe_deletion	0.66
+SO_0001582	initiator_codon_variant
+SO_0001630	splice_region_variant	0.33
+SO_0001626	incomplete_terminal_codon_variant	0.33
+SO_0001567	stop_retained_variant	0.33
+SO_0001819	synonymous_variant	0.33
+SO_0002019	start_retained_variant	0.33
+SO_0001619	non_coding_transcript_variant	0.0
+SO_0001620	mature_miRNA_variant	0.0
+SO_0001621	NMD_transcript_variant	0.1
+SO_0001623	5_prime_UTR_variant	0.1
+SO_0001624	3_prime_UTR_variant	0.1
+SO_0001627	intron_variant	0.1
+SO_0001792	non_coding_transcript_exon_variant	0.0
+SO_0001580	coding_sequence_variant	0.0
+SO_0001566	regulatory_region_variant	0.0
+SO_0001631	upstream_gene_variant	0.0
+SO_0001632	downstream_gene_variant	0.0
+SO_0001782	TF_binding_site_variant	0.0
+SO_0001891	regulatory_region_amplification	0.0
+SO_0001892	TFBS_amplification	0.0
+SO_0001895	TFBS_ablation	0.0
+SO_0001906	feature_truncation	0.0
+SO_0001907	feature_elongation	0.0
+SO_0001628	intergenic_variant	0.0
+SO_0001060	sequence_variant
+SO_0001825	conservative_inframe_deletion
+SO_0001787	splice_donor_5th_base_variant	0.66
+SO_0002170	splice_donor_region_variant	0.33
+SO_0002169	splice_polypyrimidine_tract_variant	0.33
+SO_0001968	coding_transcript_variant	0.1

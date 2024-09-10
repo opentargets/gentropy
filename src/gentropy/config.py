@@ -154,7 +154,6 @@ class FinngenFinemappingConfig(StepConfig):
     finngen_susie_finemapping_cs_summary_files: str = (
         "gs://finngen-public-data-r11/finemap/summary/*.cred.summary.tsv"
     )
-    finngen_release_prefix: str = "FINNGEN_R11_"
     finngen_finemapping_out: str = MISSING
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
@@ -451,6 +450,7 @@ class FinemapperConfig(StepConfig):
     sum_pips: float = MISSING
     susie_est_tausq: bool = MISSING
     run_carma: bool = MISSING
+    carma_tau: float = MISSING
     run_sumstat_imputation: bool = MISSING
     carma_time_limit: int = MISSING
     imputed_r2_threshold: float = MISSING
@@ -480,6 +480,38 @@ class CredibleSetQCConfig(StepConfig):
     purity_min_r2: float = 0.01
     ld_min_r2: float = 0.8
     _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
+
+
+@dataclass
+class StudyValidationStepConfig(StepConfig):
+    """Configuration of the study index validation step.
+
+    The study indices are read from multiple location, therefore we are expecting a list of paths.
+    """
+
+    study_index_path: list[str] = MISSING
+    target_index_path: str = MISSING
+    disease_index_path: str = MISSING
+    valid_study_index_path: str = MISSING
+    invalid_study_index_path: str = MISSING
+    invalid_qc_reasons: list[str] = MISSING
+    _target_: str = "gentropy.study_validation.StudyValidationStep"
+
+
+@dataclass
+class StudyLocusValidationStepConfig(StepConfig):
+    """Configuration of the study index validation step.
+
+    The study locus datasets are read from multiple location, therefore we are expecting a list of paths.
+    """
+
+    study_index_path: str = MISSING
+    study_locus_path: list[str] = MISSING
+    valid_study_locus_path: str = MISSING
+    invalid_study_locus_path: str = MISSING
+    invalid_qc_reasons: list[str] = MISSING
+    gwas_significance: float = WindowBasedClumpingStepConfig.gwas_significance
+    _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
 @dataclass
@@ -542,4 +574,14 @@ def register_config() -> None:
     cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
+    )
+    cs.store(
+        group="step",
+        name="credible_set_validation",
+        node=StudyLocusValidationStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="study_validation",
+        node=StudyValidationStepConfig,
     )

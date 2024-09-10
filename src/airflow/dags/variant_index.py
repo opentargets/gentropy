@@ -242,10 +242,18 @@ def vep_annotation(pm: PathManager, **kwargs: Any) -> None:
             --dir_plugins {pm.cache_dir}/VEP_plugins \
             --sift b \
             --polyphen b \
+            --fasta {pm.cache_dir}/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
+            --mane_select \
+            --appris \
+            --hgvsg \
+            --pick_order  mane_select,canonical \
+            --per_gene \
             --uniprot \
             --check_existing \
             --exclude_null_alleles \
             --canonical \
+            --plugin TSSDistance \
+            --distance 500000 \
             --plugin LoF,loftee_path:{pm.cache_dir}/VEP_plugins,gerp_bigwig:{pm.cache_dir}/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:{pm.cache_dir}/human_ancestor.fa.gz,conservation_file:/opt/vep/loftee.sql \
             --plugin AlphaMissense,file={pm.cache_dir}/AlphaMissense_hg38.tsv.gz,transcript_match=1 \
             --plugin CADD,snv={pm.cache_dir}/CADD_GRCh38_whole_genome_SNVs.tsv.gz",

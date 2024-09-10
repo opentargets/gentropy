@@ -104,7 +104,7 @@ class TestVEPParser:
             schema=VariantEffectPredictorParser.get_schema(),
         )
         self.processed_vep_output = VariantEffectPredictorParser.process_vep_output(
-            self.raw_vep_output
+            self.raw_vep_output, 200
         )
 
     def test_extract_variant_index_from_vep(

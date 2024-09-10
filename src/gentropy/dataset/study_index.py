@@ -10,7 +10,6 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
-from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
@@ -110,6 +109,24 @@ class StudyIndex(Dataset):
         return parse_spark_schema("study_index.json")
 
     @classmethod
+    def get_QC_column_name(cls: type[StudyIndex]) -> str:
+        """Return the name of the quality control column.
+
+        Returns:
+            str: The name of the quality control column.
+        """
+        return "qualityControls"
+
+    @classmethod
+    def get_QC_categories(cls: type[StudyIndex]) -> list[str]:
+        """Return the quality control categories.
+
+        Returns:
+            list[str]: The quality control categories.
+        """
+        return [member.value for member in StudyQualityCheck]
+
+    @classmethod
     def aggregate_and_map_ancestries(
         cls: type[StudyIndex], discovery_samples: Column
     ) -> Column:
@@ -197,7 +214,7 @@ class StudyIndex(Dataset):
         if "qualityControls" not in self.df.columns:
             return f.lit(False)
         else:
-            return f.size(self.df.qualityControls) != 0
+            return f.size(self.df["qualityControls"]) != 0
 
     def has_summarystats(self: StudyIndex) -> Column:
         """Return a boolean column indicating if a study has harmonized summary statistics.
@@ -213,30 +230,17 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: with flagged duplicated studies.
         """
-        validated_df = (
-            self.df.withColumn(
-                "isDuplicated",
-                f.when(
-                    f.count("studyType").over(
-                        Window.partitionBy("studyId").rowsBetween(
-                            Window.unboundedPreceding, Window.unboundedFollowing
-                        )
-                    )
-                    > 1,
-                    True,
-                ).otherwise(False),
-            )
-            .withColumn(
+        return StudyIndex(
+            _df=self.df.withColumn(
                 "qualityControls",
-                StudyIndex.update_quality_flag(
+                self.update_quality_flag(
                     f.col("qualityControls"),
-                    f.col("isDuplicated"),
+                    self.flag_duplicates(f.col("studyId")),
                     StudyQualityCheck.DUPLICATED_STUDY,
                 ),
-            )
-            .drop("isDuplicated")
+            ),
+            _schema=StudyIndex.get_schema(),
         )
-        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     def _normalise_disease(
         self: StudyIndex,
