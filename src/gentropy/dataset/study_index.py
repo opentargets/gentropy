@@ -404,3 +404,37 @@ class StudyIndex(Dataset):
         )
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
+
+    def validate_biosample(self: StudyIndex, biosample_index: BiosampleIndex) -> StudyIndex:
+        """Validating biosample identifiers in the study index against the provided biosample index.
+
+        Args:
+            biosample_index (BiosampleIndex): Biosample index containing a reference of biosample identifiers e.g. cell types, tissues, cell lines, etc.
+
+        Returns:
+            StudyIndex: with flagged studies if biosampleIndex could not be validated.
+        """
+        biosample_set = biosample_index.df.select("biosampleId", f.lit(True).alias("isIdFound"))
+
+        validated_df = (
+            self.df.join(biosample_set, on="biosampleId", how="left")
+            .withColumn(
+                "isIdFound",
+                f.when(
+                    f.col("isIdFound").isNull(),
+                    f.lit(False),
+                ).otherwise(f.lit(True)),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~f.col("isIdFound"),
+                    StudyQualityCheck.NO_GENE_PROVIDED,
+                ),
+            )
+            .drop("isIdFound")
+        )
+
+        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
+

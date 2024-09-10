@@ -2,7 +2,7 @@
   "type": "struct",
   "fields": [
     {
-      "name": "biosampleIndex",
+      "name": "biosampleId",
       "type": "string",
       "nullable": true,
       "metadata": {}
