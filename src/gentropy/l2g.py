@@ -234,12 +234,8 @@ class LocusToGeneStep:
                 interactions=self.interactions,
             )
 
-            # TODO: Should StudyLocus and GoldStandard have an `annotate_w_features` method? Yes
-            fm = L2GFeatureMatrix.from_features_list(
-                self.session,
-                self.credible_set,
-                self.features_list,
-                self.features_input_loader,
+            fm = self.credible_set.build_feature_matrix(
+                self.features_list, self.features_input_loader
             )
             if write_feature_matrix:
                 if not self.feature_matrix_path:
@@ -249,16 +245,7 @@ class LocusToGeneStep:
                 )
 
             return (
-                L2GFeatureMatrix(
-                    _df=fm._df.join(
-                        f.broadcast(
-                            gold_standards.df.drop("variantId", "studyId", "sources")
-                        ),
-                        on=["studyLocusId", "geneId"],
-                        how="inner",
-                    ),
-                    with_gold_standard=True,  # goldStandardSet col is there after joining with the GS
-                )
+                gold_standards.build_feature_matrix(fm)
                 .fill_na()
                 .select_features(self.features_list)
             )

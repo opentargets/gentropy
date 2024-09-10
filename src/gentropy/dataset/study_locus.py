@@ -24,9 +24,11 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 class StudyLocusQualityCheck(Enum):
@@ -570,6 +572,28 @@ class StudyLocus(Dataset):
         return calculate_neglog_pvalue(
             self.df.pValueMantissa,
             self.df.pValueExponent,
+        )
+
+    def build_feature_matrix(
+        self: StudyLocus,
+        features_list: list[str],
+        features_input_loader: L2GFeatureInputLoader,
+    ) -> L2GFeatureMatrix:
+        """Returns the feature matrix for a StudyLocus.
+
+        Args:
+            features_list (list[str]): List of features to include in the feature matrix.
+            features_input_loader (L2GFeatureInputLoader): Feature input loader to use.
+
+        Returns:
+            L2GFeatureMatrix: Feature matrix for this study-locus.
+        """
+        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+
+        return L2GFeatureMatrix.from_features_list(
+            self,
+            features_list,
+            features_input_loader,
         )
 
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:

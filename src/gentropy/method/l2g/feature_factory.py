@@ -6,7 +6,6 @@ from typing import Any, Iterator, Mapping
 
 import pyspark.sql.functions as f
 
-from gentropy.common.session import Session
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -166,13 +165,11 @@ class FeatureFactory:
 
     def generate_features(
         self: FeatureFactory,
-        session: Session,
         features_input_loader: L2GFeatureInputLoader,
     ) -> list[L2GFeature]:
         """Generates a feature matrix by reading an object with instructions on how to create the features.
 
         Args:
-            session (Session): session object
             features_input_loader (L2GFeatureInputLoader): object with required features dependencies.
 
         Returns:
