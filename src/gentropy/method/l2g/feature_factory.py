@@ -6,11 +6,16 @@ from typing import Any, Iterator, Mapping
 
 import pyspark.sql.functions as f
 
-from gentropy.common.spark_helpers import convert_from_wide_to_long
+from gentropy.common.spark_helpers import (
+    convert_from_wide_to_long,
+    get_record_with_maximum_value,
+)
+from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.v2g import V2G
+from gentropy.method.colocalisation import ECaviar
 
 
 class L2GFeatureInputLoader:
@@ -59,6 +64,140 @@ class L2GFeatureInputLoader:
         return repr(self.input_dependencies)
 
 
+class EqtlColocClppMaximumFeature(L2GFeature):
+    """Max CLPP for each (study, locus, gene) aggregating over all eQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "eQtlColocClppMaximum"
+
+    @classmethod
+    def compute(
+        cls: type[EqtlColocClppMaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> EqtlColocClppMaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            EqtlColocClppMaximumFeature: Feature dataset
+        """
+        qtl_type = "eqtl"
+
+        ecaviar_results = feature_dependency.filter(
+            f.col("colocalisationMethod") == ECaviar.METHOD_NAME
+        )
+        ecaviar_metric = ECaviar.METHOD_METRIC
+
+        # From here all code is common
+        qtl_specific_study_loci = study_loci_to_annotate.filter(
+            f.col("studyType") == qtl_type
+        )
+        colocalising_study_loci = (
+            ecaviar_results.df.join(
+                f.broadcast(study_loci_to_annotate.df.select("studyLocusId")),
+                on="studyLocusId",
+            )
+            # filter out gwas loci on the right side
+            .join(
+                f.broadcast(
+                    qtl_specific_study_loci.df.selectExpr(
+                        "studyLocusId as rightStudyLocusId"
+                    )
+                ),
+                on="rightStudyLocusId",
+            )
+        )
+        agg_expr = get_record_with_maximum_value(
+            colocalising_study_loci,
+            ["studyLocusId", "geneId"],
+            ecaviar_metric,
+        ).selectExpr(
+            "studyLocusId",
+            "geneId",
+            f"{ecaviar_metric} as {cls.feature_name}",
+        )
+        return cls(
+            _df=convert_from_wide_to_long(
+                agg_expr,
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class PqtlColocClppMaximumFeature(L2GFeature):
+    """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "pQtlColocClppMaximum"
+
+    @classmethod
+    def compute(
+        cls: type[PqtlColocClppMaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> PqtlColocClppMaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            PqtlColocClppMaximumFeature: Feature dataset
+        """
+        qtl_type = "pqtl"
+
+        ecaviar_results = feature_dependency.filter(
+            f.col("colocalisationMethod") == ECaviar.METHOD_NAME
+        )
+        ecaviar_metric = ECaviar.METHOD_METRIC
+
+        # From here all code is common
+        qtl_specific_study_loci = study_loci_to_annotate.filter(
+            f.col("studyType") == qtl_type
+        )
+        colocalising_study_loci = (
+            ecaviar_results.df.join(
+                f.broadcast(study_loci_to_annotate.df.select("studyLocusId")),
+                on="studyLocusId",
+            )
+            # filter out gwas loci on the right side
+            .join(
+                f.broadcast(
+                    qtl_specific_study_loci.df.selectExpr(
+                        "studyLocusId as rightStudyLocusId"
+                    )
+                ),
+                on="rightStudyLocusId",
+            )
+        )
+        agg_expr = get_record_with_maximum_value(
+            colocalising_study_loci,
+            ["studyLocusId", "geneId"],
+            ecaviar_metric,
+        ).selectExpr(
+            "studyLocusId",
+            "geneId",
+            f"{ecaviar_metric} as {cls.feature_name}",
+        )
+        return cls(
+            _df=convert_from_wide_to_long(
+                agg_expr,
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
 class DistanceTssMinimumFeature(L2GFeature):
     """Minimum distance of all tagging variants to gene TSS."""
 
@@ -87,7 +226,7 @@ class DistanceTssMeanFeature(L2GFeature):
     """Average distance of all tagging variants to gene TSS."""
 
     fill_na_value = 500_000
-    feature_dependency = V2G
+    feature_dependency_type = V2G
 
     @classmethod
     def compute(
@@ -204,8 +343,10 @@ class FeatureFactory:
         """
         # Extract feature class and dependency type
         feature_cls = self.feature_mapper[feature_name]
-        feature_input_type = feature_cls.feature_dependency
+        feature_dependency_type = feature_cls.feature_dependency_type
         return feature_cls.compute(
             study_loci_to_annotate=self.study_loci_to_annotate,
-            feature_dependency=features_input_loader.get_dependency(feature_input_type),
+            feature_dependency=features_input_loader.get_dependency(
+                feature_dependency_type
+            ),
         )

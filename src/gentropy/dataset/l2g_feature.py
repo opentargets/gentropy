@@ -22,17 +22,17 @@ class L2GFeature(Dataset, ABC):
 
     def __post_init__(
         self: L2GFeature,
-        feature_dependency: Any = None,
+        feature_dependency_type: Any = None,
         credible_set: StudyLocus | None = None,
     ) -> None:
         """Initializes a L2GFeature dataset.
 
         Args:
-            feature_dependency (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
+            feature_dependency_type (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
             credible_set (StudyLocus | None): The credible set that the L2GFeature dataset is based on. Defaults to None.
         """
         super().__post_init__()
-        self.feature_dependency = feature_dependency
+        self.feature_dependency_type = feature_dependency_type
         self.credible_set = credible_set
 
     @classmethod
