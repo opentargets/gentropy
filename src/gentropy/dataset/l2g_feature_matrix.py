@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
     from gentropy.common.session import Session
+    from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
     from gentropy.dataset.study_locus import StudyLocus
 
 
@@ -50,19 +51,17 @@ class L2GFeatureMatrix:
     def from_features_list(
         cls: Type[L2GFeatureMatrix],
         session: Session,
-        credible_set: StudyLocus,  # TODO: union this with gold standard
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
-        with_gold_standard: bool,
     ) -> L2GFeatureMatrix:
         """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
 
         Args:
             session (Session): Session object
-            credible_set (StudyLocus): Credible set of study locus pairs to annotate
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): Study locus pairs to annotate
             features_list (list[str]): List of feature names to be computed.
             features_input_loader (L2GFeatureInputLoader): Object that contais features input.
-            with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
@@ -73,7 +72,7 @@ class L2GFeatureMatrix:
                 # Compute all features and merge them into a single dataframe
                 feature.df
                 for feature in FeatureFactory(
-                    credible_set, features_list
+                    study_loci_to_annotate, features_list
                 ).generate_features(session, features_input_loader)
             ],
         )
@@ -84,7 +83,7 @@ class L2GFeatureMatrix:
                 "featureName",
                 "featureValue",
             ),
-            with_gold_standard=with_gold_standard,
+            with_gold_standard=isinstance(study_loci_to_annotate, L2GGoldStandard),
         )
 
     def calculate_feature_missingness_rate(

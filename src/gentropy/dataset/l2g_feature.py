@@ -12,6 +12,7 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
     from gentropy.dataset.study_locus import StudyLocus
 
 
@@ -46,12 +47,14 @@ class L2GFeature(Dataset, ABC):
     @classmethod
     @abstractmethod
     def compute(
-        cls: type[L2GFeature], credible_set: StudyLocus, feature_dependency: Any
+        cls: type[L2GFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Any,
     ) -> L2GFeature:
         """Computes the L2GFeature dataset.
 
         Args:
-            credible_set (StudyLocus): The credible set that will be used for annotation
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (Any): The dependency that the L2GFeature class needs to compute the feature
         Returns:
             L2GFeature: a L2GFeature dataset

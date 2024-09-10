@@ -72,10 +72,9 @@ class L2GPrediction(Dataset):
         # Prepare data
         fm = L2GFeatureMatrix.from_features_list(
             session,
-            credible_set=credible_set,
+            study_loci_to_annotate=credible_set,
             features_list=features_list,
             features_input_loader=features_input_loader,
-            with_gold_standard=False,
         ).fill_na()
 
         gwas_fm = L2GFeatureMatrix(

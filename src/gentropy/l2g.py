@@ -240,7 +240,6 @@ class LocusToGeneStep:
                 self.credible_set,
                 self.features_list,
                 self.features_input_loader,
-                False,
             )
             if write_feature_matrix:
                 if not self.feature_matrix_path:

@@ -9,6 +9,7 @@ import pyspark.sql.functions as f
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.v2g import V2G
 
@@ -65,14 +66,14 @@ class DistanceTssMinimumFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceTssMinimumFeature],
-        credible_set: StudyLocus,
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: V2G,
     ) -> L2GFeature:
         """Computes the feature.
 
         Args:
-            credible_set (StudyLocus): Credible set dependency
-            feature_dependency (V2G): V2G dependency
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (V2G): Dataset that contains the distance information
 
         Returns:
                 L2GFeature: Feature dataset
@@ -92,13 +93,13 @@ class DistanceTssMeanFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceTssMeanFeature],
-        credible_set: StudyLocus,
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: V2G,
     ) -> DistanceTssMeanFeature:
         """Computes the feature.
 
         Args:
-            credible_set (StudyLocus): Credible set dependency
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (V2G): Dataset that contains the distance information
 
         Returns:
@@ -108,7 +109,9 @@ class DistanceTssMeanFeature(L2GFeature):
         # Everything but expresion is common logic
         v2g = feature_dependency.df.filter(f.col("datasourceId") == "canonical_tss")
         wide_df = (
-            credible_set.df.withColumn("variantInLocus", f.explode_outer("locus"))
+            study_loci_to_annotate.df.withColumn(
+                "variantInLocus", f.explode_outer("locus")
+            )
             .select(
                 "studyLocusId",
                 f.col("variantInLocus.variantId").alias("variantInLocusId"),
@@ -148,15 +151,17 @@ class FeatureFactory:
     }
 
     def __init__(
-        self: FeatureFactory, credible_set: StudyLocus, features_list: list[str]
+        self: FeatureFactory,
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        features_list: list[str],
     ) -> None:
         """Initializes the factory.
 
         Args:
-            credible_set (StudyLocus): credible sets to annotate
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             features_list (list[str]): list of features to compute.
         """
-        self.credible_set = credible_set
+        self.study_loci_to_annotate = study_loci_to_annotate
         self.features_list = features_list
 
     def generate_features(
@@ -204,6 +209,6 @@ class FeatureFactory:
         feature_cls = self.feature_mapper[feature_name]
         feature_input_type = feature_cls.feature_dependency
         return feature_cls.compute(
-            credible_set=self.credible_set,
+            study_loci_to_annotate=self.study_loci_to_annotate,
             feature_dependency=features_input_loader.get_dependency(feature_input_type),
         )
