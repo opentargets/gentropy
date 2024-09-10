@@ -35,3 +35,6 @@ class BiosampleIndexStep:
         uberon_index = UberonBiosampleIndex.extract_tissue_from_source(
             session, uberon_input_path
         )
+        biosample_index = BiosampleIndex.merge([cell_ontology_index, uberon_index])
+        biosample_index.write_parquet(biosample_index_output_path)
+        

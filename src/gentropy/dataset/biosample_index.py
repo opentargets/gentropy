@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
+from functools import reduce
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
@@ -36,6 +37,23 @@ class BiosampleIndex(Dataset):
             StructType: The schema of the BiosampleIndex dataset.
         """
         return parse_spark_schema("biosample_index.json")
+
+    @classmethod
+    def merge(
+        cls: type[BiosampleIndex],
+         biosample_indexes: list[BiosampleIndex], 
+    ) -> BiosampleIndex:
+        """Merge a list of biosample indexes into a single biosample index.
+
+        Args:
+            biosample_indexes (BiosampleIndex): Biosample indexes to merge.
+
+        Returns:
+            BiosampleIndex: Merged biosample index.
+        """
+        df = reduct(DataFrame.unionAll, [biosample_index._df for biosample_index in biosample_indexes])
+        return BiosampleIndex(_df=df, _schema=BiosampleIndex.get_schema())
+        
 
 
 def extract_ontology_info(
@@ -127,3 +145,4 @@ def extract_ontology_info(
     # Create DataFrame directly from Rows
     df = spark2.createDataFrame(data, schema)
     return df
+

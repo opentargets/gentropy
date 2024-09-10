@@ -22,6 +22,7 @@ class StudyValidationStep:
         study_index_path: list[str],
         target_index_path: str,
         disease_index_path: str,
+        biosample_index_path: str,
         valid_study_index_path: str,
         invalid_study_index_path: str,
         invalid_qc_reasons: list[str] = [],
@@ -55,6 +56,7 @@ class StudyValidationStep:
             .withColumn("efo", f.coalesce(f.col("efo"), f.col("diseaseId")))
         )
         study_index = StudyIndex.from_parquet(session, list(study_index_path))
+        biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
 
         # Running validation:
         study_index_with_qc = (
@@ -63,6 +65,7 @@ class StudyValidationStep:
             .validate_study_type()  # Flagging non-supported study types.
             .validate_target(target_index)  # Flagging QTL studies with invalid targets
             .validate_disease(disease_index)  # Flagging invalid EFOs
+            .validate_biosample(biosample_index)  # Flagging invalid biosamples
         ).persist()  # we will need this for 2 types of outputs
 
         study_index_with_qc.valid_rows(
