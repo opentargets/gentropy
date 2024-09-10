@@ -72,16 +72,24 @@ def harmonise_summary_stats(
                 f.col("chromosome") == "23", "X"
             ).otherwise(f.col("chromosome"))
         )
+    )
+    if colname_info:
         # Harmonise, 2: Filter out low INFO rows.
-        .filter(f.col(colname_info) >= 0.8)
+        df = df.filter(f.col(colname_info) >= 0.8)
+    if colname_a1freq:
         # Harmonise, 3: Filter out low frequency rows.
-        .withColumn(
-            "MAF",
-            f.when(f.col(colname_a1freq) < 0.5, f.col(colname_a1freq))
-            .otherwise(1 - f.col(colname_a1freq))
+        df = (
+            df
+            .withColumn(
+                "MAF",
+                f.when(f.col(colname_a1freq) < 0.5, f.col(colname_a1freq))
+                .otherwise(1 - f.col(colname_a1freq))
+            )
+            .filter(f.col("MAF") >= 0.0001)
+            .drop("MAF")
         )
-        .filter(f.col("MAF") >= 0.0001)
-        .drop("MAF")
+    df = (
+        df
         # Harmonise, 4: Assign variant types.
         .withColumn(
             "variant_type",
