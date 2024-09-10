@@ -33,7 +33,21 @@ class UkbPppEurSummaryStats:
         Returns:
             SummaryStatistics: Processed summary statistics dataset for a given chromosome.
         """
-        df = harmonise_summary_stats(spark, raw_summary_stats_path, tmp_variant_annotation_path, chromosome)
+        df = harmonise_summary_stats(
+            spark,
+            raw_summary_stats_path,
+            tmp_variant_annotation_path,
+            chromosome,
+            colname_position="GENPOS",
+            colname_allele0="ALLELE0",
+            colname_allele1="ALLELE1",
+            colname_a1freq="A1FREQ",
+            colname_info="INFO",
+            colname_beta="BETA",
+            colname_se="SE",
+            colname_mlog10p="LOG10P",
+            colname_n="N",
+        )
 
         # Create the summary statistics object.
         return SummaryStatistics(
