@@ -166,7 +166,7 @@ def test_l2g_feature_constructor_with_schema_mismatch(
             ],
             "studyLocusId LONG, geneId STRING, distanceTssMean DOUBLE",
         ),
-        mode="predict",
+        with_gold_standard=False,
     )
     assert (
         fm._df.schema["distanceTssMean"].dataType == FloatType()

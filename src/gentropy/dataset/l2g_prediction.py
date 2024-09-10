@@ -75,7 +75,7 @@ class L2GPrediction(Dataset):
             credible_set=credible_set,
             features_list=features_list,
             features_input_loader=features_input_loader,
-            mode="predict",
+            with_gold_standard=False,
         ).fill_na()
 
         gwas_fm = L2GFeatureMatrix(
@@ -87,7 +87,7 @@ class L2GPrediction(Dataset):
                     on="studyLocusId",
                 )
             ),
-            mode="predict",
+            with_gold_standard=False,
         ).select_features(features_list)
         return (
             l2g_model.predict(gwas_fm, session),

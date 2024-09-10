@@ -239,7 +239,7 @@ class LocusToGeneStep:
                 self.credible_set,
                 self.features_list,
                 self.features_input_loader,
-                mode="predict",  # here we don't have the goldStandardSet col
+                with_gold_standard=False,
             )
 
             return (
@@ -251,7 +251,7 @@ class LocusToGeneStep:
                         on=["studyLocusId", "geneId"],
                         how="inner",
                     ),
-                    mode="train",  # goldStandardSet col is there after joining with the GS
+                    with_gold_standard=True,  # goldStandardSet col is there after joining with the GS
                 )
                 .fill_na()
                 .select_features(self.features_list)

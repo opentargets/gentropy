@@ -22,23 +22,17 @@ class L2GFeatureMatrix:
         self,
         _df: DataFrame,
         features_list: list[str] | None = None,
-        mode: str = "predict",
+        with_gold_standard: bool = False,
     ) -> None:
         """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
 
         Args:
             _df (DataFrame): Feature matrix dataset
             features_list (list[str] | None): List of features to use. If None, all possible features are used.
-            mode (str): Mode of the feature matrix. Defaults to "train". Can be either "train" or "predict".
-
-        Raises:
-            ValueError: If the mode is neither 'train' nor 'predict'.
+            with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
         """
-        if mode not in ["train", "predict"]:
-            raise ValueError("Mode should be either 'train' or 'predict'")
-
         self.fixed_cols = ["studyLocusId", "geneId"]
-        if mode == "train":
+        if with_gold_standard:
             self.fixed_cols.append("goldStandardSet")
 
         self.features_list = features_list or [
@@ -56,10 +50,10 @@ class L2GFeatureMatrix:
     def from_features_list(
         cls: Type[L2GFeatureMatrix],
         session: Session,
-        credible_set: StudyLocus,
+        credible_set: StudyLocus,  # TODO: union this with gold standard
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
-        mode: str,
+        with_gold_standard: bool,
     ) -> L2GFeatureMatrix:
         """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
 
@@ -68,7 +62,7 @@ class L2GFeatureMatrix:
             credible_set (StudyLocus): Credible set of study locus pairs to annotate
             features_list (list[str]): List of feature names to be computed.
             features_input_loader (L2GFeatureInputLoader): Object that contais features input.
-            mode (str): Mode of the feature matrix. Can be either "train" or "predict". If "train", the column with the gold standard set will be added to the feature matrix.
+            with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
@@ -90,7 +84,7 @@ class L2GFeatureMatrix:
                 "featureName",
                 "featureValue",
             ),
-            mode=mode,
+            with_gold_standard=with_gold_standard,
         )
 
     def calculate_feature_missingness_rate(

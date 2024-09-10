@@ -592,7 +592,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
             ],
             "studyLocusId LONG, geneId STRING, distanceTssMean FLOAT, distanceTssMinimum FLOAT",
         ),
-        mode="predict",
+        with_gold_standard=False,
     )
 
 
