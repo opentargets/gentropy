@@ -46,7 +46,7 @@ class L2GPrediction(Dataset):
         model_path: str | None,
         hf_token: str | None = None,
         download_from_hub: bool = True,
-    ) -> tuple[L2GPrediction, L2GFeatureMatrix]:
+    ) -> L2GPrediction:
         """Extract L2G predictions for a set of credible sets derived from GWAS.
 
         Args:
@@ -59,7 +59,7 @@ class L2GPrediction(Dataset):
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
 
         Returns:
-            tuple[L2GPrediction, L2GFeatureMatrix]: L2G dataset and feature matrix limited to GWAS study only.
+            L2GPrediction: L2G scores for a set of credible sets.
         """
         # Load the model
         if download_from_hub:
@@ -87,9 +87,5 @@ class L2GPrediction(Dataset):
                     on="studyLocusId",
                 )
             ),
-            with_gold_standard=False,
         ).select_features(features_list)
-        return (
-            l2g_model.predict(gwas_fm, session),
-            gwas_fm,
-        )
+        return l2g_model.predict(gwas_fm, session)

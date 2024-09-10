@@ -44,6 +44,7 @@ class LocusToGeneStep:
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
         feature_matrix_path: str | None = None,
+        write_feature_matrix: bool,
         hf_hub_repo_id: str | None = LocusToGeneConfig().hf_hub_repo_id,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -64,6 +65,7 @@ class LocusToGeneStep:
             gene_interactions_path (str | None): Path to the gene interactions dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
             feature_matrix_path (str | None): Path to the L2G feature matrix output dataset
+            write_feature_matrix (bool): Whether to write the full feature matrix to the filesystem
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
 
         Raises:
@@ -131,9 +133,8 @@ class LocusToGeneStep:
         Raises:
             ValueError: If not all dependencies in prediction mode are set
         """
-        # TODO: IMPROVE - it is not correct that L2GPrediction outputs a feature matrix - FM should be written when training
         if self.studies and self.v2g and self.coloc:
-            predictions, feature_matrix = L2GPrediction.from_credible_set(
+            predictions = L2GPrediction.from_credible_set(
                 self.session,
                 self.credible_set,
                 self.features_list,
@@ -142,10 +143,6 @@ class LocusToGeneStep:
                 hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
                 download_from_hub=self.download_from_hub,
             )
-            if self.feature_matrix_path:
-                feature_matrix._df.write.mode(self.session.write_mode).parquet(
-                    self.feature_matrix_path
-                )
             if self.predictions_path:
                 predictions.df.write.mode(self.session.write_mode).parquet(
                     self.predictions_path
@@ -165,7 +162,7 @@ class LocusToGeneStep:
         ):
             wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
             # Process gold standard and L2G features
-            data = self._generate_feature_matrix()
+            data = self._generate_feature_matrix(write_feature_matrix=True)
 
             # Instantiate classifier and train model
             l2g_model = LocusToGeneModel(
@@ -193,13 +190,17 @@ class LocusToGeneStep:
                         commit_message="chore: update model",
                     )
 
-    def _generate_feature_matrix(self) -> L2GFeatureMatrix:
-        """Generate the feature matrix for training.
+    def _generate_feature_matrix(self, write_feature_matrix: bool) -> L2GFeatureMatrix:
+        """Generate the feature matrix of annotated gold standards.
+
+        Args:
+            write_feature_matrix (bool): Whether to write the feature matrix for all credible sets to disk
 
         Returns:
             L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
 
         Raises:
+            ValueError: If write_feature_matrix is set to True but a path is not provided.
             ValueError: If dependencies to build features are not set.
         """
         if self.gs_curation and self.interactions and self.v2g and self.studies:
@@ -239,8 +240,14 @@ class LocusToGeneStep:
                 self.credible_set,
                 self.features_list,
                 self.features_input_loader,
-                with_gold_standard=False,
+                False,
             )
+            if write_feature_matrix:
+                if not self.feature_matrix_path:
+                    raise ValueError("feature_matrix_path must be set.")
+                fm._df.write.mode(self.session.write_mode).parquet(
+                    self.feature_matrix_path
+                )
 
             return (
                 L2GFeatureMatrix(
