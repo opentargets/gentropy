@@ -1,4 +1,4 @@
-"""Step to run UKB PPP (EUR) data ingestion."""
+"""Step to run FinnGen UKB meta-analysis data ingestion."""
 
 from __future__ import annotations
 
@@ -7,17 +7,19 @@ from gentropy.common.per_chromosome import (
     process_summary_stats_per_chromosome,
 )
 from gentropy.common.session import Session
-from gentropy.datasource.ukb_ppp_eur.study_index import UkbPppEurStudyIndex
-from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
+from gentropy.datasource.finngen_ukb_meta.study_index import FinngenUkbMetaStudyIndex
+from gentropy.datasource.finngen_ukb_meta.summary_stats import (
+    FinngenUkbMetaSummaryStats,
+)
 
 
-class UkbPppEurStep:
-    """UKB PPP (EUR) data ingestion and harmonisation."""
+class FinngenUkbMetaStep:
+    """FinnGen UKB meta-analysis data ingestion and harmonisation."""
 
     def __init__(
         self, session: Session, raw_study_index_path: str, raw_summary_stats_path: str, variant_annotation_path: str, tmp_variant_annotation_path: str, study_index_output_path: str, summary_stats_output_path: str
     ) -> None:
-        """Run UKB PPP (EUR) data ingestion and harmonisation step.
+        """Data ingestion and harmonisation step for FinnGen UKB meta-analysis.
 
         Args:
             session (Session): Session object.
@@ -33,10 +35,9 @@ class UkbPppEurStep:
 
         session.logger.info("Process study index.")
         (
-            UkbPppEurStudyIndex.from_source(
+            FinngenUkbMetaStudyIndex.from_source(
                 spark=session.spark,
                 raw_study_index_path=raw_study_index_path,
-                raw_summary_stats_path=raw_summary_stats_path,
             )
             .df
             .write
@@ -45,4 +46,4 @@ class UkbPppEurStep:
         )
 
         session.logger.info("Process and harmonise summary stats.")
-        process_summary_stats_per_chromosome(session, UkbPppEurSummaryStats, raw_summary_stats_path, tmp_variant_annotation_path, summary_stats_output_path, study_index_output_path)
+        process_summary_stats_per_chromosome(session, FinngenUkbMetaSummaryStats, raw_summary_stats_path, tmp_variant_annotation_path, summary_stats_output_path, study_index_output_path)

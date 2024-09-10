@@ -5,6 +5,9 @@ from __future__ import annotations
 import pyspark.sql.functions as f
 from pyspark.sql import SparkSession
 
+from gentropy.datasource.finngen_ukb_meta.summary_stats import (
+    FinngenUkbMetaSummaryStats,
+)
 from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
 
@@ -63,15 +66,23 @@ def prepare_va(session: SparkSession, variant_annotation_path: str, tmp_variant_
     )
 
 
-def process_summary_stats_per_chromosome(session: SparkSession, ingestion_class: type[UkbPppEurSummaryStats], raw_summary_stats_path: str, tmp_variant_annotation_path: str, summary_stats_output_path: str) -> None:
+def process_summary_stats_per_chromosome(
+        session: SparkSession,
+        ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
+        raw_summary_stats_path: str,
+        tmp_variant_annotation_path: str,
+        summary_stats_output_path: str,
+        study_index_path: str,
+    ) -> None:
     """Processes summary statistics for each chromosome, partitioning and writing results.
 
     Args:
         session (SparkSession): The Spark session to use for distributed data processing.
-        ingestion_class (type[UkbPppEurSummaryStats]): The class used to handle ingestion of source data. Must have a `from_source` method returning a DataFrame.
+        ingestion_class (type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats]): The class used to handle ingestion of source data. Must have a `from_source` method returning a DataFrame.
         raw_summary_stats_path (str): The path to the raw summary statistics files.
         tmp_variant_annotation_path (str): The path to temporary variant annotation data, used for chromosome joins.
         summary_stats_output_path (str): The output path to write processed summary statistics as parquet files.
+        study_index_path (str): The path to study index, which is necessary in some cases to populate the sample size column.
     """
     # Set mode to overwrite for processing the first chromosome.
     write_mode = "overwrite"
@@ -85,6 +96,7 @@ def process_summary_stats_per_chromosome(session: SparkSession, ingestion_class:
                 raw_summary_stats_path=raw_summary_stats_path,
                 tmp_variant_annotation_path=tmp_variant_annotation_path,
                 chromosome=str(chromosome),
+                study_index_path=study_index_path,
             )
             .df
             .coalesce(1)
