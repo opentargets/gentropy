@@ -195,14 +195,14 @@ class Dataset(ABC):
     def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
         """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
 
-        This method checks do foolowing steps:
+        This method checks do following steps:
         - Check if the Dataset contains a QC column.
         - Check if the invalid_flags exist in the QC mappings flags.
         - Filter the Dataset according to the invalid_flags and invalid parameters.
 
         Args:
             invalid_flags (list[str]): List of quality control flags to be excluded.
-            invalid (bool): If True returns the invalid rows, instead of the valids. Defaults to False.
+            invalid (bool): If True returns the invalid rows, instead of the valid. Defaults to False.
 
         Returns:
             Self: filtered dataset.
