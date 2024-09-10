@@ -421,13 +421,13 @@ class StudyLocus(Dataset):
         return "qualityControls"
 
     @classmethod
-    def get_QC_categories(cls: type[StudyLocus]) -> list[str]:
-        """Quality control categories.
+    def get_QC_mappings(cls: type[StudyLocus]) -> dict[str, str]:
+        """Quality control flag to QC column category mappings.
 
         Returns:
-            list[str]: List of quality control categories.
+            dict[str, str]: Mapping between flag name and QC column category value.
         """
-        return [member.value for member in StudyLocusQualityCheck]
+        return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def filter_by_study_type(
         self: StudyLocus, study_type: str, study_index: StudyIndex
