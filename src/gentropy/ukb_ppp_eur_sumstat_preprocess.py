@@ -15,13 +15,13 @@ class UkbPppEurStep:
     """UKB PPP (EUR) data ingestion and harmonisation."""
 
     def __init__(
-        self, session: Session, raw_study_index_path: str, raw_summary_stats_path: str, variant_annotation_path: str, tmp_variant_annotation_path: str, study_index_output_path: str, summary_stats_output_path: str
+        self, session: Session, raw_study_index_path_from_tsv: str, raw_summary_stats_path: str, variant_annotation_path: str, tmp_variant_annotation_path: str, study_index_output_path: str, summary_stats_output_path: str
     ) -> None:
         """Run UKB PPP (EUR) data ingestion and harmonisation step.
 
         Args:
             session (Session): Session object.
-            raw_study_index_path (str): Input raw study index path.
+            raw_study_index_path_from_tsv (str): Input raw study index path.
             raw_summary_stats_path (str): Input raw summary stats path.
             variant_annotation_path (str): Input variant annotation dataset path.
             tmp_variant_annotation_path (str): Temporary output path for variant annotation dataset.
@@ -35,7 +35,7 @@ class UkbPppEurStep:
         (
             UkbPppEurStudyIndex.from_source(
                 spark=session.spark,
-                raw_study_index_path=raw_study_index_path,
+                raw_study_index_path_from_tsv=raw_study_index_path_from_tsv,
                 raw_summary_stats_path=raw_summary_stats_path,
             )
             .df

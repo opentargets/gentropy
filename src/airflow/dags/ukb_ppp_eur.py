@@ -33,7 +33,7 @@ with DAG(
                 cluster_name=CLUSTER_NAME,
                 step_id="ot_ukb_ppp_eur_sumstat_preprocess",
                 other_args=[
-                    f"step.raw_study_index_path={UKB_PPP_EUR_STUDY_INDEX}",
+                    f"step.raw_study_index_path_from_tsv={UKB_PPP_EUR_STUDY_INDEX}",
                     f"step.raw_summary_stats_path={UKB_PPP_EUR_SUMMARY_STATS}",
                     f"step.variant_annotation_path={VARIANT_ANNOTATION}",
                     f"step.tmp_variant_annotation_path={TMP_VARIANT_ANNOTATION}",

@@ -299,7 +299,7 @@ class PICSConfig(StepConfig):
 class UkbPppEurConfig(StepConfig):
     """UKB PPP (EUR) ingestion step configuration."""
 
-    raw_study_index_path: str = MISSING
+    raw_study_index_path_from_tsv: str = MISSING
     raw_summary_stats_path: str = MISSING
     tmp_variant_annotation_path: str = MISSING
     variant_annotation_path: str = MISSING
@@ -312,7 +312,7 @@ class UkbPppEurConfig(StepConfig):
 class FinngenUkbMetaConfig(StepConfig):
     """FinnGen UKB meta-analysis ingestion step configuration."""
 
-    raw_study_index_path: str = MISSING
+    raw_study_index_path_from_tsv: str = MISSING
     raw_summary_stats_path: str = MISSING
     tmp_variant_annotation_path: str = MISSING
     variant_annotation_path: str = MISSING
