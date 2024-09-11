@@ -35,7 +35,7 @@ def harmonise_summary_stats(
     Args:
         spark (SparkSession): Spark session object.
         raw_summary_stats_path (str): Input raw summary stats path.
-        tmp_variant_annotation_path (str): Input variant annotation dataset path.
+        tmp_variant_annotation_path (str): Path to the Variant Annotation dataset which has been further prepared and processed by the per_chromosome module (previous PR in the chain) to speed up the joins in the harmonisation phase. It includes all variants in both the direct (A0/A1) and reverse (A1/A0) orientations, so that the direction of the variant can be easily determined on joining.
         chromosome (str): Which chromosome to process.
         colname_position (str): Column name for position.
         colname_allele0 (str): Column name for allele0.
@@ -91,6 +91,10 @@ def harmonise_summary_stats(
     df = (
         df
         # Harmonise, 4: Assign variant types.
+        # There are three possible variant types:
+        # 1. `snp_c` means an SNP converting a base into its complementary base: A<>T or G><C.
+        # 2. `snp_n` means any other SNP where the length of each allele is still exactly 1.
+        # 3. `indel` means any other variant where the length of at least one allele is greater than 1.
         .withColumn(
             "variant_type",
             f.when(
