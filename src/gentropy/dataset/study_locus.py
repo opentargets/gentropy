@@ -347,29 +347,38 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def assign_study_locus_id(study_id_col: Column, variant_id_col: Column) -> Column:
+    def assign_study_locus_id(
+        study_id_col: Column,
+        variant_id_col: Column,
+        finemapping_col: Column = None,
+    ) -> Column:
         """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
 
         Args:
             study_id_col (Column): column name with a study ID
             variant_id_col (Column): column name with a variant ID
+            finemapping_col (Column, optional): column with fine mapping methodology
 
         Returns:
             Column: column with a study locus ID
 
         Examples:
-            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C"), ("GCST000002", "1_1000_A_C")]).toDF("studyId", "variantId")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"))).show()
-            +----------+----------+-------------------+
-            |   studyId| variantId|     study_locus_id|
-            +----------+----------+-------------------+
-            |GCST000001|1_1000_A_C|1553357789130151995|
-            |GCST000002|1_1000_A_C|-415050894682709184|
-            +----------+----------+-------------------+
+            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"), f.col("finemappingMethod"))).show()
+            +----------+----------+-----------------+-------------------+
+            |   studyId| variantId|finemappingMethod|     study_locus_id|
+            +----------+----------+-----------------+-------------------+
+            |GCST000001|1_1000_A_C|        SuSiE-inf|3801266831619496075|
+            |GCST000002|1_1000_A_C|             pics|1581844826999194430|
+            +----------+----------+-----------------+-------------------+
             <BLANKLINE>
         """
+        if finemapping_col is None:
+            finemapping_col = f.lit(None).cast(StringType())
         variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
-        return f.xxhash64(study_id_col, variant_id_col).alias("studyLocusId")
+        return f.xxhash64(study_id_col, variant_id_col, finemapping_col).alias(
+            "studyLocusId"
+        )
 
     @classmethod
     def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:
@@ -412,13 +421,13 @@ class StudyLocus(Dataset):
         return "qualityControls"
 
     @classmethod
-    def get_QC_categories(cls: type[StudyLocus]) -> list[str]:
-        """Quality control categories.
+    def get_QC_mappings(cls: type[StudyLocus]) -> dict[str, str]:
+        """Quality control flag to QC column category mappings.
 
         Returns:
-            list[str]: List of quality control categories.
+            dict[str, str]: Mapping between flag name and QC column category value.
         """
-        return [member.value for member in StudyLocusQualityCheck]
+        return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def filter_by_study_type(
         self: StudyLocus, study_type: str, study_index: StudyIndex

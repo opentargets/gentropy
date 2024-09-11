@@ -1,7 +1,7 @@
 defaults:
   - ukb_ppp_eur_sumstat_preprocess
 
-raw_study_index_path: ???
+raw_study_index_path_from_tsv: ???
 raw_summary_stats_path: ???
 variant_annotation_path: ???
 tmp_variant_annotation_path: ???

@@ -48,10 +48,10 @@ class StudyLocusValidationStep:
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
         ).persist()  # we will need this for 2 types of outputs
 
-        study_locus_with_qc.valid_rows(invalid_qc_reasons).df.write.parquet(
-            invalid_study_locus_path
-        )
-
         study_locus_with_qc.valid_rows(
             invalid_qc_reasons, invalid=True
-        ).df.write.parquet(valid_study_locus_path)
+        ).df.write.parquet(invalid_study_locus_path)
+
+        study_locus_with_qc.valid_rows(invalid_qc_reasons).df.write.parquet(
+            valid_study_locus_path
+        )
