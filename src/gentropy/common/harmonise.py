@@ -15,12 +15,12 @@ def harmonise_summary_stats(
     colname_position: str,
     colname_allele0: str,
     colname_allele1: str,
-    colname_a1freq: str,
-    colname_info: str,
+    colname_a1freq: str | None,
+    colname_info: str | None,
     colname_beta: str,
     colname_se: str,
     colname_mlog10p: str,
-    colname_n: str,
+    colname_n: str | None,
 ) -> DataFrame:
     """Ingest and harmonise the summary stats.
 
@@ -40,12 +40,12 @@ def harmonise_summary_stats(
         colname_position (str): Column name for position.
         colname_allele0 (str): Column name for allele0.
         colname_allele1 (str): Column name for allele1.
-        colname_a1freq (str): Column name for allele1 frequency (optional).
-        colname_info (str): Column name for INFO, reflecting variant quality (optional).
+        colname_a1freq (str | None): Column name for allele1 frequency (optional).
+        colname_info (str | None): Column name for INFO, reflecting variant quality (optional).
         colname_beta (str): Column name for beta.
         colname_se (str): Column name for beta standard error.
         colname_mlog10p (str): Column name for -log10(p).
-        colname_n (str): Column name for the number of samples.
+        colname_n (str | None): Column name for the number of samples (optional).
 
     Returns:
         DataFrame: A harmonised summary stats dataframe.
@@ -159,20 +159,22 @@ def harmonise_summary_stats(
     )
 
     # Prepare the fields according to schema.
+    select_expr = [
+        f.col("studyId"),
+        f.col("chromosome"),
+        f.col("variantId"),
+        f.col("beta"),
+        f.col(colname_position).cast(t.IntegerType()).alias("position"),
+        # Parse p-value into mantissa and exponent.
+        *neglog_pvalue_to_mantissa_and_exponent(f.col(colname_mlog10p).cast(t.DoubleType())),
+        # Add standard error and sample size information.
+        f.col(colname_se).cast("double").alias("standardError"),
+    ]
+    if colname_n:
+        select_expr.append(f.col(colname_n).cast("integer").alias("sampleSize"))
     df = (
         df
-        .select(
-            f.col("studyId"),
-            f.col("chromosome"),
-            f.col("variantId"),
-            f.col("beta"),
-            f.col(colname_position).cast(t.IntegerType()).alias("position"),
-            # Parse p-value into mantissa and exponent.
-            *neglog_pvalue_to_mantissa_and_exponent(f.col(colname_mlog10p).cast(t.DoubleType())),
-            # Add standard error and sample size information.
-            f.col(colname_se).cast("double").alias("standardError"),
-            f.col(colname_n).cast("integer").alias("sampleSize"),
-        )
+        .select(*select_expr)
         # Drop rows which don't have proper position or beta value.
         .filter(
             f.col("position").cast(t.IntegerType()).isNotNull()
