@@ -90,7 +90,7 @@ class LocusToGeneStep:
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
-        )
+        ).filter(f.col("studyType") == "gwas")
         self.studies = (
             StudyIndex.from_parquet(session, study_index_path, recursiveFileLookup=True)
             if study_index_path

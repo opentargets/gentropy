@@ -9,7 +9,6 @@ from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
@@ -51,7 +50,7 @@ class L2GPrediction(Dataset):
 
         Args:
             session (Session): Session object that contains the Spark session
-            credible_set (StudyLocus): Credible set dataset
+            credible_set (StudyLocus): Dataset containing credible sets from GWAS only
             features_list (list[str]): List of features to use for the model
             features_input_loader (L2GFeatureInputLoader): Loader with all feature dependencies
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
@@ -70,20 +69,14 @@ class L2GPrediction(Dataset):
             l2g_model = LocusToGeneModel.load_from_disk(model_path)
 
         # Prepare data
-        fm = L2GFeatureMatrix.from_features_list(
-            study_loci_to_annotate=credible_set,
-            features_list=features_list,
-            features_input_loader=features_input_loader,
-        ).fill_na()
+        fm = (
+            L2GFeatureMatrix.from_features_list(
+                study_loci_to_annotate=credible_set,
+                features_list=features_list,
+                features_input_loader=features_input_loader,
+            )
+            .fill_na()
+            .select_features(features_list)
+        )
 
-        gwas_fm = L2GFeatureMatrix(
-            _df=(
-                fm._df.join(
-                    credible_set.filter_by_study_type(
-                        "gwas", features_input_loader.get_dependency(StudyIndex)
-                    ).df.select("studyLocusId"),
-                    on="studyLocusId",
-                )
-            ),
-        ).select_features(features_list)
-        return l2g_model.predict(gwas_fm, session)
+        return l2g_model.predict(fm, session)
