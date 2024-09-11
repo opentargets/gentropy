@@ -318,7 +318,7 @@ class FinngenUkbMetaConfig(StepConfig):
     variant_annotation_path: str = MISSING
     study_index_output_path: str = MISSING
     summary_stats_output_path: str = MISSING
-    _target_: str = "gentropy.finngen_ukb_meta.FinngenUkbMetaStep"
+    _target_: str = "gentropy.finngen_ukb_meta.FinngenUkbMetaIngestionStep"
 
 
 @dataclass

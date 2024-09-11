@@ -13,7 +13,7 @@ from gentropy.datasource.finngen_ukb_meta.summary_stats import (
 )
 
 
-class FinngenUkbMetaStep:
+class FinngenUkbMetaIngestionStep:
     """FinnGen UKB meta-analysis data ingestion and harmonisation."""
 
     def __init__(
