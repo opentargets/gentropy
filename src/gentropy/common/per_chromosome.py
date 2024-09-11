@@ -9,7 +9,7 @@ from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
 
 def prepare_va(session: SparkSession, variant_annotation_path: str, tmp_variant_annotation_path: str) -> None:
-    """Prepare the VA dataset for efficient per-chromosome joins.
+    """Prepare the Variant Annotation dataset for efficient per-chromosome joins.
 
     Args:
         session (SparkSession): The Spark session to be used for reading and writing data.
