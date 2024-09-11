@@ -41,7 +41,7 @@ class FinngenUkbMetaStep:
             )
             .df
             .write
-            .mode("overwrite")
+            .mode(session.write_mode)
             .parquet(study_index_output_path)
         )
 
