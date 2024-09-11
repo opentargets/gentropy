@@ -48,7 +48,7 @@ class StudyLocusQualityCheck(Enum):
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
         DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique.
-        INVALID_VARIANT_IDENTIFIER (str): Flagging study locus where any variant in the locus was not found in the variant index
+        INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -67,7 +67,9 @@ class StudyLocusQualityCheck(Enum):
     FAILED_STUDY = "Study has failed quality controls"
     MISSING_STUDY = "Study not found in the study index"
     DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
-    INVALID_VARIANT_IDENTIFIER = "Locus variant identifier not found in variant index"
+    INVALID_VARIANT_IDENTIFIER = (
+        "Some variant identifiers of this locus were not found in variant index"
+    )
 
 
 class CredibleInterval(Enum):
@@ -147,7 +149,7 @@ class StudyLocus(Dataset):
     def validate_variant_identifiers(
         self: StudyLocus, variant_index: VariantIndex
     ) -> StudyLocus:
-        """Flagging study loci with invalid variant identifiers.
+        """Flagging study loci, where tagging variant identifiers are not found in variant index.
 
         Args:
             variant_index (VariantIndex): Variant index to resolve variant identifiers.
@@ -178,7 +180,7 @@ class StudyLocus(Dataset):
             )
             # Flagging variants not in the variant index:
             .withColumn("inVariantIndex", f.col("inVariantIndex").isNotNull())
-            # Flagging study loci with variants not in the variant index:
+            # Flagging study loci with ANY variants not in the variant index:
             .groupBy("studyLocusId")
             .agg(f.collect_set("inVariantIndex").alias("inVariantIndex"))
             .select(
