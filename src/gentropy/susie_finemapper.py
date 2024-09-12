@@ -29,6 +29,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 from gentropy.method.carma import CARMA
+from gentropy.method.ld_matrix_interface import LDMatrixInterface
 from gentropy.method.sumstat_imputation import SummaryStatisticsImputation
 from gentropy.method.susie_inf import SUSIE_inf
 
@@ -746,6 +747,236 @@ class SusieFineMapperStep:
             gwas_index = ld_index
             gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
                 gwas_index, gnomad_ancestry=major_population
+            )
+
+            # Module to remove NANs from the LD matrix
+            if sum(sum(np.isnan(gnomad_ld))) > 0:
+                gwas_index = gwas_index.toPandas()
+
+                # First round of filtering out the variants with NANs
+                nan_count = 1 - (sum(np.isnan(gnomad_ld)) / len(gnomad_ld))
+                indices = np.where(nan_count >= 0.98)
+                indices = indices[0]
+                gnomad_ld = gnomad_ld[indices][:, indices]
+
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                # Second round of filtering out the variants with NANs
+                nan_count = sum(np.isnan(gnomad_ld))
+                indices = np.where(nan_count == 0)
+                indices = indices[0]
+
+                gnomad_ld = gnomad_ld[indices][:, indices]
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                gwas_index = session.spark.createDataFrame(gwas_index)
+
+        # sanity filters on LD matrix
+        np.fill_diagonal(gnomad_ld, 1)
+        gnomad_ld[gnomad_ld > 1] = 1
+        gnomad_ld[gnomad_ld < -1] = -1
+        upper_triangle = np.triu(gnomad_ld)
+        gnomad_ld = (
+            upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
+        )
+        np.fill_diagonal(gnomad_ld, 1)
+
+        out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
+            GWAS_df=gwas_df,
+            ld_index=gwas_index,
+            gnomad_ld=gnomad_ld,
+            L=max_causal_snps,
+            session=session,
+            studyId=studyId,
+            region=region,
+            susie_est_tausq=susie_est_tausq,
+            run_carma=run_carma,
+            run_sumstat_imputation=run_sumstat_imputation,
+            carma_time_limit=carma_time_limit,
+            carma_tau=carma_tau,
+            imputed_r2_threshold=imputed_r2_threshold,
+            ld_score_threshold=ld_score_threshold,
+            sum_pips=sum_pips,
+            primary_signal_pval_threshold=primary_signal_pval_threshold,
+            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            purity_mean_r2_threshold=purity_mean_r2_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            cs_lbf_thr=cs_lbf_thr,
+        )
+
+        return out
+
+    @staticmethod
+    def susie_finemapper_one_sl_row_v4_ss_gathered_boundaries_ldinterface(  # noqa: C901
+        session: Session,
+        study_locus_row: Row,
+        study_index: StudyIndex,
+        max_causal_snps: int = 10,
+        susie_est_tausq: bool = False,
+        run_carma: bool = False,
+        run_sumstat_imputation: bool = False,
+        carma_time_limit: int = 600,
+        carma_tau: float = 0.04,
+        imputed_r2_threshold: float = 0.9,
+        ld_score_threshold: float = 5,
+        sum_pips: float = 0.99,
+        primary_signal_pval_threshold: float = 5e-8,
+        secondary_signal_pval_threshold: float = 1e-7,
+        purity_mean_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
+        cs_lbf_thr: float = 2,
+    ) -> dict[str, Any] | None:
+        """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
+
+        Args:
+            session (Session): Spark session
+            study_locus_row (Row): StudyLocus row with collected locus
+            study_index (StudyIndex): StudyIndex object
+            max_causal_snps (int): maximum number of causal variants
+            susie_est_tausq (bool): estimate tau squared, default is False
+            run_carma (bool): run CARMA, default is False
+            run_sumstat_imputation (bool): run summary statistics imputation, default is False
+            carma_time_limit (int): CARMA time limit, default is 600 seconds
+            carma_tau (float): CARMA tau, shrinkage parameter
+            imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
+            ld_score_threshold (float): LD score threshold ofr imputation, default is 4
+            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
+            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
+            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
+            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
+            cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
+
+        Returns:
+            dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
+        """
+        # PLEASE DO NOT REMOVE THIS LINE
+        pd.DataFrame.iteritems = pd.DataFrame.items
+
+        chromosome = study_locus_row["chromosome"]
+        studyId = study_locus_row["studyId"]
+        locusStart = study_locus_row["locusStart"]
+        locusEnd = study_locus_row["locusEnd"]
+
+        study_index_df = study_index._df
+        study_index_df = study_index_df.filter(f.col("studyId") == studyId)
+        major_population = study_index_df.select(
+            "studyId",
+            order_array_of_structs_by_field(
+                "ldPopulationStructure", "relativeSampleSize"
+            )[0]["ldPopulation"].alias("majorPopulation"),
+        ).collect()[0]["majorPopulation"]
+
+        region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
+
+        schema = StudyLocus.get_schema()
+        gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
+        exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
+
+        result_df = exploded_df.select(
+            "locus.variantId", "locus.beta", "locus.standardError"
+        )
+        gwas_df = (
+            result_df.withColumn("z", f.col("beta") / f.col("standardError"))
+            .withColumn(
+                "chromosome", f.split(f.col("variantId"), "_")[0].cast("string")
+            )
+            .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
+            .filter(f.col("chromosome") == chromosome)
+            .filter(f.col("position") >= int(locusStart))
+            .filter(f.col("position") <= int(locusEnd))
+            .filter(f.col("z").isNotNull())
+        )
+
+        # Remove ALL duplicated variants from GWAS DataFrame - we don't know which is correct
+        variant_counts = gwas_df.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
+
+        ld_index = LDMatrixInterface.get_locus_index_boundaries(
+            study_locus_row=study_locus_row, ancestry=major_population, session=session
+        )
+
+        # Remove ALL duplicated variants from ld_index DataFrame - we don't know which is correct
+        variant_counts = ld_index.groupBy("variantId").count()
+        unique_variants = variant_counts.filter(f.col("count") == 1)
+        ld_index = ld_index.join(unique_variants, on="variantId", how="left_semi").sort(
+            "idx"
+        )
+        if "alleleOrder" not in ld_index.columns:
+            ld_index = ld_index.withColumn("alleleOrder", f.lit(1))
+
+        if not run_sumstat_imputation:
+            # Filtering out the variants that are not in the LD matrix, we don't need them
+            gwas_index = gwas_df.join(
+                ld_index.select("variantId", "idx", "alleleOrder"), on="variantId"
+            ).sort("idx")
+            gwas_df = gwas_index.select(
+                "variantId",
+                "z",
+                "chromosome",
+                "position",
+                "beta",
+                "StandardError",
+            )
+            gwas_index = gwas_index.drop(
+                "z", "chromosome", "position", "beta", "StandardError"
+            )
+            if gwas_index.rdd.isEmpty():
+                logging.warning("No overlapping variants in the LD Index")
+                return None
+            gnomad_ld = LDMatrixInterface.get_numpy_matrix(
+                gwas_index, ancestry=major_population
+            )
+
+            # Module to remove NANs from the LD matrix
+            if sum(sum(np.isnan(gnomad_ld))) > 0:
+                gwas_index = gwas_index.toPandas()
+
+                # First round of filtering out the variants with NANs
+                nan_count = 1 - (sum(np.isnan(gnomad_ld)) / len(gnomad_ld))
+                indices = np.where(nan_count >= 0.98)
+                indices = indices[0]
+                gnomad_ld = gnomad_ld[indices][:, indices]
+
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                # Second round of filtering out the variants with NANs
+                nan_count = sum(np.isnan(gnomad_ld))
+                indices = np.where(nan_count == 0)
+                indices = indices[0]
+
+                gnomad_ld = gnomad_ld[indices][:, indices]
+                gwas_index = gwas_index.iloc[indices, :]
+
+                if len(gwas_index) == 0:
+                    logging.warning("No overlapping variants in the LD Index")
+                    return None
+
+                gwas_index = session.spark.createDataFrame(gwas_index)
+
+        else:
+            gwas_index = gwas_df.join(
+                ld_index.select("variantId", "idx", "alleleOrder"), on="variantId"
+            ).sort("idx")
+            if gwas_index.rdd.isEmpty():
+                logging.warning("No overlapping variants in the LD Index")
+                return None
+            gwas_index = ld_index
+            gnomad_ld = LDMatrixInterface.get_numpy_matrix(
+                gwas_index, ancestry=major_population
             )
 
             # Module to remove NANs from the LD matrix
