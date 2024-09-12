@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import pyspark.sql.functions as f
 from pyspark.sql import SparkSession
 
 from gentropy.common.harmonise import harmonise_summary_stats
@@ -53,7 +54,10 @@ class FinngenUkbMetaSummaryStats:
         )
 
         # Populate the sample size column from the study index.
-        study_index = spark.read.parquet(study_index_path).select("studyId", "nSamples")
+        study_index = spark.read.parquet(study_index_path).select(
+            "studyId",
+            f.col("nSamples").cast("integer").alias("sampleSize")
+        )
         df = df.join(study_index, on=["studyId"], how="inner")
 
         # Create the summary statistics object.
