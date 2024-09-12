@@ -27,6 +27,7 @@ from gentropy.dataset.study_locus import (
 )
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.variant_index import VariantIndex
 
 
 @pytest.mark.parametrize(
@@ -560,6 +561,94 @@ def test_annotate_locus_statistics_boundaries(
         slt.annotate_locus_statistics_boundaries(mock_summary_statistics),
         StudyLocus,
     )
+
+
+class TestStudyLocusVariantValidation:
+    """Collection of tests for StudyLocus variant validation."""
+
+    VARIANT_DATA = [
+        ("v1", "c1", 1, "r", "a"),
+        ("v2", "c1", 2, "r", "a"),
+        ("v3", "c1", 3, "r", "a"),
+        ("v4", "c1", 4, "r", "a"),
+    ]
+    VARIANT_HEADERS = [
+        "variantId",
+        "chromosome",
+        "position",
+        "referenceAllele",
+        "alternateAllele",
+    ]
+
+    STUDYLOCUS_DATA = [
+        # First studylocus passes qc:
+        (1, "v1", "s1", "v1"),
+        (1, "v1", "s1", "v2"),
+        (1, "v1", "s1", "v3"),
+        # Second studylocus passes qc:
+        (2, "v1", "s1", "v1"),
+        (2, "v1", "s1", "v5"),
+    ]
+    STUDYLOCUS_HEADER = ["studyLocusId", "variantId", "studyId", "tagVariantId"]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusVariantValidation, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                self.VARIANT_DATA, self.VARIANT_HEADERS
+            ).withColumn("position", f.col("position").cast(t.IntegerType())),
+            _schema=VariantIndex.get_schema(),
+        )
+
+        self.credible_set = StudyLocus(
+            _df=(
+                spark.createDataFrame(self.STUDYLOCUS_DATA, self.STUDYLOCUS_HEADER)
+                .withColumn("studyLocusId", f.col("studyLocusId").cast(t.LongType()))
+                .withColumn("qualityControls", f.array())
+                .groupBy("studyLocusId", "variantId", "studyId")
+                .agg(
+                    f.collect_set(
+                        f.struct(f.col("tagVariantId").alias("variantId"))
+                    ).alias("locus")
+                )
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def test_validation_return_type(self: TestStudyLocusVariantValidation) -> None:
+        """Testing if the validation returns the right type."""
+        assert isinstance(
+            self.credible_set.validate_variant_identifiers(self.variant_index),
+            StudyLocus,
+        )
+
+    def test_validation_no_data_loss(self: TestStudyLocusVariantValidation) -> None:
+        """Testing if the validation returns same number of rows."""
+        assert (
+            self.credible_set.validate_variant_identifiers(
+                self.variant_index
+            ).df.count()
+            == self.credible_set.df.count()
+        )
+
+    def test_validation_correctness(self: TestStudyLocusVariantValidation) -> None:
+        """Testing if the validation flags the right number of variants."""
+        # Execute validation:
+        validated = self.credible_set.validate_variant_identifiers(
+            self.variant_index
+        ).df
+
+        # Make sure there's only one study locus with a failed variants:
+        assert validated.filter(f.size("qualityControls") > 0).count() == 1
+
+        # Check that the right one is flagged:
+        assert (
+            validated.filter(
+                (f.size("qualityControls") > 0) & (f.col("studyLocusId") == 2)
+            ).count()
+            == 1
+        )
 
 
 class TestStudyLocusValidation:
