@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+    from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.study_locus import StudyLocus
 
 from functools import reduce
@@ -38,13 +39,15 @@ class Colocalisation(Dataset):
     def extract_maximum_coloc_probability_per_region_and_gene(
         self: Colocalisation,
         study_loci: StudyLocus | L2GGoldStandard,
+        study_index: StudyIndex,
         filter_by_colocalisation_method: str,
-        filter_by_qtl: str | None,
+        filter_by_qtl: str | None = None,
     ) -> DataFrame:
         """Get maximum colocalisation probability for a (studyLocus, gene) window.
 
         Args:
             study_loci (StudyLocus | L2GGoldStandard): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
+            study_index (StudyIndex): Study index to use to get study metadata
             filter_by_colocalisation_method (str): optional filter to apply on the colocalisation dataset
             filter_by_qtl (str | None): optional filter to apply on the colocalisation dataset
 
@@ -74,17 +77,63 @@ class Colocalisation(Dataset):
         ).METHOD_METRIC  # type: ignore
 
         coloc_filtering_expr = [
-            (f.col("rightStudyType") != "gwas"),
+            f.col("rightGeneId").isNull(),
             f.col("colocalisationMethod") == filter_by_colocalisation_method,
         ]
         if filter_by_qtl:
             coloc_filtering_expr.append(f.col("rightStudyType") == filter_by_qtl)
 
+        filtered_colocalisation = (
+            # Bring rightStudyType and rightGeneId and filter by rows where the gene is null,
+            # which is equivalent to filtering studyloci from gwas on the right side
+            self.append_right_study_metadata(
+                study_loci, study_index, ["studyType", "geneId"]
+            )
+            # it also filters based on method and qtl type
+            .filter(reduce(lambda a, b: a & b, coloc_filtering_expr))
+            # and filters colocalisation results to only include the subset of studylocus that contains gwas studylocusid
+            .join(
+                study_loci.df.selectExpr("studyLocusId as leftStudyLocusId"),
+                "leftStudyLocusId",
+            )
+        )
+
         return get_record_with_maximum_value(
-            # Filter coloc dataset based on method and qtl type
-            self.filter(reduce(lambda a, b: a & b, coloc_filtering_expr))
-            # Join with study loci to get geneId
-            .df.join(study_loci.df.select("studyLocusId", "geneId"), "studyLocusId"),
+            filtered_colocalisation.withColumnRenamed(
+                "leftStudyLocusId", "studyLocusId"
+            ).withColumnRenamed("rightGeneId", "geneId"),
             ["studyLocusId", "geneId"],
             method_colocalisation_metric,
+        )
+
+    def append_right_study_metadata(
+        self: Colocalisation,
+        study_loci: StudyLocus | L2GGoldStandard,
+        study_index: StudyIndex,
+        metadata_cols: list[str],
+    ) -> DataFrame:
+        """Appends metadata from the study in the right side of the colocalisation dataset.
+
+        Args:
+            study_loci (StudyLocus | L2GGoldStandard): Dataset containing study loci that links the colocalisation dataset and the study index via the studyId
+            study_index (StudyIndex): Dataset containing study index that contains the metadata
+            metadata_cols (list[str]): List of study columns to append
+
+        Returns:
+            DataFrame: Colocalisation dataset with appended metadata of the right study
+        """
+        # TODO: make this flexible to bring metadata from the left study (2 joins)
+        return self.df.join(
+            study_loci.df.selectExpr(
+                "studyLocusId as rightStudyLocusId", "studyId as rightStudyId"
+            ),
+            "rightStudyLocusId",
+            "left",
+        ).join(
+            study_index.df.selectExpr(
+                "studyId as rightStudyId",
+                *[f"{col} as right{col[0].upper() + col[1:]}" for col in metadata_cols],
+            ),
+            "rightStudyId",
+            "left",
         )
