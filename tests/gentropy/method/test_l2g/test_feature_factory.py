@@ -2,21 +2,56 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
-from sklearn.ensemble import RandomForestClassifier
 
-from gentropy.method.l2g.model import LocusToGeneModel
+from gentropy.dataset.l2g_feature import L2GFeature
+from gentropy.method.l2g.feature_factory import (
+    EQtlColocClppMaximumFeature,
+    EQtlColocH4MaximumFeature,
+    PQtlColocClppMaximumFeature,
+    PQtlColocH4MaximumFeature,
+    SQtlColocClppMaximumFeature,
+    SQtlColocH4MaximumFeature,
+    TuQtlColocClppMaximumFeature,
+    TuQtlColocH4MaximumFeature,
+)
 
 if TYPE_CHECKING:
-    pass
+    from gentropy.dataset.colocalisation import Colocalisation
+    from gentropy.dataset.study_locus import StudyLocus
 
 
-@pytest.fixture(scope="module")
-def model() -> LocusToGeneModel:
-    """Creates an instance of the LocusToGene class."""
-    return LocusToGeneModel(model=RandomForestClassifier())
+# @pytest.fixture(scope="module")
+# def model() -> LocusToGeneModel:
+#     """Creates an instance of the LocusToGene class."""
+#     return LocusToGeneModel(model=RandomForestClassifier())
+
+
+@pytest.mark.parametrize(
+    "feature_class",
+    [
+        EQtlColocH4MaximumFeature,
+        PQtlColocH4MaximumFeature,
+        SQtlColocH4MaximumFeature,
+        TuQtlColocH4MaximumFeature,
+        EQtlColocClppMaximumFeature,
+        PQtlColocClppMaximumFeature,
+        SQtlColocClppMaximumFeature,
+        TuQtlColocClppMaximumFeature,
+    ],
+)
+def test_colocalisation_feature_type(
+    feature_class: Any,
+    mock_study_locus: StudyLocus,
+    mock_colocalisation: Colocalisation,
+) -> None:
+    """Test that every colocalisation feature type returns a set of L2GFeatures."""
+    feature_dataset = feature_class.compute(
+        study_loci_to_annotate=mock_study_locus, feature_dependency=mock_colocalisation
+    )
+    assert isinstance(feature_dataset, L2GFeature)
 
 
 # class TestColocalisationFactory:

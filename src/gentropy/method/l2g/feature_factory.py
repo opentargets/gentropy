@@ -263,7 +263,7 @@ class EQtlColocH4MaximumFeature(L2GFeature):
         Returns:
             EQtlColocH4MaximumFeature: Feature dataset
         """
-        colocalisation_method = "COLOC"
+        colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
         qtl_type = "eqtl"
         return cls(
@@ -299,7 +299,7 @@ class PQtlColocH4MaximumFeature(L2GFeature):
         Returns:
             PQtlColocH4MaximumFeature: Feature dataset
         """
-        colocalisation_method = "COLOC"
+        colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
         qtl_type = "pqtl"
         return cls(
@@ -335,7 +335,7 @@ class SQtlColocH4MaximumFeature(L2GFeature):
         Returns:
             SQtlColocH4MaximumFeature: Feature dataset
         """
-        colocalisation_method = "COLOC"
+        colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
         qtl_type = "sqtl"
         return cls(
@@ -371,7 +371,7 @@ class TuQtlColocH4MaximumFeature(L2GFeature):
         Returns:
             TuQtlColocH4MaximumFeature: Feature dataset
         """
-        colocalisation_method = "COLOC"
+        colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
         qtl_type = "tuqtl"
         return cls(

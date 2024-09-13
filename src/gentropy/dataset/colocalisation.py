@@ -63,7 +63,7 @@ class Colocalisation(Dataset):
 
         if filter_by_colocalisation_method not in [
             "ECaviar",
-            "COLOC",
+            "Coloc",
         ]:  # TODO: Write helper class to retrieve coloc method names
             raise ValueError(
                 f"Colocalisation method {filter_by_colocalisation_method} is not supported."
