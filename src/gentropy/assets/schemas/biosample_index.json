@@ -14,39 +14,13 @@
       "metadata": {}
     },
     {
-      "metadata": {},
-      "name": "dbXrefs",
-      "nullable": true,
-      "type": {
-        "containsNull": true,
-        "elementType": {
-          "fields": [
-            {
-              "metadata": {},
-              "name": "id",
-              "nullable": true,
-              "type": "string"
-            },
-            {
-              "metadata": {},
-              "name": "source",
-              "nullable": true,
-              "type": "string"
-            }
-          ],
-          "type": "struct"
-        },
-        "type": "array"
-      }
-    },
-    {
       "name": "description",
       "type": "string",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "parents",
+      "name": "dbXrefs",
       "type": {
         "type": "array",
         "elementType": "string",
@@ -57,6 +31,27 @@
     },
     {
       "name": "synonyms",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "deprecated",
+      "type": {
+        "type": "map",
+        "keyType": "string",
+        "valueType": "boolean",
+        "valueContainsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "parents",
       "type": {
         "type": "array",
         "elementType": "string",
@@ -91,17 +86,6 @@
         "type": "array",
         "elementType": "string",
         "containsNull": true
-      },
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "ontology",
-      "type": {
-        "type": "map",
-        "keyType": "string",
-        "valueType": "boolean",
-        "valueContainsNull": true
       },
       "nullable": true,
       "metadata": {}
