@@ -118,13 +118,13 @@ class StudyIndex(Dataset):
         return "qualityControls"
 
     @classmethod
-    def get_QC_categories(cls: type[StudyIndex]) -> list[str]:
-        """Return the quality control categories.
+    def get_QC_mappings(cls: type[StudyIndex]) -> dict[str, str]:
+        """Quality control flag to QC column category mappings.
 
         Returns:
-            list[str]: The quality control categories.
+            dict[str, str]: Mapping between flag name and QC column category value.
         """
-        return [member.value for member in StudyQualityCheck]
+        return {member.name: member.value for member in StudyQualityCheck}
 
     @classmethod
     def aggregate_and_map_ancestries(

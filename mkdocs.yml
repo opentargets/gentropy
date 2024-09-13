@@ -48,7 +48,8 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
       combine_header_slug: true
-
+  - pymdownx.tasklist:
+      custom_checkbox: true
 hooks:
   - src/utils/schemadocs.py
 

@@ -86,13 +86,15 @@ class Dataset(ABC):
         return None
 
     @classmethod
-    def get_QC_categories(cls: type[Self]) -> list[str]:
-        """Method to get the QC categories for this dataset. Returns empty list unless overriden by child classes.
+    def get_QC_mappings(cls: type[Self]) -> dict[str, str]:
+        """Method to get the mapping between QC flag and corresponding QC category value.
+
+        Returns empty dict unless overriden by child classes.
 
         Returns:
-            list[str]: Column name
+            dict[str, str]: Mapping between flag name and QC column category value.
         """
-        return []
+        return {}
 
     @classmethod
     def from_parquet(
@@ -193,22 +195,31 @@ class Dataset(ABC):
     def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
         """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
 
+        This method checks do following steps:
+        - Check if the Dataset contains a QC column.
+        - Check if the invalid_flags exist in the QC mappings flags.
+        - Filter the Dataset according to the invalid_flags and invalid parameters.
+
         Args:
             invalid_flags (list[str]): List of quality control flags to be excluded.
-            invalid (bool): If True returns the invalid rows, instead of the valids. Defaults to False.
+            invalid (bool): If True returns the invalid rows, instead of the valid. Defaults to False.
 
         Returns:
             Self: filtered dataset.
 
         Raises:
             ValueError: If the Dataset does not contain a QC column.
+            ValueError: If the invalid_flags elements do not exist in QC mappings flags.
         """
         # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
+        invalid_reasons = []
         for flag in invalid_flags:
-            if flag not in self.get_QC_categories():
+            if flag not in self.get_QC_mappings():
                 raise ValueError(
-                    f"{flag} is not a valid QC flag for {type(self).__name__} ({self.get_QC_categories()})."
+                    f"{flag} is not a valid QC flag for {type(self).__name__} ({self.get_QC_mappings()})."
                 )
+            reason = self.get_QC_mappings()[flag]
+            invalid_reasons.append(reason)
 
         qc_column_name = self.get_QC_column_name()
         # If Dataset (class) does not contain QC column we raise an error:
@@ -222,7 +233,7 @@ class Dataset(ABC):
             qc = f.when(f.col(column).isNull(), f.array()).otherwise(f.col(column))
 
         filterCondition = ~f.arrays_overlap(
-            f.array([f.lit(i) for i in invalid_flags]), qc
+            f.array([f.lit(i) for i in invalid_reasons]), qc
         )
         # Returning the filtered dataset:
         if invalid:

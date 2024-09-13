@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import FloatType, StringType
+from pyspark.sql.types import ArrayType, FloatType, StringType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
@@ -18,6 +18,7 @@ from gentropy.common.spark_helpers import (
 from gentropy.common.utils import get_logsum, parse_region
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.clump import LDclumping
 
 if TYPE_CHECKING:
@@ -49,6 +50,7 @@ class StudyLocusQualityCheck(Enum):
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
         DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique.
+        INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -67,6 +69,9 @@ class StudyLocusQualityCheck(Enum):
     FAILED_STUDY = "Study has failed quality controls"
     MISSING_STUDY = "Study not found in the study index"
     DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
+    INVALID_VARIANT_IDENTIFIER = (
+        "Some variant identifiers of this locus were not found in variant index"
+    )
 
 
 class CredibleInterval(Enum):
@@ -139,6 +144,65 @@ class StudyLocus(Dataset):
                     ),
                 )
                 .drop("study_studyId", "study_qualityControls")
+            ),
+            _schema=self.get_schema(),
+        )
+
+    def validate_variant_identifiers(
+        self: StudyLocus, variant_index: VariantIndex
+    ) -> StudyLocus:
+        """Flagging study loci, where tagging variant identifiers are not found in variant index.
+
+        Args:
+            variant_index (VariantIndex): Variant index to resolve variant identifiers.
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        # QC column might not be present in the variant index schema, so we have to be ready to handle it:
+        qc_select_expression = (
+            f.col("qualityControls")
+            if "qualityControls" in self.df.columns
+            else f.lit(None).cast(ArrayType(StringType()))
+        )
+
+        # Find out which study loci have variants not in the variant index:
+        flag = (
+            self.df
+            # Exploding locus:
+            .select("studyLocusId", f.explode("locus").alias("locus"))
+            .select("studyLocusId", "locus.variantId")
+            # Join with variant index variants:
+            .join(
+                variant_index.df.select(
+                    "variantId", f.lit(True).alias("inVariantIndex")
+                ),
+                on="variantId",
+                how="left",
+            )
+            # Flagging variants not in the variant index:
+            .withColumn("inVariantIndex", f.col("inVariantIndex").isNotNull())
+            # Flagging study loci with ANY variants not in the variant index:
+            .groupBy("studyLocusId")
+            .agg(f.collect_set("inVariantIndex").alias("inVariantIndex"))
+            .select(
+                "studyLocusId",
+                f.array_contains("inVariantIndex", False).alias("toFlag"),
+            )
+        )
+
+        return StudyLocus(
+            _df=(
+                self.df.join(flag, on="studyLocusId", how="left")
+                .withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        qc_select_expression,
+                        f.col("toFlag"),
+                        StudyLocusQualityCheck.INVALID_VARIANT_IDENTIFIER,
+                    ),
+                )
+                .drop("toFlag")
             ),
             _schema=self.get_schema(),
         )
@@ -423,13 +487,13 @@ class StudyLocus(Dataset):
         return "qualityControls"
 
     @classmethod
-    def get_QC_categories(cls: type[StudyLocus]) -> list[str]:
-        """Quality control categories.
+    def get_QC_mappings(cls: type[StudyLocus]) -> dict[str, str]:
+        """Quality control flag to QC column category mappings.
 
         Returns:
-            list[str]: List of quality control categories.
+            dict[str, str]: Mapping between flag name and QC column category value.
         """
-        return [member.value for member in StudyLocusQualityCheck]
+        return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def filter_by_study_type(
         self: StudyLocus, study_type: str, study_index: StudyIndex

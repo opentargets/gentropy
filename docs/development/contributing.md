@@ -18,7 +18,7 @@ For Google Cloud configuration:
 
 Check that you have the `make` utility installed, and if not (which is unlikely), install it using your system package manager.
 
-Check that you have `java` installed.
+Check that you have `java` installed. To be able to use all features including hail support use java 11.
 
 ## Environment configuration
 
@@ -26,30 +26,19 @@ Run `make setup-dev` to install/update the necessary packages and activate the d
 
 It is recommended to use VS Code as an IDE for development.
 
-## How to run the code
+## How to create gentropy step
 
-All pipelines in this repository are intended to be run in Google Dataproc. Running them locally is not currently supported.
+All gentropy steps can be invoked after successful environment configuration by running
 
-In order to run the code:
+```python
+poetry run gentropy step=<step_name>
+```
 
-1. Manually edit your local `src/airflow/dags/*` file and comment out the steps you do not want to run.
+1. Create a new step config in the `src/gentropy/config.py` that inherits from `StepConfig` class.
 
-2. Manually edit your local `pyproject.toml` file and modify the version of the code.
+2. Register new step configuration to `ConfigStore`.
 
-   - This must be different from the version used by any other people working on the repository to avoid any deployment conflicts, so it's a good idea to use your name, for example: `1.2.3+jdoe`.
-   - You can also add a brief branch description, for example: `1.2.3+jdoe.myfeature`.
-   - Note that the version must comply with [PEP440 conventions](https://peps.python.org/pep-0440/#normalization), otherwise Poetry will not allow it to be deployed.
-   - Do not use underscores or hyphens in your version name. When building the WHL file, they will be automatically converted to dots, which means the file name will no longer match the version and the build will fail. Use dots instead.
-
-3. Manually edit your local `src/airflow/dags/common_airflow.py` and set `GENTROPY_VERSION` to the same version as you did in the previous step.
-
-4. Run `make build`.
-
-   - This will create a bundle containing the neccessary code, configuration and dependencies to run the ETL pipeline, and then upload this bundle to Google Cloud.
-   - A version specific subpath is used, so uploading the code will not affect any branches but your own.
-   - If there was already a code bundle uploaded with the same version number, it will be replaced.
-
-5. Open Airflow UI and run the DAG.
+3. Create a step class that holds the business logic in new file in the `src/gentropy`.
 
 ## Contributing checklist
 
@@ -72,8 +61,7 @@ For more details on each of these steps, see the sections below.
 
 ### Configuration
 
-- Input and output paths in `config/datasets/ot_gcp.yaml`
-- Step configuration, for example: `config/step/ot_finngen_sumstat_preprocess.yaml`
+- step default configuration in the `src/gentropy/config/` `StepConfig` derived classes.
 
 ### Classes
 
@@ -87,6 +75,6 @@ For more details on each of these steps, see the sections below.
 - Test sample data, for example: `tests/gentropy/data_samples/finngen_studies_sample.json`
 - Test definition, for example: `tests/dataset/test_study_index.py` → `test_study_index_finngen_creation`)
 
-### Orchestration
+### Airflow dags
 
-- Airflow DAG, for example: `src/airflow/dags/finngen_harmonisation.py`
+- Upstream of version 2.0.0 airflow orchestration layer was moved to the [orchestration repository](https://github.com/opentargets/orchestration)

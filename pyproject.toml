@@ -71,11 +71,9 @@ pytest-xdist = "^3.5.0"
 ipython = "^8.19.0"
 ipykernel = "^6.28.0"
 google-cloud-dataproc = "^5.8.0"
-apache-airflow = "^2.8.0"
-apache-airflow-providers-google = "^10.13.1"
 pydoclint = ">=0.3.8,<0.6.0"
 prettier = "^0.0.7"
-deptry = ">=0.12,<0.20"
+deptry = ">=0.12,<0.21"
 yamllint = "^1.33.0"
 
 [tool.semantic_release]
@@ -113,7 +111,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.deptry]
-extend_exclude = ["src/conftest.py", "src/airflow", "src/utils"]
+extend_exclude = ["src/conftest.py", "src/utils"]
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["gentropy"]
@@ -126,8 +124,8 @@ exclude = ["dist"]
 
 [tool.pytest.ini_options]
 addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
-pythonpath = [".", "./src/airflow/dags"]
-testpaths = ["tests/gentropy", "src/gentropy/"]
+pythonpath = ["."]
+testpaths = ["tests/gentropy", "src/gentropy"]
 
 # Semi-strict mode for mypy
 [tool.mypy]
