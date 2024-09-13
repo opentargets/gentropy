@@ -2,20 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator, Mapping
+from typing import TYPE_CHECKING, Any, Iterator, Mapping
 
 import pyspark.sql.functions as f
 
-from gentropy.common.spark_helpers import (
-    convert_from_wide_to_long,
-    get_record_with_maximum_value,
-)
+from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.v2g import V2G
-from gentropy.method.colocalisation import ECaviar
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
 
 
 class L2GFeatureInputLoader:
@@ -64,7 +63,42 @@ class L2GFeatureInputLoader:
         return repr(self.input_dependencies)
 
 
-class EqtlColocClppMaximumFeature(L2GFeature):
+def _common_colocalisation_feature_logic(
+    feature_dependency: Colocalisation,
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    colocalisation_method: str,
+    colocalisation_metric: str,
+    qtl_type: str,
+) -> DataFrame:
+    """Wrapper to call the logic that creates a type of colocalisation features.
+
+    Args:
+        feature_dependency (Colocalisation): Dataset with the colocalisation results
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        colocalisation_method (str): The colocalisation method to filter the data by
+        colocalisation_metric (str): The colocalisation metric to use
+        qtl_type (str): The type of QTL to filter the data by
+
+    Returns:
+        DataFrame: Feature annotation in long format with the columns: studyLocusId, geneId, featureName, featureValue
+    """
+    return convert_from_wide_to_long(
+        feature_dependency.extract_maximum_coloc_probability_per_region_and_gene(
+            study_loci_to_annotate,
+            filter_by_colocalisation_method=colocalisation_method,
+            filter_by_qtl=qtl_type,
+        ).selectExpr(
+            "studyLocusId",
+            "geneId",
+            f"{colocalisation_metric} as cls.featureName",
+        ),
+        id_vars=("studyLocusId", "geneId"),
+        var_name="featureName",
+        value_name="featureValue",
+    )
+
+
+class EQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all eQTLs."""
 
     feature_dependency_type = Colocalisation
@@ -72,10 +106,10 @@ class EqtlColocClppMaximumFeature(L2GFeature):
 
     @classmethod
     def compute(
-        cls: type[EqtlColocClppMaximumFeature],
+        cls: type[EQtlColocClppMaximumFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: Colocalisation,
-    ) -> EqtlColocClppMaximumFeature:
+    ) -> EQtlColocClppMaximumFeature:
         """Computes the feature.
 
         Args:
@@ -83,55 +117,24 @@ class EqtlColocClppMaximumFeature(L2GFeature):
             feature_dependency (Colocalisation): Dataset with the colocalisation results
 
         Returns:
-            EqtlColocClppMaximumFeature: Feature dataset
+            EQtlColocClppMaximumFeature: Feature dataset
         """
+        colocalisation_method = "ECaviar"
+        colocalisation_metric = "clpp"
         qtl_type = "eqtl"
-
-        ecaviar_results = feature_dependency.filter(
-            f.col("colocalisationMethod") == ECaviar.METHOD_NAME
-        )
-        ecaviar_metric = ECaviar.METHOD_METRIC
-
-        # From here all code is common
-        qtl_specific_study_loci = study_loci_to_annotate.filter(
-            f.col("studyType") == qtl_type
-        )
-        colocalising_study_loci = (
-            ecaviar_results.df.join(
-                f.broadcast(study_loci_to_annotate.df.select("studyLocusId")),
-                on="studyLocusId",
-            )
-            # filter out gwas loci on the right side
-            .join(
-                f.broadcast(
-                    qtl_specific_study_loci.df.selectExpr(
-                        "studyLocusId as rightStudyLocusId"
-                    )
-                ),
-                on="rightStudyLocusId",
-            )
-        )
-        agg_expr = get_record_with_maximum_value(
-            colocalising_study_loci,
-            ["studyLocusId", "geneId"],
-            ecaviar_metric,
-        ).selectExpr(
-            "studyLocusId",
-            "geneId",
-            f"{ecaviar_metric} as {cls.feature_name}",
-        )
         return cls(
-            _df=convert_from_wide_to_long(
-                agg_expr,
-                id_vars=("studyLocusId", "geneId"),
-                var_name="featureName",
-                value_name="featureValue",
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
             ),
             _schema=cls.get_schema(),
         )
 
 
-class PqtlColocClppMaximumFeature(L2GFeature):
+class PQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
     feature_dependency_type = Colocalisation
@@ -139,10 +142,10 @@ class PqtlColocClppMaximumFeature(L2GFeature):
 
     @classmethod
     def compute(
-        cls: type[PqtlColocClppMaximumFeature],
+        cls: type[PQtlColocClppMaximumFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: Colocalisation,
-    ) -> PqtlColocClppMaximumFeature:
+    ) -> PQtlColocClppMaximumFeature:
         """Computes the feature.
 
         Args:
@@ -150,49 +153,234 @@ class PqtlColocClppMaximumFeature(L2GFeature):
             feature_dependency (Colocalisation): Dataset with the colocalisation results
 
         Returns:
-            PqtlColocClppMaximumFeature: Feature dataset
+            PQtlColocClppMaximumFeature: Feature dataset
         """
+        colocalisation_method = "ECaviar"
+        colocalisation_metric = "clpp"
         qtl_type = "pqtl"
-
-        ecaviar_results = feature_dependency.filter(
-            f.col("colocalisationMethod") == ECaviar.METHOD_NAME
-        )
-        ecaviar_metric = ECaviar.METHOD_METRIC
-
-        # From here all code is common
-        qtl_specific_study_loci = study_loci_to_annotate.filter(
-            f.col("studyType") == qtl_type
-        )
-        colocalising_study_loci = (
-            ecaviar_results.df.join(
-                f.broadcast(study_loci_to_annotate.df.select("studyLocusId")),
-                on="studyLocusId",
-            )
-            # filter out gwas loci on the right side
-            .join(
-                f.broadcast(
-                    qtl_specific_study_loci.df.selectExpr(
-                        "studyLocusId as rightStudyLocusId"
-                    )
-                ),
-                on="rightStudyLocusId",
-            )
-        )
-        agg_expr = get_record_with_maximum_value(
-            colocalising_study_loci,
-            ["studyLocusId", "geneId"],
-            ecaviar_metric,
-        ).selectExpr(
-            "studyLocusId",
-            "geneId",
-            f"{ecaviar_metric} as {cls.feature_name}",
-        )
         return cls(
-            _df=convert_from_wide_to_long(
-                agg_expr,
-                id_vars=("studyLocusId", "geneId"),
-                var_name="featureName",
-                value_name="featureValue",
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class SQtlColocClppMaximumFeature(L2GFeature):
+    """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "sQtlColocClppMaximum"
+
+    @classmethod
+    def compute(
+        cls: type[SQtlColocClppMaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> SQtlColocClppMaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            SQtlColocClppMaximumFeature: Feature dataset
+        """
+        colocalisation_method = "ECaviar"
+        colocalisation_metric = "clpp"
+        qtl_type = "sqtl"
+        return cls(
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class TuQtlColocClppMaximumFeature(L2GFeature):
+    """Max CLPP for each (study, locus, gene) aggregating over all tuQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "tuQtlColocClppMaximum"
+
+    @classmethod
+    def compute(
+        cls: type[TuQtlColocClppMaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> TuQtlColocClppMaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            TuQtlColocClppMaximumFeature: Feature dataset
+        """
+        colocalisation_method = "ECaviar"
+        colocalisation_metric = "clpp"
+        qtl_type = "tuqtl"
+        return cls(
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class EQtlColocH4MaximumFeature(L2GFeature):
+    """Max CLPP for each (study, locus, gene) aggregating over all eQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "eQtlColocH4Maximum"
+
+    @classmethod
+    def compute(
+        cls: type[EQtlColocH4MaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> EQtlColocH4MaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            EQtlColocH4MaximumFeature: Feature dataset
+        """
+        colocalisation_method = "COLOC"
+        colocalisation_metric = "h4"
+        qtl_type = "eqtl"
+        return cls(
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class PQtlColocH4MaximumFeature(L2GFeature):
+    """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "pQtlColocH4Maximum"
+
+    @classmethod
+    def compute(
+        cls: type[PQtlColocH4MaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> PQtlColocH4MaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            PQtlColocH4MaximumFeature: Feature dataset
+        """
+        colocalisation_method = "COLOC"
+        colocalisation_metric = "h4"
+        qtl_type = "pqtl"
+        return cls(
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class SQtlColocH4MaximumFeature(L2GFeature):
+    """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "sQtlColocH4Maximum"
+
+    @classmethod
+    def compute(
+        cls: type[SQtlColocH4MaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> SQtlColocH4MaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            SQtlColocH4MaximumFeature: Feature dataset
+        """
+        colocalisation_method = "COLOC"
+        colocalisation_metric = "h4"
+        qtl_type = "sqtl"
+        return cls(
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class TuQtlColocH4MaximumFeature(L2GFeature):
+    """Max H4 for each (study, locus, gene) aggregating over all tuQTLs."""
+
+    feature_dependency_type = Colocalisation
+    feature_name = "tuQtlColocH4Maximum"
+
+    @classmethod
+    def compute(
+        cls: type[TuQtlColocH4MaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: Colocalisation,
+    ) -> TuQtlColocH4MaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (Colocalisation): Dataset with the colocalisation results
+
+        Returns:
+            TuQtlColocH4MaximumFeature: Feature dataset
+        """
+        colocalisation_method = "COLOC"
+        colocalisation_metric = "h4"
+        qtl_type = "tuqtl"
+        return cls(
+            _df=_common_colocalisation_feature_logic(
+                feature_dependency,
+                study_loci_to_annotate,
+                colocalisation_method,
+                colocalisation_metric,
+                qtl_type,
             ),
             _schema=cls.get_schema(),
         )
@@ -223,7 +411,10 @@ class DistanceTssMinimumFeature(L2GFeature):
 
 
 class DistanceTssMeanFeature(L2GFeature):
-    """Average distance of all tagging variants to gene TSS."""
+    """Average distance of all tagging variants to gene TSS.
+
+    NOTE: to be rewritten taking variant index as input
+    """
 
     fill_na_value = 500_000
     feature_dependency_type = V2G
@@ -285,7 +476,15 @@ class FeatureFactory:
 
     feature_mapper: Mapping[str, type[L2GFeature]] = {
         # "distanceTssMinimum": DistanceTssMinimumFeature,
-        "distanceTssMean": DistanceTssMeanFeature,
+        # "distanceTssMean": DistanceTssMeanFeature,
+        "eqtlColocClppMaximum": EQtlColocClppMaximumFeature,
+        "pqtlColocClppMaximum": PQtlColocClppMaximumFeature,
+        "sqtlColocClppMaximum": SQtlColocClppMaximumFeature,
+        "tuqtlColocClppMaximum": TuQtlColocClppMaximumFeature,
+        "eqtlColocH4Maximum": EQtlColocH4MaximumFeature,
+        "pqtlColocH4Maximum": PQtlColocH4MaximumFeature,
+        "sqtlColocH4Maximum": SQtlColocH4MaximumFeature,
+        "tuqtlColocH4Maximum": TuQtlColocH4MaximumFeature,
     }
 
     def __init__(

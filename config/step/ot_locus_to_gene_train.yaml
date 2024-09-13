@@ -21,6 +21,16 @@ hyperparameters:
 download_from_hub: true
 features_list:
   # average distance of all tagging variants to gene TSS
-  - distanceTssMean
+  # - distanceTssMean
   # minimum distance of all tagging variants to gene TSS
-  - distanceTssMinimum
+  # - distanceTssMinimum
+  # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+  - eQtlColocClppMaximum
+  - pQtlColocClppMaximum
+  - sQtlColocClppMaximum
+  - tuQtlColocClppMaximum
+  # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+  - eQtlColocH4Maximum
+  - pQtlColocH4Maximum
+  - sQtlColocH4Maximum
+  - tuQtlColocH4Maximum
