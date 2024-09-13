@@ -499,14 +499,14 @@ class FeatureFactory:
     feature_mapper: Mapping[str, type[L2GFeature]] = {
         # "distanceTssMinimum": DistanceTssMinimumFeature,
         # "distanceTssMean": DistanceTssMeanFeature,
-        "eqtlColocClppMaximum": EQtlColocClppMaximumFeature,
-        "pqtlColocClppMaximum": PQtlColocClppMaximumFeature,
-        "sqtlColocClppMaximum": SQtlColocClppMaximumFeature,
-        "tuqtlColocClppMaximum": TuQtlColocClppMaximumFeature,
-        "eqtlColocH4Maximum": EQtlColocH4MaximumFeature,
-        "pqtlColocH4Maximum": PQtlColocH4MaximumFeature,
-        "sqtlColocH4Maximum": SQtlColocH4MaximumFeature,
-        "tuqtlColocH4Maximum": TuQtlColocH4MaximumFeature,
+        "eQtlColocClppMaximum": EQtlColocClppMaximumFeature,
+        "pQtlColocClppMaximum": PQtlColocClppMaximumFeature,
+        "sQtlColocClppMaximum": SQtlColocClppMaximumFeature,
+        "tuQtlColocClppMaximum": TuQtlColocClppMaximumFeature,
+        "eQtlColocH4Maximum": EQtlColocH4MaximumFeature,
+        "pQtlColocH4Maximum": PQtlColocH4MaximumFeature,
+        "sQtlColocH4Maximum": SQtlColocH4MaximumFeature,
+        "tuQtlColocH4Maximum": TuQtlColocH4MaximumFeature,
     }
 
     def __init__(

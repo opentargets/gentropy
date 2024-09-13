@@ -6,12 +6,12 @@ from functools import reduce
 from typing import TYPE_CHECKING, Type
 
 from gentropy.common.spark_helpers import convert_from_long_to_wide
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-    from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
     from gentropy.dataset.study_locus import StudyLocus
 
 

@@ -7,14 +7,20 @@ from typing import TYPE_CHECKING
 import pytest
 from pyspark.sql import DataFrame
 
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.v2g import V2G
 from gentropy.datasource.open_targets.l2g_gold_standard import (
     OpenTargetsL2GGoldStandard,
 )
+from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 if TYPE_CHECKING:
     from pyspark.sql.session import SparkSession
+
+    from gentropy.dataset.colocalisation import Colocalisation
+    from gentropy.dataset.study_locus import StudyLocus
 
 
 def test_open_targets_as_l2g_gold_standard(
@@ -104,3 +110,20 @@ class TestExpandGoldStandardWithNegatives:
                 V2G(_df=sample_v2g_df, _schema=V2G.get_schema()),
             )
         )
+
+
+def test_build_feature_matrix(
+    mock_l2g_gold_standard: L2GGoldStandard,
+    mock_study_locus: StudyLocus,
+    mock_colocalisation: Colocalisation,
+    mock_study_index: StudyIndex,
+) -> None:
+    """Test building feature matrix with the eQtlColocH4Maximum feature."""
+    features_list = ["eQtlColocH4Maximum"]
+    loader = L2GFeatureInputLoader(
+        colocalisation=mock_colocalisation, study_index=mock_study_index
+    )
+    fm = mock_study_locus.build_feature_matrix(features_list, loader)
+    assert isinstance(
+        mock_l2g_gold_standard.build_feature_matrix(fm), L2GFeatureMatrix
+    ), "Feature matrix should be of type L2GFeatureMatrix"
