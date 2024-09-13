@@ -9,15 +9,16 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql.types import DoubleType, IntegerType, LongType
+from pyspark.sql.types import DoubleType, FloatType, IntegerType, LongType
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
+    get_standard_error_from_confidence_interval,
     pvalue_to_zscore,
 )
-from gentropy.common.utils import parse_efos
+from gentropy.common.utils import convert_odds_ratio_to_beta, parse_efos
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
@@ -195,7 +196,7 @@ class GWASCatalogCuratedAssociationsParser:
         return f.array_distinct(f.array(snp_id, snp_id_current, risk_allele))
 
     @staticmethod
-    def _map_variants_to_variant_index(
+    def _map_variants_to_gnomad_variants(
         gwas_associations: DataFrame, variant_index: VariantIndex
     ) -> DataFrame:
         """Add variant metadata in associations.
@@ -992,7 +993,7 @@ class GWASCatalogCuratedAssociationsParser:
     def from_source(
         cls: type[GWASCatalogCuratedAssociationsParser],
         gwas_associations: DataFrame,
-        variant_index: VariantIndex,
+        gnomad_variants: VariantIndex,
         pvalue_threshold: float = WindowBasedClumpingStepConfig.gwas_significance,
     ) -> StudyLocusGWASCatalog:
         """Read GWASCatalog associations.
@@ -1002,7 +1003,7 @@ class GWASCatalogCuratedAssociationsParser:
 
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset.
-            variant_index (VariantIndex): Variant index dataset with available allele frequencies.
+            gnomad_variants (VariantIndex): Variant dataset from GnomAD, with allele frequencies.
             pvalue_threshold (float): P-value threshold for flagging associations.
 
         Returns:
@@ -1017,25 +1018,55 @@ class GWASCatalogCuratedAssociationsParser:
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
                 # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
-                lambda df: GWASCatalogCuratedAssociationsParser._map_variants_to_variant_index(
-                    df, variant_index
+                lambda df: GWASCatalogCuratedAssociationsParser._map_variants_to_gnomad_variants(
+                    df, gnomad_variants
                 )
             )
-            .withColumn(
+            .withColumns(
                 # Perform all quality control checks:
-                "qualityControls",
-                GWASCatalogCuratedAssociationsParser._qc_all(
-                    f.array().alias("qualityControls"),
-                    f.col("CHR_ID"),
-                    f.col("CHR_POS").cast(IntegerType()),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("STRONGEST SNP-RISK ALLELE"),
-                    *GWASCatalogCuratedAssociationsParser._parse_pvalue(
-                        f.col("P-VALUE")
+                {
+                    "qualityControls": GWASCatalogCuratedAssociationsParser._qc_all(
+                        f.array().alias("qualityControls"),
+                        f.col("CHR_ID"),
+                        f.col("CHR_POS").cast(IntegerType()),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                        f.col("STRONGEST SNP-RISK ALLELE"),
+                        *GWASCatalogCuratedAssociationsParser._parse_pvalue(
+                            f.col("P-VALUE")
+                        ),
+                        pvalue_threshold,
                     ),
-                    pvalue_threshold,
-                ),
+                    # Normalise beta value of the association:
+                    "effect_beta": GWASCatalogCuratedAssociationsParser._harmonise_beta(
+                        GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
+                            f.col("STRONGEST SNP-RISK ALLELE")
+                        ),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                        f.col("OR or BETA"),
+                        f.col("95% CI (TEXT)"),
+                    ),
+                    # Normalise odds ratio of the association:
+                    "effect_odds_ratio": GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(
+                        GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
+                            f.col("STRONGEST SNP-RISK ALLELE")
+                        ),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                        f.col("OR or BETA"),
+                        f.col("95% CI (TEXT)"),
+                    ),
+                    # Calculate standard error from confidence interval text:
+                    "standard_error": get_standard_error_from_confidence_interval(
+                        f.regexp_extract(
+                            "95% CI (TEXT)", r"\[(\d+\.*\d*)-\d+\.*\d*\]", 1
+                        ).cast(FloatType()),
+                        f.regexp_extract(
+                            "95% CI (TEXT)", r"\[\d+\.*\d*-(\d+\.*\d*)\]", 1
+                        ).cast(FloatType()),
+                    ),
+                }
             )
             .select(
                 # INSIDE STUDY-LOCUS SCHEMA:
@@ -1045,18 +1076,14 @@ class GWASCatalogCuratedAssociationsParser:
                 "chromosome",
                 "position",
                 f.col("STUDY ACCESSION").alias("studyId"),
-                # beta value of the association
-                GWASCatalogCuratedAssociationsParser._harmonise_beta(
-                    GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                ).alias("beta"),
                 # p-value of the association, string: split into exponent and mantissa.
                 *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
+                # Harmonise effect to beta value:
+                *convert_odds_ratio_to_beta(
+                    f.col("effect_beta"),
+                    f.col("effect_odds_ratio"),
+                    f.col("standard_error"),
+                ),
                 # Capturing phenotype granularity at the association level
                 GWASCatalogCuratedAssociationsParser._concatenate_substudy_description(
                     f.col("DISEASE/TRAIT"),
