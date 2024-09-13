@@ -29,10 +29,10 @@ class BiosampleIndexStep:
             uberon_input_path (str): Input uberon dataset path.
             biosample_index_output_path (str): Output gene index dataset path.
         """
-        cell_ontology_index = CellOntologyBiosampleIndex.extract_celltypes_from_source(
+        cell_ontology_index = BiosampleIndex.extract_from_source(
             session, cell_ontology_input_path
         )
-        uberon_index = UberonBiosampleIndex.extract_tissue_from_source(
+        uberon_index = BiosampleIndex.extract_from_source(
             session, uberon_input_path
         )
         biosample_index = BiosampleIndex.merge([cell_ontology_index, uberon_index])

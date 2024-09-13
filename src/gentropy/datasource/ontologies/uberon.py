@@ -13,6 +13,7 @@ import owlready2 as owl
 
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
+from grn
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame

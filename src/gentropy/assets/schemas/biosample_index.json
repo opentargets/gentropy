@@ -4,7 +4,7 @@
     {
       "name": "biosampleId",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {
@@ -14,14 +14,30 @@
       "metadata": {}
     },
     {
-      "name": "dbXRefs",
-      "type": {
-        "type": "array",
-        "elementType": "string",
-        "containsNull": true
-      },
+      "metadata": {},
+      "name": "dbXrefs",
       "nullable": true,
-      "metadata": {}
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "id",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "source",
+              "nullable": true,
+              "type": "string"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
     },
     {
       "name": "description",
