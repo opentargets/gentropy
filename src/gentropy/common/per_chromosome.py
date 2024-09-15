@@ -36,7 +36,7 @@ def prepare_va(session: SparkSession, variant_annotation_path: str, tmp_variant_
                 f.col("position"),
                 f.col("referenceAllele"),
                 f.col("alternateAllele")
-            ).alias("ukb_ppp_id"),
+            ).alias("summary_stats_id"),
             f.lit("direct").alias("direction")
         )
     )
@@ -51,7 +51,7 @@ def prepare_va(session: SparkSession, variant_annotation_path: str, tmp_variant_
                 f.col("position"),
                 f.col("alternateAllele"),
                 f.col("referenceAllele")
-            ).alias("ukb_ppp_id"),
+            ).alias("summary_stats_id"),
             f.lit("flip").alias("direction")
         )
     )

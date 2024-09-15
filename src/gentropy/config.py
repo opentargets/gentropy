@@ -598,3 +598,4 @@ def register_config() -> None:
         name="study_validation",
         node=StudyValidationStepConfig,
     )
+    cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
