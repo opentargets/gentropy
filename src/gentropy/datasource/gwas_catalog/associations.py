@@ -140,8 +140,8 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
     @staticmethod
-    def _normalise_risk_allele(risk_allele: Column) -> Column:
-        """Normalised risk allele column to a standardised format.
+    def _extract_risk_allele(risk_allele: Column) -> Column:
+        """Extract risk allele from provided "STRONGEST SNP-RISK ALLELE" input column.
 
         If multiple risk alleles are present, the first one is returned.
 
@@ -155,7 +155,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> import pyspark.sql.types as t
             >>> d = [("rs1234-A-G"), ("rs1234-A"), ("rs1234-A; rs1235-G")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._normalise_risk_allele(f.col('value'))).show()
+            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._extract_risk_allele(f.col('value'))).show()
             +------------------+----------+
             |             value|normalised|
             +------------------+----------+
@@ -219,7 +219,7 @@ class GWASCatalogCuratedAssociationsParser:
                 f.col("SNP_ID_CURRENT"),
                 f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
             ).alias("rsIdsGwasCatalog"),
-            GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
+            GWASCatalogCuratedAssociationsParser._extract_risk_allele(
                 f.col("STRONGEST SNP-RISK ALLELE")
             ).alias("riskAllele"),
         )
@@ -926,6 +926,33 @@ class GWASCatalogCuratedAssociationsParser:
 
         Raises:
             ValueError: If any of the required columns are missing.
+
+        Examples:
+            >>> data = [
+            ...    # Flagged as palindromic:
+            ...    ('rs123-T', 'A', 'T', '0.1', '[0.08-0.12] unit increase'),
+            ...    # Not palindromic, beta needs to be flipped:
+            ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12] unit increase'),
+            ...    # Beta is not flipped:
+            ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12] unit increase'),
+            ...    # odds ratio:
+            ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12]'),
+            ...    # odds ratio flipped:
+            ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12]'),
+            ... ]
+            >>> schema = ["STRONGEST SNP-RISK ALLELE", "referenceAllele", "alternateAllele", "OR or BETA", "95% CI (TEXT)"]
+            >>> df = spark.createDataFrame(data, schema)
+            >>> GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).show()
+            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
+            |STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|               beta|       standardError|
+            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
+            |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               null|                null|
+            |                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|               -0.1|0.010204081404574064|
+            |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|                0.1|0.010204081404574064|
+            |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                null|
+            |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                null|
+            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
+            <BLANKLINE>
         """
         # Testing if all columns are in the dataframe:
         required_columns = [
@@ -945,7 +972,7 @@ class GWASCatalogCuratedAssociationsParser:
         return (
             df.withColumn(
                 "reporetedRiskAllele",
-                GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
+                GWASCatalogCuratedAssociationsParser._extract_risk_allele(
                     f.col("STRONGEST SNP-RISK ALLELE")
                 ),
             )
@@ -976,7 +1003,7 @@ class GWASCatalogCuratedAssociationsParser:
             )
             # Harmonise both beta and odds ratio:
             .withColumns(
-                {  # Normalise beta value of the association when needed:
+                {  # Normalise beta value of the association:
                     "effect_beta": f.when(
                         (f.col("effectType") == "beta")
                         & (~f.col("isAllelePalindromic")),
