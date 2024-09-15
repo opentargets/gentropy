@@ -604,7 +604,7 @@ class GWASCatalogCuratedAssociationsParser:
         """Odds ratio is either propagated or flipped if needed.
 
         Args:
-            effect_size: (Column): containing effect size,
+            effect_size (Column): containing effect size,
             flipping_needed (Column): Boolean flag indicating if effect needs to be flipped
 
         Returns:
