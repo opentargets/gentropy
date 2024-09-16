@@ -579,7 +579,7 @@ class GWASCatalogCuratedAssociationsParser:
         If it's "increase" and the effect size needs to be harmonized, then multiply the effect size by -1.
         The sign of the effect size is flipped if the confidence interval contains "decrease".
 
-        eg. if the reporeted value is 0.5, and the confidence interval tells "decrease"? -> beta is -0.5
+        eg. if the reported value is 0.5, and the confidence interval tells "decrease"? -> beta is -0.5
 
         Args:
             effect_size (Column): GWAS Catalog effect size column.
@@ -1021,7 +1021,7 @@ class GWASCatalogCuratedAssociationsParser:
 
         return (
             df.withColumn(
-                "reporetedRiskAllele",
+                "reportedRiskAllele",
                 GWASCatalogCuratedAssociationsParser._extract_risk_allele(
                     f.col("STRONGEST SNP-RISK ALLELE")
                 ),
@@ -1034,7 +1034,7 @@ class GWASCatalogCuratedAssociationsParser:
                     ),
                     # Flag associations, where the effect direction needs to be flipped:
                     "needsFlipping": GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
-                        f.col("reporetedRiskAllele"), f.col("referenceAllele")
+                        f.col("reportedRiskAllele"), f.col("referenceAllele")
                     ),
                     # Flag effect type:
                     "effectType": GWASCatalogCuratedAssociationsParser._get_effect_type(
