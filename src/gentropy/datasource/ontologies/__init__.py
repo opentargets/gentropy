@@ -1,3 +1,3 @@
-"""GWAS Catalog Data Source."""
+"""Biosample index data source."""
 
 from __future__ import annotations

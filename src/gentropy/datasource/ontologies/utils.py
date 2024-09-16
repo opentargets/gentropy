@@ -1,105 +1,10 @@
 """Utility functions for Biosample ontology processing."""
-import owlready2
-from pyspark.sql import Row, SparkSession
+from pyspark.sql import Row, SparkSession, DataFrame
 from pyspark.sql.types import StructType, StringType, ArrayType
-from pyspark.sql.functions import col, explode_outer, collect_set, collect_list, array_distinct, regexp_replace, udf, coalesce
+from pyspark.sql.functions import col, explode_outer, collect_set, collect_list, array_distinct, regexp_replace, udf, coalesce, first
 from pyspark.sql.window import Window
 from functools import reduce
 from gentropy.dataset.biosample_index import BiosampleIndex
-
-
-def extract_ontology_info(
-    ontology : owlready2.namespace.Ontology,
-    spark : SparkSession,
-    schema : StructType
-) -> BiosampleIndex:
-    """Extracts the ontology information from Uberon or Cell Ontology owo owlready2 ontology object.
-    NOT IN USE
-
-    Args:
-        ontology (owlready2.namespace.Ontology): An owlready2 ontology object. Must be either from Cell Ontology or Uberon.
-        prefix (str): Prefix for the desired ontology terms.
-        session (Session): Spark session.
-
-    Returns:
-        BiosampleIndex: Parsed and annotated biosample index table.
-    """
-    data_list = []
-
-    # Iterate over all classes in the ontology
-    for cls in ontology.classes():
-        # Basic class information
-        cls_id = cls.name
-        # cls_code = cls.iri
-        cls_name = cls.label[0] if cls.label else None
-
-        # Extract descriptions
-        description = None
-        if hasattr(cls, 'IAO_0000115'):
-            description = cls.IAO_0000115.first() if cls.IAO_0000115 else None
-
-        # Extract dbXRefs
-        dbXRefs = []
-        if hasattr(cls, 'hasDbXref'):
-            dbXRefs = [Row(id=x, source=x.split(':')[0]) for x in cls.hasDbXref]
-
-        # Parent classes
-        parents = []
-        for parent in cls.is_a:
-            if parent is owl.Thing: 
-                continue  # Skip owlready2 Thing class, which is a top-level class
-            elif hasattr(parent, 'name'):
-                parent_id = parent.name
-                parents.append(parent_id)
-            elif hasattr(parent, 'property'):  # For restrictions
-                continue  # We skip restrictions in this simplified list
-
-        # Synonyms
-        synonyms = set()
-        if hasattr(cls, 'hasExactSynonym'):
-            synonyms.update(cls.hasExactSynonym)
-        if hasattr(cls, 'hasBroadSynonym'):
-            synonyms.update(cls.hasBroadSynonym)
-        if hasattr(cls, 'hasNarrowSynonym'):
-            synonyms.update(cls.hasNarrowSynonym)
-        if hasattr(cls, 'hasRelatedSynonym'):
-            synonyms.update(cls.hasRelatedSynonym)
-
-        # Children classes
-        children = [child.name for child in cls.subclasses()]
-
-        # Ancestors and descendants with Thing class filtered out
-        ancestors = [anc.name for anc in cls.ancestors() if hasattr(anc, 'name') and anc is not owl.Thing]
-        descendants = [desc.name for desc in cls.descendants() if hasattr(desc, 'name')]
-
-        # Check if the class is deprecated
-        is_deprecated = False
-        if hasattr(cls, 'deprecated') and cls.deprecated:
-            is_deprecated = True
-
-        # Compile all information into a Row
-        entry = Row(
-            id=cls_id,
-            # code=cls_code,
-            name=cls_name,  
-            dbXRefs=dbXRefs,
-            description=description,
-            parents=parents,
-            synonyms=list(synonyms),
-            ancestors=ancestors,
-            descendants=descendants,
-            children=children,
-            ontology={"is_obsolete": is_deprecated}
-        )
-        
-        # Add to data list
-        data_list.append(entry)
-
-
-    # Create DataFrame directly from Rows
-    df = spark.createDataFrame(data_list, schema)
-    return df
-
 
 def extract_ontology_from_json(
     ontology_json : str,
@@ -173,8 +78,9 @@ def extract_ontology_from_json(
     col("node.lbl").alias("biosampleName"),
     col("node.meta.definition.val").alias("description"),
     collect_set(col("node.meta.xrefs.val")).over(Window.partitionBy("node.id")).getItem(0).alias("dbXrefs"),
-    collect_set(col("node.meta.synonyms.val")).over(Window.partitionBy("node.id")).getItem(0).alias("synonyms"),
-    col("node.meta.deprecated").alias("deprecated"))
+    # col("node.meta.deprecated").alias("deprecated"),
+    collect_set(col("node.meta.synonyms.val")).over(Window.partitionBy("node.id")).getItem(0).alias("synonyms"))
+    
     
     # Extract the relationships from the edges
     # Prepare relationship-specific DataFrames
@@ -198,17 +104,40 @@ def extract_ontology_from_json(
     
     return final_df
 
-    def merge_biosample_indices(
+def merge_biosample_indices(
          biosample_indices: list[BiosampleIndex], 
     ) -> BiosampleIndex:
-        """Merge a list of biosample indexes into a single biosample index.
-        Where there are conflicts, in single values - the first value is taken. In list values, the union of all values is taken.
+    """Merge a list of biosample indexes into a single biosample index.
+    Where there are conflicts, in single values - the first value is taken. In list values, the union of all values is taken.
 
-        Args:
-            biosample_indexes (BiosampleIndex): Biosample indexes to merge.
+    Args:
+        biosample_indexes (BiosampleIndex): Biosample indexes to merge.
 
-        Returns:
-            BiosampleIndex: Merged biosample index.
-        """
-        # Merge the DataFrames
-        merged_df = reduce(DataFrame.unionByName, biosample_indices)
+    Returns:
+        BiosampleIndex: Merged biosample index.
+    """
+    
+    def merge_lists(lists):
+        """Merge a list of lists into a single list."""
+        return list(set([item for sublist in lists if sublist is not None for item in sublist]))
+    
+    # Make a spark udf (user defined function) to merge lists
+    merge_lists_udf = udf(merge_lists, ArrayType(StringType()))
+
+    # Merge the DataFrames
+    merged_df = reduce(DataFrame.unionAll, biosample_indices)
+    
+    # Define dictionary of columns and corresponding aggregation functions
+    # Currently this will take the first value for single values and merge lists for list values
+    agg_funcs = {}
+    for column in merged_df.columns:
+        if column != 'biosampleId':
+            if 'list' in column:  # Assuming column names that have 'list' need list merging
+                agg_funcs[column] = merge_lists_udf(collect_list(column)).alias(column)
+            else:
+                agg_funcs[column] = first(column, ignorenulls=True).alias(column)
+
+    # Group by biosampleId and aggregate the columns
+    merged_df = merged_df.groupBy('biosampleId').agg(agg_funcs)
+
+    return merged_df

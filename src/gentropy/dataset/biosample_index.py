@@ -23,8 +23,6 @@ from pyspark.sql import Column, DataFrame, Row
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-import owlready2 as owl
-
 
 @dataclass
 class BiosampleIndex(Dataset):
@@ -41,7 +39,3 @@ class BiosampleIndex(Dataset):
             StructType: The schema of the BiosampleIndex dataset.
         """
         return parse_spark_schema("biosample_index.json")
-
-
-        
-

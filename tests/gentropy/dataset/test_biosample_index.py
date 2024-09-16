@@ -10,7 +10,7 @@ from pyspark.sql.types import StructType, StructField, StringType, ArrayType, Ma
 import json
 
 from gentropy.dataset.biosample_index import BiosampleIndex
-from gentropy.datasource.ontologies.utils import extract_ontology_from_json
+from gentropy.datasource.ontologies.utils import extract_ontology_from_json, merge_biosample_indices
 
 
 def test_biosample_index_creation(mock_biosample_index: BiosampleIndex) -> None:
@@ -19,13 +19,15 @@ def test_biosample_index_creation(mock_biosample_index: BiosampleIndex) -> None:
 
 
 
-spark2 = SparkSession.builder \
+spark = SparkSession.builder \
     .master("local[*]") \
     .appName("LocalOntologyIndexing") \
     .getOrCreate()
 
+ontology_json1 = "file:////home/alegbe/repos/gentropy/tests/gentropy/data_samples/nephron-minimal.json"
+ontology_json2 = "file://///home/alegbe/repos/gentropy/tests/gentropy/data_samples/cell_ontology_dummy.json"
 
-ontology_json = 'file:///home/alegbe/cl.json'
-# ontology_json = 'file:///home/alegbe/uberon.json'
+df1 = extract_ontology_from_json(ontology_json1, spark)
+df2 = extract_ontology_from_json(ontology_json2, spark)
 
-df = extract_ontology_from_json(ontology_json, spark2)
+df_merged = merge_biosample_indices([df1, df2])

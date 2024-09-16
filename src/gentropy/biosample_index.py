@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
-from gentropy.datasource.open_targets.target import OpenTargetsTarget
 from gentropy.dataset.biosample_index import BiosampleIndex
-from gentropy.datasource.cell_ontology.biosample_index import CellOntologyBiosampleIndex
-from gentropy.datasource.uberon.biosample_index import UberonBiosampleIndex
+from gentropy.datasource.ontologies.utils import extract_ontology_from_json, merge_biosample_indices
 
 
 class BiosampleIndexStep:
@@ -29,12 +27,10 @@ class BiosampleIndexStep:
             uberon_input_path (str): Input uberon dataset path.
             biosample_index_output_path (str): Output gene index dataset path.
         """
-        cell_ontology_index = BiosampleIndex.extract_from_source(
-            session, cell_ontology_input_path
-        )
-        uberon_index = BiosampleIndex.extract_from_source(
-            session, uberon_input_path
-        )
-        biosample_index = BiosampleIndex.merge([cell_ontology_index, uberon_index])
-        biosample_index.write_parquet(biosample_index_output_path)
+        cell_ontology_index = extract_ontology_from_json(cell_ontology_input_path, session.spark)
+        uberon_index = extract_ontology_from_json(uberon_input_path, session.spark)
+        
+        biosample_index = merge_biosample_indices([cell_ontology_index, uberon_index])
+        
+        biosample_index.df.write.mode(session.write_mode).parquet(biosample_index_output_path)
         

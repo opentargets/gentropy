@@ -40,17 +40,6 @@
       "metadata": {}
     },
     {
-      "name": "deprecated",
-      "type": {
-        "type": "map",
-        "keyType": "string",
-        "valueType": "boolean",
-        "valueContainsNull": true
-      },
-      "nullable": true,
-      "metadata": {}
-    },
-    {
       "name": "parents",
       "type": {
         "type": "array",

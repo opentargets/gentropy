@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.gene_index import GeneIndex
+    from gentropy.dataset.biosample_index import BiosampleIndex
 
 
 class StudyQualityCheck(Enum):
@@ -29,6 +30,7 @@ class StudyQualityCheck(Enum):
         UNRESOLVED_TARGET (str): Target/gene identifier could not match to reference - Labelling failing target.
         UNRESOLVED_DISEASE (str): Disease identifier could not match to referece or retired identifier - labelling failing disease
         UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
+        UNKNOWN_BIOSAMPLE (str): Flagging if a biosample identifier is not found in the reference.
         DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
         NO_GENE_PROVIDED (str): Flagging QTL studies if the measured
     """
@@ -36,6 +38,7 @@ class StudyQualityCheck(Enum):
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
     UNRESOLVED_DISEASE = "No valid disease identifier found."
     UNKNOWN_STUDY_TYPE = "This type of study is not supported."
+    UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference."
     DUPLICATED_STUDY = "The identifier of this study is not unique."
     NO_GENE_PROVIDED = "QTL study doesn't have gene assigned."
 
@@ -434,7 +437,7 @@ class StudyIndex(Dataset):
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
                     ~f.col("isIdFound"),
-                    StudyQualityCheck.NO_GENE_PROVIDED,
+                    StudyQualityCheck.UNKNOWN_BIOSAMPLE,
                 ),
             )
             .drop("isIdFound")
