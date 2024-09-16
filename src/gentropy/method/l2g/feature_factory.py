@@ -13,7 +13,7 @@ from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
 )
 from gentropy.dataset.l2g_feature import L2GFeature
-from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.colocalisation import Coloc, ECaviar
 
 if TYPE_CHECKING:
@@ -177,8 +177,7 @@ class StudyLocusFactory(StudyLocus):
 
         """
         wide_df = (
-            credible_set.filter_credible_set(CredibleInterval.IS95)
-            .df.withColumn("variantInLocus", f.explode_outer("locus"))
+            credible_set.df.withColumn("variantInLocus", f.explode_outer("locus"))
             .select(
                 "studyLocusId",
                 "variantId",
@@ -268,8 +267,7 @@ class StudyLocusFactory(StudyLocus):
             )
 
         credible_set_w_variant_consequences = (
-            credible_set.filter_credible_set(CredibleInterval.IS95)
-            .df.withColumn("variantInLocus", f.explode_outer("locus"))
+            credible_set.df.withColumn("variantInLocus", f.explode_outer("locus"))
             .select(
                 f.col("studyLocusId"),
                 f.col("variantId"),
