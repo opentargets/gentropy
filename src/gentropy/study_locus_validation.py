@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 
 
 class StudyLocusValidationStep:
@@ -46,6 +46,8 @@ class StudyLocusValidationStep:
             )  # Flagging study locus with subsignificant p-values
             .validate_study(study_index)  # Flagging studies not in study index
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
+            # only 95% credible sets are kept
+            .filter_credible_set(CredibleInterval.IS95)
         ).persist()  # we will need this for 2 types of outputs
 
         study_locus_with_qc.valid_rows(
