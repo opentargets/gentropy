@@ -573,18 +573,50 @@ class GWASCatalogCuratedAssociationsParser:
         confidence_interval: Column,
         flipping_needed: Column,
     ) -> Column:
-        """A function to extract the beta value from the effect size and confidence interval.
+        """A function to extract the beta value from the effect size and confidence interval and harmonises for the alternate allele.
 
         If the confidence interval contains the word "increase" or "decrease" it indicates, we are dealing with betas.
-        If it's "increase" and the effect size needs to be harmonized, then multiply the effect size by -1
+        If it's "increase" and the effect size needs to be harmonized, then multiply the effect size by -1.
+        The sign of the effect size is flipped if the confidence interval contains "decrease".
+
+        eg. if the reporeted value is 0.5, and the confidence interval tells "decrease"? -> beta is -0.5
 
         Args:
-            effect_size (Column): GWAS Catalog effect size column
-            confidence_interval (Column): GWAS Catalog confidence interval column
-            flipping_needed (Column): Boolean flag indicating if effect needs to be flipped
+            effect_size (Column): GWAS Catalog effect size column.
+            confidence_interval (Column): GWAS Catalog confidence interval column to know the direction of the effect.
+            flipping_needed (Column): Boolean flag indicating if effect needs to be flipped based on the alleles.
 
         Returns:
             Column: A column containing the beta value.
+
+        Examples:
+            >>> d = [
+            ...    # positive effect -no flipping:
+            ...    (0.5, 'increase', False),
+            ...    # Positive effect - flip:
+            ...    (0.5, 'decrease', False),
+            ...    # Positive effect - flip:
+            ...    (0.5, 'decrease', True),
+            ...    # Negative effect - no flip:
+            ...    (0.5, 'increase', True),
+            ...    # Negative effect - flip:
+            ...    (0.5, 'decrease', False),
+            ... ]
+            >>> (
+            ...    spark.createDataFrame(d, ['effect', 'ci_text', 'flip'])
+            ...    .select("effect", "ci_text", 'flip', GWASCatalogCuratedAssociationsParser._harmonise_beta(f.col("effect"), f.col("ci_text"), f.lit(False)).alias("beta"))
+            ...    .show()
+            ... )
+            +------+--------+-----+----+
+            |effect| ci_text| flip|beta|
+            +------+--------+-----+----+
+            |   0.5|increase|false| 0.5|
+            |   0.5|decrease|false|-0.5|
+            |   0.5|decrease| true|-0.5|
+            |   0.5|increase| true| 0.5|
+            |   0.5|decrease|false|-0.5|
+            +------+--------+-----+----+
+            <BLANKLINE>
         """
         return (
             f.when(
@@ -601,7 +633,7 @@ class GWASCatalogCuratedAssociationsParser:
         effect_size: Column,
         flipping_needed: Column,
     ) -> Column:
-        """Odds ratio is either propagated or flipped if needed.
+        """Odds ratio is either propagated as is, or flipped if indicated, meaning returning a reciprocal value.
 
         Args:
             effect_size (Column): containing effect size,
@@ -609,10 +641,28 @@ class GWASCatalogCuratedAssociationsParser:
 
         Returns:
             Column: A column with the odds ratio, or 1/odds_ratio if harmonization required.
+
+        Examples:
+        >>> d = [(0.5, False), (0.5, True), (0.0, False), (0.0, True)]
+        >>> (
+        ...    spark.createDataFrame(d, ['effect', 'flip'])
+        ...    .select("effect", "flip", GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(f.col("effect"), f.col("flip")).alias("odds_ratio"))
+        ...    .show()
+        ... )
+        +------+-----+----------+
+        |effect| flip|odds_ratio|
+        +------+-----+----------+
+        |   0.5|false|       0.5|
+        |   0.5| true|       2.0|
+        |   0.0|false|       0.0|
+        |   0.0| true|      null|
+        +------+-----+----------+
+        <BLANKLINE>
         """
         return (
-            # Harmonising the odds ratio:
-            f.when(
+            # We are not flipping zero effect size:
+            f.when((effect_size == 0) & flipping_needed, f.lit(None))
+            .when(
                 flipping_needed,
                 1 / effect_size,
             )
