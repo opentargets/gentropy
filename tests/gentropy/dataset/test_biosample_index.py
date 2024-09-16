@@ -17,17 +17,3 @@ def test_biosample_index_creation(mock_biosample_index: BiosampleIndex) -> None:
     """Test biosample index creation with mock biosample index."""
     assert isinstance(mock_biosample_index, BiosampleIndex)
 
-
-
-spark = SparkSession.builder \
-    .master("local[*]") \
-    .appName("LocalOntologyIndexing") \
-    .getOrCreate()
-
-ontology_json1 = "file:////home/alegbe/repos/gentropy/tests/gentropy/data_samples/nephron-minimal.json"
-ontology_json2 = "file://///home/alegbe/repos/gentropy/tests/gentropy/data_samples/cell_ontology_dummy.json"
-
-df1 = extract_ontology_from_json(ontology_json1, spark)
-df2 = extract_ontology_from_json(ontology_json2, spark)
-
-df_merged = merge_biosample_indices([df1, df2])
