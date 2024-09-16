@@ -571,7 +571,7 @@ class SusieFineMapperStep:
         }
 
     @staticmethod
-    def susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
+    def susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(  # noqa: C901
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
@@ -701,6 +701,12 @@ class SusieFineMapperStep:
             )
             if gwas_index.rdd.isEmpty():
                 logging.warning("No overlapping variants in the LD Index")
+                return None
+            # Check if gwas_index has less than 100 variants
+            if gwas_index.count() < 100:
+                logging.warning(
+                    "Less than 100 variants after joining GWAS and LD index"
+                )
                 return None
             gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
                 gwas_index, gnomad_ancestry=major_population
