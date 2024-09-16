@@ -661,7 +661,7 @@ class GWASCatalogCuratedAssociationsParser:
         """
         return (
             # We are not flipping zero effect size:
-            f.when((effect_size == 0) & flipping_needed, f.lit(None))
+            f.when((effect_size.cast(DoubleType()) == 0) & flipping_needed, f.lit(None))
             .when(
                 flipping_needed,
                 1 / effect_size,
