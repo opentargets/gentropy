@@ -6,7 +6,7 @@ import re
 import sys
 from functools import reduce, wraps
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, TypeVar
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -429,14 +429,15 @@ def order_array_of_structs_by_two_fields(
         """
     )
 
-def map_column_by_dictionary(col: Column, mapping_dict: Dict[str, str]) -> Column:
+
+def map_column_by_dictionary(col: Column, mapping_dict: dict[str, str]) -> Column:
     """Map column values to dictionary values by key.
 
     Missing consequence label will be converted to None, unmapped consequences will be mapped as None.
 
     Args:
         col (Column): Column containing labels to map.
-        mapping_dict (Dict[str, str]): Dictionary with mapping key/value pairs.
+        mapping_dict (dict[str, str]): Dictionary with mapping key/value pairs.
 
     Returns:
         Column: Column with mapped values.

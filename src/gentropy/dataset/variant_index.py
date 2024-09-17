@@ -10,7 +10,6 @@ import pyspark.sql.functions as f
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
-    normalise_column,
     rename_all_columns,
     safe_array_union,
 )
@@ -251,52 +250,36 @@ class VariantIndex(Dataset):
             )
         return transript_consequences
 
-    def get_distance_to_tss(
+    def get_distance_to_gene(
         self: VariantIndex,
-        gene_index: GeneIndex,
+        *,
+        distance_type: str = "distanceFromTss",
         max_distance: int = 500_000,
-    ) -> V2G:
-        """Extracts variant to gene assignments for variants falling within a window of a gene's TSS.
+    ) -> DataFrame:
+        """Extracts variant to gene assignments for variants falling within a window of a gene's TSS or footprint.
 
         Args:
-            gene_index (GeneIndex): A gene index to filter by.
-            max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.
+            distance_type (str): The type of distance to use. Can be "distanceFromTss" or "distanceFromFootprint". Defaults to "distanceFromTss".
+            max_distance (int): The maximum distance to consider. Defaults to 500_000.
 
         Returns:
-            V2G: variant to gene assignments with their distance to the TSS
+            DataFrame: A dataframe with the distance between a variant and a gene's TSS or footprint.
+
+        Raises:
+            ValueError: Invalid distance type.
         """
-        return V2G(
-            _df=(
-                self.df.alias("variant")
-                .join(
-                    f.broadcast(gene_index.locations_lut()).alias("gene"),
-                    on=[
-                        f.col("variant.chromosome") == f.col("gene.chromosome"),
-                        f.abs(f.col("variant.position") - f.col("gene.tss"))
-                        <= max_distance,
-                    ],
-                    how="inner",
+        if distance_type in {"distanceFromTss", "distanceFromFootprint"}:
+            return (
+                self.df.select(
+                    "variantId", f.explode("transcriptConsequences").alias("tc")
                 )
-                .withColumn(
-                    "distance", f.abs(f.col("variant.position") - f.col("gene.tss"))
-                )
-                .withColumn(
-                    "inverse_distance",
-                    max_distance - f.col("distance"),
-                )
-                .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
-                .select(
-                    "variantId",
-                    f.col("variant.chromosome").alias("chromosome"),
-                    "distance",
-                    "geneId",
-                    "score",
-                    f.lit("distance").alias("datatypeId"),
-                    f.lit("canonical_tss").alias("datasourceId"),
-                )
-            ),
-            _schema=V2G.get_schema(),
-        )
+                .select("variantId", "tc.targetId", f"tc.{distance_type}")
+                .filter(f.col(distance_type) <= max_distance)
+            )
+        else:
+            raise ValueError(
+                f"Invalid distance_type: {distance_type}. Must be 'distanceFromTss' or 'distanceFromFootprint'."
+            )
 
     def get_plof_v2g(self: VariantIndex, gene_index: GeneIndex) -> V2G:
         """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.

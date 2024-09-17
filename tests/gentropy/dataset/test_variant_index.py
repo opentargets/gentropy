@@ -28,13 +28,6 @@ def test_get_plof_v2g(
     assert isinstance(mock_variant_index.get_plof_v2g(mock_gene_index), V2G)
 
 
-def test_get_distance_to_tss(
-    mock_variant_index: VariantIndex, mock_gene_index: GeneIndex
-) -> None:
-    """Test get_distance_to_tss with mock variant annotation."""
-    assert isinstance(mock_variant_index.get_distance_to_tss(mock_gene_index), V2G)
-
-
 class TestVariantIndex:
     """Collection of tests around the functionality and shape of the variant index."""
 
@@ -147,3 +140,15 @@ class TestVariantIndex:
             .count()
             == 2
         )
+
+    @pytest.mark.parametrize(
+        "distance_type", ["distanceFromTss", "distanceFromFootprint"]
+    )
+    def test_get_distance_to_gene(
+        self: TestVariantIndex, mock_variant_index: VariantIndex, distance_type: str
+    ) -> None:
+        """Assert that the function returns a df with the requested column."""
+        expected_cols = ["variantId", "targetId", distance_type]
+        observed = mock_variant_index.get_distance_to_gene(distance_type=distance_type)
+        for col in expected_cols:
+            assert col in observed.columns, f"Column {col} not in {observed.columns}"

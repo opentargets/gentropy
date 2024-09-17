@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from pyspark.sql import SparkSession
@@ -527,14 +527,14 @@ class VariantEffectPredictorParser:
         )
 
     @staticmethod
-    def _parse_variant_location_id(vep_input_field: Column) -> List[Column]:
+    def _parse_variant_location_id(vep_input_field: Column) -> list[Column]:
         r"""Parse variant identifier, chromosome, position, reference allele and alternate allele from VEP input field.
 
         Args:
             vep_input_field (Column): Column containing variant vcf string used as VEP input.
 
         Returns:
-            List[Column]: List of columns containing chromosome, position, reference allele and alternate allele.
+            list[Column]: List of columns containing chromosome, position, reference allele and alternate allele.
         """
         variant_fields = f.split(vep_input_field, r"\t")
         return [
