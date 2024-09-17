@@ -5,9 +5,9 @@ from __future__ import annotations
 from pyspark.sql import functions as f
 
 from gentropy.common.session import Session
+from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.biosample_index import BiosampleIndex
 
 
 class StudyValidationStep:

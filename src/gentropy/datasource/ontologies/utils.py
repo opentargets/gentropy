@@ -1,17 +1,29 @@
 """Utility functions for Biosample ontology processing."""
-from pyspark.sql import Row, SparkSession, DataFrame
-from pyspark.sql.types import StructType, StringType, ArrayType
-from pyspark.sql.functions import col, explode_outer, collect_set, collect_list, array_distinct, regexp_replace, udf, coalesce, first
-from pyspark.sql.window import Window
 from functools import reduce
+
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.functions import (
+    array_distinct,
+    coalesce,
+    col,
+    collect_list,
+    collect_set,
+    explode_outer,
+    first,
+    regexp_replace,
+    udf,
+)
+from pyspark.sql.types import ArrayType, StringType
+from pyspark.sql.window import Window
+
 from gentropy.dataset.biosample_index import BiosampleIndex
+
 
 def extract_ontology_from_json(
     ontology_json : str,
     spark : SparkSession
 ) -> BiosampleIndex:
-    """
-    Extracts the ontology information from a JSON file. Currently only supports Uberon and Cell Ontology.
+    """Extracts the ontology information from a JSON file. Currently only supports Uberon and Cell Ontology.
 
     Args:
         ontology_json (str): Path to the JSON file containing the ontology information.
@@ -21,15 +33,30 @@ def extract_ontology_from_json(
         BiosampleIndex: Parsed and annotated biosample index table.
     """
 
-    def json_graph_traversal(df, node_col, link_col, traversal_type="ancestors"):
-        """
-        Traverse a graph represented in a DataFrame to find all ancestors or descendants.
+    def json_graph_traversal(
+        df : DataFrame,
+        node_col : str,
+        link_col: str,
+        traversal_type: str
+    ) -> DataFrame:
+        """Traverse a graph represented in a DataFrame to find all ancestors or descendants.
+
+        Args:
+            df (DataFrame): DataFrame containing the graph data.
+            node_col (str): Column name for the node.
+            link_col (str): Column name for the link.
+            traversal_type (str): Type of traversal - "ancestors" or "descendants".
+
+        Returns:
+            DataFrame: DataFrame with the result column added.
         """
         # Collect graph data as a map
         graph_map = df.select(node_col, link_col).rdd.collectAsMap()
         broadcasted_graph = spark.sparkContext.broadcast(graph_map)
 
-        def get_relationships(node):
+        def get_relationships(
+            node : str
+            ) -> list[str]:
             relationships = set()
             stack = [node]
             while stack:
@@ -80,8 +107,8 @@ def extract_ontology_from_json(
     collect_set(col("node.meta.xrefs.val")).over(Window.partitionBy("node.id")).getItem(0).alias("dbXrefs"),
     # col("node.meta.deprecated").alias("deprecated"),
     collect_set(col("node.meta.synonyms.val")).over(Window.partitionBy("node.id")).getItem(0).alias("synonyms"))
-    
-    
+
+
     # Extract the relationships from the edges
     # Prepare relationship-specific DataFrames
     df_parents = df_edges.filter(col("predicate") == "is_a").select("subject", "object").withColumnRenamed("object", "parent")
@@ -100,44 +127,63 @@ def extract_ontology_from_json(
     df_with_relationships = df_with_ancestors.join(df_with_descendants, df_with_ancestors.subject == df_with_descendants.object, "full_outer").withColumn("biosampleId", coalesce(df_with_ancestors.subject, df_with_descendants.object)).drop("subject", "object")
 
     # Join the original DataFrame with the relationship DataFrame
-    final_df = transformed_df.join(df_with_relationships, ['biosampleId'], "left")
-    
-    return final_df
+    final_df = transformed_df.join(df_with_relationships, ["biosampleId"], "left")
+
+    return BiosampleIndex(
+        _df=final_df,
+        _schema=BiosampleIndex.get_schema()
+        )
 
 def merge_biosample_indices(
-         biosample_indices: list[BiosampleIndex], 
+    biosample_indices : list[BiosampleIndex]
     ) -> BiosampleIndex:
-    """Merge a list of biosample indexes into a single biosample index.
+    """Merge a list of biosample indices into a single biosample index.
+
     Where there are conflicts, in single values - the first value is taken. In list values, the union of all values is taken.
 
     Args:
-        biosample_indexes (BiosampleIndex): Biosample indexes to merge.
+        biosample_indices (list[BiosampleIndex]): Biosample indices to merge.
 
     Returns:
         BiosampleIndex: Merged biosample index.
     """
-    
-    def merge_lists(lists):
-        """Merge a list of lists into a single list."""
-        return list(set([item for sublist in lists if sublist is not None for item in sublist]))
-    
+
+    def merge_lists(
+        lists : list[list[str]]
+        ) -> list[str]:
+        """Merge a list of lists into a single list.
+
+        Args:
+            lists (list[list[str]]): List of lists to merge.
+
+        Returns:
+            list[str]: Merged list.
+        """
+        return list({item for sublist in lists if sublist is not None for item in sublist})
+
     # Make a spark udf (user defined function) to merge lists
     merge_lists_udf = udf(merge_lists, ArrayType(StringType()))
 
+    # Extract the DataFrames from the BiosampleIndex objects
+    biosample_dfs = [biosample_index.df for biosample_index in biosample_indices]
+
     # Merge the DataFrames
-    merged_df = reduce(DataFrame.unionAll, biosample_indices)
-    
+    merged_df = reduce(DataFrame.unionAll, biosample_dfs)
+
     # Define dictionary of columns and corresponding aggregation functions
     # Currently this will take the first value for single values and merge lists for list values
     agg_funcs = {}
     for column in merged_df.columns:
-        if column != 'biosampleId':
-            if 'list' in column:  # Assuming column names that have 'list' need list merging
+        if column != "biosampleId":
+            if "list" in column:  # Assuming column names that have 'list' need list merging
                 agg_funcs[column] = merge_lists_udf(collect_list(column)).alias(column)
             else:
                 agg_funcs[column] = first(column, ignorenulls=True).alias(column)
 
     # Group by biosampleId and aggregate the columns
-    merged_df = merged_df.groupBy('biosampleId').agg(agg_funcs)
+    merged_df = merged_df.groupBy("biosampleId").agg(agg_funcs)
 
-    return merged_df
+    return BiosampleIndex(
+        _df=merged_df,
+        _schema=BiosampleIndex.get_schema()
+        )

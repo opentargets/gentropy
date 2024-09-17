@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.gene_index import GeneIndex
     from gentropy.dataset.biosample_index import BiosampleIndex
+    from gentropy.dataset.gene_index import GeneIndex
 
 
 class StudyQualityCheck(Enum):
@@ -444,4 +444,3 @@ class StudyIndex(Dataset):
         )
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
-

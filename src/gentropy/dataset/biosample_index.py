@@ -2,23 +2,11 @@
 
 from __future__ import annotations
 
-import importlib.resources as pkg_resources
-import json
 from dataclasses import dataclass
-from enum import Enum
-from itertools import chain
 from typing import TYPE_CHECKING
 
-from pyspark.sql import functions as f
-from pyspark.sql.window import Window
-from functools import reduce
-
-from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
-
-
-from pyspark.sql import Column, DataFrame, Row
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
@@ -32,7 +20,7 @@ class BiosampleIndex(Dataset):
     """
 
     @classmethod
-    def get_schema(cls: type[StudyIndex]) -> StructType:
+    def get_schema(cls: type[BiosampleIndex]) -> StructType:
         """Provide the schema for the BiosampleIndex dataset.
 
         Returns:
