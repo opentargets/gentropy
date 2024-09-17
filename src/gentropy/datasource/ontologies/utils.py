@@ -56,7 +56,15 @@ def extract_ontology_from_json(
 
         def get_relationships(
             node : str
-            ) -> list[str]:
+        ) -> list[str]:
+            """Get all relationships for a given node.
+
+            Args:
+                node (str): Node ID.
+
+            Returns:
+                list[str]: List of relationships.
+            """
             relationships = set()
             stack = [node]
             while stack:
@@ -170,20 +178,20 @@ def merge_biosample_indices(
     # Merge the DataFrames
     merged_df = reduce(DataFrame.unionAll, biosample_dfs)
 
-    # Define dictionary of columns and corresponding aggregation functions
+    # Determine aggregation functions for each column
     # Currently this will take the first value for single values and merge lists for list values
-    agg_funcs = {}
-    for column in merged_df.columns:
-        if column != "biosampleId":
-            if "list" in column:  # Assuming column names that have 'list' need list merging
-                agg_funcs[column] = merge_lists_udf(collect_list(column)).alias(column)
+    agg_funcs = []
+    for field in merged_df.schema.fields:
+        if field.name != "biosampleId":  # Skip the grouping column
+            if field.dataType == ArrayType(StringType()):
+                agg_funcs.append(merge_lists_udf(collect_list(col(field.name))).alias(field.name))
             else:
-                agg_funcs[column] = first(column, ignorenulls=True).alias(column)
+                agg_funcs.append(first(col(field.name), ignorenulls=True).alias(field.name))
 
-    # Group by biosampleId and aggregate the columns
-    merged_df = merged_df.groupBy("biosampleId").agg(agg_funcs)
+    # Perform aggregation
+    aggregated_df = merged_df.groupBy("biosampleId").agg(*agg_funcs)
 
     return BiosampleIndex(
-        _df=merged_df,
+        _df=aggregated_df,
         _schema=BiosampleIndex.get_schema()
         )
