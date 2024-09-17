@@ -14,13 +14,11 @@ from gentropy.common.spark_helpers import (
     safe_array_union,
 )
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.v2g import V2G
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.gene_index import GeneIndex
 
 
 @dataclass
@@ -254,47 +252,29 @@ class VariantIndex(Dataset):
                 f"max_distance must be less than 500_000. Got {max_distance}."
             )
 
-    def get_plof_v2g(self: VariantIndex, gene_index: GeneIndex) -> V2G:
-        """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
+    def get_loftee(self: VariantIndex) -> DataFrame:
+        """Returns a dataframe with a flag indicating whether a variant is predicted to cause loss of function in a gene. The source of this information is the LOFTEE algorithm (https://github.com/konradjk/loftee).
 
-        Optionally the trancript consequences can be reduced to the universe of a gene index.
-
-        Args:
-            gene_index (GeneIndex): A gene index to filter by.
+        !!! note, "This will return a filtered dataframe with only variants that have been annotated by LOFTEE."
 
         Returns:
-            V2G: variant to gene assignments from the LOFTEE algorithm
+            DataFrame: variant to gene assignments from the LOFTEE algorithm
         """
-        return V2G(
-            _df=(
-                self.df.filter(
-                    f.col("transcriptConsequence.lofteePrediction").isNotNull()
-                )
-                .withColumn(
-                    "isHighQualityPlof",
-                    f.when(
-                        f.col("transcriptConsequence.lofteePrediction") == "HC", True
-                    ).when(
-                        f.col("transcriptConsequence.lofteePrediction") == "LC", False
-                    ),
-                )
-                .withColumn(
-                    "score",
-                    f.when(f.col("isHighQualityPlof"), 1.0).when(
-                        ~f.col("isHighQualityPlof"), 0
-                    ),
-                )
-                .select(
-                    "variantId",
-                    "chromosome",
-                    "geneId",
-                    "isHighQualityPlof",
-                    f.col("score"),
-                    f.lit("vep").alias("datatypeId"),
-                    f.lit("loftee").alias("datasourceId"),
-                )
-            ),
-            _schema=V2G.get_schema(),
+        return (
+            self.df.select("variantId", f.explode("transcriptConsequences").alias("tc"))
+            .filter(f.col("tc.lofteePrediction").isNotNull())
+            .withColumn(
+                "isHighQualityPlof",
+                f.when(f.col("tc.lofteePrediction") == "HC", True).when(
+                    f.col("tc.lofteePrediction") == "LC", False
+                ),
+            )
+            .select(
+                "variantId",
+                f.col("tc.targetId"),
+                f.col("tc.lofteePrediction"),
+                "isHighQualityPlof",
+            )
         )
 
     def get_most_severe_gene_consequence(
@@ -308,7 +288,7 @@ class VariantIndex(Dataset):
             vep_consequences (DataFrame): A dataframe of VEP consequences
 
         Returns:
-            DataFrame: High and medium severity variant to gene assignments
+            DataFrame: A dataframe with the most severe consequence (plus a severity score) for a variant/gene pair
         """
         return (
             self.df.select("variantId", f.explode("transcriptConsequences").alias("tc"))
@@ -329,7 +309,7 @@ class VariantIndex(Dataset):
                 on="variantFunctionalConsequenceId",
                 how="inner",
             )
-            .filter((f.col("severityScore") != 0) | (f.col("severityScore").isNull()))
+            .filter(f.col("severityScore").isNull())
             .transform(
                 # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
                 lambda df: get_record_with_maximum_value(
