@@ -10,13 +10,12 @@ import numpy as np
 import pyspark.sql.functions as f
 from pyspark.sql.types import ArrayType, FloatType, StringType
 
-from gentropy.common.GenomicRegion import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     calculate_neglog_pvalue,
     order_array_of_structs_by_field,
 )
-from gentropy.common.utils import get_logsum
+from gentropy.common.utils import get_logsum, parse_region
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
@@ -50,7 +49,6 @@ class StudyLocusQualityCheck(Enum):
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
         DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique.
         INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
-        IN_MHC (str): Flagging study loci in the MHC region
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -72,7 +70,6 @@ class StudyLocusQualityCheck(Enum):
     INVALID_VARIANT_IDENTIFIER = (
         "Some variant identifiers of this locus were not found in variant index"
     )
-    IN_MHC = "MHC region"
 
 
 class CredibleInterval(Enum):
@@ -818,31 +815,32 @@ class StudyLocus(Dataset):
         return self
 
     def exclude_region(
-        self: StudyLocus, region: GenomicRegion, exclude_overlap: bool = False
+        self: StudyLocus, region: str, exclude_overlap: bool = False
     ) -> StudyLocus:
         """Exclude a region from the StudyLocus dataset.
 
         Args:
-            region (GenomicRegion): genomic region object.
+            region (str): region given in "chr##:#####-####" format
             exclude_overlap (bool): If True, excludes StudyLocus windows with any overlap with the region.
 
         Returns:
             StudyLocus: filtered StudyLocus object.
         """
+        (chromosome, start_position, end_position) = parse_region(region)
         if exclude_overlap:
             filter_condition = ~(
-                (f.col("chromosome") == region.chromosome)
+                (f.col("chromosome") == chromosome)
                 & (
-                    (f.col("locusStart") <= region.end)
-                    & (f.col("locusEnd") >= region.start)
+                    (f.col("locusStart") <= end_position)
+                    & (f.col("locusEnd") >= start_position)
                 )
             )
         else:
             filter_condition = ~(
-                (f.col("chromosome") == region.chromosome)
+                (f.col("chromosome") == chromosome)
                 & (
-                    (f.col("position") >= region.start)
-                    & (f.col("position") <= region.end)
+                    (f.col("position") >= start_position)
+                    & (f.col("position") <= end_position)
                 )
             )
 
@@ -850,29 +848,6 @@ class StudyLocus(Dataset):
             _df=self.df.filter(filter_condition),
             _schema=StudyLocus.get_schema(),
         )
-
-    def qc_MHC_region(self: StudyLocus) -> StudyLocus:
-        """Adds qualityControl flag when lead overlaps with MHC region.
-
-        Returns:
-            StudyLocus: including qualityControl flag if in MHC region.
-        """
-        region = GenomicRegion.from_known_genomic_region(KnownGenomicRegions.MHC)
-        self.df = self.df.withColumn(
-            "qualityControls",
-            self.update_quality_flag(
-                f.col("qualityControls"),
-                ~(
-                    (f.col("chromosome") == region.chromosome)
-                    & (
-                        (f.col("postion") <= region.end)
-                        & (f.col("position") >= region.start)
-                    )
-                ),
-                StudyLocusQualityCheck.IN_MHC,
-            ),
-        )
-        return self
 
     def _qc_no_population(self: StudyLocus) -> StudyLocus:
         """Flag associations where the study doesn't have population information to resolve LD.

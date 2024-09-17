@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
-from gentropy.common.GenomicRegion import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.utils import split_pvalue
+from gentropy.common.utils import parse_region, split_pvalue
 from gentropy.config import LocusBreakerClumpingConfig, WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 
@@ -113,25 +112,25 @@ class SummaryStatistics(Dataset):
             flanking_distance,
         )
 
-    def exclude_region(
-        self: SummaryStatistics, region: GenomicRegion
-    ) -> SummaryStatistics:
+    def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
         """Exclude a region from the summary stats dataset.
 
         Args:
-            region (GenomicRegion): Genomic region to be excluded.
+            region (str): region given in "chr##:#####-####" format
 
         Returns:
             SummaryStatistics: filtered summary statistics.
         """
+        (chromosome, start_position, end_position) = parse_region(region)
+
         return SummaryStatistics(
             _df=(
                 self.df.filter(
                     ~(
-                        (f.col("chromosome") == region.chromosome)
+                        (f.col("chromosome") == chromosome)
                         & (
-                            (f.col("position") >= region.start)
-                            & (f.col("position") <= region.end)
+                            (f.col("position") >= start_position)
+                            & (f.col("position") <= end_position)
                         )
                     )
                 )

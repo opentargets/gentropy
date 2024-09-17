@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from gentropy.common.GenomicRegion import GenomicRegion, KnownGenomicRegions
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.locus_breaker_clumping import LocusBreakerClumping
@@ -64,8 +63,7 @@ class LocusBreakerClumpingStep:
         )
         if remove_mhc:
             clumped_result = clumped_result.exclude_region(
-                GenomicRegion.from_known_genomic_region(KnownGenomicRegions.MHC),
-                exclude_overlap=True,
+                "chr6:25726063-33400556", exclude_overlap=True
             )
 
         if collect_locus:

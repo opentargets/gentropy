@@ -41,11 +41,9 @@ class StudyLocusValidationStep:
         # Running validation then writing output:
         study_locus_with_qc = (
             StudyLocus.from_parquet(session, list(study_locus_path))
-            # Flagging study locus with subsignificant p-values
-            .validate_lead_pvalue(pvalue_cutoff=gwas_significance)
-            # Add flag for MHC region
-            .qc_MHC_region()
-            # Excluding MHC region
+            .validate_lead_pvalue(
+                pvalue_cutoff=gwas_significance
+            )  # Flagging study locus with subsignificant p-values
             .validate_study(study_index)  # Flagging studies not in study index
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
         ).persist()  # we will need this for 2 types of outputs
