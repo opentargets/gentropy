@@ -1,10 +1,9 @@
 """V2G dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-
-import pyspark.sql.functions as f
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
@@ -42,10 +41,3 @@ class V2G(Dataset):
         """
         self.df = self._df.join(genes.df.select("geneId"), on="geneId", how="inner")
         return self
-
-    def extract_distance_tss_minimum(self: V2G) -> None:
-        """Extract minimum distance to TSS."""
-        self.df = self._df.filter(f.col("distance")).withColumn(
-            "distanceTssMinimum",
-            f.expr("min(distTss) OVER (PARTITION BY studyLocusId)"),
-        )

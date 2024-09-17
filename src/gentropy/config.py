@@ -333,27 +333,8 @@ class VariantToGeneConfig(StepConfig):
 
     variant_index_path: str = MISSING
     gene_index_path: str = MISSING
-    vep_consequences_path: str = MISSING
     liftover_chain_file_path: str = MISSING
     liftover_max_length_difference: int = 100
-    max_distance: int = 500_000
-    approved_biotypes: List[str] = field(
-        default_factory=lambda: [
-            "protein_coding",
-            "3prime_overlapping_ncRNA",
-            "antisense",
-            "bidirectional_promoter_lncRNA",
-            "IG_C_gene",
-            "IG_D_gene",
-            "IG_J_gene",
-            "IG_V_gene",
-            "lincRNA",
-            "macro_lncRNA",
-            "non_coding",
-            "sense_intronic",
-            "sense_overlapping",
-        ]
-    )
     interval_sources: Dict[str, str] = field(default_factory=dict)
     v2g_path: str = MISSING
     _target_: str = "gentropy.variant_to_gene.V2GStep"
