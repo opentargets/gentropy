@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
-from gentropy.common.GenomicRegion import GenomicRegion
+from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.utils import split_pvalue
 from gentropy.config import LocusBreakerClumpingConfig, WindowBasedClumpingStepConfig

@@ -10,7 +10,7 @@ import numpy as np
 import pyspark.sql.functions as f
 from pyspark.sql.types import ArrayType, FloatType, StringType
 
-from gentropy.common.GenomicRegion import GenomicRegion, KnownGenomicRegions
+from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     calculate_neglog_pvalue,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from gentropy.common.GenomicRegion import GenomicRegion, KnownGenomicRegions
+from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.locus_breaker_clumping import LocusBreakerClumping

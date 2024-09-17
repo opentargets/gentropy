@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import types as t
 
-from gentropy.common.GenomicRegion import GenomicRegion
+from gentropy.common.genomic_region import GenomicRegion
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
