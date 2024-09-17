@@ -35,7 +35,7 @@ class PanUKBBLDMatrix:
 
         if ancestry == "nfe":
             half_matrix = (
-                BlockMatrix.read("s3a://pan-ukb-us-east-1/ld_release/UKBB.EUR.ldadj.bm")
+                BlockMatrix.read("gs://panukbb-ld-matrixes/UKBB.EUR.ldadj")
                 .filter(idx, idx)
                 .to_numpy()
             )
