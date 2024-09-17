@@ -537,16 +537,14 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Filtered study-locus dataset.
         """
-        return StudyLocus(
-            _df=self._df.withColumn(
-                "locus",
-                f.filter(
-                    f.col("locus"),
-                    lambda tag: (tag[credible_interval.value]),
-                ),
+        self.df = self._df.withColumn(
+            "locus",
+            f.filter(
+                f.col("locus"),
+                lambda tag: (tag[credible_interval.value]),
             ),
-            _schema=self._schema,
         )
+        return self
 
     @staticmethod
     def filter_ld_set(ld_set: Column, r2_threshold: float) -> Column:
