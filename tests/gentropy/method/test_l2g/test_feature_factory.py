@@ -7,7 +7,12 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from gentropy.dataset.l2g_feature import L2GFeature
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import (
+    DistanceFootprintMeanFeature,
+    DistanceFootprintMinimumFeature,
+    DistanceTssMeanFeature,
+    DistanceTssMinimumFeature,
     EQtlColocClppMaximumFeature,
     EQtlColocH4MaximumFeature,
     L2GFeatureInputLoader,
@@ -53,6 +58,33 @@ def test_colocalisation_feature_type(
     """Test that every colocalisation feature type returns a set of L2GFeatures."""
     loader = L2GFeatureInputLoader(
         colocalisation=mock_colocalisation, study_index=mock_study_index
+    )
+    feature_dataset = feature_class.compute(
+        study_loci_to_annotate=mock_study_locus,
+        feature_dependency=loader.get_dependency_by_type(
+            feature_class.feature_dependency_type
+        ),
+    )
+    assert isinstance(feature_dataset, L2GFeature)
+
+
+@pytest.mark.parametrize(
+    "feature_class",
+    [
+        DistanceTssMeanFeature,
+        DistanceTssMinimumFeature,
+        DistanceFootprintMeanFeature,
+        DistanceFootprintMinimumFeature,
+    ],
+)
+def test_distance_feature_type(
+    feature_class: Any,
+    mock_study_locus: StudyLocus,
+    mock_variant_index: VariantIndex,
+) -> None:
+    """Test that every distance feature type returns a set of L2GFeatures."""
+    loader = L2GFeatureInputLoader(
+        variant_index=mock_variant_index,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,

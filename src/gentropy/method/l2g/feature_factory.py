@@ -12,10 +12,10 @@ from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.v2g import V2G
+from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
 
 class L2GFeatureInputLoader:
@@ -408,83 +408,209 @@ class TuQtlColocH4MaximumFeature(L2GFeature):
         )
 
 
-class DistanceTssMinimumFeature(L2GFeature):
-    """Minimum distance of all tagging variants to gene TSS."""
+def _common_distance_feature_logic(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    *,
+    variant_index: VariantIndex,
+    feature_name: str,
+    distance_type: str,
+    agg_expr: Column,
+) -> DataFrame:
+    """Computes the feature.
 
-    @classmethod
-    def compute(
-        cls: type[DistanceTssMinimumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
-        feature_dependency: V2G,
-    ) -> L2GFeature:
-        """Computes the feature.
+    Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        variant_index (VariantIndex): The dataset containing distance to gene information
+        feature_name (str): The name of the feature
+        distance_type (str): The type of distance to gene
+        agg_expr (Column): The expression that aggregate distances into a specific way to define the feature
 
-        Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (V2G): Dataset that contains the distance information
-
-        Returns:
-                L2GFeature: Feature dataset
-
-        Raises:
-            NotImplementedError: Not implemented
-        """
-        raise NotImplementedError
+    Returns:
+            DataFrame: Feature dataset
+    """
+    distances_dataset = variant_index.get_distance_to_gene(distance_type=distance_type)
+    return (
+        study_loci_to_annotate.df.withColumn("variantInLocus", f.explode_outer("locus"))
+        .select(
+            "studyLocusId",
+            f.col("variantInLocus.variantId").alias("variantInLocusId"),
+            f.col("variantInLocus.posteriorProbability").alias(
+                "variantInLocusPosteriorProbability"
+            ),
+        )
+        .join(
+            distances_dataset.withColumnRenamed(
+                "variantId", "variantInLocusId"
+            ).withColumnRenamed("targetId", "geneId"),
+            on="variantInLocusId",
+            how="inner",
+        )
+        .withColumn(
+            "weightedDistance",
+            f.col(distance_type) * f.col("variantInLocusPosteriorProbability"),
+        )
+        .groupBy("studyLocusId", "geneId")
+        .agg(agg_expr)
+        .alias(feature_name)
+    )
 
 
 class DistanceTssMeanFeature(L2GFeature):
-    """Average distance of all tagging variants to gene TSS.
-
-    NOTE: to be rewritten taking variant index as input
-    """
+    """Average distance of all tagging variants to gene TSS."""
 
     fill_na_value = 500_000
-    feature_dependency_type = V2G
+    feature_dependency_type = VariantIndex
+    feature_name = "distanceTssMean"
 
     @classmethod
     def compute(
         cls: type[DistanceTssMeanFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
-        feature_dependency: V2G,
+        feature_dependency: dict[str, Any],
     ) -> DistanceTssMeanFeature:
         """Computes the feature.
 
         Args:
             study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (V2G): Dataset that contains the distance information
+            feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
             DistanceTssMeanFeature: Feature dataset
         """
-        agg_expr = f.mean("weightedScore").alias("distanceTssMean")
-        # Everything but expresion is common logic
-        v2g = feature_dependency.df.filter(f.col("datasourceId") == "canonical_tss")
-        wide_df = (
-            study_loci_to_annotate.df.withColumn(
-                "variantInLocus", f.explode_outer("locus")
-            )
-            .select(
-                "studyLocusId",
-                f.col("variantInLocus.variantId").alias("variantInLocusId"),
-                f.col("variantInLocus.posteriorProbability").alias(
-                    "variantInLocusPosteriorProbability"
-                ),
-            )
-            .join(
-                v2g.selectExpr("variantId as variantInLocusId", "geneId", "score"),
-                on="variantInLocusId",
-                how="inner",
-            )
-            .withColumn(
-                "weightedScore",
-                f.col("score") * f.col("variantInLocusPosteriorProbability"),
-            )
-            .groupBy("studyLocusId", "geneId")
-            .agg(agg_expr)
-        )
+        agg_expr = f.mean("weightedDistance")
+        distance_type = "distanceFromTss"
         return cls(
             _df=convert_from_wide_to_long(
-                wide_df,
+                _common_distance_feature_logic(
+                    study_loci_to_annotate,
+                    feature_name=cls.feature_name,
+                    distance_type=distance_type,
+                    agg_expr=agg_expr,
+                    **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class DistanceTssMinimumFeature(L2GFeature):
+    """Minimum distance of all tagging variants to gene TSS."""
+
+    fill_na_value = 500_000
+    feature_dependency_type = VariantIndex
+    feature_name = "distanceTssMinimum"
+
+    @classmethod
+    def compute(
+        cls: type[DistanceTssMinimumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> DistanceTssMinimumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): Dataset that contains the distance information
+
+        Returns:
+            DistanceTssMinimumFeature: Feature dataset
+        """
+        agg_expr = f.mean("weightedDistance")
+        distance_type = "distanceFromTss"
+        return cls(
+            _df=convert_from_wide_to_long(
+                _common_distance_feature_logic(
+                    study_loci_to_annotate,
+                    feature_name=cls.feature_name,
+                    distance_type=distance_type,
+                    agg_expr=agg_expr,
+                    **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class DistanceFootprintMeanFeature(L2GFeature):
+    """Average distance of all tagging variants to the footprint of a gene."""
+
+    fill_na_value = 500_000
+    feature_dependency_type = VariantIndex
+    feature_name = "distanceFootprintMean"
+
+    @classmethod
+    def compute(
+        cls: type[DistanceFootprintMeanFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> DistanceFootprintMeanFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): Dataset that contains the distance information
+
+        Returns:
+            DistanceFootprintMeanFeature: Feature dataset
+        """
+        agg_expr = f.mean("weightedDistance")
+        distance_type = "distanceFromFootprint"
+        return cls(
+            _df=convert_from_wide_to_long(
+                _common_distance_feature_logic(
+                    study_loci_to_annotate,
+                    feature_name=cls.feature_name,
+                    distance_type=distance_type,
+                    agg_expr=agg_expr,
+                    **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class DistanceFootprintMinimumFeature(L2GFeature):
+    """Minimum distance of all tagging variants to the footprint of a gene."""
+
+    fill_na_value = 500_000
+    feature_dependency_type = VariantIndex
+    feature_name = "DistanceFootprintMinimum"
+
+    @classmethod
+    def compute(
+        cls: type[DistanceFootprintMinimumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> DistanceFootprintMinimumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): Dataset that contains the distance information
+
+        Returns:
+            DistanceFootprintMinimumFeature: Feature dataset
+        """
+        agg_expr = f.mean("weightedDistance")
+        distance_type = "distanceFromFootprint"
+        return cls(
+            _df=convert_from_wide_to_long(
+                _common_distance_feature_logic(
+                    study_loci_to_annotate,
+                    feature_name=cls.feature_name,
+                    distance_type=distance_type,
+                    agg_expr=agg_expr,
+                    **feature_dependency,
+                ),
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
