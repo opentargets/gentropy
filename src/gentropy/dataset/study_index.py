@@ -424,7 +424,7 @@ class StudyIndex(Dataset):
         biosample_set = biosample_index.df.select("biosampleId", f.lit(True).alias("isIdFound"))
 
         validated_df = (
-            self.df.join(biosample_set, on="biosampleId", how="left")
+            self.df.join(biosample_set, self.df.biosampleFromSourceId == biosample_set.biosampleId, how="left")
             .withColumn(
                 "isIdFound",
                 f.when(
@@ -440,7 +440,7 @@ class StudyIndex(Dataset):
                     StudyQualityCheck.UNKNOWN_BIOSAMPLE,
                 ),
             )
-            .drop("isIdFound")
+            .drop("isIdFound").drop("biosampleId")
         )
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
