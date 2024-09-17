@@ -867,7 +867,7 @@ class StudyLocus(Dataset):
                 ~(
                     (f.col("chromosome") == region.chromosome)
                     & (
-                        (f.col("postion") <= region.end)
+                        (f.col("position") <= region.end)
                         & (f.col("position") >= region.start)
                     )
                 ),
