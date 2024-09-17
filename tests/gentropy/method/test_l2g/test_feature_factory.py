@@ -9,19 +9,11 @@ import pytest
 from gentropy.dataset.l2g_feature import L2GFeature
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import (
-    DistanceFootprintMeanFeature,
-    DistanceFootprintMinimumFeature,
-    DistanceTssMeanFeature,
-    DistanceTssMinimumFeature,
-    EQtlColocClppMaximumFeature,
-    EQtlColocH4MaximumFeature,
+    DistanceFootprintMeanNeighbourhoodFeature,
+    DistanceFootprintMinimumNeighbourhoodFeature,
+    DistanceTssMeanNeighbourhoodFeature,
+    DistanceTssMinimumNeighbourhoodFeature,
     L2GFeatureInputLoader,
-    PQtlColocClppMaximumFeature,
-    PQtlColocH4MaximumFeature,
-    SQtlColocClppMaximumFeature,
-    SQtlColocH4MaximumFeature,
-    TuQtlColocClppMaximumFeature,
-    TuQtlColocH4MaximumFeature,
 )
 
 if TYPE_CHECKING:
@@ -30,27 +22,25 @@ if TYPE_CHECKING:
     from gentropy.dataset.study_locus import StudyLocus
 
 
-# @pytest.fixture(scope="module")
-# def model() -> LocusToGeneModel:
-#     """Creates an instance of the LocusToGene class."""
-#     return LocusToGeneModel(model=RandomForestClassifier())
-
-
 @pytest.mark.parametrize(
     "feature_class",
     [
-        EQtlColocH4MaximumFeature,
-        PQtlColocH4MaximumFeature,
-        SQtlColocH4MaximumFeature,
-        TuQtlColocH4MaximumFeature,
-        EQtlColocClppMaximumFeature,
-        PQtlColocClppMaximumFeature,
-        SQtlColocClppMaximumFeature,
-        TuQtlColocClppMaximumFeature,
-        DistanceTssMeanFeature,
-        DistanceTssMinimumFeature,
-        DistanceFootprintMeanFeature,
-        DistanceFootprintMinimumFeature,
+        # EQtlColocH4MaximumFeature,
+        # PQtlColocH4MaximumFeature,
+        # SQtlColocH4MaximumFeature,
+        # TuQtlColocH4MaximumFeature,
+        # EQtlColocClppMaximumFeature,
+        # PQtlColocClppMaximumFeature,
+        # SQtlColocClppMaximumFeature,
+        # TuQtlColocClppMaximumFeature,
+        # DistanceTssMeanFeature,
+        # DistanceTssMinimumFeature,
+        # DistanceFootprintMeanFeature,
+        # DistanceFootprintMinimumFeature,
+        DistanceTssMeanNeighbourhoodFeature,
+        DistanceTssMinimumNeighbourhoodFeature,
+        DistanceFootprintMeanNeighbourhoodFeature,
+        DistanceFootprintMinimumNeighbourhoodFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -77,23 +67,6 @@ def test_feature_factory_return_type(
 
 # class TestColocalisationFactory:
 #     """Test the ColocalisationFactory methods."""
-
-#     def test_get_max_coloc_per_credible_set(
-#         self: TestColocalisationFactory,
-#         mock_study_locus: StudyLocus,
-#         mock_study_index: StudyIndex,
-#         mock_colocalisation: Colocalisation,
-#     ) -> None:
-#         """Test the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus returns the right data type."""
-#         coloc_features = ColocalisationFactory._get_max_coloc_per_credible_set(
-#             mock_colocalisation,
-#             mock_study_locus,
-#             mock_study_index,
-#         )
-#         assert isinstance(
-#             coloc_features, L2GFeature
-#         ), "Unexpected type returned from _get_max_coloc_per_credible_set"
-
 #     def test_get_max_coloc_per_credible_set_semantic(
 #         self: TestColocalisationFactory,
 #         spark: SparkSession,
@@ -179,27 +152,3 @@ def test_feature_factory_return_type(
 #             studies,
 #         )
 #         assert coloc_features.df.collect() == expected_coloc_features_df.collect()
-
-
-# class TestStudyLocusFactory:
-#     """Test the StudyLocusFactory methods."""
-
-#     def test_get_tss_distance_features(
-#         self: TestStudyLocusFactory, mock_study_locus: StudyLocus, mock_v2g: V2G
-#     ) -> None:
-#         """Test the function that extracts the distance to the TSS."""
-#         tss_distance = StudyLocusFactory._get_tss_distance_features(
-#             mock_study_locus, mock_v2g
-#         )
-#         assert isinstance(
-#             tss_distance, L2GFeature
-#         ), "Unexpected model type returned from _get_tss_distance_features"
-
-#     def test_get_vep_features(
-#         self: TestStudyLocusFactory, mock_study_locus: StudyLocus, mock_v2g: V2G
-#     ) -> None:
-#         """Test the function that extracts the VEP features."""
-#         vep_features = StudyLocusFactory._get_vep_features(mock_study_locus, mock_v2g)
-#         assert isinstance(
-#             vep_features, L2GFeature
-#         ), "Unexpected model type returned from _get_vep_features"
