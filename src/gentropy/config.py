@@ -328,19 +328,6 @@ class ConvertToVcfStepConfig(StepConfig):
 
 
 @dataclass
-class VariantToGeneConfig(StepConfig):
-    """V2G step configuration."""
-
-    variant_index_path: str = MISSING
-    gene_index_path: str = MISSING
-    liftover_chain_file_path: str = MISSING
-    liftover_max_length_difference: int = 100
-    interval_sources: Dict[str, str] = field(default_factory=dict)
-    v2g_path: str = MISSING
-    _target_: str = "gentropy.variant_to_gene.V2GStep"
-
-
-@dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
@@ -514,7 +501,6 @@ def register_config() -> None:
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
-    cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
