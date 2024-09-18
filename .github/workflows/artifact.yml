@@ -46,6 +46,8 @@ jobs:
           push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
           context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push VEP image
         uses: docker/build-push-action@v6
@@ -55,3 +57,5 @@ jobs:
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ github.ref_name }}"
           context: .
           file: "src/vep/Dockerfile"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
