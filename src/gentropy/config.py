@@ -52,6 +52,15 @@ class GeneIndexConfig(StepConfig):
 
 
 @dataclass
+class BiosampleIndexConfig(StepConfig):
+    """Biosample index step configuration."""
+
+    target_path: str = MISSING
+    biosample_index_path: str = MISSING
+    _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
+
+
+@dataclass
 class GWASCatalogStudyCurationConfig(StepConfig):
     """GWAS Catalog study curation step configuration."""
 
@@ -545,6 +554,7 @@ def register_config() -> None:
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
     cs.store(group="step", name="gene_index", node=GeneIndexConfig)
+    cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
         name="gwas_catalog_study_curation",
