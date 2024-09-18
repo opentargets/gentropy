@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from gentropy.dataset.l2g_feature import L2GFeature
-from gentropy.method.l2g.feature_factory import (
+from gentropy.dataset.l2g_feature import (
     DistanceFootprintMeanFeature,
     DistanceFootprintMeanNeighbourhoodFeature,
     DistanceFootprintMinimumFeature,
@@ -20,7 +19,7 @@ from gentropy.method.l2g.feature_factory import (
     EQtlColocClppMaximumNeighbourhoodFeature,
     EQtlColocH4MaximumFeature,
     EQtlColocH4MaximumNeighbourhoodFeature,
-    L2GFeatureInputLoader,
+    L2GFeature,
     PQtlColocClppMaximumFeature,
     PQtlColocClppMaximumNeighbourhoodFeature,
     PQtlColocH4MaximumFeature,
@@ -34,6 +33,7 @@ from gentropy.method.l2g.feature_factory import (
     TuQtlColocH4MaximumFeature,
     TuQtlColocH4MaximumNeighbourhoodFeature,
 )
+from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 if TYPE_CHECKING:
     from gentropy.dataset.colocalisation import Colocalisation
