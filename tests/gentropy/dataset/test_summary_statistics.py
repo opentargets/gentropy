@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import types as t
 
+from gentropy.common.genomic_region import GenomicRegion
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
@@ -44,7 +45,10 @@ def test_summary_statistics__exclude_region__return_type(
 ) -> None:
     """Testing if the exclude region method returns the right datatype."""
     assert isinstance(
-        mock_summary_statistics.exclude_region("chr12:124-1245"), SummaryStatistics
+        mock_summary_statistics.exclude_region(
+            GenomicRegion.from_string("chr12:124-1245")
+        ),
+        SummaryStatistics,
     )
 
 
@@ -85,7 +89,7 @@ def test_summary_statistics__exclude_region__correctness(
     df = spark.createDataFrame(data, schema=schema)
     filtered_sumstas = SummaryStatistics(
         _df=df, _schema=SummaryStatistics.get_schema()
-    ).exclude_region("c1:9-16")
+    ).exclude_region(GenomicRegion.from_string("c1:9-16"))
 
     # Test for the correct number of rows returned:
     assert filtered_sumstas.df.count() == 8
