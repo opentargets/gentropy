@@ -40,5 +40,5 @@ This section contains information about the data source harmonisation tools avai
 
 ## Biological samples
 
-1. [Uberon](ontologies/_uberon.md)
-2. [Cell Ontology](ontologies/_cell_ontology.md)
+1. [Uberon](biosample_ontologies/_uberon.md)
+2. [Cell Ontology](biosample_ontologies/_cell_ontology.md)

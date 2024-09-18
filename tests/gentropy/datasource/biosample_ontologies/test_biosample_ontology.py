@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from gentropy.dataset.biosample_index import BiosampleIndex
-from gentropy.datasource.ontologies.utils import (
+from gentropy.datasource.biosample_ontologies.utils import (
     extract_ontology_from_json,
     merge_biosample_indices,
 )

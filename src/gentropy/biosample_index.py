@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
-from gentropy.datasource.ontologies.utils import (
+from gentropy.datasource.biosample_ontologies.utils import (
     extract_ontology_from_json,
     merge_biosample_indices,
 )
