@@ -2,7 +2,7 @@ name: Build and Push to Artifact Registry
 
 "on":
   push:
-    branches: ["dev"]
+    branches: ["dev", "tskir-cache-docker"]
     tags: ["v*"]
 
 env:
