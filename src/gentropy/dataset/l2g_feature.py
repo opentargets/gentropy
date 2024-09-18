@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import convert_from_wide_to_long
@@ -16,7 +17,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame, Window
+    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
