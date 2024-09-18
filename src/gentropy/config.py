@@ -225,7 +225,20 @@ class LocusToGeneConfig(StepConfig):
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
-    features_list: list[dict[str, str]] = MISSING
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            "tuQtlColocClppMaximum",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            "tuQtlColocH4Maximum",
+        ]
+    )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
