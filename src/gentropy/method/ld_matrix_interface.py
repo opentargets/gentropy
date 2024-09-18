@@ -35,7 +35,7 @@ class LDMatrixInterface:
             DataFrame: Returns the index of the gnomad matrix for the locus
 
         """
-        if (ancestry == "nfe") and (session is not None):
+        if (ancestry in ("nfe", "csa")) and (session is not None):
             joined_index = PanUKBBLDMatrix.get_locus_index_boundaries(
                 session=session,
                 study_locus_row=study_locus_row,
@@ -78,7 +78,7 @@ class LDMatrixInterface:
         Returns:
             np.ndarray: LD block matrix for the locus
         """
-        if ancestry == "nfe":
+        if ancestry in ("nfe", "csa"):
             block_matrix = PanUKBBLDMatrix.get_numpy_matrix(
                 locus_index=locus_index,
                 ancestry=ancestry,
