@@ -136,13 +136,6 @@ def harmonise_summary_stats(
         .join(va_df, (df["chromosome"] == va_df["vaChromosome"]) & (df["summary_stats_id"] == va_df["summary_stats_id"]), "inner")
         .drop("vaChromosome", "summary_stats_id")
         .withColumn(
-            "effectAlleleFrequencyFromSource",
-            f.when(
-                f.col("direction") == "direct",
-                f.col(colname_a1freq).cast("float")
-            ).otherwise(1 - f.col(colname_a1freq).cast("float"))
-        )
-        .withColumn(
             "beta",
             f.when(
                 f.col("direction") == "direct",
@@ -150,6 +143,18 @@ def harmonise_summary_stats(
             ).otherwise(-f.col(colname_beta).cast("double"))
         )
     )
+    if colname_a1freq:
+        df = (
+            df
+            .withColumn(
+                "effectAlleleFrequencyFromSource",
+                f.when(
+                    f.col("direction") == "direct",
+                    f.col(colname_a1freq).cast("float")
+                )
+                .otherwise(1 - f.col(colname_a1freq).cast("float"))
+            )
+        )
     df = (
         # Harmonise, 7: Drop bad quality variants.
         df
