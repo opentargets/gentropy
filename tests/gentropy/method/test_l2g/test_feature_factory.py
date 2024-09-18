@@ -1,4 +1,4 @@
-"""Test locus-to-gene model training."""
+"""Test locus-to-gene feature generation."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from gentropy.dataset.l2g_feature import L2GFeature
-from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import (
     DistanceFootprintMeanFeature,
     DistanceFootprintMeanNeighbourhoodFeature,
@@ -18,20 +17,29 @@ from gentropy.method.l2g.feature_factory import (
     DistanceTssMinimumFeature,
     DistanceTssMinimumNeighbourhoodFeature,
     EQtlColocClppMaximumFeature,
+    EQtlColocClppMaximumNeighbourhoodFeature,
     EQtlColocH4MaximumFeature,
+    EQtlColocH4MaximumNeighbourhoodFeature,
     L2GFeatureInputLoader,
     PQtlColocClppMaximumFeature,
+    PQtlColocClppMaximumNeighbourhoodFeature,
     PQtlColocH4MaximumFeature,
+    PQtlColocH4MaximumNeighbourhoodFeature,
     SQtlColocClppMaximumFeature,
+    SQtlColocClppMaximumNeighbourhoodFeature,
     SQtlColocH4MaximumFeature,
+    SQtlColocH4MaximumNeighbourhoodFeature,
     TuQtlColocClppMaximumFeature,
+    TuQtlColocClppMaximumNeighbourhoodFeature,
     TuQtlColocH4MaximumFeature,
+    TuQtlColocH4MaximumNeighbourhoodFeature,
 )
 
 if TYPE_CHECKING:
     from gentropy.dataset.colocalisation import Colocalisation
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.study_locus import StudyLocus
+    from gentropy.dataset.variant_index import VariantIndex
 
 
 @pytest.mark.parametrize(
@@ -45,6 +53,14 @@ if TYPE_CHECKING:
         PQtlColocClppMaximumFeature,
         SQtlColocClppMaximumFeature,
         TuQtlColocClppMaximumFeature,
+        EQtlColocClppMaximumNeighbourhoodFeature,
+        PQtlColocClppMaximumNeighbourhoodFeature,
+        SQtlColocClppMaximumNeighbourhoodFeature,
+        TuQtlColocClppMaximumNeighbourhoodFeature,
+        EQtlColocH4MaximumNeighbourhoodFeature,
+        PQtlColocH4MaximumNeighbourhoodFeature,
+        SQtlColocH4MaximumNeighbourhoodFeature,
+        TuQtlColocH4MaximumNeighbourhoodFeature,
         DistanceTssMeanFeature,
         DistanceTssMinimumFeature,
         DistanceFootprintMeanFeature,
