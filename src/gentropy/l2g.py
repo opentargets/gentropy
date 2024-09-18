@@ -17,7 +17,7 @@ from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.v2g import V2G
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
@@ -38,7 +38,7 @@ class LocusToGeneStep:
         model_path: str | None = None,
         credible_set_path: str,
         gold_standard_curation_path: str | None = None,
-        variant_gene_path: str | None = None,
+        variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
         gene_interactions_path: str | None = None,
@@ -59,7 +59,7 @@ class LocusToGeneStep:
             model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             gold_standard_curation_path (str | None): Path to the gold standard curation file
-            variant_gene_path (str | None): Path to the variant-gene dataset
+            variant_index_path (str | None): Path to the variant index dataset
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
             gene_interactions_path (str | None): Path to the gene interactions dataset
@@ -96,8 +96,10 @@ class LocusToGeneStep:
             if study_index_path
             else None
         )
-        self.v2g = (
-            V2G.from_parquet(session, variant_gene_path) if variant_gene_path else None
+        self.variant_index = (
+            VariantIndex.from_parquet(session, variant_index_path)
+            if variant_index_path
+            else None
         )
         self.coloc = (
             Colocalisation.from_parquet(
@@ -107,7 +109,7 @@ class LocusToGeneStep:
             else None
         )
         self.features_input_loader = L2GFeatureInputLoader(
-            v2g=self.v2g,
+            variant_index=self.variant_index,
             coloc=self.coloc,
             studies=self.studies,
         )
@@ -133,7 +135,7 @@ class LocusToGeneStep:
         Raises:
             ValueError: If not all dependencies in prediction mode are set
         """
-        if self.studies and self.v2g and self.coloc:
+        if self.studies and self.coloc:
             predictions = L2GPrediction.from_credible_set(
                 self.session,
                 self.credible_set,
@@ -156,9 +158,9 @@ class LocusToGeneStep:
         if (
             self.gs_curation
             and self.interactions
-            and self.v2g
             and self.wandb_run_name
             and self.model_path
+            and self.variant_index
         ):
             wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
             # Process gold standard and L2G features
@@ -203,7 +205,12 @@ class LocusToGeneStep:
             ValueError: If write_feature_matrix is set to True but a path is not provided.
             ValueError: If dependencies to build features are not set.
         """
-        if self.gs_curation and self.interactions and self.v2g and self.studies:
+        if (
+            self.gs_curation
+            and self.interactions
+            and self.studies
+            and self.variant_index
+        ):
             study_locus_overlap = StudyLocus(
                 _df=self.credible_set.df.join(
                     f.broadcast(
@@ -229,7 +236,7 @@ class LocusToGeneStep:
 
             gold_standards = L2GGoldStandard.from_otg_curation(
                 gold_standard_curation=self.gs_curation,
-                v2g=self.v2g,
+                variant_index=self.variant_index,
                 study_locus_overlap=study_locus_overlap,
                 interactions=self.interactions,
             )

@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, List
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -218,7 +218,7 @@ class LocusToGeneConfig(StepConfig):
     run_mode: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
-    variant_gene_path: str = MISSING
+    variant_index_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
     model_path: str | None = None
