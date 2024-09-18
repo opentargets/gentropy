@@ -104,24 +104,26 @@ class SusieFineMapperStep:
         study_index = StudyIndex.from_parquet(session, study_index_path)
         # Run fine-mapping
 
-        result_logging = self.susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
-            session=session,
-            study_locus_row=study_locus,
-            study_index=study_index,
-            max_causal_snps=max_causal_snps,
-            primary_signal_pval_threshold=primary_signal_pval_threshold,
-            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
-            purity_mean_r2_threshold=purity_mean_r2_threshold,
-            purity_min_r2_threshold=purity_min_r2_threshold,
-            cs_lbf_thr=cs_lbf_thr,
-            sum_pips=sum_pips,
-            susie_est_tausq=susie_est_tausq,
-            run_carma=run_carma,
-            run_sumstat_imputation=run_sumstat_imputation,
-            carma_tau=carma_tau,
-            carma_time_limit=carma_time_limit,
-            imputed_r2_threshold=imputed_r2_threshold,
-            ld_score_threshold=ld_score_threshold,
+        result_logging = (
+            self.susie_finemapper_one_sl_row_v4_ss_gathered_boundaries_ldinterface(
+                session=session,
+                study_locus_row=study_locus,
+                study_index=study_index,
+                max_causal_snps=max_causal_snps,
+                primary_signal_pval_threshold=primary_signal_pval_threshold,
+                secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+                purity_mean_r2_threshold=purity_mean_r2_threshold,
+                purity_min_r2_threshold=purity_min_r2_threshold,
+                cs_lbf_thr=cs_lbf_thr,
+                sum_pips=sum_pips,
+                susie_est_tausq=susie_est_tausq,
+                run_carma=run_carma,
+                run_sumstat_imputation=run_sumstat_imputation,
+                carma_tau=carma_tau,
+                carma_time_limit=carma_time_limit,
+                imputed_r2_threshold=imputed_r2_threshold,
+                ld_score_threshold=ld_score_threshold,
+            )
         )
 
         if result_logging is not None:
