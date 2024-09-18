@@ -787,11 +787,12 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: with empty credible sets for linked variants and QC flag.
         """
-        self.df = (
+        clumped_df = (
             self.df.withColumn(
                 "is_lead_linked",
                 LDclumping._is_lead_linked(
                     self.df.studyId,
+                    self.df.chromosome,
                     self.df.variantId,
                     self.df.pValueExponent,
                     self.df.pValueMantissa,
@@ -812,7 +813,10 @@ class StudyLocus(Dataset):
             )
             .drop("is_lead_linked")
         )
-        return self
+        return StudyLocus(
+            _df=clumped_df,
+            _schema=self.get_schema(),
+        )
 
     def exclude_region(
         self: StudyLocus, region: str, exclude_overlap: bool = False
