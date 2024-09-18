@@ -39,21 +39,21 @@ jobs:
         run: |-
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      # - name: Build and push gentropy image (AMD64)
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     platforms: linux/amd64
-      #     push: true
-      #     tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
-      #     context: .
+      - name: Build and push gentropy image (AMD64)
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64
+          push: true
+          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
+          context: .
 
-      # - name: Build and push gentropy image (ARM64)
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     platforms: linux/arm64
-      #     push: true
-      #     tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
-      #     context: .
+      - name: Build and push gentropy image (ARM64)
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/arm64
+          push: true
+          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
+          context: .
 
       - name: Build and push VEP image (AMD64)
         uses: docker/build-push-action@v6
