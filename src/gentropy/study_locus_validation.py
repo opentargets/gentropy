@@ -46,8 +46,8 @@ class StudyLocusValidationStep:
             )  # Flagging study locus with subsignificant p-values
             .validate_study(study_index)  # Flagging studies not in study index
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
-            # only 95% credible sets are kept
-            .filter_credible_set(CredibleInterval.IS95)
+            # Annotates credible intervals and filter to only keep 99% credible sets
+            .filter_credible_set(CredibleInterval.IS99)
         ).persist()  # we will need this for 2 types of outputs
 
         study_locus_with_qc.valid_rows(
