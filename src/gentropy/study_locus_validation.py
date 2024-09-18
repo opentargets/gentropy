@@ -47,7 +47,7 @@ class StudyLocusValidationStep:
             .validate_study(study_index)  # Flagging studies not in study index
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
             # Annotates credible intervals and filter to only keep 99% credible sets
-            .filter_credible_set(CredibleInterval.IS99)
+            .filter_credible_set(credible_interval=CredibleInterval.IS99)
         ).persist()  # we will need this for 2 types of outputs
 
         study_locus_with_qc.valid_rows(
