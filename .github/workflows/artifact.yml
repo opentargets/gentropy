@@ -3,7 +3,7 @@ name: Build and Push to Artifact Registry
 "on":
   push:
     branches: ["*"]
-    tags: ["v*"]
+    tags: ["*"]
 
 env:
   PROJECT_ID: open-targets-genetics-dev
