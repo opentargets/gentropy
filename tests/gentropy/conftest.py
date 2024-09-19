@@ -578,7 +578,7 @@ def mock_biosample_index(spark: SparkSession) -> BiosampleIndex:
         .withSchema(bi_schema)
         .withColumnSpec("biosampleName", percentNulls=0.1)
         .withColumnSpec("description", percentNulls=0.1)
-        .withColumnSpec("dbXrefs", expr=array_expression, percentNulls=0.1)
+        .withColumnSpec("xrefs", expr=array_expression, percentNulls=0.1)
         .withColumnSpec("synonyms", expr=array_expression, percentNulls=0.1)
         .withColumnSpec("parents", expr=array_expression, percentNulls=0.1)
         .withColumnSpec("ancestors", expr=array_expression, percentNulls=0.1)

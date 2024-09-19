@@ -112,7 +112,7 @@ def extract_ontology_from_json(
     regexp_replace(col("node.id"), "http://purl.obolibrary.org/obo/", "").alias("biosampleId"),
     col("node.lbl").alias("biosampleName"),
     col("node.meta.definition.val").alias("description"),
-    collect_set(col("node.meta.xrefs.val")).over(Window.partitionBy("node.id")).getItem(0).alias("dbXrefs"),
+    collect_set(col("node.meta.xrefs.val")).over(Window.partitionBy("node.id")).getItem(0).alias("xrefs"),
     # col("node.meta.deprecated").alias("deprecated"),
     collect_set(col("node.meta.synonyms.val")).over(Window.partitionBy("node.id")).getItem(0).alias("synonyms"))
 

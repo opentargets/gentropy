@@ -20,7 +20,7 @@
       "metadata": {}
     },
     {
-      "name": "dbXrefs",
+      "name": "xrefs",
       "type": {
         "type": "array",
         "elementType": "string",
