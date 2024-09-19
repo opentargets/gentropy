@@ -21,7 +21,7 @@ def test_append_right_study_metadata(
     """Test appending right study metadata."""
     if metadata_cols is None:
         metadata_cols = ["studyType"]
-    expected_extra_col = ["rightStudyType"]
+    expected_extra_col = ["rightStudyType", "rightStudyId"]
     res_df = mock_colocalisation.append_right_study_metadata(
         mock_study_locus, mock_study_index, metadata_cols
     )

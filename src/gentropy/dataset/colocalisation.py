@@ -122,18 +122,18 @@ class Colocalisation(Dataset):
         Returns:
             DataFrame: Colocalisation dataset with appended metadata of the right study
         """
+        metadata_cols = ["studyId", *metadata_cols]
         # TODO: make this flexible to bring metadata from the left study (2 joins)
-        return self.df.join(
-            study_loci.df.selectExpr(
-                "studyLocusId as rightStudyLocusId", "studyId as rightStudyId"
-            ),
-            "rightStudyLocusId",
-            "left",
-        ).join(
-            study_index.df.selectExpr(
-                "studyId as rightStudyId",
+        return (
+            # Annotate study loci with study metadata
+            study_loci.df.select("studyLocusId", "studyId")
+            .join(
+                f.broadcast(study_index.df.select("studyId", *metadata_cols)), "studyId"
+            )
+            # Append that to the right side of the colocalisation dataset
+            .selectExpr(
+                "studyLocusId as rightStudyLocusId",
                 *[f"{col} as right{col[0].upper() + col[1:]}" for col in metadata_cols],
-            ),
-            "rightStudyId",
-            "left",
+            )
+            .join(self.df, "rightStudyLocusId", "right")
         )
