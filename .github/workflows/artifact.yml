@@ -62,7 +62,7 @@ jobs:
         if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ github.ref_name }}"
           context: .
