@@ -65,8 +65,11 @@ class L2GFeature(Dataset, ABC):
             feature_dependency (Any): The dependency that the L2GFeature class needs to compute the feature
         Returns:
             L2GFeature: a L2GFeature dataset
+
+        Raises:
+                NotImplementedError: This method must be implemented in the child classes
         """
-        pass
+        raise NotImplementedError("Must be implemented in the child classes")
 
 
 def _common_colocalisation_feature_logic(
