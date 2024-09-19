@@ -9,15 +9,15 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql.types import DoubleType, IntegerType, LongType
+from pyspark.sql.types import DoubleType, FloatType, IntegerType, LongType
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
-    pvalue_to_zscore,
+    get_standard_error_from_confidence_interval,
 )
-from gentropy.common.utils import parse_efos
+from gentropy.common.utils import convert_odds_ratio_to_beta, parse_efos
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
@@ -140,8 +140,8 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
     @staticmethod
-    def _normalise_risk_allele(risk_allele: Column) -> Column:
-        """Normalised risk allele column to a standardised format.
+    def _extract_risk_allele(risk_allele: Column) -> Column:
+        """Extract risk allele from provided "STRONGEST SNP-RISK ALLELE" input column.
 
         If multiple risk alleles are present, the first one is returned.
 
@@ -155,7 +155,7 @@ class GWASCatalogCuratedAssociationsParser:
             >>> import pyspark.sql.types as t
             >>> d = [("rs1234-A-G"), ("rs1234-A"), ("rs1234-A; rs1235-G")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._normalise_risk_allele(f.col('value'))).show()
+            >>> df.withColumn('normalised', GWASCatalogCuratedAssociationsParser._extract_risk_allele(f.col('value'))).show()
             +------------------+----------+
             |             value|normalised|
             +------------------+----------+
@@ -164,7 +164,6 @@ class GWASCatalogCuratedAssociationsParser:
             |rs1234-A; rs1235-G|         A|
             +------------------+----------+
             <BLANKLINE>
-
         """
         # GWAS Catalog to risk allele mapping
         return f.split(f.split(risk_allele, "; ").getItem(0), "-").getItem(1)
@@ -195,7 +194,7 @@ class GWASCatalogCuratedAssociationsParser:
         return f.array_distinct(f.array(snp_id, snp_id_current, risk_allele))
 
     @staticmethod
-    def _map_variants_to_variant_index(
+    def _map_variants_to_gnomad_variants(
         gwas_associations: DataFrame, variant_index: VariantIndex
     ) -> DataFrame:
         """Add variant metadata in associations.
@@ -220,7 +219,7 @@ class GWASCatalogCuratedAssociationsParser:
                 f.col("SNP_ID_CURRENT"),
                 f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
             ).alias("rsIdsGwasCatalog"),
-            GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
+            GWASCatalogCuratedAssociationsParser._extract_risk_allele(
                 f.col("STRONGEST SNP-RISK ALLELE")
             ).alias("riskAllele"),
         )
@@ -570,47 +569,59 @@ class GWASCatalogCuratedAssociationsParser:
 
     @staticmethod
     def _harmonise_beta(
-        risk_allele: Column,
-        reference_allele: Column,
-        alternate_allele: Column,
         effect_size: Column,
         confidence_interval: Column,
+        flipping_needed: Column,
     ) -> Column:
-        """A function to extract the beta value from the effect size and confidence interval.
+        """A function to extract the beta value from the effect size and confidence interval and harmonises for the alternate allele.
 
         If the confidence interval contains the word "increase" or "decrease" it indicates, we are dealing with betas.
-        If it's "increase" and the effect size needs to be harmonized, then multiply the effect size by -1
+        If it's "increase" and the effect size needs to be harmonized, then multiply the effect size by -1.
+        The sign of the effect size is flipped if the confidence interval contains "decrease".
+
+        eg. if the reported value is 0.5, and the confidence interval tells "decrease"? -> beta is -0.5
 
         Args:
-            risk_allele (Column): Risk allele column
-            reference_allele (Column): Reference allele column
-            alternate_allele (Column): Alternate allele column
-            effect_size (Column): GWAS Catalog effect size column
-            confidence_interval (Column): GWAS Catalog confidence interval column
+            effect_size (Column): GWAS Catalog effect size column.
+            confidence_interval (Column): GWAS Catalog confidence interval column to know the direction of the effect.
+            flipping_needed (Column): Boolean flag indicating if effect needs to be flipped based on the alleles.
 
         Returns:
             Column: A column containing the beta value.
+
+        Examples:
+            >>> d = [
+            ...    # positive effect -no flipping:
+            ...    (0.5, 'increase', False),
+            ...    # Positive effect - flip:
+            ...    (0.5, 'decrease', False),
+            ...    # Positive effect - flip:
+            ...    (0.5, 'decrease', True),
+            ...    # Negative effect - no flip:
+            ...    (0.5, 'increase', True),
+            ...    # Negative effect - flip:
+            ...    (0.5, 'decrease', False),
+            ... ]
+            >>> (
+            ...    spark.createDataFrame(d, ['effect', 'ci_text', 'flip'])
+            ...    .select("effect", "ci_text", 'flip', GWASCatalogCuratedAssociationsParser._harmonise_beta(f.col("effect"), f.col("ci_text"), f.lit(False)).alias("beta"))
+            ...    .show()
+            ... )
+            +------+--------+-----+----+
+            |effect| ci_text| flip|beta|
+            +------+--------+-----+----+
+            |   0.5|increase|false| 0.5|
+            |   0.5|decrease|false|-0.5|
+            |   0.5|decrease| true|-0.5|
+            |   0.5|increase| true| 0.5|
+            |   0.5|decrease|false|-0.5|
+            +------+--------+-----+----+
+            <BLANKLINE>
         """
         return (
             f.when(
-                GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
-                    reference_allele, alternate_allele
-                ),
-                None,
-            )
-            .when(
-                (
-                    GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
-                        risk_allele, reference_allele
-                    )
-                    & confidence_interval.contains("increase")
-                )
-                | (
-                    ~GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
-                        risk_allele, reference_allele
-                    )
-                    & confidence_interval.contains("decrease")
-                ),
+                (flipping_needed & confidence_interval.contains("increase"))
+                | (~flipping_needed & confidence_interval.contains("decrease")),
                 -effect_size,
             )
             .otherwise(effect_size)
@@ -618,125 +629,45 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
     @staticmethod
-    def _harmonise_beta_ci(
-        risk_allele: Column,
-        reference_allele: Column,
-        alternate_allele: Column,
-        effect_size: Column,
-        confidence_interval: Column,
-        p_value: Column,
-        direction: str,
-    ) -> Column:
-        """Calculating confidence intervals for beta values.
-
-        Args:
-            risk_allele (Column): Risk allele column
-            reference_allele (Column): Reference allele column
-            alternate_allele (Column): Alternate allele column
-            effect_size (Column): GWAS Catalog effect size column
-            confidence_interval (Column): GWAS Catalog confidence interval column
-            p_value (Column): GWAS Catalog p-value column
-            direction (str): This is the direction of the confidence interval. It can be either "upper" or "lower".
-
-        Returns:
-            Column: The upper and lower bounds of the confidence interval for the beta coefficient.
-        """
-        zscore_95 = f.lit(1.96)
-        beta = GWASCatalogCuratedAssociationsParser._harmonise_beta(
-            risk_allele,
-            reference_allele,
-            alternate_allele,
-            effect_size,
-            confidence_interval,
-        )
-        zscore = pvalue_to_zscore(p_value)
-        return (
-            f.when(f.lit(direction) == "upper", beta + f.abs(zscore_95 * beta) / zscore)
-            .when(f.lit(direction) == "lower", beta - f.abs(zscore_95 * beta) / zscore)
-            .otherwise(None)
-        )
-
-    @staticmethod
     def _harmonise_odds_ratio(
-        risk_allele: Column,
-        reference_allele: Column,
-        alternate_allele: Column,
         effect_size: Column,
-        confidence_interval: Column,
+        flipping_needed: Column,
     ) -> Column:
-        """Harmonizing odds ratio.
+        """Odds ratio is either propagated as is, or flipped if indicated, meaning returning a reciprocal value.
 
         Args:
-            risk_allele (Column): Risk allele column
-            reference_allele (Column): Reference allele column
-            alternate_allele (Column): Alternate allele column
-            effect_size (Column): GWAS Catalog effect size column
-            confidence_interval (Column): GWAS Catalog confidence interval column
+            effect_size (Column): containing effect size,
+            flipping_needed (Column): Boolean flag indicating if effect needs to be flipped
 
         Returns:
             Column: A column with the odds ratio, or 1/odds_ratio if harmonization required.
+
+        Examples:
+        >>> d = [(0.5, False), (0.5, True), (0.0, False), (0.0, True)]
+        >>> (
+        ...    spark.createDataFrame(d, ['effect', 'flip'])
+        ...    .select("effect", "flip", GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(f.col("effect"), f.col("flip")).alias("odds_ratio"))
+        ...    .show()
+        ... )
+        +------+-----+----------+
+        |effect| flip|odds_ratio|
+        +------+-----+----------+
+        |   0.5|false|       0.5|
+        |   0.5| true|       2.0|
+        |   0.0|false|       0.0|
+        |   0.0| true|      null|
+        +------+-----+----------+
+        <BLANKLINE>
         """
         return (
-            f.when(
-                GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
-                    reference_allele, alternate_allele
-                ),
-                None,
-            )
+            # We are not flipping zero effect size:
+            f.when((effect_size.cast(DoubleType()) == 0) & flipping_needed, f.lit(None))
             .when(
-                (
-                    GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
-                        risk_allele, reference_allele
-                    )
-                    & ~confidence_interval.rlike("|".join(["decrease", "increase"]))
-                ),
+                flipping_needed,
                 1 / effect_size,
             )
             .otherwise(effect_size)
             .cast(DoubleType())
-        )
-
-    @staticmethod
-    def _harmonise_odds_ratio_ci(
-        risk_allele: Column,
-        reference_allele: Column,
-        alternate_allele: Column,
-        effect_size: Column,
-        confidence_interval: Column,
-        p_value: Column,
-        direction: str,
-    ) -> Column:
-        """Calculating confidence intervals for beta values.
-
-        Args:
-            risk_allele (Column): Risk allele column
-            reference_allele (Column): Reference allele column
-            alternate_allele (Column): Alternate allele column
-            effect_size (Column): GWAS Catalog effect size column
-            confidence_interval (Column): GWAS Catalog confidence interval column
-            p_value (Column): GWAS Catalog p-value column
-            direction (str): This is the direction of the confidence interval. It can be either "upper" or "lower".
-
-        Returns:
-            Column: The upper and lower bounds of the 95% confidence interval for the odds ratio.
-        """
-        zscore_95 = f.lit(1.96)
-        odds_ratio = GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(
-            risk_allele,
-            reference_allele,
-            alternate_allele,
-            effect_size,
-            confidence_interval,
-        )
-        odds_ratio_estimate = f.log(odds_ratio)
-        zscore = pvalue_to_zscore(p_value)
-        odds_ratio_se = odds_ratio_estimate / zscore
-        return f.when(
-            f.lit(direction) == "upper",
-            f.exp(odds_ratio_estimate + f.abs(zscore_95 * odds_ratio_se)),
-        ).when(
-            f.lit(direction) == "lower",
-            f.exp(odds_ratio_estimate - f.abs(zscore_95 * odds_ratio_se)),
         )
 
     @staticmethod
@@ -988,11 +919,177 @@ class GWASCatalogCuratedAssociationsParser:
             StudyLocusQualityCheck.PALINDROMIC_ALLELE_FLAG,
         )
 
+    @staticmethod
+    def _get_effect_type(ci_text: Column) -> Column:
+        """Extracts the effect type from the 95% CI text.
+
+        The GWAS Catalog confidence interval column contains text that can be used to infer the effect type.
+        If the text contains "increase" or "decrease", the effect type is beta, otherwise it is odds ratio.
+        Null columns return null as the effect type.
+
+        Args:
+            ci_text (Column): Column containing the 95% CI text.
+
+        Returns:
+            Column: A column containing the effect type.
+
+        Examples:
+            >>> data = [{"ci_text": "95% CI: [0.1-0.2]"}, {"ci_text": "95% CI: [0.1-0.2] increase"}, {"ci_text": "95% CI: [0.1-0.2] decrease"}, {"ci_text": None}]
+            >>> spark.createDataFrame(data).select('ci_text', GWASCatalogCuratedAssociationsParser._get_effect_type(f.col('ci_text')).alias('effect_type')).show(truncate=False)
+            +--------------------------+-----------+
+            |ci_text                   |effect_type|
+            +--------------------------+-----------+
+            |95% CI: [0.1-0.2]         |odds_ratio |
+            |95% CI: [0.1-0.2] increase|beta       |
+            |95% CI: [0.1-0.2] decrease|beta       |
+            |null                      |null       |
+            +--------------------------+-----------+
+            <BLANKLINE>
+
+        """
+        return f.when(
+            f.lower(ci_text).contains("increase")
+            | f.lower(ci_text).contains("decrease"),
+            f.lit("beta"),
+        ).when(ci_text.isNotNull(), f.lit("odds_ratio"))
+
+    @staticmethod
+    def harmonise_association_effect_to_beta(
+        df: DataFrame,
+    ) -> DataFrame:
+        """Harmonise effect to beta value.
+
+        The harmonisation process has a number of steps:
+        - Extracting the reported effect allele.
+        - Flagging palindromic alleles.
+        - Flagging associations where the effect direction needs to be flipped.
+        - Flagging the effect type.
+        - Getting the standard error from the confidence interval text.
+        - Harmonising both beta and odds ratio.
+        - Converting the odds ratio to beta.
+
+        Args:
+            df (DataFrame): DataFrame with the following columns:
+
+        Returns:
+            DataFrame: DataFrame with the following columns:
+
+        Raises:
+            ValueError: If any of the required columns are missing.
+
+        Examples:
+            >>> data = [
+            ...    # Flagged as palindromic:
+            ...    ('rs123-T', 'A', 'T', '0.1', '[0.08-0.12] unit increase'),
+            ...    # Not palindromic, beta needs to be flipped:
+            ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12] unit increase'),
+            ...    # Beta is not flipped:
+            ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12] unit increase'),
+            ...    # odds ratio:
+            ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12]'),
+            ...    # odds ratio flipped:
+            ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12]'),
+            ... ]
+            >>> schema = ["STRONGEST SNP-RISK ALLELE", "referenceAllele", "alternateAllele", "OR or BETA", "95% CI (TEXT)"]
+            >>> df = spark.createDataFrame(data, schema)
+            >>> GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).show()
+            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
+            |STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|               beta|       standardError|
+            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
+            |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               null|                null|
+            |                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|               -0.1|0.010204081404574064|
+            |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|                0.1|0.010204081404574064|
+            |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                null|
+            |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                null|
+            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
+            <BLANKLINE>
+        """
+        # Testing if all columns are in the dataframe:
+        required_columns = [
+            "STRONGEST SNP-RISK ALLELE",
+            "referenceAllele",
+            "alternateAllele",
+            "OR or BETA",
+            "95% CI (TEXT)",
+        ]
+
+        for column in required_columns:
+            if column not in df.columns:
+                raise ValueError(
+                    f"Column {column} is required for harmonising effect to beta value."
+                )
+
+        return (
+            df.withColumn(
+                "reportedRiskAllele",
+                GWASCatalogCuratedAssociationsParser._extract_risk_allele(
+                    f.col("STRONGEST SNP-RISK ALLELE")
+                ),
+            )
+            .withColumns(
+                {
+                    # Flag palindromic alleles:
+                    "isAllelePalindromic": GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
+                        f.col("referenceAllele"), f.col("alternateAllele")
+                    ),
+                    # Flag associations, where the effect direction needs to be flipped:
+                    "needsFlipping": GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
+                        f.col("reportedRiskAllele"), f.col("referenceAllele")
+                    ),
+                    # Flag effect type:
+                    "effectType": GWASCatalogCuratedAssociationsParser._get_effect_type(
+                        f.col("95% CI (TEXT)")
+                    ),
+                    # Get standard error from confidence interval text:
+                    "standardError": get_standard_error_from_confidence_interval(
+                        f.regexp_extract(
+                            "95% CI (TEXT)", r"\[(\d+\.*\d*)-\d+\.*\d*\]", 1
+                        ).cast(FloatType()),
+                        f.regexp_extract(
+                            "95% CI (TEXT)", r"\[\d+\.*\d*-(\d+\.*\d*)\]", 1
+                        ).cast(FloatType()),
+                    ),
+                }
+            )
+            # Harmonise both beta and odds ratio:
+            .withColumns(
+                {  # Normalise beta value of the association:
+                    "effect_beta": f.when(
+                        (f.col("effectType") == "beta")
+                        & (~f.col("isAllelePalindromic")),
+                        GWASCatalogCuratedAssociationsParser._harmonise_beta(
+                            f.col("OR or BETA"),
+                            f.col("95% CI (TEXT)"),
+                            f.col("needsFlipping"),
+                        ),
+                    ),
+                    # Normalise odds ratio of the association:
+                    "effect_odds_ratio": f.when(
+                        (f.col("effectType") == "odds_ratio")
+                        & (~f.col("isAllelePalindromic")),
+                        GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(
+                            f.col("OR or BETA"),
+                            f.col("needsFlipping"),
+                        ),
+                    ),
+                },
+            )
+            .select(
+                *df.columns,
+                # Harmonise OR effect to beta:
+                *convert_odds_ratio_to_beta(
+                    f.col("effect_beta"),
+                    f.col("effect_odds_ratio"),
+                    f.col("standardError"),
+                ),
+            )
+        )
+
     @classmethod
     def from_source(
         cls: type[GWASCatalogCuratedAssociationsParser],
         gwas_associations: DataFrame,
-        variant_index: VariantIndex,
+        gnomad_variants: VariantIndex,
         pvalue_threshold: float = WindowBasedClumpingStepConfig.gwas_significance,
     ) -> StudyLocusGWASCatalog:
         """Read GWASCatalog associations.
@@ -1002,7 +1099,7 @@ class GWASCatalogCuratedAssociationsParser:
 
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset.
-            variant_index (VariantIndex): Variant index dataset with available allele frequencies.
+            gnomad_variants (VariantIndex): Variant dataset from GnomAD, with allele frequencies.
             pvalue_threshold (float): P-value threshold for flagging associations.
 
         Returns:
@@ -1017,26 +1114,29 @@ class GWASCatalogCuratedAssociationsParser:
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
                 # This function adds columns: variantId, referenceAllele, alternateAllele, chromosome, position
-                lambda df: GWASCatalogCuratedAssociationsParser._map_variants_to_variant_index(
-                    df, variant_index
+                lambda df: GWASCatalogCuratedAssociationsParser._map_variants_to_gnomad_variants(
+                    df, gnomad_variants
                 )
             )
-            .withColumn(
+            .withColumns(
                 # Perform all quality control checks:
-                "qualityControls",
-                GWASCatalogCuratedAssociationsParser._qc_all(
-                    f.array().alias("qualityControls"),
-                    f.col("CHR_ID"),
-                    f.col("CHR_POS").cast(IntegerType()),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("STRONGEST SNP-RISK ALLELE"),
-                    *GWASCatalogCuratedAssociationsParser._parse_pvalue(
-                        f.col("P-VALUE")
-                    ),
-                    pvalue_threshold,
-                ),
+                {
+                    "qualityControls": GWASCatalogCuratedAssociationsParser._qc_all(
+                        f.array().alias("qualityControls"),
+                        f.col("CHR_ID"),
+                        f.col("CHR_POS").cast(IntegerType()),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                        f.col("STRONGEST SNP-RISK ALLELE"),
+                        *GWASCatalogCuratedAssociationsParser._parse_pvalue(
+                            f.col("P-VALUE")
+                        ),
+                        pvalue_threshold,
+                    )
+                }
             )
+            # Harmonising effect to beta value and flip effect if needed:
+            .transform(cls.harmonise_association_effect_to_beta)
             .select(
                 # INSIDE STUDY-LOCUS SCHEMA:
                 "studyLocusId",
@@ -1045,16 +1145,6 @@ class GWASCatalogCuratedAssociationsParser:
                 "chromosome",
                 "position",
                 f.col("STUDY ACCESSION").alias("studyId"),
-                # beta value of the association
-                GWASCatalogCuratedAssociationsParser._harmonise_beta(
-                    GWASCatalogCuratedAssociationsParser._normalise_risk_allele(
-                        f.col("STRONGEST SNP-RISK ALLELE")
-                    ),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                    f.col("OR or BETA"),
-                    f.col("95% CI (TEXT)"),
-                ).alias("beta"),
                 # p-value of the association, string: split into exponent and mantissa.
                 *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
                 # Capturing phenotype granularity at the association level
@@ -1065,6 +1155,8 @@ class GWASCatalogCuratedAssociationsParser:
                 ).alias("subStudyDescription"),
                 # Quality controls (array of strings)
                 "qualityControls",
+                "beta",
+                "standardError",
             ),
             _schema=StudyLocusGWASCatalog.get_schema(),
         )

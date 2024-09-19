@@ -14,14 +14,14 @@ class UkbPppEurStudyIndex(StudyIndex):
     def from_source(
         cls: type[UkbPppEurStudyIndex],
         spark: SparkSession,
-        raw_study_index_path: str,
+        raw_study_index_path_from_tsv: str,
         raw_summary_stats_path: str,
     ) -> StudyIndex:
         """This function ingests study level metadata from UKB PPP (EUR).
 
         Args:
             spark (SparkSession): Spark session object.
-            raw_study_index_path (str): Raw study index path.
+            raw_study_index_path_from_tsv (str): Raw study index path.
             raw_summary_stats_path (str): Raw summary stats path.
 
         Returns:
@@ -39,7 +39,7 @@ class UkbPppEurStudyIndex(StudyIndex):
         )
         # Now we can read the raw study index and complete the processing.
         study_index_df = (
-            spark.read.csv(raw_study_index_path, sep="\t", header=True)
+            spark.read.csv(raw_study_index_path_from_tsv, sep="\t", header=True)
             .select(
                 f.lit("pqtl").alias("studyType"),
                 f.lit("UKB_PPP_EUR").alias("projectId"),

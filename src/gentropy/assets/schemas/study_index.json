@@ -250,6 +250,12 @@
       "type": "boolean",
       "nullable": true,
       "metadata": {}
+    },
+    {
+      "name": "condition",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
     }
   ]
 }

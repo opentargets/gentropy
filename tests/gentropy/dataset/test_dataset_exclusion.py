@@ -16,9 +16,9 @@ class TestDataExclusion:
     the right rows are excluded.
     """
 
-    CORRECT_FILTER = ["The identifier of this study is not unique."]
-    INCORRECT_FILTER = ["Some mock flag."]
-    ALL_FILTERS = [member.value for member in StudyQualityCheck]
+    CORRECT_FLAG = ["DUPLICATED_STUDY"]
+    INCORRECT_FLAG = ["UNKNOWN_CATEGORY"]
+    ALL_FLAGS = [member.name for member in StudyQualityCheck]
 
     DATASET = [
         # Good study no flag:
@@ -52,8 +52,8 @@ class TestDataExclusion:
     @pytest.mark.parametrize(
         "filter_, expected",
         [
-            (CORRECT_FILTER, ["S1", "S2"]),
-            (ALL_FILTERS, ["S1"]),
+            (CORRECT_FLAG, ["S1", "S2"]),
+            (ALL_FLAGS, ["S1"]),
         ],
     )
     def test_valid_rows(
@@ -72,8 +72,8 @@ class TestDataExclusion:
     @pytest.mark.parametrize(
         "filter_, expected",
         [
-            (CORRECT_FILTER, ["S3"]),
-            (ALL_FILTERS, ["S2", "S3"]),
+            (CORRECT_FLAG, ["S3"]),
+            (ALL_FLAGS, ["S2", "S3"]),
         ],
     )
     def test_invalid_rows(
@@ -90,11 +90,7 @@ class TestDataExclusion:
     def test_failing_quality_flag(self: TestDataExclusion) -> None:
         """Test invalid quality flag."""
         with pytest.raises(ValueError):
-            self.study_index.valid_rows(
-                self.INCORRECT_FILTER, invalid=True
-            ).df.collect()
+            self.study_index.valid_rows(self.INCORRECT_FLAG, invalid=True).df.collect()
 
         with pytest.raises(ValueError):
-            self.study_index.valid_rows(
-                self.INCORRECT_FILTER, invalid=False
-            ).df.collect()
+            self.study_index.valid_rows(self.INCORRECT_FLAG, invalid=False).df.collect()
