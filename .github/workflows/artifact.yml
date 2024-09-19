@@ -50,7 +50,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push gentropy image
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/v')
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
@@ -59,7 +59,7 @@ jobs:
           context: .
 
       - name: Build and push VEP image
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/v')
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
