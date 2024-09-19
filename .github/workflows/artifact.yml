@@ -2,7 +2,7 @@ name: Build and Push to Artifact Registry
 
 "on":
   push:
-    branches: ["dev"]
+    branches: ["dev", "yt_ldinteface_panukbb"]
     tags: ["v*"]
 
 env:
