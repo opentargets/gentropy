@@ -64,7 +64,7 @@ class TestIsLeadLinked:
         # An other independent variant on the same chromosome, but lead is not in ldSet:
         (
             "s1",
-            1,
+            6,
             "c1",
             "v6",
             1.0,
@@ -75,7 +75,7 @@ class TestIsLeadLinked:
         # An other independent variant on a different chromosome, but lead is not in ldSet:
         (
             "s1",
-            1,
+            7,
             "c2",
             "v10",
             1.0,
