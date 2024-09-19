@@ -61,6 +61,28 @@ class TestIsLeadLinked:
         ("s1", 4, "c1", "v10", 1.0, -10, [], False),
         # Independent - No variantId:
         ("s1", 5, "c1", None, 1.0, -10, [], False),
+        # An other independent variant on the same chromosome, but lead is not in ldSet:
+        (
+            "s1",
+            1,
+            "c1",
+            "v6",
+            1.0,
+            -8,
+            [{"tagVariantId": "v7"}, {"tagVariantId": "v8"}, {"tagVariantId": "v9"}],
+            False,
+        ),
+        # An other independent variant on a different chromosome, but lead is not in ldSet:
+        (
+            "s1",
+            1,
+            "c2",
+            "v10",
+            1.0,
+            -8,
+            [{"tagVariantId": "v2"}, {"tagVariantId": "v10"}],
+            False,
+        ),
     ]
 
     SCHEMA = t.StructType(
