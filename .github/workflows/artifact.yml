@@ -2,7 +2,7 @@ name: Build and Push to Artifact Registry
 
 "on":
   push:
-    branches: ["dev", "tskir-cache-docker"]
+    branches: ["*"]
     tags: ["v*"]
 
 env:
@@ -39,35 +39,30 @@ jobs:
         run: |-
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      - name: Build and push gentropy image (AMD64)
+      - name: Quick Docker build (gentropy only, AMD64 only, with layer cache)
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
           context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build and push gentropy image (ARM64)
+      - name: Build and push gentropy image
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/v')
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
           context: .
 
-      - name: Build and push VEP image (AMD64)
+      - name: Build and push VEP image
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/v')
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64
-          push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ github.ref_name }}"
-          context: .
-          file: "src/vep/Dockerfile"
-
-      - name: Build and push VEP image (ARM64)
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ github.ref_name }}"
           context: .
