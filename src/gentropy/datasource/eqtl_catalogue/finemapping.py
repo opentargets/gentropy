@@ -206,6 +206,7 @@ class EqtlCatalogueFinemapping:
                 f.lit(True).alias("hasSumstats"),
                 f.col("molecular_trait_id"),
                 f.col("pmid").alias("pubmedId"),
+                f.col("condition_label").alias("condition"),
             )
         )
 

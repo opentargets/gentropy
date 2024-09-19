@@ -69,7 +69,7 @@ def test_map_variants_to_variant_index(
 ) -> None:
     """Test mapping to variant annotation variants."""
     assert isinstance(
-        GWASCatalogCuratedAssociationsParser._map_variants_to_variant_index(
+        GWASCatalogCuratedAssociationsParser._map_variants_to_gnomad_variants(
             sample_gwas_catalog_associations.withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             ),
