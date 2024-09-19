@@ -526,6 +526,11 @@ def test__qc_no_population(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus._qc_no_population(), StudyLocus)
 
 
+def test_qc_MHC_region(mock_study_locus: StudyLocus) -> None:
+    """Test qc_MHC_region."""
+    assert isinstance(mock_study_locus.qc_MHC_region(), StudyLocus)
+
+
 def test_ldannotate(
     mock_study_locus: StudyLocus, mock_study_index: StudyIndex, mock_ld_index: LDIndex
 ) -> None:

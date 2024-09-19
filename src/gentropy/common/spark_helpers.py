@@ -429,6 +429,7 @@ def order_array_of_structs_by_two_fields(
         """
     )
 
+
 def map_column_by_dictionary(col: Column, mapping_dict: Dict[str, str]) -> Column:
     """Map column values to dictionary values by key.
 
@@ -655,3 +656,34 @@ def create_empty_column_if_not_exists(
         <BLANKLINE>
     """
     return f.lit(None).cast(col_schema).alias(col_name)
+
+
+def get_standard_error_from_confidence_interval(lower: Column, upper: Column) -> Column:
+    """Compute the standard error from the confidence interval.
+
+    Args:
+        lower (Column): The lower bound of the confidence interval.
+        upper (Column): The upper bound of the confidence interval.
+
+    Returns:
+        Column: The standard error.
+
+    Examples:
+        >>> data = [(0.5, 1.5), (None, 2.5), (None, None)]
+        >>> (
+        ...    spark.createDataFrame(data, ['lower', 'upper'])
+        ...    .select(
+        ...        get_standard_error_from_confidence_interval(f.col('lower'), f.col('upper')).alias('standard_error')
+        ...    )
+        ...    .show()
+        ... )
+        +-------------------+
+        |     standard_error|
+        +-------------------+
+        |0.25510204081632654|
+        |               null|
+        |               null|
+        +-------------------+
+        <BLANKLINE>
+    """
+    return (upper - lower) / (2 * 1.96)
