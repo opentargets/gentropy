@@ -778,3 +778,71 @@ class TestStudyLocusValidation:
             )
             .count()
         ) == 1
+
+
+class TestStudyLocusWindowClumping:
+    """Testing window-based clumping on study locus."""
+
+    TEST_DATASET = [
+        ("s1", "c1", 1, -1),
+        ("s1", "c1", 2, -2),
+        ("s1", "c1", 3, -3),
+        ("s2", "c2", 2, -2),
+        ("s3", "c2", 2, -2),
+    ]
+
+    TEST_SCHEMA = t.StructType(
+        [
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("chromosome", t.StringType(), False),
+            t.StructField("position", t.IntegerType(), False),
+            t.StructField("pValueExponent", t.IntegerType(), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusWindowClumping, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=(
+                spark.createDataFrame(
+                    self.TEST_DATASET, schema=self.TEST_SCHEMA
+                ).withColumns(
+                    {
+                        "studyLocusId": f.monotonically_increasing_id().cast(
+                            t.LongType()
+                        ),
+                        "pValueMantissa": f.lit(1).cast(t.FloatType()),
+                        "variantId": f.concat(
+                            f.lit("v"),
+                            f.monotonically_increasing_id().cast(t.StringType()),
+                        ),
+                    }
+                )
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def test_clump_return_type(self: TestStudyLocusWindowClumping) -> None:
+        """Testing if the clumping returns the right type."""
+        assert isinstance(self.study_locus.window_based_clumping(3), StudyLocus)
+
+    def test_clump_no_data_loss(self: TestStudyLocusWindowClumping) -> None:
+        """Testing if the clumping returns same number of rows."""
+        assert (
+            self.study_locus.window_based_clumping(3).df.count()
+            == self.study_locus.df.count()
+        )
+
+    def test_correct_flag(self: TestStudyLocusWindowClumping) -> None:
+        """Testing if the clumping flags are for variants."""
+        assert (
+            self.study_locus.window_based_clumping(3)
+            .df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.WINDOW_CLUMPED.value,
+                )
+            )
+            .count()
+        ) == 2

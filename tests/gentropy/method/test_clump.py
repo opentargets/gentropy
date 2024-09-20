@@ -28,6 +28,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Dependent locus - lead is correlated with a more significant variant
                     1,
+                    "c1",
                     "L1",
                     "GCST005650_1",
                     1.0,
@@ -38,6 +39,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Dependent locus - lead shows a stronger association than the row above
                     2,
+                    "c1",
                     "L2",
                     "GCST005650_1",
                     4.0,
@@ -52,6 +54,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Independent locus
                     3,
+                    "c1",
                     "L2",
                     "GCST005650_1",
                     4.0,
@@ -66,6 +69,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Empty credible set
                     4,
+                    "c1",
                     "L3",
                     "GCST005650_1",
                     4.0,
@@ -76,6 +80,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Null credible set
                     5,
+                    "c1",
                     "L4",
                     "GCST005650_1",
                     4.0,
@@ -88,6 +93,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Signal is linked to the next row
                     1,
+                    "c1",
                     "L1",
                     "GCST005650_1",
                     1.0,
@@ -98,6 +104,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Signal is the most significant
                     2,
+                    "c1",
                     "L2",
                     "GCST005650_1",
                     4.0,
@@ -112,6 +119,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Signal is not linked
                     3,
+                    "c1",
                     "L2",
                     "GCST005650_1",
                     4.0,
@@ -126,6 +134,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Empty credible set - signal is not linked
                     4,
+                    "c1",
                     "L3",
                     "GCST005650_1",
                     4.0,
@@ -136,6 +145,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
                 (
                     # Null credible set - signal is not linked
                     5,
+                    "c1",
                     "L4",
                     "GCST005650_1",
                     4.0,
@@ -154,6 +164,7 @@ def test_is_lead_linked(
     schema = t.StructType(
         [
             t.StructField("studyLocusId", t.LongType(), True),
+            t.StructField("cromosome", t.StringType(), True),
             t.StructField("variantId", t.StringType(), True),
             t.StructField("studyId", t.StringType(), True),
             t.StructField("pValueMantissa", t.FloatType(), True),
@@ -179,8 +190,15 @@ def test_is_lead_linked(
     observed_df = (
         study_locus_df.withColumn(
             "is_lead_linked",
+            # study_id: Column,
+            # chromosome: Column,
+            # variant_id: Column,
+            # p_value_exponent: Column,
+            # p_value_mantissa: Column,
+            # ld_set: Column,
             LDclumping._is_lead_linked(
                 f.col("studyId"),
+                f.col("cromosome"),
                 f.col("variantId"),
                 f.col("pValueExponent"),
                 f.col("pValueMantissa"),
