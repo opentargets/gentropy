@@ -132,5 +132,7 @@ class GWASCatalogStudySplitter:
                 st_ass.select(
                     "updatedStudyId", "studyId", "subStudyDescription"
                 ).distinct()
-            ).qc_ambiguous_study(),
+            )
+            .qc_ambiguous_study()
+            .qc_flag_all_tophits(),
         )
