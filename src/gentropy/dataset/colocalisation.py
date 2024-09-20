@@ -88,8 +88,11 @@ class Colocalisation(Dataset):
         filtered_colocalisation = (
             # Bring rightStudyType and rightGeneId and filter by rows where the gene is null,
             # which is equivalent to filtering studyloci from gwas on the right side
-            self.append_right_study_metadata(
-                study_loci, study_index, ["studyType", "geneId"]
+            self.append_study_metadata(
+                study_loci,
+                study_index,
+                metadata_cols=["studyType", "geneId"],
+                colocalisation_side="right",
             )
             # it also filters based on method and qtl type
             .filter(reduce(lambda a, b: a & b, coloc_filtering_expr))
@@ -108,34 +111,49 @@ class Colocalisation(Dataset):
             method_colocalisation_metric,
         )
 
-    def append_right_study_metadata(
+    def append_study_metadata(
         self: Colocalisation,
         study_loci: StudyLocus | L2GGoldStandard,
         study_index: StudyIndex,
+        *,
         metadata_cols: list[str],
+        colocalisation_side: str = "right",
     ) -> DataFrame:
-        """Appends metadata from the study in the right side of the colocalisation dataset.
+        """Appends metadata from the study to the requested side of the colocalisation dataset.
 
         Args:
             study_loci (StudyLocus | L2GGoldStandard): Dataset containing study loci that links the colocalisation dataset and the study index via the studyId
             study_index (StudyIndex): Dataset containing study index that contains the metadata
             metadata_cols (list[str]): List of study columns to append
+            colocalisation_side (str): Which side of the colocalisation dataset to append metadata to. Must be either 'right' or 'left'
 
         Returns:
-            DataFrame: Colocalisation dataset with appended metadata of the right study
+            DataFrame: Colocalisation dataset with appended metadata of the study from the requested side
+
+        Raises:
+            ValueError: if colocalisation_side is not 'right' or 'left'
         """
         metadata_cols = ["studyId", *metadata_cols]
+        if colocalisation_side not in ["right", "left"]:
+            raise ValueError(
+                f"colocalisation_side must be either 'right' or 'left', got {colocalisation_side}"
+            )
         # TODO: make this flexible to bring metadata from the left study (2 joins)
-        return (
+        study_loci_w_metadata = (
             # Annotate study loci with study metadata
             study_loci.df.select("studyLocusId", "studyId")
             .join(
                 f.broadcast(study_index.df.select("studyId", *metadata_cols)), "studyId"
             )
-            # Append that to the right side of the colocalisation dataset
-            .selectExpr(
-                "studyLocusId as rightStudyLocusId",
-                *[f"{col} as right{col[0].upper() + col[1:]}" for col in metadata_cols],
-            )
-            .join(self.df, "rightStudyLocusId", "right")
+            .distinct()
+        )
+        return (
+            # Append that to the respective side of the colocalisation dataset
+            study_loci_w_metadata.selectExpr(
+                f"studyLocusId as {colocalisation_side}StudyLocusId",
+                *[
+                    f"{col} as {colocalisation_side}{col[0].upper() + col[1:]}"
+                    for col in metadata_cols
+                ],
+            ).join(self.df, f"{colocalisation_side}StudyLocusId", "right")
         )

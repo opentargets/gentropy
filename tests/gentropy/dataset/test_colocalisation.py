@@ -20,7 +20,7 @@ def test_colocalisation_creation(mock_colocalisation: Colocalisation) -> None:
     assert isinstance(mock_colocalisation, Colocalisation)
 
 
-def test_append_right_study_metadata_study_locus(
+def test_append_study_metadata_study_locus(
     mock_colocalisation: Colocalisation,
     mock_study_locus: StudyLocus,
     mock_study_index: StudyIndex,
@@ -30,15 +30,18 @@ def test_append_right_study_metadata_study_locus(
     if metadata_cols is None:
         metadata_cols = ["studyType"]
     expected_extra_col = ["rightStudyType", "rightStudyId"]
-    res_df = mock_colocalisation.append_right_study_metadata(
-        mock_study_locus, mock_study_index, metadata_cols
+    res_df = mock_colocalisation.append_study_metadata(
+        mock_study_locus,
+        mock_study_index,
+        metadata_cols=metadata_cols,
+        colocalisation_side="right",
     )
     for col in expected_extra_col:
         assert col in res_df.columns, f"Column {col} not found in result DataFrame."
 
 
 class TestAppendRightStudyMetadata:
-    """Test Colocalisation.append_right_study_metadata method."""
+    """Test Colocalisation.append_study_metadata method."""
 
     def test_study_locus(
         self: TestAppendRightStudyMetadata,
@@ -48,8 +51,11 @@ class TestAppendRightStudyMetadata:
         if metadata_cols is None:
             metadata_cols = ["geneId"]
         expected_right_geneId = "g1"
-        res_df = self.sample_colocalisation.append_right_study_metadata(
-            self.sample_study_locus, self.sample_study_index, metadata_cols
+        res_df = self.sample_colocalisation.append_study_metadata(
+            self.sample_study_locus,
+            self.sample_study_index,
+            metadata_cols=metadata_cols,
+            colocalisation_side="right",
         )
         assert (
             res_df.select("rightGeneId").collect()[0][0] == expected_right_geneId
@@ -63,8 +69,11 @@ class TestAppendRightStudyMetadata:
         if metadata_cols is None:
             metadata_cols = ["studyType"]
         expected_right_geneId = "g1"
-        res_df = self.sample_colocalisation.append_right_study_metadata(
-            self.sample_gold_standard, self.sample_study_index, metadata_cols
+        res_df = self.sample_colocalisation.append_study_metadata(
+            self.sample_gold_standard,
+            self.sample_study_index,
+            metadata_cols=metadata_cols,
+            colocalisation_side="right",
         )
         assert (
             res_df.select("rightGeneId").collect()[0][0] == expected_right_geneId
