@@ -67,7 +67,7 @@ class StudyValidationStep:
             .validate_study_type()  # Flagging non-supported study types.
             .validate_target(target_index)  # Flagging QTL studies with invalid targets
             .validate_disease(disease_index)  # Flagging invalid EFOs
-            .validate_biosample(biosample_index)  # Flagging invalid biosamples
+            .validate_biosample(biosample_index)  # Flagging studies with invalid biosamples
         ).persist()  # we will need this for 2 types of outputs
 
         study_index_with_qc.valid_rows(
