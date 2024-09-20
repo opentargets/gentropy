@@ -92,7 +92,7 @@ class SummaryStatistics(Dataset):
     ) -> StudyLocus:
         """Generate study-locus from summary statistics using locus-breaker clumping method with locus boundaries.
 
-        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.locus_breaker]
+        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.LocusBreakerClumping]
 
         Args:
             baseline_pvalue_cutoff (float, optional): Baseline significance we consider for the locus.

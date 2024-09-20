@@ -49,8 +49,9 @@ class StudyLocusQualityCheck(Enum):
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
-        DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique.
+        DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique
         INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
+        TOP_HIT (str): Study locus from curated top hit
         IN_MHC (str): Flagging study loci in the MHC region
     """
 
@@ -75,6 +76,7 @@ class StudyLocusQualityCheck(Enum):
         "Some variant identifiers of this locus were not found in variant index"
     )
     IN_MHC = "MHC region"
+    TOP_HIT = "Study locus from curated top hit"
 
 
 class CredibleInterval(Enum):
