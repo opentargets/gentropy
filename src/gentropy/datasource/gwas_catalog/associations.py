@@ -1212,6 +1212,24 @@ class StudyLocusGWASCatalog(StudyLocus):
         )
         return self
 
+    def qc_flag_all_tophits(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+        """Flag all associations as top hits.
+
+        Returns:
+            StudyLocusGWASCatalog: Updated study locus.
+        """
+        return StudyLocusGWASCatalog(
+            _df=self._df.withColumn(
+                "qualityControls",
+                StudyLocus.update_quality_flag(
+                    f.col("qualityControls"),
+                    f.lit(True),
+                    StudyLocusQualityCheck.TOP_HIT,
+                ),
+            ),
+            _schema=StudyLocusGWASCatalog.get_schema(),
+        )
+
     def apply_inclusion_list(
         self: StudyLocusGWASCatalog, inclusion_list: DataFrame
     ) -> StudyLocusGWASCatalog:
