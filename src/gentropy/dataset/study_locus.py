@@ -43,7 +43,8 @@ class StudyLocusQualityCheck(Enum):
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
         AMBIGUOUS_STUDY (str): Association with ambiguous study
         UNRESOLVED_LD (str): Variant not found in LD reference
-        LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
+        LD_CLUMPED (str): Explained by a more significant variant in high LD
+        WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
@@ -62,7 +63,8 @@ class StudyLocusQualityCheck(Enum):
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
     AMBIGUOUS_STUDY = "Association with ambiguous study"
     UNRESOLVED_LD = "Variant not found in LD reference"
-    LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
+    LD_CLUMPED = "Explained by a more significant variant in high LD"
+    WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
     NOT_QUALIFYING_LD_BLOCK = (
         "LD block does not contain variants at the required R^2 threshold"
@@ -794,11 +796,12 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: with empty credible sets for linked variants and QC flag.
         """
-        self.df = (
+        clumped_df = (
             self.df.withColumn(
                 "is_lead_linked",
                 LDclumping._is_lead_linked(
                     self.df.studyId,
+                    self.df.chromosome,
                     self.df.variantId,
                     self.df.pValueExponent,
                     self.df.pValueMantissa,
@@ -819,7 +822,10 @@ class StudyLocus(Dataset):
             )
             .drop("is_lead_linked")
         )
-        return self
+        return StudyLocus(
+            _df=clumped_df,
+            _schema=self.get_schema(),
+        )
 
     def exclude_region(
         self: StudyLocus, region: GenomicRegion, exclude_overlap: bool = False
@@ -962,3 +968,19 @@ class StudyLocus(Dataset):
         )
 
         return self
+
+    def window_based_clumping(
+        self: StudyLocus,
+        window_size: int,
+    ) -> StudyLocus:
+        """Clump study locus by window size.
+
+        Args:
+            window_size (int): Window size for clumping.
+
+        Returns:
+            StudyLocus: Clumped study locus, where clumped associations are flagged.
+        """
+        from gentropy.method.window_based_clumping import WindowBasedClumping
+
+        return WindowBasedClumping.clump(self, window_size)
