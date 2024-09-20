@@ -780,7 +780,6 @@ class TestStudyLocusValidation:
         ) == 1
 
 
-
 class TestStudyLocusWindowClumping:
     """Testing window-based clumping on study locus."""
 
@@ -798,6 +797,8 @@ class TestStudyLocusWindowClumping:
             t.StructField("chromosome", t.StringType(), False),
             t.StructField("position", t.IntegerType(), False),
             t.StructField("pValueExponent", t.IntegerType(), False),
+        ]
+    )
 
     @pytest.fixture(autouse=True)
     def _setup(self: TestStudyLocusWindowClumping, spark: SparkSession) -> None:
@@ -845,6 +846,7 @@ class TestStudyLocusWindowClumping:
             )
             .count()
         ) == 2
+
 
 class TestStudyLocusRedundancyFlagging:
     """Collection of tests related to flagging redundant credible sets."""
