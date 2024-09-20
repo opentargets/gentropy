@@ -77,11 +77,13 @@ class Colocalisation(Dataset):
         ).METHOD_METRIC  # type: ignore
 
         coloc_filtering_expr = [
-            f.col("rightGeneId").isNull(),
-            f.col("colocalisationMethod") == filter_by_colocalisation_method,
+            f.col("rightGeneId").isNotNull(),
+            f.lower("colocalisationMethod") == filter_by_colocalisation_method.lower(),
         ]
         if filter_by_qtl:
-            coloc_filtering_expr.append(f.col("rightStudyType") == filter_by_qtl)
+            coloc_filtering_expr.append(
+                f.lower("rightStudyType") == filter_by_qtl.lower()
+            )
 
         filtered_colocalisation = (
             # Bring rightStudyType and rightGeneId and filter by rows where the gene is null,
