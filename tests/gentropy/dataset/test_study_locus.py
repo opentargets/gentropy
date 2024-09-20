@@ -915,4 +915,3 @@ class TestStudyLocusRedundancyFlagging:
             )
             .count()
         ) == 3
-
