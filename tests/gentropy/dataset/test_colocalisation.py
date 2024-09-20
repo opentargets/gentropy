@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import pytest
+
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
 
 
 def test_colocalisation_creation(mock_colocalisation: Colocalisation) -> None:
@@ -12,7 +20,7 @@ def test_colocalisation_creation(mock_colocalisation: Colocalisation) -> None:
     assert isinstance(mock_colocalisation, Colocalisation)
 
 
-def test_append_right_study_metadata(
+def test_append_right_study_metadata_study_locus(
     mock_colocalisation: Colocalisation,
     mock_study_locus: StudyLocus,
     mock_study_index: StudyIndex,
@@ -27,6 +35,95 @@ def test_append_right_study_metadata(
     )
     for col in expected_extra_col:
         assert col in res_df.columns, f"Column {col} not found in result DataFrame."
+
+
+class TestAppendRightStudyMetadata:
+    """Test Colocalisation.append_right_study_metadata method."""
+
+    def test_study_locus(
+        self: TestAppendRightStudyMetadata,
+        metadata_cols: list[str] | None = None,
+    ) -> None:
+        """Test appending right study metadata."""
+        if metadata_cols is None:
+            metadata_cols = ["geneId"]
+        expected_right_geneId = "g1"
+        res_df = self.sample_colocalisation.append_right_study_metadata(
+            self.sample_study_locus, self.sample_study_index, metadata_cols
+        )
+        assert (
+            res_df.select("rightGeneId").collect()[0][0] == expected_right_geneId
+        ), f"Expected rightGeneId {expected_right_geneId}, but got {res_df.select('rightGeneId').collect()[0][0]}"
+
+    def test_gold_standard(
+        self: TestAppendRightStudyMetadata,
+        metadata_cols: list[str] | None = None,
+    ) -> None:
+        """Test appending right study metadata."""
+        if metadata_cols is None:
+            metadata_cols = ["studyType"]
+        expected_right_geneId = "g1"
+        res_df = self.sample_colocalisation.append_right_study_metadata(
+            self.sample_gold_standard, self.sample_study_index, metadata_cols
+        )
+        assert (
+            res_df.select("rightGeneId").collect()[0][0] == expected_right_geneId
+        ), f"Expected rightGeneId {expected_right_geneId}, but got {res_df.select('rightGeneId').collect()[0][0]}"
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestAppendRightStudyMetadata, spark: SparkSession) -> None:
+        """Setup fixture."""
+        self.sample_gold_standard = L2GGoldStandard(
+            _df=spark.createDataFrame(
+                [(1, "var1", "gwas1", "g1", "positive", ["a_source"])],
+                L2GGoldStandard.get_schema(),
+            ),
+            _schema=L2GGoldStandard.get_schema(),
+        )
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        1,
+                        "var1",
+                        "gwas1",
+                    ),
+                    (
+                        2,
+                        "var2",
+                        "eqtl1",
+                    ),
+                ],
+                ["studyLocusId", "variantId", "studyId"],
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.sample_study_index = StudyIndex(
+            _df=spark.createDataFrame(
+                [("gwas1", "gwas", None, "p1"), ("eqtl1", "eqtl", "g1", "p2")],
+                [
+                    "studyId",
+                    "studyType",
+                    "geneId",
+                    "projectId",
+                ],
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+        self.sample_colocalisation = Colocalisation(
+            _df=spark.createDataFrame(
+                [(1, 2, "X", "COLOC", 1, 0.9)],
+                [
+                    "leftStudyLocusId",
+                    "rightStudyLocusId",
+                    "chromosome",
+                    "colocalisationMethod",
+                    "numberColocalisingVariants",
+                    "h4",
+                ],
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
 
 
 def test_extract_maximum_coloc_probability_per_region_and_gene(
