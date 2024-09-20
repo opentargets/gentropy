@@ -32,7 +32,7 @@ class L2GFeature(Dataset, ABC):
         feature_dependency_type: Any = None,
         credible_set: StudyLocus | None = None,
     ) -> None:
-        """Initializes a L2GFeature dataset.
+        """Initializes a L2GFeature dataset. Any child class of L2GFeature must implement the `compute` method.
 
         Args:
             feature_dependency_type (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
