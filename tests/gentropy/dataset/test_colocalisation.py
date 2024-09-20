@@ -40,55 +40,35 @@ def test_append_study_metadata_study_locus(
         assert col in res_df.columns, f"Column {col} not found in result DataFrame."
 
 
-class TestAppendRightStudyMetadata:
+class TestAppendStudyMetadata:
     """Test Colocalisation.append_study_metadata method."""
 
-    def test_study_locus(
-        self: TestAppendRightStudyMetadata,
+    @pytest.mark.parametrize(
+        ("colocalisation_side", "expected_geneId"), [("right", "g1"), ("left", None)]
+    )
+    def test_append_study_metadata_right(
+        self: TestAppendStudyMetadata,
+        colocalisation_side: str,
+        expected_geneId: str | None,
         metadata_cols: list[str] | None = None,
     ) -> None:
         """Test appending right study metadata."""
         if metadata_cols is None:
             metadata_cols = ["geneId"]
-        expected_right_geneId = "g1"
-        res_df = self.sample_colocalisation.append_study_metadata(
+        observed_df = self.sample_colocalisation.append_study_metadata(
             self.sample_study_locus,
             self.sample_study_index,
             metadata_cols=metadata_cols,
-            colocalisation_side="right",
+            colocalisation_side=colocalisation_side,
         )
         assert (
-            res_df.select("rightGeneId").collect()[0][0] == expected_right_geneId
-        ), f"Expected rightGeneId {expected_right_geneId}, but got {res_df.select('rightGeneId').collect()[0][0]}"
-
-    def test_gold_standard(
-        self: TestAppendRightStudyMetadata,
-        metadata_cols: list[str] | None = None,
-    ) -> None:
-        """Test appending right study metadata."""
-        if metadata_cols is None:
-            metadata_cols = ["studyType"]
-        expected_right_geneId = "g1"
-        res_df = self.sample_colocalisation.append_study_metadata(
-            self.sample_gold_standard,
-            self.sample_study_index,
-            metadata_cols=metadata_cols,
-            colocalisation_side="right",
-        )
-        assert (
-            res_df.select("rightGeneId").collect()[0][0] == expected_right_geneId
-        ), f"Expected rightGeneId {expected_right_geneId}, but got {res_df.select('rightGeneId').collect()[0][0]}"
+            observed_df.select(f"{colocalisation_side}GeneId").collect()[0][0]
+            == expected_geneId
+        ), f"Expected {colocalisation_side}GeneId {expected_geneId}, but got {observed_df.select(f'{colocalisation_side}GeneId').collect()[0][0]}"
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestAppendRightStudyMetadata, spark: SparkSession) -> None:
+    def _setup(self: TestAppendStudyMetadata, spark: SparkSession) -> None:
         """Setup fixture."""
-        self.sample_gold_standard = L2GGoldStandard(
-            _df=spark.createDataFrame(
-                [(1, "var1", "gwas1", "g1", "positive", ["a_source"])],
-                L2GGoldStandard.get_schema(),
-            ),
-            _schema=L2GGoldStandard.get_schema(),
-        )
         self.sample_study_locus = StudyLocus(
             _df=spark.createDataFrame(
                 [

@@ -10,15 +10,15 @@ import pyspark.sql.functions as f
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
     from gentropy.dataset.study_index import StudyIndex
-    from gentropy.dataset.study_locus import StudyLocus
 
 from functools import reduce
 
@@ -113,7 +113,7 @@ class Colocalisation(Dataset):
 
     def append_study_metadata(
         self: Colocalisation,
-        study_loci: StudyLocus | L2GGoldStandard,
+        study_locus: StudyLocus,
         study_index: StudyIndex,
         *,
         metadata_cols: list[str],
@@ -122,7 +122,7 @@ class Colocalisation(Dataset):
         """Appends metadata from the study to the requested side of the colocalisation dataset.
 
         Args:
-            study_loci (StudyLocus | L2GGoldStandard): Dataset containing study loci that links the colocalisation dataset and the study index via the studyId
+            study_locus (StudyLocus): Dataset containing study loci that links the colocalisation dataset and the study index via the studyId
             study_index (StudyIndex): Dataset containing study index that contains the metadata
             metadata_cols (list[str]): List of study columns to append
             colocalisation_side (str): Which side of the colocalisation dataset to append metadata to. Must be either 'right' or 'left'
@@ -138,12 +138,12 @@ class Colocalisation(Dataset):
             raise ValueError(
                 f"colocalisation_side must be either 'right' or 'left', got {colocalisation_side}"
             )
-        # TODO: make this flexible to bring metadata from the left study (2 joins)
+
         study_loci_w_metadata = (
-            # Annotate study loci with study metadata
-            study_loci.df.select("studyLocusId", "studyId")
+            study_locus.df.select("studyLocusId", "studyId")
             .join(
-                f.broadcast(study_index.df.select("studyId", *metadata_cols)), "studyId"
+                f.broadcast(study_index.df.select("studyId", *metadata_cols)),
+                "studyId",
             )
             .distinct()
         )
