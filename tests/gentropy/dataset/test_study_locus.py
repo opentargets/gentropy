@@ -76,6 +76,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 1,
                         "variantId": "lead1",
                         "studyId": "study1",
+                        "studyType": "gwas",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.9},
                         ],
@@ -85,6 +86,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 2,
                         "variantId": "lead2",
                         "studyId": "study2",
+                        "studyType": "eqtl",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.6},
                             {"variantId": "nonCommonTag", "posteriorProbability": 0.6},
@@ -105,6 +107,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 1,
                         "variantId": "lead1",
                         "studyId": "study1",
+                        "studyType": "gwas",
                         "locus": [
                             {"variantId": "var1", "posteriorProbability": 0.9},
                         ],
@@ -114,6 +117,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 2,
                         "variantId": "lead2",
                         "studyId": "study2",
+                        "studyType": "eqtl",
                         "locus": None,
                         "chromosome": "1",
                     },
@@ -181,12 +185,14 @@ def test_filter_by_study_type(
                     "studyLocusId": 1,
                     "variantId": "lead1",
                     "studyId": "study1",
+                    "studyType": "gwas",
                 },
                 {
                     # from eqtl
                     "studyLocusId": 2,
                     "variantId": "lead2",
                     "studyId": "study2",
+                    "studyType": "eqtl",
                 },
             ],
             StudyLocus.get_schema(),
