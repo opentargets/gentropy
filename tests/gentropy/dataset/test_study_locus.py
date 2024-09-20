@@ -780,6 +780,7 @@ class TestStudyLocusValidation:
         ) == 1
 
 
+
 class TestStudyLocusWindowClumping:
     """Testing window-based clumping on study locus."""
 
@@ -797,8 +798,6 @@ class TestStudyLocusWindowClumping:
             t.StructField("chromosome", t.StringType(), False),
             t.StructField("position", t.IntegerType(), False),
             t.StructField("pValueExponent", t.IntegerType(), False),
-        ]
-    )
 
     @pytest.fixture(autouse=True)
     def _setup(self: TestStudyLocusWindowClumping, spark: SparkSession) -> None:
@@ -846,3 +845,74 @@ class TestStudyLocusWindowClumping:
             )
             .count()
         ) == 2
+
+class TestStudyLocusRedundancyFlagging:
+    """Collection of tests related to flagging redundant credible sets."""
+
+    STUDY_LOCUS_DATA = [
+        (1, "v1", "s1", "pics", []),
+        (2, "v2", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (3, "v3", "s1", "pics", []),
+        (3, "v3", "s1", "pics", []),
+        (1, "v1", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s3", "SuSie", []),
+        (1, "v1", "s3", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s4", "pics", []),
+        (1, "v1", "s4", "SuSie", []),
+        (1, "v1", "s4", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.LongType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("finemappingMethod", t.StringType(), False),
+            t.StructField("qualityControls", t.ArrayType(t.StringType()), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusRedundancyFlagging, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def test_qc_redundant_top_hits_from_PICS_returntype(
+        self: TestStudyLocusRedundancyFlagging,
+    ) -> None:
+        """Test qc_redundant_top_hits_from_PICS."""
+        assert isinstance(
+            self.study_locus.qc_redundant_top_hits_from_PICS(), StudyLocus
+        )
+
+    def test_qc_redundant_top_hits_from_PICS_no_data_loss(
+        self: TestStudyLocusRedundancyFlagging,
+    ) -> None:
+        """Testing if the redundancy flagging returns the same number of rows."""
+        assert (
+            self.study_locus.qc_redundant_top_hits_from_PICS().df.count()
+            == self.study_locus.df.count()
+        )
+
+    def test_qc_redundant_top_hits_from_PICS_correctness(
+        self: TestStudyLocusRedundancyFlagging,
+    ) -> None:
+        """Testing if the study validation flags the right number of studies."""
+        assert (
+            self.study_locus.qc_redundant_top_hits_from_PICS()
+            .df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.REDUNDANT_PICS_TOP_HIT.value,
+                )
+            )
+            .count()
+        ) == 3
+

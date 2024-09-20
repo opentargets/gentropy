@@ -53,6 +53,7 @@ class StudyLocusQualityCheck(Enum):
         INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
         TOP_HIT (str): Study locus from curated top hit
         IN_MHC (str): Flagging study loci in the MHC region
+        REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -76,6 +77,9 @@ class StudyLocusQualityCheck(Enum):
         "Some variant identifiers of this locus were not found in variant index"
     )
     IN_MHC = "MHC region"
+    REDUNDANT_PICS_TOP_HIT = (
+        "PICS results from summary statistics available for this same study"
+    )
     TOP_HIT = "Study locus from curated top hit"
 
 
@@ -882,6 +886,44 @@ class StudyLocus(Dataset):
             ),
         )
         return self
+
+    def qc_redundant_top_hits_from_PICS(self: StudyLocus) -> StudyLocus:
+        """Flag associations from top hits when the study contains other PICS associations from summary statistics.
+
+        This flag can be useful to identify top hits that should be explained by other associations in the study derived from the summary statistics.
+
+        Returns:
+            StudyLocus: Updated study locus with redundant top hits flagged.
+        """
+        studies_with_pics_sumstats = (
+            self.df.filter(f.col("finemappingMethod") == "pics")
+            # Returns True if the study contains any PICS associations from summary statistics
+            .withColumn(
+                "hasPicsSumstats",
+                ~f.array_contains(
+                    "qualityControls", StudyLocusQualityCheck.TOP_HIT.value
+                ),
+            )
+            .groupBy("studyId")
+            .agg(f.max(f.col("hasPicsSumstats")).alias("studiesWithPicsSumstats"))
+        )
+
+        return StudyLocus(
+            _df=self.df.join(studies_with_pics_sumstats, on="studyId", how="left")
+            .withColumn(
+                "qualityControls",
+                self.update_quality_flag(
+                    f.col("qualityControls"),
+                    f.array_contains(
+                        "qualityControls", StudyLocusQualityCheck.TOP_HIT.value
+                    )
+                    & f.col("studiesWithPicsSumstats"),
+                    StudyLocusQualityCheck.REDUNDANT_PICS_TOP_HIT,
+                ),
+            )
+            .drop("studiesWithPicsSumstats"),
+            _schema=StudyLocus.get_schema(),
+        )
 
     def _qc_no_population(self: StudyLocus) -> StudyLocus:
         """Flag associations where the study doesn't have population information to resolve LD.
