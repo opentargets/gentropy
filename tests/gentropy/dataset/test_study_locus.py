@@ -849,3 +849,149 @@ class TestStudyLocusRedundancyFlagging:
             )
             .count()
         ) == 3
+
+
+class TestStudyLocusSuSiERedundancyFlagging:
+    """Collection of tests related to flagging redundant credible sets."""
+
+    STUDY_LOCUS_DATA: Any = [
+        # to be flagged due to v4
+        (
+            1,
+            "v1",
+            "s1",
+            "X",
+            "pics",
+            1,
+            3,
+            [
+                {"variantId": "X_1_A_A"},
+                {"variantId": "X_2_A_A"},
+                {"variantId": "X_3_A_A"},
+            ],
+            [],
+        ),
+        # to be flagged due to v4
+        (
+            2,
+            "v2",
+            "s1",
+            "X",
+            "pics",
+            4,
+            5,
+            [
+                {"variantId": "X_4_A_A"},
+                {"variantId": "X_5_A_A"},
+            ],
+            [],
+        ),
+        # NOT to be flagged (outside regions)
+        (
+            3,
+            "v3",
+            "s1",
+            "X",
+            "pics",
+            6,
+            7,
+            [
+                {"variantId": "X_6_A_A"},
+                {"variantId": "X_7_A_A"},
+            ],
+            [],
+        ),
+        # NOT to be flagged (SuSie-Inf credible set)
+        (
+            4,
+            "v4",
+            "s1",
+            "X",
+            "SuSiE-inf",
+            3,
+            5,
+            [{"variantId": "X_3_A_A"}, {"variantId": "X_5_A_A"}],
+            [],
+        ),
+        # NOT to be flagged (different study)
+        (
+            5,
+            "v5",
+            "s2",
+            "X",
+            "pics",
+            3,
+            5,
+            [
+                {"variantId": "X_3_A_A"},
+                {"variantId": "X_5_A_A"},
+            ],
+            [],
+        ),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.LongType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("chromosome", t.StringType(), False),
+            t.StructField("finemappingMethod", t.StringType(), False),
+            t.StructField("locusStart", t.IntegerType(), False),
+            t.StructField("locusEnd", t.IntegerType(), False),
+            StructField(
+                "locus",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("variantId", StringType(), True),
+                        ]
+                    )
+                ),
+                True,
+            ),
+            t.StructField("qualityControls", t.ArrayType(t.StringType()), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestStudyLocusSuSiERedundancyFlagging, spark: SparkSession
+    ) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def test_qc_qc_explained_by_SuSiE_returntype(
+        self: TestStudyLocusSuSiERedundancyFlagging,
+    ) -> None:
+        """Test qc_explained_by_SuSiE."""
+        assert isinstance(self.study_locus.qc_explained_by_SuSiE(), StudyLocus)
+
+    def test_qc_explained_by_SuSiE_no_data_loss(
+        self: TestStudyLocusSuSiERedundancyFlagging,
+    ) -> None:
+        """Test qc_explained_by_SuSiE no data loss."""
+        assert (
+            self.study_locus.qc_explained_by_SuSiE().df.count()
+            == self.study_locus.df.count()
+        )
+
+    def test_qc_explained_by_SuSiE_correctness(
+        self: TestStudyLocusSuSiERedundancyFlagging,
+    ) -> None:
+        """Testing if the study validation flags the right number of studies."""
+        assert (
+            self.study_locus.qc_explained_by_SuSiE()
+            .df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.EXPLAINED_BY_SUSIE.value,
+                )
+            )
+            .count()
+        ) == 2
