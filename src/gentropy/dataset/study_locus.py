@@ -975,7 +975,15 @@ class StudyLocus(Dataset):
                     "qualityControls",
                     self.update_quality_flag(
                         f.col("qualityControls"),
-                        f.col("inSuSiE") & ~(f.col("finemappingMethod") == "SuSiE-inf"),
+                        # credible set in SuSiE overlapping region
+                        f.col("inSuSiE")
+                        # credible set not based on SuSiE
+                        & ~(f.col("finemappingMethod") == "SuSiE-inf")
+                        # credible set not already flagged as unresolved LD
+                        & ~f.array_contains(
+                            f.col("qualityControls"),
+                            StudyLocusQualityCheck.UNRESOLVED_LD.value,
+                        ),
                         StudyLocusQualityCheck.EXPLAINED_BY_SUSIE,
                     ),
                 )

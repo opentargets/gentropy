@@ -913,10 +913,24 @@ class TestStudyLocusSuSiERedundancyFlagging:
             [{"variantId": "X_3_A_A"}, {"variantId": "X_5_A_A"}],
             [],
         ),
-        # NOT to be flagged (different study)
+        # NOT to be flagged (Unresolved LD)
         (
             5,
             "v5",
+            "s1",
+            "X",
+            "pics",
+            5,
+            5,
+            [
+                {"variantId": "X_5_A_A"},
+            ],
+            [StudyLocusQualityCheck.UNRESOLVED_LD.value],
+        ),
+        # NOT to be flagged (different study)
+        (
+            6,
+            "v6",
             "s2",
             "X",
             "pics",
