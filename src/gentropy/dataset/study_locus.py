@@ -534,7 +534,7 @@ class StudyLocus(Dataset):
                 f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
             )
         new_df = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            self.df
             .filter(f.col("studyType") == study_type)
             .drop("studyType")
         )
@@ -601,7 +601,8 @@ class StudyLocus(Dataset):
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         loci_to_overlap = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            self.df
+            .filter(f.col("studyType").isNotNull())
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
