@@ -801,7 +801,6 @@ class StudyLocus(Dataset):
                 "is_lead_linked",
                 LDclumping._is_lead_linked(
                     self.df.studyId,
-                    self.df.chromosome,
                     self.df.variantId,
                     self.df.pValueExponent,
                     self.df.pValueMantissa,
