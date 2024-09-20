@@ -46,6 +46,7 @@ class StudyLocusValidationStep:
             # Add flag for MHC region
             .qc_MHC_region()
             .validate_study(study_index)  # Flagging studies not in study index
+            .annotate_study_type(study_index) # Add study type to study locus
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
         ).persist()  # we will need this for 2 types of outputs
 

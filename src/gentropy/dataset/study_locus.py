@@ -149,6 +149,24 @@ class StudyLocus(Dataset):
             _schema=self.get_schema(),
         )
 
+    def annotate_study_type(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Gets study type from study index and adds it to study locus.
+
+        Args:
+            study_index (StudyIndex): Study index to get study type.
+
+        Returns:
+            StudyLocus: Updated study locus with study type.
+        """
+        return StudyLocus(
+            _df=(
+                self.df
+                .drop("studyType")
+                .join(study_index.study_type_lut(), on="studyId", how="left")
+            ),
+            _schema=self.get_schema(),
+        )
+
     def validate_variant_identifiers(
         self: StudyLocus, variant_index: VariantIndex
     ) -> StudyLocus:
