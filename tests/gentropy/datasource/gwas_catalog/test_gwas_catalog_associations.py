@@ -77,3 +77,12 @@ def test_map_variants_to_variant_index(
         ),
         DataFrame,
     )
+
+
+def test_qc_flag_all_tophits(
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
+) -> None:
+    """Test qc flag all top hits."""
+    assert isinstance(
+        mock_study_locus_gwas_catalog.qc_flag_all_tophits(), StudyLocusGWASCatalog
+    )
