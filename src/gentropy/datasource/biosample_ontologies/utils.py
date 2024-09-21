@@ -110,8 +110,8 @@ def extract_ontology_from_json(
     df_children = df_edges.filter(f.col("predicate") == "is_a").select("object", "subject").withColumnRenamed("subject", "child")
 
     # Aggregate relationships back to nodes
-    df_parents_grouped = df_parents.groupBy("subject").agg(f.array_distinct(f.collect_list("parent"))).alias("parents")
-    df_children_grouped = df_children.groupBy("object").agg(f.array_distinct(f.collect_list("child"))).alias("children")
+    df_parents_grouped = df_parents.groupBy("subject").agg(f.array_distinct(f.collect_list("parent")).alias("parents"))
+    df_children_grouped = df_children.groupBy("object").agg(f.array_distinct(f.collect_list("child")).alias("children"))
 
     # Get all ancestors
     df_with_ancestors = json_graph_traversal(df_parents_grouped, "subject", "parents", "ancestors")
