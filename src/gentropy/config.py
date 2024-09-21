@@ -55,7 +55,8 @@ class GeneIndexConfig(StepConfig):
 class BiosampleIndexConfig(StepConfig):
     """Biosample index step configuration."""
 
-    target_path: str = MISSING
+    cell_ontology_input_path: str = MISSING
+    uberon_input_path: str = MISSING
     biosample_index_path: str = MISSING
     _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
 
@@ -514,6 +515,7 @@ class StudyValidationStepConfig(StepConfig):
     study_index_path: list[str] = MISSING
     target_index_path: str = MISSING
     disease_index_path: str = MISSING
+    biosample_index_path: str = MISSING
     valid_study_index_path: str = MISSING
     invalid_study_index_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING

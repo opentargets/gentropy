@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import reduce
 from typing import TYPE_CHECKING
+
+import pyspark.sql.functions as f
+from pyspark.sql import DataFrame
+from pyspark.sql.types import ArrayType, StringType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
@@ -27,3 +32,42 @@ class BiosampleIndex(Dataset):
             StructType: The schema of the BiosampleIndex dataset.
         """
         return parse_spark_schema("biosample_index.json")
+
+    @classmethod
+    def merge_indices(
+        cls: type[BiosampleIndex],
+        biosample_indices : list[BiosampleIndex]
+        ) -> BiosampleIndex:
+        """Merge a list of biosample indices into a single biosample index.
+
+        Where there are conflicts, in single values - the first value is taken. In list values, the union of all values is taken.
+
+        Args:
+            biosample_indices (list[BiosampleIndex]): Biosample indices to merge.
+
+        Returns:
+            BiosampleIndex: Merged biosample index.
+        """
+        # Extract the DataFrames from the BiosampleIndex objects
+        biosample_dfs = [biosample_index.df for biosample_index in biosample_indices] + [cls.df]
+
+        # Merge the DataFrames
+        merged_df = reduce(DataFrame.unionAll, biosample_dfs)
+
+        # Determine aggregation functions for each column
+        # Currently this will take the first value for single values and merge lists for list values
+        agg_funcs = []
+        for field in merged_df.schema.fields:
+            if field.name != "biosampleId":  # Skip the grouping column
+                if field.dataType == ArrayType(StringType()):
+                    agg_funcs.append(f.array_distinct(f.flatten(f.col(field.name))).alias(field.name))
+                else:
+                    agg_funcs.append(f.first(f.col(field.name), ignorenulls=True).alias(field.name))
+
+        # Perform aggregation
+        aggregated_df = merged_df.groupBy("biosampleId").agg(*agg_funcs)
+
+        return BiosampleIndex(
+            _df=aggregated_df,
+            _schema=BiosampleIndex.get_schema()
+            )
