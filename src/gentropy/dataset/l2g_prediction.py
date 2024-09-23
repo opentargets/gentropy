@@ -88,7 +88,7 @@ class L2GPrediction(Dataset):
                 _df=(
                     fm.df.join(
                         credible_set.filter_by_study_type(
-                            "gwas", study_index
+                            "gwas"
                         ).df.select("studyLocusId"),
                         on="studyLocusId",
                     )

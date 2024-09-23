@@ -203,27 +203,8 @@ def test_filter_by_study_type(
         ),
         _schema=StudyLocus.get_schema(),
     )
-    studies = StudyIndex(
-        _df=spark.createDataFrame(
-            [
-                {
-                    "studyId": "study1",
-                    "studyType": "gwas",
-                    "traitFromSource": "trait1",
-                    "projectId": "project1",
-                },
-                {
-                    "studyId": "study2",
-                    "studyType": "eqtl",
-                    "traitFromSource": "trait2",
-                    "projectId": "project2",
-                },
-            ]
-        ),
-        _schema=StudyIndex.get_schema(),
-    )
 
-    observed = sl.filter_by_study_type(study_type, studies)
+    observed = sl.filter_by_study_type(study_type)
     assert observed.df.count() == expected_sl_count
 
 

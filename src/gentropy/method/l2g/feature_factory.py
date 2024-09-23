@@ -75,7 +75,7 @@ class ColocalisationFactory:
             # bring study metadata to just keep QTL studies on the right
             .join(
                 credible_set.df.join(
-                    studies.df.select("studyId", "studyType", "geneId"), "studyId"
+                    studies.df.select("studyId", "geneId"), "studyId"
                 ).selectExpr(
                     "studyLocusId as rightStudyLocusId",
                     "studyType as right_studyType",

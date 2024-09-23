@@ -519,13 +519,12 @@ class StudyLocus(Dataset):
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def filter_by_study_type(
-        self: StudyLocus, study_type: str, study_index: StudyIndex
+        self: StudyLocus, study_type: str
     ) -> StudyLocus:
         """Creates a new StudyLocus dataset filtered by study type.
 
         Args:
             study_type (str): Study type to filter for. Can be one of `gwas`, `eqtl`, `pqtl`, `eqtl`.
-            study_index (StudyIndex): Study index to resolve study types.
 
         Returns:
             StudyLocus: Filtered study-locus dataset.
