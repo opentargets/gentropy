@@ -40,6 +40,8 @@ from gentropy.dataset.variant_index import VariantIndex
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
+                    "leftStudyType": "gwas",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "commonTag",
                     "statistics": {
@@ -50,6 +52,8 @@ from gentropy.dataset.variant_index import VariantIndex
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
+                    "leftStudyType": "gwas",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "nonCommonTag",
                     "statistics": {
