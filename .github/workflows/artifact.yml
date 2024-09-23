@@ -2,8 +2,8 @@ name: Build and Push to Artifact Registry
 
 "on":
   push:
-    branches: ["dev"]
-    tags: ["v*"]
+    branches: ["*"]
+    tags: ["*"]
 
 env:
   PROJECT_ID: open-targets-genetics-dev
@@ -39,7 +39,18 @@ jobs:
         run: |-
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
+      - name: Quick Docker build (gentropy only, AMD64 only, with layer cache)
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64
+          push: true
+          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build and push gentropy image
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
@@ -48,6 +59,7 @@ jobs:
           context: .
 
       - name: Build and push VEP image
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
