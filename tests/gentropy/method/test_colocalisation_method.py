@@ -29,7 +29,6 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
-                    "leftStudyType": "gwas",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp",
@@ -54,7 +53,6 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
-                    "leftStudyType": "gwas",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -63,7 +61,6 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
-                    "leftStudyType": "gwas",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
@@ -125,7 +122,6 @@ def test_coloc_no_logbf(
                     {
                         "leftStudyLocusId": 1,
                         "rightStudyLocusId": 2,
-                        "leftStudyType": "gwas",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp",
@@ -139,7 +135,6 @@ def test_coloc_no_logbf(
                     [
                         StructField("leftStudyLocusId", LongType(), False),
                         StructField("rightStudyLocusId", LongType(), False),
-                        StructField("leftStudyType", StringType(), False),
                         StructField("rightStudyType", StringType(), False),
                         StructField("chromosome", StringType(), False),
                         StructField("tagVariantId", StringType(), False),
