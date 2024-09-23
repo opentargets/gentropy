@@ -10,7 +10,7 @@
     {
       "name": "biosampleName",
       "type": "string",
-      "nullable": true,
+      "nullable": false,
       "metadata": {}
     },
     {

@@ -98,7 +98,7 @@ def extract_ontology_from_json(
     # Extract the relevant information from the nodes
     transformed_df = df_nodes.select(
     f.regexp_replace(f.col("node.id"), "http://purl.obolibrary.org/obo/", "").alias("biosampleId"),
-    f.col("node.lbl").alias("biosampleName"),
+    f.coalesce(f.col("node.lbl"), f.col("node.id")).alias("biosampleName"),
     f.col("node.meta.definition.val").alias("description"),
     f.collect_set(f.col("node.meta.xrefs.val")).over(Window.partitionBy("node.id")).getItem(0).alias("xrefs"),
     f.collect_set(f.col("node.meta.synonyms.val")).over(Window.partitionBy("node.id")).getItem(0).alias("synonyms"))
