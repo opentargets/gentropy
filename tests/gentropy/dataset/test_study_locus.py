@@ -18,6 +18,8 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
@@ -28,6 +30,7 @@ from gentropy.dataset.study_locus import (
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 @pytest.mark.parametrize(
@@ -778,6 +781,24 @@ class TestStudyLocusValidation:
             )
             .count()
         ) == 1
+
+
+def test_build_feature_matrix(
+    mock_study_locus: StudyLocus,
+    mock_colocalisation: Colocalisation,
+    mock_study_index: StudyIndex,
+) -> None:
+    """Test building feature matrix with the eQtlColocH4Maximum feature."""
+    features_list = ["eQtlColocH4Maximum"]
+    loader = L2GFeatureInputLoader(
+        colocalisation=mock_colocalisation,
+        study_index=mock_study_index,
+        study_locus=mock_study_locus,
+    )
+    fm = mock_study_locus.build_feature_matrix(features_list, loader)
+    assert isinstance(
+        fm, L2GFeatureMatrix
+    ), "Feature matrix should be of type L2GFeatureMatrix"
 
 
 class TestStudyLocusRedundancyFlagging:
