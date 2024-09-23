@@ -112,7 +112,7 @@ class Coloc:
     """
 
     METHOD_NAME: str = "COLOC"
-    METHOD_METRIC: str = "llr"
+    METHOD_METRIC: str = "h4"
     PSEUDOCOUNT: float = 1e-10
 
     @staticmethod

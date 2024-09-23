@@ -26,9 +26,11 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 class StudyLocusQualityCheck(Enum):
@@ -647,6 +649,28 @@ class StudyLocus(Dataset):
             self.df.pValueExponent,
         )
 
+    def build_feature_matrix(
+        self: StudyLocus,
+        features_list: list[str],
+        features_input_loader: L2GFeatureInputLoader,
+    ) -> L2GFeatureMatrix:
+        """Returns the feature matrix for a StudyLocus.
+
+        Args:
+            features_list (list[str]): List of features to include in the feature matrix.
+            features_input_loader (L2GFeatureInputLoader): Feature input loader to use.
+
+        Returns:
+            L2GFeatureMatrix: Feature matrix for this study-locus.
+        """
+        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+
+        return L2GFeatureMatrix.from_features_list(
+            self,
+            features_list,
+            features_input_loader,
+        )
+
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
 
@@ -798,11 +822,12 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: with empty credible sets for linked variants and QC flag.
         """
-        self.df = (
+        clumped_df = (
             self.df.withColumn(
                 "is_lead_linked",
                 LDclumping._is_lead_linked(
                     self.df.studyId,
+                    self.df.chromosome,
                     self.df.variantId,
                     self.df.pValueExponent,
                     self.df.pValueMantissa,
@@ -823,7 +848,10 @@ class StudyLocus(Dataset):
             )
             .drop("is_lead_linked")
         )
-        return self
+        return StudyLocus(
+            _df=clumped_df,
+            _schema=self.get_schema(),
+        )
 
     def exclude_region(
         self: StudyLocus, region: GenomicRegion, exclude_overlap: bool = False
