@@ -110,6 +110,7 @@ class LocusToGeneStep:
             v2g=self.v2g,
             coloc=self.coloc,
             studies=self.studies,
+            study_locus=self.credible_set,
         )
 
         if run_mode == "predict":
@@ -216,7 +217,6 @@ class LocusToGeneStep:
                                     f.col("sentinel_variant.locus_GRCh38.position"),
                                     f.col("sentinel_variant.alleles.reference"),
                                     f.col("sentinel_variant.alleles.alternative"),
-                                    f.col("finemappingMethod"),
                                 ),
                             ).alias("studyLocusId"),
                         )

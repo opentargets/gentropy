@@ -10,7 +10,6 @@ import pyspark.sql.functions as f
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 

@@ -12,15 +12,14 @@ from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.v2g import V2G
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
-
-    from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-    from gentropy.dataset.study_locus import StudyLocus
 
 
 @dataclass
@@ -81,6 +80,7 @@ def _common_colocalisation_feature_logic(
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
+    study_locus: StudyLocus,
 ) -> DataFrame:
     """Wrapper to call the logic that creates a type of colocalisation features.
 
@@ -92,21 +92,32 @@ def _common_colocalisation_feature_logic(
         qtl_type (str): The type of QTL to filter the data by
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
+        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
 
     Returns:
         DataFrame: Feature annotation in long format with the columns: studyLocusId, geneId, featureName, featureValue
     """
+    joining_cols = (
+        ["studyLocusId", "geneId"]
+        if isinstance(study_loci_to_annotate, L2GGoldStandard)
+        else ["studyLocusId"]
+    )
     return convert_from_wide_to_long(
-        colocalisation.extract_maximum_coloc_probability_per_region_and_gene(
-            study_loci_to_annotate,
-            study_index,
-            filter_by_colocalisation_method=colocalisation_method,
-            filter_by_qtl=qtl_type,
-        ).selectExpr(
+        study_loci_to_annotate.df.join(
+            colocalisation.extract_maximum_coloc_probability_per_region_and_gene(
+                study_locus,
+                study_index,
+                filter_by_colocalisation_method=colocalisation_method,
+                filter_by_qtl=qtl_type,
+            ),
+            on=joining_cols,
+        )
+        .selectExpr(
             "studyLocusId",
             "geneId",
             f"{colocalisation_metric} as {feature_name}",
-        ),
+        )
+        .distinct(),
         id_vars=("studyLocusId", "geneId"),
         var_name="featureName",
         value_name="featureValue",
@@ -116,7 +127,7 @@ def _common_colocalisation_feature_logic(
 class EQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "eQtlColocClppMaximum"
 
     @classmethod
@@ -154,7 +165,7 @@ class EQtlColocClppMaximumFeature(L2GFeature):
 class PQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "pQtlColocClppMaximum"
 
     @classmethod
@@ -191,7 +202,7 @@ class PQtlColocClppMaximumFeature(L2GFeature):
 class SQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "sQtlColocClppMaximum"
 
     @classmethod
@@ -228,7 +239,7 @@ class SQtlColocClppMaximumFeature(L2GFeature):
 class TuQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all tuQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "tuQtlColocClppMaximum"
 
     @classmethod
@@ -265,7 +276,7 @@ class TuQtlColocClppMaximumFeature(L2GFeature):
 class EQtlColocH4MaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "eQtlColocH4Maximum"
 
     @classmethod
@@ -302,7 +313,7 @@ class EQtlColocH4MaximumFeature(L2GFeature):
 class PQtlColocH4MaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "pQtlColocH4Maximum"
 
     @classmethod
@@ -339,7 +350,7 @@ class PQtlColocH4MaximumFeature(L2GFeature):
 class SQtlColocH4MaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "sQtlColocH4Maximum"
 
     @classmethod
@@ -376,7 +387,7 @@ class SQtlColocH4MaximumFeature(L2GFeature):
 class TuQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all tuQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
     feature_name = "tuQtlColocH4Maximum"
 
     @classmethod

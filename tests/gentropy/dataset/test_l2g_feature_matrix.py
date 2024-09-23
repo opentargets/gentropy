@@ -39,6 +39,7 @@ class TestFromFeaturesList:
         loader = L2GFeatureInputLoader(
             colocalisation=self.sample_colocalisation,
             study_index=self.sample_study_index,
+            study_locus=self.sample_study_locus,
         )
         fm = L2GFeatureMatrix.from_features_list(
             self.sample_study_locus, features_list, loader
@@ -56,6 +57,7 @@ class TestFromFeaturesList:
         loader = L2GFeatureInputLoader(
             colocalisation=self.sample_colocalisation,
             study_index=self.sample_study_index,
+            study_locus=self.sample_study_locus,
         )
         fm = L2GFeatureMatrix.from_features_list(
             self.sample_gold_standard, features_list, loader
