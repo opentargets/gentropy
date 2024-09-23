@@ -58,7 +58,7 @@ class StudyLocusOverlap(Dataset):
                 self.df.selectExpr(
                     "leftStudyLocusId as rightStudyLocusId",
                     "rightStudyLocusId as leftStudyLocusId",
-                    "rightStudyType"
+                    "rightStudyType",
                     "tagVariantId",
                 )
             ).distinct(),
