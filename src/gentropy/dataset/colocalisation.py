@@ -38,15 +38,16 @@ class Colocalisation(Dataset):
 
     def extract_maximum_coloc_probability_per_region_and_gene(
         self: Colocalisation,
-        study_loci: StudyLocus | L2GGoldStandard,
+        study_locus: StudyLocus,
         study_index: StudyIndex,
+        *,
         filter_by_colocalisation_method: str,
         filter_by_qtl: str | None = None,
     ) -> DataFrame:
         """Get maximum colocalisation probability for a (studyLocus, gene) window.
 
         Args:
-            study_loci (StudyLocus | L2GGoldStandard): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
+            study_locus (StudyLocus): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
             study_index (StudyIndex): Study index to use to get study metadata
             filter_by_colocalisation_method (str): optional filter to apply on the colocalisation dataset
             filter_by_qtl (str | None): optional filter to apply on the colocalisation dataset
@@ -89,7 +90,7 @@ class Colocalisation(Dataset):
             # Bring rightStudyType and rightGeneId and filter by rows where the gene is null,
             # which is equivalent to filtering studyloci from gwas on the right side
             self.append_study_metadata(
-                study_loci,
+                study_locus,
                 study_index,
                 metadata_cols=["studyType", "geneId"],
                 colocalisation_side="right",
@@ -98,7 +99,7 @@ class Colocalisation(Dataset):
             .filter(reduce(lambda a, b: a & b, coloc_filtering_expr))
             # and filters colocalisation results to only include the subset of studylocus that contains gwas studylocusid
             .join(
-                study_loci.df.selectExpr("studyLocusId as leftStudyLocusId"),
+                study_locus.df.selectExpr("studyLocusId as leftStudyLocusId"),
                 "leftStudyLocusId",
             )
         )

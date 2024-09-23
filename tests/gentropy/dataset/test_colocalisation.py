@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 
@@ -124,7 +123,9 @@ def test_extract_maximum_coloc_probability_per_region_and_gene(
     """Test extracting maximum coloc probability per region and gene returns a dataframe with the correct columns: studyLocusId, geneId, h4."""
     filter_by_colocalisation_method = filter_by_colocalisation_method or "Coloc"
     res_df = mock_colocalisation.extract_maximum_coloc_probability_per_region_and_gene(
-        mock_study_locus, mock_study_index, filter_by_colocalisation_method
+        mock_study_locus,
+        mock_study_index,
+        filter_by_colocalisation_method=filter_by_colocalisation_method,
     )
     expected_cols = ["studyLocusId", "geneId", "h4"]
     for col in expected_cols:
