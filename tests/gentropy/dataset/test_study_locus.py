@@ -18,6 +18,8 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
@@ -28,6 +30,7 @@ from gentropy.dataset.study_locus import (
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 @pytest.mark.parametrize(
@@ -744,3 +747,92 @@ class TestStudyLocusValidation:
             )
             .count()
         ) == 1
+
+
+def test_build_feature_matrix(
+    mock_study_locus: StudyLocus,
+    mock_colocalisation: Colocalisation,
+    mock_study_index: StudyIndex,
+) -> None:
+    """Test building feature matrix with the eQtlColocH4Maximum feature."""
+    features_list = ["eQtlColocH4Maximum"]
+    loader = L2GFeatureInputLoader(
+        colocalisation=mock_colocalisation,
+        study_index=mock_study_index,
+        study_locus=mock_study_locus,
+    )
+    fm = mock_study_locus.build_feature_matrix(features_list, loader)
+    assert isinstance(
+        fm, L2GFeatureMatrix
+    ), "Feature matrix should be of type L2GFeatureMatrix"
+
+
+class TestStudyLocusRedundancyFlagging:
+    """Collection of tests related to flagging redundant credible sets."""
+
+    STUDY_LOCUS_DATA = [
+        (1, "v1", "s1", "pics", []),
+        (2, "v2", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (3, "v3", "s1", "pics", []),
+        (3, "v3", "s1", "pics", []),
+        (1, "v1", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s3", "SuSie", []),
+        (1, "v1", "s3", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (1, "v1", "s4", "pics", []),
+        (1, "v1", "s4", "SuSie", []),
+        (1, "v1", "s4", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.LongType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("finemappingMethod", t.StringType(), False),
+            t.StructField("qualityControls", t.ArrayType(t.StringType()), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusRedundancyFlagging, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def test_qc_redundant_top_hits_from_PICS_returntype(
+        self: TestStudyLocusRedundancyFlagging,
+    ) -> None:
+        """Test qc_redundant_top_hits_from_PICS."""
+        assert isinstance(
+            self.study_locus.qc_redundant_top_hits_from_PICS(), StudyLocus
+        )
+
+    def test_qc_redundant_top_hits_from_PICS_no_data_loss(
+        self: TestStudyLocusRedundancyFlagging,
+    ) -> None:
+        """Testing if the redundancy flagging returns the same number of rows."""
+        assert (
+            self.study_locus.qc_redundant_top_hits_from_PICS().df.count()
+            == self.study_locus.df.count()
+        )
+
+    def test_qc_redundant_top_hits_from_PICS_correctness(
+        self: TestStudyLocusRedundancyFlagging,
+    ) -> None:
+        """Testing if the study validation flags the right number of studies."""
+        assert (
+            self.study_locus.qc_redundant_top_hits_from_PICS()
+            .df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.REDUNDANT_PICS_TOP_HIT.value,
+                )
+            )
+            .count()
+        ) == 3

@@ -47,6 +47,7 @@ class StudyLocusValidationStep:
             .qc_MHC_region()
             .validate_study(study_index)  # Flagging studies not in study index
             .annotate_study_type(study_index) # Add study type to study locus
+            .qc_redundant_top_hits_from_PICS()  # Flagging top hits from studies with PICS summary statistics
             .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
         ).persist()  # we will need this for 2 types of outputs
 
