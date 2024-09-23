@@ -14,12 +14,6 @@
       "metadata": {}
     },
     {
-      "name": "leftStudyType",
-      "nullable": false,
-      "type": "string",
-      "metadata": {}
-    },
-    {
       "name": "rightStudyType",
       "nullable": false,
       "type": "string",

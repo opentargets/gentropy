@@ -79,7 +79,7 @@ class ECaviar:
                         f.col("statistics.right_posteriorProbability"),
                     ),
                 )
-                .groupBy("leftStudyLocusId", "rightStudyLocusId", "leftStudyType", "rightStudyType", "chromosome")
+                .groupBy("leftStudyLocusId", "rightStudyLocusId", "rightStudyType", "chromosome")
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
@@ -168,7 +168,7 @@ class Coloc:
                     f.col("left_logBF") + f.col("right_logBF"),
                 )
                 # Group by overlapping peak and generating dense vectors of log_BF:
-                .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId", "leftStudyType", "rightStudyType")
+                .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId", "rightStudyType")
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
                     fml.array_to_vector(f.collect_list(f.col("left_logBF"))).alias(
