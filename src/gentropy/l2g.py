@@ -209,7 +209,7 @@ class LocusToGeneStep:
                 "inner",
             ),
             _schema=StudyLocus.get_schema(),
-        ).find_overlaps(self.studies)
+        ).find_overlaps()
 
         gold_standards = L2GGoldStandard.from_otg_curation(
             gold_standard_curation=gs_curation,

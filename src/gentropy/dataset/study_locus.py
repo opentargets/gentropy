@@ -589,7 +589,7 @@ class StudyLocus(Dataset):
         )
 
     def find_overlaps(
-        self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
+        self: StudyLocus, intra_study_overlap: bool = False
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
@@ -597,7 +597,6 @@ class StudyLocus(Dataset):
         appearing on the right side.
 
         Args:
-            study_index (StudyIndex): Study index to resolve study types.
             intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:

@@ -131,25 +131,6 @@ def test_find_overlaps_semantic(
             _schema=StudyLocus.get_schema(),
         )
 
-    studies = StudyIndex(
-        _df=spark.createDataFrame(
-            [
-                {
-                    "studyId": "study1",
-                    "studyType": "gwas",
-                    "traitFromSource": "trait1",
-                    "projectId": "project1",
-                },
-                {
-                    "studyId": "study2",
-                    "studyType": "eqtl",
-                    "traitFromSource": "trait2",
-                    "projectId": "project2",
-                },
-            ]
-        ),
-        _schema=StudyIndex.get_schema(),
-    )
     expected_overlaps_df = spark.createDataFrame(
         expected, StudyLocusOverlap.get_schema()
     )
@@ -159,18 +140,14 @@ def test_find_overlaps_semantic(
         "statistics.right_posteriorProbability",
     ]
     assert (
-        credset.find_overlaps(studies).df.select(*cols_to_compare).collect()
+        credset.find_overlaps().df.select(*cols_to_compare).collect()
         == expected_overlaps_df.select(*cols_to_compare).collect()
     ), "Overlaps differ from expected."
 
 
-def test_find_overlaps(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
-) -> None:
+def test_find_overlaps(mock_study_locus: StudyLocus) -> None:
     """Test study locus overlaps."""
-    assert isinstance(
-        mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap
-    )
+    assert isinstance(mock_study_locus.find_overlaps(), StudyLocusOverlap)
 
 
 @pytest.mark.parametrize(
