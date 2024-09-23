@@ -46,7 +46,9 @@ def test_feature_factory_return_type(
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
     loader = L2GFeatureInputLoader(
-        colocalisation=mock_colocalisation, study_index=mock_study_index
+        colocalisation=mock_colocalisation,
+        study_index=mock_study_index,
+        study_locus=mock_study_locus,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,
