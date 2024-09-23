@@ -1,4 +1,5 @@
 """L2G gold standard dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
     from gentropy.dataset.v2g import V2G
 
@@ -98,6 +100,29 @@ class L2GGoldStandard(Dataset):
             "targetA as geneIdA",
             "targetB as geneIdB",
             "scoring as score",
+        )
+
+    def build_feature_matrix(
+        self: L2GGoldStandard,
+        full_feature_matrix: L2GFeatureMatrix,
+    ) -> L2GFeatureMatrix:
+        """Return a feature matrix for study loci in the gold standard.
+
+        Args:
+            full_feature_matrix (L2GFeatureMatrix): Feature matrix for all study loci to join on
+
+        Returns:
+            L2GFeatureMatrix: Feature matrix for study loci in the gold standard
+        """
+        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+
+        return L2GFeatureMatrix(
+            _df=full_feature_matrix._df.join(
+                f.broadcast(self.df.drop("variantId", "studyId", "sources")),
+                on=["studyLocusId", "geneId"],
+                how="inner",
+            ),
+            with_gold_standard=True,
         )
 
     def filter_unique_associations(
