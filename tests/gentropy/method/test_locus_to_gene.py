@@ -59,6 +59,7 @@ class TestColocalisationFactory:
                         "studyLocusId": 1,
                         "variantId": "lead1",
                         "studyId": "study1",  # this is a GWAS
+                        "studyType": "gwas",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.9},
                         ],
@@ -68,6 +69,7 @@ class TestColocalisationFactory:
                         "studyLocusId": 2,
                         "variantId": "lead2",
                         "studyId": "study2",  # this is a eQTL study
+                        "studyType": "eqtl",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.9},
                         ],
@@ -105,6 +107,7 @@ class TestColocalisationFactory:
                     {
                         "leftStudyLocusId": 1,
                         "rightStudyLocusId": 2,
+                        "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "colocalisationMethod": "eCAVIAR",
                         "numberColocalisingVariants": 1,
