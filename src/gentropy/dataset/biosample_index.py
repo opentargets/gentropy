@@ -33,9 +33,8 @@ class BiosampleIndex(Dataset):
         """
         return parse_spark_schema("biosample_index.json")
 
-    @classmethod
     def merge_indices(
-        cls: type[BiosampleIndex],
+        self: BiosampleIndex,
         biosample_indices : list[BiosampleIndex]
         ) -> BiosampleIndex:
         """Merge a list of biosample indices into a single biosample index.
@@ -49,7 +48,7 @@ class BiosampleIndex(Dataset):
             BiosampleIndex: Merged biosample index.
         """
         # Extract the DataFrames from the BiosampleIndex objects
-        biosample_dfs = [biosample_index.df for biosample_index in biosample_indices] + [cls.df]
+        biosample_dfs = [biosample_index.df for biosample_index in biosample_indices] + [self.df]
 
         # Merge the DataFrames
         merged_df = reduce(DataFrame.unionAll, biosample_dfs)
@@ -60,7 +59,7 @@ class BiosampleIndex(Dataset):
         for field in merged_df.schema.fields:
             if field.name != "biosampleId":  # Skip the grouping column
                 if field.dataType == ArrayType(StringType()):
-                    agg_funcs.append(f.array_distinct(f.flatten(f.col(field.name))).alias(field.name))
+                    agg_funcs.append(f.array_distinct(f.flatten(f.collect_list(field.name))).alias(field.name))
                 else:
                     agg_funcs.append(f.first(f.col(field.name), ignorenulls=True).alias(field.name))
 
