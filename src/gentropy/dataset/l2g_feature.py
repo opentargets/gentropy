@@ -170,7 +170,7 @@ def _common_neighbourhood_colocalisation_feature_logic(
             f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
         )
         .withColumn(feature_name, f.col("regional_maximum") - f.col(local_feature_name))
-        .drop("regional_maximum")
+        .drop("regional_maximum", local_feature_name)
     )
 
 
@@ -866,7 +866,7 @@ def _common_distance_feature_logic(
         agg_expr (Column): The expression that aggregate distances into a specific way to define the feature
 
     Returns:
-            DataFrame: Feature dataset
+        DataFrame: Feature dataset
     """
     distances_dataset = variant_index.get_distance_to_gene(distance_type=distance_type)
     return (
