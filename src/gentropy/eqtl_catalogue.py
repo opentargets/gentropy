@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.config import EqtlCatalogueConfig
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
@@ -60,6 +61,10 @@ class EqtlCatalogueStep:
         )
         credible_sets = EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
         study_index = EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
+
+        credible_sets = credible_sets.validate_lead_pvalue(
+            pvalue_cutoff=EqtlCatalogueConfig().eqtl_lead_pvalue_threshold
+        )
 
         # Load
         study_index.df.write.mode(session.write_mode).parquet(

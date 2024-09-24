@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 from gentropy.method.pics import PICS
 
@@ -31,5 +32,11 @@ class PICSStep:
         picsed_sl = PICS.finemap(study_locus_ld_annotated).filter_credible_set(
             credible_interval=CredibleInterval.IS99
         )
+
+        # Validate lead p-value
+        picsed_sl = picsed_sl.validate_lead_pvalue(
+            pvalue_cutoff=WindowBasedClumpingStepConfig().gwas_significance
+        )
+
         # Write
         picsed_sl.df.write.mode(session.write_mode).parquet(picsed_study_locus_out)

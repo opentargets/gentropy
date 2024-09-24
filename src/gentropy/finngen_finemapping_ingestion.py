@@ -37,6 +37,10 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
             finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
         )
 
+        finngen_finemapping_df = finngen_finemapping_df.validate_lead_pvalue(
+            pvalue_cutoff=FinngenFinemappingConfig().finngen_finemapping_lead_pvalue_threshold
+        )
+
         # Write the output.
         finngen_finemapping_df.df.write.mode(session.write_mode).parquet(
             finngen_finemapping_out
