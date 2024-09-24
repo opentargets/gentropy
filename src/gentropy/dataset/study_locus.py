@@ -988,7 +988,7 @@ class StudyLocus(Dataset):
 
         # non SuSiE credible sets (studyLocusId) overlapping in any variant with SuSiE locus
         redundant_study_locus = (
-            self.filter(~(f.col("finemappingMethod") == "SuSiE-inf"))
+            self.filter(f.col("finemappingMethod") != "SuSiE-inf")
             .df.withColumn("l", f.explode("locus"))
             .select(
                 "studyLocusId",
