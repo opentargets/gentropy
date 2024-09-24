@@ -764,7 +764,7 @@ class TestStudyLocusWindowClumping:
                 ).withColumns(
                     {
                         "studyLocusId": f.monotonically_increasing_id().cast(
-                            t.LongType()
+                            t.StringType()
                         ),
                         "pValueMantissa": f.lit(1).cast(t.FloatType()),
                         "variantId": f.concat(
