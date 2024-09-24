@@ -43,6 +43,7 @@ from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "commonTag",
                     "statistics": {
@@ -53,6 +54,7 @@ from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "nonCommonTag",
                     "statistics": {
@@ -79,6 +81,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 1,
                         "variantId": "lead1",
                         "studyId": "study1",
+                        "studyType": "gwas",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.9},
                         ],
@@ -88,6 +91,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 2,
                         "variantId": "lead2",
                         "studyId": "study2",
+                        "studyType": "eqtl",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.6},
                             {"variantId": "nonCommonTag", "posteriorProbability": 0.6},
@@ -108,6 +112,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 1,
                         "variantId": "lead1",
                         "studyId": "study1",
+                        "studyType": "gwas",
                         "locus": [
                             {"variantId": "var1", "posteriorProbability": 0.9},
                         ],
@@ -117,6 +122,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 2,
                         "variantId": "lead2",
                         "studyId": "study2",
+                        "studyType": "eqtl",
                         "locus": None,
                         "chromosome": "1",
                     },
@@ -126,25 +132,6 @@ def test_find_overlaps_semantic(
             _schema=StudyLocus.get_schema(),
         )
 
-    studies = StudyIndex(
-        _df=spark.createDataFrame(
-            [
-                {
-                    "studyId": "study1",
-                    "studyType": "gwas",
-                    "traitFromSource": "trait1",
-                    "projectId": "project1",
-                },
-                {
-                    "studyId": "study2",
-                    "studyType": "eqtl",
-                    "traitFromSource": "trait2",
-                    "projectId": "project2",
-                },
-            ]
-        ),
-        _schema=StudyIndex.get_schema(),
-    )
     expected_overlaps_df = spark.createDataFrame(
         expected, StudyLocusOverlap.get_schema()
     )
@@ -154,18 +141,14 @@ def test_find_overlaps_semantic(
         "statistics.right_posteriorProbability",
     ]
     assert (
-        credset.find_overlaps(studies).df.select(*cols_to_compare).collect()
+        credset.find_overlaps().df.select(*cols_to_compare).collect()
         == expected_overlaps_df.select(*cols_to_compare).collect()
     ), "Overlaps differ from expected."
 
 
-def test_find_overlaps(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
-) -> None:
+def test_find_overlaps(mock_study_locus: StudyLocus) -> None:
     """Test study locus overlaps."""
-    assert isinstance(
-        mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap
-    )
+    assert isinstance(mock_study_locus.find_overlaps(), StudyLocusOverlap)
 
 
 @pytest.mark.parametrize(
@@ -184,39 +167,22 @@ def test_filter_by_study_type(
                     "studyLocusId": 1,
                     "variantId": "lead1",
                     "studyId": "study1",
+                    "studyType": "gwas",
                 },
                 {
                     # from eqtl
                     "studyLocusId": 2,
                     "variantId": "lead2",
                     "studyId": "study2",
+                    "studyType": "eqtl",
                 },
             ],
             StudyLocus.get_schema(),
         ),
         _schema=StudyLocus.get_schema(),
     )
-    studies = StudyIndex(
-        _df=spark.createDataFrame(
-            [
-                {
-                    "studyId": "study1",
-                    "studyType": "gwas",
-                    "traitFromSource": "trait1",
-                    "projectId": "project1",
-                },
-                {
-                    "studyId": "study2",
-                    "studyType": "eqtl",
-                    "traitFromSource": "trait2",
-                    "projectId": "project2",
-                },
-            ]
-        ),
-        _schema=StudyIndex.get_schema(),
-    )
 
-    observed = sl.filter_by_study_type(study_type, studies)
+    observed = sl.filter_by_study_type(study_type)
     assert observed.df.count() == expected_sl_count
 
 
@@ -781,6 +747,74 @@ class TestStudyLocusValidation:
             )
             .count()
         ) == 1
+
+
+class TestStudyLocusWindowClumping:
+    """Testing window-based clumping on study locus."""
+
+    TEST_DATASET = [
+        ("s1", "c1", 1, -1),
+        ("s1", "c1", 2, -2),
+        ("s1", "c1", 3, -3),
+        ("s2", "c2", 2, -2),
+        ("s3", "c2", 2, -2),
+    ]
+
+    TEST_SCHEMA = t.StructType(
+        [
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("chromosome", t.StringType(), False),
+            t.StructField("position", t.IntegerType(), False),
+            t.StructField("pValueExponent", t.IntegerType(), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusWindowClumping, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=(
+                spark.createDataFrame(
+                    self.TEST_DATASET, schema=self.TEST_SCHEMA
+                ).withColumns(
+                    {
+                        "studyLocusId": f.monotonically_increasing_id().cast(
+                            t.LongType()
+                        ),
+                        "pValueMantissa": f.lit(1).cast(t.FloatType()),
+                        "variantId": f.concat(
+                            f.lit("v"),
+                            f.monotonically_increasing_id().cast(t.StringType()),
+                        ),
+                    }
+                )
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def test_clump_return_type(self: TestStudyLocusWindowClumping) -> None:
+        """Testing if the clumping returns the right type."""
+        assert isinstance(self.study_locus.window_based_clumping(3), StudyLocus)
+
+    def test_clump_no_data_loss(self: TestStudyLocusWindowClumping) -> None:
+        """Testing if the clumping returns same number of rows."""
+        assert (
+            self.study_locus.window_based_clumping(3).df.count()
+            == self.study_locus.df.count()
+        )
+
+    def test_correct_flag(self: TestStudyLocusWindowClumping) -> None:
+        """Testing if the clumping flags are for variants."""
+        assert (
+            self.study_locus.window_based_clumping(3)
+            .df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.WINDOW_CLUMPED.value,
+                )
+            )
+            .count()
+        ) == 2
 
 
 def test_build_feature_matrix(
