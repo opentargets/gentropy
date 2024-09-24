@@ -8,7 +8,6 @@ from importlib import import_module
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.colocalisation import Coloc
 
@@ -23,7 +22,6 @@ class ColocalisationStep:
         self,
         session: Session,
         credible_set_path: str,
-        study_index_path: str,
         coloc_path: str,
         colocalisation_method: str,
     ) -> None:
@@ -32,7 +30,6 @@ class ColocalisationStep:
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
-            study_index_path (str): Input study index path.
             coloc_path (str): Output Colocalisation path.
             colocalisation_method (str): Colocalisation method.
         """
@@ -47,12 +44,9 @@ class ColocalisationStep:
                 session, credible_set_path, recursiveFileLookup=True
             )
         )
-        si = StudyIndex.from_parquet(
-            session, study_index_path, recursiveFileLookup=True
-        )
 
         # Transform
-        overlaps = credible_set.find_overlaps(si)
+        overlaps = credible_set.find_overlaps()
         colocalisation_results = colocalisation_class.colocalise(overlaps)  # type: ignore
 
         # Load

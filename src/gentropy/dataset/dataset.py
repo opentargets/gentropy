@@ -73,8 +73,11 @@ class Dataset(ABC):
 
         Returns:
             StructType: Schema for the Dataset
+
+        Raises:
+                NotImplementedError: Must be implemented in the child classes
         """
-        pass
+        raise NotImplementedError("Must be implemented in the child classes")
 
     @classmethod
     def get_QC_column_name(cls: type[Self]) -> str | None:

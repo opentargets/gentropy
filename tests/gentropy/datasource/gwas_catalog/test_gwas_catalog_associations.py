@@ -69,11 +69,20 @@ def test_map_variants_to_variant_index(
 ) -> None:
     """Test mapping to variant annotation variants."""
     assert isinstance(
-        GWASCatalogCuratedAssociationsParser._map_variants_to_variant_index(
+        GWASCatalogCuratedAssociationsParser._map_variants_to_gnomad_variants(
             sample_gwas_catalog_associations.withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(LongType())
             ),
             mock_variant_index,
         ),
         DataFrame,
+    )
+
+
+def test_qc_flag_all_tophits(
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
+) -> None:
+    """Test qc flag all top hits."""
+    assert isinstance(
+        mock_study_locus_gwas_catalog.qc_flag_all_tophits(), StudyLocusGWASCatalog
     )
