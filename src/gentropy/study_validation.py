@@ -58,8 +58,7 @@ class StudyValidationStep:
 
         # Running validation:
         study_index_with_qc = (
-            study_index.validate_disease(disease_index)
-            .validate_unique_study_id()  # Flagging duplicated study ids
+            study_index.validate_unique_study_id()  # Flagging duplicated study ids
             .validate_study_type()  # Flagging non-supported study types.
             .validate_target(target_index)  # Flagging QTL studies with invalid targets
             .validate_disease(disease_index)  # Flagging invalid EFOs

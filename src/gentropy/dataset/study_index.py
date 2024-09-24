@@ -30,14 +30,12 @@ class StudyQualityCheck(Enum):
         UNRESOLVED_DISEASE (str): Disease identifier could not match to referece or retired identifier - labelling failing disease
         UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
         DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
-        NO_GENE_PROVIDED (str): Flagging QTL studies if the measured
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
     UNRESOLVED_DISEASE = "No valid disease identifier found."
     UNKNOWN_STUDY_TYPE = "This type of study is not supported."
     DUPLICATED_STUDY = "The identifier of this study is not unique."
-    NO_GENE_PROVIDED = "QTL study doesn't have gene assigned."
 
 
 @dataclass
