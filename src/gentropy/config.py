@@ -455,6 +455,7 @@ class GWASQCStep(StepConfig):
     gwas_path: str = MISSING
     output_path: str = MISSING
     studyid: str = MISSING
+    pval_threshold: float = MISSING
     _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
 
 
