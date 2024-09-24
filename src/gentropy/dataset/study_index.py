@@ -32,7 +32,6 @@ class StudyQualityCheck(Enum):
         UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
         UNKNOWN_BIOSAMPLE (str): Flagging if a biosample identifier is not found in the reference.
         DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
-        NO_GENE_PROVIDED (str): Flagging QTL studies if the measured
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
@@ -40,7 +39,6 @@ class StudyQualityCheck(Enum):
     UNKNOWN_STUDY_TYPE = "This type of study is not supported."
     UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference."
     DUPLICATED_STUDY = "The identifier of this study is not unique."
-    NO_GENE_PROVIDED = "QTL study doesn't have gene assigned."
 
 
 @dataclass
