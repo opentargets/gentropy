@@ -55,8 +55,7 @@ class Colocalisation(Dataset):
             DataFrame: table with the maximum colocalisation scores for the provided study loci
 
         Raises:
-            ValueError: if filter_by_qtl is not in the list of valid QTL types
-            ValueError: if filter_by_colocalisation_method is not in the list of valid colocalisation methods
+            ValueError: if filter_by_qtl is not in the list of valid QTL types or is not in the list of valid colocalisation methods
         """
         from gentropy.colocalisation import ColocalisationStep
 
