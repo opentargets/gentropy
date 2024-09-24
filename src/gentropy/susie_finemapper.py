@@ -95,7 +95,7 @@ class SusieFineMapperStep:
             .df.withColumn(
                 "studyLocusId",
                 StudyLocus.assign_study_locus_id(
-                    "studyId", "variantId", "finemappingMethod"
+                    f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
                 ),
             )
             .collect()[0]
