@@ -204,7 +204,7 @@ class LocusToGeneStep:
             ValueError: If write_feature_matrix is set to True but a path is not provided.
             ValueError: If dependencies to build features are not set.
         """
-        if self.gs_curation and self.interactions and self.v2g and self.studies:
+        if self.gs_curation and self.interactions and self.v2g:
             study_locus_overlap = StudyLocus(
                 _df=self.credible_set.df.join(
                     f.broadcast(
@@ -225,7 +225,7 @@ class LocusToGeneStep:
                     "inner",
                 ),
                 _schema=StudyLocus.get_schema(),
-            ).find_overlaps(self.studies)
+            ).find_overlaps()
 
             gold_standards = L2GGoldStandard.from_otg_curation(
                 gold_standard_curation=self.gs_curation,

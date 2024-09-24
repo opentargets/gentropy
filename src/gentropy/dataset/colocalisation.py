@@ -91,7 +91,7 @@ class Colocalisation(Dataset):
             self.append_study_metadata(
                 study_locus,
                 study_index,
-                metadata_cols=["studyType", "geneId"],
+                metadata_cols=["geneId"],
                 colocalisation_side="right",
             )
             # it also filters based on method and qtl type

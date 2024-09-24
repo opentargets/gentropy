@@ -13,8 +13,6 @@ from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
-    from gentropy.dataset.study_index import StudyIndex
-
 
 def test_study_locus_overlap_creation(
     mock_study_locus_overlap: StudyLocusOverlap,
@@ -23,11 +21,9 @@ def test_study_locus_overlap_creation(
     assert isinstance(mock_study_locus_overlap, StudyLocusOverlap)
 
 
-def test_study_locus_overlap_from_associations(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
-) -> None:
+def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> None:
     """Test colocalisation creation from mock associations."""
-    overlaps = StudyLocusOverlap.from_associations(mock_study_locus, mock_study_index)
+    overlaps = StudyLocusOverlap.from_associations(mock_study_locus)
     assert isinstance(overlaps, StudyLocusOverlap)
 
 
