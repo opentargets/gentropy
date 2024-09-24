@@ -157,6 +157,24 @@ class StudyLocus(Dataset):
             _schema=self.get_schema(),
         )
 
+    def annotate_study_type(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Gets study type from study index and adds it to study locus.
+
+        Args:
+            study_index (StudyIndex): Study index to get study type.
+
+        Returns:
+            StudyLocus: Updated study locus with study type.
+        """
+        return StudyLocus(
+            _df=(
+                self.df
+                .drop("studyType")
+                .join(study_index.study_type_lut(), on="studyId", how="left")
+            ),
+            _schema=self.get_schema(),
+        )
+
     def validate_variant_identifiers(
         self: StudyLocus, variant_index: VariantIndex
     ) -> StudyLocus:
@@ -394,6 +412,7 @@ class StudyLocus(Dataset):
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("rightStudyLocusId"),
+            f.col("studyType").alias("rightStudyType"),
             *[f.col(col).alias(f"right_{col}") for col in stats_cols],
         ).join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
 
@@ -410,6 +429,7 @@ class StudyLocus(Dataset):
         ).select(
             "leftStudyLocusId",
             "rightStudyLocusId",
+            "rightStudyType",
             "chromosome",
             "tagVariantId",
             f.struct(
@@ -505,13 +525,12 @@ class StudyLocus(Dataset):
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def filter_by_study_type(
-        self: StudyLocus, study_type: str, study_index: StudyIndex
+        self: StudyLocus, study_type: str
     ) -> StudyLocus:
         """Creates a new StudyLocus dataset filtered by study type.
 
         Args:
             study_type (str): Study type to filter for. Can be one of `gwas`, `eqtl`, `pqtl`, `eqtl`.
-            study_index (StudyIndex): Study index to resolve study types.
 
         Returns:
             StudyLocus: Filtered study-locus dataset.
@@ -524,7 +543,7 @@ class StudyLocus(Dataset):
                 f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
             )
         new_df = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            self.df
             .filter(f.col("studyType") == study_type)
             .drop("studyType")
         )
@@ -576,7 +595,7 @@ class StudyLocus(Dataset):
         )
 
     def find_overlaps(
-        self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
+        self: StudyLocus, intra_study_overlap: bool = False
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
@@ -584,14 +603,14 @@ class StudyLocus(Dataset):
         appearing on the right side.
 
         Args:
-            study_index (StudyIndex): Study index to resolve study types.
             intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         loci_to_overlap = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            self.df
+            .filter(f.col("studyType").isNotNull())
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
