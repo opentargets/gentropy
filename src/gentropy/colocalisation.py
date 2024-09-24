@@ -8,7 +8,7 @@ from importlib import import_module
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.colocalisation import Coloc
 
 
@@ -46,9 +46,7 @@ class ColocalisationStep:
         )
 
         # Transform
-        overlaps = credible_set.filter_credible_set(
-            CredibleInterval.IS95
-        ).find_overlaps()
+        overlaps = credible_set.find_overlaps()
         colocalisation_results = colocalisation_class.colocalise(overlaps)  # type: ignore
 
         # Load
