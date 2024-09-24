@@ -501,7 +501,6 @@ class StudyLocusValidationStepConfig(StepConfig):
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
-    gwas_significance: float = WindowBasedClumpingStepConfig.gwas_significance
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 

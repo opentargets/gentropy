@@ -19,7 +19,6 @@ class StudyLocusValidationStep:
         session: Session,
         study_index_path: str,
         study_locus_path: list[str],
-        gwas_significance: float,
         valid_study_locus_path: str,
         invalid_study_locus_path: str,
         invalid_qc_reasons: list[str] = [],
@@ -30,7 +29,6 @@ class StudyLocusValidationStep:
             session (Session): Session object.
             study_index_path (str): Path to study index file.
             study_locus_path (list[str]): Path to study locus dataset.
-            gwas_significance (float): GWAS significance threshold.
             valid_study_locus_path (str): Path to write the valid records.
             invalid_study_locus_path (str): Path to write the output file.
             invalid_qc_reasons (list[str]): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. ['SUBSIGNIFICANT_FLAG']).
