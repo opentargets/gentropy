@@ -463,12 +463,12 @@ class StudyLocus(Dataset):
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
             >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"), f.col("finemappingMethod"))).show(truncate=False)
-            ++----------+----------+-----------------+--------------------------------+
-            +|studyId   |variantId |finemappingMethod|study_locus_id                  |
-            ++----------+----------+-----------------+--------------------------------+
-            +|GCST000001|1_1000_A_C|SuSiE-inf        |109804fe1e20c94231a31bafd71b566e|
-            +|GCST000002|1_1000_A_C|pics             |de310be4558e0482c9cc359c97d37773|
-            ++----------+----------+-----------------+--------------------------------+
+            +----------+----------+-----------------+--------------------------------+
+            |studyId   |variantId |finemappingMethod|study_locus_id                  |
+            +----------+----------+-----------------+--------------------------------+
+            |GCST000001|1_1000_A_C|SuSiE-inf        |109804fe1e20c94231a31bafd71b566e|
+            |GCST000002|1_1000_A_C|pics             |de310be4558e0482c9cc359c97d37773|
+            +----------+----------+-----------------+--------------------------------+
             <BLANKLINE>
         """
         if finemapping_col is None:
