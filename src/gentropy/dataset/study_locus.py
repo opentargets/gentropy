@@ -17,6 +17,7 @@ from gentropy.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from gentropy.common.utils import get_logsum
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
@@ -45,7 +46,8 @@ class StudyLocusQualityCheck(Enum):
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
         AMBIGUOUS_STUDY (str): Association with ambiguous study
         UNRESOLVED_LD (str): Variant not found in LD reference
-        LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
+        LD_CLUMPED (str): Explained by a more significant variant in high LD
+        WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
@@ -65,7 +67,8 @@ class StudyLocusQualityCheck(Enum):
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
     AMBIGUOUS_STUDY = "Association with ambiguous study"
     UNRESOLVED_LD = "Variant not found in LD reference"
-    LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
+    LD_CLUMPED = "Explained by a more significant variant in high LD"
+    WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
     NOT_QUALIFYING_LD_BLOCK = (
         "LD block does not contain variants at the required R^2 threshold"
@@ -168,9 +171,9 @@ class StudyLocus(Dataset):
         """
         return StudyLocus(
             _df=(
-                self.df
-                .drop("studyType")
-                .join(study_index.study_type_lut(), on="studyId", how="left")
+                self.df.drop("studyType").join(
+                    study_index.study_type_lut(), on="studyId", how="left"
+                )
             ),
             _schema=self.get_schema(),
         )
@@ -524,9 +527,7 @@ class StudyLocus(Dataset):
         """
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
-    def filter_by_study_type(
-        self: StudyLocus, study_type: str
-    ) -> StudyLocus:
+    def filter_by_study_type(self: StudyLocus, study_type: str) -> StudyLocus:
         """Creates a new StudyLocus dataset filtered by study type.
 
         Args:
@@ -542,11 +543,7 @@ class StudyLocus(Dataset):
             raise ValueError(
                 f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
             )
-        new_df = (
-            self.df
-            .filter(f.col("studyType") == study_type)
-            .drop("studyType")
-        )
+        new_df = self.df.filter(f.col("studyType") == study_type).drop("studyType")
         return StudyLocus(
             _df=new_df,
             _schema=self._schema,
@@ -609,8 +606,7 @@ class StudyLocus(Dataset):
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         loci_to_overlap = (
-            self.df
-            .filter(f.col("studyType").isNotNull())
+            self.df.filter(f.col("studyType").isNotNull())
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
@@ -1051,3 +1047,19 @@ class StudyLocus(Dataset):
         )
 
         return self
+
+    def window_based_clumping(
+        self: StudyLocus,
+        window_size: int = WindowBasedClumpingStepConfig().distance,
+    ) -> StudyLocus:
+        """Clump study locus by window size.
+
+        Args:
+            window_size (int): Window size for clumping.
+
+        Returns:
+            StudyLocus: Clumped study locus, where clumped associations are flagged.
+        """
+        from gentropy.method.window_based_clumping import WindowBasedClumping
+
+        return WindowBasedClumping.clump(self, window_size)
