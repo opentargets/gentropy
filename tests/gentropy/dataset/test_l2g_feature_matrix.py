@@ -81,7 +81,7 @@ class TestFromFeaturesList:
             _df=spark.createDataFrame(
                 [
                     (
-                        1,
+                        "1",
                         "var1",
                         "gwas1",
                         [
@@ -90,7 +90,7 @@ class TestFromFeaturesList:
                         ],
                     ),
                     (
-                        2,
+                        "2",
                         "var2",
                         "eqtl1",
                         [
@@ -136,7 +136,7 @@ class TestFromFeaturesList:
         )
         self.sample_colocalisation = Colocalisation(
             _df=spark.createDataFrame(
-                [(1, 2, "X", "COLOC", 1, 0.9)],
+                [("1", "2", "X", "COLOC", 1, 0.9)],
                 [
                     "leftStudyLocusId",
                     "rightStudyLocusId",

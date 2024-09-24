@@ -12,7 +12,6 @@ from pyspark.sql.types import (
     ArrayType,
     BooleanType,
     DoubleType,
-    LongType,
     StringType,
     StructField,
     StructType,
@@ -41,8 +40,8 @@ from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
             True,
             [
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
                     "chromosome": "1",
                     "tagVariantId": "commonTag",
                     "statistics": {
@@ -51,8 +50,8 @@ from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
                     },
                 },
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
                     "chromosome": "1",
                     "tagVariantId": "nonCommonTag",
                     "statistics": {
@@ -76,7 +75,7 @@ def test_find_overlaps_semantic(
                 # 2 associations with a common variant in the locus
                 [
                     {
-                        "studyLocusId": 1,
+                        "studyLocusId": "1",
                         "variantId": "lead1",
                         "studyId": "study1",
                         "locus": [
@@ -85,7 +84,7 @@ def test_find_overlaps_semantic(
                         "chromosome": "1",
                     },
                     {
-                        "studyLocusId": 2,
+                        "studyLocusId": "2",
                         "variantId": "lead2",
                         "studyId": "study2",
                         "locus": [
@@ -105,7 +104,7 @@ def test_find_overlaps_semantic(
                 # 2 associations with no common variants in the locus
                 [
                     {
-                        "studyLocusId": 1,
+                        "studyLocusId": "1",
                         "variantId": "lead1",
                         "studyId": "study1",
                         "locus": [
@@ -114,7 +113,7 @@ def test_find_overlaps_semantic(
                         "chromosome": "1",
                     },
                     {
-                        "studyLocusId": 2,
+                        "studyLocusId": "2",
                         "variantId": "lead2",
                         "studyId": "study2",
                         "locus": None,
@@ -181,13 +180,13 @@ def test_filter_by_study_type(
             [
                 {
                     # from gwas
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "variantId": "lead1",
                     "studyId": "study1",
                 },
                 {
                     # from eqtl
-                    "studyLocusId": 2,
+                    "studyLocusId": "2",
                     "variantId": "lead2",
                     "studyId": "study2",
                 },
@@ -258,7 +257,7 @@ def test_assign_study_locus_id__null_variant_id(spark: SparkSession) -> None:
             # Locus is not null, should return union between variants in locus and lead variant
             [
                 (
-                    1,
+                    "1",
                     "traitA",
                     "22_varA",
                     [
@@ -281,7 +280,7 @@ def test_assign_study_locus_id__null_variant_id(spark: SparkSession) -> None:
         (
             # locus is null, should return lead variant
             [
-                (1, "traitA", "22_varA", None),
+                ("1", "traitA", "22_varA", None),
             ],
             [
                 (
@@ -299,7 +298,7 @@ def test_unique_variants_in_locus(
     # assert isinstance(mock_study_locus.test_unique_variants_in_locus(), DataFrame)
     schema = StructType(
         [
-            StructField("studyLocusId", LongType(), True),
+            StructField("studyLocusId", StringType(), True),
             StructField("studyId", StringType(), True),
             StructField("variantId", StringType(), True),
             StructField(
@@ -342,7 +341,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Observed
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadB",
                     [{"variantId": "tagVariantA", "posteriorProbability": 1.0}],
@@ -351,7 +350,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Expected
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadB",
                     [
@@ -370,7 +369,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Observed
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadA",
                     [
@@ -387,7 +386,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Expected
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadA",
                     [
@@ -442,7 +441,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Observed
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadB",
                     None,
@@ -451,7 +450,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Expected
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadB",
                     None,
@@ -463,7 +462,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Observed
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadB",
                     [],
@@ -472,7 +471,7 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
             [
                 # Expected
                 (
-                    1,
+                    "1",
                     "traitA",
                     "leadB",
                     None,
@@ -487,7 +486,7 @@ def test_annotate_credible_sets(
     """Test annotate_credible_sets."""
     schema = StructType(
         [
-            StructField("studyLocusId", LongType(), True),
+            StructField("studyLocusId", StringType(), True),
             StructField("studyId", StringType(), True),
             StructField("variantId", StringType(), True),
             StructField(
@@ -590,12 +589,12 @@ class TestStudyLocusVariantValidation:
 
     STUDYLOCUS_DATA = [
         # First studylocus passes qc:
-        (1, "v1", "s1", "v1"),
-        (1, "v1", "s1", "v2"),
-        (1, "v1", "s1", "v3"),
+        ("1", "v1", "s1", "v1"),
+        ("1", "v1", "s1", "v2"),
+        ("1", "v1", "s1", "v3"),
         # Second studylocus passes qc:
-        (2, "v1", "s1", "v1"),
-        (2, "v1", "s1", "v5"),
+        ("2", "v1", "s1", "v1"),
+        ("2", "v1", "s1", "v5"),
     ]
     STUDYLOCUS_HEADER = ["studyLocusId", "variantId", "studyId", "tagVariantId"]
 
@@ -612,7 +611,7 @@ class TestStudyLocusVariantValidation:
         self.credible_set = StudyLocus(
             _df=(
                 spark.createDataFrame(self.STUDYLOCUS_DATA, self.STUDYLOCUS_HEADER)
-                .withColumn("studyLocusId", f.col("studyLocusId").cast(t.LongType()))
+                .withColumn("studyLocusId", f.col("studyLocusId").cast(t.StringType()))
                 .withColumn("qualityControls", f.array())
                 .groupBy("studyLocusId", "variantId", "studyId")
                 .agg(
@@ -653,7 +652,7 @@ class TestStudyLocusVariantValidation:
         # Check that the right one is flagged:
         assert (
             validated.filter(
-                (f.size("qualityControls") > 0) & (f.col("studyLocusId") == 2)
+                (f.size("qualityControls") > 0) & (f.col("studyLocusId") == "2")
             ).count()
             == 1
         )
@@ -664,17 +663,17 @@ class TestStudyLocusValidation:
 
     STUDY_LOCUS_DATA = [
         # Won't be flagged:
-        (1, "v1", "s1", 1.0, -8, []),
+        ("1", "v1", "s1", 1.0, -8, []),
         # Already flagged, needs to be tested if the flag reamins unique:
-        (2, "v2", "s2", 5.0, -4, [StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG.value]),
+        ("2", "v2", "s2", 5.0, -4, [StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG.value]),
         # To be flagged:
-        (3, "v3", "s3", 1.0, -4, []),
-        (4, "v4", "s4", 5.0, -3, []),
+        ("3", "v3", "s3", 1.0, -4, []),
+        ("4", "v4", "s4", 5.0, -3, []),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(
         [
-            t.StructField("studyLocusId", t.LongType(), False),
+            t.StructField("studyLocusId", t.StringType(), False),
             t.StructField("variantId", t.StringType(), False),
             t.StructField("studyId", t.StringType(), False),
             t.StructField("pValueMantissa", t.FloatType(), False),
@@ -805,23 +804,23 @@ class TestStudyLocusRedundancyFlagging:
     """Collection of tests related to flagging redundant credible sets."""
 
     STUDY_LOCUS_DATA = [
-        (1, "v1", "s1", "pics", []),
-        (2, "v2", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        (3, "v3", "s1", "pics", []),
-        (3, "v3", "s1", "pics", []),
-        (1, "v1", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        (1, "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        (1, "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        (1, "v1", "s3", "SuSie", []),
-        (1, "v1", "s3", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        (1, "v1", "s4", "pics", []),
-        (1, "v1", "s4", "SuSie", []),
-        (1, "v1", "s4", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s1", "pics", []),
+        ("2", "v2", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("3", "v3", "s1", "pics", []),
+        ("3", "v3", "s1", "pics", []),
+        ("1", "v1", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s3", "SuSie", []),
+        ("1", "v1", "s3", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s4", "pics", []),
+        ("1", "v1", "s4", "SuSie", []),
+        ("1", "v1", "s4", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(
         [
-            t.StructField("studyLocusId", t.LongType(), False),
+            t.StructField("studyLocusId", t.StringType(), False),
             t.StructField("variantId", t.StringType(), False),
             t.StructField("studyId", t.StringType(), False),
             t.StructField("finemappingMethod", t.StringType(), False),

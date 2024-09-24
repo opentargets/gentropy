@@ -88,7 +88,7 @@ class TestIsLeadLinked:
     SCHEMA = t.StructType(
         [
             t.StructField("studyId", t.StringType(), True),
-            t.StructField("studyLocusId", t.LongType(), True),
+            t.StructField("studyLocusId", t.StringType(), True),
             t.StructField("chromosome", t.StringType(), True),
             t.StructField("variantId", t.StringType(), True),
             t.StructField("pValueMantissa", t.FloatType(), True),

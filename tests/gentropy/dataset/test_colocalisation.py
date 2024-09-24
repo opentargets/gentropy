@@ -72,12 +72,12 @@ class TestAppendStudyMetadata:
             _df=spark.createDataFrame(
                 [
                     (
-                        1,
+                        "1",
                         "var1",
                         "gwas1",
                     ),
                     (
-                        2,
+                        "2",
                         "var2",
                         "eqtl1",
                     ),
@@ -100,7 +100,7 @@ class TestAppendStudyMetadata:
         )
         self.sample_colocalisation = Colocalisation(
             _df=spark.createDataFrame(
-                [(1, 2, "X", "COLOC", 1, 0.9)],
+                [("1", "2", "X", "COLOC", 1, 0.9)],
                 [
                     "leftStudyLocusId",
                     "rightStudyLocusId",
