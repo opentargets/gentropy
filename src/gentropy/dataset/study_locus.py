@@ -57,6 +57,7 @@ class StudyLocusQualityCheck(Enum):
         TOP_HIT (str): Study locus from curated top hit
         IN_MHC (str): Flagging study loci in the MHC region
         REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
+        EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -84,6 +85,7 @@ class StudyLocusQualityCheck(Enum):
         "PICS results from summary statistics available for this same study"
     )
     TOP_HIT = "Study locus from curated top hit"
+    EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
 
 
 class CredibleInterval(Enum):
@@ -960,6 +962,76 @@ class StudyLocus(Dataset):
                 ),
             )
             .drop("studiesWithPicsSumstats"),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def qc_explained_by_SuSiE(self: StudyLocus) -> StudyLocus:
+        """Flag associations that are explained by SuSiE associations.
+
+        Credible sets overlapping in the same region as a SuSiE credible set are flagged as explained by SuSiE.
+
+        Returns:
+            StudyLocus: Updated study locus with SuSiE explained flags.
+        """
+        # unique study-regions covered by SuSie credible sets
+        susie_study_regions = (
+            self.filter(f.col("finemappingMethod") == "SuSiE-inf")
+            .df.select(
+                "studyId",
+                "chromosome",
+                "locusStart",
+                "locusEnd",
+                f.lit(True).alias("inSuSiE"),
+            )
+            .distinct()
+        )
+
+        # non SuSiE credible sets (studyLocusId) overlapping in any variant with SuSiE locus
+        redundant_study_locus = (
+            self.filter(f.col("finemappingMethod") != "SuSiE-inf")
+            .df.withColumn("l", f.explode("locus"))
+            .select(
+                "studyLocusId",
+                "studyId",
+                "chromosome",
+                f.split(f.col("l.variantId"), "_")[1].alias("tag_position"),
+            )
+            .alias("study_locus")
+            .join(
+                susie_study_regions.alias("regions"),
+                how="inner",
+                on=[
+                    (f.col("study_locus.chromosome") == f.col("regions.chromosome"))
+                    & (f.col("study_locus.studyId") == f.col("regions.studyId"))
+                    & (f.col("study_locus.tag_position") >= f.col("regions.locusStart"))
+                    & (f.col("study_locus.tag_position") <= f.col("regions.locusEnd"))
+                ],
+            )
+            .select("studyLocusId", "inSuSiE")
+            .distinct()
+        )
+
+        return StudyLocus(
+            _df=(
+                self.df.join(redundant_study_locus, on="studyLocusId", how="left")
+                .withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        f.col("qualityControls"),
+                        # credible set in SuSiE overlapping region
+                        f.col("inSuSiE")
+                        # credible set not based on SuSiE
+                        & (f.col("finemappingMethod") != "SuSiE-inf")
+                        # credible set not already flagged as unresolved LD
+                        & ~f.array_contains(
+                            f.col("qualityControls"),
+                            StudyLocusQualityCheck.UNRESOLVED_LD.value,
+                        ),
+                        StudyLocusQualityCheck.EXPLAINED_BY_SUSIE,
+                    ),
+                )
+                .drop("inSuSiE")
+            ),
             _schema=StudyLocus.get_schema(),
         )
 
