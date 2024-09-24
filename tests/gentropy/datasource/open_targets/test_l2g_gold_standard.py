@@ -153,7 +153,9 @@ def test_build_feature_matrix(
     """Test building feature matrix with the eQtlColocH4Maximum feature."""
     features_list = ["eQtlColocH4Maximum"]
     loader = L2GFeatureInputLoader(
-        colocalisation=mock_colocalisation, study_index=mock_study_index
+        colocalisation=mock_colocalisation,
+        study_index=mock_study_index,
+        study_locus=mock_study_locus,
     )
     fm = mock_study_locus.build_feature_matrix(features_list, loader)
     assert isinstance(

@@ -73,6 +73,22 @@ class L2GFeatureMatrix:
                 ).generate_features(features_input_loader)
             ],
         )
+        if isinstance(study_loci_to_annotate, L2GGoldStandard):
+            return cls(
+                _df=convert_from_long_to_wide(
+                    # Add gold standard set to the feature matrix
+                    features_long_df.join(
+                        study_loci_to_annotate.df.select(
+                            "studyLocusId", "geneId", "goldStandardSet"
+                        ),
+                        ["studyLocusId", "geneId"],
+                    ),
+                    ["studyLocusId", "geneId", "goldStandardSet"],
+                    "featureName",
+                    "featureValue",
+                ),
+                with_gold_standard=True,
+            )
         return cls(
             _df=convert_from_long_to_wide(
                 features_long_df,
@@ -80,7 +96,7 @@ class L2GFeatureMatrix:
                 "featureName",
                 "featureValue",
             ),
-            with_gold_standard=isinstance(study_loci_to_annotate, L2GGoldStandard),
+            with_gold_standard=False,
         )
 
     def calculate_feature_missingness_rate(

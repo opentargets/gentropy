@@ -112,6 +112,7 @@ class LocusToGeneStep:
             variant_index=self.variant_index,
             coloc=self.coloc,
             studies=self.studies,
+            study_locus=self.credible_set,
         )
 
         if run_mode == "predict":
