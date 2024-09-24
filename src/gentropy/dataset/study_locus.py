@@ -555,7 +555,7 @@ class StudyLocus(Dataset):
         self: StudyLocus,
         credible_interval: CredibleInterval,
     ) -> StudyLocus:
-        """Filter study-locus tag variants based on given credible interval.
+        """Annotate and filter study-locus tag variants based on given credible interval.
 
         Args:
             credible_interval (CredibleInterval): Credible interval to filter for.
@@ -564,7 +564,7 @@ class StudyLocus(Dataset):
             StudyLocus: Filtered study-locus dataset.
         """
         return StudyLocus(
-            _df=self._df.withColumn(
+            _df=self.annotate_credible_sets().df.withColumn(
                 "locus",
                 f.filter(
                     f.col("locus"),
