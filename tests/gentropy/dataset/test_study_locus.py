@@ -897,7 +897,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
     STUDY_LOCUS_DATA: Any = [
         # to be flagged due to v4
         (
-            1,
+            "1",
             "v1",
             "s1",
             "X",
@@ -913,7 +913,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
         ),
         # to be flagged due to v4
         (
-            2,
+            "2",
             "v2",
             "s1",
             "X",
@@ -928,7 +928,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
         ),
         # NOT to be flagged (outside regions)
         (
-            3,
+            "3",
             "v3",
             "s1",
             "X",
@@ -943,7 +943,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
         ),
         # NOT to be flagged (SuSie-Inf credible set)
         (
-            4,
+            "4",
             "v4",
             "s1",
             "X",
@@ -955,7 +955,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
         ),
         # NOT to be flagged (Unresolved LD)
         (
-            5,
+            "5",
             "v5",
             "s1",
             "X",
@@ -969,7 +969,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
         ),
         # NOT to be flagged (different study)
         (
-            6,
+            "6",
             "v6",
             "s2",
             "X",
@@ -986,7 +986,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
 
     STUDY_LOCUS_SCHEMA = t.StructType(
         [
-            t.StructField("studyLocusId", t.LongType(), False),
+            t.StructField("studyLocusId", t.StringType(), False),
             t.StructField("variantId", t.StringType(), False),
             t.StructField("studyId", t.StringType(), False),
             t.StructField("chromosome", t.StringType(), False),
