@@ -8,7 +8,6 @@ import pytest
 from pyspark.sql.types import (
     ArrayType,
     DoubleType,
-    LongType,
     StringType,
     StructField,
     StructType,
@@ -100,7 +99,7 @@ class TestFromFeaturesList:
                 ],
                 schema=StructType(
                     [
-                        StructField("studyLocusId", LongType(), True),
+                        StructField("studyLocusId", StringType(), True),
                         StructField("variantId", StringType(), True),
                         StructField("studyId", StringType(), True),
                         StructField(
