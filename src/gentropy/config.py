@@ -227,50 +227,16 @@ class LocusToGeneConfig(StepConfig):
     gene_interactions_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
-            # average distance of all tagging variants to gene TSS
-            "distanceTssMean",
-            # minimum distance of all tagging variants to gene TSS
-            "distanceTssMinimum",
-            # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
-            "vepMaximumNeighborhood",
-            # maximum vep consequence score of the locus 95% credible set split by gene
-            "vepMaximum",
-            # mean vep consequence score of the locus 95% credible set among all genes in the vicinity
-            "vepMeanNeighborhood",
-            # mean vep consequence score of the locus 95% credible set split by gene
-            "vepMean",
-            # max clpp for each (study, locus, gene) aggregating over all eQTLs
-            "eqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all eQTLs
-            "eqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            "pqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all pQTLs
-            "pqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            "sqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all sQTLs
-            "sqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus) aggregating over all tuQTLs
-            "tuqtlColocClppMaximum",
-            # max clpp for each (study, locus, gene) aggregating over all tuQTLs
-            "tuqtlColocClppMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
-            "eqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            "eqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
-            "pqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            "pqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
-            "sqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            "sqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all tuQTLs
-            "tuqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all tuQTLs
-            "tuqtlColocLlrMaximumNeighborhood",
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            "tuQtlColocClppMaximum",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            "tuQtlColocH4Maximum",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -283,6 +249,7 @@ class LocusToGeneConfig(StepConfig):
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     download_from_hub: bool = True
+    write_feature_matrix: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 

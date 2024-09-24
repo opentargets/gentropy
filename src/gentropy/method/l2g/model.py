@@ -114,7 +114,7 @@ class LocusToGeneModel:
 
         pd_dataframe.iteritems = pd_dataframe.items
 
-        feature_matrix_pdf = feature_matrix.df.toPandas()
+        feature_matrix_pdf = feature_matrix._df.toPandas()
         # L2G score is the probability the classifier assigns to the positive class (the second element in the probability array)
         feature_matrix_pdf["score"] = self.model.predict_proba(
             # We drop the fixed columns to only pass the feature values to the classifier

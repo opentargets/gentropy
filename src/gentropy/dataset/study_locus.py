@@ -26,9 +26,11 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 class StudyLocusQualityCheck(Enum):
@@ -153,6 +155,24 @@ class StudyLocus(Dataset):
                     ),
                 )
                 .drop("study_studyId", "study_qualityControls")
+            ),
+            _schema=self.get_schema(),
+        )
+
+    def annotate_study_type(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Gets study type from study index and adds it to study locus.
+
+        Args:
+            study_index (StudyIndex): Study index to get study type.
+
+        Returns:
+            StudyLocus: Updated study locus with study type.
+        """
+        return StudyLocus(
+            _df=(
+                self.df
+                .drop("studyType")
+                .join(study_index.study_type_lut(), on="studyId", how="left")
             ),
             _schema=self.get_schema(),
         )
@@ -394,6 +414,7 @@ class StudyLocus(Dataset):
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("rightStudyLocusId"),
+            f.col("studyType").alias("rightStudyType"),
             *[f.col(col).alias(f"right_{col}") for col in stats_cols],
         ).join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
 
@@ -410,6 +431,7 @@ class StudyLocus(Dataset):
         ).select(
             "leftStudyLocusId",
             "rightStudyLocusId",
+            "rightStudyType",
             "chromosome",
             "tagVariantId",
             f.struct(
@@ -505,13 +527,12 @@ class StudyLocus(Dataset):
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def filter_by_study_type(
-        self: StudyLocus, study_type: str, study_index: StudyIndex
+        self: StudyLocus, study_type: str
     ) -> StudyLocus:
         """Creates a new StudyLocus dataset filtered by study type.
 
         Args:
             study_type (str): Study type to filter for. Can be one of `gwas`, `eqtl`, `pqtl`, `eqtl`.
-            study_index (StudyIndex): Study index to resolve study types.
 
         Returns:
             StudyLocus: Filtered study-locus dataset.
@@ -524,7 +545,7 @@ class StudyLocus(Dataset):
                 f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
             )
         new_df = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            self.df
             .filter(f.col("studyType") == study_type)
             .drop("studyType")
         )
@@ -576,7 +597,7 @@ class StudyLocus(Dataset):
         )
 
     def find_overlaps(
-        self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
+        self: StudyLocus, intra_study_overlap: bool = False
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
@@ -584,14 +605,14 @@ class StudyLocus(Dataset):
         appearing on the right side.
 
         Args:
-            study_index (StudyIndex): Study index to resolve study types.
             intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         loci_to_overlap = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            self.df
+            .filter(f.col("studyType").isNotNull())
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
@@ -647,6 +668,28 @@ class StudyLocus(Dataset):
         return calculate_neglog_pvalue(
             self.df.pValueMantissa,
             self.df.pValueExponent,
+        )
+
+    def build_feature_matrix(
+        self: StudyLocus,
+        features_list: list[str],
+        features_input_loader: L2GFeatureInputLoader,
+    ) -> L2GFeatureMatrix:
+        """Returns the feature matrix for a StudyLocus.
+
+        Args:
+            features_list (list[str]): List of features to include in the feature matrix.
+            features_input_loader (L2GFeatureInputLoader): Feature input loader to use.
+
+        Returns:
+            L2GFeatureMatrix: Feature matrix for this study-locus.
+        """
+        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+
+        return L2GFeatureMatrix.from_features_list(
+            self,
+            features_list,
+            features_input_loader,
         )
 
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:

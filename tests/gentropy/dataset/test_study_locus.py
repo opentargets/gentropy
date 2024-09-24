@@ -18,6 +18,8 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
@@ -28,6 +30,7 @@ from gentropy.dataset.study_locus import (
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 @pytest.mark.parametrize(
@@ -40,6 +43,7 @@ from gentropy.dataset.variant_index import VariantIndex
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "commonTag",
                     "statistics": {
@@ -50,6 +54,7 @@ from gentropy.dataset.variant_index import VariantIndex
                 {
                     "leftStudyLocusId": 1,
                     "rightStudyLocusId": 2,
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "nonCommonTag",
                     "statistics": {
@@ -76,6 +81,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 1,
                         "variantId": "lead1",
                         "studyId": "study1",
+                        "studyType": "gwas",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.9},
                         ],
@@ -85,6 +91,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 2,
                         "variantId": "lead2",
                         "studyId": "study2",
+                        "studyType": "eqtl",
                         "locus": [
                             {"variantId": "commonTag", "posteriorProbability": 0.6},
                             {"variantId": "nonCommonTag", "posteriorProbability": 0.6},
@@ -105,6 +112,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 1,
                         "variantId": "lead1",
                         "studyId": "study1",
+                        "studyType": "gwas",
                         "locus": [
                             {"variantId": "var1", "posteriorProbability": 0.9},
                         ],
@@ -114,6 +122,7 @@ def test_find_overlaps_semantic(
                         "studyLocusId": 2,
                         "variantId": "lead2",
                         "studyId": "study2",
+                        "studyType": "eqtl",
                         "locus": None,
                         "chromosome": "1",
                     },
@@ -123,25 +132,6 @@ def test_find_overlaps_semantic(
             _schema=StudyLocus.get_schema(),
         )
 
-    studies = StudyIndex(
-        _df=spark.createDataFrame(
-            [
-                {
-                    "studyId": "study1",
-                    "studyType": "gwas",
-                    "traitFromSource": "trait1",
-                    "projectId": "project1",
-                },
-                {
-                    "studyId": "study2",
-                    "studyType": "eqtl",
-                    "traitFromSource": "trait2",
-                    "projectId": "project2",
-                },
-            ]
-        ),
-        _schema=StudyIndex.get_schema(),
-    )
     expected_overlaps_df = spark.createDataFrame(
         expected, StudyLocusOverlap.get_schema()
     )
@@ -151,18 +141,14 @@ def test_find_overlaps_semantic(
         "statistics.right_posteriorProbability",
     ]
     assert (
-        credset.find_overlaps(studies).df.select(*cols_to_compare).collect()
+        credset.find_overlaps().df.select(*cols_to_compare).collect()
         == expected_overlaps_df.select(*cols_to_compare).collect()
     ), "Overlaps differ from expected."
 
 
-def test_find_overlaps(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
-) -> None:
+def test_find_overlaps(mock_study_locus: StudyLocus) -> None:
     """Test study locus overlaps."""
-    assert isinstance(
-        mock_study_locus.find_overlaps(mock_study_index), StudyLocusOverlap
-    )
+    assert isinstance(mock_study_locus.find_overlaps(), StudyLocusOverlap)
 
 
 @pytest.mark.parametrize(
@@ -181,39 +167,22 @@ def test_filter_by_study_type(
                     "studyLocusId": 1,
                     "variantId": "lead1",
                     "studyId": "study1",
+                    "studyType": "gwas",
                 },
                 {
                     # from eqtl
                     "studyLocusId": 2,
                     "variantId": "lead2",
                     "studyId": "study2",
+                    "studyType": "eqtl",
                 },
             ],
             StudyLocus.get_schema(),
         ),
         _schema=StudyLocus.get_schema(),
     )
-    studies = StudyIndex(
-        _df=spark.createDataFrame(
-            [
-                {
-                    "studyId": "study1",
-                    "studyType": "gwas",
-                    "traitFromSource": "trait1",
-                    "projectId": "project1",
-                },
-                {
-                    "studyId": "study2",
-                    "studyType": "eqtl",
-                    "traitFromSource": "trait2",
-                    "projectId": "project2",
-                },
-            ]
-        ),
-        _schema=StudyIndex.get_schema(),
-    )
 
-    observed = sl.filter_by_study_type(study_type, studies)
+    observed = sl.filter_by_study_type(study_type)
     assert observed.df.count() == expected_sl_count
 
 
@@ -846,6 +815,24 @@ class TestStudyLocusWindowClumping:
             )
             .count()
         ) == 2
+
+
+def test_build_feature_matrix(
+    mock_study_locus: StudyLocus,
+    mock_colocalisation: Colocalisation,
+    mock_study_index: StudyIndex,
+) -> None:
+    """Test building feature matrix with the eQtlColocH4Maximum feature."""
+    features_list = ["eQtlColocH4Maximum"]
+    loader = L2GFeatureInputLoader(
+        colocalisation=mock_colocalisation,
+        study_index=mock_study_index,
+        study_locus=mock_study_locus,
+    )
+    fm = mock_study_locus.build_feature_matrix(features_list, loader)
+    assert isinstance(
+        fm, L2GFeatureMatrix
+    ), "Feature matrix should be of type L2GFeatureMatrix"
 
 
 class TestStudyLocusRedundancyFlagging:
