@@ -1,0 +1,83 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "biosampleId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "biosampleName",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "xrefs",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "synonyms",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "parents",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "ancestors",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "descendants",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "children",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}
