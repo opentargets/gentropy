@@ -17,6 +17,7 @@ from gentropy.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from gentropy.common.utils import get_logsum
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
@@ -45,7 +46,8 @@ class StudyLocusQualityCheck(Enum):
         PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
         AMBIGUOUS_STUDY (str): Association with ambiguous study
         UNRESOLVED_LD (str): Variant not found in LD reference
-        LD_CLUMPED (str): Explained by a more significant variant in high LD (clumped)
+        LD_CLUMPED (str): Explained by a more significant variant in high LD
+        WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FAILED_STUDY (str): Flagging study loci if the study has failed QC
@@ -55,6 +57,7 @@ class StudyLocusQualityCheck(Enum):
         TOP_HIT (str): Study locus from curated top hit
         IN_MHC (str): Flagging study loci in the MHC region
         REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
+        EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -65,7 +68,8 @@ class StudyLocusQualityCheck(Enum):
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
     AMBIGUOUS_STUDY = "Association with ambiguous study"
     UNRESOLVED_LD = "Variant not found in LD reference"
-    LD_CLUMPED = "Explained by a more significant variant in high LD (clumped)"
+    LD_CLUMPED = "Explained by a more significant variant in high LD"
+    WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
     NOT_QUALIFYING_LD_BLOCK = (
         "LD block does not contain variants at the required R^2 threshold"
@@ -81,6 +85,7 @@ class StudyLocusQualityCheck(Enum):
         "PICS results from summary statistics available for this same study"
     )
     TOP_HIT = "Study locus from curated top hit"
+    EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
 
 
 class CredibleInterval(Enum):
@@ -153,6 +158,24 @@ class StudyLocus(Dataset):
                     ),
                 )
                 .drop("study_studyId", "study_qualityControls")
+            ),
+            _schema=self.get_schema(),
+        )
+
+    def annotate_study_type(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Gets study type from study index and adds it to study locus.
+
+        Args:
+            study_index (StudyIndex): Study index to get study type.
+
+        Returns:
+            StudyLocus: Updated study locus with study type.
+        """
+        return StudyLocus(
+            _df=(
+                self.df.drop("studyType").join(
+                    study_index.study_type_lut(), on="studyId", how="left"
+                )
             ),
             _schema=self.get_schema(),
         )
@@ -394,6 +417,7 @@ class StudyLocus(Dataset):
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("rightStudyLocusId"),
+            f.col("studyType").alias("rightStudyType"),
             *[f.col(col).alias(f"right_{col}") for col in stats_cols],
         ).join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
 
@@ -410,6 +434,7 @@ class StudyLocus(Dataset):
         ).select(
             "leftStudyLocusId",
             "rightStudyLocusId",
+            "rightStudyType",
             "chromosome",
             "tagVariantId",
             f.struct(
@@ -504,14 +529,11 @@ class StudyLocus(Dataset):
         """
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
-    def filter_by_study_type(
-        self: StudyLocus, study_type: str, study_index: StudyIndex
-    ) -> StudyLocus:
+    def filter_by_study_type(self: StudyLocus, study_type: str) -> StudyLocus:
         """Creates a new StudyLocus dataset filtered by study type.
 
         Args:
             study_type (str): Study type to filter for. Can be one of `gwas`, `eqtl`, `pqtl`, `eqtl`.
-            study_index (StudyIndex): Study index to resolve study types.
 
         Returns:
             StudyLocus: Filtered study-locus dataset.
@@ -523,11 +545,7 @@ class StudyLocus(Dataset):
             raise ValueError(
                 f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
             )
-        new_df = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
-            .filter(f.col("studyType") == study_type)
-            .drop("studyType")
-        )
+        new_df = self.df.filter(f.col("studyType") == study_type).drop("studyType")
         return StudyLocus(
             _df=new_df,
             _schema=self._schema,
@@ -537,7 +555,7 @@ class StudyLocus(Dataset):
         self: StudyLocus,
         credible_interval: CredibleInterval,
     ) -> StudyLocus:
-        """Filter study-locus tag variants based on given credible interval.
+        """Annotate and filter study-locus tag variants based on given credible interval.
 
         Args:
             credible_interval (CredibleInterval): Credible interval to filter for.
@@ -546,7 +564,7 @@ class StudyLocus(Dataset):
             StudyLocus: Filtered study-locus dataset.
         """
         return StudyLocus(
-            _df=self._df.withColumn(
+            _df=self.annotate_credible_sets().df.withColumn(
                 "locus",
                 f.filter(
                     f.col("locus"),
@@ -576,7 +594,7 @@ class StudyLocus(Dataset):
         )
 
     def find_overlaps(
-        self: StudyLocus, study_index: StudyIndex, intra_study_overlap: bool = False
+        self: StudyLocus, intra_study_overlap: bool = False
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
@@ -584,14 +602,13 @@ class StudyLocus(Dataset):
         appearing on the right side.
 
         Args:
-            study_index (StudyIndex): Study index to resolve study types.
             intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         loci_to_overlap = (
-            self.df.join(study_index.study_type_lut(), on="studyId", how="inner")
+            self.df.filter(f.col("studyType").isNotNull())
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
@@ -948,6 +965,76 @@ class StudyLocus(Dataset):
             _schema=StudyLocus.get_schema(),
         )
 
+    def qc_explained_by_SuSiE(self: StudyLocus) -> StudyLocus:
+        """Flag associations that are explained by SuSiE associations.
+
+        Credible sets overlapping in the same region as a SuSiE credible set are flagged as explained by SuSiE.
+
+        Returns:
+            StudyLocus: Updated study locus with SuSiE explained flags.
+        """
+        # unique study-regions covered by SuSie credible sets
+        susie_study_regions = (
+            self.filter(f.col("finemappingMethod") == "SuSiE-inf")
+            .df.select(
+                "studyId",
+                "chromosome",
+                "locusStart",
+                "locusEnd",
+                f.lit(True).alias("inSuSiE"),
+            )
+            .distinct()
+        )
+
+        # non SuSiE credible sets (studyLocusId) overlapping in any variant with SuSiE locus
+        redundant_study_locus = (
+            self.filter(f.col("finemappingMethod") != "SuSiE-inf")
+            .df.withColumn("l", f.explode("locus"))
+            .select(
+                "studyLocusId",
+                "studyId",
+                "chromosome",
+                f.split(f.col("l.variantId"), "_")[1].alias("tag_position"),
+            )
+            .alias("study_locus")
+            .join(
+                susie_study_regions.alias("regions"),
+                how="inner",
+                on=[
+                    (f.col("study_locus.chromosome") == f.col("regions.chromosome"))
+                    & (f.col("study_locus.studyId") == f.col("regions.studyId"))
+                    & (f.col("study_locus.tag_position") >= f.col("regions.locusStart"))
+                    & (f.col("study_locus.tag_position") <= f.col("regions.locusEnd"))
+                ],
+            )
+            .select("studyLocusId", "inSuSiE")
+            .distinct()
+        )
+
+        return StudyLocus(
+            _df=(
+                self.df.join(redundant_study_locus, on="studyLocusId", how="left")
+                .withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        f.col("qualityControls"),
+                        # credible set in SuSiE overlapping region
+                        f.col("inSuSiE")
+                        # credible set not based on SuSiE
+                        & (f.col("finemappingMethod") != "SuSiE-inf")
+                        # credible set not already flagged as unresolved LD
+                        & ~f.array_contains(
+                            f.col("qualityControls"),
+                            StudyLocusQualityCheck.UNRESOLVED_LD.value,
+                        ),
+                        StudyLocusQualityCheck.EXPLAINED_BY_SUSIE,
+                    ),
+                )
+                .drop("inSuSiE")
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
     def _qc_no_population(self: StudyLocus) -> StudyLocus:
         """Flag associations where the study doesn't have population information to resolve LD.
 
@@ -1032,3 +1119,19 @@ class StudyLocus(Dataset):
         )
 
         return self
+
+    def window_based_clumping(
+        self: StudyLocus,
+        window_size: int = WindowBasedClumpingStepConfig().distance,
+    ) -> StudyLocus:
+        """Clump study locus by window size.
+
+        Args:
+            window_size (int): Window size for clumping.
+
+        Returns:
+            StudyLocus: Clumped study locus, where clumped associations are flagged.
+        """
+        from gentropy.method.window_based_clumping import WindowBasedClumping
+
+        return WindowBasedClumping.clump(self, window_size)

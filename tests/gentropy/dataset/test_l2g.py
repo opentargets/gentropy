@@ -70,8 +70,8 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
     )
 
     mock_sl_overlap_df = spark.createDataFrame(
-        [(1, 2, "variant2"), (1, 4, "variant4")],
-        "leftStudyLocusId LONG, rightStudyLocusId LONG, tagVariantId STRING",
+        [(1, 2, "eqtl", "variant2"), (1, 4, "eqtl", "variant4")],
+        "leftStudyLocusId LONG, rightStudyLocusId LONG, rightStudyType STRING, tagVariantId STRING",
     )
 
     expected_df = spark.createDataFrame(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 
 
 class StudyLocusValidationStep:
@@ -41,13 +41,14 @@ class StudyLocusValidationStep:
         # Running validation then writing output:
         study_locus_with_qc = (
             StudyLocus.from_parquet(session, list(study_locus_path))
-            # Flagging study locus with subsignificant p-values
-            .validate_lead_pvalue(pvalue_cutoff=gwas_significance)
             # Add flag for MHC region
             .qc_MHC_region()
             .validate_study(study_index)  # Flagging studies not in study index
+            .annotate_study_type(study_index)  # Add study type to study locus
             .qc_redundant_top_hits_from_PICS()  # Flagging top hits from studies with PICS summary statistics
-            .validate_unique_study_locus_id()  # Flagging duplicated study locus ids
+            .qc_explained_by_SuSiE()  # Flagging credible sets in regions explained by SuSiE
+            # Annotates credible intervals and filter to only keep 99% credible sets
+            .filter_credible_set(credible_interval=CredibleInterval.IS99)
         ).persist()  # we will need this for 2 types of outputs
 
         study_locus_with_qc.valid_rows(
