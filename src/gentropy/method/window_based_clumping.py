@@ -154,19 +154,19 @@ class WindowBasedClumping:
 
     @staticmethod
     def clump(
-        unclumped: SummaryStatistics | StudyLocus,
+        unclumped_associations: SummaryStatistics | StudyLocus,
         distance: int = WindowBasedClumpingStepConfig().distance,
     ) -> StudyLocus:
-        """Clump signals from summary statistics or study locus dataset based on window.
+        """Clump single point associations from summary statistics or study locus dataset based on window.
 
         Args:
-            unclumped (SummaryStatistics | StudyLocus): Input dataset to be used for clumping. Assumes that the input dataset is already filtered for significant variants.
+            unclumped_associations (SummaryStatistics | StudyLocus): Input dataset to be used for clumping. Assumes that the input dataset is already filtered for significant variants.
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
 
         Returns:
             StudyLocus: clumped associations, where the clumped variants are flagged.
         """
-        # Quality check expression:
+        # Quality check expression that flags variants that are not considered lead variant:
         qc_check = f.col("semiIndices")[f.col("pvRank") - 1] <= 0
 
         # The quality control expression will depend on the input dataset, as the column might be already present:
@@ -179,7 +179,7 @@ class WindowBasedClumping:
                     f.array(f.lit(StudyLocusQualityCheck.WINDOW_CLUMPED.value)),
                 ),
             ).otherwise(f.col("qualityControls"))
-            if "qualityControls" in unclumped.df.columns
+            if "qualityControls" in unclumped_associations.df.columns
             # If column is not there yet, initialize it with the flag value, or an empty array:
             else f.when(
                 qc_check, f.array(f.lit(StudyLocusQualityCheck.WINDOW_CLUMPED.value))
@@ -195,7 +195,7 @@ class WindowBasedClumping:
 
         return StudyLocus(
             _df=(
-                unclumped.df
+                unclumped_associations.df
                 # Clustering variants for efficient windowing (complexity reduction):
                 .withColumn(
                     "cluster_id",

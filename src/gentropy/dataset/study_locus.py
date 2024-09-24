@@ -17,6 +17,7 @@ from gentropy.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from gentropy.common.utils import get_logsum
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
@@ -170,9 +171,9 @@ class StudyLocus(Dataset):
         """
         return StudyLocus(
             _df=(
-                self.df
-                .drop("studyType")
-                .join(study_index.study_type_lut(), on="studyId", how="left")
+                self.df.drop("studyType").join(
+                    study_index.study_type_lut(), on="studyId", how="left"
+                )
             ),
             _schema=self.get_schema(),
         )
@@ -526,9 +527,7 @@ class StudyLocus(Dataset):
         """
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
-    def filter_by_study_type(
-        self: StudyLocus, study_type: str
-    ) -> StudyLocus:
+    def filter_by_study_type(self: StudyLocus, study_type: str) -> StudyLocus:
         """Creates a new StudyLocus dataset filtered by study type.
 
         Args:
@@ -544,11 +543,7 @@ class StudyLocus(Dataset):
             raise ValueError(
                 f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
             )
-        new_df = (
-            self.df
-            .filter(f.col("studyType") == study_type)
-            .drop("studyType")
-        )
+        new_df = self.df.filter(f.col("studyType") == study_type).drop("studyType")
         return StudyLocus(
             _df=new_df,
             _schema=self._schema,
@@ -611,8 +606,7 @@ class StudyLocus(Dataset):
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
         loci_to_overlap = (
-            self.df
-            .filter(f.col("studyType").isNotNull())
+            self.df.filter(f.col("studyType").isNotNull())
             .withColumn("locus", f.explode("locus"))
             .select(
                 "studyLocusId",
@@ -1056,7 +1050,7 @@ class StudyLocus(Dataset):
 
     def window_based_clumping(
         self: StudyLocus,
-        window_size: int,
+        window_size: int = WindowBasedClumpingStepConfig().distance,
     ) -> StudyLocus:
         """Clump study locus by window size.
 
