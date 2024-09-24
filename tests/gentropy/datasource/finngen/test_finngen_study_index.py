@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pyspark.sql import types as T
@@ -209,12 +209,9 @@ def urlopen_mock(
 
 
 @pytest.mark.step_test
-def test_finngen_study_index_step(
-    monkeypatch: pytest.MonkeyPatch,
-    session: Session,
-    urlopen_mock: Callable[[str], MagicMock],
-    tmp_path: Path,
-) -> None:
+@patch("gentropy.datasource.finngen.study_index.urlopen", side_effect=urlopen_mock)
+@patch("gentropy.finngen_studies.urlopen", side_effect=urlopen_mock)
+def test_finngen_study_index_step(session: Session, tmp_path: Path) -> None:
     """Test step that generates finngen study index.
 
     FIXME: Currently we miss following columns when reading from source.
@@ -233,83 +230,72 @@ def test_finngen_study_index_step(
     'analysisFlags'
     'condition'
     """
-    with monkeypatch.context() as m:
-        m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
-        m.setattr("gentropy.finngen_studies.urlopen", urlopen_mock)
-        output_path = str(tmp_path / "study_index")
-        FinnGenStudiesStep(
-            session=session,
-            finngen_study_index_out=output_path,
-            finngen_phenotype_table_url="https://finngen_phenotypes",
-            finngen_release_prefix="FINNGEN_R11",
-            finngen_summary_stats_url_prefix="gs://finngen_data/sumstats",
-            finngen_summary_stats_url_suffix=".gz",
-            efo_curation_mapping_url="https://efo_mappings",
-            sample_size=5_000_000,
-        )
-        study_index = StudyIndex.from_parquet(session=session, path=output_path)
-        # Expect 2 rows that come from the input table.
-        assert study_index.df.count() == 3
-        # Expect that EFO terms have been joined.
-        assert "traitFromSourceMappedIds" in study_index.df.columns
+    output_path = str(tmp_path / "study_index")
+    FinnGenStudiesStep(
+        session=session,
+        finngen_study_index_out=output_path,
+        finngen_phenotype_table_url="https://finngen_phenotypes",
+        finngen_release_prefix="FINNGEN_R11",
+        finngen_summary_stats_url_prefix="gs://finngen_data/sumstats",
+        finngen_summary_stats_url_suffix=".gz",
+        efo_curation_mapping_url="https://efo_mappings",
+        sample_size=5_000_000,
+    )
+    study_index = StudyIndex.from_parquet(session=session, path=output_path)
+    # fmt: off
+    assert study_index.df.count() == 3, "Expected 3 rows that come from the input table."
+    assert "traitFromSourceMappedIds" in study_index.df.columns, "Expected that EFO terms were joined to the study_index table."
+    # fmt: on
 
 
-def test_finngen_study_index_from_source(
-    monkeypatch: pytest.MonkeyPatch,
-    spark: SparkSession,
-    urlopen_mock: Callable[[str], MagicMock],
-) -> None:
+@patch("gentropy.datasource.finngen.study_index.urlopen", side_effect=urlopen_mock)
+def test_finngen_study_index_from_source(spark: SparkSession) -> None:
     """Test study index from source."""
-    with monkeypatch.context() as m:
-        m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
-        expected_sample_size = 5_000_000
-        expected_project_id = "FINNGEN_R11"
-        study_index = FinnGenStudyIndex.from_source(
-            spark,
-            finngen_phenotype_table_url="https://finngen_phenotypes",
-            finngen_release_prefix=expected_project_id,
-            finngen_summary_stats_url_prefix="gs://finngen-public-data-r11/summary_stats/finngen_R11_",
-            finngen_summary_stats_url_suffix=".gz",
-            sample_size=expected_sample_size,
-        )
-        # Expect that we deal with StudyIndex object.
-        assert isinstance(study_index, StudyIndex)
-        # Expect all columns can be found in the schema of StudyIndex
-        assert set(StudyIndex.get_schema().fieldNames()).issuperset(
-            set(study_index.df.columns)
-        )
-        # Expect two rows at the study_index, as in the input.
-        assert study_index.df.count() == 3
+    expected_sample_size = 5_000_000
+    expected_project_id = "FINNGEN_R11"
+    study_index = FinnGenStudyIndex.from_source(
+        spark,
+        finngen_phenotype_table_url="https://finngen_phenotypes",
+        finngen_release_prefix=expected_project_id,
+        finngen_summary_stats_url_prefix="gs://finngen-public-data-r11/summary_stats/finngen_R11_",
+        finngen_summary_stats_url_suffix=".gz",
+        sample_size=expected_sample_size,
+    )
+    # fmt: off
+    assert isinstance(study_index, StudyIndex), "Expect that we deal with StudyIndex object."
 
-        rows = study_index.df.collect()
-        # Expect that studyIds are populated from input
-        expected_study_ids = ["AB1_ACTINOMYCOSIS", "GLUCOSE", "SOME_OTHER_TRAIT"]
-        assert "studyId" in study_index.df.columns
-        assert sorted([v["studyId"] for v in rows]) == expected_study_ids
-        # Expect project id is correctly populated
-        assert "projectId" in study_index.df.columns
-        assert {v["projectId"] for v in rows} == {expected_project_id}
-        # Expect sumstat locations are correctly propagated
-        expected_sumstat_locations = [
-            "gs://finngen-public-data-r11/summary_stats/finngen_R11_AB1_ACTINOMYCOSIS.gz",
-            "gs://finngen-public-data-r11/summary_stats/finngen_R11_GLUCOSE.gz",
-            "gs://finngen-public-data-r11/summary_stats/finngen_R11_SOME_OTHER_TRAIT.gz",
-        ]
-        assert "summarystatsLocation" in study_index.df.columns
-        sumstat_locations = sorted([v["summarystatsLocation"] for v in rows])
-        assert sumstat_locations == expected_sumstat_locations
-        # Expect fin ld population structure
-        assert "ldPopulationStructure" in study_index.df.columns
-        for row in rows:
-            ld_struct = row["ldPopulationStructure"][0]
-            assert ld_struct["ldPopulation"] == "fin"
-            assert ld_struct["relativeSampleSize"] == pytest.approx(1.0)
-        # Expect that the input sample size and ancestry is inserted as literal column.
-        assert "discoverySamples" in study_index.df.columns
-        for row in rows:
-            ds_struct = row["discoverySamples"][0]
-            assert ds_struct["ancestry"] == "Finnish"
-            assert ds_struct["sampleSize"] == expected_sample_size
+    all_columns = StudyIndex.get_schema().fieldNames()
+    assert set(all_columns).issuperset(set(study_index.df.columns)), "Expect all columns can be found in the schema of StudyIndex."
+    assert study_index.df.count() == 3, "Expect two rows at the study_index, as in the input."
+
+    rows = study_index.df.collect()
+    expected_study_ids = ["AB1_ACTINOMYCOSIS", "GLUCOSE", "SOME_OTHER_TRAIT"]
+    assert "studyId" in study_index.df.columns, "Expect that studyId column exists."
+    assert sorted([v["studyId"] for v in rows]) == expected_study_ids, "Expect that studyIds are populated from input."
+
+    assert "projectId" in study_index.df.columns, "Expect that projectId column exists."
+    assert {v["projectId"] for v in rows} == {expected_project_id}, "Expect projectId column is correctly populated."
+
+    expected_sumstat_locations = [
+        "gs://finngen-public-data-r11/summary_stats/finngen_R11_AB1_ACTINOMYCOSIS.gz",
+        "gs://finngen-public-data-r11/summary_stats/finngen_R11_GLUCOSE.gz",
+        "gs://finngen-public-data-r11/summary_stats/finngen_R11_SOME_OTHER_TRAIT.gz",
+    ]
+    assert "summarystatsLocation" in study_index.df.columns, "Expect that summarystatsLocation column exists."
+    sumstat_locations = sorted([v["summarystatsLocation"] for v in rows])
+    assert sumstat_locations == expected_sumstat_locations, "Expect that summarystatsLocation is populated."
+    assert "ldPopulationStructure" in study_index.df.columns, "Expect that ldPopulationStructure column exists."
+    for row in rows:
+        ld_struct = row["ldPopulationStructure"][0]
+        assert ld_struct["ldPopulation"] == "fin", "Expect fin ld population structure."
+        assert ld_struct["relativeSampleSize"] == pytest.approx(1.0), "Expect relative sample size if fixed to be 1.0."
+
+    assert "discoverySamples" in study_index.df.columns, "Expect that discoverySamples column exists."
+    for row in rows:
+        ds_struct = row["discoverySamples"][0]
+        assert ds_struct["ancestry"] == "Finnish", "Expect Finnish ancestry."
+        assert ds_struct["sampleSize"] == expected_sample_size, "Expect sample size to be fixed."
+    # fmt: on
 
 
 def test_finngen_study_index_add_efos(
@@ -325,13 +311,11 @@ def test_finngen_study_index_add_efos(
         finngen_release_prefix="FINNGEN_R11_",
         efo_curation_mapping=efo_mappings_df_mock,
     )
-    # Expect we have the StudyIndex object after joining EFOs.
-    assert isinstance(study_index, StudyIndex)
-    # Expect that EFO column is present after joining EFOs
-    assert efo_column_name in study_index.df.columns
-    # Expect we do not drop any studies, even if no EFO has been found.
-    assert study_index.df.count() == 3
-    # Expect that the EFOs were correctly assigned.
+    # fmt: off
+    assert isinstance(study_index, StudyIndex), "Expect we have the StudyIndex object after joining EFOs."
+    assert efo_column_name in study_index.df.columns, "Expect that EFO column is present after joining EFOs."
+    assert study_index.df.count() == 3, "Expect we do not drop any studies, even if no EFO has been found."
+    # fmt: on
     efos = {
         row["studyId"]: sorted(row[efo_column_name])
         for row in study_index.df.select(efo_column_name, "studyId").collect()
@@ -341,4 +325,4 @@ def test_finngen_study_index_add_efos(
         "STUDY_2": [],
         "STUDY_3": ["EFO_0002571", "EFO_0004468"],
     }
-    assert expected_efos == efos
+    assert expected_efos == efos, "Expect that EFOs are correctly assigned."
