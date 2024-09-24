@@ -449,9 +449,12 @@ class StudyLocus(Dataset):
             <BLANKLINE>
         """
         if finemapping_col is None:
-            finemapping_col = f.lit(None).cast(StringType())
-        variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
-        return f.xxhash64(study_id_col, variant_id_col, finemapping_col).alias(
+            finemapping_col = f.lit("None")
+        columns = [study_id_col, variant_id_col, finemapping_col]
+        hashable_columns = [f.when(column.cast("string").isNull(), f.lit("None"))
+                                 .otherwise(column.cast("string"))
+                                 for column in columns]
+        return f.md5(f.concat(*hashable_columns)).alias(
             "studyLocusId"
         )
 
