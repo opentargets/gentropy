@@ -4,20 +4,11 @@ from __future__ import annotations
 
 from typing import Any, Iterator, Mapping
 
-from gentropy.dataset.l2g_feature import (
-    DistanceFootprintMeanFeature,
-    DistanceFootprintMeanNeighbourhoodFeature,
-    DistanceFootprintMinimumFeature,
-    DistanceFootprintMinimumNeighbourhoodFeature,
-    DistanceTssMeanFeature,
-    DistanceTssMeanNeighbourhoodFeature,
-    DistanceTssMinimumFeature,
-    DistanceTssMinimumNeighbourhoodFeature,
+from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
     EQtlColocClppMaximumNeighbourhoodFeature,
     EQtlColocH4MaximumFeature,
     EQtlColocH4MaximumNeighbourhoodFeature,
-    L2GFeature,
     PQtlColocClppMaximumFeature,
     PQtlColocClppMaximumNeighbourhoodFeature,
     PQtlColocH4MaximumFeature,
@@ -31,6 +22,17 @@ from gentropy.dataset.l2g_feature import (
     TuQtlColocH4MaximumFeature,
     TuQtlColocH4MaximumNeighbourhoodFeature,
 )
+from gentropy.dataset.l2g_features.distance import (
+    DistanceFootprintMeanFeature,
+    DistanceFootprintMeanNeighbourhoodFeature,
+    DistanceFootprintMinimumFeature,
+    DistanceFootprintMinimumNeighbourhoodFeature,
+    DistanceTssMeanFeature,
+    DistanceTssMeanNeighbourhoodFeature,
+    DistanceTssMinimumFeature,
+    DistanceTssMinimumNeighbourhoodFeature,
+)
+from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 

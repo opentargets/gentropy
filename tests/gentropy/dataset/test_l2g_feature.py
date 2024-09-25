@@ -16,20 +16,11 @@ from pyspark.sql.types import (
 )
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.l2g_feature import (
-    DistanceFootprintMeanFeature,
-    DistanceFootprintMeanNeighbourhoodFeature,
-    DistanceFootprintMinimumFeature,
-    DistanceFootprintMinimumNeighbourhoodFeature,
-    DistanceTssMeanFeature,
-    DistanceTssMeanNeighbourhoodFeature,
-    DistanceTssMinimumFeature,
-    DistanceTssMinimumNeighbourhoodFeature,
+from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
     EQtlColocClppMaximumNeighbourhoodFeature,
     EQtlColocH4MaximumFeature,
     EQtlColocH4MaximumNeighbourhoodFeature,
-    L2GFeature,
     PQtlColocClppMaximumFeature,
     PQtlColocClppMaximumNeighbourhoodFeature,
     PQtlColocH4MaximumFeature,
@@ -43,10 +34,21 @@ from gentropy.dataset.l2g_feature import (
     TuQtlColocH4MaximumFeature,
     TuQtlColocH4MaximumNeighbourhoodFeature,
     _common_colocalisation_feature_logic,
-    _common_distance_feature_logic,
     _common_neighbourhood_colocalisation_feature_logic,
+)
+from gentropy.dataset.l2g_features.distance import (
+    DistanceFootprintMeanFeature,
+    DistanceFootprintMeanNeighbourhoodFeature,
+    DistanceFootprintMinimumFeature,
+    DistanceFootprintMinimumNeighbourhoodFeature,
+    DistanceTssMeanFeature,
+    DistanceTssMeanNeighbourhoodFeature,
+    DistanceTssMinimumFeature,
+    DistanceTssMinimumNeighbourhoodFeature,
+    _common_distance_feature_logic,
     _common_neighbourhood_distance_feature_logic,
 )
+from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
