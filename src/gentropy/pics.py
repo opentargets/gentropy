@@ -29,14 +29,14 @@ class PICSStep:
             session, study_locus_ld_annotated_in
         )
         # PICS
-        picsed_sl = PICS.finemap(study_locus_ld_annotated).filter_credible_set(
-            credible_interval=CredibleInterval.IS99
+        (
+            PICS.finemap(study_locus_ld_annotated)
+            .filter_credible_set(credible_interval=CredibleInterval.IS99)
+            # Flagging sub-significnat loci:
+            .validate_lead_pvalue(
+                pvalue_cutoff=WindowBasedClumpingStepConfig().gwas_significance
+            )
+            # Writing the output:
+            .df.write.mode(session.write_mode)
+            .parquet(picsed_study_locus_out)
         )
-
-        # Validate lead p-value
-        picsed_sl = picsed_sl.validate_lead_pvalue(
-            pvalue_cutoff=WindowBasedClumpingStepConfig().gwas_significance
-        )
-
-        # Write
-        picsed_sl.df.write.mode(session.write_mode).parquet(picsed_study_locus_out)

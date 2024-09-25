@@ -31,17 +31,17 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
         """
         # Read finemapping outputs from the input paths.
 
-        finngen_finemapping_df = FinnGenFinemapping.from_finngen_susie_finemapping(
-            spark=session.spark,
-            finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
-            finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
-        )
-
-        finngen_finemapping_df = finngen_finemapping_df.validate_lead_pvalue(
-            pvalue_cutoff=FinngenFinemappingConfig().finngen_finemapping_lead_pvalue_threshold
-        )
-
-        # Write the output.
-        finngen_finemapping_df.df.write.mode(session.write_mode).parquet(
-            finngen_finemapping_out
+        (
+            FinnGenFinemapping.from_finngen_susie_finemapping(
+                spark=session.spark,
+                finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
+                finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
+            )
+            # Flagging sub-significnat loci:
+            .validate_lead_pvalue(
+                pvalue_cutoff=FinngenFinemappingConfig().finngen_finemapping_lead_pvalue_threshold
+            )
+            # Writing the output:
+            .df.write.mode(session.write_mode)
+            .parquet(finngen_finemapping_out)
         )

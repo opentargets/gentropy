@@ -59,17 +59,21 @@ class EqtlCatalogueStep:
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
             credible_sets_df, lbf_df, studies_metadata
         )
-        credible_sets = EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
-        study_index = EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
 
-        credible_sets = credible_sets.validate_lead_pvalue(
-            pvalue_cutoff=EqtlCatalogueConfig().eqtl_lead_pvalue_threshold
+        (
+            EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
+            # Writing the output:
+            .df.write.mode(session.write_mode)
+            .parquet(eqtl_catalogue_study_index_out)
         )
 
-        # Load
-        study_index.df.write.mode(session.write_mode).parquet(
-            eqtl_catalogue_study_index_out
-        )
-        credible_sets.df.write.mode(session.write_mode).parquet(
-            eqtl_catalogue_credible_sets_out
+        (
+            EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
+            # Flagging sub-significnat loci:
+            .validate_lead_pvalue(
+                pvalue_cutoff=EqtlCatalogueConfig().eqtl_lead_pvalue_threshold
+            )
+            # Writing the output:
+            .df.write.mode(session.write_mode)
+            .parquet(eqtl_catalogue_credible_sets_out)
         )
