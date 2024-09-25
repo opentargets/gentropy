@@ -52,6 +52,16 @@ class GeneIndexConfig(StepConfig):
 
 
 @dataclass
+class BiosampleIndexConfig(StepConfig):
+    """Biosample index step configuration."""
+
+    cell_ontology_input_path: str = MISSING
+    uberon_input_path: str = MISSING
+    biosample_index_path: str = MISSING
+    _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
+
+
+@dataclass
 class GWASCatalogStudyCurationConfig(StepConfig):
     """GWAS Catalog study curation step configuration."""
 
@@ -136,6 +146,7 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
+    sample_size: int = 453733  # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 
@@ -413,6 +424,7 @@ class GWASQCStep(StepConfig):
     gwas_path: str = MISSING
     output_path: str = MISSING
     studyid: str = MISSING
+    pval_threshold: float = MISSING
     _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
 
 
@@ -440,6 +452,7 @@ class StudyValidationStepConfig(StepConfig):
     study_index_path: list[str] = MISSING
     target_index_path: str = MISSING
     disease_index_path: str = MISSING
+    biosample_index_path: str = MISSING
     valid_study_index_path: str = MISSING
     invalid_study_index_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
@@ -458,7 +471,6 @@ class StudyLocusValidationStepConfig(StepConfig):
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
-    gwas_significance: float = WindowBasedClumpingStepConfig.gwas_significance
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
@@ -480,6 +492,7 @@ def register_config() -> None:
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
     cs.store(group="step", name="gene_index", node=GeneIndexConfig)
+    cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
         name="gwas_catalog_study_curation",
