@@ -14,6 +14,7 @@ from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     enforce_schema,
+    get_nested_struct_schema,
     map_column_by_dictionary,
     order_array_of_structs_by_field,
     order_array_of_structs_by_two_fields,
@@ -25,15 +26,19 @@ if TYPE_CHECKING:
 
 
 class VariantEffectPredictorParser:
-    """Collection of methods to parse VEP output in json format."""
+    """Collection of methods to parse VEP output in json format.
 
-    # Schema description of the dbXref object:
+    NOTE: Due to the fact that the comparison of the xrefs is done om the base of rsids
+    if the field `colocalised_variants` have multiple rsids, this extracting xrefs will result in
+    an array of xref structs, rather then the struct itself.
+    """
+
     DBXREF_SCHEMA = VariantIndex.get_schema()["dbXrefs"].dataType
 
     # Schema description of the in silico predictor object:
-    IN_SILICO_PREDICTOR_SCHEMA = VariantIndex.get_schema()[
-        "inSilicoPredictors"
-    ].dataType
+    IN_SILICO_PREDICTOR_SCHEMA = get_nested_struct_schema(
+        VariantIndex.get_schema()["inSilicoPredictors"]
+    )
 
     # Schema for the allele frequency column:
     ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"].dataType
@@ -351,12 +356,12 @@ class VariantEffectPredictorParser:
         ...    .select(VariantEffectPredictorParser._get_max_alpha_missense(f.col('transcripts')).alias('am'))
         ...    .show(truncate=False)
         ... )
-        +------------------------------------------------------+
-        |am                                                    |
-        +------------------------------------------------------+
-        |[{max alpha missense, assessment 1, 0.4, null, gene1}]|
-        |[{max alpha missense, null, null, null, gene1}]       |
-        +------------------------------------------------------+
+        +----------------------------------------------------+
+        |am                                                  |
+        +----------------------------------------------------+
+        |{max alpha missense, assessment 1, 0.4, null, gene1}|
+        |{max alpha missense, null, null, null, gene1}       |
+        +----------------------------------------------------+
         <BLANKLINE>
         """
         return f.transform(

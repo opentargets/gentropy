@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
@@ -118,6 +119,21 @@ class TestVEPParser:
         assert isinstance(
             variant_index, VariantIndex
         ), "VariantIndex object not created."
+        in_silico_schema = t.ArrayType(
+            t.StructType(
+                [
+                    t.StructField("method", t.StringType(), True),
+                    t.StructField("assessment", t.StringType(), True),
+                    t.StructField("score", t.FloatType(), True),
+                    t.StructField("assessmentFlag", t.StringType(), True),
+                    t.StructField("targetId", t.StringType(), True),
+                ]
+            )
+        )
+        assert (
+            variant_index.df.select("inSilicoPredictors").schema.fields[0].dataType
+            == in_silico_schema
+        ), "In silico schema is not correct."
 
     def test_process(self: TestVEPParser) -> None:
         """Test process method."""

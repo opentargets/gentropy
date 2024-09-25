@@ -525,7 +525,7 @@ def get_value_from_row(row: Row, column: str) -> Any:
 
 
 def enforce_schema(
-    expected_schema: t.StructType,
+    expected_schema: t.ArrayType | t.StructType | Column | str,
 ) -> Callable[..., Any]:
     """A function to enforce the schema of a function output follows expectation.
 
@@ -541,7 +541,7 @@ def enforce_schema(
         return ...
 
     Args:
-        expected_schema (t.StructType): The expected schema of the output.
+        expected_schema (t.ArrayType | t.StructType | Column | str): The expected schema of the output.
 
     Returns:
         Callable[..., Any]: A decorator function.
@@ -687,3 +687,34 @@ def get_standard_error_from_confidence_interval(lower: Column, upper: Column) ->
         <BLANKLINE>
     """
     return (upper - lower) / (2 * 1.96)
+
+
+def get_nested_struct_schema(dtype: t.DataType) -> t.StructType:
+    """Get the bottom StructType from a nested ArrayType type.
+
+    Args:
+        dtype (t.DataType): The nested data structure.
+
+    Returns:
+        t.StructType: The nested struct schema.
+
+    Raises:
+        TypeError: If the input data type is not a nested struct.
+
+    Examples:
+        >>> get_nested_struct_schema(t.ArrayType(t.StructType([t.StructField('a', t.StringType())])))
+        StructType([StructField('a', StringType(), True)])
+
+        >>> get_nested_struct_schema(t.ArrayType(t.ArrayType(t.StructType([t.StructField("a", t.StringType())]))))
+        StructType([StructField('a', StringType(), True)])
+    """
+    if isinstance(dtype, t.StructField):
+        dtype = dtype.dataType
+
+    match dtype:
+        case t.StructType(fields=_):
+            return dtype
+        case t.ArrayType(elementType=dtype):
+            return get_nested_struct_schema(dtype)
+        case _:
+            raise TypeError("The input data type must be a nested struct.")
