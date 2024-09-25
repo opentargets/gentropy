@@ -7,7 +7,6 @@ import json
 from collections import defaultdict, namedtuple
 from typing import Any
 
-import pyspark.sql.types as t
 from pyspark.sql.types import ArrayType, StructType
 
 from gentropy.assets import schemas
