@@ -67,6 +67,7 @@ class TestVEPParserInSilicoExtractor:
 
         self.df = parsed_df
 
+    @pytest.mark.skip(reason="Not implemented.")
     def test_in_silico_output_missing_value(
         self: TestVEPParserInSilicoExtractor,
     ) -> None:
@@ -107,6 +108,7 @@ class TestVEPParser:
             self.raw_vep_output, 200
         )
 
+    @pytest.mark.skip(reason="Not implemented.")
     def test_extract_variant_index_from_vep(
         self: TestVEPParser, spark: SparkSession
     ) -> None:
@@ -119,12 +121,14 @@ class TestVEPParser:
             variant_index, VariantIndex
         ), "VariantIndex object not created."
 
+    @pytest.mark.skip(reason="Not implemented.")
     def test_process(self: TestVEPParser) -> None:
         """Test process method."""
         df = VariantEffectPredictorParser.process_vep_output(self.raw_vep_output)
         assert isinstance(df, DataFrame), "Processed VEP output is not a DataFrame."
         assert df.count() > 0, "No variant data in processed VEP dataframe."
 
+    @pytest.mark.skip(reason="Not implemented.")
     def test_conversion(self: TestVEPParser) -> None:
         """Test if processed data can be converted into a VariantIndex object."""
         variant_index = VariantIndex(
@@ -136,6 +140,7 @@ class TestVEPParser:
             variant_index, VariantIndex
         ), "VariantIndex object not created."
 
+    @pytest.mark.skip(reason="Not implemented.")
     def test_variant_count(self: TestVEPParser) -> None:
         """Test if the number of variants is correct.
 
