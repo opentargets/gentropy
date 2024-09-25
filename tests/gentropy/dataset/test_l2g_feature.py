@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import pyspark.sql.functions as f
 import pytest
+from pyspark.sql.types import (
+    ArrayType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature import (
@@ -34,16 +43,17 @@ from gentropy.dataset.l2g_feature import (
     TuQtlColocH4MaximumFeature,
     TuQtlColocH4MaximumNeighbourhoodFeature,
     _common_colocalisation_feature_logic,
+    _common_distance_feature_logic,
     _common_neighbourhood_colocalisation_feature_logic,
+    _common_neighbourhood_distance_feature_logic,
 )
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
-
-    from gentropy.dataset.variant_index import VariantIndex
 
 
 @pytest.mark.parametrize(
@@ -292,90 +302,160 @@ class TestCommonColocalisationFeatureLogic:
         )
 
 
-# class TestColocalisationFactory:
-#     """Test the ColocalisationFactory methods."""
-#     def test_get_max_coloc_per_credible_set_semantic(
-#         self: TestColocalisationFactory,
-#         spark: SparkSession,
-#     ) -> None:
-#         """Test logic of the function that extracts the maximum log likelihood ratio for each pair of overlapping study-locus."""
-#         # Prepare mock datasets based on 2 associations
-#         credset = StudyLocus(
-#             _df=spark.createDataFrame(
-#                 # 2 associations with a common variant in the locus
-#                 [
-#                     {
-#                         "studyLocusId": 1,
-#                         "variantId": "lead1",
-#                         "studyId": "study1",  # this is a GWAS
-#                         "locus": [
-#                             {"variantId": "commonTag", "posteriorProbability": 0.9},
-#                         ],
-#                         "chromosome": "1",
-#                     },
-#                     {
-#                         "studyLocusId": 2,
-#                         "variantId": "lead2",
-#                         "studyId": "study2",  # this is a eQTL study
-#                         "locus": [
-#                             {"variantId": "commonTag", "posteriorProbability": 0.9},
-#                         ],
-#                         "chromosome": "1",
-#                     },
-#                 ],
-#                 StudyLocus.get_schema(),
-#             ),
-#             _schema=StudyLocus.get_schema(),
-#         )
+class TestCommonDistanceFeatureLogic:
+    """Test the CommonDistanceFeatureLogic methods."""
 
-#         studies = StudyIndex(
-#             _df=spark.createDataFrame(
-#                 [
-#                     {
-#                         "studyId": "study1",
-#                         "studyType": "gwas",
-#                         "traitFromSource": "trait1",
-#                         "projectId": "project1",
-#                     },
-#                     {
-#                         "studyId": "study2",
-#                         "studyType": "eqtl",
-#                         "geneId": "gene1",
-#                         "traitFromSource": "trait2",
-#                         "projectId": "project2",
-#                     },
-#                 ]
-#             ),
-#             _schema=StudyIndex.get_schema(),
-#         )
-#         coloc = Colocalisation(
-#             _df=spark.createDataFrame(
-#                 [
-#                     {
-#                         "leftStudyLocusId": 1,
-#                         "rightStudyLocusId": 2,
-#                         "chromosome": "1",
-#                         "colocalisationMethod": "eCAVIAR",
-#                         "numberColocalisingVariants": 1,
-#                         "clpp": 0.81,  # 0.9*0.9
-#                         "log2h4h3": None,
-#                     }
-#                 ],
-#                 schema=Colocalisation.get_schema(),
-#             ),
-#             _schema=Colocalisation.get_schema(),
-#         )
-#         expected_coloc_features_df = spark.createDataFrame(
-#             [
-#                 (1, "gene1", "eqtlColocClppMaximum", 0.81),
-#                 (1, "gene1", "eqtlColocClppMaximumNeighborhood", -4.0),
-#             ],
-#             L2GFeature.get_schema(),
-#         )
-#         # Test
-#         coloc_features = ColocalisationFactory._get_max_coloc_per_credible_set(
-#             coloc,
-#             credset,
-#             studies,
-#         )
-#         assert coloc_features.df.collect() == expected_coloc_features_df.collect()
+    @pytest.mark.parametrize(
+        ("feature_name", "expected_distance"),
+        [
+            ("distanceTssMinimum", 2.5),
+            ("distanceTssMean", 3.75),
+        ],
+    )
+    def test__common_distance_feature_logic(
+        self: TestCommonDistanceFeatureLogic,
+        spark: SparkSession,
+        feature_name: str,
+        expected_distance: int,
+    ) -> None:
+        """Test the logic of the function that extracts the distance between the variants in a credible set and a gene."""
+        agg_expr = (
+            f.min(f.col("weightedDistance"))
+            if feature_name == "distanceTssMinimum"
+            else f.mean(f.col("weightedDistance"))
+        )
+        observed_df = _common_distance_feature_logic(
+            self.sample_study_locus,
+            variant_index=self.sample_variant_index,
+            feature_name=feature_name,
+            distance_type=self.distance_type,
+            agg_expr=agg_expr,
+        )
+        assert observed_df.first()[feature_name] == expected_distance
+
+    def test__common_neighbourhood_colocalisation_feature_logic(
+        self: TestCommonDistanceFeatureLogic,
+        spark: SparkSession,
+    ) -> None:
+        """Test the logic of the function that extracts the distance between the variants in a credible set and the nearby genes."""
+        another_sample_variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        "lead1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {"distanceFromTss": 10, "targetId": "gene1"},
+                            {"distanceFromTss": 100, "targetId": "gene2"},
+                        ],
+                    ),
+                    (
+                        "tag1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {"distanceFromTss": 5, "targetId": "gene1"},
+                        ],
+                    ),
+                ],
+                self.variant_index_schema,
+            ),
+            _schema=VariantIndex.get_schema(),
+        )
+        observed_df = _common_neighbourhood_distance_feature_logic(
+            self.sample_study_locus,
+            variant_index=another_sample_variant_index,
+            feature_name="distanceTssMinimum",
+            distance_type=self.distance_type,
+            agg_expr=f.min("weightedDistance"),
+        ).orderBy(f.col("distanceTssMinimum").asc())
+        expected_df = spark.createDataFrame(
+            ([1, "gene2", -47.5], [1, "gene1", 0.0]),
+            ["studyLocusId", "geneId", "distanceTssMinimum"],
+        ).orderBy(f.col("distanceTssMinimum").asc())
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), "Output doesn't meet the expectation."
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestCommonDistanceFeatureLogic, spark: SparkSession) -> None:
+        """Set up testing fixtures."""
+        self.distance_type = "distanceFromTss"
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": 1,
+                        "variantId": "lead1",
+                        "studyId": "study1",
+                        "locus": [
+                            {
+                                "variantId": "lead1",
+                                "posteriorProbability": 0.5,
+                            },
+                            {
+                                "variantId": "tag1",  # this variant is closer to gene1
+                                "posteriorProbability": 0.5,
+                            },
+                        ],
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.variant_index_schema = StructType(
+            [
+                StructField("variantId", StringType(), True),
+                StructField("chromosome", StringType(), True),
+                StructField("position", IntegerType(), True),
+                StructField("referenceAllele", StringType(), True),
+                StructField("alternateAllele", StringType(), True),
+                StructField(
+                    "transcriptConsequences",
+                    ArrayType(
+                        StructType(
+                            [
+                                StructField("distanceFromTss", LongType(), True),
+                                StructField("targetId", StringType(), True),
+                            ]
+                        )
+                    ),
+                    True,
+                ),
+            ]
+        )
+        self.sample_variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        "lead1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {"distanceFromTss": 10, "targetId": "gene1"},
+                        ],
+                    ),
+                    (
+                        "tag1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {"distanceFromTss": 5, "targetId": "gene1"},
+                        ],
+                    ),
+                ],
+                self.variant_index_schema,
+            ),
+            _schema=VariantIndex.get_schema(),
+        )
