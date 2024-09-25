@@ -12,6 +12,8 @@ import pyspark.sql.functions as f
 import pytest
 from pyspark.sql.types import StructType
 
+from gentropy.common.schemas import SchemaValidationError
+
 if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
 
@@ -90,7 +92,7 @@ class TestValidateSchema:
         mock_dataset_instance: V2G | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if the observed schema has an extra field."""
-        with pytest.raises(ValueError, match="extraField"):
+        with pytest.raises(SchemaValidationError, match="extraField"):
             mock_dataset_instance.df = mock_dataset_instance.df.withColumn(
                 "extraField", f.lit("extra")
             )
@@ -103,7 +105,7 @@ class TestValidateSchema:
         mock_dataset_instance: V2G | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if the observed schema is missing a required field, geneId in this case."""
-        with pytest.raises(ValueError, match="geneId"):
+        with pytest.raises(SchemaValidationError, match="geneId"):
             mock_dataset_instance.df = mock_dataset_instance.df.drop("geneId")
 
     @pytest.mark.parametrize(
@@ -114,7 +116,7 @@ class TestValidateSchema:
         mock_dataset_instance: V2G | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if the observed schema has a duplicated field, geneId in this case."""
-        with pytest.raises(ValueError, match="geneId"):
+        with pytest.raises(SchemaValidationError, match="geneId"):
             mock_dataset_instance.df = mock_dataset_instance.df.select(
                 "*", f.lit("A").alias("geneId")
             )
@@ -127,7 +129,7 @@ class TestValidateSchema:
         mock_dataset_instance: V2G | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if any field in the observed schema has a different type than expected."""
-        with pytest.raises(ValueError, match="geneId"):
+        with pytest.raises(SchemaValidationError, match="geneId"):
             mock_dataset_instance.df = mock_dataset_instance.df.withColumn(
                 "geneId", f.lit(1)
             )
