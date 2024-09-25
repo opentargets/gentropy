@@ -453,10 +453,20 @@ class FinemapperConfig(StepConfig):
 class GWASQCStep(StepConfig):
     """GWAS QC step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
     gwas_path: str = MISSING
     output_path: str = MISSING
     studyid: str = MISSING
     pval_threshold: float = MISSING
+    threshold_mean_beta: float = 0.05
+    threshold_mean_diff_pz: float = 0.05
+    threshold_se_diff_pz: float = 0.05
+    threshold_gc_lambda: float = 2
+    threshold_min_n_variants_for_susie: int = 2_000_000
     _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,6 +25,7 @@ from gentropy.common.spark_helpers import (
     neglog_pvalue_to_mantissa_and_exponent,
     order_array_of_structs_by_field,
 )
+from gentropy.config import GWASQCStep
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
@@ -60,6 +61,7 @@ class SusieFineMapperStep:
         carma_tau: float = 0.15,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
+        qc_report_path: Optional[str] = None,
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -82,6 +84,7 @@ class SusieFineMapperStep:
             carma_tau (float): CARMA tau, shrinkage parameter
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
+            qc_report_path (Optional[str]): path to the QC report, default is None
         """
         # Read locus manifest.
         study_locus_manifest = pd.read_csv(study_locus_manifest_path)
@@ -101,27 +104,70 @@ class SusieFineMapperStep:
             .collect()[0]
         )
         study_index = StudyIndex.from_parquet(session, study_index_path)
-        # Run fine-mapping
 
-        result_logging = self.susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
-            session=session,
-            study_locus_row=study_locus,
-            study_index=study_index,
-            max_causal_snps=max_causal_snps,
-            primary_signal_pval_threshold=primary_signal_pval_threshold,
-            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
-            purity_mean_r2_threshold=purity_mean_r2_threshold,
-            purity_min_r2_threshold=purity_min_r2_threshold,
-            cs_lbf_thr=cs_lbf_thr,
-            sum_pips=sum_pips,
-            susie_est_tausq=susie_est_tausq,
-            run_carma=run_carma,
-            run_sumstat_imputation=run_sumstat_imputation,
-            carma_tau=carma_tau,
-            carma_time_limit=carma_time_limit,
-            imputed_r2_threshold=imputed_r2_threshold,
-            ld_score_threshold=ld_score_threshold,
-        )
+        # Major ancestry
+
+        pd.DataFrame.iteritems = pd.DataFrame.items
+        studyId = study_locus["studyId"]
+        study_index_df = study_index._df
+        study_index_df = study_index_df.filter(f.col("studyId") == studyId)
+        major_population = study_index_df.select(
+            "studyId",
+            order_array_of_structs_by_field(
+                "ldPopulationStructure", "relativeSampleSize"
+            )[0]["ldPopulation"].alias("majorPopulation"),
+        ).collect()[0]["majorPopulation"]
+        if major_population in ["nfe", "csa", "afr"]:
+            condition_1 = True
+        else:
+            condition_1 = False
+
+        # Read QC report
+        if qc_report_path is not None:
+            qc_report = pd.read_parquet(qc_report_path)
+            qc_report = qc_report.loc[qc_report["studyId"] == studyId]
+
+            if (
+                qc_report.loc[qc_report["studyId"] == studyId, "gc_lambda"]
+                <= GWASQCStep().threshold_gc_lambda
+                and abs(qc_report.loc[qc_report["studyId"] == studyId, "mean_beta"])
+                <= GWASQCStep().threshold_mean_beta
+                and abs(qc_report.loc[qc_report["studyId"] == studyId, "mean_diff_pz"])
+                <= GWASQCStep().threshold_mean_diff_pz
+                and abs(qc_report.loc[qc_report["studyId"] == studyId, "se_diff_pz"])
+                <= GWASQCStep().threshold_se_diff_pz
+                and qc_report.loc[qc_report["studyId"] == studyId, "n_variants"]
+                >= GWASQCStep().threshold_min_n_variants_for_susie
+            ):
+                condition_2 = True
+            else:
+                condition_2 = False
+        else:
+            condition_2 = True
+
+        if condition_1 and condition_2:
+            # Run fine-mapping
+            result_logging = self.susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
+                session=session,
+                study_locus_row=study_locus,
+                study_index=study_index,
+                max_causal_snps=max_causal_snps,
+                primary_signal_pval_threshold=primary_signal_pval_threshold,
+                secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+                purity_mean_r2_threshold=purity_mean_r2_threshold,
+                purity_min_r2_threshold=purity_min_r2_threshold,
+                cs_lbf_thr=cs_lbf_thr,
+                sum_pips=sum_pips,
+                susie_est_tausq=susie_est_tausq,
+                run_carma=run_carma,
+                run_sumstat_imputation=run_sumstat_imputation,
+                carma_tau=carma_tau,
+                carma_time_limit=carma_time_limit,
+                imputed_r2_threshold=imputed_r2_threshold,
+                ld_score_threshold=ld_score_threshold,
+            )
+        else:
+            result_logging = None
 
         if result_logging is not None:
             # Write result
@@ -702,12 +748,7 @@ class SusieFineMapperStep:
             if gwas_index.rdd.isEmpty():
                 logging.warning("No overlapping variants in the LD Index")
                 return None
-            # Check if gwas_index has less than 100 variants
-            if gwas_index.count() < 100:
-                logging.warning(
-                    "Less than 100 variants after joining GWAS and LD index"
-                )
-                return None
+
             gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
                 gwas_index, gnomad_ancestry=major_population
             )
@@ -793,6 +834,14 @@ class SusieFineMapperStep:
             upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
         )
         np.fill_diagonal(gnomad_ld, 1)
+
+        # Check if gwas_index is too small or too big
+        if gwas_index.count() < 100:
+            logging.warning("Less than 100 variants after joining GWAS and LD index")
+            return None
+        elif gwas_index.count() >= 15_000:
+            logging.warning("More than 15000 variants after joining GWAS and LD index")
+            return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,
