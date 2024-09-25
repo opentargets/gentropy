@@ -76,8 +76,7 @@ class VariantEffectPredictorParser:
             VariantIndex: Variant index dataset.
 
         Raises:
-            ValueError: Failed reading file.
-            ValueError: The dataset is empty.
+            ValueError: Failed reading file or if the dataset is empty.
         """
         # To speed things up and simplify the json structure, read data following an expected schema:
         vep_schema = cls.get_schema()
