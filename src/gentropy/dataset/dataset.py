@@ -211,8 +211,7 @@ class Dataset(ABC):
             Self: filtered dataset.
 
         Raises:
-            ValueError: If the Dataset does not contain a QC column.
-            ValueError: If the invalid_flags elements do not exist in QC mappings flags.
+            ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
         """
         # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
         invalid_reasons = []

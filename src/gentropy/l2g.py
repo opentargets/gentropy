@@ -201,8 +201,7 @@ class LocusToGeneStep:
             L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
 
         Raises:
-            ValueError: If write_feature_matrix is set to True but a path is not provided.
-            ValueError: If dependencies to build features are not set.
+            ValueError: If write_feature_matrix is set to True but a path is not provided or if dependencies to build features are not set.
         """
         if self.gs_curation and self.interactions and self.v2g:
             study_locus_overlap = StudyLocus(
