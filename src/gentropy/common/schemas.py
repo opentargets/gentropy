@@ -159,11 +159,21 @@ def compare_struct_schemas(
 
     The comparison is done recursively, so nested structs are also compared.
 
+    Checking logic:
+    1. Checking for duplicated columns in the observed schema.
+    2. Checking for missing mandatory columns in the observed schema.
+    3. Now we know that all mandatory columns are present, we can iterate over the observed schema and compare the types.
+    4. Flagging unexpected columns in the observed schema.
+    5. Flagging columns with non-matching types.
+    6. If a column is a struct -> call compare_struct_schemas
+    7. If a column is an array -> call compare_array_schemas
+    8. Return dictionary with issues.
+
     Args:
         observed_schema (StructType): The observed schema.
         expected_schema (StructType): The expected schema.
-        parent_field_name (str, optional): The parent field name. Defaults to None.
-        schema_issues (defaultdict[str, list[str]], optional): The schema issues. Defaults to None.
+        parent_field_name (str | None): The parent field name. Defaults to None.
+        schema_issues (defaultdict[str, list[str]] | None): The schema issues. Defaults to None.
 
     Returns:
         defaultdict[str, list[str]]: The schema issues.
