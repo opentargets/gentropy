@@ -33,8 +33,8 @@ from gentropy.dataset.l2g_features.colocalisation import (
     TuQtlColocClppMaximumNeighbourhoodFeature,
     TuQtlColocH4MaximumFeature,
     TuQtlColocH4MaximumNeighbourhoodFeature,
-    _common_colocalisation_feature_logic,
-    _common_neighbourhood_colocalisation_feature_logic,
+    common_colocalisation_feature_logic,
+    common_neighbourhood_colocalisation_feature_logic,
 )
 from gentropy.dataset.l2g_features.distance import (
     DistanceFootprintMeanFeature,
@@ -45,8 +45,8 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceTssMeanNeighbourhoodFeature,
     DistanceTssMinimumFeature,
     DistanceTssMinimumNeighbourhoodFeature,
-    _common_distance_feature_logic,
-    _common_neighbourhood_distance_feature_logic,
+    common_distance_feature_logic,
+    common_neighbourhood_distance_feature_logic,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.study_index import StudyIndex
@@ -123,7 +123,7 @@ class TestCommonColocalisationFeatureLogic:
         The H4 value of number 2 is higher, therefore the feature value should be based on that.
         """
         feature_name = "eQtlColocH4Maximum"
-        observed_df = _common_colocalisation_feature_logic(
+        observed_df = common_colocalisation_feature_logic(
             self.sample_study_loci_to_annotate,
             self.colocalisation_method,
             self.colocalisation_metric,
@@ -156,7 +156,7 @@ class TestCommonColocalisationFeatureLogic:
     ) -> None:
         """Test the common logic of the neighbourhood colocalisation features."""
         feature_name = "eQtlColocH4MaximumNeighbourhood"
-        observed_df = _common_neighbourhood_colocalisation_feature_logic(
+        observed_df = common_neighbourhood_colocalisation_feature_logic(
             self.sample_study_loci_to_annotate,
             self.colocalisation_method,
             self.colocalisation_metric,
@@ -314,7 +314,7 @@ class TestCommonDistanceFeatureLogic:
             ("distanceTssMean", 3.75),
         ],
     )
-    def test__common_distance_feature_logic(
+    def test_common_distance_feature_logic(
         self: TestCommonDistanceFeatureLogic,
         spark: SparkSession,
         feature_name: str,
@@ -326,7 +326,7 @@ class TestCommonDistanceFeatureLogic:
             if feature_name == "distanceTssMinimum"
             else f.mean(f.col("weightedDistance"))
         )
-        observed_df = _common_distance_feature_logic(
+        observed_df = common_distance_feature_logic(
             self.sample_study_locus,
             variant_index=self.sample_variant_index,
             feature_name=feature_name,
@@ -335,7 +335,7 @@ class TestCommonDistanceFeatureLogic:
         )
         assert observed_df.first()[feature_name] == expected_distance
 
-    def test__common_neighbourhood_colocalisation_feature_logic(
+    def test_common_neighbourhood_colocalisation_feature_logic(
         self: TestCommonDistanceFeatureLogic,
         spark: SparkSession,
     ) -> None:
@@ -369,7 +369,7 @@ class TestCommonDistanceFeatureLogic:
             ),
             _schema=VariantIndex.get_schema(),
         )
-        observed_df = _common_neighbourhood_distance_feature_logic(
+        observed_df = common_neighbourhood_distance_feature_logic(
             self.sample_study_locus,
             variant_index=another_sample_variant_index,
             feature_name="distanceTssMinimum",

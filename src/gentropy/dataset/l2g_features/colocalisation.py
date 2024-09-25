@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-def _common_colocalisation_feature_logic(
+def common_colocalisation_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     colocalisation_method: str,
     colocalisation_metric: str,
@@ -68,7 +68,7 @@ def _common_colocalisation_feature_logic(
     )
 
 
-def _common_neighbourhood_colocalisation_feature_logic(
+def common_neighbourhood_colocalisation_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     colocalisation_method: str,
     colocalisation_metric: str,
@@ -96,7 +96,7 @@ def _common_neighbourhood_colocalisation_feature_logic(
     """
     # First maximum colocalisation score for each studylocus, gene
     local_feature_name = feature_name.replace("Neighbourhood", "")
-    local_max = _common_colocalisation_feature_logic(
+    local_max = common_colocalisation_feature_logic(
         study_loci_to_annotate,
         colocalisation_method,
         colocalisation_metric,
@@ -144,7 +144,7 @@ class EQtlColocClppMaximumFeature(L2GFeature):
 
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -187,7 +187,7 @@ class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
 
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_colocalisation_feature_logic(
+                common_neighbourhood_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -229,7 +229,7 @@ class PQtlColocClppMaximumFeature(L2GFeature):
         qtl_type = "pqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -271,7 +271,7 @@ class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         qtl_type = "pqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_colocalisation_feature_logic(
+                common_neighbourhood_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -313,7 +313,7 @@ class SQtlColocClppMaximumFeature(L2GFeature):
         qtl_type = "sqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -355,7 +355,7 @@ class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         qtl_type = "sqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_colocalisation_feature_logic(
+                common_neighbourhood_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -397,7 +397,7 @@ class TuQtlColocClppMaximumFeature(L2GFeature):
         qtl_type = "tuqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -439,7 +439,7 @@ class TuQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         qtl_type = "tuqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_colocalisation_feature_logic(
+                common_neighbourhood_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -481,7 +481,7 @@ class EQtlColocH4MaximumFeature(L2GFeature):
         qtl_type = "eqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -523,7 +523,7 @@ class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         qtl_type = "eqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_colocalisation_feature_logic(
+                common_neighbourhood_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -565,7 +565,7 @@ class PQtlColocH4MaximumFeature(L2GFeature):
         qtl_type = "pqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -607,7 +607,7 @@ class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         qtl_type = "pqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_colocalisation_feature_logic(
+                common_neighbourhood_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -649,7 +649,7 @@ class SQtlColocH4MaximumFeature(L2GFeature):
         qtl_type = "sqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -691,7 +691,7 @@ class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         qtl_type = "sqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_colocalisation_feature_logic(
+                common_neighbourhood_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -733,7 +733,7 @@ class TuQtlColocH4MaximumFeature(L2GFeature):
         qtl_type = "tuqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
@@ -775,7 +775,7 @@ class TuQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         qtl_type = "tuqtl"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_colocalisation_feature_logic(
+                common_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,
