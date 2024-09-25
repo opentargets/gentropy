@@ -18,7 +18,7 @@ class SchemaValidationError(Exception):
 
     def __init__(
         self: SchemaValidationError, message: str, errors: defaultdict[str, list[str]]
-    ):
+    ) -> None:
         """Initialize the SchemaValidationError.
 
         Args:
@@ -30,7 +30,11 @@ class SchemaValidationError(Exception):
         self.errors = errors
 
     def __str__(self: SchemaValidationError) -> str:
-        """Return a string representation of the exception."""
+        """Return a string representation of the exception.
+
+        Returns:
+            str: The string representation of the exception.
+        """
         stringified_errors = "\n  ".join(
             [f'{k}: {",".join(v)}' for k, v in self.errors.items()]
         )
@@ -44,7 +48,7 @@ def parse_spark_schema(schema_json: str) -> StructType:
         schema_json (str): JSON filename containing spark schema in the schemas package
 
     Returns:
-        t.StructType: Spark schema
+        StructType: Spark schema
     """
     core_schema = json.loads(
         pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
@@ -56,7 +60,7 @@ def flatten_schema(schema: StructType, prefix: str = "") -> list[Any]:
     """It takes a Spark schema and returns a list of all fields in the schema once flattened.
 
     Args:
-        schema (t.StructType): The schema of the dataframe
+        schema (StructType): The schema of the dataframe
         prefix (str): The prefix to prepend to the field names. Defaults to "".
 
     Returns:
@@ -103,8 +107,8 @@ def compare_array_schemas(
     Args:
         observed_schema (ArrayType): The observed schema.
         expected_schema (ArrayType): The expected schema.
-        parent_field_name (str, optional): The parent field name. Defaults to None.
-        schema_issues (defaultdict[str, list[str]], optional): The schema issues. Defaults to None.
+        parent_field_name (str | None): The parent field name. Defaults to None.
+        schema_issues (defaultdict[str, list[str]] | None): The schema issues. Defaults to None.
 
     Returns:
         defaultdict[str, list[str]]: The schema issues.
