@@ -146,6 +146,7 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
+    sample_size: int = 453733  # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 

@@ -21,6 +21,7 @@ class FinnGenStudiesStep:
         finngen_summary_stats_url_prefix: str = FinngenStudiesConfig().finngen_summary_stats_url_prefix,
         finngen_summary_stats_url_suffix: str = FinngenStudiesConfig().finngen_summary_stats_url_suffix,
         efo_curation_mapping_url: str = FinngenStudiesConfig().efo_curation_mapping_url,
+        sample_size: int = FinngenStudiesConfig().sample_size,
     ) -> None:
         """Run FinnGen study index generation step.
 
@@ -32,6 +33,7 @@ class FinnGenStudiesStep:
             finngen_summary_stats_url_prefix (str): FinnGen summary stats URL prefix.
             finngen_summary_stats_url_suffix (str): FinnGen summary stats URL suffix.
             efo_curation_mapping_url (str): URL to the EFO curation mapping file
+            sample_size (int): Number of individuals that participated in sample collection, derived from finngen release metadata.
         """
         study_index = FinnGenStudyIndex.from_source(
             session.spark,
@@ -39,12 +41,14 @@ class FinnGenStudiesStep:
             finngen_release_prefix,
             finngen_summary_stats_url_prefix,
             finngen_summary_stats_url_suffix,
+            sample_size,
         )
 
         # NOTE: hack to allow spark to read directly from the URL.
         csv_data = urlopen(efo_curation_mapping_url).readlines()
         csv_rows = [row.decode("utf8") for row in csv_data]
         rdd = session.spark.sparkContext.parallelize(csv_rows)
+        # NOTE: type annotations for spark.read.csv miss the fact that the first param can be [RDD[str]]
         efo_curation_mapping = session.spark.read.csv(rdd, header=True, sep="\t")
 
         study_index_with_efo = FinnGenStudyIndex.join_efo_mapping(
