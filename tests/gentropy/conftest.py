@@ -13,6 +13,7 @@ from pyspark.sql import DataFrame, SparkSession
 
 from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
+from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.intervals import Intervals
@@ -560,6 +561,35 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
 
 
 @pytest.fixture()
+def mock_biosample_index(spark: SparkSession) -> BiosampleIndex:
+    """Mock biosample index dataset."""
+    bi_schema = BiosampleIndex.get_schema()
+
+    # Makes arrays of varying length with random integers between 1 and 100
+    array_expression = "transform(sequence(1, 1 + floor(rand() * 9)), x -> cast((rand() * 100) as int))"
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(bi_schema)
+        .withColumnSpec("biosampleName", percentNulls=0.1)
+        .withColumnSpec("description", percentNulls=0.1)
+        .withColumnSpec("xrefs", expr=array_expression, percentNulls=0.1)
+        .withColumnSpec("synonyms", expr=array_expression, percentNulls=0.1)
+        .withColumnSpec("parents", expr=array_expression, percentNulls=0.1)
+        .withColumnSpec("ancestors", expr=array_expression, percentNulls=0.1)
+        .withColumnSpec("descendants", expr=array_expression, percentNulls=0.1)
+        .withColumnSpec("children", expr=array_expression, percentNulls=0.1)
+    )
+
+    return BiosampleIndex(_df=data_spec.build(), _schema=bi_schema)
+
+
+@pytest.fixture()
 def liftover_chain_37_to_38(spark: SparkSession) -> LiftOverSpark:
     """Sample liftover chain file."""
     return LiftOverSpark("tests/gentropy/data_samples/grch37_to_grch38.over.chain")
@@ -584,36 +614,16 @@ def sample_otp_interactions(spark: SparkSession) -> DataFrame:
 @pytest.fixture()
 def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     """Mock l2g feature matrix dataset."""
-    schema = L2GFeatureMatrix.get_schema()
-
-    data_spec = (
-        dg.DataGenerator(
-            spark,
-            rows=50,
-            partitions=4,
-            randomSeedMethod="hash_fieldname",
-        )
-        .withSchema(schema)
-        .withColumnSpec("distanceTssMean", percentNulls=0.1)
-        .withColumnSpec("distanceTssMinimum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrMaximum", percentNulls=0.1)
-        .withColumnSpec("eqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrMaximum", percentNulls=0.1)
-        .withColumnSpec("pqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocClppMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrMaximum", percentNulls=0.1)
-        .withColumnSpec("sqtlColocLlrMaximumNeighborhood", percentNulls=0.1)
-        .withColumnSpec(
-            "goldStandardSet", percentNulls=0.0, values=["positive", "negative"]
-        )
+    return L2GFeatureMatrix(
+        _df=spark.createDataFrame(
+            [
+                (1, "gene1", 100.0, None),
+                (2, "gene2", 1000.0, 0.0),
+            ],
+            "studyLocusId LONG, geneId STRING, distanceTssMean FLOAT, distanceTssMinimum FLOAT",
+        ),
+        with_gold_standard=False,
     )
-
-    return L2GFeatureMatrix(_df=data_spec.build(), _schema=schema)
 
 
 @pytest.fixture()

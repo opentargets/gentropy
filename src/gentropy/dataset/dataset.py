@@ -73,8 +73,11 @@ class Dataset(ABC):
 
         Returns:
             StructType: Schema for the Dataset
+
+        Raises:
+                NotImplementedError: Must be implemented in the child classes
         """
-        pass
+        raise NotImplementedError("Must be implemented in the child classes")
 
     @classmethod
     def get_QC_column_name(cls: type[Self]) -> str | None:
@@ -208,8 +211,7 @@ class Dataset(ABC):
             Self: filtered dataset.
 
         Raises:
-            ValueError: If the Dataset does not contain a QC column.
-            ValueError: If the invalid_flags elements do not exist in QC mappings flags.
+            ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
         """
         # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
         invalid_reasons = []
