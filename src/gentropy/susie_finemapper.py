@@ -86,6 +86,9 @@ class SusieFineMapperStep:
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
             qc_report_path (Optional[str]): path to the QC report, default is None
         """
+        # PLEASE DO NOT REMOVE THIS LINE
+        pd.DataFrame.iteritems = pd.DataFrame.items
+
         # Read locus manifest.
         study_locus_manifest = pd.read_csv(study_locus_manifest_path)
         row = study_locus_manifest.loc[study_locus_index]
@@ -106,8 +109,6 @@ class SusieFineMapperStep:
         study_index = StudyIndex.from_parquet(session, study_index_path)
 
         # Major ancestry
-
-        pd.DataFrame.iteritems = pd.DataFrame.items
         studyId = study_locus["studyId"]
         study_index_df = study_index._df
         study_index_df = study_index_df.filter(f.col("studyId") == studyId)
