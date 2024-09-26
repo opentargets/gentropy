@@ -352,3 +352,18 @@ class Dataset(ABC):
             )
             > 1
         )
+
+    @staticmethod
+    def generate_identifier(uniqueness_defining_columns: list[str]) -> Column:
+        """Hashes the provided columns to generate a unique identifier.
+
+        Args:
+            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
+
+        Returns:
+            Column: column with a unique identifier
+        """
+        hashable_columns = [f.when(f.col(column).cast("string").isNull(), f.lit("None"))
+                                 .otherwise(f.col(column).cast("string"))
+                                 for column in uniqueness_defining_columns]
+        return f.md5(f.concat(*hashable_columns))

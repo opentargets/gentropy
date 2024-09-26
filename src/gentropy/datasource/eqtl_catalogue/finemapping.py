@@ -260,7 +260,7 @@ class EqtlCatalogueFinemapping:
                 .select(
                     *study_locus_cols,
                     StudyLocus.assign_study_locus_id(
-                        f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
+                        ["studyId", "variantId", "finemappingMethod"]
                     ),
                     StudyLocus.calculate_credible_set_log10bf(
                         f.col("locus.logBF")

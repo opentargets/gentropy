@@ -447,24 +447,18 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def assign_study_locus_id(
-        study_id_col: Column,
-        variant_id_col: Column,
-        finemapping_col: Column = None,
-    ) -> Column:
-        """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
+    def assign_study_locus_id(uniqueness_defining_columns: list[str]) -> Column:
+        """Hashes the provided columns to extract a consistent studyLocusId.
 
         Args:
-            study_id_col (Column): column name with a study ID
-            variant_id_col (Column): column name with a variant ID
-            finemapping_col (Column, optional): column with fine mapping methodology
+            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
 
         Returns:
             Column: column with a study locus ID
 
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"), f.col("finemappingMethod"))).show(truncate=False)
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(["studyId", "variantId", "finemappingMethod"])).show(truncate=False)
             +----------+----------+-----------------+--------------------------------+
             |studyId   |variantId |finemappingMethod|study_locus_id                  |
             +----------+----------+-----------------+--------------------------------+
@@ -473,15 +467,8 @@ class StudyLocus(Dataset):
             +----------+----------+-----------------+--------------------------------+
             <BLANKLINE>
         """
-        if finemapping_col is None:
-            finemapping_col = f.lit("None")
-        columns = [study_id_col, variant_id_col, finemapping_col]
-        hashable_columns = [f.when(column.cast("string").isNull(), f.lit("None"))
-                                 .otherwise(column.cast("string"))
-                                 for column in columns]
-        return f.md5(f.concat(*hashable_columns)).alias(
-            "studyLocusId"
-        )
+        return Dataset.generate_identifier(uniqueness_defining_columns).alias("studyLocusId")
+
 
     @classmethod
     def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:
