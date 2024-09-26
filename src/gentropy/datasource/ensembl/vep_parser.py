@@ -26,12 +26,10 @@ if TYPE_CHECKING:
 
 
 class VariantEffectPredictorParser:
-    """Collection of methods to parse VEP output in json format.
-
-    NOTE: Due to the fact that the comparison of the xrefs is done om the base of rsids
-    if the field `colocalised_variants` have multiple rsids, this extracting xrefs will result in
-    an array of xref structs, rather then the struct itself.
-    """
+    """Collection of methods to parse VEP output in json format."""
+    # NOTE: Due to the fact that the comparison of the xrefs is done om the base of rsids
+    # if the field `colocalised_variants` have multiple rsids, this extracting xrefs will result in
+    # an array of xref structs, rather then the struct itself.
 
     DBXREF_SCHEMA = VariantIndex.get_schema()["dbXrefs"].dataType
 
