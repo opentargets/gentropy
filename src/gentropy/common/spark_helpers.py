@@ -382,6 +382,8 @@ def order_array_of_structs_by_two_fields(
     """Sort array of structs by a field in descending order and by an other field in an ascending order.
 
     This function doesn't deal with null values, assumes the sort columns are not nullable.
+    The sorting function compares the descending_column first, in case when two values from descending_column are equal
+    it compares the ascending_column. When values in both columns are equal, the rows order is preserved.
 
     Args:
         array_name (str): Column name with array of structs
@@ -406,6 +408,20 @@ def order_array_of_structs_by_two_fields(
     |[{1.0, 45, First}, {1.0, 125, Second}, {0.5, 232, Third}, {0.5, 233, Fourth}]|
     +-----------------------------------------------------------------------------+
     <BLANKLINE>
+    >>> data = [(1.0, 45, 'First'), (1.0, 45, 'Second'), (0.5, 233, 'Fourth'), (1.0, 125, 'Third'),]
+    >>> (
+    ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
+    ...    .groupBy(f.lit('c'))
+    ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
+    ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
+    ...    .show(truncate=False)
+    ... )
+    +----------------------------------------------------------------------------+
+    |sorted_list                                                                 |
+    +----------------------------------------------------------------------------+
+    |[{1.0, 45, First}, {1.0, 45, Second}, {1.0, 125, Third}, {0.5, 233, Fourth}]|
+    +----------------------------------------------------------------------------+
+    <BLANKLINE>
     """
     return f.expr(
         f"""
@@ -425,6 +441,7 @@ def order_array_of_structs_by_two_fields(
                 when left.{descending_column} > right.{descending_column} then -1
                 when left.{descending_column} == right.{descending_column} and left.{ascending_column} > right.{ascending_column} then 1
                 when left.{descending_column} == right.{descending_column} and left.{ascending_column} < right.{ascending_column} then -1
+                when left.{ascending_column} == right.{ascending_column} and left.{descending_column} == right.{descending_column} then 0
         end)
         """
     )
