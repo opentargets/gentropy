@@ -4,29 +4,49 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import hail as hl
 import numpy as np
-import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 
-from gentropy.common.session import Session
+from gentropy.config import PanUKBBConfig
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
 
 
 class PanUKBBLDMatrix:
-    """Toolset ot interact with GnomAD LD dataset (version: r2.1.1)."""
+    """Toolset to work with Pan UKBB LD matrices."""
 
-    @staticmethod
+    def __init__(
+        self,
+        pan_ukbb_ht_path: str = PanUKBBConfig().pan_ukbb_ht_path,
+        pan_ukbb_bm_path: str = PanUKBBConfig().pan_ukbb_bm_path,
+        ld_populations: list[str] = PanUKBBConfig().pan_ukbb_pops,
+    ):
+        """Initialize.
+
+        Datasets are in hail native format.
+
+        Args:
+            pan_ukbb_ht_path (str): Path to hail table
+            pan_ukbb_bm_path (str): Path to hail block matrix
+            ld_populations (list[str]): List of populations
+        Default values are set in PanUKBBConfig.
+        """
+        self.pan_ukbb_ht_path = pan_ukbb_ht_path
+        self.pan_ukbb_bm_path = pan_ukbb_bm_path
+        self.ld_populations = ld_populations
+
     def get_numpy_matrix(
+        self: PanUKBBLDMatrix,
         locus_index: DataFrame,
-        ancestry: str = "nfe",
+        ancestry: str,
     ) -> np.ndarray:
         """Extract the LD block matrix for a locus.
 
         Args:
             locus_index (DataFrame): hail matrix variant index table
-            ancestry (str): Ancestry label eg. `nfe`
+            ancestry (str): Ancestry label
 
         Returns:
             np.ndarray: LD block matrix for the locus
@@ -35,7 +55,7 @@ class PanUKBBLDMatrix:
 
         if ancestry == "nfe":
             half_matrix = (
-                BlockMatrix.read("gs://panukbb-ld-matrixes/UKBB.EUR.ldadj")
+                BlockMatrix.read(self.pan_ukbb_bm_path.format(POP="EUR"))
                 .filter(idx, idx)
                 .to_numpy()
             )
@@ -72,16 +92,14 @@ class PanUKBBLDMatrix:
 
         return ld_matrix
 
-    @staticmethod
     def get_locus_index_boundaries(
-        session: Session,
+        self,
         study_locus_row: Row,
-        ancestry: str = "nfe",
+        ancestry: str = "EUR",
     ) -> DataFrame:
         """Extract hail matrix index from StudyLocus rows.
 
         Args:
-            session (Session): Session object
             study_locus_row (Row): Study-locus row
             ancestry (str): Major population to extract from gnomad matrix, default is "nfe"
 
@@ -93,27 +111,16 @@ class PanUKBBLDMatrix:
         start = int(study_locus_row["locusStart"])
         end = int(study_locus_row["locusEnd"])
 
-        if ancestry == "nfe":
-            index_file = session.spark.read.parquet(
-                "gs://genetics-portal-dev-analysis/yt4/UKBB_PAN_LD/UKBB.EUR.ldadj.variant.final.parquet"
-            )
+        index_file = hl.read_table(self.pan_ukbb_ht_path.format(POP=ancestry))
 
-            index_file = index_file.filter(
-                (f.col("locus_GRCh38_contig") == chromosome)
-                & (f.col("locus_GRCh38_position") >= start)
-                & (f.col("locus_GRCh38_position") <= end)
+        index_file = (
+            index_file.filter(
+                (index_file.locus.contig == chromosome)
+                & (index_file.locus.position >= start)
+                & (index_file.locus.position <= end)
             )
-        elif ancestry == "csa":
-            index_file = session.spark.read.parquet(
-                "gs://genetics-portal-dev-analysis/yt4/UKBB_PAN_LD/UKBB.CSA.ldadj.variant.parquet"
-            )
-
-            index_file = index_file.filter(
-                (f.col("locus_GRCh38_contig") == chromosome)
-                & (f.col("locus_GRCh38_position") >= start)
-                & (f.col("locus_GRCh38_position") <= end)
-            )
-        else:
-            index_file = None
+            .order_by("idx")
+            .to_spark()
+        )
 
         return index_file

@@ -9,16 +9,31 @@ import pyspark.sql.functions as f
 
 import gentropy.common.utils
 from gentropy.common.session import Session
+from gentropy.config import PanUKBBConfig
 
 if TYPE_CHECKING:
     pass
 
 
-class panUKBBLDindex:
-    """Pan-UKBB LD index included in the Pan-UKBB LD dataset."""
+class PanUKBBVariants:
+    """Pan-UKBB variants included in the Pan-UKBB LD dataset."""
+
+    def __init__(
+        self,
+        pan_ukbb_path: str = PanUKBBConfig().pan_ukbb_ht_path,
+        pan_ukbb_pops: list[str] = PanUKBBConfig().pan_ukbb_pops,
+    ):
+        """Initialize.
+
+        Args:
+            pan_ukbb_path (str): Path to pan-ukbb hail table.
+            pan_ukbb_pops (list[str]): List of populations to include.
+        """
+        self.pan_ukbb_path = pan_ukbb_path
+        self.pan_ukbb_pops = pan_ukbb_pops
 
     @staticmethod
-    def conver_hl_ld_index_to_parquet(
+    def convert_hl_ld_index_to_parquet(
         session: Session,
         path_to_hl_index: str,
         path_parquet_output: str,
