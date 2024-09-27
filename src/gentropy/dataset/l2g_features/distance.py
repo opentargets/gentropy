@@ -14,92 +14,99 @@ from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import DataFrame
 
 
-def _common_distance_feature_logic(
+def common_distance_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
     feature_name: str,
     distance_type: str,
-    agg_expr: Column,
+    genomic_window: int = 500_000,
 ) -> DataFrame:
-    """Computes the feature.
+    """Calculate the distance feature that correlates a variant in a credible set with a gene.
+
+    The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait when we look at the average distance score for all variants in the credible set.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing distance to gene information
         feature_name (str): The name of the feature
         distance_type (str): The type of distance to gene
-        agg_expr (Column): The expression that aggregate distances into a specific way to define the feature
+        genomic_window (int): The maximum window size to consider
 
     Returns:
         DataFrame: Feature dataset
     """
     distances_dataset = variant_index.get_distance_to_gene(distance_type=distance_type)
-    return (
-        study_loci_to_annotate.df.withColumn("variantInLocus", f.explode_outer("locus"))
-        .select(
+    if "Mean" in feature_name:
+        # Weighting by the SNP contribution is only applied when we are averaging all distances
+        distance_score_expr = (
+            f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
+        ) * f.col("posteriorProbability")
+        agg_expr = f.mean(f.col("distance_score"))
+        df = study_loci_to_annotate.df.withColumn(
+            "variantInLocus", f.explode_outer("locus")
+        ).select(
             "studyLocusId",
-            f.col("variantInLocus.variantId").alias("variantInLocusId"),
-            f.col("variantInLocus.posteriorProbability").alias(
-                "variantInLocusPosteriorProbability"
-            ),
+            f.col("variantInLocus.variantId").alias("variantId"),
+            f.col("variantInLocus.posteriorProbability").alias("posteriorProbability"),
         )
-        .join(
-            distances_dataset.withColumnRenamed(
-                "variantId", "variantInLocusId"
-            ).withColumnRenamed("targetId", "geneId"),
-            on="variantInLocusId",
+    elif "Sentinel" in feature_name:
+        # For minimum distances we calculate the unweighted distance between the sentinel (lead) and the gene. This
+        distance_score_expr = f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
+        agg_expr = f.first(f.col("distance_score"))
+        df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
+    return (
+        df.join(
+            distances_dataset.withColumnRenamed("targetId", "geneId"),
+            on="variantId",
             how="inner",
         )
-        .withColumn(
-            "weightedDistance",
-            f.col(distance_type) * f.col("variantInLocusPosteriorProbability"),
-        )
+        .withColumn("distance_score", f.log10(distance_score_expr))
         .groupBy("studyLocusId", "geneId")
         .agg(agg_expr.alias(feature_name))
     )
 
 
-def _common_neighbourhood_distance_feature_logic(
+def common_neighbourhood_distance_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
     feature_name: str,
     distance_type: str,
-    agg_expr: Column,
+    genomic_window: int = 500_000,
 ) -> DataFrame:
-    """Calculate the neighbourhood distance feature.
+    """Calculate the distance feature that correlates any variant in a credible set with any gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing distance to gene information
         feature_name (str): The name of the feature
         distance_type (str): The type of distance to gene
-        agg_expr (Column): The expression that aggregate distances into a specific way to define the feature
+        genomic_window (int): The maximum window size to consider
 
     Returns:
-            DataFrame: Feature dataset
+        DataFrame: Feature dataset
     """
     local_feature_name = feature_name.replace("Neighbourhood", "")
     # First compute mean distances to a gene
-    local_min = _common_distance_feature_logic(
+    local_metric = common_distance_feature_logic(
         study_loci_to_annotate,
         feature_name=local_feature_name,
         distance_type=distance_type,
-        agg_expr=agg_expr,
         variant_index=variant_index,
+        genomic_window=genomic_window,
     )
     return (
-        # Then compute minimum distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        local_min.withColumn(
-            "regional_minimum",
-            f.min(local_feature_name).over(Window.partitionBy("studyLocusId")),
+        # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
+        local_metric.withColumn(
+            "regional_metric",
+            f.mean(f.col(local_feature_name)).over(Window.partitionBy("studyLocusId")),
         )
-        .withColumn(feature_name, f.col("regional_minimum") - f.col(local_feature_name))
-        .drop("regional_minimum")
+        .withColumn(feature_name, f.col(local_feature_name) - f.col("regional_metric"))
+        .drop("regional_metric", local_feature_name)
     )
 
 
@@ -125,15 +132,13 @@ class DistanceTssMeanFeature(L2GFeature):
         Returns:
             DistanceTssMeanFeature: Feature dataset
         """
-        agg_expr = f.mean("weightedDistance")
         distance_type = "distanceFromTss"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_distance_feature_logic(
+                common_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),
@@ -166,15 +171,13 @@ class DistanceTssMeanNeighbourhoodFeature(L2GFeature):
         Returns:
             DistanceTssMeanNeighbourhoodFeature: Feature dataset
         """
-        agg_expr = f.mean("weightedDistance")
         distance_type = "distanceFromTss"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_distance_feature_logic(
+                common_neighbourhood_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),
@@ -185,19 +188,19 @@ class DistanceTssMeanNeighbourhoodFeature(L2GFeature):
         )
 
 
-class DistanceTssMinimumFeature(L2GFeature):
-    """Minimum distance of all tagging variants to gene TSS."""
+class DistanceSentinelTssFeature(L2GFeature):
+    """Distance of the sentinel variant to gene TSS. This is not weighted by the causal probability."""
 
     fill_na_value = 500_000
     feature_dependency_type = VariantIndex
-    feature_name = "distanceTssMinimum"
+    feature_name = "distanceSentinelTss"
 
     @classmethod
     def compute(
-        cls: type[DistanceTssMinimumFeature],
+        cls: type[DistanceSentinelTssFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> DistanceTssMinimumFeature:
+    ) -> DistanceSentinelTssFeature:
         """Computes the feature.
 
         Args:
@@ -205,17 +208,15 @@ class DistanceTssMinimumFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            DistanceTssMinimumFeature: Feature dataset
+            DistanceSentinelTssFeature: Feature dataset
         """
-        agg_expr = f.mean("weightedDistance")
         distance_type = "distanceFromTss"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_distance_feature_logic(
+                common_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),
@@ -226,19 +227,19 @@ class DistanceTssMinimumFeature(L2GFeature):
         )
 
 
-class DistanceTssMinimumNeighbourhoodFeature(L2GFeature):
-    """Minimum minimum distance to TSS for all genes in the vicinity of a studyLocus."""
+class DistanceSentinelTssNeighbourhoodFeature(L2GFeature):
+    """Distance between the sentinel variant and a gene TSS as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
     fill_na_value = 500_000
     feature_dependency_type = VariantIndex
-    feature_name = "distanceTssMinimumNeighbourhood"
+    feature_name = "distanceSentinelTssNeighbourhood"
 
     @classmethod
     def compute(
-        cls: type[DistanceTssMinimumNeighbourhoodFeature],
+        cls: type[DistanceSentinelTssNeighbourhoodFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> DistanceTssMinimumNeighbourhoodFeature:
+    ) -> DistanceSentinelTssNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
@@ -246,17 +247,15 @@ class DistanceTssMinimumNeighbourhoodFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            DistanceTssMinimumNeighbourhoodFeature: Feature dataset
+            DistanceSentinelTssNeighbourhoodFeature: Feature dataset
         """
-        agg_expr = f.min("weightedDistance")
         distance_type = "distanceFromTss"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_distance_feature_logic(
+                common_neighbourhood_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),
@@ -289,15 +288,13 @@ class DistanceFootprintMeanFeature(L2GFeature):
         Returns:
             DistanceFootprintMeanFeature: Feature dataset
         """
-        agg_expr = f.mean("weightedDistance")
         distance_type = "distanceFromFootprint"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_distance_feature_logic(
+                common_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),
@@ -330,15 +327,13 @@ class DistanceFootprintMeanNeighbourhoodFeature(L2GFeature):
         Returns:
             DistanceFootprintMeanNeighbourhoodFeature: Feature dataset
         """
-        agg_expr = f.mean("weightedDistance")
         distance_type = "distanceFromFootprint"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_distance_feature_logic(
+                common_neighbourhood_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),
@@ -349,19 +344,19 @@ class DistanceFootprintMeanNeighbourhoodFeature(L2GFeature):
         )
 
 
-class DistanceFootprintMinimumFeature(L2GFeature):
-    """Minimum distance of all tagging variants to the footprint of a gene."""
+class DistanceSentinelFootprintFeature(L2GFeature):
+    """Distance between the sentinel variant and the footprint of a gene."""
 
     fill_na_value = 500_000
     feature_dependency_type = VariantIndex
-    feature_name = "DistanceFootprintMinimum"
+    feature_name = "distanceSentinelFootprintMinimum"
 
     @classmethod
     def compute(
-        cls: type[DistanceFootprintMinimumFeature],
+        cls: type[DistanceSentinelFootprintFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> DistanceFootprintMinimumFeature:
+    ) -> DistanceSentinelFootprintFeature:
         """Computes the feature.
 
         Args:
@@ -369,17 +364,15 @@ class DistanceFootprintMinimumFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            DistanceFootprintMinimumFeature: Feature dataset
+            DistanceSentinelFootprintFeature: Feature dataset
         """
-        agg_expr = f.mean("weightedDistance")
         distance_type = "distanceFromFootprint"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_distance_feature_logic(
+                common_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),
@@ -390,19 +383,19 @@ class DistanceFootprintMinimumFeature(L2GFeature):
         )
 
 
-class DistanceFootprintMinimumNeighbourhoodFeature(L2GFeature):
-    """Minimum minimum distance to footprint for all genes in the vicinity of a studyLocus."""
+class DistanceSentinelFootprintNeighbourhoodFeature(L2GFeature):
+    """Distance between the sentinel variant and a gene footprint as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
     fill_na_value = 500_000
     feature_dependency_type = VariantIndex
-    feature_name = "distanceFootprintMinimumNeighbourhood"
+    feature_name = "DistanceSentinelFootprintNeighbourhoodFeature"
 
     @classmethod
     def compute(
-        cls: type[DistanceFootprintMinimumNeighbourhoodFeature],
+        cls: type[DistanceSentinelFootprintNeighbourhoodFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> DistanceFootprintMinimumNeighbourhoodFeature:
+    ) -> DistanceSentinelFootprintNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
@@ -410,17 +403,15 @@ class DistanceFootprintMinimumNeighbourhoodFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            DistanceFootprintMinimumNeighbourhoodFeature: Feature dataset
+            DistanceSentinelFootprintNeighbourhoodFeature: Feature dataset
         """
-        agg_expr = f.min("weightedDistance")
         distance_type = "distanceFromFootprint"
         return cls(
             _df=convert_from_wide_to_long(
-                _common_neighbourhood_distance_feature_logic(
+                common_neighbourhood_distance_feature_logic(
                     study_loci_to_annotate,
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
-                    agg_expr=agg_expr,
                     **feature_dependency,
                 ),
                 id_vars=("studyLocusId", "geneId"),

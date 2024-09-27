@@ -39,12 +39,12 @@ from gentropy.dataset.l2g_features.colocalisation import (
 from gentropy.dataset.l2g_features.distance import (
     DistanceFootprintMeanFeature,
     DistanceFootprintMeanNeighbourhoodFeature,
-    DistanceFootprintMinimumFeature,
-    DistanceFootprintMinimumNeighbourhoodFeature,
+    DistanceSentinelFootprintFeature,
+    DistanceSentinelFootprintNeighbourhoodFeature,
+    DistanceSentinelTssFeature,
+    DistanceSentinelTssNeighbourhoodFeature,
     DistanceTssMeanFeature,
     DistanceTssMeanNeighbourhoodFeature,
-    DistanceTssMinimumFeature,
-    DistanceTssMinimumNeighbourhoodFeature,
     common_distance_feature_logic,
     common_neighbourhood_distance_feature_logic,
 )
@@ -78,13 +78,13 @@ if TYPE_CHECKING:
         SQtlColocH4MaximumNeighbourhoodFeature,
         TuQtlColocH4MaximumNeighbourhoodFeature,
         DistanceTssMeanFeature,
-        DistanceTssMinimumFeature,
-        DistanceFootprintMeanFeature,
-        DistanceFootprintMinimumFeature,
         DistanceTssMeanNeighbourhoodFeature,
-        DistanceTssMinimumNeighbourhoodFeature,
+        DistanceFootprintMeanFeature,
         DistanceFootprintMeanNeighbourhoodFeature,
-        DistanceFootprintMinimumNeighbourhoodFeature,
+        DistanceSentinelTssFeature,
+        DistanceSentinelTssNeighbourhoodFeature,
+        DistanceSentinelFootprintFeature,
+        DistanceSentinelFootprintNeighbourhoodFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -214,6 +214,7 @@ class TestCommonColocalisationFeatureLogic:
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
                         "h4": 0.81,
+                        "rightStudyType": "eqtl",
                     },
                     {
                         "leftStudyLocusId": 1,
@@ -222,6 +223,7 @@ class TestCommonColocalisationFeatureLogic:
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
                         "h4": 0.50,
+                        "rightStudyType": "eqtl",
                     },
                     {
                         "leftStudyLocusId": 1,
@@ -230,6 +232,7 @@ class TestCommonColocalisationFeatureLogic:
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
                         "h4": 0.90,
+                        "rightStudyType": "eqtl",
                     },
                 ],
                 schema=Colocalisation.get_schema(),
@@ -308,78 +311,77 @@ class TestCommonDistanceFeatureLogic:
     """Test the CommonDistanceFeatureLogic methods."""
 
     @pytest.mark.parametrize(
-        ("feature_name", "expected_distance"),
+        ("feature_name", "expected_data"),
         [
-            ("distanceTssMinimum", 2.5),
-            ("distanceTssMean", 3.75),
+            (
+                "distanceSentinelTss",
+                [
+                    {"studyLocusId": 1, "geneId": "gene1", "distanceSentinelTss": 0.0},
+                    {"studyLocusId": 1, "geneId": "gene2", "distanceSentinelTss": 0.95},
+                ],
+            ),
+            (
+                "distanceTssMean",
+                [
+                    {"studyLocusId": 1, "geneId": "gene1", "distanceTssMean": 0.09},
+                    {"studyLocusId": 1, "geneId": "gene2", "distanceTssMean": 0.65},
+                ],
+            ),
         ],
     )
     def test_common_distance_feature_logic(
         self: TestCommonDistanceFeatureLogic,
         spark: SparkSession,
         feature_name: str,
-        expected_distance: int,
+        expected_data: dict[str, Any],
     ) -> None:
-        """Test the logic of the function that extracts the distance between the variants in a credible set and a gene."""
-        agg_expr = (
-            f.min(f.col("weightedDistance"))
-            if feature_name == "distanceTssMinimum"
-            else f.mean(f.col("weightedDistance"))
+        """Test the logic of the function that extracts features from distance.
+
+        2 tests:
+        - distanceSentinelTss: distance of the sentinel is 10, the max distance is 10. In log scale, the score is 0.
+        - distanceTssMean: avg distance of any variant in the credible set, weighted by its posterior.
+        """
+        observed_df = (
+            common_distance_feature_logic(
+                self.sample_study_locus,
+                variant_index=self.sample_variant_index,
+                feature_name=feature_name,
+                distance_type=self.distance_type,
+                genomic_window=10,
+            )
+            .withColumn(feature_name, f.round(f.col(feature_name), 2))
+            .orderBy(feature_name)
         )
-        observed_df = common_distance_feature_logic(
-            self.sample_study_locus,
-            variant_index=self.sample_variant_index,
-            feature_name=feature_name,
-            distance_type=self.distance_type,
-            agg_expr=agg_expr,
+        expected_df = (
+            spark.createDataFrame(expected_data)
+            .select("studyLocusId", "geneId", feature_name)
+            .orderBy(feature_name)
         )
-        assert observed_df.first()[feature_name] == expected_distance
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), f"Expected and observed dataframes are not equal for feature {feature_name}."
 
     def test_common_neighbourhood_colocalisation_feature_logic(
         self: TestCommonDistanceFeatureLogic,
         spark: SparkSession,
     ) -> None:
-        """Test the logic of the function that extracts the distance between the variants in a credible set and the nearby genes."""
-        another_sample_variant_index = VariantIndex(
-            _df=spark.createDataFrame(
-                [
-                    (
-                        "lead1",
-                        "chrom",
-                        1,
-                        "A",
-                        "T",
-                        [
-                            {"distanceFromTss": 10, "targetId": "gene1"},
-                            {"distanceFromTss": 100, "targetId": "gene2"},
-                        ],
-                    ),
-                    (
-                        "tag1",
-                        "chrom",
-                        1,
-                        "A",
-                        "T",
-                        [
-                            {"distanceFromTss": 5, "targetId": "gene1"},
-                        ],
-                    ),
-                ],
-                self.variant_index_schema,
-            ),
-            _schema=VariantIndex.get_schema(),
+        """Test the logic of the function that extracts the distance between the sentinel of a credible set and the nearby genes."""
+        feature_name = "distanceSentinelTssNeighbourhood"
+        observed_df = (
+            common_neighbourhood_distance_feature_logic(
+                self.sample_study_locus,
+                variant_index=self.sample_variant_index,
+                feature_name=feature_name,
+                distance_type=self.distance_type,
+                genomic_window=10,
+            )
+            .withColumn(feature_name, f.round(f.col(feature_name), 2))
+            .orderBy(f.col(feature_name).asc())
         )
-        observed_df = common_neighbourhood_distance_feature_logic(
-            self.sample_study_locus,
-            variant_index=another_sample_variant_index,
-            feature_name="distanceTssMinimum",
-            distance_type=self.distance_type,
-            agg_expr=f.min("weightedDistance"),
-        ).orderBy(f.col("distanceTssMinimum").asc())
         expected_df = spark.createDataFrame(
-            ([1, "gene2", -47.5], [1, "gene1", 0.0]),
-            ["studyLocusId", "geneId", "distanceTssMinimum"],
-        ).orderBy(f.col("distanceTssMinimum").asc())
+            ([1, "gene1", -0.48], [1, "gene2", 0.48]),
+            ["studyLocusId", "geneId", feature_name],
+        ).orderBy(feature_name)
         assert (
             observed_df.collect() == expected_df.collect()
         ), "Output doesn't meet the expectation."
@@ -401,7 +403,7 @@ class TestCommonDistanceFeatureLogic:
                                 "posteriorProbability": 0.5,
                             },
                             {
-                                "variantId": "tag1",  # this variant is closer to gene1
+                                "variantId": "tag1",
                                 "posteriorProbability": 0.5,
                             },
                         ],
@@ -444,6 +446,7 @@ class TestCommonDistanceFeatureLogic:
                         "T",
                         [
                             {"distanceFromTss": 10, "targetId": "gene1"},
+                            {"distanceFromTss": 2, "targetId": "gene2"},
                         ],
                     ),
                     (

@@ -25,12 +25,12 @@ from gentropy.dataset.l2g_features.colocalisation import (
 from gentropy.dataset.l2g_features.distance import (
     DistanceFootprintMeanFeature,
     DistanceFootprintMeanNeighbourhoodFeature,
-    DistanceFootprintMinimumFeature,
-    DistanceFootprintMinimumNeighbourhoodFeature,
+    DistanceSentinelFootprintFeature,
+    DistanceSentinelFootprintNeighbourhoodFeature,
+    DistanceSentinelTssFeature,
+    DistanceSentinelTssNeighbourhoodFeature,
     DistanceTssMeanFeature,
     DistanceTssMeanNeighbourhoodFeature,
-    DistanceTssMinimumFeature,
-    DistanceTssMinimumNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -93,13 +93,13 @@ class FeatureFactory:
     """Factory class for creating features."""
 
     feature_mapper: Mapping[str, type[L2GFeature]] = {
-        "distanceTssMinimum": DistanceTssMinimumFeature,
+        "distanceSentinelTss": DistanceSentinelTssFeature,
+        "distanceSentinelTssNeighbourhood": DistanceSentinelTssNeighbourhoodFeature,
+        "distanceSentinelFootprint": DistanceSentinelFootprintFeature,
+        "distanceSentinelFootprintNeighbourhood": DistanceSentinelFootprintNeighbourhoodFeature,
         "distanceTssMean": DistanceTssMeanFeature,
         "distanceTssMeanNeighbourhood": DistanceTssMeanNeighbourhoodFeature,
-        "distanceTssMinimumNeighbourhood": DistanceTssMinimumNeighbourhoodFeature,
-        "distanceFootprintMinimum": DistanceFootprintMinimumFeature,
         "distanceFootprintMean": DistanceFootprintMeanFeature,
-        "distanceFootprintMinimumNeighbourhood": DistanceFootprintMinimumNeighbourhoodFeature,
         "distanceFootprintMeanNeighbourhood": DistanceFootprintMeanNeighbourhoodFeature,
         "eQtlColocClppMaximum": EQtlColocClppMaximumFeature,
         "eQtlColocClppMaximumNeighbourhood": EQtlColocClppMaximumNeighbourhoodFeature,

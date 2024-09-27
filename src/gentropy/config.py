@@ -248,6 +248,16 @@ class LocusToGeneConfig(StepConfig):
             "pQtlColocH4Maximum",
             "sQtlColocH4Maximum",
             "tuQtlColocH4Maximum",
+            # distance to gene footprint
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            # distance to gene tss
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
