@@ -614,14 +614,21 @@ def rename_all_columns(df: DataFrame, prefix: str) -> DataFrame:
     )
 
 
-def safe_array_union(a: Column, b: Column) -> Column:
+def safe_array_union(
+    a: Column, b: Column, fields_order: list[str] | None = None
+) -> Column:
     """Merge the content of two optional columns.
 
-    The function assumes the array columns have the same schema. Otherwise, the function will fail.
+    The function assumes the array columns have the same schema.
+    If the `fields_order` is passed, the function assumes that it deals with array of structs and sorts the nested
+    struct fields by the provided `fields_order` before conducting array_merge.
+    If the `fields_order` is not passed and both columns are <array<struct<...>> type then function assumes struct fields have the same order,
+    otherwise the function will raise an AnalysisException.
 
     Args:
         a (Column): One optional array column.
         b (Column): The other optional array column.
+        fields_order (list[str] | None): The order of the fields in the struct. Defaults to None.
 
     Returns:
         Column: array column with merged content.
@@ -644,10 +651,87 @@ def safe_array_union(a: Column, b: Column) -> Column:
         |  null|
         +------+
         <BLANKLINE>
+        >>> schema="arr2: array<struct<b:int,a:string>>, arr: array<struct<a:string,b:int>>"
+        >>> data = [([(1,"a",), (2, "c")],[("a", 1,)]),]
+        >>> df = spark.createDataFrame(data=data, schema=schema)
+        >>> df.select(safe_array_union(f.col("arr"), f.col("arr2"), fields_order=["a", "b"]).alias("merged")).show()
+        +----------------+
+        |          merged|
+        +----------------+
+        |[{a, 1}, {c, 2}]|
+        +----------------+
+        <BLANKLINE>
+        >>> schema="arr2: array<struct<b:int,a:string>>, arr: array<struct<a:string,b:int>>"
+        >>> data = [([(1,"a",), (2, "c")],[("a", 1,)]),]
+        >>> df = spark.createDataFrame(data=data, schema=schema)
+        >>> df.select(safe_array_union(f.col("arr"), f.col("arr2")).alias("merged")).show() # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        pyspark.sql.utils.AnalysisException: ...
     """
+    if fields_order:
+        # sort the nested struct fields by the provided order
+        a = sort_array_struct_by_columns(a, fields_order)
+        b = sort_array_struct_by_columns(b, fields_order)
     return f.when(a.isNotNull() & b.isNotNull(), f.array_union(a, b)).otherwise(
         f.coalesce(a, b)
     )
+
+
+
+def sort_array_struct_by_columns(column: Column, fields_order: list[str]) -> Column:
+    """Sort nested struct fields by provided fields order.
+
+    Args:
+        column (Column): Column with array of structs.
+        fields_order (list[str]): List of field names to sort by.
+
+    Returns:
+        Column: Sorted column.
+
+    Examples:
+        >>> schema="arr: array<struct<b:int,a:string>>"
+        >>> data = [([(1,"a",), (2, "c")],)]
+        >>> fields_order = ["a", "b"]
+        >>> df = spark.createDataFrame(data=data, schema=schema)
+        >>> df.select(sort_array_struct_by_columns(f.col("arr"), fields_order).alias("sorted")).show()
+        +----------------+
+        |          sorted|
+        +----------------+
+        |[{c, 2}, {a, 1}]|
+        +----------------+
+        <BLANKLINE>
+    """
+    column_name = extract_column_name(column)
+    fields_order_expr = ", ".join([f"x.{field}" for field in fields_order])
+    return f.expr(
+        f"sort_array(transform({column_name}, x -> struct({fields_order_expr})), False)"
+    ).alias(column_name)
+
+
+def extract_column_name(column: Column) -> str:
+    """Extract column name from a column expression.
+
+    Args:
+        column (Column): Column expression.
+
+    Returns:
+        str: Column name.
+
+    Raises:
+        ValueError: If the column name cannot be extracted.
+
+    Examples:
+        >>> extract_column_name(f.col('col1'))
+        'col1'
+        >>> extract_column_name(f.sort_array(f.col('col1')))
+        'sort_array(col1, true)'
+    """
+    pattern = re.compile("^Column<'(?P<name>.*)'>?")
+
+    _match = pattern.search(str(column))
+    if not _match:
+        raise ValueError(f"Cannot extract column name from {column}")
+    return _match.group("name")
 
 
 def create_empty_column_if_not_exists(
