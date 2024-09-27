@@ -467,8 +467,9 @@ class StudyLocus(Dataset):
             +----------+----------+-----------------+--------------------------------+
             <BLANKLINE>
         """
-        return Dataset.generate_identifier(uniqueness_defining_columns).alias("studyLocusId")
-
+        return Dataset._generate_identifier(uniqueness_defining_columns).alias(
+            "studyLocusId"
+        )
 
     @classmethod
     def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:

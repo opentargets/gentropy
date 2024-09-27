@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import pyspark.sql.functions as f
 from pyspark.sql.types import DoubleType
@@ -32,7 +32,8 @@ class Dataset(ABC):
     """
 
     _df: DataFrame
-    _schema: StructType
+    # Making schema optional:
+    _schema: Optional[StructType] = None
 
     def __post_init__(self: Dataset) -> None:
         """Post init."""
@@ -354,16 +355,27 @@ class Dataset(ABC):
         )
 
     @staticmethod
-    def generate_identifier(uniqueness_defining_columns: list[str]) -> Column:
+    def _generate_identifier(uniqueness_defining_columns: list[str] | None) -> Column:
         """Hashes the provided columns to generate a unique identifier.
 
         Args:
-            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
+            uniqueness_defining_columns (list[str] | None): list of columns defining uniqueness
 
         Returns:
             Column: column with a unique identifier
+
+        Raises:
+            ValueError: uniqueness_defining_columns must be provided to generate an identifier
         """
-        hashable_columns = [f.when(f.col(column).cast("string").isNull(), f.lit("None"))
-                                 .otherwise(f.col(column).cast("string"))
-                                 for column in uniqueness_defining_columns]
+        if uniqueness_defining_columns is None:
+            raise ValueError(
+                "Uniqueness_defining_columns must be provided to generate an identifier"
+            )
+
+        hashable_columns = [
+            f.when(f.col(column).cast("string").isNull(), f.lit("None")).otherwise(
+                f.col(column).cast("string")
+            )
+            for column in uniqueness_defining_columns
+        ]
         return f.md5(f.concat(*hashable_columns))
