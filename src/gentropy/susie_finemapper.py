@@ -49,7 +49,7 @@ class SusieFineMapperStep:
         max_causal_snps: int = 10,
         lead_pval_threshold: float = 1e-5,
         purity_mean_r2_threshold: float = 0,
-        purity_min_r2_threshold: float = 0,
+        purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
         sum_pips: float = 0.99,
         susie_est_tausq: bool = False,
