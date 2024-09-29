@@ -270,13 +270,13 @@ def neglog_pvalue_to_mantissa_and_exponent(p_value: Column) -> tuple[Column, Col
         +--------+--------------+--------------+
         |negLogPv|pValueMantissa|pValueExponent|
         +--------+--------------+--------------+
-        |    4.56|     3.6307805|            -5|
-        | 2109.23|     1.6982436|         -2110|
+        |    4.56|     2.7542286|            -5|
+        | 2109.23|     5.8884363|         -2110|
         +--------+--------------+--------------+
         <BLANKLINE>
     """
     exponent: Column = f.ceil(p_value)
-    mantissa: Column = f.pow(f.lit(10), (p_value - exponent + f.lit(1)))
+    mantissa: Column = f.pow(f.lit(10), (exponent - p_value))
 
     return (
         mantissa.cast(t.FloatType()).alias("pValueMantissa"),
@@ -675,7 +675,6 @@ def safe_array_union(
     return f.when(a.isNotNull() & b.isNotNull(), f.array_union(a, b)).otherwise(
         f.coalesce(a, b)
     )
-
 
 
 def sort_array_struct_by_columns(column: Column, fields_order: list[str]) -> Column:
