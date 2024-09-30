@@ -447,38 +447,28 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def assign_study_locus_id(
-        study_id_col: Column,
-        variant_id_col: Column,
-        finemapping_col: Column = None,
-    ) -> Column:
-        """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
+    def assign_study_locus_id(uniqueness_defining_columns: list[str]) -> Column:
+        """Hashes the provided columns to extract a consistent studyLocusId.
 
         Args:
-            study_id_col (Column): column name with a study ID
-            variant_id_col (Column): column name with a variant ID
-            finemapping_col (Column, optional): column with fine mapping methodology
+            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
 
         Returns:
             Column: column with a study locus ID
 
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"), f.col("finemappingMethod"))).show()
-            +----------+----------+-----------------+-------------------+
-            |   studyId| variantId|finemappingMethod|     study_locus_id|
-            +----------+----------+-----------------+-------------------+
-            |GCST000001|1_1000_A_C|        SuSiE-inf|3801266831619496075|
-            |GCST000002|1_1000_A_C|             pics|1581844826999194430|
-            +----------+----------+-----------------+-------------------+
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(["studyId", "variantId", "finemappingMethod"])).show(truncate=False)
+            +----------+----------+-----------------+--------------------------------+
+            |studyId   |variantId |finemappingMethod|study_locus_id                  |
+            +----------+----------+-----------------+--------------------------------+
+            |GCST000001|1_1000_A_C|SuSiE-inf        |109804fe1e20c94231a31bafd71b566e|
+            |GCST000002|1_1000_A_C|pics             |de310be4558e0482c9cc359c97d37773|
+            +----------+----------+-----------------+--------------------------------+
             <BLANKLINE>
         """
-        if finemapping_col is None:
-            finemapping_col = f.lit(None).cast(StringType())
-        variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
-        return f.xxhash64(study_id_col, variant_id_col, finemapping_col).alias(
-            "studyLocusId"
-        )
+        return Dataset.generate_identifier(uniqueness_defining_columns).alias("studyLocusId")
+
 
     @classmethod
     def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:
