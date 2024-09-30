@@ -135,7 +135,9 @@ class TestIsLeadLinked:
         """Test flagging of lead variants."""
         # Create the study locus and clump:
         sl_flagged = StudyLocus(
-            _df=self.df.drop("expected_flag").withColumn("qualityControls", f.array()),
+            _df=self.df.drop("expected_flag").withColumn(
+                "qualityControls", f.array().cast("array<string>")
+            ),
             _schema=StudyLocus.get_schema(),
         ).clump()
 
