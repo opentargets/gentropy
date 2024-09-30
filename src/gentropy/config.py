@@ -121,10 +121,16 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
     mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
+    eqtl_lead_pvalue_threshold: float = 1e-3
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -168,6 +174,7 @@ class FinngenFinemappingConfig(StepConfig):
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
+    finngen_finemapping_lead_pvalue_threshold: float = 1e-5
 
 
 @dataclass
