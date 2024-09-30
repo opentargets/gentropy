@@ -87,5 +87,7 @@ class TestSUSIE_inf:
             purity_min_r2_threshold=0,
             sum_pips=0.99,
             ld_min_r2=1,
+            locusStart=1,
+            locusEnd=2,
         )
         assert isinstance(L1, StudyLocus), "L1 is not an instance of StudyLocus"

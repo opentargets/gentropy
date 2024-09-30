@@ -144,6 +144,8 @@ class FineMappingSimulations:
                     purity_min_r2_threshold=0,
                     cs_lbf_thr=2,
                     ld_min_r2=0.9,
+                    locusStart=1,
+                    locusEnd=2,
                 )
 
                 if CS_sim is not None:
