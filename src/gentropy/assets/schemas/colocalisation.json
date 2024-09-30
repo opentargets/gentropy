@@ -72,6 +72,12 @@
       "type": "double",
       "nullable": true,
       "metadata": {}
+    },
+    {
+      "name": "beta_ratio_sign",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
     }
   ]
 }

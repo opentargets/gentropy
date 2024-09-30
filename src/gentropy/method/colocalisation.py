@@ -85,6 +85,11 @@ class ECaviar:
                     f.sum(f.col("clpp")).alias("clpp"),
                 )
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
+                .join(overlapping_signals.calculate_beta_ratio(),
+                 ["leftStudyLocusId",
+                  "rightStudyLocusId",
+                   "chromosome"],
+                "left")
             ),
             _schema=Colocalisation.get_schema(),
         )
@@ -259,6 +264,11 @@ class Coloc:
                     "lH4bf",
                 )
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
+                .join(overlapping_signals.calculate_beta_ratio(),
+                 ["leftStudyLocusId",
+                  "rightStudyLocusId",
+                   "chromosome"],
+                "left")
             ),
             _schema=Colocalisation.get_schema(),
         )
