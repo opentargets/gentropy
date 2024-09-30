@@ -26,7 +26,6 @@ class GWASCatalogIngestionStep:
         session: Session,
         catalog_study_files: list[str],
         catalog_ancestry_files: list[str],
-        catalog_sumstats_lut: str,
         catalog_associations_file: str,
         gnomad_variant_path: str,
         catalog_studies_out: str,
@@ -41,7 +40,6 @@ class GWASCatalogIngestionStep:
             session (Session): Session object.
             catalog_study_files (list[str]): List of raw GWAS catalog studies file.
             catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-            catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
             catalog_associations_file (str): Raw GWAS catalog associations file.
             gnomad_variant_path (str): Path to GnomAD variants.
             catalog_studies_out (str): Output GWAS catalog studies path.
@@ -58,9 +56,6 @@ class GWASCatalogIngestionStep:
         ancestry_lut = session.spark.read.csv(
             list(catalog_ancestry_files), sep="\t", header=True
         )
-        sumstats_lut = session.spark.read.csv(
-            catalog_sumstats_lut, sep="\t", header=False
-        )
         catalog_associations = session.spark.read.csv(
             catalog_associations_file, sep="\t", header=True
         ).persist()
@@ -71,7 +66,7 @@ class GWASCatalogIngestionStep:
         # Transform
         study_index, study_locus = GWASCatalogStudySplitter.split(
             StudyIndexGWASCatalogParser.from_source(
-                catalog_studies, ancestry_lut, sumstats_lut
+                catalog_studies, ancestry_lut
             ).annotate_from_study_curation(gwas_catalog_study_curation),
             GWASCatalogCuratedAssociationsParser.from_source(
                 catalog_associations, gnomad_variants
