@@ -8,6 +8,7 @@ import pyspark.sql.functions as f
 import pytest
 from pyspark.sql.types import (
     ArrayType,
+    BooleanType,
     IntegerType,
     LongType,
     StringType,
@@ -428,6 +429,7 @@ class TestCommonDistanceFeatureLogic:
                             [
                                 StructField("distanceFromTss", LongType(), True),
                                 StructField("targetId", StringType(), True),
+                                StructField("isEnsemblCanonical", BooleanType(), True),
                             ]
                         )
                     ),
@@ -445,8 +447,16 @@ class TestCommonDistanceFeatureLogic:
                         "A",
                         "T",
                         [
-                            {"distanceFromTss": 10, "targetId": "gene1"},
-                            {"distanceFromTss": 2, "targetId": "gene2"},
+                            {
+                                "distanceFromTss": 10,
+                                "targetId": "gene1",
+                                "isEnsemblCanonical": True,
+                            },
+                            {
+                                "distanceFromTss": 2,
+                                "targetId": "gene2",
+                                "isEnsemblCanonical": True,
+                            },
                         ],
                     ),
                     (
@@ -456,7 +466,11 @@ class TestCommonDistanceFeatureLogic:
                         "A",
                         "T",
                         [
-                            {"distanceFromTss": 5, "targetId": "gene1"},
+                            {
+                                "distanceFromTss": 5,
+                                "targetId": "gene1",
+                                "isEnsemblCanonical": True,
+                            },
                         ],
                     ),
                 ],

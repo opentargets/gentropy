@@ -8,6 +8,7 @@ import pytest
 from pyspark.sql import DataFrame
 from pyspark.sql.types import (
     ArrayType,
+    BooleanType,
     IntegerType,
     LongType,
     StringType,
@@ -98,8 +99,16 @@ class TestExpandGoldStandardWithNegatives:
                     "A",
                     "T",
                     [
-                        {"distanceFromTss": 5, "targetId": "gene1"},
-                        {"distanceFromTss": 10, "targetId": "gene3"},
+                        {
+                            "distanceFromTss": 5,
+                            "targetId": "gene1",
+                            "isEnsemblCanonical": True,
+                        },
+                        {
+                            "distanceFromTss": 10,
+                            "targetId": "gene3",
+                            "isEnsemblCanonical": True,
+                        },
                     ],
                 ),
             ],
@@ -117,6 +126,9 @@ class TestExpandGoldStandardWithNegatives:
                                 [
                                     StructField("distanceFromTss", LongType(), True),
                                     StructField("targetId", StringType(), True),
+                                    StructField(
+                                        "isEnsemblCanonical", BooleanType(), True
+                                    ),
                                 ]
                             )
                         ),
