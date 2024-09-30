@@ -94,7 +94,7 @@ def compare_array_schemas(
         schema_issues = compare_struct_schemas(
             observed_schema.elementType,
             expected_schema.elementType,
-            f"{parent_field_name}[].",
+            f"{parent_field_name}.",
             schema_issues,
         )
 
