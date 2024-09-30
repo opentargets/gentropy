@@ -129,7 +129,7 @@ def compare_array_schemas(
         )
 
     # If element type is a struct, resolve nesting:
-    elif observed_type == "struct":
+    elif (observed_type == "struct") and (expected_type == "struct"):
         schema_issues = compare_struct_schemas(
             observed_schema.elementType,
             expected_schema.elementType,
@@ -138,7 +138,7 @@ def compare_array_schemas(
         )
 
     # If element type is an array, resolve nesting:
-    elif observed_type == "array":
+    elif (observed_type == "array") and (expected_type == "array"):
         schema_issues = compare_array_schemas(
             observed_schema.elementType,
             expected_schema.elementType,
@@ -193,7 +193,7 @@ def compare_struct_schemas(
             if list(observed_schema).count(field) > 1
         }
     ):
-        schema_issues["duplicated_columns"] = duplicated_columns
+        schema_issues["duplicated_columns"] += duplicated_columns
 
     # Testing mandatory fields:
     required_fields = [x.name for x in expected_schema if not x.nullable]
@@ -202,7 +202,7 @@ def compare_struct_schemas(
         for req in required_fields
         if not any(field.name == req for field in observed_schema)
     ]:
-        schema_issues["missing_mandatory_columns"] = missing_required_fields
+        schema_issues["missing_mandatory_columns"] += missing_required_fields
 
     # Converting schema to dictionaries for easier comparison:
     observed_schema_dict = {field.name: field for field in observed_schema}
