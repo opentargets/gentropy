@@ -25,7 +25,7 @@ class TestOpenTargetsVariant:
         df_credible_set_df = spark.createDataFrame(
             [
                 {
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "variantId": "1_2_C_G",
                     "studyId": "study1",
                     "locus": [

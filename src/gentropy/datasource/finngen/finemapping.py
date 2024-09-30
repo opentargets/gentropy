@@ -471,7 +471,7 @@ class FinnGenFinemapping:
         ).withColumn(
             "studyLocusId",
             StudyLocus.assign_study_locus_id(
-                f.col("studyId"), f.col("variantId"), f.col("finemappingMethod")
+                ["studyId", "variantId", "finemappingMethod"]
             ),
         )
 

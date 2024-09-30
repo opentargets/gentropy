@@ -52,7 +52,7 @@ class OpenTargetsL2GGoldStandard:
             )
             .withColumn(
                 "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
             )
             .groupBy("studyLocusId", "studyId", "variantId", "geneId")
             .agg(f.collect_set("source").alias("sources"))
