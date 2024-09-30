@@ -137,12 +137,12 @@ class TestCommonColocalisationFeatureLogic:
         expected_df = spark.createDataFrame(
             [
                 {
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "geneId": "gene1",
                     "eQtlColocH4Maximum": 0.81,
                 },
                 {
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "geneId": "gene2",
                     "eQtlColocH4Maximum": 0.9,
                 },
@@ -170,12 +170,12 @@ class TestCommonColocalisationFeatureLogic:
         expected_df = spark.createDataFrame(
             [
                 {
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "geneId": "gene1",
                     "eQtlColocH4MaximumNeighbourhood": 0.08999999999999997,
                 },
                 {
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "geneId": "gene2",
                     "eQtlColocH4MaximumNeighbourhood": 0.0,
                 },
@@ -196,7 +196,7 @@ class TestCommonColocalisationFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": 1,
+                        "studyLocusId": "1",
                         "variantId": "lead1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
@@ -209,8 +209,8 @@ class TestCommonColocalisationFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": 1,
-                        "rightStudyLocusId": 2,
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -218,8 +218,8 @@ class TestCommonColocalisationFeatureLogic:
                         "rightStudyType": "eqtl",
                     },
                     {
-                        "leftStudyLocusId": 1,
-                        "rightStudyLocusId": 3,  # qtl linked to the same gene as studyLocusId 2 with a lower score
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "3",  # qtl linked to the same gene as studyLocusId 2 with a lower score
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -227,8 +227,8 @@ class TestCommonColocalisationFeatureLogic:
                         "rightStudyType": "eqtl",
                     },
                     {
-                        "leftStudyLocusId": 1,
-                        "rightStudyLocusId": 4,  # qtl linked to a diff gene and with the highest score
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "4",  # qtl linked to a diff gene and with the highest score
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -244,25 +244,25 @@ class TestCommonColocalisationFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": 1,
+                        "studyLocusId": "1",
                         "variantId": "lead1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
                     },
                     {
-                        "studyLocusId": 2,
+                        "studyLocusId": "2",
                         "variantId": "lead1",
                         "studyId": "study2",  # this is a QTL (same gee)
                         "chromosome": "1",
                     },
                     {
-                        "studyLocusId": 3,
+                        "studyLocusId": "3",
                         "variantId": "lead1",
                         "studyId": "study3",  # this is another QTL (same gene)
                         "chromosome": "1",
                     },
                     {
-                        "studyLocusId": 4,
+                        "studyLocusId": "4",
                         "variantId": "lead1",
                         "studyId": "study4",  # this is another QTL (diff gene)
                         "chromosome": "1",
@@ -317,15 +317,23 @@ class TestCommonDistanceFeatureLogic:
             (
                 "distanceSentinelTss",
                 [
-                    {"studyLocusId": 1, "geneId": "gene1", "distanceSentinelTss": 0.0},
-                    {"studyLocusId": 1, "geneId": "gene2", "distanceSentinelTss": 0.95},
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene1",
+                        "distanceSentinelTss": 0.0,
+                    },
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene2",
+                        "distanceSentinelTss": 0.95,
+                    },
                 ],
             ),
             (
                 "distanceTssMean",
                 [
-                    {"studyLocusId": 1, "geneId": "gene1", "distanceTssMean": 0.09},
-                    {"studyLocusId": 1, "geneId": "gene2", "distanceTssMean": 0.65},
+                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.09},
+                    {"studyLocusId": "1", "geneId": "gene2", "distanceTssMean": 0.65},
                 ],
             ),
         ],
@@ -380,7 +388,7 @@ class TestCommonDistanceFeatureLogic:
             .orderBy(f.col(feature_name).asc())
         )
         expected_df = spark.createDataFrame(
-            ([1, "gene1", -0.48], [1, "gene2", 0.48]),
+            (["1", "gene1", -0.48], ["1", "gene2", 0.48]),
             ["studyLocusId", "geneId", feature_name],
         ).orderBy(feature_name)
         assert (
@@ -395,7 +403,7 @@ class TestCommonDistanceFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": 1,
+                        "studyLocusId": "1",
                         "variantId": "lead1",
                         "studyId": "study1",
                         "locus": [
