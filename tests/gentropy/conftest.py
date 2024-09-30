@@ -617,10 +617,10 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     return L2GFeatureMatrix(
         _df=spark.createDataFrame(
             [
-                (1, "gene1", 100.0, None),
-                (2, "gene2", 1000.0, 0.0),
+                ("1", "gene1", 100.0, None),
+                ("2", "gene2", 1000.0, 0.0),
             ],
-            "studyLocusId LONG, geneId STRING, distanceTssMean FLOAT, distanceTssMinimum FLOAT",
+            "studyLocusId STRING, geneId STRING, distanceTssMean FLOAT, distanceTssMinimum FLOAT",
         ),
         with_gold_standard=False,
     )

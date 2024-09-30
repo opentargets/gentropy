@@ -257,7 +257,7 @@ class PICS:
                 .withColumn(
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id(
-                        "studyId", "variantId", "finemappingMethod"
+                        ["studyId", "variantId", "finemappingMethod"]
                     ),
                 )
                 .drop("neglog_pvalue")
