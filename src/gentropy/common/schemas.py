@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import importlib.resources as pkg_resources
 import json
-from collections import defaultdict, namedtuple
-from typing import Any
+from collections import defaultdict
 
 from pyspark.sql.types import ArrayType, StructType
 
