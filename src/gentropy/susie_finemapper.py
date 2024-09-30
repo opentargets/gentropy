@@ -143,6 +143,8 @@ class SusieFineMapperStep:
         region: str,
         variant_index: DataFrame,
         ld_matrix: np.ndarray,
+        locusStart: int,
+        locusEnd: int,
         cs_lbf_thr: float = 2,
         sum_pips: float = 0.99,
         lead_pval_threshold: float = 1,
@@ -159,6 +161,8 @@ class SusieFineMapperStep:
             region (str): region
             variant_index (DataFrame): DataFrame with variant information
             ld_matrix (np.ndarray): LD matrix used for fine-mapping
+            locusStart (int): locus start
+            locusEnd (int): locus end
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
             lead_pval_threshold (float): p-value threshold for the lead variant from CS
@@ -369,23 +373,27 @@ class SusieFineMapperStep:
             )
             ld_leads = ld_matrix[ind, :][:, ind]
             ld_leads = ld_leads**2
-
-            ld_leads[ld_leads >= ld_min_r2] = 1
-            ld_leads[ld_leads < ld_min_r2] = 0
-            np.fill_diagonal(ld_leads, 0)
-            # Set lower diagonal elements to 0
             ld_leads = ld_leads - np.tril(ld_leads)
-            column_sums = ld_leads.sum(axis=0)
-            if sum(column_sums) > 0:
-                non_zero_mask = column_sums != 0
-                lead_variantId_list_to_delete = list(
-                    np.array(lead_variantId_list)[non_zero_mask]
-                )
+            np.fill_diagonal(ld_leads, 0)
 
+            lead_variantId_list_to_delete: list[str] = []
+            for idx in range(len(lead_variantId_list)):
+                vId = lead_variantId_list[idx]
+                if vId in lead_variantId_list_to_delete:
+                    continue
+                high_ld_indices = np.where(ld_leads[idx, :] >= ld_min_r2)[0]
+                if len(high_ld_indices) > 0:
+                    lead_variantId_list_to_delete = (
+                        lead_variantId_list_to_delete
+                        + list(np.array(lead_variantId_list)[high_ld_indices])
+                    )
+            if len(lead_variantId_list_to_delete) > 0:
                 for vId in lead_variantId_list_to_delete:
                     cred_sets = cred_sets.filter(f.col("variantId") != vId)
 
         cred_sets = cred_sets.drop("neglogpval")
+        cred_sets = cred_sets.withColumn("locusStart", f.lit(locusStart))
+        cred_sets = cred_sets.withColumn("locusEnd", f.lit(locusEnd))
 
         return StudyLocus(
             _df=cred_sets,
@@ -401,6 +409,8 @@ class SusieFineMapperStep:
         session: Session,
         studyId: str,
         region: str,
+        locusStart: int,
+        locusEnd: int,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
@@ -425,6 +435,8 @@ class SusieFineMapperStep:
             session (Session): Spark session
             studyId (str): study ID
             region (str): region
+            locusStart (int): locus start
+            locusEnd (int): locus end
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
@@ -569,6 +581,8 @@ class SusieFineMapperStep:
             purity_min_r2_threshold=purity_min_r2_threshold,
             cs_lbf_thr=cs_lbf_thr,
             ld_min_r2=ld_min_r2,
+            locusStart=locusStart,
+            locusEnd=locusEnd,
         )
 
         end_time = time.time()
@@ -818,6 +832,8 @@ class SusieFineMapperStep:
             session=session,
             studyId=studyId,
             region=region,
+            locusStart=int(locusStart),
+            locusEnd=int(locusEnd),
             susie_est_tausq=susie_est_tausq,
             run_carma=run_carma,
             run_sumstat_imputation=run_sumstat_imputation,
