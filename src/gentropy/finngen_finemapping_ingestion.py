@@ -20,6 +20,7 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
         finngen_finemapping_out: str,
         finngen_susie_finemapping_snp_files: str = FinngenFinemappingConfig().finngen_susie_finemapping_snp_files,
         finngen_susie_finemapping_cs_summary_files: str = FinngenFinemappingConfig().finngen_susie_finemapping_cs_summary_files,
+        finngen_finemapping_lead_pvalue_threshold: float = FinngenFinemappingConfig().finngen_finemapping_lead_pvalue_threshold,
     ) -> None:
         """Run FinnGen finemapping ingestion step.
 
@@ -28,16 +29,21 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
             finngen_finemapping_out (str): Output path for the finemapping results in StudyLocus format.
             finngen_susie_finemapping_snp_files(str): Path to the FinnGen SuSIE finemapping results.
             finngen_susie_finemapping_cs_summary_files (str): FinnGen SuSIE summaries for CS filters(LBF>2).
+            finngen_finemapping_lead_pvalue_threshold (float): Lead p-value threshold.
         """
         # Read finemapping outputs from the input paths.
 
-        finngen_finemapping_df = FinnGenFinemapping.from_finngen_susie_finemapping(
-            spark=session.spark,
-            finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
-            finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
-        )
-
-        # Write the output.
-        finngen_finemapping_df.df.write.mode(session.write_mode).parquet(
-            finngen_finemapping_out
+        (
+            FinnGenFinemapping.from_finngen_susie_finemapping(
+                spark=session.spark,
+                finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
+                finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
+            )
+            # Flagging sub-significnat loci:
+            .validate_lead_pvalue(
+                pvalue_cutoff=finngen_finemapping_lead_pvalue_threshold
+            )
+            # Writing the output:
+            .df.write.mode(session.write_mode)
+            .parquet(finngen_finemapping_out)
         )

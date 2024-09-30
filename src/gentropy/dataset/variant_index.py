@@ -6,9 +6,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
+    get_nested_struct_schema,
     get_record_with_maximum_value,
     rename_all_columns,
     safe_array_union,
@@ -128,6 +130,7 @@ class VariantIndex(Dataset):
         # Prefix for renaming columns:
         prefix = "annotation_"
 
+
         # Generate select expressions that to merge and import columns from annotation:
         select_expressions = []
 
@@ -138,10 +141,17 @@ class VariantIndex(Dataset):
             # If an annotation column can be found in both datasets:
             if (column in self.df.columns) and (column in annotation_source.df.columns):
                 # Arrays are merged:
-                if "ArrayType" in field.dataType.__str__():
+                if isinstance(field.dataType, t.ArrayType):
+                    fields_order = None
+                    if isinstance(field.dataType.elementType, t.StructType):
+                        # Extract the schema of the array to get the order of the fields:
+                        array_schema = [
+                            field for field in VariantIndex.get_schema().fields if field.name == column
+                        ][0].dataType
+                        fields_order = get_nested_struct_schema(array_schema).fieldNames()
                     select_expressions.append(
                         safe_array_union(
-                            f.col(column), f.col(f"{prefix}{column}")
+                            f.col(column), f.col(f"{prefix}{column}"), fields_order
                         ).alias(column)
                     )
                 # Non-array columns are coalesced:
