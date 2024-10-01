@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, List
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -235,7 +235,7 @@ class LocusToGeneConfig(StepConfig):
     run_mode: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
-    variant_gene_path: str = MISSING
+    variant_index_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
     model_path: str | None = None
@@ -254,6 +254,16 @@ class LocusToGeneConfig(StepConfig):
             "pQtlColocH4Maximum",
             "sQtlColocH4Maximum",
             "tuQtlColocH4Maximum",
+            # distance to gene footprint
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            # distance to gene tss
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -355,38 +365,6 @@ class ConvertToVcfStepConfig(StepConfig):
     source_format: str = MISSING
     vcf_path: str = MISSING
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
-
-
-@dataclass
-class VariantToGeneConfig(StepConfig):
-    """V2G step configuration."""
-
-    variant_index_path: str = MISSING
-    gene_index_path: str = MISSING
-    vep_consequences_path: str = MISSING
-    liftover_chain_file_path: str = MISSING
-    liftover_max_length_difference: int = 100
-    max_distance: int = 500_000
-    approved_biotypes: List[str] = field(
-        default_factory=lambda: [
-            "protein_coding",
-            "3prime_overlapping_ncRNA",
-            "antisense",
-            "bidirectional_promoter_lncRNA",
-            "IG_C_gene",
-            "IG_D_gene",
-            "IG_J_gene",
-            "IG_V_gene",
-            "lincRNA",
-            "macro_lncRNA",
-            "non_coding",
-            "sense_intronic",
-            "sense_overlapping",
-        ]
-    )
-    interval_sources: Dict[str, str] = field(default_factory=dict)
-    v2g_path: str = MISSING
-    _target_: str = "gentropy.variant_to_gene.V2GStep"
 
 
 @dataclass
@@ -565,7 +543,6 @@ def register_config() -> None:
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
-    cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )

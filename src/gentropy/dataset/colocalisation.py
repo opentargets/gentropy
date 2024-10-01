@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.study_index import StudyIndex
+    from gentropy.dataset.study_locus import StudyLocus
 
 from functools import reduce
 

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from _pytest.fixtures import FixtureRequest
 
     from gentropy.dataset.gene_index import GeneIndex
-    from gentropy.dataset.v2g import V2G
+    from gentropy.dataset.l2g_prediction import L2GPrediction
 
 SCHEMA_DIR = "src/gentropy/assets/schemas"
 
@@ -75,21 +75,23 @@ def test_schema_columns_camelcase(schema_json: str) -> None:
 
 
 class TestValidateSchema:
-    """Test validate_schema method using V2G (unnested) and GeneIndex (nested) as a testing dataset."""
+    """Test validate_schema method using L2GPrediction (unnested) and GeneIndex (nested) as a testing dataset."""
 
     @pytest.fixture()
     def mock_dataset_instance(
         self: TestValidateSchema, request: FixtureRequest
-    ) -> V2G | GeneIndex:
+    ) -> L2GPrediction | GeneIndex:
         """Meta fixture to return the value of any requested fixture."""
         return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize(
-        "mock_dataset_instance", ["mock_v2g", "mock_gene_index"], indirect=True
+        "mock_dataset_instance",
+        ["mock_l2g_predictions", "mock_gene_index"],
+        indirect=True,
     )
     def test_validate_schema_extra_field(
         self: TestValidateSchema,
-        mock_dataset_instance: V2G | GeneIndex,
+        mock_dataset_instance: L2GPrediction | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if the observed schema has an extra field."""
         with pytest.raises(SchemaValidationError, match="extraField"):
@@ -98,22 +100,26 @@ class TestValidateSchema:
             )
 
     @pytest.mark.parametrize(
-        "mock_dataset_instance", ["mock_v2g", "mock_gene_index"], indirect=True
+        "mock_dataset_instance",
+        ["mock_l2g_predictions", "mock_gene_index"],
+        indirect=True,
     )
     def test_validate_schema_missing_field(
         self: TestValidateSchema,
-        mock_dataset_instance: V2G | GeneIndex,
+        mock_dataset_instance: L2GPrediction | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if the observed schema is missing a required field, geneId in this case."""
         with pytest.raises(SchemaValidationError, match="geneId"):
             mock_dataset_instance.df = mock_dataset_instance.df.drop("geneId")
 
     @pytest.mark.parametrize(
-        "mock_dataset_instance", ["mock_v2g", "mock_gene_index"], indirect=True
+        "mock_dataset_instance",
+        ["mock_l2g_predictions", "mock_gene_index"],
+        indirect=True,
     )
     def test_validate_schema_duplicated_field(
         self: TestValidateSchema,
-        mock_dataset_instance: V2G | GeneIndex,
+        mock_dataset_instance: L2GPrediction | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if the observed schema has a duplicated field, geneId in this case."""
         with pytest.raises(SchemaValidationError, match="geneId"):
@@ -122,11 +128,13 @@ class TestValidateSchema:
             )
 
     @pytest.mark.parametrize(
-        "mock_dataset_instance", ["mock_v2g", "mock_gene_index"], indirect=True
+        "mock_dataset_instance",
+        ["mock_l2g_predictions", "mock_gene_index"],
+        indirect=True,
     )
     def test_validate_schema_different_datatype(
         self: TestValidateSchema,
-        mock_dataset_instance: V2G | GeneIndex,
+        mock_dataset_instance: L2GPrediction | GeneIndex,
     ) -> None:
         """Test that validate_schema raises an error if any field in the observed schema has a different type than expected."""
         with pytest.raises(SchemaValidationError, match="geneId"):
