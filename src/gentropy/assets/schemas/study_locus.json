@@ -235,18 +235,18 @@
               "name": "r2Overall",
               "nullable": true,
               "type": "double"
-            },
-            {
-              "metadata": {},
-              "name": "confidence",
-              "nullable": true,
-              "type": "string"
             }
           ],
           "type": "struct"
         },
         "type": "array"
       }
+    },
+    {
+      "metadata": {},
+      "name": "confidence",
+      "nullable": true,
+      "type": "string"
     }
   ],
   "type": "struct"
