@@ -238,6 +238,7 @@ class LocusToGeneConfig(StepConfig):
     variant_index_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
+    gene_index_path: str = MISSING
     model_path: str | None = None
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
@@ -264,6 +265,11 @@ class LocusToGeneConfig(StepConfig):
             "distanceTssMeanNeighbourhood",
             "distanceSentinelTss",
             "distanceSentinelTssNeighbourhood",
+            # vep
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
