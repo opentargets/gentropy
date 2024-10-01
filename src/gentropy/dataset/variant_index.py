@@ -366,4 +366,8 @@ class VariantIndex(Dataset):
                 "variantFunctionalConsequenceId",
                 "mostSevereVariantFunctionalConsequenceId",
             )
+            .withColumnRenamed(
+                "targetId",
+                "geneId",
+            )
         )

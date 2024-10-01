@@ -50,6 +50,11 @@ from gentropy.dataset.l2g_features.distance import (
     common_neighbourhood_distance_feature_logic,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.vep import (
+    VepMaximumFeature,
+    VepMeanFeature,
+    common_vep_feature_logic,
+)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
@@ -86,6 +91,8 @@ if TYPE_CHECKING:
         DistanceSentinelTssNeighbourhoodFeature,
         DistanceSentinelFootprintFeature,
         DistanceSentinelFootprintNeighbourhoodFeature,
+        VepMaximumFeature,
+        VepMeanFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -483,6 +490,178 @@ class TestCommonDistanceFeatureLogic:
                     ),
                 ],
                 self.variant_index_schema,
+            ),
+            _schema=VariantIndex.get_schema(),
+        )
+
+
+class TestCommonVepFeatureLogic:
+    """Test the common_vep_feature_logic methods."""
+
+    @pytest.mark.parametrize(
+        ("feature_name", "expected_data"),
+        [
+            (
+                "vepMean",
+                [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene1",
+                        "vepMean": 0.33,
+                    },
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene2",
+                        "vepMean": 0.5,
+                    },
+                ],
+            ),
+            (
+                "vepMaximum",
+                [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene1",
+                        "vepMaximum": 0.66,
+                    },
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene2",
+                        "vepMaximum": 1.0,
+                    },
+                ],
+            ),
+        ],
+    )
+    def test_common_vep_feature_logic(
+        self: TestCommonVepFeatureLogic,
+        spark: SparkSession,
+        feature_name: str,
+        expected_data: dict[str, Any],
+    ) -> None:
+        """Test the logic of the function that extracts features from VEP's functional consequences."""
+        observed_df = (
+            common_vep_feature_logic(
+                self.sample_study_locus,
+                variant_index=self.sample_variant_index,
+                feature_name=feature_name,
+            )
+            .withColumn(feature_name, f.round(f.col(feature_name), 2))
+            .orderBy(feature_name)
+        )
+        expected_df = (
+            spark.createDataFrame(expected_data)
+            .select("studyLocusId", "geneId", feature_name)
+            .orderBy(feature_name)
+        )
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), f"Expected and observed dataframes are not equal for feature {feature_name}."
+
+    # def test_common_neighbourhood_colocalisation_feature_logic(
+    #     self: TestCommonDistanceFeatureLogic,
+    #     spark: SparkSession,
+    # ) -> None:
+    #     """Test the logic of the function that extracts the distance between the sentinel of a credible set and the nearby genes."""
+    #     feature_name = "distanceSentinelTssNeighbourhood"
+    #     observed_df = (
+    #         common_neighbourhood_distance_feature_logic(
+    #             self.sample_study_locus,
+    #             variant_index=self.sample_variant_index,
+    #             feature_name=feature_name,
+    #             distance_type=self.distance_type,
+    #             genomic_window=10,
+    #         )
+    #         .withColumn(feature_name, f.round(f.col(feature_name), 2))
+    #         .orderBy(f.col(feature_name).asc())
+    #     )
+    #     expected_df = spark.createDataFrame(
+    #         (["1", "gene1", -0.48], ["1", "gene2", 0.48]),
+    #         ["studyLocusId", "geneId", feature_name],
+    #     ).orderBy(feature_name)
+    #     assert (
+    #         observed_df.collect() == expected_df.collect()
+    #     ), "Output doesn't meet the expectation."
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestCommonVepFeatureLogic, spark: SparkSession) -> None:
+        """Set up testing fixtures."""
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "locus": [
+                            {
+                                "variantId": "var1",
+                                "posteriorProbability": 0.5,
+                            },
+                        ],
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.sample_variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        "var1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {
+                                "targetId": "gene1",
+                                "variantFunctionalConsequenceIds": [
+                                    "SO_0001630",  # splice_region_variant (0.33)
+                                    "SO_0001822",  # inframe_deletion (0.66)
+                                ],
+                                "isEnsemblCanonical": True,
+                            },
+                            {
+                                "targetId": "gene2",
+                                "variantFunctionalConsequenceIds": [
+                                    "SO_0001589",  # frameshift_variant (1.0)
+                                ],
+                                "isEnsemblCanonical": True,
+                            },
+                        ],
+                    ),
+                ],
+                schema=StructType(
+                    [
+                        StructField("variantId", StringType(), True),
+                        StructField("chromosome", StringType(), True),
+                        StructField("position", IntegerType(), True),
+                        StructField("referenceAllele", StringType(), True),
+                        StructField("alternateAllele", StringType(), True),
+                        StructField(
+                            "transcriptConsequences",
+                            ArrayType(
+                                StructType(
+                                    [
+                                        StructField("targetId", StringType(), True),
+                                        StructField(
+                                            "isEnsemblCanonical", BooleanType(), True
+                                        ),
+                                        StructField(
+                                            "variantFunctionalConsequenceIds",
+                                            ArrayType(StringType(), True),
+                                            True,
+                                        ),
+                                    ]
+                                )
+                            ),
+                            True,
+                        ),
+                    ]
+                ),
             ),
             _schema=VariantIndex.get_schema(),
         )
