@@ -59,7 +59,7 @@ class SusieFineMapperStep:
         carma_tau: float = 0.15,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
-        ld_min_r2: float = 0.9,
+        ld_min_r2: float = 0.8,
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
