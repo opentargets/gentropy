@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
     from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-    from gentropy.dataset.v2g import V2G
+    from gentropy.dataset.variant_index import VariantIndex
 
 
 @dataclass
@@ -33,16 +33,16 @@ class L2GGoldStandard(Dataset):
     def from_otg_curation(
         cls: type[L2GGoldStandard],
         gold_standard_curation: DataFrame,
-        v2g: V2G,
         study_locus_overlap: StudyLocusOverlap,
+        variant_index: VariantIndex,
         interactions: DataFrame,
     ) -> L2GGoldStandard:
         """Initialise L2GGoldStandard from source dataset.
 
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from
-            v2g (V2G): Variant to gene dataset to bring distance between a variant and a gene's TSS
             study_locus_overlap (StudyLocusOverlap): Study locus overlap dataset to remove duplicated loci
+            variant_index (VariantIndex): Dataset to bring distance between a variant and a gene's footprint
             interactions (DataFrame): Gene-gene interactions dataset to remove negative cases where the gene interacts with a positive gene
 
         Returns:
@@ -55,7 +55,9 @@ class L2GGoldStandard(Dataset):
         interactions_df = cls.process_gene_interactions(interactions)
 
         return (
-            OpenTargetsL2GGoldStandard.as_l2g_gold_standard(gold_standard_curation, v2g)
+            OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
+                gold_standard_curation, variant_index
+            )
             # .filter_unique_associations(study_locus_overlap)
             .remove_false_negatives(interactions_df)
         )

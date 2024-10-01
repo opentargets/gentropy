@@ -104,6 +104,7 @@ class StudyLocusQualityCheck(Enum):
     )
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
+    OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
 
 
 class CredibleInterval(Enum):
