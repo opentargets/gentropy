@@ -60,7 +60,9 @@ function main() {
     echo "Uninstalling previous version if it exists"
     pip uninstall -y gentropy
     echo "Install package..."
-    run_with_retry pip install --upgrade ${PACKAGENAME}
+    # NOTE: ensure the gentropy is reinstalled each time without version cache
+    # see https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-force-reinstall
+    run_with_retry pip install --force-reinstall ${PACKAGENAME}
 
 }
 
