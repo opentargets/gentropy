@@ -47,6 +47,8 @@ class StudyLocusValidationStep:
             .qc_explained_by_SuSiE()  # Flagging credible sets in regions explained by SuSiE
             # Annotates credible intervals and filter to only keep 99% credible sets
             .filter_credible_set(credible_interval=CredibleInterval.IS99)
+            # Annotate credible set confidence:
+            .assign_confidence()
         ).persist()  # we will need this for 2 types of outputs
 
         study_locus_with_qc.valid_rows(
