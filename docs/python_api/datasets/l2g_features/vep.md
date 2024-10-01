@@ -6,8 +6,8 @@ title: From VEP
 
 ::: gentropy.dataset.l2g_features.vep.VepMeanFeature
 ::: gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature
-::: gentropy.dataset.l2g_features.vep.vepMaximum
-::: gentropy.dataset.l2g_features.vep.vepMaximumNeighbourhood
+::: gentropy.dataset.l2g_features.vep.VepMaximumFeature
+::: gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature
 
 ## Common logic
 
