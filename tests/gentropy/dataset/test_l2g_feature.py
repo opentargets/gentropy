@@ -52,7 +52,10 @@ from gentropy.dataset.l2g_features.distance import (
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
+    VepMaximumNeighbourhoodFeature,
     VepMeanFeature,
+    VepMeanNeighbourhoodFeature,
+    common_neighbourhood_vep_feature_logic,
     common_vep_feature_logic,
 )
 from gentropy.dataset.study_index import StudyIndex
@@ -93,6 +96,8 @@ if TYPE_CHECKING:
         DistanceSentinelFootprintNeighbourhoodFeature,
         VepMaximumFeature,
         VepMeanFeature,
+        VepMaximumNeighbourhoodFeature,
+        VepMeanNeighbourhoodFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -558,30 +563,28 @@ class TestCommonVepFeatureLogic:
             observed_df.collect() == expected_df.collect()
         ), f"Expected and observed dataframes are not equal for feature {feature_name}."
 
-    # def test_common_neighbourhood_colocalisation_feature_logic(
-    #     self: TestCommonDistanceFeatureLogic,
-    #     spark: SparkSession,
-    # ) -> None:
-    #     """Test the logic of the function that extracts the distance between the sentinel of a credible set and the nearby genes."""
-    #     feature_name = "distanceSentinelTssNeighbourhood"
-    #     observed_df = (
-    #         common_neighbourhood_distance_feature_logic(
-    #             self.sample_study_locus,
-    #             variant_index=self.sample_variant_index,
-    #             feature_name=feature_name,
-    #             distance_type=self.distance_type,
-    #             genomic_window=10,
-    #         )
-    #         .withColumn(feature_name, f.round(f.col(feature_name), 2))
-    #         .orderBy(f.col(feature_name).asc())
-    #     )
-    #     expected_df = spark.createDataFrame(
-    #         (["1", "gene1", -0.48], ["1", "gene2", 0.48]),
-    #         ["studyLocusId", "geneId", feature_name],
-    #     ).orderBy(feature_name)
-    #     assert (
-    #         observed_df.collect() == expected_df.collect()
-    #     ), "Output doesn't meet the expectation."
+    def test_common_neighbourhood_vep_feature_logic(
+        self: TestCommonVepFeatureLogic,
+        spark: SparkSession,
+    ) -> None:
+        """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
+        feature_name = "vepMaximumNeighbourhood"
+        observed_df = (
+            common_neighbourhood_vep_feature_logic(
+                self.sample_study_locus,
+                variant_index=self.sample_variant_index,
+                feature_name=feature_name,
+            )
+            .withColumn(feature_name, f.round(f.col(feature_name), 2))
+            .orderBy(f.col(feature_name).asc())
+        )
+        expected_df = spark.createDataFrame(
+            (["1", "gene1", -0.17], ["1", "gene2", 0.17]),
+            ["studyLocusId", "geneId", feature_name],
+        ).orderBy(feature_name)
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), "Output doesn't meet the expectation."
 
     @pytest.fixture(autouse=True)
     def _setup(self: TestCommonVepFeatureLogic, spark: SparkSession) -> None:

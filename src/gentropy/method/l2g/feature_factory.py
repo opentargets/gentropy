@@ -33,7 +33,12 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceTssMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
-from gentropy.dataset.l2g_features.vep import VepMaximumFeature, VepMeanFeature
+from gentropy.dataset.l2g_features.vep import (
+    VepMaximumFeature,
+    VepMaximumNeighbourhoodFeature,
+    VepMeanFeature,
+    VepMeanNeighbourhoodFeature,
+)
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 
@@ -119,7 +124,9 @@ class FeatureFactory:
         "tuQtlColocH4Maximum": TuQtlColocH4MaximumFeature,
         "tuQtlColocH4MaximumNeighbourhood": TuQtlColocH4MaximumNeighbourhoodFeature,
         "vepMean": VepMeanFeature,
+        "vepMeanNeighbourhood": VepMeanNeighbourhoodFeature,
         "vepMaximum": VepMaximumFeature,
+        "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
     }
 
     def __init__(
