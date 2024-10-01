@@ -81,7 +81,7 @@ class SusieFineMapperStep:
             carma_tau (float): CARMA tau, shrinkage parameter
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
-            ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
+            ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.8
         """
         # Read locus manifest.
         study_locus_manifest = pd.read_csv(study_locus_manifest_path)
