@@ -225,41 +225,33 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
         # Subset of variant annotation required for GWAS Catalog annotations:
-        va_subset = (
-            variant_index.df.select(
-                "variantId",
-                "chromosome",
-                # Calculate the position in Ensembl coordinates for indels:
-                GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                ).alias("ensemblPosition"),
-                # Keeping GnomAD position:
-                "position",
-                f.col("rsIds").alias("rsIdsGnomad"),
-                "referenceAllele",
-                "alternateAllele",
-                "alleleFrequencies",
-                variant_index.max_maf().alias("maxMaf"),
-            )
-            .join(
-                f.broadcast(
-                    gwas_associations_subset.select(
-                        "chromosome", "ensemblPosition"
-                    ).distinct()
-                ),
-                on=["chromosome", "ensemblPosition"],
-                how="inner",
-            )
-            .persist()
+        va_subset = variant_index.df.select(
+            "variantId",
+            "chromosome",
+            # Calculate the position in Ensembl coordinates for indels:
+            GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(
+                f.col("position"),
+                f.col("referenceAllele"),
+                f.col("alternateAllele"),
+            ).alias("ensemblPosition"),
+            # Keeping GnomAD position:
+            "position",
+            f.col("rsIds").alias("rsIdsGnomad"),
+            "referenceAllele",
+            "alternateAllele",
+            "alleleFrequencies",
+            variant_index.max_maf().alias("maxMaf"),
+        ).join(
+            gwas_associations_subset.select("chromosome", "ensemblPosition").distinct(),
+            on=["chromosome", "ensemblPosition"],
+            how="inner",
         )
 
         # Semi-resolved ids (still contains duplicates when conclusion was not possible to make
         # based on rsIds or allele concordance)
         filtered_associations = (
             gwas_associations_subset.join(
-                f.broadcast(va_subset),
+                va_subset,
                 on=["chromosome", "ensemblPosition"],
                 how="left",
             )
