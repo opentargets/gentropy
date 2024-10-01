@@ -1167,7 +1167,7 @@ class StudyLocus(Dataset):
                 & (
                     ~f.array_contains(
                         f.col("qualityControls"),
-                        StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID.value,
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
                     )
                 ),
                 CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
@@ -1177,7 +1177,7 @@ class StudyLocus(Dataset):
                 & (
                     f.array_contains(
                         f.col("qualityControls"),
-                        StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID.value,
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
                     )
                 ),
                 CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
