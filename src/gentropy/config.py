@@ -116,7 +116,7 @@ class GWASCatalogTopHitIngestionConfig(StepConfig):
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
-    _target_: str = "gentropy.gwas_catalog_ingestion.GWASCatalogTopHitIngestionStep"
+    _target_: str = "gentropy.gwas_catalog_top_hits.GWASCatalogTopHitIngestionStep"
 
 
 @dataclass
