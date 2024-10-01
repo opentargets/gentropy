@@ -316,14 +316,12 @@ class StudyIndexGWASCatalogParser:
         cls: type[StudyIndexGWASCatalogParser],
         catalog_studies: DataFrame,
         ancestry_file: DataFrame,
-        sumstats_lut: DataFrame,
     ) -> StudyIndexGWASCatalog:
         """Ingests study level metadata from the GWAS Catalog.
 
         Args:
             catalog_studies (DataFrame): GWAS Catalog raw study table
             ancestry_file (DataFrame): GWAS Catalog ancestry table.
-            sumstats_lut (DataFrame): GWAS Catalog summary statistics list.
 
         Returns:
             StudyIndexGWASCatalog: Parsed and annotated GWAS Catalog study table.
@@ -332,7 +330,6 @@ class StudyIndexGWASCatalogParser:
         return (
             cls._parse_study_table(catalog_studies)
             .annotate_ancestries(ancestry_file)
-            .annotate_sumstats_info(sumstats_lut)
             .annotate_discovery_sample_sizes()
         )
 

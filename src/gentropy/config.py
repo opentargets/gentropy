@@ -107,6 +107,19 @@ class GWASCatalogIngestionConfig(StepConfig):
 
 
 @dataclass
+class GWASCatalogTopHitIngestionConfig(StepConfig):
+    """GWAS Catalog ingestion step configuration."""
+
+    catalog_study_files: list[str] = MISSING
+    catalog_ancestry_files: list[str] = MISSING
+    catalog_associations_file: str = MISSING
+    variant_annotation_path: str = MISSING
+    catalog_studies_out: str = MISSING
+    catalog_associations_out: str = MISSING
+    _target_: str = "gentropy.gwas_catalog_ingestion.GWASCatalogTopHitIngestionStep"
+
+
+@dataclass
 class GWASCatalogSumstatsPreprocessConfig(StepConfig):
     """GWAS Catalog sumstat preprocess step configuration."""
 
@@ -525,6 +538,11 @@ def register_config() -> None:
         group="step",
         name="gwas_catalog_sumstat_preprocess",
         node=GWASCatalogSumstatsPreprocessConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_top_hit_ingestion",
+        node=GWASCatalogTopHitIngestionConfig,
     )
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
