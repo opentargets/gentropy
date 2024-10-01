@@ -375,7 +375,7 @@ class SusieFineMapperStep:
             ld_leads = ld_matrix[ind, :][:, ind]
             ld_leads = ld_leads**2
             ld_leads = ld_leads - np.tril(ld_leads)
-            np.fill_diagonal(ld_leads, 0)
+            np.fill_diagonal(ld_leads, -1)
 
             lead_variantId_list_to_delete: list[str] = []
             for idx in range(len(lead_variantId_list)):
@@ -605,6 +605,8 @@ class SusieFineMapperStep:
         return {
             "study_locus": study_locus,
             "log": log_df,
+            "LD": ld_to_fm,
+            "GWAS_df": GWAS_df,
         }
 
     @staticmethod
