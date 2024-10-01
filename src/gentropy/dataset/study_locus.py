@@ -41,7 +41,7 @@ class CredibleSetConfidenceClasses(Enum):
 
     Attributes:
         FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
-        FINEMAPPED_OUT_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
+        FINEMAPPED_OUT_OF_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
         PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
         PICSED_TOP_HIT (str): PICS fine-mapped credible set based on reported top hit
         UNKNOWN (str): Unknown confidence, for credible sets which did not fit any of the above categories
