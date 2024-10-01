@@ -40,16 +40,20 @@ class CredibleSetConfidenceClasses(Enum):
     List of confidence classes, from the highest to the lowest confidence level.
 
     Attributes:
-        FINEMAPPED_IN_SAMPLE_LD (str): Credible set is finemapped with in-sample LD
-        FINEMAPPED_OUT_SAMPLE_LD (str): Credible set is finemapped with out-sample LD
-        PICSED_SUMMARY_STATS (str): Summary statistics derived credible set, determined with PICS
-        PICSED_TOP_HIT (str): Curated top hit, determined with PICS
+        FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
+        FINEMAPPED_OUT_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
+        PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
+        PICSED_TOP_HIT (str): PICS fine-mapped credible set based on reported top hit
+        UNKNOWN (str): Unknown confidence, for credible sets which did not fit any of the above categories
     """
 
-    FINEMAPPED_IN_SAMPLE_LD = "Finemapped in-sample LD"
-    FINEMAPPED_OUT_OF_SAMPLE_LD = "Finemapped out-sample LD"
-    PICSED_SUMMARY_STATS = "PICS summary statistics"
-    PICSED_TOP_HIT = "PICS top hit"
+    FINEMAPPED_IN_SAMPLE_LD = "SuSiE fine-mapped credible set with in-sample LD"
+    FINEMAPPED_OUT_OF_SAMPLE_LD = "SuSiE fine-mapped credible set with out-of-sample LD"
+    PICSED_SUMMARY_STATS = (
+        "PICS fine-mapped credible set extracted from summary statistics"
+    )
+    PICSED_TOP_HIT = "PICS fine-mapped credible set based on reported top hit"
+    UNKNOWN = "Unknown confidence"
 
 
 class StudyLocusQualityCheck(Enum):
@@ -1199,7 +1203,8 @@ class StudyLocus(Dataset):
                     )
                 ),
                 CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
-            ),
+            )
+            .otherwise(CredibleSetConfidenceClasses.UNKNOWN.value),
         )
 
         return StudyLocus(
