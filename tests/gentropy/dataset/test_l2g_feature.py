@@ -17,6 +17,7 @@ from pyspark.sql.types import (
 )
 
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
     EQtlColocClppMaximumNeighbourhoodFeature,
@@ -106,6 +107,7 @@ def test_feature_factory_return_type(
     mock_colocalisation: Colocalisation,
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
+    mock_gene_index: GeneIndex,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
     loader = L2GFeatureInputLoader(
@@ -113,6 +115,7 @@ def test_feature_factory_return_type(
         study_index=mock_study_index,
         variant_index=mock_variant_index,
         study_locus=mock_study_locus,
+        gene_index=mock_gene_index,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,
@@ -563,28 +566,101 @@ class TestCommonVepFeatureLogic:
             observed_df.collect() == expected_df.collect()
         ), f"Expected and observed dataframes are not equal for feature {feature_name}."
 
-    def test_common_neighbourhood_vep_feature_logic(
+    def test_common_neighbourhood_vep_feature_logic_no_protein_coding(
         self: TestCommonVepFeatureLogic,
         spark: SparkSession,
     ) -> None:
-        """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
+        """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity.
+
+        Because the genes in the vicinity are all non coding, the neighbourhood features should equal the local ones.
+        """
         feature_name = "vepMaximumNeighbourhood"
+        sample_gene_index = GeneIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "geneId": "gene1",
+                        "biotype": "lncRNA",
+                        "chromosome": "1",
+                    },
+                    {
+                        "geneId": "gene2",
+                        "biotype": "lncRNA",
+                        "chromosome": "1",
+                    },
+                ],
+                GeneIndex.get_schema(),
+            ),
+            _schema=GeneIndex.get_schema(),
+        )
         observed_df = (
             common_neighbourhood_vep_feature_logic(
                 self.sample_study_locus,
                 variant_index=self.sample_variant_index,
+                gene_index=sample_gene_index,
                 feature_name=feature_name,
             )
             .withColumn(feature_name, f.round(f.col(feature_name), 2))
             .orderBy(f.col(feature_name).asc())
+            .select("studyLocusId", "geneId", feature_name)
         )
-        expected_df = spark.createDataFrame(
-            (["1", "gene1", -0.17], ["1", "gene2", 0.17]),
-            ["studyLocusId", "geneId", feature_name],
-        ).orderBy(feature_name)
+        expected_df = (
+            spark.createDataFrame(
+                (["1", "gene1", 0.66], ["1", "gene2", 1.0]),
+                ["studyLocusId", "geneId", feature_name],
+            )
+            .orderBy(feature_name)
+            .select("studyLocusId", "geneId", feature_name)
+        )
         assert (
             observed_df.collect() == expected_df.collect()
         ), "Output doesn't meet the expectation."
+
+        def test_common_neighbourhood_vep_feature_logic(
+            self: TestCommonVepFeatureLogic,
+            spark: SparkSession,
+        ) -> None:
+            """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
+            feature_name = "vepMaximumNeighbourhood"
+            sample_gene_index = GeneIndex(
+                _df=spark.createDataFrame(
+                    [
+                        {
+                            "geneId": "gene1",
+                            "biotype": "protein_coding",
+                            "chromosome": "1",
+                        },
+                        {
+                            "geneId": "gene2",
+                            "biotype": "lncRNA",
+                            "chromosome": "1",
+                        },
+                    ],
+                    GeneIndex.get_schema(),
+                ),
+                _schema=GeneIndex.get_schema(),
+            )
+            observed_df = (
+                common_neighbourhood_vep_feature_logic(
+                    self.sample_study_locus,
+                    variant_index=self.sample_variant_index,
+                    gene_index=sample_gene_index,
+                    feature_name=feature_name,
+                )
+                .withColumn(feature_name, f.round(f.col(feature_name), 2))
+                .orderBy(f.col(feature_name).asc())
+            )
+            expected_df = (
+                spark.createDataFrame(
+                    (["1", "gene1", 0.0], ["1", "gene2", 0.34]),
+                    ["studyLocusId", "geneId", feature_name],
+                )
+                .select("studyLocusId", "geneId", feature_name)
+                .orderBy(feature_name)
+            )
+            assert (
+                observed_df.collect() == expected_df.collect()
+            ), "Output doesn't meet the expectation."
 
     @pytest.fixture(autouse=True)
     def _setup(self: TestCommonVepFeatureLogic, spark: SparkSession) -> None:
