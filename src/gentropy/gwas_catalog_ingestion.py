@@ -28,7 +28,7 @@ class GWASCatalogIngestionStep:
         catalog_ancestry_files: list[str],
         catalog_sumstats_lut: str,
         catalog_associations_file: str,
-        gnomad_variant_path: str,
+        variant_annotation_path: str,
         catalog_studies_out: str,
         catalog_associations_out: str,
         distance: int = WindowBasedClumpingStepConfig().distance,
@@ -43,7 +43,7 @@ class GWASCatalogIngestionStep:
             catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
             catalog_sumstats_lut (str): GWAS Catalog summary statistics lookup table.
             catalog_associations_file (str): Raw GWAS catalog associations file.
-            gnomad_variant_path (str): Path to GnomAD variants.
+            variant_annotation_path (str): Path to GnomAD variants.
             catalog_studies_out (str): Output GWAS catalog studies path.
             catalog_associations_out (str): Output GWAS catalog associations path.
             distance (int): Distance, within which tagging variants are collected around the semi-index.
@@ -51,7 +51,7 @@ class GWASCatalogIngestionStep:
             inclusion_list_path (str | None): optional inclusion list (parquet)
         """
         # Extract
-        gnomad_variants = VariantIndex.from_parquet(session, gnomad_variant_path)
+        gnomad_variants = VariantIndex.from_parquet(session, variant_annotation_path)
         catalog_studies = session.spark.read.csv(
             list(catalog_study_files), sep="\t", header=True
         )
