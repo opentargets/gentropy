@@ -6,11 +6,20 @@ from typing import TYPE_CHECKING
 
 import pytest
 from pyspark.sql import DataFrame
+from pyspark.sql.types import (
+    ArrayType,
+    BooleanType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.v2g import V2G
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.open_targets.l2g_gold_standard import (
     OpenTargetsL2GGoldStandard,
 )
@@ -25,13 +34,13 @@ if TYPE_CHECKING:
 
 def test_open_targets_as_l2g_gold_standard(
     sample_l2g_gold_standard: DataFrame,
-    mock_v2g: V2G,
+    mock_variant_index: VariantIndex,
 ) -> None:
     """Test L2G gold standard from OTG curation."""
     assert isinstance(
         OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
             sample_l2g_gold_standard,
-            mock_v2g,
+            mock_variant_index,
         ),
         L2GGoldStandard,
     )
@@ -81,19 +90,52 @@ class TestExpandGoldStandardWithNegatives:
             ["variantId", "geneId", "studyId"],
         )
 
-        sample_v2g_df = spark.createDataFrame(
+        sample_variant_index_df = spark.createDataFrame(
             [
-                ("variant1", "gene1", 5, "X", "X", "X"),
-                ("variant1", "gene3", 10, "X", "X", "X"),
+                (
+                    "variant1",
+                    "chrom",
+                    1,
+                    "A",
+                    "T",
+                    [
+                        {
+                            "distanceFromTss": 5,
+                            "targetId": "gene1",
+                            "isEnsemblCanonical": True,
+                        },
+                        {
+                            "distanceFromTss": 10,
+                            "targetId": "gene3",
+                            "isEnsemblCanonical": True,
+                        },
+                    ],
+                ),
             ],
-            [
-                "variantId",
-                "geneId",
-                "distance",
-                "chromosome",
-                "datatypeId",
-                "datasourceId",
-            ],
+            StructType(
+                [
+                    StructField("variantId", StringType(), True),
+                    StructField("chromosome", StringType(), True),
+                    StructField("position", IntegerType(), True),
+                    StructField("referenceAllele", StringType(), True),
+                    StructField("alternateAllele", StringType(), True),
+                    StructField(
+                        "transcriptConsequences",
+                        ArrayType(
+                            StructType(
+                                [
+                                    StructField("distanceFromTss", LongType(), True),
+                                    StructField("targetId", StringType(), True),
+                                    StructField(
+                                        "isEnsemblCanonical", BooleanType(), True
+                                    ),
+                                ]
+                            )
+                        ),
+                        True,
+                    ),
+                ]
+            ),
         )
 
         self.expected_expanded_gs = spark.createDataFrame(
@@ -107,7 +149,9 @@ class TestExpandGoldStandardWithNegatives:
         self.observed_df = (
             OpenTargetsL2GGoldStandard.expand_gold_standard_with_negatives(
                 self.sample_positive_set,
-                V2G(_df=sample_v2g_df, _schema=V2G.get_schema()),
+                VariantIndex(
+                    _df=sample_variant_index_df, _schema=VariantIndex.get_schema()
+                ),
             )
         )
 
