@@ -34,6 +34,28 @@ if TYPE_CHECKING:
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
+class CredibleSetConfidenceClasses(Enum):
+    """Confidence assignments for credible sets, based on finemapping method and quality checks.
+
+    List of confidence classes, from the highest to the lowest confidence level.
+
+    Attributes:
+        FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
+        FINEMAPPED_OUT_OF_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
+        PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
+        PICSED_TOP_HIT (str): PICS fine-mapped credible set based on reported top hit
+        UNKNOWN (str): Unknown confidence, for credible sets which did not fit any of the above categories
+    """
+
+    FINEMAPPED_IN_SAMPLE_LD = "SuSiE fine-mapped credible set with in-sample LD"
+    FINEMAPPED_OUT_OF_SAMPLE_LD = "SuSiE fine-mapped credible set with out-of-sample LD"
+    PICSED_SUMMARY_STATS = (
+        "PICS fine-mapped credible set extracted from summary statistics"
+    )
+    PICSED_TOP_HIT = "PICS fine-mapped credible set based on reported top hit"
+    UNKNOWN = "Unknown confidence"
+
+
 class StudyLocusQualityCheck(Enum):
     """Study-Locus quality control options listing concerns on the quality of the association.
 
@@ -468,8 +490,9 @@ class StudyLocus(Dataset):
             +----------+----------+-----------------+--------------------------------+
             <BLANKLINE>
         """
-        return Dataset.generate_identifier(uniqueness_defining_columns).alias("studyLocusId")
-
+        return Dataset.generate_identifier(uniqueness_defining_columns).alias(
+            "studyLocusId"
+        )
 
     @classmethod
     def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:
@@ -1126,3 +1149,65 @@ class StudyLocus(Dataset):
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
         return WindowBasedClumping.clump(self, window_size)
+
+    def assign_confidence(self: StudyLocus) -> StudyLocus:
+        """Assign confidence to study locus.
+
+        Returns:
+            StudyLocus: Study locus with confidence assigned.
+        """
+        # Return self if the required columns are not in the dataframe:
+        if (
+            "qualityControls" not in self.df.columns
+            or "finemappingMethod" not in self.df.columns
+        ):
+            return self
+
+        # Assign confidence based on the presence of quality controls
+        df = self.df.withColumn(
+            "confidence",
+            f.when(
+                (f.col("finemappingMethod") == "SuSiE-inf")
+                & (
+                    ~f.array_contains(
+                        f.col("qualityControls"),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
+                    )
+                ),
+                CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == "SuSiE-inf")
+                & (
+                    f.array_contains(
+                        f.col("qualityControls"),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
+                    )
+                ),
+                CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == "pics")
+                & (
+                    ~f.array_contains(
+                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
+                    )
+                ),
+                CredibleSetConfidenceClasses.PICSED_SUMMARY_STATS.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == "pics")
+                & (
+                    f.array_contains(
+                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
+                    )
+                ),
+                CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
+            )
+            .otherwise(CredibleSetConfidenceClasses.UNKNOWN.value),
+        )
+
+        return StudyLocus(
+            _df=df,
+            _schema=self.get_schema(),
+        )
