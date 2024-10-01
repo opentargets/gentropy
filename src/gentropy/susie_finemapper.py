@@ -124,16 +124,17 @@ class SusieFineMapperStep:
         )
 
         if result_logging is not None:
-            # Write result
-            result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
-                study_locus_output
-            )
-            # Write log
-            result_logging["log"].to_parquet(
-                study_locus_output + ".log",
-                engine="pyarrow",
-                index=False,
-            )
+            if result_logging["study_locus"] is not None:
+                # Write result
+                result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
+                    study_locus_output
+                )
+                # Write log
+                result_logging["log"].to_parquet(
+                    study_locus_output + ".log",
+                    engine="pyarrow",
+                    index=False,
+                )
 
     @staticmethod
     def susie_inf_to_studylocus(  # noqa: C901
