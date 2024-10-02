@@ -267,7 +267,7 @@
       "name": "sumStatQCValues",
       "type": {
         "type": "array",
-        "elementType": "string",
+        "elementType": "float",
         "containsNull": true
       },
       "nullable": true,
