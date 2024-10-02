@@ -64,8 +64,7 @@ class GnomADVariants:
         # Select relevant fields and nested records to create class
         return VariantIndex(
             _df=(
-                ht.limit(1000)
-                .select(
+                ht.select(
                     # Extract mandatory fields:
                     variantId=hl.str("_").join(
                         [
