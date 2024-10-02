@@ -88,7 +88,6 @@ class GWASCatalogStudyInclusionGenerator:
         gnomad_variant_path: str,
         catalog_study_files: list[str],
         catalog_ancestry_files: list[str],
-        harmonised_study_file: str,
         catalog_associations_file: str,
         gwas_catalog_study_curation_file: str,
     ) -> StudyIndexGWASCatalog:
@@ -99,7 +98,6 @@ class GWASCatalogStudyInclusionGenerator:
             gnomad_variant_path (str): Path to GnomAD variant list.
             catalog_study_files (list[str]): List of raw GWAS catalog studies file.
             catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-            harmonised_study_file (str): GWAS Catalog summary statistics lookup table.
             catalog_associations_file (str): Raw GWAS catalog associations file.
             gwas_catalog_study_curation_file (str): file of the curation table. Optional.
 
@@ -114,9 +112,6 @@ class GWASCatalogStudyInclusionGenerator:
         ancestry_lut = session.spark.read.csv(
             list(catalog_ancestry_files), sep="\t", header=True
         )
-        sumstats_lut = session.spark.read.csv(
-            harmonised_study_file, sep="\t", header=False
-        )
         catalog_associations = session.spark.read.csv(
             catalog_associations_file, sep="\t", header=True
         ).persist()
@@ -129,7 +124,6 @@ class GWASCatalogStudyInclusionGenerator:
             StudyIndexGWASCatalogParser.from_source(
                 catalog_studies,
                 ancestry_lut,
-                sumstats_lut,
             ).annotate_from_study_curation(gwas_catalog_study_curation),
             GWASCatalogCuratedAssociationsParser.from_source(
                 catalog_associations, gnomad_variants
@@ -146,7 +140,6 @@ class GWASCatalogStudyInclusionGenerator:
         catalog_associations_file: str,
         gwas_catalog_study_curation_file: str,
         gnomad_variant_path: str,
-        harmonised_study_file: str,
         criteria: str,
         inclusion_list_path: str,
         exclusion_list_path: str,
@@ -160,7 +153,6 @@ class GWASCatalogStudyInclusionGenerator:
             catalog_associations_file (str): Raw GWAS catalog associations file.
             gwas_catalog_study_curation_file (str): file of the curation table. Optional.
             gnomad_variant_path (str): Path to GnomAD variant list.
-            harmonised_study_file (str): GWAS Catalog summary statistics lookup table.
             criteria (str): name of the filter set to be applied.
             inclusion_list_path (str): Output path for the inclusion list.
             exclusion_list_path (str): Output path for the exclusion list.
@@ -171,7 +163,6 @@ class GWASCatalogStudyInclusionGenerator:
             gnomad_variant_path,
             catalog_study_files,
             catalog_ancestry_files,
-            harmonised_study_file,
             catalog_associations_file,
             gwas_catalog_study_curation_file,
         )

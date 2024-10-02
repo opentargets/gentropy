@@ -66,7 +66,6 @@ class GWASCatalogStudyCurationConfig(StepConfig):
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
     gwas_catalog_study_curation_out: str = MISSING
     gwas_catalog_study_curation_file: str = MISSING
     _target_: str = "gentropy.gwas_catalog_study_curation.GWASCatalogStudyCurationStep"
@@ -81,7 +80,6 @@ class GWASCatalogStudyInclusionConfig(StepConfig):
     catalog_associations_file: str = MISSING
     gwas_catalog_study_curation_file: str = MISSING
     variant_annotation_path: str = MISSING
-    harmonised_study_file: str = MISSING
     criteria: str = MISSING
     inclusion_list_path: str = MISSING
     exclusion_list_path: str = MISSING
