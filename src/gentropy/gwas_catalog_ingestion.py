@@ -58,9 +58,6 @@ class GWASCatalogIngestionStep:
         ancestry_lut = session.spark.read.csv(
             list(catalog_ancestry_files), sep="\t", header=True
         )
-        sumstats_lut = session.spark.read.csv(
-            catalog_sumstats_lut, sep="\t", header=False
-        )
         catalog_associations = session.spark.read.csv(
             catalog_associations_file, sep="\t", header=True
         ).persist()
@@ -71,7 +68,7 @@ class GWASCatalogIngestionStep:
         # Transform
         study_index, study_locus = GWASCatalogStudySplitter.split(
             StudyIndexGWASCatalogParser.from_source(
-                catalog_studies, ancestry_lut, sumstats_lut
+                catalog_studies, ancestry_lut
             ).annotate_from_study_curation(gwas_catalog_study_curation),
             GWASCatalogCuratedAssociationsParser.from_source(
                 catalog_associations, gnomad_variants
