@@ -23,6 +23,7 @@ from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
     CredibleInterval,
+    CredibleSetConfidenceClasses,
     StudyLocus,
     StudyLocusQualityCheck,
 )
@@ -615,12 +616,20 @@ class TestStudyLocusValidation:
 
     STUDY_LOCUS_DATA = [
         # Won't be flagged:
-        ("1", "v1", "s1", 1.0, -8, []),
+        ("1", "v1", "s1", 1.0, -8, [], "pics"),
         # Already flagged, needs to be tested if the flag reamins unique:
-        ("2", "v2", "s2", 5.0, -4, [StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG.value]),
+        (
+            "2",
+            "v2",
+            "s2",
+            5.0,
+            -4,
+            [StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG.value],
+            "pics",
+        ),
         # To be flagged:
-        ("3", "v3", "s3", 1.0, -4, []),
-        ("4", "v4", "s4", 5.0, -3, []),
+        ("3", "v3", "s3", 1.0, -4, [], "SuSiE-inf"),
+        ("4", "v4", "s4", 5.0, -3, [], "unknown"),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(
@@ -631,6 +640,7 @@ class TestStudyLocusValidation:
             t.StructField("pValueMantissa", t.FloatType(), False),
             t.StructField("pValueExponent", t.IntegerType(), False),
             t.StructField("qualityControls", t.ArrayType(t.StringType()), False),
+            t.StructField("finemappingMethod", t.StringType(), False),
         ]
     )
 
@@ -676,6 +686,28 @@ class TestStudyLocusValidation:
         """Testing if the p-value validation returns the right type."""
         assert isinstance(
             self.study_locus.validate_lead_pvalue(test_pvalues), StudyLocus
+        )
+
+    def test_confidence_flag_return_type(self: TestStudyLocusValidation) -> None:
+        """Testing if the confidence flagging returns the right type."""
+        assert isinstance(self.study_locus.assign_confidence(), StudyLocus)
+
+    def test_confidence_flag_new_column(self: TestStudyLocusValidation) -> None:
+        """Testing if the confidence flagging adds a new column."""
+        assert (
+            self.study_locus.assign_confidence().df.columns
+            == self.study_locus.df.columns + ["confidence"]
+        )
+
+    def test_confidence_flag_unknown_confidence(self: TestStudyLocusValidation) -> None:
+        """Testing if the confidence flagging adds a new column."""
+        assert (
+            self.study_locus.assign_confidence()
+            .df.filter(
+                f.col("confidence") == CredibleSetConfidenceClasses.UNKNOWN.value
+            )
+            .count()
+            == 1
         )
 
     @pytest.mark.parametrize(
