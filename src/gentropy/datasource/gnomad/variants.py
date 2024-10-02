@@ -131,16 +131,23 @@ class GnomADVariants:
                 .drop("locus", "alleles")
                 .select_globals()
                 .to_spark(flatten=False)
-                .withColumn(
-                    "variantId",
-                    VariantIndex.hash_long_variant_ids(
-                        f.col("variantId"),
-                        f.col("chromosome"),
-                        f.col("position"),
-                        self.lenght_threshold,
-                    ),
+                .withColumns(
+                    {
+                        # Once The parsing is done, we have to drop objects with no score from inSilicoPredictors:
+                        "inSilicoPredictors": f.expr(
+                            "filter(inSilicoPredictors, x -> x.score IS NOT NULL)"
+                        ).cast(t.ArrayType(t.StructType())),
+                        # Generate a variantId that is hashed for long variant ids:
+                        "variantId": VariantIndex.hash_long_variant_ids(
+                            f.col("variantId"),
+                            f.col("chromosome"),
+                            f.col("position"),
+                            self.lenght_threshold,
+                        ),
+                        # We are not capturing the most severe consequence from GnomAD, but this column needed for the schema:
+                        "mostSevereConsequenceId": f.lit(None).cast(t.StringType()),
+                    }
                 )
-                .withColumn("mostSevereConsequenceId", f.lit(None).cast(t.StringType()))
             ),
             _schema=VariantIndex.get_schema(),
         )
