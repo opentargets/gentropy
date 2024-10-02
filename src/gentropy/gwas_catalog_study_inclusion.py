@@ -65,7 +65,6 @@ class GWASCatalogStudyInclusionGenerator:
             "traitFromSource",
             "traitFromSourceMappedIds",
             "qualityControls",
-            "hasSumstats",
             filters[criteria].alias("isEligible"),
         )
 
