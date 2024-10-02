@@ -1,4 +1,4 @@
-"""Step to apply linkageg based clumping on study-locus dataset."""
+"""Step to apply linkage based clumping on study-locus dataset."""
 
 from __future__ import annotations
 
@@ -47,7 +47,8 @@ class LocusBreakerClumpingStep:
             remove_mhc (bool, optional): If true will use exclude_region() to remove the MHC region.
         """
         sum_stats = SummaryStatistics.from_parquet(
-            session, summary_statistics_input_path, recursiveFileLookup=True
+            session,
+            summary_statistics_input_path,
         )
         lbc = sum_stats.locus_breaker_clumping(
             lbc_baseline_pvalue,
