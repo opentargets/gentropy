@@ -256,6 +256,22 @@
       "type": "string",
       "nullable": true,
       "metadata": {}
+    },
+    {
+      "name": "sumStatQCPerformed",
+      "type": "boolean",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "sumStatQCValues",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true,
+      "metadata": {}
     }
   ]
 }
