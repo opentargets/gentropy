@@ -64,7 +64,8 @@ class GnomADVariants:
         # Select relevant fields and nested records to create class
         return VariantIndex(
             _df=(
-                ht.select(
+                ht.limit(1000)
+                .select(
                     # Extract mandatory fields:
                     variantId=hl.str("_").join(
                         [
@@ -134,9 +135,10 @@ class GnomADVariants:
                 .withColumns(
                     {
                         # Once The parsing is done, we have to drop objects with no score from inSilicoPredictors:
-                        "inSilicoPredictors": f.expr(
-                            "filter(inSilicoPredictors, x -> x.score IS NOT NULL)"
-                        ).cast(t.ArrayType(t.StructType())),
+                        "inSilicoPredictors": f.filter(
+                            f.col("inSilicoPredictors"),
+                            lambda predictor: predictor["score"].isNotNull(),
+                        ),
                         # Generate a variantId that is hashed for long variant ids:
                         "variantId": VariantIndex.hash_long_variant_ids(
                             f.col("variantId"),
