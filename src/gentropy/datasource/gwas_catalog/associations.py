@@ -9,7 +9,7 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql.types import DoubleType, FloatType, IntegerType, LongType
+from pyspark.sql.types import DoubleType, FloatType, IntegerType, StringType
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
@@ -1109,7 +1109,7 @@ class GWASCatalogCuratedAssociationsParser:
         """
         return StudyLocusGWASCatalog(
             _df=gwas_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
+                "studyLocusId", f.monotonically_increasing_id().cast(StringType())
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
@@ -1188,7 +1188,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             .drop("subStudyDescription", "updatedStudyId")
         ).withColumn(
             "studyLocusId",
-            StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+            StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
         )
         return self
 
@@ -1211,6 +1211,24 @@ class StudyLocusGWASCatalog(StudyLocus):
             ),
         )
         return self
+
+    def qc_flag_all_tophits(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
+        """Flag all associations as top hits.
+
+        Returns:
+            StudyLocusGWASCatalog: Updated study locus.
+        """
+        return StudyLocusGWASCatalog(
+            _df=self._df.withColumn(
+                "qualityControls",
+                StudyLocus.update_quality_flag(
+                    f.col("qualityControls"),
+                    f.lit(True),
+                    StudyLocusQualityCheck.TOP_HIT,
+                ),
+            ),
+            _schema=StudyLocusGWASCatalog.get_schema(),
+        )
 
     def apply_inclusion_list(
         self: StudyLocusGWASCatalog, inclusion_list: DataFrame

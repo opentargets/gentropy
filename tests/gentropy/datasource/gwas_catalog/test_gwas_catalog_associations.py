@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
-from pyspark.sql.types import LongType
+from pyspark.sql.types import StringType
 
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.gwas_catalog.associations import (
@@ -71,9 +71,18 @@ def test_map_variants_to_variant_index(
     assert isinstance(
         GWASCatalogCuratedAssociationsParser._map_variants_to_gnomad_variants(
             sample_gwas_catalog_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id().cast(LongType())
+                "studyLocusId", f.monotonically_increasing_id().cast(StringType())
             ),
             mock_variant_index,
         ),
         DataFrame,
+    )
+
+
+def test_qc_flag_all_tophits(
+    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
+) -> None:
+    """Test qc flag all top hits."""
+    assert isinstance(
+        mock_study_locus_gwas_catalog.qc_flag_all_tophits(), StudyLocusGWASCatalog
     )

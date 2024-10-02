@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, List
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -36,7 +36,6 @@ class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
     credible_set_path: str = MISSING
-    study_index_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
@@ -49,6 +48,16 @@ class GeneIndexConfig(StepConfig):
     target_path: str = MISSING
     gene_index_path: str = MISSING
     _target_: str = "gentropy.gene_index.GeneIndexStep"
+
+
+@dataclass
+class BiosampleIndexConfig(StepConfig):
+    """Biosample index step configuration."""
+
+    cell_ontology_input_path: str = MISSING
+    uberon_input_path: str = MISSING
+    biosample_index_path: str = MISSING
+    _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
 
 
 @dataclass
@@ -112,10 +121,16 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
     mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
+    eqtl_lead_pvalue_threshold: float = 1e-3
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -136,6 +151,7 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
+    sample_size: int = 453733  # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 
@@ -158,6 +174,7 @@ class FinngenFinemappingConfig(StepConfig):
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
+    finngen_finemapping_lead_pvalue_threshold: float = 1e-5
 
 
 @dataclass
@@ -218,7 +235,7 @@ class LocusToGeneConfig(StepConfig):
     run_mode: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
-    variant_gene_path: str = MISSING
+    variant_index_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
     model_path: str | None = None
@@ -227,50 +244,26 @@ class LocusToGeneConfig(StepConfig):
     gene_interactions_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
-            # average distance of all tagging variants to gene TSS
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            "tuQtlColocClppMaximum",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            "tuQtlColocH4Maximum",
+            # distance to gene footprint
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            # distance to gene tss
             "distanceTssMean",
-            # minimum distance of all tagging variants to gene TSS
-            "distanceTssMinimum",
-            # maximum vep consequence score of the locus 95% credible set among all genes in the vicinity
-            "vepMaximumNeighborhood",
-            # maximum vep consequence score of the locus 95% credible set split by gene
-            "vepMaximum",
-            # mean vep consequence score of the locus 95% credible set among all genes in the vicinity
-            "vepMeanNeighborhood",
-            # mean vep consequence score of the locus 95% credible set split by gene
-            "vepMean",
-            # max clpp for each (study, locus, gene) aggregating over all eQTLs
-            "eqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all eQTLs
-            "eqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus, gene) aggregating over all pQTLs
-            "pqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all pQTLs
-            "pqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus, gene) aggregating over all sQTLs
-            "sqtlColocClppMaximum",
-            # max clpp for each (study, locus) aggregating over all sQTLs
-            "sqtlColocClppMaximumNeighborhood",
-            # max clpp for each (study, locus) aggregating over all tuQTLs
-            "tuqtlColocClppMaximum",
-            # max clpp for each (study, locus, gene) aggregating over all tuQTLs
-            "tuqtlColocClppMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all eQTLs
-            "eqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all eQTLs
-            "eqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all pQTLs
-            "pqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all pQTLs
-            "pqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all sQTLs
-            "sqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all sQTLs
-            "sqtlColocLlrMaximumNeighborhood",
-            # max log-likelihood ratio value for each (study, locus, gene) aggregating over all tuQTLs
-            "tuqtlColocLlrMaximum",
-            # max log-likelihood ratio value for each (study, locus) aggregating over all tuQTLs
-            "tuqtlColocLlrMaximumNeighborhood",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -283,6 +276,7 @@ class LocusToGeneConfig(StepConfig):
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     download_from_hub: bool = True
+    write_feature_matrix: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -399,38 +393,6 @@ class ConvertToVcfStepConfig(StepConfig):
 
 
 @dataclass
-class VariantToGeneConfig(StepConfig):
-    """V2G step configuration."""
-
-    variant_index_path: str = MISSING
-    gene_index_path: str = MISSING
-    vep_consequences_path: str = MISSING
-    liftover_chain_file_path: str = MISSING
-    liftover_max_length_difference: int = 100
-    max_distance: int = 500_000
-    approved_biotypes: List[str] = field(
-        default_factory=lambda: [
-            "protein_coding",
-            "3prime_overlapping_ncRNA",
-            "antisense",
-            "bidirectional_promoter_lncRNA",
-            "IG_C_gene",
-            "IG_D_gene",
-            "IG_J_gene",
-            "IG_V_gene",
-            "lincRNA",
-            "macro_lncRNA",
-            "non_coding",
-            "sense_intronic",
-            "sense_overlapping",
-        ]
-    )
-    interval_sources: Dict[str, str] = field(default_factory=dict)
-    v2g_path: str = MISSING
-    _target_: str = "gentropy.variant_to_gene.V2GStep"
-
-
-@dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
@@ -480,8 +442,7 @@ class FinemapperConfig(StepConfig):
     study_locus_manifest_path: str = MISSING
     study_locus_index: int = MISSING
     max_causal_snps: int = MISSING
-    primary_signal_pval_threshold: float = MISSING
-    secondary_signal_pval_threshold: float = MISSING
+    lead_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
     cs_lbf_thr: float = MISSING
@@ -493,6 +454,7 @@ class FinemapperConfig(StepConfig):
     carma_time_limit: int = MISSING
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
+    ld_min_r2: float = MISSING
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
@@ -502,7 +464,7 @@ class GWASQCStep(StepConfig):
 
     gwas_path: str = MISSING
     output_path: str = MISSING
-    studyid: str = MISSING
+    pval_threshold: float = MISSING
     _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
 
 
@@ -530,6 +492,7 @@ class StudyValidationStepConfig(StepConfig):
     study_index_path: list[str] = MISSING
     target_index_path: str = MISSING
     disease_index_path: str = MISSING
+    biosample_index_path: str = MISSING
     valid_study_index_path: str = MISSING
     invalid_study_index_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
@@ -548,7 +511,6 @@ class StudyLocusValidationStepConfig(StepConfig):
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
-    gwas_significance: float = WindowBasedClumpingStepConfig.gwas_significance
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
@@ -570,6 +532,7 @@ def register_config() -> None:
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
     cs.store(group="step", name="gene_index", node=GeneIndexConfig)
+    cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
         name="gwas_catalog_study_curation",
@@ -604,7 +567,6 @@ def register_config() -> None:
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
-    cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )

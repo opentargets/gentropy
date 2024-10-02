@@ -1,4 +1,5 @@
 """L2G gold standard dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,8 +16,9 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-    from gentropy.dataset.v2g import V2G
+    from gentropy.dataset.variant_index import VariantIndex
 
 
 @dataclass
@@ -31,16 +33,16 @@ class L2GGoldStandard(Dataset):
     def from_otg_curation(
         cls: type[L2GGoldStandard],
         gold_standard_curation: DataFrame,
-        v2g: V2G,
         study_locus_overlap: StudyLocusOverlap,
+        variant_index: VariantIndex,
         interactions: DataFrame,
     ) -> L2GGoldStandard:
         """Initialise L2GGoldStandard from source dataset.
 
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from
-            v2g (V2G): Variant to gene dataset to bring distance between a variant and a gene's TSS
             study_locus_overlap (StudyLocusOverlap): Study locus overlap dataset to remove duplicated loci
+            variant_index (VariantIndex): Dataset to bring distance between a variant and a gene's footprint
             interactions (DataFrame): Gene-gene interactions dataset to remove negative cases where the gene interacts with a positive gene
 
         Returns:
@@ -53,7 +55,9 @@ class L2GGoldStandard(Dataset):
         interactions_df = cls.process_gene_interactions(interactions)
 
         return (
-            OpenTargetsL2GGoldStandard.as_l2g_gold_standard(gold_standard_curation, v2g)
+            OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
+                gold_standard_curation, variant_index
+            )
             # .filter_unique_associations(study_locus_overlap)
             .remove_false_negatives(interactions_df)
         )
@@ -98,6 +102,29 @@ class L2GGoldStandard(Dataset):
             "targetA as geneIdA",
             "targetB as geneIdB",
             "scoring as score",
+        )
+
+    def build_feature_matrix(
+        self: L2GGoldStandard,
+        full_feature_matrix: L2GFeatureMatrix,
+    ) -> L2GFeatureMatrix:
+        """Return a feature matrix for study loci in the gold standard.
+
+        Args:
+            full_feature_matrix (L2GFeatureMatrix): Feature matrix for all study loci to join on
+
+        Returns:
+            L2GFeatureMatrix: Feature matrix for study loci in the gold standard
+        """
+        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+
+        return L2GFeatureMatrix(
+            _df=full_feature_matrix._df.join(
+                f.broadcast(self.df.drop("variantId", "studyId", "sources")),
+                on=["studyLocusId", "geneId"],
+                how="inner",
+            ),
+            with_gold_standard=True,
         )
 
     def filter_unique_associations(

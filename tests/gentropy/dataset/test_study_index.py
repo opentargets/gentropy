@@ -167,14 +167,14 @@ class TestGeneValidation:
         """Setup fixture."""
         self.study_index = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array()
+                "qualityControls", f.array().cast("array<string>")
             ),
             _schema=StudyIndex.get_schema(),
         )
 
         self.study_index_no_gene = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
-            .withColumn("qualityControls", f.array())
+            .withColumn("qualityControls", f.array().cast("array<string>"))
             .drop("geneId"),
             _schema=StudyIndex.get_schema(),
         )
@@ -231,7 +231,7 @@ class TestUniquenessValidation:
         """Setup fixture."""
         self.study_index = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array()
+                "qualityControls", f.array().cast("array<string>")
             ),
             _schema=StudyIndex.get_schema(),
         )
@@ -279,7 +279,7 @@ class TestStudyTypeValidation:
         """Setup fixture."""
         self.study_index = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array()
+                "qualityControls", f.array().cast("array<string>")
             ),
             _schema=StudyIndex.get_schema(),
         )
@@ -346,8 +346,10 @@ class TestDiseaseValidation:
             spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
             .groupBy("studyId", "studyType", "projectId")
             .agg(f.collect_set("efo").alias("traitFromSourceMappedIds"))
-            .withColumn("qualityControls", f.array())
-            .withColumn("backgroundTraitFromSourceMappedIds", f.array())
+            .withColumn("qualityControls", f.array().cast("array<string>"))
+            .withColumn(
+                "backgroundTraitFromSourceMappedIds", f.array().cast("array<string>")
+            )
         )
         study_df.show()
         # Mock study index:

@@ -2,7 +2,9 @@
 title: L2G Feature
 ---
 
-::: gentropy.method.l2g.feature_factory.L2GFeature
+## Abstract Class
+
+::: gentropy.dataset.l2g_features.l2g_feature.L2GFeature
 
 ## Schema
 

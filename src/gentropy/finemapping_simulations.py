@@ -139,40 +139,47 @@ class FineMappingSimulations:
                     imputed_r2_threshold=0.9,
                     ld_score_threshold=5,
                     sum_pips=0.99,
-                    primary_signal_pval_threshold=1e-2,
-                    secondary_signal_pval_threshold=1e-2,
+                    lead_pval_threshold=1,
                     purity_mean_r2_threshold=0,
                     purity_min_r2_threshold=0,
                     cs_lbf_thr=2,
-                )
-                cred_set = CS_sim["study_locus"].df
-
-                X = ld_index_pd["variantId"][x_cycle["indexes"]].tolist()
-
-                cred_set = cred_set.withColumn("exploded_locus", col("locus.variantId"))
-                # Create a condition for each element in X
-                conditions = [array_contains(col("exploded_locus"), x) for x in X]
-                # Combine the conditions using the | operator
-                combined_condition = conditions[0]
-                for condition in conditions[1:]:
-                    combined_condition = combined_condition | condition
-                # Create a new column that is True if any condition is True and False otherwise
-                cred_set = cred_set.withColumn("is_in_X", combined_condition)
-
-                cred_set = cred_set.withColumn(
-                    "is_in_lead", when(col("variantId").isin(X), 1).otherwise(0)
+                    ld_min_r2=0.9,
+                    locusStart=1,
+                    locusEnd=2,
                 )
 
-                cred_set = cred_set.toPandas()
-                cred_set = cred_set[column_list]
+                if CS_sim is not None:
+                    cs_sl = CS_sim["study_locus"]
+                    cred_set = cs_sl.df
 
-                if counter == 1:
-                    cred_sets = cred_set
-                else:
-                    # cred_sets = cred_sets.unionByName(cred_set)
-                    cred_sets = pd.concat([cred_sets, cred_set], axis=0)
-                    # cred_sets=cred_sets.merge(cred_set)
-                counter = counter + 1
+                    X = ld_index_pd["variantId"][x_cycle["indexes"]].tolist()
+
+                    cred_set = cred_set.withColumn(
+                        "exploded_locus", col("locus.variantId")
+                    )
+                    # Create a condition for each element in X
+                    conditions = [array_contains(col("exploded_locus"), x) for x in X]
+                    # Combine the conditions using the | operator
+                    combined_condition = conditions[0]
+                    for condition in conditions[1:]:
+                        combined_condition = combined_condition | condition
+                    # Create a new column that is True if any condition is True and False otherwise
+                    cred_set = cred_set.withColumn("is_in_X", combined_condition)
+
+                    cred_set = cred_set.withColumn(
+                        "is_in_lead", when(col("variantId").isin(X), 1).otherwise(0)
+                    )
+
+                    cred_set = cred_set.toPandas()
+                    cred_set = cred_set[column_list]
+
+                    if counter == 1:
+                        cred_sets = cred_set
+                    else:
+                        # cred_sets = cred_sets.unionByName(cred_set)
+                        cred_sets = pd.concat([cred_sets, cred_set], axis=0)
+                        # cred_sets=cred_sets.merge(cred_set)
+                    counter = counter + 1
 
         return cred_sets
 

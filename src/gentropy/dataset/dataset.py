@@ -13,7 +13,7 @@ from pyspark.sql.types import DoubleType
 from pyspark.sql.window import Window
 from typing_extensions import Self
 
-from gentropy.common.schemas import flatten_schema
+from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -73,8 +73,11 @@ class Dataset(ABC):
 
         Returns:
             StructType: Schema for the Dataset
+
+        Raises:
+                NotImplementedError: Must be implemented in the child classes
         """
-        pass
+        raise NotImplementedError("Must be implemented in the child classes")
 
     @classmethod
     def get_QC_column_name(cls: type[Self]) -> str | None:
@@ -139,57 +142,15 @@ class Dataset(ABC):
         """Validate DataFrame schema against expected class schema.
 
         Raises:
-            ValueError: DataFrame schema is not valid
+            SchemaValidationError: If the DataFrame schema does not match the expected schema
         """
         expected_schema = self._schema
-        expected_fields = flatten_schema(expected_schema)
         observed_schema = self._df.schema
-        observed_fields = flatten_schema(observed_schema)
 
         # Unexpected fields in dataset
-        if unexpected_field_names := [
-            x.name
-            for x in observed_fields
-            if x.name not in [y.name for y in expected_fields]
-        ]:
-            raise ValueError(
-                f"The {unexpected_field_names} fields are not included in DataFrame schema: {expected_fields}"
-            )
-
-        # Required fields not in dataset
-        required_fields = [x.name for x in expected_schema if not x.nullable]
-        if missing_required_fields := [
-            req
-            for req in required_fields
-            if not any(field.name == req for field in observed_fields)
-        ]:
-            raise ValueError(
-                f"The {missing_required_fields} fields are required but missing: {required_fields}"
-            )
-
-        # Fields with duplicated names
-        if duplicated_fields := [
-            x for x in set(observed_fields) if observed_fields.count(x) > 1
-        ]:
-            raise ValueError(
-                f"The following fields are duplicated in DataFrame schema: {duplicated_fields}"
-            )
-
-        # Fields with different datatype
-        observed_field_types = {
-            field.name: type(field.dataType) for field in observed_fields
-        }
-        expected_field_types = {
-            field.name: type(field.dataType) for field in expected_fields
-        }
-        if fields_with_different_observed_datatype := [
-            name
-            for name, observed_type in observed_field_types.items()
-            if name in expected_field_types
-            and observed_type != expected_field_types[name]
-        ]:
-            raise ValueError(
-                f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
+        if discrepancies := compare_struct_schemas(observed_schema, expected_schema):
+            raise SchemaValidationError(
+                f"Schema validation failed for {type(self).__name__}", discrepancies
             )
 
     def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
@@ -208,8 +169,7 @@ class Dataset(ABC):
             Self: filtered dataset.
 
         Raises:
-            ValueError: If the Dataset does not contain a QC column.
-            ValueError: If the invalid_flags elements do not exist in QC mappings flags.
+            ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
         """
         # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
         invalid_reasons = []
@@ -350,3 +310,18 @@ class Dataset(ABC):
             )
             > 1
         )
+
+    @staticmethod
+    def generate_identifier(uniqueness_defining_columns: list[str]) -> Column:
+        """Hashes the provided columns to generate a unique identifier.
+
+        Args:
+            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
+
+        Returns:
+            Column: column with a unique identifier
+        """
+        hashable_columns = [f.when(f.col(column).cast("string").isNull(), f.lit("None"))
+                                 .otherwise(f.col(column).cast("string"))
+                                 for column in uniqueness_defining_columns]
+        return f.md5(f.concat(*hashable_columns))

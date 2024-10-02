@@ -24,7 +24,6 @@ Available options:
         ukbiobank
         variant_annotation
         variant_index
-        variant_to_gene
 
 Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
 ```

@@ -15,7 +15,7 @@ class SummaryStatisticsQCStep:
         session: Session,
         gwas_path: str,
         output_path: str,
-        studyid: str,
+        pval_threshold: float = 1e-8,
     ) -> None:
         """Calculating quality control metrics on the provided GWAS study.
 
@@ -23,15 +23,15 @@ class SummaryStatisticsQCStep:
             session (Session): Spark session
             gwas_path (str): Path to the GWAS summary statistics.
             output_path (str): Output path for the QC results.
-            studyid (str): Study ID for the QC.
+            pval_threshold (float): P-value threshold for the QC. Default is 1e-8.
 
         """
         gwas = SummaryStatistics.from_parquet(session, path=gwas_path)
 
         (
             SummaryStatisticsQC.get_quality_control_metrics(
-                gwas=gwas, limit=100_000_000, min_count=100, n_total=100000
+                gwas=gwas, limit=100_000_000, pval_threshold=pval_threshold
             )
             .write.mode(session.write_mode)
-            .parquet(output_path + "/qc_results_" + studyid)
+            .parquet(output_path)
         )

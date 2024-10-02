@@ -77,10 +77,11 @@ class SummaryStatistics(Dataset):
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
         return WindowBasedClumping.clump(
-            self,
+            # Before clumping, we filter the summary statistics by p-value:
+            self.pvalue_filter(gwas_significance),
             distance=distance,
-            gwas_significance=gwas_significance,
-        )
+            # After applying the clumping, we filter the clumped loci by the flag:
+        ).valid_rows(["WINDOW_CLUMPED"])
 
     def locus_breaker_clumping(
         self: SummaryStatistics,
@@ -91,7 +92,7 @@ class SummaryStatistics(Dataset):
     ) -> StudyLocus:
         """Generate study-locus from summary statistics using locus-breaker clumping method with locus boundaries.
 
-        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.locus_breaker]
+        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.LocusBreakerClumping]
 
         Args:
             baseline_pvalue_cutoff (float, optional): Baseline significance we consider for the locus.
