@@ -214,25 +214,18 @@ class LocusToGeneStep:
             study_locus_overlap = StudyLocus(
                 _df=self.credible_set.df.join(
                     f.broadcast(
-                        self.gs_curation.withColumn(
-                            "variantId",
+                        self.gs_curation.select(
                             f.concat_ws(
                                 "_",
                                 f.col("sentinel_variant.locus_GRCh38.chromosome"),
                                 f.col("sentinel_variant.locus_GRCh38.position"),
                                 f.col("sentinel_variant.alleles.reference"),
                                 f.col("sentinel_variant.alleles.alternative"),
-                            ),
-                        ).select(
-                            StudyLocus.assign_study_locus_id(
-                                [
-                                    "association_info.otg_id",  # studyId
-                                    "variantId",
-                                ]
-                            ),
+                            ).alias("variantId"),
+                            f.col("association_info.otg_id").alias("studyId"),
                         )
                     ),
-                    "studyLocusId",
+                    ["studyId", "variantId"],
                     "inner",
                 ),
                 _schema=StudyLocus.get_schema(),

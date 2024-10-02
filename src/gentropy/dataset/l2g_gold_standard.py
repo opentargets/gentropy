@@ -121,7 +121,7 @@ class L2GGoldStandard(Dataset):
         return L2GFeatureMatrix(
             _df=full_feature_matrix._df.join(
                 f.broadcast(self.df.drop("variantId", "studyId", "sources")),
-                on=["studyLocusId", "geneId"],
+                on=["studyId", "variantId", "geneId"],
                 how="inner",
             ),
             with_gold_standard=True,
