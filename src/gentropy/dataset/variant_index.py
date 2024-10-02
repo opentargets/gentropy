@@ -11,7 +11,6 @@ import pyspark.sql.types as t
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     get_nested_struct_schema,
-    get_record_with_maximum_value,
     rename_all_columns,
     safe_array_union,
 )
@@ -331,50 +330,5 @@ class VariantIndex(Dataset):
                 f.col("tc.targetId"),
                 f.col("tc.lofteePrediction"),
                 "isHighQualityPlof",
-            )
-        )
-
-    def get_most_severe_gene_consequence(
-        self: VariantIndex,
-        *,
-        vep_consequences: DataFrame,
-    ) -> DataFrame:
-        """Returns a dataframe with the most severe consequence for a variant/gene pair.
-
-        Args:
-            vep_consequences (DataFrame): A dataframe of VEP consequences
-
-        Returns:
-            DataFrame: A dataframe with the most severe consequence (plus a severity score) for a variant/gene pair
-        """
-        return (
-            self.df.select("variantId", f.explode("transcriptConsequences").alias("tc"))
-            .select(
-                "variantId",
-                f.col("tc.targetId"),
-                f.explode(f.col("tc.variantFunctionalConsequenceIds")).alias(
-                    "variantFunctionalConsequenceId"
-                ),
-            )
-            .join(
-                # TODO: make this table a project config
-                f.broadcast(
-                    vep_consequences.selectExpr(
-                        "variantFunctionalConsequenceId", "score as severityScore"
-                    )
-                ),
-                on="variantFunctionalConsequenceId",
-                how="inner",
-            )
-            .filter(f.col("severityScore").isNull())
-            .transform(
-                # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
-                lambda df: get_record_with_maximum_value(
-                    df, ["variantId", "targetId"], "severityScore"
-                )
-            )
-            .withColumnRenamed(
-                "variantFunctionalConsequenceId",
-                "mostSevereVariantFunctionalConsequenceId",
             )
         )
