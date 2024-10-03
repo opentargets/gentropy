@@ -9,6 +9,7 @@ import numpy as np
 import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 
+from gentropy.common.session import Session
 from gentropy.config import PanUKBBConfig
 
 if TYPE_CHECKING:
@@ -192,12 +193,14 @@ class PanUKBBLDMatrix:
 
     def get_locus_index_boundaries(
         self,
+        session: Session,
         study_locus_row: Row,
         ancestry: str = "EUR",
     ) -> DataFrame:
         """Extract hail matrix index from StudyLocus rows.
 
         Args:
+            session (Session): Session object
             study_locus_row (Row): Study-locus row
             ancestry (str): Major population to extract from gnomad matrix, default is "nfe"
 
@@ -209,16 +212,14 @@ class PanUKBBLDMatrix:
         start = int(study_locus_row["locusStart"])
         end = int(study_locus_row["locusEnd"])
 
-        index_file = hl.read_table(self.pan_ukbb_ht_path.format(POP=ancestry))
-
-        index_file = (
-            index_file.filter(
-                (index_file.locus.contig == chromosome)
-                & (index_file.locus.position >= start)
-                & (index_file.locus.position <= end)
-            )
-            .order_by("idx")
-            .to_spark()
+        index_file = session.spark.read.parquet(
+            self.ukbb_annotation_output_path.format(POP=ancestry)
         )
+
+        index_file = index_file.filter(
+            (f.col("chromosome") == chromosome)
+            & (f.col("position") >= start)
+            & (f.col("position") <= end)
+        ).orderBy(f.desc("idx"))
 
         return index_file
