@@ -238,6 +238,7 @@ class LocusToGeneConfig(StepConfig):
     variant_index_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
+    gene_index_path: str = MISSING
     model_path: str | None = None
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
@@ -264,6 +265,11 @@ class LocusToGeneConfig(StepConfig):
             "distanceTssMeanNeighbourhood",
             "distanceSentinelTss",
             "distanceSentinelTssNeighbourhood",
+            # vep
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -519,7 +525,7 @@ class FinemapperConfig(StepConfig):
 
 
 @dataclass
-class GWASQCStep(StepConfig):
+class SummaryStatisticsQCStepConfig(StepConfig):
     """GWAS QC step configuration."""
 
     gwas_path: str = MISSING
@@ -631,7 +637,9 @@ def register_config() -> None:
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
-    cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
+    cs.store(
+        group="step", name="summary_statistics_qc", node=SummaryStatisticsQCStepConfig
+    )
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
     )
