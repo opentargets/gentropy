@@ -572,8 +572,8 @@ class VariantEffectPredictorParser:
             for item in VariantIndex.CONSEQUENCE_TO_PATHOGENICITY_SCORE
         }
         # Sequence ontology to score map:
-        id_to_score_map = {
-            item["id"]: item["score"]
+        label_to_score_map = {
+            item["label"]: item["score"]
             for item in VariantIndex.CONSEQUENCE_TO_PATHOGENICITY_SCORE
         }
         # Processing VEP output:
@@ -680,16 +680,16 @@ class VariantEffectPredictorParser:
                                 lambda y: map_column_by_dictionary(
                                     y, sequence_ontology_map
                                 ),
-                            ).alias("variantFunctionalConsequenceIds"),
+                            ).alias("variantFunctionalConsequenceIds"),  # bien
                             # Convert consequence terms to consequence score:
                             f.array_max(
                                 f.transform(
                                     transcript.consequence_terms,
                                     lambda term: map_column_by_dictionary(
-                                        term, id_to_score_map
+                                        term, label_to_score_map
                                     ),
                                 )
-                            )
+                            )  # todo nulos
                             .cast(t.FloatType())
                             .alias("consequenceScore"),
                             # Format amino acid change:
