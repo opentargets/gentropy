@@ -85,8 +85,9 @@ class SummaryStatisticsQC:
         )
 
         qc_c = (
-            gwas_df.withColumn("zscore", f.col("beta") / f.col("standardError"))
-            .withColumn("new_logpval", calculate_logpval_udf(f.col("zscore") ** 2))
+            gwas_df.withColumn("Z2", (f.col("beta") / f.col("standardError")) ** 2)
+            .filter(f.col("Z2") <= 100)
+            .withColumn("new_logpval", calculate_logpval_udf(f.col("Z2")))
             .withColumn("log_mantissa", log10("pValueMantissa"))
             .withColumn(
                 "diffpval",
