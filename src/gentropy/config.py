@@ -508,7 +508,7 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="gwas_catalog_study_inclusion",
+        name="gwas_catalog_study_index",
         node=GWASCatalogStudyIndexGenerationStep,
     )
     cs.store(
