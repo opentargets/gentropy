@@ -31,7 +31,7 @@ class PanUKBBLDMatrix:
         Datasets are in hail native format.
 
         Args:
-            pan_ukbb_ht_path (str): Path to hail table
+            pan_ukbb_ht_path (str): Path to hail table, source: gs://ukb-diverse-pops-public/ld_release
             pan_ukbb_bm_path (str): Path to hail block matrix
             ld_populations (list[str]): List of populations
             ukbb_annotation_path (str): Path to pan-ukbb variant LD index with alleles flipped to match the order in OT variant annotation
