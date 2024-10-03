@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from functools import reduce
 from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
 from wandb import login as wandb_login
 
+from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
 from gentropy.config import LocusToGeneConfig
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
@@ -42,6 +46,10 @@ class LocusToGeneStep:
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
         gene_interactions_path: str | None = None,
+        interval_path: dict[str, str],
+        gene_index_path: str,
+        liftover_chain_file_path: str,
+        liftover_max_length_difference: int = 100,
         predictions_path: str | None = None,
         feature_matrix_path: str | None = None,
         write_feature_matrix: bool,
@@ -63,6 +71,10 @@ class LocusToGeneStep:
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
             gene_interactions_path (str | None): Path to the gene interactions dataset
+            interval_path (dict[str, str]) : Path and source of interval input datasets
+            gene_index_path (str | None) :
+            liftover_chain_file_path (str | None) :
+            liftover_max_length_difference (str | None) :
             predictions_path (str | None): Path to the L2G predictions output dataset
             feature_matrix_path (str | None): Path to the L2G feature matrix output dataset
             write_feature_matrix (bool): Whether to write the full feature matrix to the filesystem
@@ -100,6 +112,42 @@ class LocusToGeneStep:
             VariantIndex.from_parquet(session, variant_index_path)
             if variant_index_path
             else None
+        )
+        self.gene_index = GeneIndex.from_parquet(session, gene_index_path)
+        self.lift = LiftOverSpark(
+            liftover_chain_file_path,
+            liftover_max_length_difference,
+        )
+        self.intervals = Intervals(
+            _df=reduce(
+                lambda x, y: x.unionByName(y, allowMissingColumns=True),
+                # create interval instances by parsing each source
+                [
+                    Intervals.from_source(
+                        session.spark,
+                        source_name,
+                        source_path,
+                        self.gene_index,
+                        self.lift,
+                    ).df
+                    for source_name, source_path in interval_path.items()
+                ],
+            )
+            .alias("interval")
+            .join(
+                self.variant_index.df.selectExpr(
+                    "chromosome as vi_chromosome", "variantId", "position"
+                ).alias("vi"),
+                on=[
+                    f.col("vi.vi_chromosome") == f.col("interval.chromosome"),
+                    f.col("vi.position").between(
+                        f.col("interval.start"), f.col("interval.end")
+                    ),
+                ],
+                how="inner",
+            )
+            .drop("start", "end", "vi_chromosome", "position"),
+            _schema=Intervals.get_schema(),
         )
         self.coloc = (
             Colocalisation.from_parquet(
