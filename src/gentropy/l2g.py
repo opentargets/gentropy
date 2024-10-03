@@ -72,9 +72,9 @@ class LocusToGeneStep:
             study_index_path (str | None): Path to the study index dataset
             gene_interactions_path (str | None): Path to the gene interactions dataset
             interval_path (dict[str, str]) : Path and source of interval input datasets
-            gene_index_path (str | None) :
-            liftover_chain_file_path (str | None) :
-            liftover_max_length_difference (str | None) :
+            gene_index_path (str | None) : Path to the gene index dataset
+            liftover_chain_file_path (str | None) : Path to the liftover chain file
+            liftover_max_length_difference (int) : Maximum allowed difference for liftover
             predictions_path (str | None): Path to the L2G predictions output dataset
             feature_matrix_path (str | None): Path to the L2G feature matrix output dataset
             write_feature_matrix (bool): Whether to write the full feature matrix to the filesystem

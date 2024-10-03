@@ -167,7 +167,7 @@ class PchicMeanNeighbourhoodFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            DistanceFootprintMeanNeighbourhoodFeature: Feature dataset
+            PchicMeanNeighbourhoodFeature: Feature dataset
         """
         interval_source = "javierre2016"
         return cls(
