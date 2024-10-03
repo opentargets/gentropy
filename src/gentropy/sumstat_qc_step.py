@@ -32,6 +32,6 @@ class SummaryStatisticsQCStep:
             SummaryStatisticsQC.get_quality_control_metrics(
                 gwas=gwas, pval_threshold=pval_threshold
             )
-            .write.mode("overwrite")
+            .write.mode(session.write_mode)
             .parquet(output_path)
         )
