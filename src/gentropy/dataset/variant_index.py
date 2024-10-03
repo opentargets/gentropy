@@ -1,4 +1,4 @@
-"""Dataset definition for variant annotation."""
+"""Dataset definition for variant index."""
 
 from __future__ import annotations
 

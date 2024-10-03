@@ -251,19 +251,6 @@ def mock_intervals(spark: SparkSession) -> Intervals:
 
 
 @pytest.fixture()
-def mock_variant_consequence_to_score(spark: SparkSession) -> DataFrame:
-    """Slice of the VEP consequence to score table."""
-    return spark.createDataFrame(
-        [
-            ("SO_0001893", "transcript_ablation", 1.0),
-            ("SO_0001822", "inframe_deletion", 0.66),
-            ("SO_0001567", "stop_retained_variant", 0.33),
-        ],
-        ["variantFunctionalConsequenceId", "label", "score"],
-    )
-
-
-@pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
     """Mock variant index."""
     vi_schema = VariantIndex.get_schema()
