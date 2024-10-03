@@ -17,7 +17,7 @@ def test_qc_functions(
 ) -> None:
     """Test all sumstat qc functions."""
     gwas = sample_summary_statistics.sanity_filter()
-    QC = SummaryStatisticsQC.get_quality_control_metrics(gwas=gwas, limit=100000)
+    QC = SummaryStatisticsQC.get_quality_control_metrics(gwas=gwas, pval_threshold=5e-8)
     QC = QC.toPandas()
 
     assert QC["n_variants"].iloc[0] == 1663
@@ -55,7 +55,7 @@ def test_several_studyid(
     )
     gwas._df = gwas_df
 
-    QC = SummaryStatisticsQC.get_quality_control_metrics(gwas=gwas, limit=100000)
+    QC = SummaryStatisticsQC.get_quality_control_metrics(gwas=gwas)
     QC = QC.toPandas()
     assert QC.shape == (2, 7)
 
