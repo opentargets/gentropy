@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, TypedDict
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -24,69 +24,6 @@ if TYPE_CHECKING:
 @dataclass
 class VariantIndex(Dataset):
     """Dataset for representing variants and methods applied on them."""
-
-    class CONSEQUENCE_TO_PATHOGENICITY_SCORE_MAP(TypedDict):
-        """Typing definition for CONSEQUENCE_TO_PATHOGENICITY_SCORE."""
-
-        id: str
-        label: str
-        score: float
-
-    CONSEQUENCE_TO_PATHOGENICITY_SCORE: ClassVar[
-        list[CONSEQUENCE_TO_PATHOGENICITY_SCORE_MAP]
-    ] = [
-        {"id": "SO_0001575", "label": "splice_donor_variant", "score": 1.0},
-        {"id": "SO_0001589", "label": "frameshift_variant", "score": 1.0},
-        {"id": "SO_0001574", "label": "splice_acceptor_variant", "score": 1.0},
-        {"id": "SO_0001587", "label": "stop_gained", "score": 1.0},
-        {"id": "SO_0002012", "label": "start_lost", "score": 1.0},
-        {"id": "SO_0001578", "label": "stop_lost", "score": 1.0},
-        {"id": "SO_0001893", "label": "transcript_ablation", "score": 1.0},
-        {"id": "SO_0001822", "label": "inframe_deletion", "score": 0.66},
-        {
-            "id": "SO_0001818",
-            "label": "protein_altering_variant",
-            "score": 0.66,
-        },
-        {"id": "SO_0001821", "label": "inframe_insertion", "score": 0.66},
-        {
-            "id": "SO_0001787",
-            "label": "splice_donor_5th_base_variant",
-            "score": 0.66,
-        },
-        {"id": "SO_0001583", "label": "missense_variant", "score": 0.66},
-        {"id": "SO_0001567", "label": "stop_retained_variant", "score": 0.33},
-        {"id": "SO_0001630", "label": "splice_region_variant", "score": 0.33},
-        {"id": "SO_0002019", "label": "start_retained_variant", "score": 0.33},
-        {
-            "id": "SO_0002169",
-            "label": "splice_polypyrimidine_tract_variant",
-            "score": 0.33,
-        },
-        {"id": "SO_0001819", "label": "synonymous_variant", "score": 0.33},
-        {
-            "id": "SO_0002170",
-            "label": "splice_donor_region_variant",
-            "score": 0.33,
-        },
-        {"id": "SO_0001624", "label": "3_prime_UTR_variant", "score": 0.1},
-        {"id": "SO_0001623", "label": "5_prime_UTR_variant", "score": 0.1},
-        {"id": "SO_0001627", "label": "intron_variant", "score": 0.1},
-        {
-            "id": "SO_0001619",
-            "label": "non_coding_transcript_variant",
-            "score": 0.0,
-        },
-        {"id": "SO_0001580", "label": "coding_sequence_variant", "score": 0.0},
-        {"id": "SO_0001632", "label": "downstream_gene_variant", "score": 0.0},
-        {"id": "SO_0001631", "label": "upstream_gene_variant", "score": 0.0},
-        {
-            "id": "SO_0001792",
-            "label": "non_coding_transcript_exon_variant",
-            "score": 0.0,
-        },
-        {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
-    ]
 
     def __post_init__(self: VariantIndex) -> None:
         """Forcing the presence of empty arrays even if the schema allows missing values.
