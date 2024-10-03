@@ -9,6 +9,7 @@ import pytest
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
+    FloatType,
     IntegerType,
     LongType,
     StringType,
@@ -515,12 +516,12 @@ class TestCommonVepFeatureLogic:
                     {
                         "studyLocusId": "1",
                         "geneId": "gene1",
-                        "vepMean": 0.33,
+                        "vepMean": "0.33",
                     },
                     {
                         "studyLocusId": "1",
                         "geneId": "gene2",
-                        "vepMean": 0.5,
+                        "vepMean": "0.50",
                     },
                 ],
             ),
@@ -530,12 +531,12 @@ class TestCommonVepFeatureLogic:
                     {
                         "studyLocusId": "1",
                         "geneId": "gene1",
-                        "vepMaximum": 0.66,
+                        "vepMaximum": "0.66",
                     },
                     {
                         "studyLocusId": "1",
                         "geneId": "gene2",
-                        "vepMaximum": 1.0,
+                        "vepMaximum": "1.00",
                     },
                 ],
             ),
@@ -554,13 +555,15 @@ class TestCommonVepFeatureLogic:
                 variant_index=self.sample_variant_index,
                 feature_name=feature_name,
             )
-            .withColumn(feature_name, f.round(f.col(feature_name), 2))
             .orderBy(feature_name)
+            .withColumn(
+                feature_name, f.format_number(f.round(f.col(feature_name), 2), 2)
+            )
         )
         expected_df = (
             spark.createDataFrame(expected_data)
-            .select("studyLocusId", "geneId", feature_name)
             .orderBy(feature_name)
+            .select("studyLocusId", "geneId", feature_name)
         )
         assert (
             observed_df.collect() == expected_df.collect()
@@ -697,17 +700,12 @@ class TestCommonVepFeatureLogic:
                         [
                             {
                                 "targetId": "gene1",
-                                "variantFunctionalConsequenceIds": [
-                                    "SO_0001630",  # splice_region_variant (0.33)
-                                    "SO_0001822",  # inframe_deletion (0.66)
-                                ],
+                                "consequenceScore": 0.66,
                                 "isEnsemblCanonical": True,
                             },
                             {
                                 "targetId": "gene2",
-                                "variantFunctionalConsequenceIds": [
-                                    "SO_0001589",  # frameshift_variant (1.0)
-                                ],
+                                "consequenceScore": 1.0,
                                 "isEnsemblCanonical": True,
                             },
                         ],
@@ -730,9 +728,7 @@ class TestCommonVepFeatureLogic:
                                             "isEnsemblCanonical", BooleanType(), True
                                         ),
                                         StructField(
-                                            "variantFunctionalConsequenceIds",
-                                            ArrayType(StringType(), True),
-                                            True,
+                                            "consequenceScore", FloatType(), True
                                         ),
                                     ]
                                 )

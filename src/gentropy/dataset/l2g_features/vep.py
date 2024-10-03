@@ -35,7 +35,13 @@ def common_vep_feature_logic(
         DataFrame: Feature dataset
     """
     # Variant/Target/Severity dataframe
-    consequences_dataset = variant_index.get_most_severe_gene_consequence()
+    consequences_dataset = variant_index.df.withColumn(
+        "transcriptConsequence", f.explode("transcriptConsequences")
+    ).select(
+        "variantId",
+        f.col("transcriptConsequence.targetId").alias("geneId"),
+        f.col("transcriptConsequence.consequenceScore").alias("severityScore"),
+    )
     if isinstance(study_loci_to_annotate, StudyLocus):
         variants_df = (
             study_loci_to_annotate.df.withColumn(
