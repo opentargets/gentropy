@@ -9,6 +9,7 @@ import pytest
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
+    FloatType,
     IntegerType,
     LongType,
     StringType,
@@ -17,6 +18,7 @@ from pyspark.sql.types import (
 )
 
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
     EQtlColocClppMaximumNeighbourhoodFeature,
@@ -50,6 +52,14 @@ from gentropy.dataset.l2g_features.distance import (
     common_neighbourhood_distance_feature_logic,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.vep import (
+    VepMaximumFeature,
+    VepMaximumNeighbourhoodFeature,
+    VepMeanFeature,
+    VepMeanNeighbourhoodFeature,
+    common_neighbourhood_vep_feature_logic,
+    common_vep_feature_logic,
+)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
@@ -86,6 +96,10 @@ if TYPE_CHECKING:
         DistanceSentinelTssNeighbourhoodFeature,
         DistanceSentinelFootprintFeature,
         DistanceSentinelFootprintNeighbourhoodFeature,
+        VepMaximumFeature,
+        VepMeanFeature,
+        VepMaximumNeighbourhoodFeature,
+        VepMeanNeighbourhoodFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -94,6 +108,7 @@ def test_feature_factory_return_type(
     mock_colocalisation: Colocalisation,
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
+    mock_gene_index: GeneIndex,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
     loader = L2GFeatureInputLoader(
@@ -101,6 +116,7 @@ def test_feature_factory_return_type(
         study_index=mock_study_index,
         variant_index=mock_variant_index,
         study_locus=mock_study_locus,
+        gene_index=mock_gene_index,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,
@@ -483,6 +499,244 @@ class TestCommonDistanceFeatureLogic:
                     ),
                 ],
                 self.variant_index_schema,
+            ),
+            _schema=VariantIndex.get_schema(),
+        )
+
+
+class TestCommonVepFeatureLogic:
+    """Test the common_vep_feature_logic methods."""
+
+    @pytest.mark.parametrize(
+        ("feature_name", "expected_data"),
+        [
+            (
+                "vepMean",
+                [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene1",
+                        "vepMean": "0.33",
+                    },
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene2",
+                        "vepMean": "0.50",
+                    },
+                ],
+            ),
+            (
+                "vepMaximum",
+                [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene1",
+                        "vepMaximum": "0.66",
+                    },
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene2",
+                        "vepMaximum": "1.00",
+                    },
+                ],
+            ),
+        ],
+    )
+    def test_common_vep_feature_logic(
+        self: TestCommonVepFeatureLogic,
+        spark: SparkSession,
+        feature_name: str,
+        expected_data: dict[str, Any],
+    ) -> None:
+        """Test the logic of the function that extracts features from VEP's functional consequences."""
+        observed_df = (
+            common_vep_feature_logic(
+                self.sample_study_locus,
+                variant_index=self.sample_variant_index,
+                feature_name=feature_name,
+            )
+            .orderBy(feature_name)
+            .withColumn(
+                feature_name, f.format_number(f.round(f.col(feature_name), 2), 2)
+            )
+        )
+        expected_df = (
+            spark.createDataFrame(expected_data)
+            .orderBy(feature_name)
+            .select("studyLocusId", "geneId", feature_name)
+        )
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), f"Expected and observed dataframes are not equal for feature {feature_name}."
+
+    def test_common_neighbourhood_vep_feature_logic_no_protein_coding(
+        self: TestCommonVepFeatureLogic,
+        spark: SparkSession,
+    ) -> None:
+        """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity.
+
+        Because the genes in the vicinity are all non coding, the neighbourhood features should equal the local ones.
+        """
+        feature_name = "vepMaximumNeighbourhood"
+        sample_gene_index = GeneIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "geneId": "gene1",
+                        "biotype": "lncRNA",
+                        "chromosome": "1",
+                    },
+                    {
+                        "geneId": "gene2",
+                        "biotype": "lncRNA",
+                        "chromosome": "1",
+                    },
+                ],
+                GeneIndex.get_schema(),
+            ),
+            _schema=GeneIndex.get_schema(),
+        )
+        observed_df = (
+            common_neighbourhood_vep_feature_logic(
+                self.sample_study_locus,
+                variant_index=self.sample_variant_index,
+                gene_index=sample_gene_index,
+                feature_name=feature_name,
+            )
+            .withColumn(feature_name, f.round(f.col(feature_name), 2))
+            .orderBy(f.col(feature_name).asc())
+            .select("studyLocusId", "geneId", feature_name)
+        )
+        expected_df = (
+            spark.createDataFrame(
+                (["1", "gene1", 0.66], ["1", "gene2", 1.0]),
+                ["studyLocusId", "geneId", feature_name],
+            )
+            .orderBy(feature_name)
+            .select("studyLocusId", "geneId", feature_name)
+        )
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), "Output doesn't meet the expectation."
+
+        def test_common_neighbourhood_vep_feature_logic(
+            self: TestCommonVepFeatureLogic,
+            spark: SparkSession,
+        ) -> None:
+            """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
+            feature_name = "vepMaximumNeighbourhood"
+            sample_gene_index = GeneIndex(
+                _df=spark.createDataFrame(
+                    [
+                        {
+                            "geneId": "gene1",
+                            "biotype": "protein_coding",
+                            "chromosome": "1",
+                        },
+                        {
+                            "geneId": "gene2",
+                            "biotype": "lncRNA",
+                            "chromosome": "1",
+                        },
+                    ],
+                    GeneIndex.get_schema(),
+                ),
+                _schema=GeneIndex.get_schema(),
+            )
+            observed_df = (
+                common_neighbourhood_vep_feature_logic(
+                    self.sample_study_locus,
+                    variant_index=self.sample_variant_index,
+                    gene_index=sample_gene_index,
+                    feature_name=feature_name,
+                )
+                .withColumn(feature_name, f.round(f.col(feature_name), 2))
+                .orderBy(f.col(feature_name).asc())
+            )
+            expected_df = (
+                spark.createDataFrame(
+                    (["1", "gene1", 0.0], ["1", "gene2", 0.34]),
+                    ["studyLocusId", "geneId", feature_name],
+                )
+                .select("studyLocusId", "geneId", feature_name)
+                .orderBy(feature_name)
+            )
+            assert (
+                observed_df.collect() == expected_df.collect()
+            ), "Output doesn't meet the expectation."
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestCommonVepFeatureLogic, spark: SparkSession) -> None:
+        """Set up testing fixtures."""
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "locus": [
+                            {
+                                "variantId": "var1",
+                                "posteriorProbability": 0.5,
+                            },
+                        ],
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.sample_variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        "var1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {
+                                "targetId": "gene1",
+                                "consequenceScore": 0.66,
+                                "isEnsemblCanonical": True,
+                            },
+                            {
+                                "targetId": "gene2",
+                                "consequenceScore": 1.0,
+                                "isEnsemblCanonical": True,
+                            },
+                        ],
+                    ),
+                ],
+                schema=StructType(
+                    [
+                        StructField("variantId", StringType(), True),
+                        StructField("chromosome", StringType(), True),
+                        StructField("position", IntegerType(), True),
+                        StructField("referenceAllele", StringType(), True),
+                        StructField("alternateAllele", StringType(), True),
+                        StructField(
+                            "transcriptConsequences",
+                            ArrayType(
+                                StructType(
+                                    [
+                                        StructField("targetId", StringType(), True),
+                                        StructField(
+                                            "isEnsemblCanonical", BooleanType(), True
+                                        ),
+                                        StructField(
+                                            "consequenceScore", FloatType(), True
+                                        ),
+                                    ]
+                                )
+                            ),
+                            True,
+                        ),
+                    ]
+                ),
             ),
             _schema=VariantIndex.get_schema(),
         )
