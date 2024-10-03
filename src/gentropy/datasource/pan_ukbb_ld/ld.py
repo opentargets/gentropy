@@ -23,7 +23,7 @@ class PanUKBBLDMatrix:
         pan_ukbb_ht_path: str = PanUKBBConfig().pan_ukbb_ht_path,
         pan_ukbb_bm_path: str = PanUKBBConfig().pan_ukbb_bm_path,
         ld_populations: list[str] = PanUKBBConfig().pan_ukbb_pops,
-        ukbb_annotation_output_path: str = PanUKBBConfig().ukbb_annotation_output_path,
+        ukbb_annotation_path: str = PanUKBBConfig().ukbb_annotation_path,
     ):
         """Initialize.
 
@@ -33,21 +33,20 @@ class PanUKBBLDMatrix:
             pan_ukbb_ht_path (str): Path to hail table
             pan_ukbb_bm_path (str): Path to hail block matrix
             ld_populations (list[str]): List of populations
-            ukbb_annotation_output_path (str): Path to pan-ukbb variant LD index with alleles flipped to match the order in OT variant annotation
+            ukbb_annotation_path (str): Path to pan-ukbb variant LD index with alleles flipped to match the order in OT variant annotation
         Default values are set in PanUKBBConfig.
         """
         self.pan_ukbb_ht_path = pan_ukbb_ht_path
         self.pan_ukbb_bm_path = pan_ukbb_bm_path
         self.ld_populations = ld_populations
-        self.ukbb_annotation_output_path = ukbb_annotation_output_path
+        self.ukbb_annotation_output_path = ukbb_annotation_path
 
-    @classmethod
     def align_ld_index_alleles(
-        cls,
+        self,
         variant_annotation: DataFrame,
         population: str,
         hail_table_path: str = PanUKBBConfig.pan_ukbb_ht_path,
-        hail_table_output: str = PanUKBBConfig.ukbb_annotation_output_path,
+        hail_table_output: str = PanUKBBConfig.ukbb_annotation_path,
     ) -> None:
         """Align Pan-UKBB variant LD index alleles with the Open Targets variant annotation.
 
