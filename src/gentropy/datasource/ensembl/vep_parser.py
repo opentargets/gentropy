@@ -21,6 +21,8 @@ from gentropy.dataset.variant_index import VariantIndex
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
 
+from gentropy.config import VariantIndexConfig
+
 
 class VariantEffectPredictorParser:
     """Collection of methods to parse VEP output in json format."""
@@ -569,12 +571,12 @@ class VariantEffectPredictorParser:
         # Consequence to sequence ontology map:
         sequence_ontology_map = {
             item["label"]: item["id"]
-            for item in VariantIndex.CONSEQUENCE_TO_PATHOGENICITY_SCORE
+            for item in VariantIndexConfig.consequence_to_pathogenicity_score
         }
         # Sequence ontology to score map:
         label_to_score_map = {
             item["label"]: item["score"]
-            for item in VariantIndex.CONSEQUENCE_TO_PATHOGENICITY_SCORE
+            for item in VariantIndexConfig.consequence_to_pathogenicity_score
         }
         # Processing VEP output:
         return (

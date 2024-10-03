@@ -417,7 +417,7 @@ class StudyIndex(Dataset):
             biosample_index (BiosampleIndex): Biosample index containing a reference of biosample identifiers e.g. cell types, tissues, cell lines, etc.
 
         Returns:
-            StudyIndex: with flagged studies if biosampleIndex could not be validated.
+            StudyIndex: where non-gwas studies are flagged if biosampleIndex could not be validated.
         """
         biosample_set = biosample_index.df.select("biosampleId", f.lit(True).alias("isIdFound"))
 
@@ -426,7 +426,7 @@ class StudyIndex(Dataset):
             .withColumn(
                 "isIdFound",
                 f.when(
-                    f.col("isIdFound").isNull(),
+                    (f.col("studyType") != "gwas") & (f.col("isIdFound").isNull()),
                     f.lit(False),
                 ).otherwise(f.lit(True)),
             )
@@ -438,7 +438,7 @@ class StudyIndex(Dataset):
                     StudyQualityCheck.UNKNOWN_BIOSAMPLE,
                 ),
             )
-            .drop("isIdFound").drop("biosampleId")
+            .drop("isIdFound")
         )
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
