@@ -79,9 +79,9 @@ class LDMatrixInterface:
             np.ndarray: LD block matrix for the locus
         """
         if ancestry in (
-            "nfe",
-            "csa",
             "afr",
+            "csa",
+            "nfe",
         ):
             block_matrix = PanUKBBLDMatrix().get_numpy_matrix(
                 locus_index=locus_index,

@@ -152,42 +152,21 @@ class PanUKBBLDMatrix:
         """
         idx = [row["idx"] for row in locus_index.select("idx").collect()]
 
-        if ancestry == "nfe":
-            half_matrix = (
-                BlockMatrix.read(self.pan_ukbb_bm_path.format(POP="EUR"))
-                .filter(idx, idx)
-                .to_numpy()
-            )
+        half_matrix = (
+            BlockMatrix.read(self.pan_ukbb_bm_path.format(POP="EUR"))
+            .filter(idx, idx)
+            .to_numpy()
+        )
 
-            alleleOrder = [
-                row["alleleOrder"]
-                for row in locus_index.select("alleleOrder").collect()
-            ]
-            outer_allele_order = np.outer(alleleOrder, alleleOrder)
-            np.fill_diagonal(outer_allele_order, 1)
+        alleleOrder = [
+            row["alleleOrder"] for row in locus_index.select("alleleOrder").collect()
+        ]
+        outer_allele_order = np.outer(alleleOrder, alleleOrder)
+        np.fill_diagonal(outer_allele_order, 1)
 
-            ld_matrix = (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
-            ld_matrix = ld_matrix * outer_allele_order
-            np.fill_diagonal(ld_matrix, 1)
-        elif ancestry == "csa":
-            half_matrix = (
-                BlockMatrix.read("gs://panukbb-ld-matrixes/UKBB.CSA.ldadj")
-                .filter(idx, idx)
-                .to_numpy()
-            )
-
-            alleleOrder = [
-                row["alleleOrder"]
-                for row in locus_index.select("alleleOrder").collect()
-            ]
-            outer_allele_order = np.outer(alleleOrder, alleleOrder)
-            np.fill_diagonal(outer_allele_order, 1)
-
-            ld_matrix = (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
-            ld_matrix = ld_matrix * outer_allele_order
-            np.fill_diagonal(ld_matrix, 1)
-        else:
-            ld_matrix = None
+        ld_matrix = (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
+        ld_matrix = ld_matrix * outer_allele_order
+        np.fill_diagonal(ld_matrix, 1)
 
         return ld_matrix
 
