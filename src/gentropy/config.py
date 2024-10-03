@@ -87,22 +87,6 @@ class GWASCatalogStudyIndexGenerationStep(StepConfig):
 
 
 @dataclass
-class GWASCatalogIngestionConfig(StepConfig):
-    """GWAS Catalog ingestion step configuration."""
-
-    catalog_study_files: list[str] = MISSING
-    catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
-    catalog_associations_file: str = MISSING
-    variant_annotation_path: str = MISSING
-    catalog_studies_out: str = MISSING
-    catalog_associations_out: str = MISSING
-    gwas_catalog_study_curation_file: str | None = None
-    inclusion_list_path: str | None = None
-    _target_: str = "gentropy.gwas_catalog_ingestion.GWASCatalogIngestionStep"
-
-
-@dataclass
 class GWASCatalogTopHitIngestionConfig(StepConfig):
     """GWAS Catalog ingestion step configuration."""
 
@@ -526,9 +510,6 @@ def register_config() -> None:
         group="step",
         name="gwas_catalog_study_inclusion",
         node=GWASCatalogStudyIndexGenerationStep,
-    )
-    cs.store(
-        group="step", name="gwas_catalog_ingestion", node=GWASCatalogIngestionConfig
     )
     cs.store(
         group="step",
