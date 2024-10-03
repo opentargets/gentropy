@@ -16,7 +16,13 @@ if TYPE_CHECKING:
 
 
 class LDMatrixInterface:
-    """Toolset ot interact with GnomAD LD dataset (version: r2.1.1)."""
+    """Toolset to interact with LD matrices."""
+
+    ancestry_map = {
+        "nfe": "EUR",
+        "csa": "CSA",
+        "afr": "AFR",
+    }
 
     @staticmethod
     def get_locus_index_boundaries(
@@ -35,18 +41,20 @@ class LDMatrixInterface:
             DataFrame: Returns the index of the gnomad matrix for the locus
 
         """
+        mapped_ancestry = LDMatrixInterface.ancestry_map.get(ancestry, ancestry)
+
         if (ancestry in ("nfe", "csa", "afr")) and (session is not None):
             joined_index = PanUKBBLDMatrix().get_locus_index_boundaries(
                 session=session,
                 study_locus_row=study_locus_row,
-                ancestry=ancestry,
+                ancestry=mapped_ancestry,
             )
         else:
             joined_index = (
                 GnomADLDMatrix()
                 .get_locus_index_boundaries(
                     study_locus_row=study_locus_row,
-                    major_population=ancestry,
+                    major_population=mapped_ancestry,
                 )
                 .withColumn(
                     "variantId",
@@ -78,6 +86,7 @@ class LDMatrixInterface:
         Returns:
             np.ndarray: LD block matrix for the locus
         """
+        mapped_ancestry = LDMatrixInterface.ancestry_map.get(ancestry, ancestry)
         if ancestry in (
             "afr",
             "csa",
@@ -85,11 +94,11 @@ class LDMatrixInterface:
         ):
             block_matrix = PanUKBBLDMatrix().get_numpy_matrix(
                 locus_index=locus_index,
-                ancestry=ancestry,
+                ancestry=mapped_ancestry,
             )
         else:
             block_matrix = GnomADLDMatrix.get_numpy_matrix(
-                locus_index=locus_index, gnomad_ancestry=ancestry
+                locus_index=locus_index, gnomad_ancestry=mapped_ancestry
             )
 
         return block_matrix
