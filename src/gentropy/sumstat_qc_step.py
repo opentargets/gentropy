@@ -30,8 +30,8 @@ class SummaryStatisticsQCStep:
 
         (
             SummaryStatisticsQC.get_quality_control_metrics(
-                gwas=gwas, limit=100_000_000, pval_threshold=pval_threshold
+                gwas=gwas, pval_threshold=pval_threshold
             )
-            .write.mode(session.write_mode)
+            .write.mode("overwrite")
             .parquet(output_path)
         )
