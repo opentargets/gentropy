@@ -438,7 +438,7 @@ class StudyIndex(Dataset):
                     StudyQualityCheck.UNKNOWN_BIOSAMPLE,
                 ),
             )
-            .drop("isIdFound")
+            .drop("isIdFound").drop("biosampleId")
         )
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
