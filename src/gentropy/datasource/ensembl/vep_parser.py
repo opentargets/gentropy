@@ -680,7 +680,7 @@ class VariantEffectPredictorParser:
                                 lambda y: map_column_by_dictionary(
                                     y, sequence_ontology_map
                                 ),
-                            ).alias("variantFunctionalConsequenceIds"),  # bien
+                            ).alias("variantFunctionalConsequenceIds"),
                             # Convert consequence terms to consequence score:
                             f.array_max(
                                 f.transform(
@@ -689,7 +689,7 @@ class VariantEffectPredictorParser:
                                         term, label_to_score_map
                                     ),
                                 )
-                            )  # todo nulos
+                            )
                             .cast(t.FloatType())
                             .alias("consequenceScore"),
                             # Format amino acid change:
