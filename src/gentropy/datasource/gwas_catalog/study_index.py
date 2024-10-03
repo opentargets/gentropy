@@ -7,59 +7,13 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark import SparkFiles
 
-from gentropy.common.session import Session
 from gentropy.common.spark_helpers import column2camel_case
 from gentropy.common.utils import parse_efos
 from gentropy.dataset.study_index import StudyIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
-
-
-def read_curation_table(
-    curation_path: str | None, session: Session
-) -> DataFrame | None:
-    """Read curation table if path or URL is given.
-
-    Curation itself is fully optional everything should work without it.
-
-    Args:
-        curation_path (str | None): Optionally given path the curation tsv.
-        session (Session): session object
-
-    Returns:
-        DataFrame | None: if curation was provided,
-    """
-    # If no curation path provided, we are returning none:
-    if curation_path is None:
-        return None
-    # Read curation from the web:
-    elif curation_path.startswith("http"):
-        # Registering file:
-        session.spark.sparkContext.addFile(curation_path)
-
-        # Reading file:
-        curation_df = session.spark.read.csv(
-            SparkFiles.get(curation_path.split("/")[-1]), sep="\t", header=True
-        )
-    # Read curation from file:
-    else:
-        curation_df = session.spark.read.csv(curation_path, sep="\t", header=True)
-    return curation_df.select(
-        "studyId",
-        "studyType",
-        f.when(f.col("analysisFlag").isNotNull(), f.split(f.col("analysisFlag"), r"\|"))
-        .otherwise(f.array())
-        .alias("analysisFlags"),
-        f.when(
-            f.col("qualityControl").isNotNull(), f.split(f.col("qualityControl"), r"\|")
-        )
-        .otherwise(f.array())
-        .alias("qualityControls"),
-        f.col("isCurated").cast(t.BooleanType()),
-    )
 
 
 @dataclass
@@ -643,41 +597,79 @@ class StudyIndexGWASCatalog(StudyIndex):
     ) -> StudyIndexGWASCatalog:
         """Annotate summary stat locations.
 
+        This function reads a text file with the list of harmonised studies and annotates the study index with the `hasSumstats` column.
+
         Args:
             sumstats_lut (DataFrame): listing GWAS Catalog summary stats paths
 
         Returns:
-            StudyIndexGWASCatalog: including `summarystatsLocation` and `hasSumstats` columns
+            StudyIndexGWASCatalog: including `hasSumstats` column
 
         Raises:
             ValueError: if the sumstats_lut table doesn't have the right columns
         """
-        gwas_sumstats_base_uri = (
-            "ftp://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/"
-        )
-
         if "_c0" not in sumstats_lut.columns:
             raise ValueError(
                 f'Sumstats look-up table needs to have `_c0` column. However it has: {",".join(sumstats_lut.columns)}'
             )
 
-        parsed_sumstats_lut = sumstats_lut.withColumn(
-            "summarystatsLocation",
-            f.concat(
-                f.lit(gwas_sumstats_base_uri),
-                f.regexp_replace(f.col("_c0"), r"^\.\/", ""),
+        return StudyIndexGWASCatalog(
+            _df=self.df.drop("hasSumstats")
+            .join(
+                sumstats_lut.select(
+                    f.col("_c0").alias("studyId"), f.lit(True).alias("hasSumstats")
+                ),
+                on="studyId",
+                how="left",
+            )
+            .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False))),
+            _schema=StudyIndexGWASCatalog.get_schema(),
+        )
+
+    def annotate_sumstats_qc(
+        self: StudyIndexGWASCatalog, sumstats_qc: DataFrame
+    ) -> StudyIndexGWASCatalog:
+        """Annotate summary stats QC information.
+
+        Args:
+            sumstats_qc (DataFrame): containing summary statistics-based quality controls.
+
+        Returns:
+            StudyIndexGWASCatalog: Updated study index with QC information
+        """
+        # convert all columns in sumstats_qc dataframe in array of structs grouped by studyId
+        sumstats_qc_aggregated = (
+            sumstats_qc.groupBy("studyId")
+            .agg(
+                f.collect_list(
+                    f.struct(
+                        *[
+                            f.struct(
+                                f.lit(col).alias("QCCheckName"),
+                                f.col(col).alias("QCCheckValue").cast(t.FloatType()),
+                            )
+                            for col in sumstats_qc.columns
+                            if col != "studyId"
+                        ]
+                    )
+                ).alias("sumStatQCValues")
+            )
+            .withColumn("sumStatQCPerformed", f.lit(True))
+        )
+
+        # Annotate study index with QC information:
+        return StudyIndexGWASCatalog(
+            _df=self.df.drop("sumStatQCValues", "sumStatQCPerformed")
+            .join(sumstats_qc_aggregated, how="left", on="studyId")
+            .withColumn(
+                "sumStatQCPerformed",
+                f.coalesce(f.col("sumStatQCPerformed"), f.lit(False)),
+            )
+            .withColumn(
+                "sumStatQCValues", f.coalesce(f.col("sumStatQCValues"), f.array())
             ),
-        ).select(
-            self._parse_gwas_catalog_study_id("summarystatsLocation").alias("studyId"),
-            "summarystatsLocation",
-            f.lit(True).alias("hasSumstats"),
+            _schema=StudyIndexGWASCatalog.get_schema(),
         )
-        self.df = (
-            self.df.drop("hasSumstats")
-            .join(parsed_sumstats_lut, on="studyId", how="left")
-            .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
-        )
-        return self
 
     def annotate_discovery_sample_sizes(
         self: StudyIndexGWASCatalog,
