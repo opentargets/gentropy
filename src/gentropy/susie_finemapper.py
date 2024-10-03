@@ -104,7 +104,6 @@ class SusieFineMapperStep:
         study_index = StudyIndex.from_parquet(session, study_index_path)
         # Run fine-mapping
 
-
         result_logging = self.susie_finemapper_one_sl_row_v4_ss_gathered_boundaries(
             session=session,
             study_locus_row=study_locus,
@@ -870,8 +869,7 @@ class SusieFineMapperStep:
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
         sum_pips: float = 0.99,
-        primary_signal_pval_threshold: float = 5e-8,
-        secondary_signal_pval_threshold: float = 1e-7,
+        lead_pval_threshold: float = 1e-5,
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
@@ -891,8 +889,7 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
-            primary_signal_pval_threshold (float): p-value threshold for the lead variant from the primary signal (credibleSetIndex==1)
-            secondary_signal_pval_threshold (float): p-value threshold for the lead variant from the secondary signals
+            lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
             purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
@@ -1069,6 +1066,8 @@ class SusieFineMapperStep:
             session=session,
             studyId=studyId,
             region=region,
+            locusStart=locusStart,
+            locusEnd=locusEnd,
             susie_est_tausq=susie_est_tausq,
             run_carma=run_carma,
             run_sumstat_imputation=run_sumstat_imputation,
@@ -1077,8 +1076,7 @@ class SusieFineMapperStep:
             imputed_r2_threshold=imputed_r2_threshold,
             ld_score_threshold=ld_score_threshold,
             sum_pips=sum_pips,
-            primary_signal_pval_threshold=primary_signal_pval_threshold,
-            secondary_signal_pval_threshold=secondary_signal_pval_threshold,
+            lead_pval_threshold=lead_pval_threshold,
             purity_mean_r2_threshold=purity_mean_r2_threshold,
             purity_min_r2_threshold=purity_min_r2_threshold,
             cs_lbf_thr=cs_lbf_thr,
