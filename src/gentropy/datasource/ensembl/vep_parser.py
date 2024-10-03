@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import importlib.resources as pkg_resources
 from typing import TYPE_CHECKING
 
-import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     enforce_schema,
@@ -27,6 +24,7 @@ if TYPE_CHECKING:
 
 class VariantEffectPredictorParser:
     """Collection of methods to parse VEP output in json format."""
+
     # NOTE: Due to the fact that the comparison of the xrefs is done om the base of rsids
     # if the field `colocalised_variants` have multiple rsids, this extracting xrefs will result in
     # an array of xref structs, rather then the struct itself.
@@ -568,22 +566,16 @@ class VariantEffectPredictorParser:
         Returns:
            DataFrame: processed data in the right shape.
         """
-        so_df = pd.read_csv(
-            pkg_resources.open_text(
-                data, "variant_consequence_to_score.tsv", encoding="utf-8"
-            ),
-            sep="\t",
-        )
-
-        # Reading consequence to sequence ontology map:
+        # Consequence to sequence ontology map:
         sequence_ontology_map = {
-            row["label"]: row["variantFunctionalConsequenceId"]
-            for _, row in so_df.iterrows()
+            item["label"]: item["id"]
+            for item in VariantIndex.CONSEQUENCE_TO_PATHOGENICITY_SCORE
         }
-
-        # Reading score dictionary:
-        score_dictionary = {row["label"]: row["score"] for _, row in so_df.iterrows()}
-
+        # Sequence ontology to score map:
+        label_to_score_map = {
+            item["label"]: item["score"]
+            for item in VariantIndex.CONSEQUENCE_TO_PATHOGENICITY_SCORE
+        }
         # Processing VEP output:
         return (
             vep_output
@@ -694,7 +686,7 @@ class VariantEffectPredictorParser:
                                 f.transform(
                                     transcript.consequence_terms,
                                     lambda term: map_column_by_dictionary(
-                                        term, score_dictionary
+                                        term, label_to_score_map
                                     ),
                                 )
                             )

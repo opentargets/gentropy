@@ -7,14 +7,6 @@ from typing import TYPE_CHECKING
 import pytest
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-from pyspark.sql.types import (
-    ArrayType,
-    BooleanType,
-    IntegerType,
-    StringType,
-    StructField,
-    StructType,
-)
 
 from gentropy.dataset.variant_index import VariantIndex
 
@@ -151,67 +143,6 @@ class TestVariantIndex:
         observed = mock_variant_index.get_distance_to_gene(distance_type=distance_type)
         for col in expected_cols:
             assert col in observed.columns, f"Column {col} not in {observed.columns}"
-
-    def test_get_most_severe_gene_consequence(
-        self: TestVariantIndex,
-        spark: SparkSession,
-    ) -> None:
-        """Assert that the function returns a df with the requested columns."""
-        sample_variant_index = VariantIndex(
-            _df=spark.createDataFrame(
-                [
-                    (
-                        "var1",
-                        "chrom",
-                        1,
-                        "A",
-                        "T",
-                        [
-                            {
-                                "targetId": "gene1",
-                                "variantFunctionalConsequenceIds": [
-                                    "SO_0001630",  # splice_region_variant (0.33)
-                                    "SO_0001822",  # inframe_deletion (0.66)
-                                ],
-                                "isEnsemblCanonical": True,
-                            },
-                        ],
-                    ),
-                ],
-                schema=StructType(
-                    [
-                        StructField("variantId", StringType(), True),
-                        StructField("chromosome", StringType(), True),
-                        StructField("position", IntegerType(), True),
-                        StructField("referenceAllele", StringType(), True),
-                        StructField("alternateAllele", StringType(), True),
-                        StructField(
-                            "transcriptConsequences",
-                            ArrayType(
-                                StructType(
-                                    [
-                                        StructField("targetId", StringType(), True),
-                                        StructField(
-                                            "isEnsemblCanonical", BooleanType(), True
-                                        ),
-                                        StructField(
-                                            "variantFunctionalConsequenceIds",
-                                            ArrayType(StringType(), True),
-                                            True,
-                                        ),
-                                    ]
-                                )
-                            ),
-                            True,
-                        ),
-                    ]
-                ),
-            ),
-            _schema=VariantIndex.get_schema(),
-        )
-        expected_highest_severity_score = 0.66
-        observed = sample_variant_index.get_most_severe_gene_consequence()
-        assert observed.first()["severityScore"] == expected_highest_severity_score
 
     def test_get_loftee(
         self: TestVariantIndex, mock_variant_index: VariantIndex
