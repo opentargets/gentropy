@@ -1,4 +1,5 @@
 """Study Index for Finngen data source."""
+
 from __future__ import annotations
 
 import pyspark.sql.functions as f
@@ -29,9 +30,7 @@ class UkbPppEurStudyIndex(StudyIndex):
         """
         # In order to populate the nSamples column, we need to peek inside the summary stats dataframe.
         num_of_samples = (
-            spark
-            .read
-            .parquet(raw_summary_stats_path)
+            spark.read.parquet(raw_summary_stats_path)
             .filter(f.col("chromosome") == "22")
             .groupBy("studyId")
             .agg(f.first("N").cast("integer").alias("nSamples"))
@@ -45,7 +44,7 @@ class UkbPppEurStudyIndex(StudyIndex):
                 f.lit("UKB_PPP_EUR").alias("projectId"),
                 f.col("_gentropy_study_id").alias("studyId"),
                 f.col("UKBPPP_ProteinID").alias("traitFromSource"),
-                f.lit("UBERON_0001969").alias("tissueFromSourceId"),
+                f.lit("UBERON_0001969").alias("biosampleFromSourceId"),
                 f.col("ensembl_id").alias("geneId"),
                 f.lit(True).alias("hasSumstats"),
                 f.col("_gentropy_summary_stats_link").alias("summarystatsLocation"),
@@ -53,21 +52,17 @@ class UkbPppEurStudyIndex(StudyIndex):
             .join(num_of_samples, "studyId", "inner")
         )
         # Add population structure.
-        study_index_df = (
-            study_index_df
-            .withColumn(
-                "discoverySamples",
-                f.array(
-                    f.struct(
-                        f.col("nSamples").cast("integer").alias("sampleSize"),
-                        f.lit("European").alias("ancestry"),
-                    )
+        study_index_df = study_index_df.withColumn(
+            "discoverySamples",
+            f.array(
+                f.struct(
+                    f.col("nSamples").cast("integer").alias("sampleSize"),
+                    f.lit("European").alias("ancestry"),
                 )
-            )
-            .withColumn(
-                "ldPopulationStructure",
-                cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
-            )
+            ),
+        ).withColumn(
+            "ldPopulationStructure",
+            cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
         )
 
         return StudyIndex(

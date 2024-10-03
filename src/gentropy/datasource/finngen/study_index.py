@@ -1,4 +1,4 @@
-"""Study Index for Finngen data source."""
+"""Study Index for FinnGen data source."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from urllib.request import urlopen
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.config import FinngenStudiesConfig
 from gentropy.dataset.study_index import StudyIndex
 
 
@@ -30,7 +29,7 @@ class FinnGenStudyIndex:
     def join_efo_mapping(
         study_index: StudyIndex,
         efo_curation_mapping: DataFrame,
-        finngen_release_prefix: str = FinngenStudiesConfig().finngen_release_prefix,
+        finngen_release_prefix: str,
     ) -> StudyIndex:
         """Add EFO mapping to the Finngen study index table.
 
@@ -88,10 +87,11 @@ class FinnGenStudyIndex:
     def from_source(
         cls: type[FinnGenStudyIndex],
         spark: SparkSession,
-        finngen_phenotype_table_url: str = FinngenStudiesConfig().finngen_phenotype_table_url,
-        finngen_release_prefix: str = FinngenStudiesConfig().finngen_release_prefix,
-        finngen_summary_stats_url_prefix: str = FinngenStudiesConfig().finngen_summary_stats_url_prefix,
-        finngen_summary_stats_url_suffix: str = FinngenStudiesConfig().finngen_summary_stats_url_suffix,
+        finngen_phenotype_table_url: str,
+        finngen_release_prefix: str,
+        finngen_summary_stats_url_prefix: str,
+        finngen_summary_stats_url_suffix: str,
+        sample_size: int,
     ) -> StudyIndex:
         """This function ingests study level metadata from FinnGen.
 
@@ -101,6 +101,7 @@ class FinnGenStudyIndex:
             finngen_release_prefix (str): FinnGen release prefix.
             finngen_summary_stats_url_prefix (str): FinnGen summary stats URL prefix.
             finngen_summary_stats_url_suffix (str): FinnGen summary stats URL suffix.
+            sample_size (int): Number of individuals participated in sample collection.
 
         Returns:
             StudyIndex: Parsed and annotated FinnGen study table.
@@ -120,12 +121,12 @@ class FinnGenStudyIndex:
                 f.lit(finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
-                f.lit("377,277 (210,870 females and 166,407 males)").alias(
+                f.lit("453,733 (254,618 females and 199,115 males)").alias(
                     "initialSampleSize"
                 ),
                 f.array(
                     f.struct(
-                        f.lit(377277).cast("integer").alias("sampleSize"),
+                        f.lit(sample_size).cast("integer").alias("sampleSize"),
                         f.lit("Finnish").alias("ancestry"),
                     )
                 ).alias("discoverySamples"),

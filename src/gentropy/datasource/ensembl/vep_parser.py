@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import importlib.resources as pkg_resources
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from pyspark.sql import SparkSession
@@ -14,6 +14,7 @@ from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     enforce_schema,
+    get_nested_struct_schema,
     map_column_by_dictionary,
     order_array_of_structs_by_field,
     order_array_of_structs_by_two_fields,
@@ -26,14 +27,16 @@ if TYPE_CHECKING:
 
 class VariantEffectPredictorParser:
     """Collection of methods to parse VEP output in json format."""
+    # NOTE: Due to the fact that the comparison of the xrefs is done om the base of rsids
+    # if the field `colocalised_variants` have multiple rsids, this extracting xrefs will result in
+    # an array of xref structs, rather then the struct itself.
 
-    # Schema description of the dbXref object:
     DBXREF_SCHEMA = VariantIndex.get_schema()["dbXrefs"].dataType
 
     # Schema description of the in silico predictor object:
-    IN_SILICO_PREDICTOR_SCHEMA = VariantIndex.get_schema()[
-        "inSilicoPredictors"
-    ].dataType
+    IN_SILICO_PREDICTOR_SCHEMA = get_nested_struct_schema(
+        VariantIndex.get_schema()["inSilicoPredictors"]
+    )
 
     # Schema for the allele frequency column:
     ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"].dataType
@@ -71,8 +74,7 @@ class VariantEffectPredictorParser:
             VariantIndex: Variant index dataset.
 
         Raises:
-            ValueError: Failed reading file.
-            ValueError: The dataset is empty.
+            ValueError: Failed reading file or if the dataset is empty.
         """
         # To speed things up and simplify the json structure, read data following an expected schema:
         vep_schema = cls.get_schema()
@@ -351,12 +353,12 @@ class VariantEffectPredictorParser:
         ...    .select(VariantEffectPredictorParser._get_max_alpha_missense(f.col('transcripts')).alias('am'))
         ...    .show(truncate=False)
         ... )
-        +------------------------------------------------------+
-        |am                                                    |
-        +------------------------------------------------------+
-        |[{max alpha missense, assessment 1, 0.4, null, gene1}]|
-        |[{max alpha missense, null, null, null, gene1}]       |
-        +------------------------------------------------------+
+        +----------------------------------------------------+
+        |am                                                  |
+        +----------------------------------------------------+
+        |{max alpha missense, assessment 1, 0.4, null, gene1}|
+        |{max alpha missense, null, null, null, gene1}       |
+        +----------------------------------------------------+
         <BLANKLINE>
         """
         return f.transform(
@@ -527,14 +529,14 @@ class VariantEffectPredictorParser:
         )
 
     @staticmethod
-    def _parse_variant_location_id(vep_input_field: Column) -> List[Column]:
+    def _parse_variant_location_id(vep_input_field: Column) -> list[Column]:
         r"""Parse variant identifier, chromosome, position, reference allele and alternate allele from VEP input field.
 
         Args:
             vep_input_field (Column): Column containing variant vcf string used as VEP input.
 
         Returns:
-            List[Column]: List of columns containing chromosome, position, reference allele and alternate allele.
+            list[Column]: List of columns containing chromosome, position, reference allele and alternate allele.
         """
         variant_fields = f.split(vep_input_field, r"\t")
         return [

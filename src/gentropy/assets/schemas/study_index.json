@@ -58,6 +58,12 @@
       "metadata": {}
     },
     {
+      "name": "biosampleId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "pubmedId",
       "type": "string",
       "nullable": true,
@@ -254,6 +260,38 @@
     {
       "name": "condition",
       "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "sumStatQCPerformed",
+      "type": "boolean",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "sumStatQCValues",
+      "type": {
+        "type": "array",
+        "elementType": {
+          "type": "struct",
+          "fields": [
+            {
+              "name": "QCCheckName",
+              "type": "string",
+              "nullable": true,
+              "metadata": {}
+            },
+            {
+              "name": "QCCheckValue",
+              "type": "float",
+              "nullable": true,
+              "metadata": {}
+            }
+          ]
+        },
+        "containsNull": true
+      },
       "nullable": true,
       "metadata": {}
     }

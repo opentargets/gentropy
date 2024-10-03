@@ -6,22 +6,21 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
+    get_nested_struct_schema,
     get_record_with_maximum_value,
-    normalise_column,
     rename_all_columns,
     safe_array_union,
 )
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.v2g import V2G
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.gene_index import GeneIndex
 
 
 @dataclass
@@ -131,6 +130,7 @@ class VariantIndex(Dataset):
         # Prefix for renaming columns:
         prefix = "annotation_"
 
+
         # Generate select expressions that to merge and import columns from annotation:
         select_expressions = []
 
@@ -141,10 +141,17 @@ class VariantIndex(Dataset):
             # If an annotation column can be found in both datasets:
             if (column in self.df.columns) and (column in annotation_source.df.columns):
                 # Arrays are merged:
-                if "ArrayType" in field.dataType.__str__():
+                if isinstance(field.dataType, t.ArrayType):
+                    fields_order = None
+                    if isinstance(field.dataType.elementType, t.StructType):
+                        # Extract the schema of the array to get the order of the fields:
+                        array_schema = [
+                            field for field in VariantIndex.get_schema().fields if field.name == column
+                        ][0].dataType
+                        fields_order = get_nested_struct_schema(array_schema).fieldNames()
                     select_expressions.append(
                         safe_array_union(
-                            f.col(column), f.col(f"{prefix}{column}")
+                            f.col(column), f.col(f"{prefix}{column}"), fields_order
                         ).alias(column)
                     )
                 # Non-array columns are coalesced:
@@ -221,165 +228,106 @@ class VariantIndex(Dataset):
             _schema=self.schema,
         )
 
-    def get_transcript_consequence_df(
-        self: VariantIndex, gene_index: GeneIndex | None = None
-    ) -> DataFrame:
-        """Dataframe of exploded transcript consequences.
-
-        Optionally the trancript consequences can be reduced to the universe of a gene index.
-
-        Args:
-            gene_index (GeneIndex | None): A gene index. Defaults to None.
-
-        Returns:
-            DataFrame: A dataframe exploded by transcript consequences with the columns variantId, chromosome, transcriptConsequence
-        """
-        # exploding the array removes records without VEP annotation
-        transript_consequences = self.df.withColumn(
-            "transcriptConsequence", f.explode("transcriptConsequences")
-        ).select(
-            "variantId",
-            "chromosome",
-            "position",
-            "transcriptConsequence",
-            f.col("transcriptConsequence.targetId").alias("geneId"),
-        )
-        if gene_index:
-            transript_consequences = transript_consequences.join(
-                f.broadcast(gene_index.df),
-                on=["chromosome", "geneId"],
-            )
-        return transript_consequences
-
-    def get_distance_to_tss(
+    def get_distance_to_gene(
         self: VariantIndex,
-        gene_index: GeneIndex,
+        *,
+        distance_type: str = "distanceFromTss",
         max_distance: int = 500_000,
-    ) -> V2G:
-        """Extracts variant to gene assignments for variants falling within a window of a gene's TSS.
+    ) -> DataFrame:
+        """Extracts variant to gene assignments for variants falling within a window of a gene's TSS or footprint.
 
         Args:
-            gene_index (GeneIndex): A gene index to filter by.
-            max_distance (int): The maximum distance from the TSS to consider. Defaults to 500_000.
+            distance_type (str): The type of distance to use. Can be "distanceFromTss" or "distanceFromFootprint". Defaults to "distanceFromTss".
+            max_distance (int): The maximum distance to consider. Defaults to 500_000, the default window size for VEP.
 
         Returns:
-            V2G: variant to gene assignments with their distance to the TSS
+            DataFrame: A dataframe with the distance between a variant and a gene's TSS or footprint.
+
+        Raises:
+            ValueError: Invalid distance type.
         """
-        return V2G(
-            _df=(
-                self.df.alias("variant")
-                .join(
-                    f.broadcast(gene_index.locations_lut()).alias("gene"),
-                    on=[
-                        f.col("variant.chromosome") == f.col("gene.chromosome"),
-                        f.abs(f.col("variant.position") - f.col("gene.tss"))
-                        <= max_distance,
-                    ],
-                    how="inner",
-                )
-                .withColumn(
-                    "distance", f.abs(f.col("variant.position") - f.col("gene.tss"))
-                )
-                .withColumn(
-                    "inverse_distance",
-                    max_distance - f.col("distance"),
-                )
-                .transform(lambda df: normalise_column(df, "inverse_distance", "score"))
-                .select(
-                    "variantId",
-                    f.col("variant.chromosome").alias("chromosome"),
-                    "distance",
-                    "geneId",
-                    "score",
-                    f.lit("distance").alias("datatypeId"),
-                    f.lit("canonical_tss").alias("datasourceId"),
-                )
-            ),
-            _schema=V2G.get_schema(),
-        )
+        if distance_type not in {"distanceFromTss", "distanceFromFootprint"}:
+            raise ValueError(
+                f"Invalid distance_type: {distance_type}. Must be 'distanceFromTss' or 'distanceFromFootprint'."
+            )
+        df = self.df.select(
+            "variantId", f.explode("transcriptConsequences").alias("tc")
+        ).select("variantId", "tc.targetId", f"tc.{distance_type}")
+        if max_distance == 500_000:
+            return df
+        elif max_distance < 500_000:
+            return df.filter(f"{distance_type} <= {max_distance}")
+        else:
+            raise ValueError(
+                f"max_distance must be less than 500_000. Got {max_distance}."
+            )
 
-    def get_plof_v2g(self: VariantIndex, gene_index: GeneIndex) -> V2G:
-        """Creates a dataset with variant to gene assignments with a flag indicating if the variant is predicted to be a loss-of-function variant by the LOFTEE algorithm.
+    def get_loftee(self: VariantIndex) -> DataFrame:
+        """Returns a dataframe with a flag indicating whether a variant is predicted to cause loss of function in a gene. The source of this information is the LOFTEE algorithm (https://github.com/konradjk/loftee).
 
-        Optionally the trancript consequences can be reduced to the universe of a gene index.
-
-        Args:
-            gene_index (GeneIndex): A gene index to filter by.
+        !!! note, "This will return a filtered dataframe with only variants that have been annotated by LOFTEE."
 
         Returns:
-            V2G: variant to gene assignments from the LOFTEE algorithm
+            DataFrame: variant to gene assignments from the LOFTEE algorithm
         """
-        return V2G(
-            _df=(
-                self.get_transcript_consequence_df(gene_index)
-                .filter(f.col("transcriptConsequence.lofteePrediction").isNotNull())
-                .withColumn(
-                    "isHighQualityPlof",
-                    f.when(
-                        f.col("transcriptConsequence.lofteePrediction") == "HC", True
-                    ).when(
-                        f.col("transcriptConsequence.lofteePrediction") == "LC", False
-                    ),
-                )
-                .withColumn(
-                    "score",
-                    f.when(f.col("isHighQualityPlof"), 1.0).when(
-                        ~f.col("isHighQualityPlof"), 0
-                    ),
-                )
-                .select(
-                    "variantId",
-                    "chromosome",
-                    "geneId",
-                    "isHighQualityPlof",
-                    f.col("score"),
-                    f.lit("vep").alias("datatypeId"),
-                    f.lit("loftee").alias("datasourceId"),
-                )
-            ),
-            _schema=V2G.get_schema(),
+        return (
+            self.df.select("variantId", f.explode("transcriptConsequences").alias("tc"))
+            .filter(f.col("tc.lofteePrediction").isNotNull())
+            .withColumn(
+                "isHighQualityPlof",
+                f.when(f.col("tc.lofteePrediction") == "HC", True).when(
+                    f.col("tc.lofteePrediction") == "LC", False
+                ),
+            )
+            .select(
+                "variantId",
+                f.col("tc.targetId"),
+                f.col("tc.lofteePrediction"),
+                "isHighQualityPlof",
+            )
         )
 
-    def get_most_severe_transcript_consequence(
+    def get_most_severe_gene_consequence(
         self: VariantIndex,
+        *,
         vep_consequences: DataFrame,
-        gene_index: GeneIndex,
-    ) -> V2G:
-        """Creates a dataset with variant to gene assignments based on VEP's predicted consequence of the transcript.
-
-        Optionally the trancript consequences can be reduced to the universe of a gene index.
+    ) -> DataFrame:
+        """Returns a dataframe with the most severe consequence for a variant/gene pair.
 
         Args:
             vep_consequences (DataFrame): A dataframe of VEP consequences
-            gene_index (GeneIndex): A gene index to filter by. Defaults to None.
 
         Returns:
-            V2G: High and medium severity variant to gene assignments
+            DataFrame: A dataframe with the most severe consequence (plus a severity score) for a variant/gene pair
         """
-        return V2G(
-            _df=self.get_transcript_consequence_df(gene_index)
+        return (
+            self.df.select("variantId", f.explode("transcriptConsequences").alias("tc"))
             .select(
                 "variantId",
-                "chromosome",
-                f.col("transcriptConsequence.targetId").alias("geneId"),
-                f.explode(
-                    "transcriptConsequence.variantFunctionalConsequenceIds"
-                ).alias("variantFunctionalConsequenceId"),
-                f.lit("vep").alias("datatypeId"),
-                f.lit("variantConsequence").alias("datasourceId"),
+                f.col("tc.targetId"),
+                f.explode(f.col("tc.variantFunctionalConsequenceIds")).alias(
+                    "variantFunctionalConsequenceId"
+                ),
             )
             .join(
-                f.broadcast(vep_consequences),
+                # TODO: make this table a project config
+                f.broadcast(
+                    vep_consequences.selectExpr(
+                        "variantFunctionalConsequenceId", "score as severityScore"
+                    )
+                ),
                 on="variantFunctionalConsequenceId",
                 how="inner",
             )
-            .drop("label")
-            .filter(f.col("score") != 0)
-            # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
+            .filter(f.col("severityScore").isNull())
             .transform(
+                # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
                 lambda df: get_record_with_maximum_value(
-                    df, ["variantId", "geneId"], "score"
+                    df, ["variantId", "targetId"], "severityScore"
                 )
-            ),
-            _schema=V2G.get_schema(),
+            )
+            .withColumnRenamed(
+                "variantFunctionalConsequenceId",
+                "mostSevereVariantFunctionalConsequenceId",
+            )
         )
