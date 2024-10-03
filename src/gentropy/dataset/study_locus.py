@@ -278,7 +278,7 @@ class StudyLocus(Dataset):
                     # Because this QC might already run on the dataset, the unique set of flags is generated:
                     f.array_distinct(
                         self._qc_subsignificant_associations(
-                            f.col("qualityControls"),
+                            f.coalesce(f.col("qualityControls"), f.array()),
                             f.col("pValueMantissa"),
                             f.col("pValueExponent"),
                             pvalue_cutoff,
