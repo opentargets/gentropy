@@ -46,9 +46,9 @@ class LocusToGeneStep:
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
         gene_interactions_path: str | None = None,
-        interval_path: dict[str, str],
-        gene_index_path: str,
-        liftover_chain_file_path: str,
+        interval_path: dict[str, str] | None = None,
+        gene_index_path: str | None = None,
+        liftover_chain_file_path: str | None = None,
         liftover_max_length_difference: int = 100,
         predictions_path: str | None = None,
         feature_matrix_path: str | None = None,
@@ -71,7 +71,7 @@ class LocusToGeneStep:
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
             gene_interactions_path (str | None): Path to the gene interactions dataset
-            interval_path (dict[str, str]) : Path and source of interval input datasets
+            interval_path (dict[str, str] | None) : Path and source of interval input datasets
             gene_index_path (str | None) : Path to the gene index dataset
             liftover_chain_file_path (str | None) : Path to the liftover chain file
             liftover_max_length_difference (int) : Maximum allowed difference for liftover
@@ -113,42 +113,54 @@ class LocusToGeneStep:
             if variant_index_path
             else None
         )
-        self.gene_index = GeneIndex.from_parquet(session, gene_index_path)
-        self.lift = LiftOverSpark(
-            liftover_chain_file_path,
-            liftover_max_length_difference,
+        self.gene_index = (
+            GeneIndex.from_parquet(session, gene_index_path)
+            if gene_index_path
+            else None
         )
-        self.intervals = Intervals(
-            _df=reduce(
-                lambda x, y: x.unionByName(y, allowMissingColumns=True),
-                # create interval instances by parsing each source
-                [
-                    Intervals.from_source(
-                        session.spark,
-                        source_name,
-                        source_path,
-                        self.gene_index,
-                        self.lift,
-                    ).df
-                    for source_name, source_path in interval_path.items()
-                ],
+        self.lift = (
+            LiftOverSpark(
+                liftover_chain_file_path,
+                liftover_max_length_difference,
             )
-            .alias("interval")
-            .join(
-                self.variant_index.df.selectExpr(
-                    "chromosome as vi_chromosome", "variantId", "position"
-                ).alias("vi"),
-                on=[
-                    f.col("vi.vi_chromosome") == f.col("interval.chromosome"),
-                    f.col("vi.position").between(
-                        f.col("interval.start"), f.col("interval.end")
-                    ),
-                ],
-                how="inner",
-            )
-            .drop("start", "end", "vi_chromosome", "position"),
-            _schema=Intervals.get_schema(),
+            if liftover_chain_file_path
+            else None
         )
+
+        if self.variant_index and self.gene_index and self.lift and interval_path:
+            self.intervals = Intervals(
+                _df=reduce(
+                    lambda x, y: x.unionByName(y, allowMissingColumns=True),
+                    # create interval instances by parsing each source
+                    [
+                        Intervals.from_source(
+                            session.spark,
+                            source_name,
+                            source_path,
+                            self.gene_index,
+                            self.lift,
+                        ).df
+                        for source_name, source_path in interval_path.items()
+                    ],
+                )
+                .alias("interval")
+                .join(
+                    self.variant_index.df.selectExpr(
+                        "chromosome as vi_chromosome", "variantId", "position"
+                    ).alias("vi"),
+                    on=[
+                        f.col("vi.vi_chromosome") == f.col("interval.chromosome"),
+                        f.col("vi.position").between(
+                            f.col("interval.start"), f.col("interval.end")
+                        ),
+                    ],
+                    how="inner",
+                )
+                .drop("start", "end", "vi_chromosome", "position"),
+                _schema=Intervals.get_schema(),
+            )
+        else:
+            raise ValueError("variant_index is None, cannot join with intervals.")
         self.coloc = (
             Colocalisation.from_parquet(
                 session, colocalisation_path, recursiveFileLookup=True
