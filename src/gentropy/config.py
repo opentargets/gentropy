@@ -423,8 +423,7 @@ class FinemapperConfig(StepConfig):
     study_locus_manifest_path: str = MISSING
     study_locus_index: int = MISSING
     max_causal_snps: int = MISSING
-    primary_signal_pval_threshold: float = MISSING
-    secondary_signal_pval_threshold: float = MISSING
+    lead_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
     cs_lbf_thr: float = MISSING
@@ -436,6 +435,7 @@ class FinemapperConfig(StepConfig):
     carma_time_limit: int = MISSING
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
+    ld_min_r2: float = MISSING
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
