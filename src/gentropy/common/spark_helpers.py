@@ -447,14 +447,14 @@ def order_array_of_structs_by_two_fields(
     )
 
 
-def map_column_by_dictionary(col: Column, mapping_dict: dict[str, str]) -> Column:
+def map_column_by_dictionary(col: Column, mapping_dict: dict[str, Any]) -> Column:
     """Map column values to dictionary values by key.
 
     Missing consequence label will be converted to None, unmapped consequences will be mapped as None.
 
     Args:
         col (Column): Column containing labels to map.
-        mapping_dict (dict[str, str]): Dictionary with mapping key/value pairs.
+        mapping_dict (dict[str, Any]): Dictionary with mapping key/value pairs.
 
     Returns:
         Column: Column with mapped values.
@@ -818,3 +818,32 @@ def get_nested_struct_schema(dtype: t.DataType) -> t.StructType:
             return get_nested_struct_schema(dtype)
         case _:
             raise TypeError("The input data type must be a nested struct.")
+
+
+def get_struct_field_schema(schema: t.StructType, name: str) -> t.DataType:
+    """Get schema for underlying struct field.
+
+    Args:
+        schema (t.StructType): Provided schema where the name should be looked in.
+        name (str): Name of the field to look in the schema
+
+    Returns:
+        t.DataType: Data type of the StructField with provided name
+
+    Raises:
+        ValueError: If provided name is not present in the input schema
+
+    Examples:
+        >>> get_struct_field_schema(t.StructType([t.StructField("a", t.StringType())]), "a")
+        StringType()
+
+        >>> get_struct_field_schema(t.StructType([t.StructField("a", t.StringType())]), "b") # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ...
+        ValueError: Provided name b is not present in the schema
+
+    """
+    matching_fields = [f for f in schema.fields if f.name == name]
+    if not matching_fields:
+        raise ValueError("Provided name %s is not present in the schema.", name)
+    return matching_fields[0].dataType
