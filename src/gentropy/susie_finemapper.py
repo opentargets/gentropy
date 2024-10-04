@@ -590,6 +590,8 @@ class SusieFineMapperStep:
 
         log_df = pd.DataFrame(
             {
+                "studyId": studyId,
+                "region": region,
                 "N_gwas_before_dedupl": N_gwas_before_dedupl,
                 "N_gwas": N_gwas,
                 "N_ld": N_ld,
