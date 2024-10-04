@@ -14,6 +14,8 @@ from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     calculate_neglog_pvalue,
+    create_empty_column_if_not_exists,
+    get_struct_field_schema,
     order_array_of_structs_by_field,
 )
 from gentropy.common.utils import get_logsum
@@ -271,14 +273,23 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Updated study locus with quality control flags.
         """
+        df = self.df
+        qc_colname = "qualityControls"
+        if qc_colname not in self.df.columns:
+            df = self.df.withColumn(
+                qc_colname,
+                create_empty_column_if_not_exists(
+                    qc_colname, get_struct_field_schema(StudyLocus.get_schema(), qc_colname)
+                ),
+            )
         return StudyLocus(
             _df=(
-                self.df.withColumn(
-                    "qualityControls",
+                df.withColumn(
+                    qc_colname,
                     # Because this QC might already run on the dataset, the unique set of flags is generated:
                     f.array_distinct(
                         self._qc_subsignificant_associations(
-                            f.coalesce(f.col("qualityControls"), f.array()),
+                            f.col("qualityControls"),
                             f.col("pValueMantissa"),
                             f.col("pValueExponent"),
                             pvalue_cutoff,
