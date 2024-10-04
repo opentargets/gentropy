@@ -12,6 +12,7 @@ from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
 from gentropy.config import LocusToGeneConfig
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
@@ -41,6 +42,7 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
+        gene_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
         feature_matrix_path: str | None = None,
@@ -62,6 +64,7 @@ class LocusToGeneStep:
             variant_index_path (str | None): Path to the variant index dataset
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
+            gene_index_path (str | None): Path to the gene index dataset
             gene_interactions_path (str | None): Path to the gene interactions dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
             feature_matrix_path (str | None): Path to the L2G feature matrix output dataset
@@ -108,11 +111,17 @@ class LocusToGeneStep:
             if colocalisation_path
             else None
         )
+        self.gene_index = (
+            GeneIndex.from_parquet(session, gene_index_path, recursiveFileLookup=True)
+            if gene_index_path
+            else None
+        )
         self.features_input_loader = L2GFeatureInputLoader(
             variant_index=self.variant_index,
             coloc=self.coloc,
             studies=self.studies,
             study_locus=self.credible_set,
+            gene_index=self.gene_index,
         )
 
         if run_mode == "predict":

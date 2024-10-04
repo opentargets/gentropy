@@ -1,4 +1,4 @@
-"""Dataset definition for variant annotation."""
+"""Dataset definition for variant index."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ import pyspark.sql.types as t
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     get_nested_struct_schema,
-    get_record_with_maximum_value,
     rename_all_columns,
     safe_array_union,
 )
@@ -20,7 +19,6 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
-
 
 
 @dataclass
@@ -130,7 +128,6 @@ class VariantIndex(Dataset):
         # Prefix for renaming columns:
         prefix = "annotation_"
 
-
         # Generate select expressions that to merge and import columns from annotation:
         select_expressions = []
 
@@ -146,9 +143,13 @@ class VariantIndex(Dataset):
                     if isinstance(field.dataType.elementType, t.StructType):
                         # Extract the schema of the array to get the order of the fields:
                         array_schema = [
-                            field for field in VariantIndex.get_schema().fields if field.name == column
+                            field
+                            for field in VariantIndex.get_schema().fields
+                            if field.name == column
                         ][0].dataType
-                        fields_order = get_nested_struct_schema(array_schema).fieldNames()
+                        fields_order = get_nested_struct_schema(
+                            array_schema
+                        ).fieldNames()
                     select_expressions.append(
                         safe_array_union(
                             f.col(column), f.col(f"{prefix}{column}"), fields_order
@@ -284,50 +285,5 @@ class VariantIndex(Dataset):
                 f.col("tc.targetId"),
                 f.col("tc.lofteePrediction"),
                 "isHighQualityPlof",
-            )
-        )
-
-    def get_most_severe_gene_consequence(
-        self: VariantIndex,
-        *,
-        vep_consequences: DataFrame,
-    ) -> DataFrame:
-        """Returns a dataframe with the most severe consequence for a variant/gene pair.
-
-        Args:
-            vep_consequences (DataFrame): A dataframe of VEP consequences
-
-        Returns:
-            DataFrame: A dataframe with the most severe consequence (plus a severity score) for a variant/gene pair
-        """
-        return (
-            self.df.select("variantId", f.explode("transcriptConsequences").alias("tc"))
-            .select(
-                "variantId",
-                f.col("tc.targetId"),
-                f.explode(f.col("tc.variantFunctionalConsequenceIds")).alias(
-                    "variantFunctionalConsequenceId"
-                ),
-            )
-            .join(
-                # TODO: make this table a project config
-                f.broadcast(
-                    vep_consequences.selectExpr(
-                        "variantFunctionalConsequenceId", "score as severityScore"
-                    )
-                ),
-                on="variantFunctionalConsequenceId",
-                how="inner",
-            )
-            .filter(f.col("severityScore").isNull())
-            .transform(
-                # A variant can have multiple predicted consequences on a transcript, the most severe one is selected
-                lambda df: get_record_with_maximum_value(
-                    df, ["variantId", "targetId"], "severityScore"
-                )
-            )
-            .withColumnRenamed(
-                "variantFunctionalConsequenceId",
-                "mostSevereVariantFunctionalConsequenceId",
             )
         )
