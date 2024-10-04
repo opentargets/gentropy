@@ -227,7 +227,7 @@ class PICS:
         )
         return StudyLocus(
             _df=(
-                associations.df
+                associations.df.repartition()
                 # Old locus column will be dropped if available
                 .select(*[col for col in associations.df.columns if col != "locus"])
                 # Estimate neglog_pvalue for the lead variant
