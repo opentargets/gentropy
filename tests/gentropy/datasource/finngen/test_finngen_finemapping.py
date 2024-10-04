@@ -82,4 +82,4 @@ def test_finngen_finemapping_ingestion_step(
     assert (output_path / "_SUCCESS").exists()
 
     cs = StudyLocus.from_parquet(session=session, path=str(output_path))
-    cs.df.show()
+    assert cs.df.count() == 1
