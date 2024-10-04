@@ -133,6 +133,7 @@ class LocusBreakerClumping:
         Returns:
             StudyLocus: clumped study loci with large loci broken by window-based clumping.
         """
+        large_loci_size = int(large_loci_size)
         small_loci = lbc.filter(
             (f.col("locusEnd") - f.col("locusStart")) <= large_loci_size
         )
@@ -157,9 +158,7 @@ class LocusBreakerClumping:
                     "locusStart": f.col("position") - large_loci_size // 2,
                     "locusEnd": f.col("position") + large_loci_size // 2,
                 }
-            )
-            .withColumn("locusStart", f.col("locusStart").cast("int"))
-            .withColumn("locusEnd", f.col("locusEnd").cast("int")),
+            ),
             StudyLocus.get_schema(),
         )
         return StudyLocus(
