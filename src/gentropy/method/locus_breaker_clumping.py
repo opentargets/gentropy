@@ -111,9 +111,7 @@ class LocusBreakerClumping:
                     f.lit(None)
                     .cast(t.ArrayType(t.StringType()))
                     .alias("qualityControls"),
-                    StudyLocus.assign_study_locus_id(
-                        ["studyId", "variantId"]
-                    ),
+                    StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
                 )
             ),
             _schema=StudyLocus.get_schema(),
@@ -159,7 +157,9 @@ class LocusBreakerClumping:
                     "locusStart": f.col("position") - large_loci_size // 2,
                     "locusEnd": f.col("position") + large_loci_size // 2,
                 }
-            ),
+            )
+            .withColumn("locusStart", f.col("locusStart").cast("int"))
+            .withColumn("locusEnd", f.col("locusEnd").cast("int")),
             StudyLocus.get_schema(),
         )
         return StudyLocus(
