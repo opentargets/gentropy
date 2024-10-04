@@ -111,9 +111,7 @@ class LocusBreakerClumping:
                     f.lit(None)
                     .cast(t.ArrayType(t.StringType()))
                     .alias("qualityControls"),
-                    StudyLocus.assign_study_locus_id(
-                        ["studyId", "variantId"]
-                    ),
+                    StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
                 )
             ),
             _schema=StudyLocus.get_schema(),
@@ -135,6 +133,7 @@ class LocusBreakerClumping:
         Returns:
             StudyLocus: clumped study loci with large loci broken by window-based clumping.
         """
+        large_loci_size = int(large_loci_size)
         small_loci = lbc.filter(
             (f.col("locusEnd") - f.col("locusStart")) <= large_loci_size
         )
