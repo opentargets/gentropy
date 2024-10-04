@@ -832,6 +832,7 @@ def get_struct_field_schema(schema: t.StructType, name: str) -> t.DataType:
 
     Raises:
         ValueError: If provided name is not present in the input schema
+
     Examples:
         >>> get_struct_field_schema(t.StructType([t.StructField("a", t.StringType())]), "a")
         StringType()
