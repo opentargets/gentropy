@@ -274,7 +274,7 @@ class StudyLocus(Dataset):
             StudyLocus: Updated study locus with quality control flags.
         """
         df = self.df
-        qc_colname = "qualityControls"
+        qc_colname = StudyLocus.get_QC_column_name()
         if qc_colname not in self.df.columns:
             df = self.df.withColumn(
                 qc_colname,
