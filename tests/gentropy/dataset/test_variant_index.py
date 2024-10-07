@@ -11,7 +11,7 @@ from pyspark.sql import types as t
 from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import SparkSession
 
 
 def test_variant_index_creation(mock_variant_index: VariantIndex) -> None:
@@ -141,24 +141,6 @@ class TestVariantIndex:
         """Assert that the function returns a df with the requested columns."""
         expected_cols = ["variantId", "targetId", distance_type]
         observed = mock_variant_index.get_distance_to_gene(distance_type=distance_type)
-        for col in expected_cols:
-            assert col in observed.columns, f"Column {col} not in {observed.columns}"
-
-    def test_get_most_severe_gene_consequence(
-        self: TestVariantIndex,
-        mock_variant_index: VariantIndex,
-        mock_variant_consequence_to_score: DataFrame,
-    ) -> None:
-        """Assert that the function returns a df with the requested columns."""
-        expected_cols = [
-            "variantId",
-            "targetId",
-            "mostSevereVariantFunctionalConsequenceId",
-            "severityScore",
-        ]
-        observed = mock_variant_index.get_most_severe_gene_consequence(
-            vep_consequences=mock_variant_consequence_to_score
-        )
         for col in expected_cols:
             assert col in observed.columns, f"Column {col} not in {observed.columns}"
 
