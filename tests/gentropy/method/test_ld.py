@@ -195,34 +195,6 @@ class TestLDAnnotator:
         )
         assert result_df.collect()[0]["ldSet"][0]["r2Major"] == pytest.approx(expected)
 
-    def test__add_population_size(
-        self: TestLDAnnotator,
-    ) -> None:
-        """Test _add_population_size."""
-        result_df = self.observed_df.select(
-            LDAnnotator._add_population_size(
-                f.col("ldSet"), f.col("ldPopulationStructure")
-            ).alias("ldSet")
-        )
-        expected = [0.8, None]
-        for i, row in enumerate(result_df.collect()):
-            assert row["ldSet"][0]["rValues"][i]["relativeSampleSize"] == pytest.approx(
-                expected[i]
-            )
-
-    def test__calculate_weighted_r_overall(
-        self: TestLDAnnotator,
-    ) -> None:
-        """Test _calculate_weighted_r_overall."""
-        result_df = self.observed_df.withColumn(
-            "ldSet",
-            LDAnnotator._add_population_size(
-                f.col("ldSet"), f.col("ldPopulationStructure")
-            ),
-        ).withColumn("ldSet", LDAnnotator._calculate_weighted_r_overall(f.col("ldSet")))
-        expected = 0.2
-        assert result_df.collect()[0]["ldSet"][0]["r2Major"] == pytest.approx(expected)
-
     def test__rescue_lead_variant(self: TestLDAnnotator, spark: SparkSession) -> None:
         """Test _rescue_lead_variant."""
         observed_df = spark.createDataFrame(
