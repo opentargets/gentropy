@@ -589,7 +589,7 @@ class StudyLocus(Dataset):
             ld_set.isNotNull(),
             f.filter(
                 ld_set,
-                lambda tag: tag["r2Overall"] >= r2_threshold,
+                lambda tag: tag["r2Major"] >= r2_threshold,
             ),
         )
 

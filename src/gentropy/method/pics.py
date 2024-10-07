@@ -114,17 +114,17 @@ class PICS:
         Examples:
             >>> from pyspark.sql import Row
             >>> ld_set = [
-            ...     Row(variantId="var1", r2Overall=0.8),
-            ...     Row(variantId="var2", r2Overall=1),
+            ...     Row(variantId="var1", r2Major=0.8),
+            ...     Row(variantId="var2", r2Major=1),
             ... ]
             >>> PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
-            [{'variantId': 'var1', 'r2Overall': 0.8, 'standardError': 0.07420896512708416, 'posteriorProbability': 0.07116959886882368}, {'variantId': 'var2', 'r2Overall': 1, 'standardError': 0.9977000638225533, 'posteriorProbability': 0.9288304011311763}]
+            [{'variantId': 'var1', 'r2Major': 0.8, 'standardError': 0.07420896512708416, 'posteriorProbability': 0.07116959886882368}, {'variantId': 'var2', 'r2Major': 1, 'standardError': 0.9977000638225533, 'posteriorProbability': 0.9288304011311763}]
             >>> empty_ld_set = []
             >>> PICS._finemap(empty_ld_set, lead_neglog_p=10.0, k=6.4)
             []
             >>> ld_set_with_no_r2 = [
-            ...     Row(variantId="var1", r2Overall=None),
-            ...     Row(variantId="var2", r2Overall=None),
+            ...     Row(variantId="var1", r2Major=None),
+            ...     Row(variantId="var2", r2Major=None),
             ... ]
             >>> PICS._finemap(ld_set_with_no_r2, lead_neglog_p=10.0, k=6.4)
             []
@@ -141,16 +141,16 @@ class PICS:
                 tag_struct.asDict()
             )  # tag_struct is of type pyspark.Row, we'll represent it as a dict
             if (
-                not tag_dict["r2Overall"]
-                or tag_dict["r2Overall"] < 0.5
+                not tag_dict["r2Major"]
+                or tag_dict["r2Major"] < 0.5
                 or not lead_neglog_p
             ):
                 # If PICS cannot be calculated, we drop the variant from the credible set
                 continue
 
-            pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
+            pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Major"])
             pics_snp_std = PICS._pics_standard_deviation(
-                lead_neglog_p, tag_dict["r2Overall"], k
+                lead_neglog_p, tag_dict["r2Major"], k
             )
             pics_snp_std = 0.001 if pics_snp_std == 0 else pics_snp_std
             if pics_snp_mu is not None and pics_snp_std is not None:
@@ -202,7 +202,7 @@ class PICS:
             t.StructType(
                 [
                     t.StructField("tagVariantId", t.StringType(), True),
-                    t.StructField("r2Overall", t.DoubleType(), True),
+                    t.StructField("r2Major", t.DoubleType(), True),
                     t.StructField("posteriorProbability", t.DoubleType(), True),
                     t.StructField("standardError", t.DoubleType(), True),
                 ]
@@ -212,7 +212,7 @@ class PICS:
             t.StructType(
                 [
                     t.StructField("variantId", t.StringType(), True),
-                    t.StructField("r2Overall", t.DoubleType(), True),
+                    t.StructField("r2Major", t.DoubleType(), True),
                     t.StructField("posteriorProbability", t.DoubleType(), True),
                     t.StructField("standardError", t.DoubleType(), True),
                 ]
@@ -223,7 +223,7 @@ class PICS:
             picsed_ldset_schema,
         )
         non_picsable_expr = (
-            f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
+            f.size(f.filter(f.col("ldSet"), lambda x: x.r2Major >= 0.5)) == 0
         )
         return StudyLocus(
             _df=(

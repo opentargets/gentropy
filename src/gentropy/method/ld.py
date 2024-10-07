@@ -115,7 +115,7 @@ class LDAnnotator:
             f.array(
                 f.struct(
                     variant_id.alias("tagVariantId"),
-                    f.lit(1).alias("r2Overall"),
+                    f.lit(1).alias("r2Major"),
                 )
             ),
         ).otherwise(ld_set)

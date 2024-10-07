@@ -512,7 +512,7 @@ def test_ldannotate(
 def test_filter_ld_set(spark: SparkSession) -> None:
     """Test filter_ld_set."""
     observed_data = [
-        Row(studyLocusId="sl1", ldSet=[{"tagVariantId": "tag1", "r2Overall": 0.4}])
+        Row(studyLocusId="sl1", ldSet=[{"tagVariantId": "tag1", "r2Major": 0.4}])
     ]
     observed_df = spark.createDataFrame(
         observed_data, ["studyLocusId", "ldSet"]
