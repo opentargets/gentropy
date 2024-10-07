@@ -4,16 +4,40 @@ from __future__ import annotations
 
 from typing import Any, Iterator, Mapping
 
-from gentropy.dataset.l2g_feature import (
+from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
+    EQtlColocClppMaximumNeighbourhoodFeature,
     EQtlColocH4MaximumFeature,
-    L2GFeature,
+    EQtlColocH4MaximumNeighbourhoodFeature,
     PQtlColocClppMaximumFeature,
+    PQtlColocClppMaximumNeighbourhoodFeature,
     PQtlColocH4MaximumFeature,
+    PQtlColocH4MaximumNeighbourhoodFeature,
     SQtlColocClppMaximumFeature,
+    SQtlColocClppMaximumNeighbourhoodFeature,
     SQtlColocH4MaximumFeature,
+    SQtlColocH4MaximumNeighbourhoodFeature,
     TuQtlColocClppMaximumFeature,
+    TuQtlColocClppMaximumNeighbourhoodFeature,
     TuQtlColocH4MaximumFeature,
+    TuQtlColocH4MaximumNeighbourhoodFeature,
+)
+from gentropy.dataset.l2g_features.distance import (
+    DistanceFootprintMeanFeature,
+    DistanceFootprintMeanNeighbourhoodFeature,
+    DistanceSentinelFootprintFeature,
+    DistanceSentinelFootprintNeighbourhoodFeature,
+    DistanceSentinelTssFeature,
+    DistanceSentinelTssNeighbourhoodFeature,
+    DistanceTssMeanFeature,
+    DistanceTssMeanNeighbourhoodFeature,
+)
+from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.vep import (
+    VepMaximumFeature,
+    VepMaximumNeighbourhoodFeature,
+    VepMeanFeature,
+    VepMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
@@ -75,16 +99,34 @@ class FeatureFactory:
     """Factory class for creating features."""
 
     feature_mapper: Mapping[str, type[L2GFeature]] = {
-        # "distanceTssMinimum": DistanceTssMinimumFeature,
-        # "distanceTssMean": DistanceTssMeanFeature,
+        "distanceSentinelTss": DistanceSentinelTssFeature,
+        "distanceSentinelTssNeighbourhood": DistanceSentinelTssNeighbourhoodFeature,
+        "distanceSentinelFootprint": DistanceSentinelFootprintFeature,
+        "distanceSentinelFootprintNeighbourhood": DistanceSentinelFootprintNeighbourhoodFeature,
+        "distanceTssMean": DistanceTssMeanFeature,
+        "distanceTssMeanNeighbourhood": DistanceTssMeanNeighbourhoodFeature,
+        "distanceFootprintMean": DistanceFootprintMeanFeature,
+        "distanceFootprintMeanNeighbourhood": DistanceFootprintMeanNeighbourhoodFeature,
         "eQtlColocClppMaximum": EQtlColocClppMaximumFeature,
+        "eQtlColocClppMaximumNeighbourhood": EQtlColocClppMaximumNeighbourhoodFeature,
         "pQtlColocClppMaximum": PQtlColocClppMaximumFeature,
+        "pQtlColocClppMaximumNeighbourhood": PQtlColocClppMaximumNeighbourhoodFeature,
         "sQtlColocClppMaximum": SQtlColocClppMaximumFeature,
+        "sQtlColocClppMaximumNeighbourhood": SQtlColocClppMaximumNeighbourhoodFeature,
         "tuQtlColocClppMaximum": TuQtlColocClppMaximumFeature,
+        "tuQtlColocClppMaximumNeighbourhood": TuQtlColocClppMaximumNeighbourhoodFeature,
         "eQtlColocH4Maximum": EQtlColocH4MaximumFeature,
+        "eQtlColocH4MaximumNeighbourhood": EQtlColocH4MaximumNeighbourhoodFeature,
         "pQtlColocH4Maximum": PQtlColocH4MaximumFeature,
+        "pQtlColocH4MaximumNeighbourhood": PQtlColocH4MaximumNeighbourhoodFeature,
         "sQtlColocH4Maximum": SQtlColocH4MaximumFeature,
+        "sQtlColocH4MaximumNeighbourhood": SQtlColocH4MaximumNeighbourhoodFeature,
         "tuQtlColocH4Maximum": TuQtlColocH4MaximumFeature,
+        "tuQtlColocH4MaximumNeighbourhood": TuQtlColocH4MaximumNeighbourhoodFeature,
+        "vepMean": VepMeanFeature,
+        "vepMeanNeighbourhood": VepMeanNeighbourhoodFeature,
+        "vepMaximum": VepMaximumFeature,
+        "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
     }
 
     def __init__(

@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, ClassVar, List, TypedDict
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -36,7 +36,6 @@ class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
     credible_set_path: str = MISSING
-    study_index_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
@@ -122,10 +121,16 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
     mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
+    eqtl_lead_pvalue_threshold: float = 1e-3
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -169,6 +174,7 @@ class FinngenFinemappingConfig(StepConfig):
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
+    finngen_finemapping_lead_pvalue_threshold: float = 1e-5
 
 
 @dataclass
@@ -229,9 +235,10 @@ class LocusToGeneConfig(StepConfig):
     run_mode: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
-    variant_gene_path: str = MISSING
+    variant_index_path: str = MISSING
     colocalisation_path: str = MISSING
     study_index_path: str = MISSING
+    gene_index_path: str = MISSING
     model_path: str | None = None
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
@@ -248,6 +255,21 @@ class LocusToGeneConfig(StepConfig):
             "pQtlColocH4Maximum",
             "sQtlColocH4Maximum",
             "tuQtlColocH4Maximum",
+            # distance to gene footprint
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            # distance to gene tss
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
+            # vep
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -332,11 +354,73 @@ class GnomadVariantConfig(StepConfig):
 class VariantIndexConfig(StepConfig):
     """Variant index step configuration."""
 
+    class _ConsequenceToPathogenicityScoreMap(TypedDict):
+        """Typing definition for CONSEQUENCE_TO_PATHOGENICITY_SCORE."""
+
+        id: str
+        label: str
+        score: float
+
     session: SessionConfig = SessionConfig()
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
     gnomad_variant_annotations_path: str | None = None
     hash_threshold: int = 300
+    consequence_to_pathogenicity_score: ClassVar[
+        list[_ConsequenceToPathogenicityScoreMap]
+    ] = [
+        {"id": "SO_0001575", "label": "splice_donor_variant", "score": 1.0},
+        {"id": "SO_0001589", "label": "frameshift_variant", "score": 1.0},
+        {"id": "SO_0001574", "label": "splice_acceptor_variant", "score": 1.0},
+        {"id": "SO_0001587", "label": "stop_gained", "score": 1.0},
+        {"id": "SO_0002012", "label": "start_lost", "score": 1.0},
+        {"id": "SO_0001578", "label": "stop_lost", "score": 1.0},
+        {"id": "SO_0001893", "label": "transcript_ablation", "score": 1.0},
+        {"id": "SO_0001822", "label": "inframe_deletion", "score": 0.66},
+        {
+            "id": "SO_0001818",
+            "label": "protein_altering_variant",
+            "score": 0.66,
+        },
+        {"id": "SO_0001821", "label": "inframe_insertion", "score": 0.66},
+        {
+            "id": "SO_0001787",
+            "label": "splice_donor_5th_base_variant",
+            "score": 0.66,
+        },
+        {"id": "SO_0001583", "label": "missense_variant", "score": 0.66},
+        {"id": "SO_0001567", "label": "stop_retained_variant", "score": 0.33},
+        {"id": "SO_0001630", "label": "splice_region_variant", "score": 0.33},
+        {"id": "SO_0002019", "label": "start_retained_variant", "score": 0.33},
+        {
+            "id": "SO_0002169",
+            "label": "splice_polypyrimidine_tract_variant",
+            "score": 0.33,
+        },
+        {"id": "SO_0001819", "label": "synonymous_variant", "score": 0.33},
+        {
+            "id": "SO_0002170",
+            "label": "splice_donor_region_variant",
+            "score": 0.33,
+        },
+        {"id": "SO_0001624", "label": "3_prime_UTR_variant", "score": 0.1},
+        {"id": "SO_0001623", "label": "5_prime_UTR_variant", "score": 0.1},
+        {"id": "SO_0001627", "label": "intron_variant", "score": 0.1},
+        {
+            "id": "SO_0001619",
+            "label": "non_coding_transcript_variant",
+            "score": 0.0,
+        },
+        {"id": "SO_0001580", "label": "coding_sequence_variant", "score": 0.0},
+        {"id": "SO_0001632", "label": "downstream_gene_variant", "score": 0.0},
+        {"id": "SO_0001631", "label": "upstream_gene_variant", "score": 0.0},
+        {
+            "id": "SO_0001792",
+            "label": "non_coding_transcript_exon_variant",
+            "score": 0.0,
+        },
+        {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
+    ]
 
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
@@ -349,38 +433,6 @@ class ConvertToVcfStepConfig(StepConfig):
     source_format: str = MISSING
     vcf_path: str = MISSING
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
-
-
-@dataclass
-class VariantToGeneConfig(StepConfig):
-    """V2G step configuration."""
-
-    variant_index_path: str = MISSING
-    gene_index_path: str = MISSING
-    vep_consequences_path: str = MISSING
-    liftover_chain_file_path: str = MISSING
-    liftover_max_length_difference: int = 100
-    max_distance: int = 500_000
-    approved_biotypes: List[str] = field(
-        default_factory=lambda: [
-            "protein_coding",
-            "3prime_overlapping_ncRNA",
-            "antisense",
-            "bidirectional_promoter_lncRNA",
-            "IG_C_gene",
-            "IG_D_gene",
-            "IG_J_gene",
-            "IG_V_gene",
-            "lincRNA",
-            "macro_lncRNA",
-            "non_coding",
-            "sense_intronic",
-            "sense_overlapping",
-        ]
-    )
-    interval_sources: Dict[str, str] = field(default_factory=dict)
-    v2g_path: str = MISSING
-    _target_: str = "gentropy.variant_to_gene.V2GStep"
 
 
 @dataclass
@@ -433,8 +485,7 @@ class FinemapperConfig(StepConfig):
     study_locus_manifest_path: str = MISSING
     study_locus_index: int = MISSING
     max_causal_snps: int = MISSING
-    primary_signal_pval_threshold: float = MISSING
-    secondary_signal_pval_threshold: float = MISSING
+    lead_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
     cs_lbf_thr: float = MISSING
@@ -446,16 +497,16 @@ class FinemapperConfig(StepConfig):
     carma_time_limit: int = MISSING
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
+    ld_min_r2: float = MISSING
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
 @dataclass
-class GWASQCStep(StepConfig):
+class SummaryStatisticsQCStepConfig(StepConfig):
     """GWAS QC step configuration."""
 
     gwas_path: str = MISSING
     output_path: str = MISSING
-    studyid: str = MISSING
     pval_threshold: float = MISSING
     _target_: str = "gentropy.sumstat_qc_step.SummaryStatisticsQCStep"
 
@@ -559,12 +610,13 @@ def register_config() -> None:
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
-    cs.store(group="step", name="variant_to_gene", node=VariantToGeneConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
-    cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
+    cs.store(
+        group="step", name="summary_statistics_qc", node=SummaryStatisticsQCStepConfig
+    )
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
     )

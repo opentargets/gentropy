@@ -14,6 +14,8 @@ from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
     calculate_neglog_pvalue,
+    create_empty_column_if_not_exists,
+    get_struct_field_schema,
     order_array_of_structs_by_field,
 )
 from gentropy.common.utils import get_logsum
@@ -32,6 +34,28 @@ if TYPE_CHECKING:
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
+
+
+class CredibleSetConfidenceClasses(Enum):
+    """Confidence assignments for credible sets, based on finemapping method and quality checks.
+
+    List of confidence classes, from the highest to the lowest confidence level.
+
+    Attributes:
+        FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
+        FINEMAPPED_OUT_OF_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
+        PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
+        PICSED_TOP_HIT (str): PICS fine-mapped credible set based on reported top hit
+        UNKNOWN (str): Unknown confidence, for credible sets which did not fit any of the above categories
+    """
+
+    FINEMAPPED_IN_SAMPLE_LD = "SuSiE fine-mapped credible set with in-sample LD"
+    FINEMAPPED_OUT_OF_SAMPLE_LD = "SuSiE fine-mapped credible set with out-of-sample LD"
+    PICSED_SUMMARY_STATS = (
+        "PICS fine-mapped credible set extracted from summary statistics"
+    )
+    PICSED_TOP_HIT = "PICS fine-mapped credible set based on reported top hit"
+    UNKNOWN = "Unknown confidence"
 
 
 class StudyLocusQualityCheck(Enum):
@@ -86,6 +110,7 @@ class StudyLocusQualityCheck(Enum):
     )
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
+    OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
 
 
 class CredibleInterval(Enum):
@@ -248,10 +273,19 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Updated study locus with quality control flags.
         """
+        df = self.df
+        qc_colname = StudyLocus.get_QC_column_name()
+        if qc_colname not in self.df.columns:
+            df = self.df.withColumn(
+                qc_colname,
+                create_empty_column_if_not_exists(
+                    qc_colname, get_struct_field_schema(StudyLocus.get_schema(), qc_colname)
+                ),
+            )
         return StudyLocus(
             _df=(
-                self.df.withColumn(
-                    "qualityControls",
+                df.withColumn(
+                    qc_colname,
                     # Because this QC might already run on the dataset, the unique set of flags is generated:
                     f.array_distinct(
                         self._qc_subsignificant_associations(
@@ -447,36 +481,27 @@ class StudyLocus(Dataset):
         )
 
     @staticmethod
-    def assign_study_locus_id(
-        study_id_col: Column,
-        variant_id_col: Column,
-        finemapping_col: Column = None,
-    ) -> Column:
-        """Hashes a column with a variant ID and a study ID to extract a consistent studyLocusId.
+    def assign_study_locus_id(uniqueness_defining_columns: list[str]) -> Column:
+        """Hashes the provided columns to extract a consistent studyLocusId.
 
         Args:
-            study_id_col (Column): column name with a study ID
-            variant_id_col (Column): column name with a variant ID
-            finemapping_col (Column, optional): column with fine mapping methodology
+            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
 
         Returns:
             Column: column with a study locus ID
 
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId"), f.col("finemappingMethod"))).show()
-            +----------+----------+-----------------+-------------------+
-            |   studyId| variantId|finemappingMethod|     study_locus_id|
-            +----------+----------+-----------------+-------------------+
-            |GCST000001|1_1000_A_C|        SuSiE-inf|3801266831619496075|
-            |GCST000002|1_1000_A_C|             pics|1581844826999194430|
-            +----------+----------+-----------------+-------------------+
+            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(["studyId", "variantId", "finemappingMethod"])).show(truncate=False)
+            +----------+----------+-----------------+--------------------------------+
+            |studyId   |variantId |finemappingMethod|study_locus_id                  |
+            +----------+----------+-----------------+--------------------------------+
+            |GCST000001|1_1000_A_C|SuSiE-inf        |109804fe1e20c94231a31bafd71b566e|
+            |GCST000002|1_1000_A_C|pics             |de310be4558e0482c9cc359c97d37773|
+            +----------+----------+-----------------+--------------------------------+
             <BLANKLINE>
         """
-        if finemapping_col is None:
-            finemapping_col = f.lit(None).cast(StringType())
-        variant_id_col = f.coalesce(variant_id_col, f.rand().cast("string"))
-        return f.xxhash64(study_id_col, variant_id_col, finemapping_col).alias(
+        return Dataset.generate_identifier(uniqueness_defining_columns).alias(
             "studyLocusId"
         )
 
@@ -1135,3 +1160,65 @@ class StudyLocus(Dataset):
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
         return WindowBasedClumping.clump(self, window_size)
+
+    def assign_confidence(self: StudyLocus) -> StudyLocus:
+        """Assign confidence to study locus.
+
+        Returns:
+            StudyLocus: Study locus with confidence assigned.
+        """
+        # Return self if the required columns are not in the dataframe:
+        if (
+            "qualityControls" not in self.df.columns
+            or "finemappingMethod" not in self.df.columns
+        ):
+            return self
+
+        # Assign confidence based on the presence of quality controls
+        df = self.df.withColumn(
+            "confidence",
+            f.when(
+                (f.col("finemappingMethod") == "SuSiE-inf")
+                & (
+                    ~f.array_contains(
+                        f.col("qualityControls"),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
+                    )
+                ),
+                CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == "SuSiE-inf")
+                & (
+                    f.array_contains(
+                        f.col("qualityControls"),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
+                    )
+                ),
+                CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == "pics")
+                & (
+                    ~f.array_contains(
+                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
+                    )
+                ),
+                CredibleSetConfidenceClasses.PICSED_SUMMARY_STATS.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == "pics")
+                & (
+                    f.array_contains(
+                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
+                    )
+                ),
+                CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
+            )
+            .otherwise(CredibleSetConfidenceClasses.UNKNOWN.value),
+        )
+
+        return StudyLocus(
+            _df=df,
+            _schema=self.get_schema(),
+        )

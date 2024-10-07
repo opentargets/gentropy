@@ -25,7 +25,6 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
-from gentropy.dataset.v2g import V2G
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
@@ -252,31 +251,6 @@ def mock_intervals(spark: SparkSession) -> Intervals:
 
 
 @pytest.fixture()
-def mock_v2g(spark: SparkSession) -> V2G:
-    """Mock v2g dataset."""
-    v2g_schema = V2G.get_schema()
-
-    data_spec = (
-        dg.DataGenerator(
-            spark,
-            rows=400,
-            partitions=4,
-            randomSeedMethod="hash_fieldname",
-        )
-        .withSchema(v2g_schema)
-        .withColumnSpec("distance", percentNulls=0.1)
-        .withColumnSpec("resourceScore", percentNulls=0.1)
-        .withColumnSpec("score", percentNulls=0.1)
-        .withColumnSpec("pmid", percentNulls=0.1)
-        .withColumnSpec("biofeature", percentNulls=0.1)
-        .withColumnSpec("variantFunctionalConsequenceId", percentNulls=0.1)
-        .withColumnSpec("isHighQualityPlof", percentNulls=0.1)
-    )
-
-    return V2G(_df=data_spec.build(), _schema=v2g_schema)
-
-
-@pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
     """Mock variant index."""
     vi_schema = VariantIndex.get_schema()
@@ -386,9 +360,9 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
         # Allowing missingness:
         .withColumnSpec("standardError", percentNulls=0.1)
         # Making sure p-values are below 1:
-    ).build()
+    )
 
-    return data_spec
+    return data_spec.build()
 
 
 @pytest.fixture()
@@ -617,10 +591,10 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     return L2GFeatureMatrix(
         _df=spark.createDataFrame(
             [
-                (1, "gene1", 100.0, None),
-                (2, "gene2", 1000.0, 0.0),
+                ("1", "gene1", 100.0, None),
+                ("2", "gene2", 1000.0, 0.0),
             ],
-            "studyLocusId LONG, geneId STRING, distanceTssMean FLOAT, distanceTssMinimum FLOAT",
+            "studyLocusId STRING, geneId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT",
         ),
         with_gold_standard=False,
     )

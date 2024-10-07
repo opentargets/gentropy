@@ -8,7 +8,6 @@ import pytest
 from pyspark.sql.types import (
     ArrayType,
     DoubleType,
-    LongType,
     StringType,
     StructField,
     StructType,
@@ -81,7 +80,7 @@ class TestFromFeaturesList:
             _df=spark.createDataFrame(
                 [
                     (
-                        1,
+                        "1",
                         "var1",
                         "gwas1",
                         [
@@ -90,7 +89,7 @@ class TestFromFeaturesList:
                         ],
                     ),
                     (
-                        2,
+                        "2",
                         "var2",
                         "eqtl1",
                         [
@@ -100,7 +99,7 @@ class TestFromFeaturesList:
                 ],
                 schema=StructType(
                     [
-                        StructField("studyLocusId", LongType(), True),
+                        StructField("studyLocusId", StringType(), True),
                         StructField("variantId", StringType(), True),
                         StructField("studyId", StringType(), True),
                         StructField(
@@ -136,7 +135,7 @@ class TestFromFeaturesList:
         )
         self.sample_colocalisation = Colocalisation(
             _df=spark.createDataFrame(
-                [(1, 2, "eqtl", "X", "COLOC", 1, 0.9)],
+                [("1", "2", "eqtl", "X", "COLOC", 1, 0.9)],
                 [
                     "leftStudyLocusId",
                     "rightStudyLocusId",

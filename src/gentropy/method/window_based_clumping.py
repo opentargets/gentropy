@@ -247,7 +247,7 @@ class WindowBasedClumping:
                 .withColumn(
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id(
-                        f.col("studyId"), f.col("variantId")
+                        ["studyId", "variantId"]
                     ),
                 )
                 # Initialize QC column as array of strings:
