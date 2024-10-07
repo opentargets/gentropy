@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 
+from gentropy.common.spark_helpers import order_array_of_structs_by_field
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
@@ -17,6 +18,67 @@ if TYPE_CHECKING:
 
 class LDAnnotator:
     """Class to annotate linkage disequilibrium (LD) operations from GnomAD."""
+
+    @staticmethod
+    def _get_major_population(ordered_populations: Column) -> Column:
+        """Get major population based on an ldPopulationStructure array ordered by relativeSampleSize.
+
+        If there is a tie for the major population, nfe is selected if it is one of the major populations.
+        The first population in the array is selected if there is no tie for the major population, or there is a tie but nfe is not one of the major populations.
+
+        Args:
+            ordered_populations (Column): ldPopulationStructure array ordered by relativeSampleSize
+
+        Returns:
+            Column: major population
+        """
+        major_population_size = ordered_populations["relativeSampleSize"][0]
+        major_populations = f.filter(
+            ordered_populations,
+            lambda x: x["relativeSampleSize"] == major_population_size
+        )
+        # Check if nfe (Non-Finnish European) is one of the major populations
+        has_nfe = f.filter(
+            major_populations,
+            lambda x: x["ldPopulation"] == "nfe"
+        )
+        return f.when(
+            (f.size(major_populations) > 1) & (f.size(has_nfe) == 1),
+            f.lit("nfe")
+        ).otherwise(
+            ordered_populations["ldPopulation"][0]
+        )
+
+    @staticmethod
+    def _calculate_r2_major(ld_set: Column, major_population: Column) -> Column:
+        """Calculate R2 using R of the major population in the study.
+
+        Args:
+            ld_set (Column): LD set
+            major_population (Column): Major population of the study
+
+        Returns:
+            Column: LD set with added 'r2Major' field
+        """
+        ld_set_with_major_pop = f.transform(
+            ld_set,
+            lambda x: f.struct(
+                x["tagVariantId"].alias("tagVariantId"),
+                f.filter(
+                    x["rValues"],
+                    lambda y: y["population"] == major_population
+                ).alias("rValues")
+            )
+        )
+        return f.transform(
+            ld_set_with_major_pop,
+            lambda x: f.struct(
+                x["tagVariantId"].alias("tagVariantId"),
+                f.coalesce(
+                    f.pow(x["rValues"]["r"][0], 2), f.lit(0.0)
+                ).alias("r2Major")
+            )
+        )
 
     @staticmethod
     def _calculate_weighted_r_overall(ld_set: Column) -> Column:
@@ -152,7 +214,12 @@ class LDAnnotator:
                 .select(*[col for col in associations.df.columns if col != "ldSet"])
                 # Annotate study locus with population structure from study index
                 .join(
-                    studies.df.select("studyId", "ldPopulationStructure"),
+                    studies.df.select(
+                        "studyId",
+                        order_array_of_structs_by_field(
+                        "ldPopulationStructure", "relativeSampleSize"
+                        ).alias("ldPopulationStructure")
+                    ),
                     on="studyId",
                     how="left",
                 )
@@ -162,6 +229,27 @@ class LDAnnotator:
                     on=["variantId", "chromosome"],
                     how="left",
                 )
+                # Get major population from population structure if population structure available
+                .withColumn(
+                    "majorPopulation",
+                    f.when(
+                        f.col("ldPopulationStructure").isNotNull(),
+                        cls._get_major_population(
+                            f.col("ldPopulationStructure")
+                        )
+                    )
+                )
+                # Calculate R2 using R of the major population
+                .withColumn(
+                    "ldSet",
+                    f.when(
+                        f.col("ldPopulationStructure").isNotNull(),
+                        cls._calculate_r2_major(
+                            f.col("ldSet"), f.col("majorPopulation")
+                        )
+                    )
+                )
+                .drop("majorPopulation")
                 # Add population size to each rValues entry in the ldSet if population structure available:
                 .withColumn(
                     "ldSet",
