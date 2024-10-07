@@ -239,17 +239,35 @@ class TestQTLValidation:
         """Testing if the biosample validation only flags the expected studies."""
         self.test_qtl_validation_correctness("biosample")
 
-    @pytest.mark.parametrize("gene_or_biosample", ["gene", "biosample"])
-    def test_qtl_validation_no_relevant_column(
-        self: TestQTLValidation, gene_or_biosample: str
+    @pytest.mark.parametrize(
+        "drop,test",
+        tuples=[
+            ("gene", "gene"),
+            ("gene", "biosample"),
+            ("biosample", "biosample"),
+            ("biosample", "gene"),
+        ],
+    )
+    def test_qtl_validation_drop_relevant_column(
+        self: TestQTLValidation, drop: str, test: str
     ) -> None:
-        """Testing what happens if no relevant column is present."""
-        if gene_or_biosample == "gene":
-            validated = self.study_index_no_gene.validate_target(self.gene_index)
-        if gene_or_biosample == "biosample":
-            validated = self.study_index_no_biosample_id.validate_biosample(
-                self.biosample_index
-            )
+        """Testing what happens if an expected column is not present."""
+        if drop == "gene":
+            if test == "gene":
+                validated = self.study_index_no_gene.validate_target(self.gene_index)
+            if test == "biosample":
+                validated = self.study_index_no_gene.validate_biosample(
+                    self.biosample_index
+                )
+        if drop == "biosample":
+            if test == "gene":
+                validated = self.study_index_no_biosample_id.validate_target(
+                    self.gene_index
+                )
+            if test == "biosample":
+                validated = self.study_index_no_biosample_id.validate_biosample(
+                    self.biosample_index
+                )
 
         # Asserty type:
         assert isinstance(validated, StudyIndex)
@@ -259,11 +277,21 @@ class TestQTLValidation:
 
     def test_qtl_validation_no_gene_column(self: TestQTLValidation) -> None:
         """Testing what happens if no gene column is present."""
-        self.test_qtl_validation_no_relevant_column("gene")
+        self.test_qtl_validation_drop_relevant_column(test="gene", drop="gene")
 
     def test_qtl_validation_no_biosample_column(self: TestQTLValidation) -> None:
         """Testing what happens if no biosample column is present."""
-        self.test_qtl_validation_no_relevant_column("biosample")
+        self.test_qtl_validation_drop_relevant_column(
+            test="biosample", drop="biosample"
+        )
+
+    def test_qtl_validation_existing_gene_column(self: TestQTLValidation) -> None:
+        """Testing what happens if no gene column is present."""
+        self.test_qtl_validation_drop_relevant_column(test="gene", drop="biosample")
+
+    def test_qtl_validation_existing_biosample_column(self: TestQTLValidation) -> None:
+        """Testing what happens if no biosample column is present."""
+        self.test_qtl_validation_drop_relevant_column(test="biosample", drop="gene")
 
 
 class TestUniquenessValidation:

@@ -421,6 +421,10 @@ class StudyIndex(Dataset):
         """
         biosample_set = biosample_index.df.select("biosampleId", f.lit(True).alias("isIdFound"))
 
+        # If biosampleId in df, we need to drop it:
+        if "biosampleId" in self.df.columns:
+            self.df = self.df.drop("biosampleId")
+
         validated_df = (
             self.df.join(biosample_set, self.df.biosampleFromSourceId == biosample_set.biosampleId, how="left")
             .withColumn(
