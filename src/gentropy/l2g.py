@@ -45,6 +45,7 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
+        gene_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         interval_path: dict[str, str] | None = None,
         gene_index_path: str | None = None,
@@ -70,6 +71,7 @@ class LocusToGeneStep:
             variant_index_path (str | None): Path to the variant index dataset
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
+            gene_index_path (str | None): Path to the gene index dataset
             gene_interactions_path (str | None): Path to the gene interactions dataset
             interval_path (dict[str, str] | None) : Path and source of interval input datasets
             gene_index_path (str | None) : Path to the gene index dataset
@@ -168,11 +170,17 @@ class LocusToGeneStep:
             if colocalisation_path
             else None
         )
+        self.gene_index = (
+            GeneIndex.from_parquet(session, gene_index_path, recursiveFileLookup=True)
+            if gene_index_path
+            else None
+        )
         self.features_input_loader = L2GFeatureInputLoader(
             variant_index=self.variant_index,
             coloc=self.coloc,
             studies=self.studies,
             study_locus=self.credible_set,
+            gene_index=self.gene_index,
         )
 
         if run_mode == "predict":
