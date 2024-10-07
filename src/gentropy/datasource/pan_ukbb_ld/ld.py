@@ -8,6 +8,7 @@ import hail as hl
 import numpy as np
 import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
+from pyspark.sql.window import Window
 
 from gentropy.common.session import Session
 from gentropy.config import PanUKBBConfig
@@ -75,6 +76,9 @@ class PanUKBBLDMatrix:
                 }
             )
             .drop("locus.contig", "locus.position", "alleles")
+            .dropDuplicates(
+                ["chromosome", "position", "referenceAllele", "alternateAllele"]
+            )
         )
         ht_va = (
             ht.alias("ukbb")
@@ -84,7 +88,7 @@ class PanUKBBLDMatrix:
                     "position",
                     f.col("referenceAllele").alias("va_ref"),
                     f.col("alternateAllele").alias("va_alt"),
-                ),
+                ).dropDuplicates(["chromosome", "position", "va_ref", "va_alt"]),
                 on=["chromosome", "position"],
                 how="left",
             )
@@ -133,6 +137,12 @@ class PanUKBBLDMatrix:
                 "alleleOrder",
                 "idx",
             )
+        )
+        window_spec = Window.partitionBy("idx").orderBy(f.col("alleleOrder").desc())
+        ht_va = (
+            ht_va.withColumn("rank", f.rank().over(window_spec))
+            .filter(f.col("rank") == 1)
+            .drop("rank")
         )
         ht_va.write.mode("overwrite").parquet(hail_table_output.format(POP=population))
 
