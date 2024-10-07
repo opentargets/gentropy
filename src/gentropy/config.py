@@ -236,9 +236,6 @@ class LocusToGeneConfig(StepConfig):
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
     variant_index_path: str = MISSING
-    colocalisation_path: str = MISSING
-    study_index_path: str = MISSING
-    gene_index_path: str = MISSING
     model_path: str | None = None
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
@@ -282,7 +279,6 @@ class LocusToGeneConfig(StepConfig):
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     download_from_hub: bool = True
-    write_feature_matrix: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 

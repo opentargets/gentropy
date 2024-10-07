@@ -126,15 +126,11 @@ class LocusToGeneStep:
         wandb_run_name: str,
         model_path: str | None = None,
         credible_set_path: str,
+        feature_matrix_path: str,
         gold_standard_curation_path: str | None = None,
         variant_index_path: str | None = None,
-        colocalisation_path: str | None = None,
-        study_index_path: str | None = None,
-        gene_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
-        feature_matrix_path: str | None = None,
-        write_feature_matrix: bool = LocusToGeneConfig().write_feature_matrix,
         hf_hub_repo_id: str | None = LocusToGeneConfig().hf_hub_repo_id,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -148,15 +144,11 @@ class LocusToGeneStep:
             wandb_run_name (str): Name of the run to track model training in Weights and Biases
             model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
+            feature_matrix_path (str): Path to the L2G feature matrix input dataset
             gold_standard_curation_path (str | None): Path to the gold standard curation file
-            variant_index_path (str | None): Path to the variant index dataset
-            colocalisation_path (str | None): Path to the colocalisation dataset
-            study_index_path (str | None): Path to the study index dataset
-            gene_index_path (str | None): Path to the gene index dataset
+            variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
-            feature_matrix_path (str | None): Path to the L2G feature matrix output dataset
-            write_feature_matrix (bool): Whether to write the full feature matrix to the filesystem
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
 
         Raises:
@@ -173,7 +165,6 @@ class LocusToGeneStep:
         self.predictions_path = predictions_path
         self.features_list = list(features_list)
         self.hyperparameters = dict(hyperparameters)
-        self.feature_matrix_path = feature_matrix_path
         self.wandb_run_name = wandb_run_name
         self.hf_hub_repo_id = hf_hub_repo_id
         self.download_from_hub = download_from_hub
@@ -182,34 +173,13 @@ class LocusToGeneStep:
         self.credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
         )
-        self.studies = (
-            StudyIndex.from_parquet(session, study_index_path, recursiveFileLookup=True)
-            if study_index_path
-            else None
+        self.feature_matrix = L2GFeatureMatrix(
+            _df=session.load_data(feature_matrix_path), features_list=self.features_list
         )
         self.variant_index = (
             VariantIndex.from_parquet(session, variant_index_path)
             if variant_index_path
             else None
-        )
-        self.coloc = (
-            Colocalisation.from_parquet(
-                session, colocalisation_path, recursiveFileLookup=True
-            )
-            if colocalisation_path
-            else None
-        )
-        self.gene_index = (
-            GeneIndex.from_parquet(session, gene_index_path, recursiveFileLookup=True)
-            if gene_index_path
-            else None
-        )
-        self.features_input_loader = L2GFeatureInputLoader(
-            variant_index=self.variant_index,
-            colocalisation=self.coloc,
-            study_index=self.studies,
-            study_locus=self.credible_set,
-            gene_index=self.gene_index,
         )
 
         if run_mode == "predict":
@@ -228,28 +198,21 @@ class LocusToGeneStep:
             self.run_train()
 
     def run_predict(self) -> None:
-        """Run the prediction step.
-
-        Raises:
-            ValueError: If not all dependencies in prediction mode are set
-        """
-        if self.studies and self.coloc:
-            predictions = L2GPrediction.from_credible_set(
-                self.session,
-                self.credible_set,
-                self.features_list,
-                self.features_input_loader,
-                model_path=self.model_path,
-                hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
-                download_from_hub=self.download_from_hub,
+        """Run the prediction step."""
+        predictions = L2GPrediction.from_credible_set(
+            self.session,
+            self.credible_set,
+            self.feature_matrix,
+            self.features_list,
+            model_path=self.model_path,
+            hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
+            download_from_hub=self.download_from_hub,
+        )
+        if self.predictions_path:
+            predictions.df.write.mode(self.session.write_mode).parquet(
+                self.predictions_path
             )
-            if self.predictions_path:
-                predictions.df.write.mode(self.session.write_mode).parquet(
-                    self.predictions_path
-                )
-                self.session.logger.info(self.predictions_path)
-        else:
-            raise ValueError("Dependencies for predict mode not set.")
+            self.session.logger.info(self.predictions_path)
 
     def run_train(self) -> None:
         """Run the training step."""
@@ -258,11 +221,8 @@ class LocusToGeneStep:
             and self.interactions
             and self.wandb_run_name
             and self.model_path
-            and self.variant_index
         ):
             wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
-            # Process gold standard and L2G features
-            data = self._generate_feature_matrix(write_feature_matrix=True)
 
             # Instantiate classifier and train model
             l2g_model = LocusToGeneModel(
@@ -271,7 +231,8 @@ class LocusToGeneStep:
             )
             wandb_login(key=wandb_key)
             trained_model = LocusToGeneTrainer(
-                model=l2g_model, feature_matrix=data
+                model=l2g_model,
+                feature_matrix=self._annotate_gold_standards_w_feature_matrix(),
             ).train(self.wandb_run_name)
             if trained_model.training_data and trained_model.model and self.model_path:
                 trained_model.save(self.model_path)
@@ -290,24 +251,16 @@ class LocusToGeneStep:
                         commit_message="chore: update model",
                     )
 
-    def _generate_feature_matrix(self, write_feature_matrix: bool) -> L2GFeatureMatrix:
+    def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.
-
-        Args:
-            write_feature_matrix (bool): Whether to write the feature matrix for all credible sets to disk
 
         Returns:
             L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
 
         Raises:
-            ValueError: If write_feature_matrix is set to True but a path is not provided or if dependencies to build features are not set.
+            ValueError: Not all training dependencies are defined
         """
-        if (
-            self.gs_curation
-            and self.interactions
-            and self.studies
-            and self.variant_index
-        ):
+        if self.gs_curation and self.interactions and self.variant_index:
             study_locus_overlap = StudyLocus(
                 _df=self.credible_set.df.join(
                     f.broadcast(
@@ -335,12 +288,8 @@ class LocusToGeneStep:
                 interactions=self.interactions,
             )
 
-            fm = self.credible_set.build_feature_matrix(
-                self.features_list, self.features_input_loader
-            )
-
             return (
-                gold_standards.build_feature_matrix(fm)
+                gold_standards.build_feature_matrix(self.feature_matrix)
                 .fill_na()
                 .select_features(self.features_list)
             )
