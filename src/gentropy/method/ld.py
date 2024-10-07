@@ -58,7 +58,7 @@ class LDAnnotator:
             major_population (Column): Major population of the study
 
         Returns:
-            Column: LD set with added 'r2Major' field
+            Column: LD set with added 'r2Overall' field
         """
         ld_set_with_major_pop = f.transform(
             ld_set,
@@ -76,7 +76,7 @@ class LDAnnotator:
                 x["tagVariantId"].alias("tagVariantId"),
                 f.coalesce(
                     f.pow(x["rValues"]["r"][0], 2), f.lit(0.0)
-                ).alias("r2Major")
+                ).alias("r2Overall")
             )
         )
 
@@ -115,7 +115,7 @@ class LDAnnotator:
             f.array(
                 f.struct(
                     variant_id.alias("tagVariantId"),
-                    f.lit(1).alias("r2Major"),
+                    f.lit(1).alias("r2Overall"),
                 )
             ),
         ).otherwise(ld_set)

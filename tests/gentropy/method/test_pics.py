@@ -55,20 +55,20 @@ class TestFinemap:
 def test__finemap_udf() -> None:
     """Test the _finemap UDF with a simple case."""
     ld_set = [
-        Row(variantId="var1", r2Major=0.8),
-        Row(variantId="var2", r2Major=1),
+        Row(variantId="var1", r2Overall=0.8),
+        Row(variantId="var2", r2Overall=1),
     ]
     result = PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
     expected = [
         {
             "variantId": "var1",
-            "r2Major": 0.8,
+            "r2Overall": 0.8,
             "standardError": 0.07420896512708416,
             "posteriorProbability": 0.07116959886882368,
         },
         {
             "variantId": "var2",
-            "r2Major": 1,
+            "r2Overall": 1,
             "standardError": 0.9977000638225533,
             "posteriorProbability": 0.9288304011311763,
         },

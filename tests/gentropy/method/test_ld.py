@@ -124,7 +124,7 @@ class TestLDAnnotator:
                         ],
                     )
                 ],
-                # expected r2Major
+                # expected r2Overall
                 0.25,
             ),
             # r not available for majorPopulation
@@ -144,7 +144,7 @@ class TestLDAnnotator:
                         ],
                     )
                 ],
-                # expected r2Major
+                # expected r2Overall
                 0.0,
             ),
         ],
@@ -193,7 +193,9 @@ class TestLDAnnotator:
             "ldSet",
             LDAnnotator._calculate_r2_major(f.col("ldSet"), f.col("majorPopulation")),
         )
-        assert result_df.collect()[0]["ldSet"][0]["r2Major"] == pytest.approx(expected)
+        assert result_df.collect()[0]["ldSet"][0]["r2Overall"] == pytest.approx(
+            expected
+        )
 
     def test__rescue_lead_variant(self: TestLDAnnotator, spark: SparkSession) -> None:
         """Test _rescue_lead_variant."""
@@ -208,7 +210,7 @@ class TestLDAnnotator:
                             t.StructType(
                                 [
                                     t.StructField("tagVariantId", t.StringType(), True),
-                                    t.StructField("r2Major", t.DoubleType(), True),
+                                    t.StructField("r2Overall", t.DoubleType(), True),
                                 ]
                             )
                         ),
@@ -222,7 +224,7 @@ class TestLDAnnotator:
             LDAnnotator._rescue_lead_variant(f.col("ldSet"), f.col("variantId")),
         )
         assert (
-            result_df.select("ldSet.r2Major").collect()[0]["r2Major"][0] == 1.0
+            result_df.select("ldSet.r2Overall").collect()[0]["r2Overall"][0] == 1.0
         ), "ldSet does not contain the rescued lead variant."
 
     @pytest.fixture(autouse=True)
