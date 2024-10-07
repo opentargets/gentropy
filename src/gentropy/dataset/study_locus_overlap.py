@@ -74,8 +74,8 @@ class StudyLocusOverlap(Dataset):
                     "chromosome")
             .agg(f.avg("beta_ratio_sign").alias("beta_ratio_sign_avg")))
 
-        # Remove any rows where the average sign is not 1 or -1
-        return beta_ratio_sign.filter(f.abs(f.col("beta_ratio_sign_avg") != 1))
+        # Return the beta ratio sign
+        return beta_ratio_sign
 
 
     def _convert_to_square_matrix(self: StudyLocusOverlap) -> StudyLocusOverlap:
