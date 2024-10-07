@@ -287,6 +287,57 @@ class LocusToGeneConfig(StepConfig):
 
 
 @dataclass
+class LocusToGeneFeatureMatrixConfig(StepConfig):
+    """Locus to gene feature matrix step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "extended_spark_conf": {
+                "spark.driver.memory": "48g",
+                "spark.executor.memory": "48g",
+                "spark.sql.shuffle.partitions": "800",
+            }
+        }
+    )
+    credible_set_path: str = MISSING
+    variant_index_path: str | None = None
+    colocalisation_path: str | None = None
+    study_index_path: str | None = None
+    gene_index_path: str | None = None
+    feature_matrix_path: str = MISSING
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            "tuQtlColocClppMaximum",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            "tuQtlColocH4Maximum",
+            # distance to gene footprint
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            # distance to gene tss
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
+            # vep
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
+        ]
+    )
+    _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
+
+
+@dataclass
 class PICSConfig(StepConfig):
     """PICS step configuration."""
 
@@ -597,6 +648,11 @@ def register_config() -> None:
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
+    cs.store(
+        group="step",
+        name="locus_to_gene_feature_matrix",
+        node=LocusToGeneFeatureMatrixConfig,
+    )
     cs.store(group="step", name="finngen_studies", node=FinngenStudiesConfig)
 
     cs.store(

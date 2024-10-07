@@ -48,6 +48,70 @@ from gentropy.method.l2g.trainer import LocusToGeneTrainer
 # )
 
 
+class LocusToGeneFeatureMatrixStep:
+    """Annotate credible set with functional genomics features."""
+
+    def __init__(
+        self,
+        session: Session,
+        *,
+        features_list: list[str] = LocusToGeneConfig().features_list,
+        credible_set_path: str,
+        variant_index_path: str | None = None,
+        colocalisation_path: str | None = None,
+        study_index_path: str | None = None,
+        gene_index_path: str | None = None,
+        feature_matrix_path: str,
+    ) -> None:
+        """Initialise the step and run the logic based on mode.
+
+        Args:
+            session (Session): Session object that contains the Spark session
+            features_list (list[str]): List of features to use for the model
+            credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
+            variant_index_path (str | None): Path to the variant index dataset
+            colocalisation_path (str | None): Path to the colocalisation dataset
+            study_index_path (str | None): Path to the study index dataset
+            gene_index_path (str | None): Path to the gene index dataset
+            feature_matrix_path (str): Path to the L2G feature matrix output dataset
+        """
+        credible_set = StudyLocus.from_parquet(
+            session, credible_set_path, recursiveFileLookup=True
+        )
+        studies = (
+            StudyIndex.from_parquet(session, study_index_path, recursiveFileLookup=True)
+            if study_index_path
+            else None
+        )
+        variant_index = (
+            VariantIndex.from_parquet(session, variant_index_path)
+            if variant_index_path
+            else None
+        )
+        coloc = (
+            Colocalisation.from_parquet(
+                session, colocalisation_path, recursiveFileLookup=True
+            )
+            if colocalisation_path
+            else None
+        )
+        gene_index = (
+            GeneIndex.from_parquet(session, gene_index_path, recursiveFileLookup=True)
+            if gene_index_path
+            else None
+        )
+        features_input_loader = L2GFeatureInputLoader(
+            variant_index=variant_index,
+            colocalisation=coloc,
+            study_index=studies,
+            study_locus=credible_set,
+            gene_index=gene_index,
+        )
+
+        fm = credible_set.build_feature_matrix(features_list, features_input_loader)
+        fm._df.write.mode(session.write_mode).parquet(feature_matrix_path)
+
+
 class LocusToGeneStep:
     """Locus to gene step."""
 
@@ -274,12 +338,6 @@ class LocusToGeneStep:
             fm = self.credible_set.build_feature_matrix(
                 self.features_list, self.features_input_loader
             )
-            if write_feature_matrix:
-                if not self.feature_matrix_path:
-                    raise ValueError("feature_matrix_path must be set.")
-                fm._df.write.mode(self.session.write_mode).parquet(
-                    self.feature_matrix_path
-                )
 
             return (
                 gold_standards.build_feature_matrix(fm)
