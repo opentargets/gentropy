@@ -270,6 +270,13 @@ class LocusToGeneConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "pchicMean",
+            "pchicMeanNeighbourhood",
+            "enhTssMean",
+            "enhTssMeanNeighbourhood",
+            "dhsPmtrMean",
+            "dhsPmtrMeanNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -282,7 +289,7 @@ class LocusToGeneConfig(StepConfig):
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     download_from_hub: bool = True
-    #interval_sources = dict[str, str] | None = ["javierre": "gs://genetics_etl_python_playground/static_assets/javierre_2016_preprocessed", "thurman": "gs://genetics_etl_python_playground/static_assets/thurman_2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz", "anderson":"gs://genetics_etl_python_playground/static_assets/andersson2014/enhancer_tss_associations.bed"]
+    interval_sources = dict[str, str] | None = ["javierre": "gs://genetics_etl_python_playground/static_assets/javierre_2016_preprocessed", "thurman": "gs://genetics_etl_python_playground/static_assets/thurman_2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz", "andersson":"gs://genetics_etl_python_playground/static_assets/andersson2014/enhancer_tss_associations.bed"]
     write_feature_matrix: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
