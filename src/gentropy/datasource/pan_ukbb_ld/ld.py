@@ -181,13 +181,13 @@ class PanUKBBLDMatrix:
         Args:
             session (Session): Session object
             study_locus_row (Row): Study-locus row
-            ancestry (str): Major population to extract from gnomad matrix, default is "nfe"
+            ancestry (str): Major population, default is "EUR"
 
         Returns:
-            DataFrame: Returns the index of the gnomad matrix for the locus
+            DataFrame: Returns the index of the pan-ukbb matrix for the locus
 
         """
-        chromosome = str("chr" + study_locus_row["chromosome"])
+        chromosome = str(study_locus_row["chromosome"])
         start = int(study_locus_row["locusStart"])
         end = int(study_locus_row["locusEnd"])
 
@@ -199,6 +199,6 @@ class PanUKBBLDMatrix:
             (f.col("chromosome") == chromosome)
             & (f.col("position") >= start)
             & (f.col("position") <= end)
-        ).orderBy(f.desc("idx"))
+        ).sort("idx")
 
         return index_file

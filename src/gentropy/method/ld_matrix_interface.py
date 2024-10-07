@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
@@ -26,16 +26,16 @@ class LDMatrixInterface:
 
     @staticmethod
     def get_locus_index_boundaries(
+        session: Session,
         study_locus_row: Row,
         ancestry: str = "nfe",
-        session: Optional[Session] = None,
     ) -> DataFrame:
         """Extract hail matrix index from StudyLocus rows.
 
         Args:
+            session (Session): Session object
             study_locus_row (Row): Study-locus row
             ancestry (str): Major population to extract from gnomad matrix, default is "nfe"
-            session (Optional[Session]): Session object
 
         Returns:
             DataFrame: Returns the index of the gnomad matrix for the locus
@@ -54,7 +54,7 @@ class LDMatrixInterface:
                 GnomADLDMatrix()
                 .get_locus_index_boundaries(
                     study_locus_row=study_locus_row,
-                    major_population=mapped_ancestry,
+                    major_population=ancestry,
                 )
                 .withColumn(
                     "variantId",
@@ -98,7 +98,7 @@ class LDMatrixInterface:
             )
         else:
             block_matrix = GnomADLDMatrix.get_numpy_matrix(
-                locus_index=locus_index, gnomad_ancestry=mapped_ancestry
+                locus_index=locus_index, gnomad_ancestry=ancestry
             )
 
         return block_matrix
