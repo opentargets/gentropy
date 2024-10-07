@@ -81,63 +81,6 @@ class LDAnnotator:
         )
 
     @staticmethod
-    def _calculate_weighted_r_overall(ld_set: Column) -> Column:
-        """Aggregation of weighted R information using ancestry proportions.
-
-        Args:
-            ld_set (Column): LD set
-
-        Returns:
-            Column: LD set with added 'r2Overall' field
-        """
-        return f.transform(
-            ld_set,
-            lambda x: f.struct(
-                x["tagVariantId"].alias("tagVariantId"),
-                # r2Overall is the accumulated sum of each r2 relative to the population size
-                f.aggregate(
-                    x["rValues"],
-                    f.lit(0.0),
-                    lambda acc, y: acc
-                    + f.coalesce(
-                        f.pow(y["r"], 2) * y["relativeSampleSize"], f.lit(0.0)
-                    ),  # we use coalesce to avoid problems when r/relativeSampleSize is null
-                ).alias("r2Overall"),
-            ),
-        )
-
-    @staticmethod
-    def _add_population_size(ld_set: Column, study_populations: Column) -> Column:
-        """Add population size to each rValues entry in the ldSet.
-
-        Args:
-            ld_set (Column): LD set
-            study_populations (Column): Study populations
-
-        Returns:
-            Column: LD set with added 'relativeSampleSize' field
-        """
-        # Create a population to relativeSampleSize map from the struct
-        populations_map = f.map_from_arrays(
-            study_populations["ldPopulation"],
-            study_populations["relativeSampleSize"],
-        )
-        return f.transform(
-            ld_set,
-            lambda x: f.struct(
-                x["tagVariantId"].alias("tagVariantId"),
-                f.transform(
-                    x["rValues"],
-                    lambda y: f.struct(
-                        y["population"].alias("population"),
-                        y["r"].alias("r"),
-                        populations_map[y["population"]].alias("relativeSampleSize"),
-                    ),
-                ).alias("rValues"),
-            ),
-        )
-
-    @staticmethod
     def _qc_unresolved_ld(ld_set: Column, quality_controls: Column) -> Column:
         """Flag associations with unresolved LD.
 
@@ -188,10 +131,10 @@ class LDAnnotator:
         """Annotate linkage disequilibrium (LD) information to a set of studyLocus.
 
         This function:
-            1. Annotates study locus with population structure information from the study index
+            1. Annotates study locus with population structure information ordered by relativeSampleSize from the study index
             2. Joins the LD index to the StudyLocus
-            3. Adds the population size of the study to each rValues entry in the ldSet
-            4. Calculates the overall R weighted by the ancestry proportions in every given study.
+            3. Gets the major population from the population structure
+            4. Calculates R2 by using the R of the major ancestry
             5. Flags associations with variants that are not found in the LD reference
             6. Rescues lead variant when no LD information is available but lead variant is available
 
@@ -212,7 +155,7 @@ class LDAnnotator:
                 associations.df
                 # Drop ldSet column if already available
                 .select(*[col for col in associations.df.columns if col != "ldSet"])
-                # Annotate study locus with population structure from study index
+                # Annotate study locus with population structure ordered by relativeSampleSize from study index
                 .join(
                     studies.df.select(
                         "studyId",
@@ -249,26 +192,7 @@ class LDAnnotator:
                         )
                     )
                 )
-                .drop("majorPopulation")
-                # Add population size to each rValues entry in the ldSet if population structure available:
-                .withColumn(
-                    "ldSet",
-                    f.when(
-                        f.col("ldPopulationStructure").isNotNull(),
-                        cls._add_population_size(
-                            f.col("ldSet"), f.col("ldPopulationStructure")
-                        ),
-                    ),
-                )
-                # Aggregate weighted R information using ancestry proportions
-                .withColumn(
-                    "ldSet",
-                    f.when(
-                        f.col("ldPopulationStructure").isNotNull(),
-                        cls._calculate_weighted_r_overall(f.col("ldSet")),
-                    ),
-                )
-                .drop("ldPopulationStructure")
+                .drop("ldPopulationStructure", "majorPopulation")
                 # Filter the LD set by the R2 threshold and set to null if no LD information passes the threshold
                 .withColumn(
                     "ldSet",
