@@ -23,6 +23,30 @@ from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
 
+# from gentropy.l2g import *
+# session = Session("yarn")
+
+# run_mode = "train"
+# download_from_hub = True
+# wandb_run_name = "07-10"
+# credible_set_path = "gs://ot-team/irene/l2g-0710/inputs/credible_set"
+# gold_standard_curation_path = "gs://genetics_etl_python_playground/releases/24.06/locus_to_gene_gold_standard.json"
+# variant_index_path = "gs://ot_orchestration/releases/27.09/variant_index/"
+# colocalisation_path = "gs://ot-team/irene/l2g-0710/inputs/colocalisation"
+# study_index_path = "gs://genetics_etl_python_playground/releases/24.06/study_index"
+# gene_index_path = "gs://genetics_etl_python_playground/releases/24.06/gene_index"
+# gene_interactions_path = "gs://genetics_etl_python_playground/static_assets/interaction"
+# feature_matrix_path = "gs://ot-team/irene/l2g-0710/feature_matrix"
+
+# step = LocusToGeneStep(
+#     session, run_mode=run_mode, wandb_run_name=wandb_run_name, credible_set_path=credible_set_path,
+#     gold_standard_curation_path=gold_standard_curation_path, variant_index_path=variant_index_path,
+#     colocalisation_path=colocalisation_path, study_index_path=study_index_path,
+#     gene_index_path=gene_index_path, gene_interactions_path=gene_interactions_path,
+#     feature_matrix_path=feature_matrix_path, write_feature_matrix=False,
+#     features_list=features_list, download_from_hub=True
+# )
+
 
 class LocusToGeneStep:
     """Locus to gene step."""
@@ -30,11 +54,11 @@ class LocusToGeneStep:
     def __init__(
         self,
         session: Session,
-        hyperparameters: dict[str, Any],
+        hyperparameters: dict[str, Any] = LocusToGeneConfig().hyperparameters,
         *,
         run_mode: str,
-        features_list: list[str],
-        download_from_hub: bool,
+        features_list: list[str] = LocusToGeneConfig().features_list,
+        download_from_hub: bool = LocusToGeneConfig().download_from_hub,
         wandb_run_name: str,
         model_path: str | None = None,
         credible_set_path: str,
@@ -46,7 +70,7 @@ class LocusToGeneStep:
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
         feature_matrix_path: str | None = None,
-        write_feature_matrix: bool,
+        write_feature_matrix: bool = LocusToGeneConfig().write_feature_matrix,
         hf_hub_repo_id: str | None = LocusToGeneConfig().hf_hub_repo_id,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -93,7 +117,7 @@ class LocusToGeneStep:
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
-        ).filter(f.col("studyType") == "gwas")
+        )
         self.studies = (
             StudyIndex.from_parquet(session, study_index_path, recursiveFileLookup=True)
             if study_index_path
@@ -118,8 +142,8 @@ class LocusToGeneStep:
         )
         self.features_input_loader = L2GFeatureInputLoader(
             variant_index=self.variant_index,
-            coloc=self.coloc,
-            studies=self.studies,
+            colocalisation=self.coloc,
+            study_index=self.studies,
             study_locus=self.credible_set,
             gene_index=self.gene_index,
         )
