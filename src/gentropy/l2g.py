@@ -48,7 +48,6 @@ class LocusToGeneStep:
         gene_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         interval_path: dict[str, str] | None = None,
-        gene_index_path: str | None = None,
         liftover_chain_file_path: str | None = None,
         liftover_max_length_difference: int = 100,
         predictions_path: str | None = None,
@@ -74,7 +73,6 @@ class LocusToGeneStep:
             gene_index_path (str | None): Path to the gene index dataset
             gene_interactions_path (str | None): Path to the gene interactions dataset
             interval_path (dict[str, str] | None) : Path and source of interval input datasets
-            gene_index_path (str | None) : Path to the gene index dataset
             liftover_chain_file_path (str | None) : Path to the liftover chain file
             liftover_max_length_difference (int) : Maximum allowed difference for liftover
             predictions_path (str | None): Path to the L2G predictions output dataset
