@@ -68,7 +68,7 @@ class Colocalisation(Dataset):
                 if isinstance(filter_by_qtls, str)
                 else list(map(str.lower, filter_by_qtls))
             )
-            if any(qtl in valid_qtls for qtl in filter_by_qtls):
+            if any(qtl not in valid_qtls for qtl in filter_by_qtls):
                 raise ValueError(f"There are no studies with QTL type {filter_by_qtls}")
 
         if filter_by_colocalisation_method not in [

@@ -310,7 +310,7 @@ class SQtlColocClppMaximumFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_types = ["sqtl", "tusqtl"]
+        qtl_types = ["sqtl", "tuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -352,7 +352,7 @@ class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_types = ["sqtl", "tusqtl"]
+        qtl_types = ["sqtl", "tuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(
@@ -562,7 +562,7 @@ class SQtlColocH4MaximumFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_types = ["sqtl", "tusqtl"]
+        qtl_types = ["sqtl", "tuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -604,7 +604,7 @@ class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_types = ["sqtl", "tusqtl"]
+        qtl_types = ["sqtl", "tuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(
