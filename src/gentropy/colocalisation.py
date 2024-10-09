@@ -38,7 +38,7 @@ class ColocalisationStep:
         credible_set = (
             StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
-            ).filter(col("finemappingMethod").isin("SuSie", "SuSiE-inf"))
+            ).filter(col("finemappingMethod").isin("SuSie", "SuSiE-inf", "susie"))
             if colocalisation_class is Coloc
             else StudyLocus.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
