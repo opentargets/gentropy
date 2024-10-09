@@ -249,12 +249,10 @@ class LocusToGeneConfig(StepConfig):
             "eQtlColocClppMaximum",
             "pQtlColocClppMaximum",
             "sQtlColocClppMaximum",
-            "tuQtlColocClppMaximum",
             # max H4 for each (study, locus, gene) aggregating over a specific qtl type
             "eQtlColocH4Maximum",
             "pQtlColocH4Maximum",
             "sQtlColocH4Maximum",
-            "tuQtlColocH4Maximum",
             # distance to gene footprint
             "distanceSentinelFootprint",
             "distanceSentinelFootprintNeighbourhood",
