@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
+import pyspark.sql.functions as f
+
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
 from gentropy.dataset.dataset import Dataset
@@ -68,6 +70,16 @@ class L2GPrediction(Dataset):
             l2g_model = LocusToGeneModel.load_from_disk(model_path)
 
         # Prepare data
-        fm = feature_matrix.fill_na().select_features(features_list)
+        fm = (
+            L2GFeatureMatrix(
+                _df=(
+                    credible_set.df.filter(f.col("studyType") == "gwas")
+                    .select("studyLocusId")
+                    .join(feature_matrix._df, "studyLocusId")
+                )
+            )
+            .fill_na()
+            .select_features(features_list)
+        )
 
         return l2g_model.predict(fm, session)
