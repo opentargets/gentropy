@@ -163,7 +163,7 @@ class PanUKBBLDMatrix:
         idx = [row["idx"] for row in locus_index.select("idx").collect()]
 
         half_matrix = (
-            BlockMatrix.read(self.pan_ukbb_bm_path.format(POP="EUR"))
+            BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=ancestry))
             .filter(idx, idx)
             .to_numpy()
         )
