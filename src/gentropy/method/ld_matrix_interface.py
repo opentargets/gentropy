@@ -47,7 +47,7 @@ class LDMatrixInterface:
             joined_index = PanUKBBLDMatrix().get_locus_index_boundaries(
                 session=session,
                 study_locus_row=study_locus_row,
-                ancestry=mapped_ancestry,
+                ancestry=LDMatrixInterface.ancestry_map.get(ancestry),
             )
         else:
             joined_index = (
