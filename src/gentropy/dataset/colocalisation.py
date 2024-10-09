@@ -60,7 +60,9 @@ class Colocalisation(Dataset):
         """
         from gentropy.colocalisation import ColocalisationStep
 
-        valid_qtls = list(EqtlCatalogueStudyIndex.method_to_study_type_mapping.values())
+        valid_qtls = list(
+            set(EqtlCatalogueStudyIndex.method_to_study_type_mapping.values())
+        )
 
         if filter_by_qtls:
             filter_by_qtls = (
@@ -96,7 +98,7 @@ class Colocalisation(Dataset):
             self.append_study_metadata(
                 study_locus,
                 study_index,
-                metadata_cols=["geneId"],
+                metadata_cols=["geneId", "studyType"],
                 colocalisation_side="right",
             )
             # it also filters based on method and qtl type
@@ -152,6 +154,12 @@ class Colocalisation(Dataset):
             )
             .distinct()
         )
+        coloc_df = (
+            # drop `rightStudyType` in case it is requested
+            self.df.drop("rightStudyType")
+            if "studyType" in metadata_cols and colocalisation_side == "right"
+            else self.df
+        )
         return (
             # Append that to the respective side of the colocalisation dataset
             study_loci_w_metadata.selectExpr(
@@ -160,5 +168,5 @@ class Colocalisation(Dataset):
                     f"{col} as {colocalisation_side}{col[0].upper() + col[1:]}"
                     for col in metadata_cols
                 ],
-            ).join(self.df, f"{colocalisation_side}StudyLocusId", "right")
+            ).join(coloc_df, f"{colocalisation_side}StudyLocusId", "right")
         )
