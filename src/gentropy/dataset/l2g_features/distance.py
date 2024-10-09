@@ -349,7 +349,7 @@ class DistanceSentinelFootprintFeature(L2GFeature):
 
     fill_na_value = 500_000
     feature_dependency_type = VariantIndex
-    feature_name = "distanceSentinelFootprintMinimum"
+    feature_name = "distanceSentinelFootprint"
 
     @classmethod
     def compute(
@@ -388,7 +388,7 @@ class DistanceSentinelFootprintNeighbourhoodFeature(L2GFeature):
 
     fill_na_value = 500_000
     feature_dependency_type = VariantIndex
-    feature_name = "distanceSentinelFootprintNeighbourhoodFeature"
+    feature_name = "distanceSentinelFootprintNeighbourhood"
 
     @classmethod
     def compute(

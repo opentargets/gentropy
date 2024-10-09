@@ -26,17 +26,18 @@ from gentropy.method.l2g.trainer import LocusToGeneTrainer
 # from gentropy.l2g import *
 # session = Session("yarn")
 
-# run_mode = "train"
+# run_mode = "predict"
 # download_from_hub = True
-# wandb_run_name = "07-10"
+# wandb_run_name="08-10"
 # credible_set_path = "gs://ot-team/irene/l2g-0710/inputs/credible_set"
-# gold_standard_curation_path = "gs://genetics_etl_python_playground/releases/24.06/locus_to_gene_gold_standard.json"
+# gold_standard_curation_path="gs://genetics_etl_python_playground/releases/24.06/locus_to_gene_gold_standard.json"
 # variant_index_path = "gs://ot_orchestration/releases/27.09/variant_index/"
 # colocalisation_path = "gs://ot-team/irene/l2g-0710/inputs/colocalisation"
 # study_index_path = "gs://genetics_etl_python_playground/releases/24.06/study_index"
 # gene_index_path = "gs://genetics_etl_python_playground/releases/24.06/gene_index"
-# gene_interactions_path = "gs://genetics_etl_python_playground/static_assets/interaction"
-# feature_matrix_path = "gs://ot-team/irene/l2g-0710/feature_matrix"
+# gene_interactions_path="gs://genetics_etl_python_playground/static_assets/interaction"
+# feature_matrix_path="gs://ot-team/irene/l2g-0810/feature_matrix"
+# predictions_path  = "gs://ot-team/irene/l2g-0810/predictions"
 
 # step = LocusToGeneStep(
 #     session, run_mode=run_mode, wandb_run_name=wandb_run_name, credible_set_path=credible_set_path,
@@ -289,7 +290,9 @@ class LocusToGeneStep:
             )
 
             return (
-                gold_standards.build_feature_matrix(self.feature_matrix)
+                gold_standards.build_feature_matrix(
+                    self.feature_matrix, self.credible_set
+                )
                 .fill_na()
                 .select_features(self.features_list)
             )

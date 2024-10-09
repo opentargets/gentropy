@@ -15,7 +15,6 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from wandb.data_types import Table
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_sweep import sweep as wandb_sweep
 from wandb.sklearn import plot_classifier
@@ -133,15 +132,15 @@ class LocusToGeneTrainer:
             )
             run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
             # Track gold standards and their features
-            run.log(
-                {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
-            )
-            # Log feature missingness
-            run.log(
-                {
-                    "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
-                }
-            )
+            # run.log(
+            #     {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
+            # )
+            # # Log feature missingness
+            # run.log(
+            #     {
+            #         "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
+            #     }
+            # )
 
     def train(
         self: LocusToGeneTrainer,
