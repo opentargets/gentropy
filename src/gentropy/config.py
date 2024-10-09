@@ -549,7 +549,7 @@ class FinemapperConfig(StepConfig):
 
 
 @dataclass
-class GWASQCStep(StepConfig):
+class SummaryStatisticsQCStepConfig(StepConfig):
     """GWAS QC step configuration."""
 
     gwas_path: str = MISSING
@@ -666,7 +666,9 @@ def register_config() -> None:
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
-    cs.store(group="step", name="summary_statistics_qc", node=GWASQCStep)
+    cs.store(
+        group="step", name="summary_statistics_qc", node=SummaryStatisticsQCStepConfig
+    )
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
     )
