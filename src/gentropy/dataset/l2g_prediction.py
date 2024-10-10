@@ -5,12 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
+import pyspark.sql.functions as f
+
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
@@ -40,8 +41,8 @@ class L2GPrediction(Dataset):
         cls: Type[L2GPrediction],
         session: Session,
         credible_set: StudyLocus,
+        feature_matrix: L2GFeatureMatrix,
         features_list: list[str],
-        features_input_loader: L2GFeatureInputLoader,
         model_path: str | None,
         hf_token: str | None = None,
         download_from_hub: bool = True,
@@ -51,8 +52,8 @@ class L2GPrediction(Dataset):
         Args:
             session (Session): Session object that contains the Spark session
             credible_set (StudyLocus): Dataset containing credible sets from GWAS only
+            feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations
             features_list (list[str]): List of features to use for the model
-            features_input_loader (L2GFeatureInputLoader): Loader with all feature dependencies
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
@@ -70,10 +71,12 @@ class L2GPrediction(Dataset):
 
         # Prepare data
         fm = (
-            L2GFeatureMatrix.from_features_list(
-                study_loci_to_annotate=credible_set,
-                features_list=features_list,
-                features_input_loader=features_input_loader,
+            L2GFeatureMatrix(
+                _df=(
+                    credible_set.df.filter(f.col("studyType") == "gwas")
+                    .select("studyLocusId")
+                    .join(feature_matrix._df, "studyLocusId")
+                )
             )
             .fill_na()
             .select_features(features_list)
