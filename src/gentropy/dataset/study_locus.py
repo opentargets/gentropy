@@ -279,7 +279,8 @@ class StudyLocus(Dataset):
             df = self.df.withColumn(
                 qc_colname,
                 create_empty_column_if_not_exists(
-                    qc_colname, get_struct_field_schema(StudyLocus.get_schema(), qc_colname)
+                    qc_colname,
+                    get_struct_field_schema(StudyLocus.get_schema(), qc_colname),
                 ),
             )
         return StudyLocus(
@@ -940,7 +941,7 @@ class StudyLocus(Dataset):
             "qualityControls",
             self.update_quality_flag(
                 f.col("qualityControls"),
-                ~(
+                (
                     (f.col("chromosome") == region.chromosome)
                     & (
                         (f.col("position") <= region.end)
