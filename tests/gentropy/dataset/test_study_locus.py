@@ -985,7 +985,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
             [{"variantId": "X_3_A_A"}, {"variantId": "X_5_A_A"}],
             [],
         ),
-        # NOT to be flagged (Unresolved LD)
+        # To be flagged (Unresolved LD flag on it)
         (
             "5",
             "v5",
@@ -1080,4 +1080,4 @@ class TestStudyLocusSuSiERedundancyFlagging:
                 )
             )
             .count()
-        ) == 2
+        ) == 3
