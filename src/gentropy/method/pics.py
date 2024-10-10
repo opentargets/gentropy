@@ -208,6 +208,7 @@ class PICS:
                 ]
             )
         )
+        # The schema of the picsed locus should contain fields for the single point statistics:
         picsed_study_locus_schema = t.ArrayType(
             t.StructType(
                 [
@@ -215,6 +216,9 @@ class PICS:
                     t.StructField("r2Overall", t.DoubleType(), True),
                     t.StructField("posteriorProbability", t.DoubleType(), True),
                     t.StructField("standardError", t.DoubleType(), True),
+                    t.StructField("pValueMantissa", t.FloatType(), True),
+                    t.StructField("pValueExponent", t.IntegerType(), True),
+                    t.StructField("beta", t.DoubleType(), True),
                 ]
             )
         )
@@ -242,6 +246,20 @@ class PICS:
                         ),
                     ),
                 )
+                # Updating single point statistics in the locus object for the lead variant:
+                .withColumn(
+                    "locus",
+                    f.transform(
+                        f.col("locus"),
+                        lambda tag: f.when(
+                            f.col("variantId") == tag["variantId"],
+                            tag.withField("pValueMantissa", f.col("pValueMantissa"))
+                            .withField("pValueExponent", f.col("pValueExponent"))
+                            .withField("beta", f.col("beta")),
+                        ).otherwise(tag),
+                    ),
+                )
+                # Flagging loci that do not qualify for PICS:
                 .withColumn(
                     "qualityControls",
                     StudyLocus.update_quality_flag(
