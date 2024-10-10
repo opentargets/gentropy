@@ -24,6 +24,9 @@ class ColocalisationStep:
         credible_set_path: str,
         coloc_path: str,
         colocalisation_method: str,
+        priorc1: float = 1e-4,
+        priorc2: float = 1e-4,
+        priorc12: float = 1e-5,
     ) -> None:
         """Run Colocalisation step.
 
@@ -32,6 +35,9 @@ class ColocalisationStep:
             credible_set_path (str): Input credible sets path.
             coloc_path (str): Output Colocalisation path.
             colocalisation_method (str): Colocalisation method.
+            priorc1 (float, optional): Prior on variant being causal for trait 1. Defaults to 1e-4.
+            priorc2 (float, optional): Prior on variant being causal for trait 2. Defaults to 1e-4.
+            priorc12 (float, optional): Prior on variant being causal for both traits. Defaults to 1e-5.
         """
         colocalisation_class = self._get_colocalisation_class(colocalisation_method)
         # Extract
@@ -47,7 +53,9 @@ class ColocalisationStep:
 
         # Transform
         overlaps = credible_set.find_overlaps()
-        colocalisation_results = colocalisation_class.colocalise(overlaps)  # type: ignore
+        colocalisation_results = colocalisation_class.colocalise(  # type: ignore
+            overlaps, priorc1=priorc1, priorc2=priorc2, priorc12=priorc12
+        )
 
         # Load
         colocalisation_results.df.write.mode(session.write_mode).parquet(
