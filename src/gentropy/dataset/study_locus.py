@@ -941,7 +941,7 @@ class StudyLocus(Dataset):
             "qualityControls",
             self.update_quality_flag(
                 f.col("qualityControls"),
-                ~(
+                (
                     (f.col("chromosome") == region.chromosome)
                     & (
                         (f.col("position") <= region.end)
