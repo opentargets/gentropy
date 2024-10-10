@@ -60,7 +60,12 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
             False,
             # expected - output DataFrame with overlapping signals
             [
-                {"leftStudyLocusId": "1", "rightStudyLocusId": "2", "chromosome": "1"},
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                },
             ],
         ),
         (
@@ -94,7 +99,14 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
             # intrastudy - bool of whether or not to use inter-study or intra-study logic
             True,
             # expected - output DataFrame with overlapping signals
-            [{"leftStudyLocusId": "2", "rightStudyLocusId": "1", "chromosome": "1"}],
+            [
+                {
+                    "leftStudyLocusId": "2",
+                    "rightStudyLocusId": "1",
+                    "rightStudyType": "gwas",
+                    "chromosome": "1",
+                }
+            ],
         ),
     ],
 )
@@ -119,6 +131,7 @@ def test_overlapping_peaks(
         [
             t.StructField("leftStudyLocusId", t.StringType()),
             t.StructField("rightStudyLocusId", t.StringType()),
+            t.StructField("rightStudyType", t.StringType()),
             t.StructField("chromosome", t.StringType()),
         ]
     )
