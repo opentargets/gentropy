@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
 
@@ -125,3 +126,30 @@ def test_overlapping_peaks(
     result_df = StudyLocus._overlapping_peaks(observed_df, intrastudy)
     expected_df = spark.createDataFrame(expected, expected_schema)
     assert result_df.collect() == expected_df.collect()
+
+
+class TestStudyLocusOverlap:
+    """Test the overlapping of StudyLocus dataset."""
+
+    @pytest.fixture(autouse=True)
+    def setup(
+        self: TestStudyLocusOverlap, study_locus_sample_for_colocalisation: StudyLocus
+    ) -> None:
+        """Get sample dataset."""
+        # Store imput dataset:
+        self.study_locus = study_locus_sample_for_colocalisation
+
+        # Call locus overlap:
+        self.overlaps = study_locus_sample_for_colocalisation.find_overlaps()
+
+    def test_coloc_return_type(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert isinstance(self.overlaps, StudyLocusOverlap)
+
+    def test_coloc_not_null(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert self.overlaps.df.count() != 0
+
+    def test_coloc_study_type_not_null(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert self.overlaps.filter(f.col("rightStudyType").isNull()).df.count() == 0
