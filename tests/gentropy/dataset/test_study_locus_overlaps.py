@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
 
@@ -59,7 +60,12 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
             False,
             # expected - output DataFrame with overlapping signals
             [
-                {"leftStudyLocusId": "1", "rightStudyLocusId": "2", "chromosome": "1"},
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                },
             ],
         ),
         (
@@ -93,7 +99,14 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
             # intrastudy - bool of whether or not to use inter-study or intra-study logic
             True,
             # expected - output DataFrame with overlapping signals
-            [{"leftStudyLocusId": "2", "rightStudyLocusId": "1", "chromosome": "1"}],
+            [
+                {
+                    "leftStudyLocusId": "2",
+                    "rightStudyLocusId": "1",
+                    "rightStudyType": "gwas",
+                    "chromosome": "1",
+                }
+            ],
         ),
     ],
 )
@@ -118,6 +131,7 @@ def test_overlapping_peaks(
         [
             t.StructField("leftStudyLocusId", t.StringType()),
             t.StructField("rightStudyLocusId", t.StringType()),
+            t.StructField("rightStudyType", t.StringType()),
             t.StructField("chromosome", t.StringType()),
         ]
     )
@@ -125,3 +139,30 @@ def test_overlapping_peaks(
     result_df = StudyLocus._overlapping_peaks(observed_df, intrastudy)
     expected_df = spark.createDataFrame(expected, expected_schema)
     assert result_df.collect() == expected_df.collect()
+
+
+class TestStudyLocusOverlap:
+    """Test the overlapping of StudyLocus dataset."""
+
+    @pytest.fixture(autouse=True)
+    def setup(
+        self: TestStudyLocusOverlap, study_locus_sample_for_colocalisation: StudyLocus
+    ) -> None:
+        """Get sample dataset."""
+        # Store imput dataset:
+        self.study_locus = study_locus_sample_for_colocalisation
+
+        # Call locus overlap:
+        self.overlaps = study_locus_sample_for_colocalisation.find_overlaps()
+
+    def test_coloc_return_type(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert isinstance(self.overlaps, StudyLocusOverlap)
+
+    def test_coloc_not_null(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert self.overlaps.df.count() != 0
+
+    def test_coloc_study_type_not_null(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert self.overlaps.filter(f.col("rightStudyType").isNull()).df.count() == 0
