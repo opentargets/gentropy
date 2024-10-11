@@ -195,26 +195,13 @@ class PICS:
         Returns:
             StudyLocus: Study locus with PICS results
         """
-        # Register UDF by defining the structure of the output locus array of structs
-        # it also renames tagVariantId to variantId
-
-        # Finemapping method is optional:
+        # Finemapping method is an optional column:
         finemapping_method_expression = (
             f.lit("pics")
-            if "finemappingMethod" in associations.df.columns
+            if "finemappingMethod" not in associations.df.columns
             else f.coalesce(f.col("finemappingMethod"), f.lit("pics"))
         )
 
-        picsed_ldset_schema = t.ArrayType(
-            t.StructType(
-                [
-                    t.StructField("tagVariantId", t.StringType(), True),
-                    t.StructField("r2Overall", t.DoubleType(), True),
-                    t.StructField("posteriorProbability", t.DoubleType(), True),
-                    t.StructField("standardError", t.DoubleType(), True),
-                ]
-            )
-        )
         # The schema of the picsed locus should contain fields for the single point statistics:
         picsed_study_locus_schema = t.ArrayType(
             t.StructType(
@@ -226,13 +213,18 @@ class PICS:
                 ]
             )
         )
+
+        # Register UDF by defining the structure of the output locus array of structs
         _finemap_udf = f.udf(
             lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
-            picsed_ldset_schema,
+            picsed_study_locus_schema,
         )
+
+        # Flagging expression for loci that do not qualify for PICS:
         non_picsable_expr = (
             f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
         )
+
         return StudyLocus(
             _df=(
                 associations.df
@@ -245,9 +237,7 @@ class PICS:
                     "locus",
                     f.when(
                         f.col("ldSet").isNotNull(),
-                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")).cast(
-                            picsed_study_locus_schema
-                        ),
+                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
                     ),
                 )
                 # Updating single point statistics in the locus object for the lead variant:
