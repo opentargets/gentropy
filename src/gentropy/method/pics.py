@@ -202,7 +202,7 @@ class PICS:
             else f.coalesce(f.col("finemappingMethod"), f.lit("pics"))
         )
 
-        # The schema of the picsed locus should contain fields for the single point statistics:
+        # The fields for the picsed locus + ldSet tagVariantId is renamed to variantId:
         picsed_study_locus_schema = t.ArrayType(
             t.StructType(
                 [
