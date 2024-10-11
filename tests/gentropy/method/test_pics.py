@@ -96,7 +96,11 @@ class TestLeadPropagation:
 
     @pytest.fixture(autouse=True)
     def setup(self, spark: SparkSession) -> None:
-        """Set up the test suite."""
+        """Set up the test suite.
+
+        Args:
+            spark (SparkSession): The spark session.
+        """
         df = (
             spark.createDataFrame(self.DATA, ["variantId", "tagVariantId", "r2Overall"])
             .groupBy("variantId")

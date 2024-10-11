@@ -105,7 +105,6 @@ class PICS:
         """
         return neglog_p * r2 if r2 >= 0.5 else None
 
-    @f.udf(PICSED_LOCUS_SCHEMA)
     @staticmethod
     def _finemap(
         ld_set: list[Row], lead_neglog_p: float, k: float
@@ -220,6 +219,12 @@ class PICS:
             f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
         )
 
+        # Registering the UDF to be used in the pipeline:
+        finemap_udf = f.udf(
+            lambda ld_set, neglog_p: cls._finemap(ld_set, neglog_p, k),
+            cls.PICSED_LOCUS_SCHEMA,
+        )
+
         return StudyLocus(
             _df=(
                 associations.df
@@ -232,7 +237,7 @@ class PICS:
                     "locus",
                     f.when(
                         f.col("ldSet").isNotNull(),
-                        cls._finemap(f.col("ldSet"), f.col("neglog_pvalue"), f.lit(k)),
+                        finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
                     ),
                 )
                 # Updating single point statistics in the locus object for the lead variant:
