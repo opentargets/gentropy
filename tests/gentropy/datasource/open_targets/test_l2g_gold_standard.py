@@ -171,5 +171,6 @@ def test_build_feature_matrix(
     )
     fm = mock_study_locus.build_feature_matrix(features_list, loader)
     assert isinstance(
-        mock_l2g_gold_standard.build_feature_matrix(fm), L2GFeatureMatrix
+        mock_l2g_gold_standard.build_feature_matrix(fm, mock_study_locus),
+        L2GFeatureMatrix,
     ), "Feature matrix should be of type L2GFeatureMatrix"
