@@ -215,12 +215,6 @@ class PICS:
             else f.coalesce(f.col("finemappingMethod"), f.lit("pics"))
         )
 
-        # Register UDF by defining the structure of the output locus array of structs
-        # _finemap_udf = f.udf(
-        #     lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
-        #     picsed_study_locus_schema,
-        # )
-
         # Flagging expression for loci that do not qualify for PICS:
         non_picsable_expr = (
             f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
