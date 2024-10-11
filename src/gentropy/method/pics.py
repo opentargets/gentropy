@@ -198,6 +198,13 @@ class PICS:
         # Register UDF by defining the structure of the output locus array of structs
         # it also renames tagVariantId to variantId
 
+        # Finemapping method is optional:
+        finemapping_method_expression = (
+            f.lit("pics")
+            if "finemappingMethod" in associations.df.columns
+            else f.coalesce(f.col("finemappingMethod"), f.lit("pics"))
+        )
+
         picsed_ldset_schema = t.ArrayType(
             t.StructType(
                 [
@@ -216,9 +223,6 @@ class PICS:
                     t.StructField("r2Overall", t.DoubleType(), True),
                     t.StructField("posteriorProbability", t.DoubleType(), True),
                     t.StructField("standardError", t.DoubleType(), True),
-                    t.StructField("pValueMantissa", t.FloatType(), True),
-                    t.StructField("pValueExponent", t.IntegerType(), True),
-                    t.StructField("beta", t.DoubleType(), True),
                 ]
             )
         )
@@ -256,7 +260,15 @@ class PICS:
                             tag.withField("pValueMantissa", f.col("pValueMantissa"))
                             .withField("pValueExponent", f.col("pValueExponent"))
                             .withField("beta", f.col("beta")),
-                        ).otherwise(tag),
+                        ).otherwise(
+                            tag.withField(
+                                "pValueMantissa", f.lit(None).cast(t.FloatType())
+                            )
+                            .withField(
+                                "pValueExponent", f.lit(None).cast(t.IntegerType())
+                            )
+                            .withField("beta", f.lit(None).cast(t.DoubleType()))
+                        ),
                     ),
                 )
                 # Flagging loci that do not qualify for PICS:
@@ -270,7 +282,7 @@ class PICS:
                 )
                 .withColumn(
                     "finemappingMethod",
-                    f.coalesce(f.col("finemappingMethod"), f.lit("pics")),
+                    finemapping_method_expression,
                 )
                 .withColumn(
                     "studyLocusId",
