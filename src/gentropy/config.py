@@ -38,9 +38,9 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
-    priorc1: float = MISSING
-    priorc2: float = MISSING
-    priorc12: float = MISSING
+    priorc1: float | None = MISSING
+    priorc2: float | None = MISSING
+    priorc12: float | None = MISSING
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
