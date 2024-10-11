@@ -66,13 +66,15 @@ class StudyValidationStep:
             .validate_study_type()  # Flagging non-supported study types.
             .validate_target(target_index)  # Flagging QTL studies with invalid targets
             .validate_disease(disease_index)  # Flagging invalid EFOs
-            .validate_biosample(biosample_index)  # Flagging QTL studies with invalid biosamples
+            .validate_biosample(
+                biosample_index
+            )  # Flagging QTL studies with invalid biosamples
         ).persist()  # we will need this for 2 types of outputs
 
-        study_index_with_qc.valid_rows(
-            invalid_qc_reasons, invalid=True
-        ).df.write.parquet(invalid_study_index_path)
+        study_index_with_qc.valid_rows(invalid_qc_reasons, invalid=True).df.write.mode(
+            session.write_mode
+        ).parquet(invalid_study_index_path)
 
-        study_index_with_qc.valid_rows(invalid_qc_reasons).df.write.parquet(
-            valid_study_index_path
-        )
+        study_index_with_qc.valid_rows(invalid_qc_reasons).df.write.mode(
+            session.write_mode
+        ).parquet(valid_study_index_path)
