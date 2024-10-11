@@ -17,6 +17,18 @@ if TYPE_CHECKING:
 class PICS:
     """Probabilistic Identification of Causal SNPs (PICS), an algorithm estimating the probability that an individual variant is causal considering the haplotype structure and observed pattern of association at the genetic locus."""
 
+    # The fields for the picsed locus + ldSet tagVariantId is renamed to variantId:
+    PICSED_LOCUS_SCHEMA = t.ArrayType(
+        t.StructType(
+            [
+                t.StructField("variantId", t.StringType(), True),
+                t.StructField("r2Overall", t.DoubleType(), True),
+                t.StructField("posteriorProbability", t.DoubleType(), True),
+                t.StructField("standardError", t.DoubleType(), True),
+            ]
+        )
+    )
+
     @staticmethod
     def _pics_relative_posterior_probability(
         neglog_p: float, pics_snp_mu: float, pics_snp_std: float
@@ -93,6 +105,7 @@ class PICS:
         """
         return neglog_p * r2 if r2 >= 0.5 else None
 
+    @f.udf(PICSED_LOCUS_SCHEMA)
     @staticmethod
     def _finemap(
         ld_set: list[Row], lead_neglog_p: float, k: float
@@ -202,23 +215,11 @@ class PICS:
             else f.coalesce(f.col("finemappingMethod"), f.lit("pics"))
         )
 
-        # The fields for the picsed locus + ldSet tagVariantId is renamed to variantId:
-        picsed_study_locus_schema = t.ArrayType(
-            t.StructType(
-                [
-                    t.StructField("variantId", t.StringType(), True),
-                    t.StructField("r2Overall", t.DoubleType(), True),
-                    t.StructField("posteriorProbability", t.DoubleType(), True),
-                    t.StructField("standardError", t.DoubleType(), True),
-                ]
-            )
-        )
-
         # Register UDF by defining the structure of the output locus array of structs
-        _finemap_udf = f.udf(
-            lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
-            picsed_study_locus_schema,
-        )
+        # _finemap_udf = f.udf(
+        #     lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
+        #     picsed_study_locus_schema,
+        # )
 
         # Flagging expression for loci that do not qualify for PICS:
         non_picsable_expr = (
@@ -237,7 +238,7 @@ class PICS:
                     "locus",
                     f.when(
                         f.col("ldSet").isNotNull(),
-                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
+                        cls._finemap(f.col("ldSet"), f.col("neglog_pvalue"), f.lit(k)),
                     ),
                 )
                 # Updating single point statistics in the locus object for the lead variant:
