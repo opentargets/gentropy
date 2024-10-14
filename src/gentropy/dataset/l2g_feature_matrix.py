@@ -99,6 +99,88 @@ class L2GFeatureMatrix:
             with_gold_standard=False,
         )
 
+    def merge_features_in_efo(
+        self: L2GFeatureMatrix,
+        features: list[str],
+        credible_set: StudyLocus,
+        study_index: StudyIndex,
+        max_distance: int = 500000,
+    ) -> L2GFeatureMatrix:
+        """Merge studyLocusId-to-geneId pairings in the feature matrix, filling in missing features.
+
+        Args:
+            features (list[str]): List of features to merge
+            credible_set (StudyLocus): Credible set dataset
+            study_index (StudyIndex): Study index dataset
+            max_distance (int): Maximum allowed base pair distance for grouping variants. Default is 500,000.
+
+        Returns:
+            L2GFeatureMatrix: L2G feature matrix dataset
+        """
+        from pyspark.sql import functions as f
+        from pyspark.sql.window import Window
+
+        efo_df = (
+            credible_set.df.join(study_index.df, on="studyId", how="inner").select(
+                "studyId",
+                "studyLocusId",
+                "variantId",
+                f.explode(study_index.df["traitFromSourceMappedIds"]).alias(
+                    "efo_terms"
+                ),
+            )
+        ).join(
+            self._df,
+            on="studyLocusId",
+            how="inner",
+        )
+
+        efo_df = efo_df.withColumn(
+            "chromosome", f.split(f.col("variantId"), "_").getItem(0)
+        )
+        efo_df = efo_df.withColumn(
+            "position", f.split(f.col("variantId"), "_").getItem(1).cast("long")
+        )
+
+        window_spec = Window.partitionBy("efo_terms", "geneId", "chromosome").orderBy(
+            "position"
+        )
+
+        efo_df = efo_df.withColumn(
+            "position_diff", f.col("position") - f.lag("position", 1).over(window_spec)
+        )
+        efo_df = efo_df.withColumn(
+            "group",
+            f.sum(f.when(f.col("position_diff") > max_distance, 1).otherwise(0)).over(
+                window_spec
+            ),
+        )
+
+        max_df = efo_df.groupBy("efo_terms", "geneId", "group").agg(
+            *[f.max(col).alias(f"{col}_max") for col in features]
+        )
+
+        imputed_df = efo_df.join(
+            max_df, on=["efo_terms", "geneId", "group"], how="left"
+        )
+
+        for col in features:
+            imputed_df = imputed_df.withColumn(col, f.col(f"{col}_max")).drop(
+                f"{col}_max"
+            )
+
+        self.df = imputed_df.drop(
+            "efo_terms",
+            "studyId",
+            "chromosome",
+            "position",
+            "position_diff",
+            "group",
+            "variantId",
+        ).distinct()
+
+        return self
+
     def calculate_feature_missingness_rate(
         self: L2GFeatureMatrix,
     ) -> dict[str, float]:
