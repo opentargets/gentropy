@@ -222,16 +222,7 @@ class LDBasedClumpingConfig(StepConfig):
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "extended_spark_conf": {
-                "spark.dynamicAllocation.enabled": "false",
-                "spark.driver.memory": "48g",
-                "spark.executor.memory": "48g",
-                "spark.sql.shuffle.partitions": "800",
-            }
-        }
-    )
+    session: Any = field(default_factory=lambda: {"extended_spark_conf": None})
     run_mode: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
@@ -313,12 +304,18 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "eQtlColocClppMaximum",
             "pQtlColocClppMaximum",
             "sQtlColocClppMaximum",
-            "tuQtlColocClppMaximum",
             # max H4 for each (study, locus, gene) aggregating over a specific qtl type
             "eQtlColocH4Maximum",
             "pQtlColocH4Maximum",
             "sQtlColocH4Maximum",
-            "tuQtlColocH4Maximum",
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
             # distance to gene footprint
             "distanceSentinelFootprint",
             "distanceSentinelFootprintNeighbourhood",
