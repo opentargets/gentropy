@@ -259,7 +259,6 @@ class Coloc:
                 .drop(
                     "posteriors",
                     "allBF",
-                    "h4h3",
                     "lH0bf",
                     "lH1bf",
                     "lH2bf",
