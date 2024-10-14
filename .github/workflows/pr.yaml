@@ -5,11 +5,14 @@ name: Checks
 
 env:
   PYTHON_VERSION_DEFAULT: "3.10.8"
+  CI: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Test java
+        run: java -version
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -39,7 +42,7 @@ jobs:
       - name: Check dependencies
         run: poetry run deptry .
       - name: Run tests
-        run: poetry run pytest
+        run: poetry run pytest -vvv
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
