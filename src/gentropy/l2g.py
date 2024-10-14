@@ -10,7 +10,7 @@ from wandb import login as wandb_login
 
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
-from gentropy.config import LocusToGeneConfig, LocusToGeneFeatureMatrixConfig
+from gentropy.config import LocusToGeneFeatureMatrixConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -94,11 +94,11 @@ class LocusToGeneStep:
     def __init__(
         self,
         session: Session,
-        hyperparameters: dict[str, Any] = LocusToGeneConfig().hyperparameters,
+        hyperparameters: dict[str, Any],
         *,
         run_mode: str,
-        features_list: list[str] = LocusToGeneConfig().features_list,
-        download_from_hub: bool = LocusToGeneConfig().download_from_hub,
+        features_list: list[str],
+        download_from_hub: bool,
         wandb_run_name: str,
         model_path: str | None = None,
         credible_set_path: str,
@@ -107,7 +107,7 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
-        hf_hub_repo_id: str | None = LocusToGeneConfig().hf_hub_repo_id,
+        hf_hub_repo_id: str | None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
