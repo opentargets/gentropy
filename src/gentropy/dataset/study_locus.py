@@ -279,7 +279,8 @@ class StudyLocus(Dataset):
             df = self.df.withColumn(
                 qc_colname,
                 create_empty_column_if_not_exists(
-                    qc_colname, get_struct_field_schema(StudyLocus.get_schema(), qc_colname)
+                    qc_colname,
+                    get_struct_field_schema(StudyLocus.get_schema(), qc_colname),
                 ),
             )
         return StudyLocus(
@@ -411,6 +412,7 @@ class StudyLocus(Dataset):
             .select(
                 f.col("left.studyLocusId").alias("leftStudyLocusId"),
                 f.col("right.studyLocusId").alias("rightStudyLocusId"),
+                f.col("right.studyType").alias("rightStudyType"),
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
@@ -451,7 +453,6 @@ class StudyLocus(Dataset):
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("rightStudyLocusId"),
-            f.col("studyType").alias("rightStudyType"),
             *[f.col(col).alias(f"right_{col}") for col in stats_cols],
         ).join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
 
@@ -463,6 +464,7 @@ class StudyLocus(Dataset):
                 "rightStudyLocusId",
                 "leftStudyLocusId",
                 "tagVariantId",
+                "rightStudyType",
             ],
             how="outer",
         ).select(
@@ -940,7 +942,7 @@ class StudyLocus(Dataset):
             "qualityControls",
             self.update_quality_flag(
                 f.col("qualityControls"),
-                ~(
+                (
                     (f.col("chromosome") == region.chromosome)
                     & (
                         (f.col("position") <= region.end)
@@ -1046,12 +1048,7 @@ class StudyLocus(Dataset):
                         # credible set in SuSiE overlapping region
                         f.col("inSuSiE")
                         # credible set not based on SuSiE
-                        & (f.col("finemappingMethod") != "SuSiE-inf")
-                        # credible set not already flagged as unresolved LD
-                        & ~f.array_contains(
-                            f.col("qualityControls"),
-                            StudyLocusQualityCheck.UNRESOLVED_LD.value,
-                        ),
+                        & (f.col("finemappingMethod") != "SuSiE-inf"),
                         StudyLocusQualityCheck.EXPLAINED_BY_SUSIE,
                     ),
                 )

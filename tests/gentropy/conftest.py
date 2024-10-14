@@ -502,6 +502,15 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def study_locus_sample_for_colocalisation(spark: SparkSession) -> DataFrame:
+    """Sample study locus data for colocalisation."""
+    return StudyLocus(
+        _df=spark.read.parquet("tests/gentropy/data_samples/coloc_test.parquet"),
+        _schema=StudyLocus.get_schema(),
+    )
+
+
+@pytest.fixture()
 def sample_target_index(spark: SparkSession) -> DataFrame:
     """Sample target index sample data."""
     return spark.read.parquet(
