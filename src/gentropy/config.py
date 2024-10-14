@@ -404,6 +404,29 @@ class GnomadVariantConfig(StepConfig):
 
 
 @dataclass
+class PanUKBBConfig(StepConfig):
+    """Pan UKB variant ingestion step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
+    pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
+    ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
+    pan_ukbb_pops: list[str] = field(
+        default_factory=lambda: [
+            "AFR",  # African
+            "CSA",  # Central/South Asian
+            "EUR",  # European
+        ]
+    )
+    use_version_from_input: bool = False
+    _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
+
+
+@dataclass
 class VariantIndexConfig(StepConfig):
     """Variant index step configuration."""
 
