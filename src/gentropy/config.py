@@ -222,6 +222,7 @@ class LDBasedClumpingConfig(StepConfig):
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
+    session: Any = field(default_factory=lambda: {"extended_spark_conf": None})
     run_mode: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
