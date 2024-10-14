@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import pyspark.sql.functions as f
-from pyspark.sql import Row
+import pyspark.sql.types as t
+import pytest
+from pyspark.sql import Row, SparkSession
 
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.pics import PICS
@@ -81,3 +83,75 @@ def test__finemap_udf() -> None:
 def test_finemap(mock_study_locus: StudyLocus) -> None:
     """Test finemap function returns study-locus."""
     assert isinstance(PICS.finemap(mock_study_locus), StudyLocus)
+
+
+class TestLeadPropagation:
+    """This test suite is designed to test that the statistics of the lead variant are propagated correctly."""
+
+    DATA = [
+        ("v1", "v1", 1.0),
+        ("v1", "v2", 0.9),
+        ("v1", "v3", 0.3),
+    ]
+
+    @pytest.fixture(autouse=True)
+    def setup(self, spark: SparkSession) -> None:
+        """Set up the test suite.
+
+        Args:
+            spark (SparkSession): The spark session.
+        """
+        df = (
+            spark.createDataFrame(self.DATA, ["variantId", "tagVariantId", "r2Overall"])
+            .groupBy("variantId")
+            .agg(
+                f.collect_list(
+                    f.struct(
+                        f.col("tagVariantId"),
+                        f.col("r2Overall").cast(t.DoubleType()).alias("r2Overall"),
+                    )
+                ).alias("ldSet")
+            )
+            .withColumns(
+                {
+                    "studyLocusId": f.lit("l1"),
+                    "studyId": f.lit("s1"),
+                    "chromosome": f.lit("1"),
+                    "pValueMantissa": f.lit(1.0).cast(t.FloatType()),
+                    "pValueExponent": f.lit(-4).cast(t.IntegerType()),
+                    "beta": f.lit(0.234).cast(t.DoubleType()),
+                    "qualityControls": f.lit(None).cast(t.ArrayType(t.StringType())),
+                    "ldSet": f.filter(
+                        f.col("ldSet"), lambda x: x.tagVariantId.isNotNull()
+                    ),
+                }
+            )
+        )
+
+        self.study_locus = StudyLocus(_df=df, _schema=StudyLocus.get_schema())
+
+    def test_lead_propagation(self: TestLeadPropagation) -> None:
+        """Testing if all the lead variant statistics are propagated to the tag variants."""
+        # Explode all the tags:
+        finemapped = (
+            PICS.finemap(self.study_locus)
+            .df.select(
+                f.col("variantId"),
+                f.col("pValueMantissa"),
+                f.col("pValueExponent"),
+                f.col("beta"),
+                f.explode("locus").alias("locus"),
+            )
+            .collect()
+        )
+
+        # Looping through all the tags and checking if the statistics are propagated correctly:
+        for row in finemapped:
+            if row["locus"]["variantId"] == row["variantId"]:
+                assert row["locus"]["pValueMantissa"] == row["pValueMantissa"]
+                assert row["locus"]["pValueExponent"] == row["pValueExponent"]
+                assert row["locus"]["beta"] == row["beta"]
+            else:
+                assert row["locus"]["pValueMantissa"] is None
+                assert row["locus"]["pValueExponent"] is None
+                assert row["locus"]["beta"] is None
