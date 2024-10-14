@@ -246,12 +246,18 @@ class LocusToGeneConfig(StepConfig):
             "eQtlColocClppMaximum",
             "pQtlColocClppMaximum",
             "sQtlColocClppMaximum",
-            "tuQtlColocClppMaximum",
             # max H4 for each (study, locus, gene) aggregating over a specific qtl type
             "eQtlColocH4Maximum",
             "pQtlColocH4Maximum",
             "sQtlColocH4Maximum",
-            "tuQtlColocH4Maximum",
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
             # distance to gene footprint
             "distanceSentinelFootprint",
             "distanceSentinelFootprintNeighbourhood",
@@ -395,6 +401,29 @@ class GnomadVariantConfig(StepConfig):
     )
     use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
+
+
+@dataclass
+class PanUKBBConfig(StepConfig):
+    """Pan UKB variant ingestion step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
+    pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
+    ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
+    pan_ukbb_pops: list[str] = field(
+        default_factory=lambda: [
+            "AFR",  # African
+            "CSA",  # Central/South Asian
+            "EUR",  # European
+        ]
+    )
+    use_version_from_input: bool = False
+    _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
 
 
 @dataclass
