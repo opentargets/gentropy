@@ -35,9 +35,9 @@ class ColocalisationStep:
             credible_set_path (str): Input credible sets path.
             coloc_path (str): Output Colocalisation path.
             colocalisation_method (str): Colocalisation method.
-            priorc1 (float, optional): Prior on variant being causal for trait 1. Defaults to 1e-4.
-            priorc2 (float, optional): Prior on variant being causal for trait 2. Defaults to 1e-4.
-            priorc12 (float, optional): Prior on variant being causal for both traits. Defaults to 1e-5.
+            priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
+            priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
+            priorc12 (float): Prior on variant being causal for both traits. Defaults to 1e-5.
         """
         colocalisation_class = self._get_colocalisation_class(colocalisation_method)
         # Extract
