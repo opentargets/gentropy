@@ -42,7 +42,7 @@ class Colocalisation(Dataset):
         study_index: StudyIndex,
         *,
         filter_by_colocalisation_method: str,
-        filter_by_qtl: str | None = None,
+        filter_by_qtls: str | list[str] | None = None,
     ) -> DataFrame:
         """Get maximum colocalisation probability for a (studyLocus, gene) window.
 
@@ -50,7 +50,7 @@ class Colocalisation(Dataset):
             study_locus (StudyLocus): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
             study_index (StudyIndex): Study index to use to get study metadata
             filter_by_colocalisation_method (str): optional filter to apply on the colocalisation dataset
-            filter_by_qtl (str | None): optional filter to apply on the colocalisation dataset
+            filter_by_qtls (str | list[str] | None): optional filter to apply on the colocalisation dataset
 
         Returns:
             DataFrame: table with the maximum colocalisation scores for the provided study loci
@@ -60,9 +60,18 @@ class Colocalisation(Dataset):
         """
         from gentropy.colocalisation import ColocalisationStep
 
-        valid_qtls = list(EqtlCatalogueStudyIndex.method_to_study_type_mapping.values())
-        if filter_by_qtl and filter_by_qtl not in valid_qtls:
-            raise ValueError(f"There are no studies with QTL type {filter_by_qtl}")
+        valid_qtls = list(
+            set(EqtlCatalogueStudyIndex.method_to_study_type_mapping.values())
+        )
+
+        if filter_by_qtls:
+            filter_by_qtls = (
+                list(map(str.lower, [filter_by_qtls]))
+                if isinstance(filter_by_qtls, str)
+                else list(map(str.lower, filter_by_qtls))
+            )
+            if any(qtl not in valid_qtls for qtl in filter_by_qtls):
+                raise ValueError(f"There are no studies with QTL type {filter_by_qtls}")
 
         if filter_by_colocalisation_method not in [
             "ECaviar",
@@ -80,10 +89,8 @@ class Colocalisation(Dataset):
             f.col("rightGeneId").isNotNull(),
             f.lower("colocalisationMethod") == filter_by_colocalisation_method.lower(),
         ]
-        if filter_by_qtl:
-            coloc_filtering_expr.append(
-                f.lower("rightStudyType") == filter_by_qtl.lower()
-            )
+        if filter_by_qtls:
+            coloc_filtering_expr.append(f.lower("rightStudyType").isin(filter_by_qtls))
 
         filtered_colocalisation = (
             # Bring rightStudyType and rightGeneId and filter by rows where the gene is null,
@@ -91,7 +98,7 @@ class Colocalisation(Dataset):
             self.append_study_metadata(
                 study_locus,
                 study_index,
-                metadata_cols=["geneId"],
+                metadata_cols=["geneId", "studyType"],
                 colocalisation_side="right",
             )
             # it also filters based on method and qtl type
@@ -147,6 +154,12 @@ class Colocalisation(Dataset):
             )
             .distinct()
         )
+        coloc_df = (
+            # drop `rightStudyType` in case it is requested
+            self.df.drop("rightStudyType")
+            if "studyType" in metadata_cols and colocalisation_side == "right"
+            else self.df
+        )
         return (
             # Append that to the respective side of the colocalisation dataset
             study_loci_w_metadata.selectExpr(
@@ -155,5 +168,5 @@ class Colocalisation(Dataset):
                     f"{col} as {colocalisation_side}{col[0].upper() + col[1:]}"
                     for col in metadata_cols
                 ],
-            ).join(self.df, f"{colocalisation_side}StudyLocusId", "right")
+            ).join(coloc_df, f"{colocalisation_side}StudyLocusId", "right")
         )
