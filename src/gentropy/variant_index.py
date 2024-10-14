@@ -59,8 +59,9 @@ class VariantIndexStep:
                     col("variantId"), col("chromosome"), col("position")
                 ),
             )
-            .write.partitionBy("chromosome")
-            .mode(session.write_mode)
+            .repartitionByRange("chromosome", "position")
+            .sortWithinPartitions("chromosome", "position")
+            .write.mode(session.write_mode)
             .parquet(variant_index_path)
         )
 
