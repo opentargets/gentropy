@@ -10,7 +10,6 @@ from wandb import login as wandb_login
 
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
-from gentropy.config import LocusToGeneFeatureMatrixConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -31,7 +30,7 @@ class LocusToGeneFeatureMatrixStep:
         self,
         session: Session,
         *,
-        features_list: list[str] = LocusToGeneFeatureMatrixConfig().features_list,
+        features_list: list[str],
         credible_set_path: str,
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
