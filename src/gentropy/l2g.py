@@ -271,5 +271,6 @@ class LocusToGeneStep:
                 )
                 .fill_na()
                 .select_features(self.features_list)
+                .persist()
             )
         raise ValueError("Dependencies for train mode not set.")
