@@ -412,6 +412,7 @@ class StudyLocus(Dataset):
             .select(
                 f.col("left.studyLocusId").alias("leftStudyLocusId"),
                 f.col("right.studyLocusId").alias("rightStudyLocusId"),
+                f.col("right.studyType").alias("rightStudyType"),
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
@@ -452,7 +453,6 @@ class StudyLocus(Dataset):
             f.col("chromosome"),
             f.col("tagVariantId"),
             f.col("studyLocusId").alias("rightStudyLocusId"),
-            f.col("studyType").alias("rightStudyType"),
             *[f.col(col).alias(f"right_{col}") for col in stats_cols],
         ).join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
 
@@ -464,6 +464,7 @@ class StudyLocus(Dataset):
                 "rightStudyLocusId",
                 "leftStudyLocusId",
                 "tagVariantId",
+                "rightStudyType",
             ],
             how="outer",
         ).select(
