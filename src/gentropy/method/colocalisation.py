@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 import pyspark.ml.functions as fml
@@ -20,6 +20,32 @@ if TYPE_CHECKING:
     from pyspark.sql import Column
 
     from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+
+
+class ColocalisationMethodInterface(Protocol):
+    """Colocalisation method interface."""
+
+    METHOD_NAME: str
+    METHOD_METRIC: str
+
+    @classmethod
+    def colocalise(
+        cls, overlapping_signals: StudyLocusOverlap, **kwargs: dict[str, Any]
+    ) -> Colocalisation:
+        """Method to generate the colocalisation.
+
+        Args:
+            overlapping_signals (StudyLocusOverlap): Overlapping study loci.
+            **kwargs (dict[str,Any]): Additional keyword arguments to the colocalise method.
+
+
+        Returns:
+            Colocalisation: loci colocalisation
+
+        Raises:
+            NotImplementedError: Implement in derivative classes.
+        """
+        raise NotImplementedError("Implement in derivative classes.")
 
 
 class ECaviar:
@@ -64,13 +90,11 @@ class ECaviar:
     def colocalise(
         cls: type[ECaviar],
         overlapping_signals: StudyLocusOverlap,
-        **kwargs: dict[str, Any],
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping signals.
-            **kwargs (dict[str, Any]): Additional parameters to the coloc step.
 
         Returns:
             Colocalisation: colocalisation results based on eCAVIAR.
@@ -217,7 +241,8 @@ class Coloc:
                 .withColumn(
                     "logdiff",
                     f.when(
-                        f.col("sumlogsum") == f.col("logsum12"), Coloc.PSEUDOCOUNT
+                        f.col("sumlogsum") == f.col(
+                            "logsum12"), Coloc.PSEUDOCOUNT
                     ).otherwise(
                         f.col("max")
                         + f.log(
@@ -253,7 +278,8 @@ class Coloc:
                     ),
                 )
                 .withColumn(
-                    "posteriors", fml.vector_to_array(posteriors(f.col("allBF")))
+                    "posteriors", fml.vector_to_array(
+                        posteriors(f.col("allBF")))
                 )
                 .withColumn("h0", f.col("posteriors").getItem(0))
                 .withColumn("h1", f.col("posteriors").getItem(1))
