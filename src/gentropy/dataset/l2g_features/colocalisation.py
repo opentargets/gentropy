@@ -9,6 +9,7 @@ from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
@@ -77,6 +78,7 @@ def common_neighbourhood_colocalisation_feature_logic(
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
+    gene_index: GeneIndex,
     study_locus: StudyLocus,
 ) -> DataFrame:
     """Wrapper to call the logic that creates a type of colocalisation features.
@@ -89,6 +91,7 @@ def common_neighbourhood_colocalisation_feature_logic(
         qtl_types (list[str] | str): The types of QTL to filter the data by
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
+        gene_index (GeneIndex): Gene index to add gene type
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
 
     Returns:
@@ -107,20 +110,29 @@ def common_neighbourhood_colocalisation_feature_logic(
         study_locus=study_locus,
     )
     return (
-        # Then compute maximum score in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        local_max.withColumn(
+        local_max
+        # Then compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+        # (non protein coding genes in the vicinity are excluded see #3552)
+        .join(gene_index.df.select("geneId", "biotype"), "geneId", "left")
+        .withColumn(
+            # apply conditional window to include in the window only the studyLociId where biotype == "protein_coding"
             "regional_maximum",
-            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
+            f.when(
+                f.col("biotype") == "protein_coding",
+                f.mean(f.col(local_feature_name)).over(
+                    Window.partitionBy("studyLocusId")
+                ),
+            ),
         )
         .withColumn(feature_name, f.col("regional_maximum") - f.col(local_feature_name))
-        .drop("regional_maximum", local_feature_name)
+        .drop("regional_maximum", local_feature_name, "biotype")
     )
 
 
 class EQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "eQtlColocClppMaximum"
 
     @classmethod
@@ -163,7 +175,7 @@ class EQtlColocClppMaximumFeature(L2GFeature):
 class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "eQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -206,7 +218,7 @@ class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
 class PQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "pQtlColocClppMaximum"
 
     @classmethod
@@ -248,7 +260,7 @@ class PQtlColocClppMaximumFeature(L2GFeature):
 class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "pQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -290,7 +302,7 @@ class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
 class SQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "sQtlColocClppMaximum"
 
     @classmethod
@@ -332,7 +344,7 @@ class SQtlColocClppMaximumFeature(L2GFeature):
 class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "sQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -374,7 +386,7 @@ class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
 class EQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "eQtlColocH4Maximum"
 
     @classmethod
@@ -416,7 +428,7 @@ class EQtlColocH4MaximumFeature(L2GFeature):
 class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "eQtlColocH4MaximumNeighbourhood"
 
     @classmethod
@@ -458,7 +470,7 @@ class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 class PQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "pQtlColocH4Maximum"
 
     @classmethod
@@ -500,7 +512,7 @@ class PQtlColocH4MaximumFeature(L2GFeature):
 class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "pQtlColocH4MaximumNeighbourhood"
 
     @classmethod
@@ -542,7 +554,7 @@ class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 class SQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "sQtlColocH4Maximum"
 
     @classmethod
@@ -584,7 +596,7 @@ class SQtlColocH4MaximumFeature(L2GFeature):
 class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
     feature_name = "sQtlColocH4MaximumNeighbourhood"
 
     @classmethod

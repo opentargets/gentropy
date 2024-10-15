@@ -119,6 +119,29 @@ def test_feature_factory_return_type(
     assert isinstance(feature_dataset, L2GFeature)
 
 
+@pytest.fixture(scope="module")
+def sample_gene_index(spark: SparkSession) -> GeneIndex:
+    """Create a sample gene index for testing."""
+    return GeneIndex(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "geneId": "gene1",
+                    "biotype": "protein_coding",
+                    "chromosome": "1",
+                },
+                {
+                    "geneId": "gene2",
+                    "biotype": "lncRNA",
+                    "chromosome": "1",
+                },
+            ],
+            GeneIndex.get_schema(),
+        ),
+        _schema=GeneIndex.get_schema(),
+    )
+
+
 class TestCommonColocalisationFeatureLogic:
     """Test the common logic of the colocalisation features."""
 
@@ -161,7 +184,9 @@ class TestCommonColocalisationFeatureLogic:
         ), "The feature values are not as expected."
 
     def test__common_neighbourhood_colocalisation_feature_logic(
-        self: TestCommonColocalisationFeatureLogic, spark: SparkSession
+        self: TestCommonColocalisationFeatureLogic,
+        spark: SparkSession,
+        sample_gene_index: GeneIndex,
     ) -> None:
         """Test the common logic of the neighbourhood colocalisation features."""
         feature_name = "eQtlColocH4MaximumNeighbourhood"
@@ -174,18 +199,20 @@ class TestCommonColocalisationFeatureLogic:
             colocalisation=self.sample_colocalisation,
             study_index=self.sample_studies,
             study_locus=self.sample_study_locus,
+            gene_index=sample_gene_index,
         )
+        # expected average is (0.81 + 0.5)/2 = 0.655
         expected_df = spark.createDataFrame(
             [
                 {
                     "studyLocusId": "1",
                     "geneId": "gene1",
-                    "eQtlColocH4MaximumNeighbourhood": 0.08999999999999997,
+                    "eQtlColocH4MaximumNeighbourhood": 0.155,  # 0.81 - 0.655
                 },
                 {
                     "studyLocusId": "1",
                     "geneId": "gene2",
-                    "eQtlColocH4MaximumNeighbourhood": 0.0,
+                    "eQtlColocH4MaximumNeighbourhood": -0.655,  # 0 - 0.655
                 },
             ],
         ).select("studyLocusId", "geneId", "eQtlColocH4MaximumNeighbourhood")
@@ -213,6 +240,7 @@ class TestCommonColocalisationFeatureLogic:
             ),
             _schema=StudyLocus.get_schema(),
         )
+
         self.sample_colocalisation = Colocalisation(
             _df=spark.createDataFrame(
                 [
@@ -564,30 +592,13 @@ class TestCommonVepFeatureLogic:
     def test_common_neighbourhood_vep_feature_logic_no_protein_coding(
         self: TestCommonVepFeatureLogic,
         spark: SparkSession,
+        sample_gene_index: GeneIndex,
     ) -> None:
         """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity.
 
         Because the genes in the vicinity are all non coding, the neighbourhood features should equal the local ones.
         """
         feature_name = "vepMaximumNeighbourhood"
-        sample_gene_index = GeneIndex(
-            _df=spark.createDataFrame(
-                [
-                    {
-                        "geneId": "gene1",
-                        "biotype": "lncRNA",
-                        "chromosome": "1",
-                    },
-                    {
-                        "geneId": "gene2",
-                        "biotype": "lncRNA",
-                        "chromosome": "1",
-                    },
-                ],
-                GeneIndex.get_schema(),
-            ),
-            _schema=GeneIndex.get_schema(),
-        )
         observed_df = (
             common_neighbourhood_vep_feature_logic(
                 self.sample_study_locus,
@@ -614,27 +625,10 @@ class TestCommonVepFeatureLogic:
         def test_common_neighbourhood_vep_feature_logic(
             self: TestCommonVepFeatureLogic,
             spark: SparkSession,
+            sample_gene_index: GeneIndex,
         ) -> None:
             """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
             feature_name = "vepMaximumNeighbourhood"
-            sample_gene_index = GeneIndex(
-                _df=spark.createDataFrame(
-                    [
-                        {
-                            "geneId": "gene1",
-                            "biotype": "protein_coding",
-                            "chromosome": "1",
-                        },
-                        {
-                            "geneId": "gene2",
-                            "biotype": "lncRNA",
-                            "chromosome": "1",
-                        },
-                    ],
-                    GeneIndex.get_schema(),
-                ),
-                _schema=GeneIndex.get_schema(),
-            )
             observed_df = (
                 common_neighbourhood_vep_feature_logic(
                     self.sample_study_locus,
