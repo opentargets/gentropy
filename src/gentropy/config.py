@@ -222,23 +222,11 @@ class LDBasedClumpingConfig(StepConfig):
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "extended_spark_conf": {
-                "spark.dynamicAllocation.enabled": "false",
-                "spark.driver.memory": "48g",
-                "spark.executor.memory": "48g",
-                "spark.sql.shuffle.partitions": "800",
-            }
-        }
-    )
+    session: Any = field(default_factory=lambda: {"extended_spark_conf": None})
     run_mode: str = MISSING
     predictions_path: str = MISSING
     credible_set_path: str = MISSING
     variant_index_path: str = MISSING
-    colocalisation_path: str = MISSING
-    study_index_path: str = MISSING
-    gene_index_path: str = MISSING
     model_path: str | None = None
     feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
@@ -249,12 +237,18 @@ class LocusToGeneConfig(StepConfig):
             "eQtlColocClppMaximum",
             "pQtlColocClppMaximum",
             "sQtlColocClppMaximum",
-            "tuQtlColocClppMaximum",
             # max H4 for each (study, locus, gene) aggregating over a specific qtl type
             "eQtlColocH4Maximum",
             "pQtlColocH4Maximum",
             "sQtlColocH4Maximum",
-            "tuQtlColocH4Maximum",
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
             # distance to gene footprint
             "distanceSentinelFootprint",
             "distanceSentinelFootprintNeighbourhood",
@@ -294,8 +288,64 @@ class LocusToGeneConfig(StepConfig):
     #     "thurman": "gs://genetics_etl_python_playground/static_assets/thurman_2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz",
     #     "andersson": "gs://genetics_etl_python_playground/static_assets/andersson2014/enhancer_tss_associations.bed",
     # }
-    write_feature_matrix: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
+
+
+@dataclass
+class LocusToGeneFeatureMatrixConfig(StepConfig):
+    """Locus to gene feature matrix step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "extended_spark_conf": {
+                "spark.driver.memory": "48g",
+                "spark.executor.memory": "48g",
+                "spark.sql.shuffle.partitions": "800",
+            }
+        }
+    )
+    credible_set_path: str = MISSING
+    variant_index_path: str | None = None
+    colocalisation_path: str | None = None
+    study_index_path: str | None = None
+    gene_index_path: str | None = None
+    feature_matrix_path: str = MISSING
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
+            # distance to gene footprint
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            # distance to gene tss
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
+            # vep
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
+        ]
+    )
+    _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 
 @dataclass
@@ -360,6 +410,29 @@ class GnomadVariantConfig(StepConfig):
     )
     use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
+
+
+@dataclass
+class PanUKBBConfig(StepConfig):
+    """Pan UKB variant ingestion step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
+    pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
+    ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
+    pan_ukbb_pops: list[str] = field(
+        default_factory=lambda: [
+            "AFR",  # African
+            "CSA",  # Central/South Asian
+            "EUR",  # European
+        ]
+    )
+    use_version_from_input: bool = False
+    _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
 
 
 @dataclass
@@ -609,6 +682,11 @@ def register_config() -> None:
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
+    cs.store(
+        group="step",
+        name="locus_to_gene_feature_matrix",
+        node=LocusToGeneFeatureMatrixConfig,
+    )
     cs.store(group="step", name="finngen_studies", node=FinngenStudiesConfig)
 
     cs.store(
