@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pyspark.sql.functions as f
-
 from gentropy.common.per_chromosome import (
     prepare_va,
     process_summary_stats_per_chromosome,
@@ -49,8 +47,7 @@ class UkbPppEurStep:
                 raw_study_index_path_from_tsv=raw_study_index_path_from_tsv,
                 raw_summary_stats_path=raw_summary_stats_path,
             )
-            .df.withColumn("biosampleFromSourceId", f.lit("UBERON_0001969"))
-            .write.mode("overwrite")
+            .df.write.mode("overwrite")
             .parquet(study_index_output_path)
         )
 
