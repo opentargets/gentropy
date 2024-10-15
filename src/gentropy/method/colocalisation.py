@@ -14,6 +14,8 @@ from gentropy.common.utils import get_logsum
 from gentropy.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from numpy.typing import NDArray
     from pyspark.sql import Column
 
@@ -60,12 +62,15 @@ class ECaviar:
 
     @classmethod
     def colocalise(
-        cls: type[ECaviar], overlapping_signals: StudyLocusOverlap
+        cls: type[ECaviar],
+        overlapping_signals: StudyLocusOverlap,
+        **kwargs: dict[str, Any],
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping signals.
+            **kwargs (dict[str, Any]): Additional parameters to the coloc step.
 
         Returns:
             Colocalisation: colocalisation results based on eCAVIAR.
