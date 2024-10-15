@@ -59,7 +59,7 @@ class L2GGoldStandard(Dataset):
             OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
                 gold_standard_curation, variant_index
             )
-            # .filter_unique_associations(study_locus_overlap)
+            .filter_unique_associations(study_locus_overlap)
             .remove_false_negatives(interactions_df)
         )
 
