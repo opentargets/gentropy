@@ -33,8 +33,9 @@ class L2GFeatureMatrix:
             features_list (list[str] | None): List of features to use. If None, all possible features are used.
             with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
         """
+        self.with_gold_standard = with_gold_standard
         self.fixed_cols = ["studyLocusId", "geneId"]
-        if with_gold_standard:
+        if self.with_gold_standard:
             self.fixed_cols.append("goldStandardSet")
 
         self.features_list = features_list or [
@@ -145,7 +146,7 @@ class L2GFeatureMatrix:
         self: L2GFeatureMatrix,
         features_list: list[str] | None,
     ) -> L2GFeatureMatrix:
-        """Select a subset of features from the feature matrix.
+        """Returns a new object with a subset of features from the original feature matrix.
 
         Args:
             features_list (list[str] | None): List of features to select
@@ -158,14 +159,17 @@ class L2GFeatureMatrix:
         """
         if features_list := features_list or self.features_list:
             # cast to float every feature in the features_list
-            self._df = self._df.selectExpr(
-                self.fixed_cols
-                + [
-                    f"CAST({feature} AS FLOAT) AS {feature}"
-                    for feature in features_list
-                ]
+            return L2GFeatureMatrix(
+                _df=self._df.selectExpr(
+                    self.fixed_cols
+                    + [
+                        f"CAST({feature} AS FLOAT) AS {feature}"
+                        for feature in features_list
+                    ]
+                ),
+                features_list=features_list,
+                with_gold_standard=self.with_gold_standard,
             )
-            return self
         raise ValueError("features_list cannot be None")
 
     def persist(self: Self) -> Self:
