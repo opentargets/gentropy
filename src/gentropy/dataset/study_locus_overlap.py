@@ -1,4 +1,5 @@
 """Study locus overlap index dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -60,6 +61,8 @@ class StudyLocusOverlap(Dataset):
                     "rightStudyLocusId as leftStudyLocusId",
                     "rightStudyType",
                     "tagVariantId",
+                    "chromosome",
+                    "statistics",
                 )
             ).distinct(),
             _schema=self.get_schema(),
