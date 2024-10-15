@@ -52,17 +52,21 @@ class UkbPppEurStudyIndex(StudyIndex):
             .join(num_of_samples, "studyId", "inner")
         )
         # Add population structure.
-        study_index_df = study_index_df.withColumn(
-            "discoverySamples",
-            f.array(
-                f.struct(
-                    f.col("nSamples").cast("integer").alias("sampleSize"),
-                    f.lit("European").alias("ancestry"),
-                )
-            ),
-        ).withColumn(
-            "ldPopulationStructure",
-            cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
+        study_index_df = (
+            study_index_df.withColumn(
+                "discoverySamples",
+                f.array(
+                    f.struct(
+                        f.col("nSamples").cast("integer").alias("sampleSize"),
+                        f.lit("European").alias("ancestry"),
+                    )
+                ),
+            )
+            .withColumn(
+                "ldPopulationStructure",
+                cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
+            )
+            .withColumn("biosampleFromSourceId", f.lit("UBERON_0001969"))
         )
 
         return StudyIndex(

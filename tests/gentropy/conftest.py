@@ -81,7 +81,6 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("h2", percentNulls=0.1)
         .withColumnSpec("h3", percentNulls=0.1)
         .withColumnSpec("h4", percentNulls=0.1)
-        .withColumnSpec("log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
         .withColumnSpec(
             "colocalisationMethod",
@@ -502,6 +501,15 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
+def study_locus_sample_for_colocalisation(spark: SparkSession) -> DataFrame:
+    """Sample study locus data for colocalisation."""
+    return StudyLocus(
+        _df=spark.read.parquet("tests/gentropy/data_samples/coloc_test.parquet"),
+        _schema=StudyLocus.get_schema(),
+    )
+
+
+@pytest.fixture()
 def sample_target_index(spark: SparkSession) -> DataFrame:
     """Sample target index sample data."""
     return spark.read.parquet(
@@ -591,12 +599,12 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     return L2GFeatureMatrix(
         _df=spark.createDataFrame(
             [
-                ("1", "gene1", 100.0, None),
-                ("2", "gene2", 1000.0, 0.0),
+                ("1", "gene1", 100.0, None, True),
+                ("2", "gene2", 1000.0, 0.0, False),
             ],
-            "studyLocusId STRING, geneId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT",
+            "studyLocusId STRING, geneId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet BOOLEAN",
         ),
-        with_gold_standard=False,
+        with_gold_standard=True,
     )
 
 

@@ -11,6 +11,7 @@ from pyspark.sql import Window
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -58,7 +59,7 @@ class L2GGoldStandard(Dataset):
             OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
                 gold_standard_curation, variant_index
             )
-            # .filter_unique_associations(study_locus_overlap)
+            .filter_unique_associations(study_locus_overlap)
             .remove_false_negatives(interactions_df)
         )
 
@@ -107,11 +108,13 @@ class L2GGoldStandard(Dataset):
     def build_feature_matrix(
         self: L2GGoldStandard,
         full_feature_matrix: L2GFeatureMatrix,
+        credible_set: StudyLocus,
     ) -> L2GFeatureMatrix:
         """Return a feature matrix for study loci in the gold standard.
 
         Args:
             full_feature_matrix (L2GFeatureMatrix): Feature matrix for all study loci to join on
+            credible_set (StudyLocus): Full credible sets to annotate the feature matrix with variant and study IDs and perform the join
 
         Returns:
             L2GFeatureMatrix: Feature matrix for study loci in the gold standard
@@ -120,10 +123,17 @@ class L2GGoldStandard(Dataset):
 
         return L2GFeatureMatrix(
             _df=full_feature_matrix._df.join(
-                f.broadcast(self.df.drop("variantId", "studyId", "sources")),
-                on=["studyLocusId", "geneId"],
+                credible_set.df.select("studyLocusId", "variantId", "studyId"),
+                "studyLocusId",
+                "left",
+            )
+            .join(
+                f.broadcast(self.df.drop("studyLocusId", "sources")),
+                on=["studyId", "variantId", "geneId"],
                 how="inner",
-            ),
+            )
+            .drop("studyId", "variantId")
+            .distinct(),
             with_gold_standard=True,
         )
 
