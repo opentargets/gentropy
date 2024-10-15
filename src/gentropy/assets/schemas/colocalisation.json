@@ -68,12 +68,6 @@
       "metadata": {}
     },
     {
-      "name": "log2h4h3",
-      "type": "double",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
       "name": "clpp",
       "type": "double",
       "nullable": true,
