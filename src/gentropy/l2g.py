@@ -239,7 +239,6 @@ class LocusToGeneStep:
         if self.gs_curation and self.interactions and self.variant_index:
             study_locus_overlap = StudyLocus(
                 _df=self.credible_set.df.join(
-                    # f.broadcast(
                     self.gs_curation.select(
                         f.concat_ws(
                             "_",
@@ -249,11 +248,12 @@ class LocusToGeneStep:
                             f.col("sentinel_variant.alleles.alternative"),
                         ).alias("variantId"),
                         f.col("association_info.otg_id").alias("studyId"),
-                    )[
-                        # ),
-                        "studyId", "variantId"
+                    ),
+                    on=[
+                        "studyId",
+                        "variantId",
                     ],
-                    "inner",
+                    how="inner",
                 ),
                 _schema=StudyLocus.get_schema(),
             ).find_overlaps()
