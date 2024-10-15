@@ -132,6 +132,7 @@ class L2GGoldStandard(Dataset):
                 on=["studyId", "variantId", "geneId"],
                 how="inner",
             )
+            .drop("studyId", "variantId")
             .distinct(),
             with_gold_standard=True,
         )
