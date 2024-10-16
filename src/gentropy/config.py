@@ -38,6 +38,9 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
+    priorc1: float = MISSING
+    priorc2: float = MISSING
+    priorc12: float = MISSING
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
@@ -222,13 +225,12 @@ class LDBasedClumpingConfig(StepConfig):
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
-    session: Any = field(default_factory=lambda: {"extended_spark_conf": None})
     run_mode: str = MISSING
-    predictions_path: str = MISSING
     credible_set_path: str = MISSING
-    variant_index_path: str = MISSING
+    feature_matrix_path: str = MISSING
+    predictions_path: str | None = None
+    variant_index_path: str | None = None
     model_path: str | None = None
-    feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
     features_list: list[str] = field(
