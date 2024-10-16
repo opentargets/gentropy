@@ -26,7 +26,7 @@ from gentropy.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 from gentropy.method.carma import CARMA
 from gentropy.method.ld_matrix_interface import LDMatrixInterface
 from gentropy.method.sumstat_imputation import SummaryStatisticsImputation
@@ -126,9 +126,19 @@ class SusieFineMapperStep:
         if result_logging is not None:
             if result_logging["study_locus"] is not None:
                 # Write result
-                result_logging["study_locus"].df.write.mode(session.write_mode).parquet(
-                    study_locus_output
+                df = result_logging["study_locus"].df
+
+                df = df.withColumn("qualityControls", f.lit(None))
+                df = df.withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.lit(True),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
+                    ),
                 )
+
+                df.write.mode(session.write_mode).parquet(study_locus_output)
                 # Write log
                 result_logging["log"].to_parquet(
                     study_locus_output + ".log",
@@ -425,6 +435,7 @@ class SusieFineMapperStep:
         purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
+        N_total: int = 100_000,
     ) -> dict[str, Any] | None:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
@@ -451,6 +462,7 @@ class SusieFineMapperStep:
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
+            N_total (int): total number of samples, default is 100_000
 
         Returns:
             dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
@@ -549,7 +561,7 @@ class SusieFineMapperStep:
             N_imputed = 0
 
         susie_output = SUSIE_inf.susie_inf(
-            z=z_to_fm, LD=ld_to_fm, L=L, est_tausq=susie_est_tausq
+            z=z_to_fm, LD=ld_to_fm, L=L, est_tausq=susie_est_tausq, n=N_total
         )
 
         schema = StructType(
@@ -671,6 +683,10 @@ class SusieFineMapperStep:
                 "ldPopulationStructure", "relativeSampleSize"
             )[0]["ldPopulation"].alias("majorPopulation"),
         ).collect()[0]["majorPopulation"]
+
+        N_total = int(study_index_df.select("nSamples").collect()[0]["nSamples"])
+        if N_total is None:
+            N_total = 100_000
 
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
@@ -839,6 +855,7 @@ class SusieFineMapperStep:
             purity_min_r2_threshold=purity_min_r2_threshold,
             cs_lbf_thr=cs_lbf_thr,
             ld_min_r2=ld_min_r2,
+            N_total=N_total,
         )
 
         return out
