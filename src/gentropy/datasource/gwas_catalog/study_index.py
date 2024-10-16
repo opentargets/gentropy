@@ -655,10 +655,11 @@ class StudyIndexGWASCatalog(StudyIndex):
                 ).alias("sumStatQCValues")
             )
             .withColumn("sumStatQCPerformed", f.lit(True))
+            .withColumn("hasSumstats", f.lit(True))
         )
 
         df = (
-            self.df.drop("sumStatQCValues", "sumStatQCPerformed")
+            self.df.drop("sumStatQCValues", "sumStatQCPerformed", "hasSumstats")
             .join(qc_df, how="left", on="studyId")
             .withColumn(
                 "sumStatQCPerformed",
