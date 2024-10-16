@@ -465,11 +465,6 @@ def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFra
         session,
         credible_set_path=["tests/gentropy/data_samples/QTD000584.credible_sets.tsv"],
     )
-    # return spark.read.option("delimiter", "\t").csv(
-    #     "tests/gentropy/data_samples/QTD000584.credible_sets.tsv",
-    #     header=True,
-    #     schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
-    # )
 
 
 @pytest.fixture()
@@ -479,11 +474,6 @@ def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
         session,
         lbf_path=["tests/gentropy/data_samples/QTD000584.lbf_variable.txt"],
     )
-    # return spark.read.option("delimiter", "\t").csv(
-    #     "tests/gentropy/data_samples/QTD000584.lbf_variable.txt",
-    #     header=True,
-    #     schema=EqtlCatalogueFinemapping.raw_lbf_schema,
-    # )
 
 
 @pytest.fixture()
