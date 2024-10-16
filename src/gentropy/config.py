@@ -81,7 +81,6 @@ class GWASCatalogStudyIndexGenerationStep(StepConfig):
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
     study_index_path: str = MISSING
-    harmonised_studies_index_path: str | None = None
     gwas_catalog_study_curation_file: str | None = None
     sumstats_qc_path: str | None = None
     _target_: str = (

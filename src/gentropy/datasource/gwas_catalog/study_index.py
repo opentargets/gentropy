@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from gentropy.common.spark_helpers import column2camel_case, convert_from_wide_to_long
+from gentropy.common.spark_helpers import column2camel_case
 from gentropy.common.utils import parse_efos
-from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -354,7 +354,13 @@ class StudyIndexGWASCatalog(StudyIndex):
         if curation_table is None:
             return self
 
-        columns = self.df.columns
+        studies = self.df
+
+        if "qualityControls" not in studies.columns:
+            studies = studies.withColumn("qualityControls", f.array())
+
+        if "analysisFlags" not in studies.columns:
+            studies = studies.withColumn("analysisFlags", f.array())
 
         # Adding prefix to columns in the curation table:
         curation_table = curation_table.select(
@@ -366,46 +372,34 @@ class StudyIndexGWASCatalog(StudyIndex):
             ]
         )
 
-        # Create expression how to update/create quality controls dataset:
-        qualityControls_expression = (
-            f.col("curation_qualityControls")
-            if "qualityControls" not in columns
-            else f.when(
-                f.col("curation_qualityControls").isNotNull(),
-                f.array_union(
-                    f.col("qualityControls"), f.array(f.col("curation_qualityControls"))
-                ),
-            ).otherwise(f.col("qualityControls"))
-        )
-
-        # Create expression how to update/create analysis flag:
-        analysis_expression = (
-            f.col("curation_analysisFlags")
-            if "analysisFlags" not in columns
-            else f.when(
-                f.col("curation_analysisFlags").isNotNull(),
-                f.array_union(
-                    f.col("analysisFlags"), f.array(f.col("curation_analysisFlags"))
-                ),
-            ).otherwise(f.col("analysisFlags"))
-        )
-
-        # Updating columns list. We might or might not list columns twice, but that doesn't matter, unique set will generated:
-        columns = list(set(columns + ["qualityControls", "analysisFlags"]))
-
         # Based on the curation table, columns needs to be updated:
         curated_df = (
-            self.df.join(curation_table, on="studyId", how="left")
+            studies.join(
+                curation_table.withColumn("isCurated", f.lit(True)),
+                on="studyId",
+                how="left",
+            )
+            .withColumn("isCurated", f.coalesce(f.col("isCurated"), f.lit(False)))
             # Updating study type:
             .withColumn(
                 "studyType", f.coalesce(f.col("curation_studyType"), f.col("studyType"))
             )
-            # Updating quality controls:
-            .withColumn("qualityControls", qualityControls_expression)
             # Updating study annotation flags:
-            .withColumn("analysisFlags", analysis_expression)
+            .withColumn(
+                "analysisFlags",
+                f.array_union(f.col("analysisFlags"), f.col("curation_analysisFlags")),
+            )
+            .withColumn("analysisFlags", f.coalesce(f.col("analysisFlags"), f.array()))
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~f.col("isCurated"),
+                    StudyQualityCheck.NO_OT_CURATION,
+                ),
+            )
             # Dropping columns coming from the curation table:
-            .select(*columns)
+            .select(*studies.columns)
         )
         return StudyIndexGWASCatalog(
             _df=curated_df, _schema=StudyIndexGWASCatalog.get_schema()
@@ -591,91 +585,6 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
         self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left")
         return self
-
-    def annotate_sumstats_info(
-        self: StudyIndexGWASCatalog, sumstats_lut: DataFrame
-    ) -> StudyIndexGWASCatalog:
-        """Annotate summary stat locations.
-
-        This function reads a text file with the list of harmonised studies and annotates the study index with the `hasSumstats` column.
-
-        Args:
-            sumstats_lut (DataFrame): listing GWAS Catalog summary stats paths
-
-        Returns:
-            StudyIndexGWASCatalog: including `hasSumstats` column
-
-        Raises:
-            ValueError: if the sumstats_lut table doesn't have the right columns
-        """
-        if "_c0" not in sumstats_lut.columns:
-            raise ValueError(
-                f'Sumstats look-up table needs to have `_c0` column. However it has: {",".join(sumstats_lut.columns)}'
-            )
-
-        return StudyIndexGWASCatalog(
-            _df=self.df.drop("hasSumstats")
-            .join(
-                sumstats_lut.select(
-                    f.col("_c0").alias("studyId"), f.lit(True).alias("hasSumstats")
-                ),
-                on="studyId",
-                how="left",
-            )
-            .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False))),
-            _schema=StudyIndexGWASCatalog.get_schema(),
-        )
-
-    def annotate_sumstats_qc(
-        self: StudyIndexGWASCatalog, sumstats_qc: DataFrame
-    ) -> StudyIndexGWASCatalog:
-        """Annotate summary stats QC information.
-
-        Args:
-            sumstats_qc (DataFrame): containing summary statistics-based quality controls.
-
-        Returns:
-            StudyIndexGWASCatalog: Updated study index with QC information
-        """
-        # convert all columns in sumstats_qc dataframe in array of structs grouped by studyId
-        cols = [c for c in sumstats_qc.columns if c != "studyId"]
-
-        melted_df = convert_from_wide_to_long(
-            sumstats_qc,
-            id_vars=["studyId"],
-            value_vars=cols,
-            var_name="QCCheckName",
-            value_name="QCCheckValue",
-        )
-        qc_df = (
-            melted_df.groupBy("studyId")
-            .agg(
-                f.collect_list(
-                    f.struct(f.col("QCCheckName"), f.col("QCCheckValue"))
-                ).alias("sumStatQCValues")
-            )
-            .withColumn("sumStatQCPerformed", f.lit(True))
-            .withColumn("hasSumstats", f.lit(True))
-        )
-
-        df = (
-            self.df.drop("sumStatQCValues", "sumStatQCPerformed", "hasSumstats")
-            .join(qc_df, how="left", on="studyId")
-            .withColumn(
-                "sumStatQCPerformed",
-                f.coalesce(f.col("sumStatQCPerformed"), f.lit(False)),
-            )
-            .withColumn(
-                "sumStatQCValues", f.coalesce(f.col("sumStatQCValues"), f.array())
-            )
-        )
-
-        df = df.filter(f.col("sumStatQCPerformed"))
-        # Annotate study index with QC information:
-        return StudyIndexGWASCatalog(
-            _df=df,
-            _schema=StudyIndexGWASCatalog.get_schema(),
-        )
 
     def annotate_discovery_sample_sizes(
         self: StudyIndexGWASCatalog,

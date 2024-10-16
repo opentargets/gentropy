@@ -264,33 +264,12 @@
       "metadata": {}
     },
     {
-      "name": "sumStatQCPerformed",
-      "type": "boolean",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
-      "name": "sumStatQCValues",
+      "name": "sumstatQCValues",
       "type": {
-        "type": "array",
-        "elementType": {
-          "type": "struct",
-          "fields": [
-            {
-              "name": "QCCheckName",
-              "type": "string",
-              "nullable": true,
-              "metadata": {}
-            },
-            {
-              "name": "QCCheckValue",
-              "type": "float",
-              "nullable": true,
-              "metadata": {}
-            }
-          ]
-        },
-        "containsNull": true
+        "type": "map",
+        "keyType": "string",
+        "valueType": "float",
+        "valueContainsNull": true
       },
       "nullable": true,
       "metadata": {}
