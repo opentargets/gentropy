@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import Any, Type
 
 from pyspark.sql.functions import col
@@ -28,7 +29,7 @@ class ColocalisationStep:
         credible_set_path: str,
         coloc_path: str,
         colocalisation_method: str,
-        colocalisation_method_params: dict[str, Any],
+        colocalisation_method_params: dict[str, Any] | None = None,
     ) -> None:
         """Run Colocalisation step.
 
@@ -39,7 +40,7 @@ class ColocalisationStep:
             credible_set_path (str): Input credible sets path.
             coloc_path (str): Output Colocalisation path.
             colocalisation_method (str): Colocalisation method.
-            colocalisation_method_params (dict[str, Any]): Keyword arguments passed to the colocalise method of Colocalisation class.
+            colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
         Keyword Args:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4. For coloc method only.
@@ -60,10 +61,14 @@ class ColocalisationStep:
 
         # Transform
         overlaps = credible_set.find_overlaps()
-        colocalisation_results = colocalisation_class.colocalise(
-            overlaps, **colocalisation_method_params
-        )
+        overlaps.df.show()
 
+        # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
+        coloc = colocalisation_class.colocalise
+        if colocalisation_method_params:
+            coloc = partial(coloc, **colocalisation_method_params)
+        colocalisation_results = coloc(overlaps)
+        colocalisation_results.df.show()
         # Load
         colocalisation_results.df.write.mode(session.write_mode).parquet(
             f"{coloc_path}/{colocalisation_method.lower()}"
