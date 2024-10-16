@@ -48,7 +48,7 @@ class ColocalisationMethodInterface(Protocol):
         raise NotImplementedError("Implement in derivative classes.")
 
 
-class ECaviar:
+class ECaviar(ColocalisationMethodInterface):
     """ECaviar-based colocalisation analysis.
 
     It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.
@@ -90,11 +90,13 @@ class ECaviar:
     def colocalise(
         cls: type[ECaviar],
         overlapping_signals: StudyLocusOverlap,
+        **kwargs: dict[str, Any],
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping signals.
+            **kwargs (dict[str, Any]): Additional parameters passed to the colocalise method.
 
         Returns:
             Colocalisation: colocalisation results based on eCAVIAR.
@@ -124,7 +126,7 @@ class ECaviar:
         )
 
 
-class Coloc:
+class Coloc(ColocalisationMethodInterface):
     """Calculate bayesian colocalisation based on overlapping signals from credible sets.
 
     Based on the [R COLOC package](https://github.com/chr1swallace/coloc/blob/main/R/claudia.R), which uses the Bayes factors from the credible set to estimate the posterior probability of colocalisation. This method makes the simplifying assumption that **only one single causal variant** exists for any given trait in any genomic region.
@@ -172,22 +174,36 @@ class Coloc:
     def colocalise(
         cls: type[Coloc],
         overlapping_signals: StudyLocusOverlap,
-        priorc1: float = 1e-4,
-        priorc2: float = 1e-4,
-        priorc12: float = 1e-5,
+        **kwargs: dict[str, Any],
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
+            **kwargs (dict[str, Any]): Additional parameters passed to the colocalise method.
 
+        Keyword Args:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
 
         Returns:
             Colocalisation: Colocalisation results
+
+        Raises:
+            TypeError: When passed incorrect prior argument types.
         """
+        # Ensure priors are always present, even if not passed
+        priorc1 = kwargs.get("priorc1") or 1e-4
+        priorc2 = kwargs.get("priorc2") or 1e-4
+        priorc12 = kwargs.get("priorc12") or 1e-5
+        priors = [priorc1, priorc2, priorc12]
+        if any(not isinstance(prior, float) for prior in priors):
+            raise TypeError(
+                "Passed incorrect type(s) for prior parameters. got %s",
+                {type(p): p for p in priors},
+            )
+
         # register udfs
         logsum = f.udf(get_logsum, DoubleType())
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
@@ -241,8 +257,7 @@ class Coloc:
                 .withColumn(
                     "logdiff",
                     f.when(
-                        f.col("sumlogsum") == f.col(
-                            "logsum12"), Coloc.PSEUDOCOUNT
+                        f.col("sumlogsum") == f.col("logsum12"), Coloc.PSEUDOCOUNT
                     ).otherwise(
                         f.col("max")
                         + f.log(
@@ -278,8 +293,7 @@ class Coloc:
                     ),
                 )
                 .withColumn(
-                    "posteriors", fml.vector_to_array(
-                        posteriors(f.col("allBF")))
+                    "posteriors", fml.vector_to_array(posteriors(f.col("allBF")))
                 )
                 .withColumn("h0", f.col("posteriors").getItem(0))
                 .withColumn("h1", f.col("posteriors").getItem(1))
