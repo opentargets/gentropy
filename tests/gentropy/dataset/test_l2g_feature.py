@@ -612,7 +612,11 @@ class TestCommonVepFeatureLogic:
         )
         expected_df = (
             spark.createDataFrame(
-                (["1", "gene1", 0.66], ["1", "gene2", 1.0]),
+                # regional mean is 0.66
+                (
+                    ["1", "gene1", 0.0],
+                    ["1", "gene2", 0.34],
+                ),  # (0.66-0.66) and (1.0 -0.66)
                 ["studyLocusId", "geneId", feature_name],
             )
             .orderBy(feature_name)

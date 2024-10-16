@@ -91,7 +91,6 @@ def common_neighbourhood_vep_feature_logic(
         DataFrame: Feature dataset
     """
     local_feature_name = feature_name.replace("Neighbourhood", "")
-    # First compute mean distances to a gene
     local_metric = common_vep_feature_logic(
         study_loci_to_annotate,
         feature_name=local_feature_name,
