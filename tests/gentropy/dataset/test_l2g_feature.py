@@ -200,19 +200,19 @@ class TestCommonColocalisationFeatureLogic:
             study_index=self.sample_studies,
             study_locus=self.sample_study_locus,
             gene_index=sample_gene_index,
-        )
-        # expected average is (0.81 + 0.5)/2 = 0.655
+        ).withColumn(feature_name, f.round(f.col(feature_name), 2))
+        # expected average is (0.81)/1 = 0.81
         expected_df = spark.createDataFrame(
             [
                 {
                     "studyLocusId": "1",
                     "geneId": "gene1",
-                    "eQtlColocH4MaximumNeighbourhood": 0.155,  # 0.81 - 0.655
+                    "eQtlColocH4MaximumNeighbourhood": 0.0,  # 0.81 - 0.81
                 },
                 {
                     "studyLocusId": "1",
                     "geneId": "gene2",
-                    "eQtlColocH4MaximumNeighbourhood": -0.655,  # 0 - 0.655
+                    "eQtlColocH4MaximumNeighbourhood": 0.09,  # 0.9 - 0.81
                 },
             ],
         ).select("studyLocusId", "geneId", "eQtlColocH4MaximumNeighbourhood")
@@ -406,7 +406,7 @@ class TestCommonDistanceFeatureLogic:
             observed_df.collect() == expected_df.collect()
         ), f"Expected and observed dataframes are not equal for feature {feature_name}."
 
-    def test_common_neighbourhood_colocalisation_feature_logic(
+    def test_common_neighbourhood_distance_feature_logic(
         self: TestCommonDistanceFeatureLogic,
         spark: SparkSession,
     ) -> None:

@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
-from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
@@ -108,24 +107,21 @@ def common_neighbourhood_colocalisation_feature_logic(
         colocalisation=colocalisation,
         study_index=study_index,
         study_locus=study_locus,
+    ).join(gene_index.df.select("geneId", "biotype"), "geneId", "left")
+    # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+    # (non protein coding genes in the vicinity are excluded see #3552)
+    regional_mean_per_study_locus = (
+        local_max.filter(f.col("biotype") == "protein_coding")
+        .groupBy("studyLocusId")
+        .agg(f.mean("eQtlColocH4Maximum").alias("regional_mean"))
     )
     return (
-        local_max
-        # Then compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        # (non protein coding genes in the vicinity are excluded see #3552)
-        .join(gene_index.df.select("geneId", "biotype"), "geneId", "left")
+        local_max.join(regional_mean_per_study_locus, "studyLocusId", "left")
         .withColumn(
-            # apply conditional window to include in the window only the studyLociId where biotype == "protein_coding"
-            "regional_maximum",
-            f.when(
-                f.col("biotype") == "protein_coding",
-                f.mean(f.col(local_feature_name)).over(
-                    Window.partitionBy("studyLocusId")
-                ),
-            ),
+            feature_name,
+            f.col(local_feature_name) - f.coalesce(f.col("regional_mean"), f.lit(0.0)),
         )
-        .withColumn(feature_name, f.col("regional_maximum") - f.col(local_feature_name))
-        .drop("regional_maximum", local_feature_name, "biotype")
+        .drop("regional_mean", local_feature_name, "biotype")
     )
 
 
