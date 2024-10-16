@@ -74,7 +74,7 @@
       "metadata": {}
     },
     {
-      "name": "beta_ratio_sign",
+      "name": "beta_ratio_sign_avg",
       "type": "double",
       "nullable": true,
       "metadata": {}
