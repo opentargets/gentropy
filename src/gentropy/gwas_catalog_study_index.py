@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
+
 from gentropy.common.session import Session
-from gentropy.datasource.gwas_catalog.study_index import (
-    StudyIndexGWASCatalogParser,
-)
+from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
 from gentropy.datasource.gwas_catalog.study_index_ot_curation import (
     StudyIndexGWASCatalogOTCuration,
 )
@@ -58,7 +58,9 @@ class GWASCatalogStudyIndexGenerationStep:
 
         # Annotate with curation if provided:
         if gwas_catalog_study_curation_file:
-            if gwas_catalog_study_curation_file.endswith(".csv"):
+            if gwas_catalog_study_curation_file.endswith(
+                ".tsv"
+            ) | gwas_catalog_study_curation_file.endswith(".tsv"):
                 gwas_catalog_study_curation = StudyIndexGWASCatalogOTCuration.from_csv(
                     session, gwas_catalog_study_curation_file
                 )
@@ -68,7 +70,7 @@ class GWASCatalogStudyIndexGenerationStep:
                 )
             else:
                 raise ValueError(
-                    "Only CSV files or URLs are accepted as curation file."
+                    "Only CSV/TSV files or URLs are accepted as curation file."
                 )
             study_index = study_index.annotate_from_study_curation(
                 gwas_catalog_study_curation
@@ -83,7 +85,20 @@ class GWASCatalogStudyIndexGenerationStep:
 
         # Annotate with sumstats QC if provided:
         if sumstats_qc_path:
-            sumstats_qc = session.spark.read.parquet(sumstats_qc_path)
+            schema = StructType(
+                [
+                    StructField("studyId", StringType(), True),
+                    StructField("mean_beta", DoubleType(), True),
+                    StructField("mean_diff_pz", DoubleType(), True),
+                    StructField("se_diff_pz", DoubleType(), True),
+                    StructField("gc_lambda", DoubleType(), True),
+                    StructField("n_variants", LongType(), True),
+                    StructField("n_variants_sig", LongType(), True),
+                ]
+            )
+            sumstats_qc = session.spark.read.schema(schema).parquet(
+                sumstats_qc_path, recursiveFileLookup=True
+            )
             study_index = study_index.annotate_sumstats_qc(sumstats_qc)
 
         # Write the study

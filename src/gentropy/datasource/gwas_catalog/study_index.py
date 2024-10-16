@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from gentropy.common.spark_helpers import column2camel_case
+from gentropy.common.spark_helpers import column2camel_case, convert_from_wide_to_long
 from gentropy.common.utils import parse_efos
 from gentropy.dataset.study_index import StudyIndex
 
@@ -638,36 +638,41 @@ class StudyIndexGWASCatalog(StudyIndex):
             StudyIndexGWASCatalog: Updated study index with QC information
         """
         # convert all columns in sumstats_qc dataframe in array of structs grouped by studyId
-        sumstats_qc_aggregated = (
-            sumstats_qc.groupBy("studyId")
+        cols = [c for c in sumstats_qc.columns if c != "studyId"]
+
+        melted_df = convert_from_wide_to_long(
+            sumstats_qc,
+            id_vars=["studyId"],
+            value_vars=cols,
+            var_name="QCCheckName",
+            value_name="QCCheckValue",
+        )
+        qc_df = (
+            melted_df.groupBy("studyId")
             .agg(
                 f.collect_list(
-                    f.struct(
-                        *[
-                            f.struct(
-                                f.lit(col).alias("QCCheckName"),
-                                f.col(col).alias("QCCheckValue").cast(t.FloatType()),
-                            )
-                            for col in sumstats_qc.columns
-                            if col != "studyId"
-                        ]
-                    )
+                    f.struct(f.col("QCCheckName"), f.col("QCCheckValue"))
                 ).alias("sumStatQCValues")
             )
             .withColumn("sumStatQCPerformed", f.lit(True))
         )
 
-        # Annotate study index with QC information:
-        return StudyIndexGWASCatalog(
-            _df=self.df.drop("sumStatQCValues", "sumStatQCPerformed")
-            .join(sumstats_qc_aggregated, how="left", on="studyId")
+        df = (
+            self.df.drop("sumStatQCValues", "sumStatQCPerformed")
+            .join(qc_df, how="left", on="studyId")
             .withColumn(
                 "sumStatQCPerformed",
                 f.coalesce(f.col("sumStatQCPerformed"), f.lit(False)),
             )
             .withColumn(
                 "sumStatQCValues", f.coalesce(f.col("sumStatQCValues"), f.array())
-            ),
+            )
+        )
+
+        df = df.filter(f.col("sumStatQCPerformed"))
+        # Annotate study index with QC information:
+        return StudyIndexGWASCatalog(
+            _df=df,
             _schema=StudyIndexGWASCatalog.get_schema(),
         )
 

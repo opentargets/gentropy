@@ -32,6 +32,9 @@ class StudyIndexGWASCatalogOTCuration:
         Returns:
             DataFrame: DataFrame with the parsed curation table.
         """
+        if "qualityControl" not in df.columns:
+            # Add the 'qualityControl' column with null values
+            df = df.withColumn("qualityControl", f.lit(None).cast("string"))
         return df.select(
             "studyId",
             "studyType",
