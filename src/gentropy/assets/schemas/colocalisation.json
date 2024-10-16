@@ -68,19 +68,13 @@
       "metadata": {}
     },
     {
-      "name": "log2h4h3",
-      "type": "double",
-      "nullable": true,
-      "metadata": {}
-    },
-    {
       "name": "clpp",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "beta_ratio_sign",
+      "name": "beta_ratio_sign_avg",
       "type": "double",
       "nullable": true,
       "metadata": {}

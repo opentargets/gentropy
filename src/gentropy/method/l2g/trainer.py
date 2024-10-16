@@ -155,14 +155,14 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Fitted model
         """
-        data_df = self.feature_matrix._df.drop("geneId").toPandas()
+        data_df = self.feature_matrix._df.drop("geneId", "studyLocusId").toPandas()
 
         # Encode labels in `goldStandardSet` to a numeric value
         data_df["goldStandardSet"] = data_df["goldStandardSet"].map(
             self.model.label_encoder
         )
 
-        # Convert all columns to numeric and split
+        # Ensure all columns are numeric and split
         data_df = data_df.apply(pd.to_numeric)
         self.feature_cols = [
             col

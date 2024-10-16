@@ -81,7 +81,6 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("h2", percentNulls=0.1)
         .withColumnSpec("h3", percentNulls=0.1)
         .withColumnSpec("h4", percentNulls=0.1)
-        .withColumnSpec("log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
         .withColumnSpec(
             "colocalisationMethod",
@@ -600,12 +599,12 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
     return L2GFeatureMatrix(
         _df=spark.createDataFrame(
             [
-                ("1", "gene1", 100.0, None),
-                ("2", "gene2", 1000.0, 0.0),
+                ("1", "gene1", 100.0, None, True),
+                ("2", "gene2", 1000.0, 0.0, False),
             ],
-            "studyLocusId STRING, geneId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT",
+            "studyLocusId STRING, geneId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet BOOLEAN",
         ),
-        with_gold_standard=False,
+        with_gold_standard=True,
     )
 
 

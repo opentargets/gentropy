@@ -5,13 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.sql.types import (
-    ArrayType,
-    DoubleType,
-    StringType,
-    StructField,
-    StructType,
-)
+from pyspark.sql.types import ArrayType, DoubleType, StringType, StructField, StructType
 
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -22,6 +16,18 @@ from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
+
+
+def test_select_features_inheritance(
+    spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
+) -> None:
+    """Test L2GFeatureMatrix.select_features method inherits the instance attributes in the new instance."""
+    new_instance = mock_l2g_feature_matrix.select_features(
+        features_list=["distanceTssMean"]
+    )
+    assert new_instance.features_list == ["distanceTssMean"]
+    # Because the feature matrix contains the gold standard flag information, the new fixed colums should be the same
+    assert "goldStandardSet" in new_instance.fixed_cols
 
 
 class TestFromFeaturesList:
