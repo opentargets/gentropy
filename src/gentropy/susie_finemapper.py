@@ -27,7 +27,6 @@ from gentropy.common.spark_helpers import (
 )
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 from gentropy.method.carma import CARMA
 from gentropy.method.ld_matrix_interface import LDMatrixInterface
 from gentropy.method.sumstat_imputation import SummaryStatisticsImputation
@@ -613,7 +612,7 @@ class SusieFineMapperStep:
         }
 
     @staticmethod
-    def susie_finemapper_one_sl_row_gathered_boundaries(
+    def susie_finemapper_one_sl_row_gathered_boundaries(  # noqa: C901
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
@@ -699,32 +698,18 @@ class SusieFineMapperStep:
         unique_variants = variant_counts.filter(f.col("count") == 1)
         gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
-        ld_index = (
-            LDMatrixInterface()
-            .get_locus_index_boundaries(
-                session=session,
-                study_locus_row=study_locus_row,
-                ancestry=major_population,
-            )
-            .withColumn(
-                "variantId",
-                f.concat(
-                    f.lit(chromosome),
-                    f.lit("_"),
-                    f.col("`locus.position`"),
-                    f.lit("_"),
-                    f.col("alleles").getItem(0),
-                    f.lit("_"),
-                    f.col("alleles").getItem(1),
-                ).cast("string"),
-            )
+        ld_index = LDMatrixInterface.get_locus_index_boundaries(
+            study_locus_row=study_locus_row, ancestry=major_population, session=session
         )
+
         # Remove ALL duplicated variants from ld_index DataFrame - we don't know which is correct
         variant_counts = ld_index.groupBy("variantId").count()
         unique_variants = variant_counts.filter(f.col("count") == 1)
         ld_index = ld_index.join(unique_variants, on="variantId", how="left_semi").sort(
             "idx"
         )
+        if "alleleOrder" not in ld_index.columns:
+            ld_index = ld_index.withColumn("alleleOrder", f.lit(1))
 
         if not run_sumstat_imputation:
             # Filtering out the variants that are not in the LD matrix, we don't need them
@@ -787,8 +772,8 @@ class SusieFineMapperStep:
                 logging.warning("No overlapping variants in the LD Index")
                 return None
             gwas_index = ld_index
-            gnomad_ld = GnomADLDMatrix.get_numpy_matrix(
-                gwas_index, gnomad_ancestry=major_population
+            gnomad_ld = LDMatrixInterface.get_numpy_matrix(
+                gwas_index, ancestry=major_population
             )
 
             # Module to remove NANs from the LD matrix
