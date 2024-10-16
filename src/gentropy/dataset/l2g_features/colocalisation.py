@@ -13,6 +13,7 @@ from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -79,6 +80,7 @@ def common_neighbourhood_colocalisation_feature_logic(
     study_index: StudyIndex,
     gene_index: GeneIndex,
     study_locus: StudyLocus,
+    variant_index: VariantIndex,
 ) -> DataFrame:
     """Wrapper to call the logic that creates a type of colocalisation features.
 
@@ -92,12 +94,22 @@ def common_neighbourhood_colocalisation_feature_logic(
         study_index (StudyIndex): Study index to fetch study type and gene
         gene_index (GeneIndex): Gene index to add gene type
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        variant_index (VariantIndex): Variant index to annotate all overlapping genes
 
     Returns:
         DataFrame: Feature annotation in long format with the columns: studyLocusId, geneId, featureName, featureValue
     """
     # First maximum colocalisation score for each studylocus, gene
     local_feature_name = feature_name.replace("Neighbourhood", "")
+    coding_variant_gene_lut = (
+        variant_index.df.select(
+            "variantId", f.explode("transcriptConsequences").alias("tc")
+        )
+        .select(f.col("tc.targetId").alias("geneId"), "variantId")
+        # .join(gene_index.df.select("geneId", "biotype"), "geneId", "left")
+        # .filter(f.col("biotype") == "protein_coding")
+        .distinct()
+    )
     local_max = common_colocalisation_feature_logic(
         study_loci_to_annotate,
         colocalisation_method,
@@ -107,6 +119,10 @@ def common_neighbourhood_colocalisation_feature_logic(
         colocalisation=colocalisation,
         study_index=study_index,
         study_locus=study_locus,
+    )
+    # Bring genes associated with the variant that don't have a colocalisation score
+    extended_local_max = local_max.join(
+        study_locus.df.select("studyLocusId", "variantId"), "studyLocusId"
     ).join(gene_index.df.select("geneId", "biotype"), "geneId", "left")
     # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
     # (non protein coding genes in the vicinity are excluded see #3552)

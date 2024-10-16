@@ -135,10 +135,75 @@ def sample_gene_index(spark: SparkSession) -> GeneIndex:
                     "biotype": "lncRNA",
                     "chromosome": "1",
                 },
+                {
+                    "geneId": "gene3",
+                    "biotype": "protein_coding",
+                    "chromosome": "1",
+                },
             ],
             GeneIndex.get_schema(),
         ),
         _schema=GeneIndex.get_schema(),
+    )
+
+
+@pytest.fixture(scope="module")
+def sample_variant_index(spark: SparkSession) -> VariantIndex:
+    """Create a sample variant index for testing."""
+    return VariantIndex(
+        _df=spark.createDataFrame(
+            [
+                (
+                    "var1",
+                    "chrom",
+                    1,
+                    "A",
+                    "T",
+                    [
+                        {
+                            "targetId": "gene1",
+                            "consequenceScore": 0.66,
+                            "isEnsemblCanonical": True,
+                        },
+                        {
+                            "targetId": "gene2",
+                            "consequenceScore": 1.0,
+                            "isEnsemblCanonical": True,
+                        },
+                        {
+                            "targetId": "gene3",
+                            "consequenceScore": 0.0,
+                            "isEnsemblCanonical": True,
+                        },
+                    ],
+                ),
+            ],
+            schema=StructType(
+                [
+                    StructField("variantId", StringType(), True),
+                    StructField("chromosome", StringType(), True),
+                    StructField("position", IntegerType(), True),
+                    StructField("referenceAllele", StringType(), True),
+                    StructField("alternateAllele", StringType(), True),
+                    StructField(
+                        "transcriptConsequences",
+                        ArrayType(
+                            StructType(
+                                [
+                                    StructField("targetId", StringType(), True),
+                                    StructField(
+                                        "isEnsemblCanonical", BooleanType(), True
+                                    ),
+                                    StructField("consequenceScore", FloatType(), True),
+                                ]
+                            )
+                        ),
+                        True,
+                    ),
+                ]
+            ),
+        ),
+        _schema=VariantIndex.get_schema(),
     )
 
 
@@ -232,7 +297,7 @@ class TestCommonColocalisationFeatureLogic:
                 [
                     {
                         "studyLocusId": "1",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
                     },
@@ -281,25 +346,25 @@ class TestCommonColocalisationFeatureLogic:
                 [
                     {
                         "studyLocusId": "1",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
                     },
                     {
                         "studyLocusId": "2",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study2",  # this is a QTL (same gee)
                         "chromosome": "1",
                     },
                     {
                         "studyLocusId": "3",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study3",  # this is another QTL (same gene)
                         "chromosome": "1",
                     },
                     {
                         "studyLocusId": "4",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study4",  # this is another QTL (diff gene)
                         "chromosome": "1",
                     },
@@ -567,12 +632,13 @@ class TestCommonVepFeatureLogic:
         spark: SparkSession,
         feature_name: str,
         expected_data: dict[str, Any],
+        sample_variant_index: VariantIndex,
     ) -> None:
         """Test the logic of the function that extracts features from VEP's functional consequences."""
         observed_df = (
             common_vep_feature_logic(
                 self.sample_study_locus,
-                variant_index=self.sample_variant_index,
+                variant_index=sample_variant_index,
                 feature_name=feature_name,
             )
             .orderBy(feature_name)
@@ -593,6 +659,7 @@ class TestCommonVepFeatureLogic:
         self: TestCommonVepFeatureLogic,
         spark: SparkSession,
         sample_gene_index: GeneIndex,
+        sample_variant_index: VariantIndex,
     ) -> None:
         """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity.
 
@@ -602,7 +669,7 @@ class TestCommonVepFeatureLogic:
         observed_df = (
             common_neighbourhood_vep_feature_logic(
                 self.sample_study_locus,
-                variant_index=self.sample_variant_index,
+                variant_index=sample_variant_index,
                 gene_index=sample_gene_index,
                 feature_name=feature_name,
             )
@@ -630,13 +697,14 @@ class TestCommonVepFeatureLogic:
             self: TestCommonVepFeatureLogic,
             spark: SparkSession,
             sample_gene_index: GeneIndex,
+            sample_variant_index: VariantIndex,
         ) -> None:
             """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
             feature_name = "vepMaximumNeighbourhood"
             observed_df = (
                 common_neighbourhood_vep_feature_logic(
                     self.sample_study_locus,
-                    variant_index=self.sample_variant_index,
+                    variant_index=sample_variant_index,
                     gene_index=sample_gene_index,
                     feature_name=feature_name,
                 )
@@ -677,56 +745,4 @@ class TestCommonVepFeatureLogic:
                 StudyLocus.get_schema(),
             ),
             _schema=StudyLocus.get_schema(),
-        )
-        self.sample_variant_index = VariantIndex(
-            _df=spark.createDataFrame(
-                [
-                    (
-                        "var1",
-                        "chrom",
-                        1,
-                        "A",
-                        "T",
-                        [
-                            {
-                                "targetId": "gene1",
-                                "consequenceScore": 0.66,
-                                "isEnsemblCanonical": True,
-                            },
-                            {
-                                "targetId": "gene2",
-                                "consequenceScore": 1.0,
-                                "isEnsemblCanonical": True,
-                            },
-                        ],
-                    ),
-                ],
-                schema=StructType(
-                    [
-                        StructField("variantId", StringType(), True),
-                        StructField("chromosome", StringType(), True),
-                        StructField("position", IntegerType(), True),
-                        StructField("referenceAllele", StringType(), True),
-                        StructField("alternateAllele", StringType(), True),
-                        StructField(
-                            "transcriptConsequences",
-                            ArrayType(
-                                StructType(
-                                    [
-                                        StructField("targetId", StringType(), True),
-                                        StructField(
-                                            "isEnsemblCanonical", BooleanType(), True
-                                        ),
-                                        StructField(
-                                            "consequenceScore", FloatType(), True
-                                        ),
-                                    ]
-                                )
-                            ),
-                            True,
-                        ),
-                    ]
-                ),
-            ),
-            _schema=VariantIndex.get_schema(),
         )
