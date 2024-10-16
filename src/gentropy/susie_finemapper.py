@@ -714,7 +714,7 @@ class SusieFineMapperStep:
         if not run_sumstat_imputation:
             # Filtering out the variants that are not in the LD matrix, we don't need them
             gwas_index = gwas_df.join(
-                ld_index.select("variantId", "alleles", "idx"), on="variantId"
+                ld_index.select("variantId", "idx", "alleleOrder"), on="variantId"
             ).sort("idx")
             gwas_df = gwas_index.select(
                 "variantId",
@@ -766,7 +766,7 @@ class SusieFineMapperStep:
 
         else:
             gwas_index = gwas_df.join(
-                ld_index.select("variantId", "alleles", "idx"), on="variantId"
+                ld_index.select("variantId", "idx", "alleleOrder"), on="variantId"
             ).sort("idx")
             if gwas_index.rdd.isEmpty():
                 logging.warning("No overlapping variants in the LD Index")
