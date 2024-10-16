@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import pyspark.sql.functions as f
 import pytest
 from pyspark.sql.functions import rand, when
@@ -18,9 +17,7 @@ def test_qc_functions(
 ) -> None:
     """Test all sumstat qc functions."""
     gwas = sample_summary_statistics.sanity_filter()
-    QC = SummaryStatisticsQC.get_quality_control_metrics(
-        gwas=gwas, limit=100000, min_count=100, n_total=100000
-    )
+    QC = SummaryStatisticsQC.get_quality_control_metrics(gwas=gwas, pval_threshold=5e-8)
     QC = QC.toPandas()
 
     assert QC["n_variants"].iloc[0] == 1663
@@ -29,7 +26,6 @@ def test_qc_functions(
     assert np.round(QC["mean_beta"].iloc[0], 4) == 0.0013
     assert np.round(QC["mean_diff_pz"].iloc[0], 6) == 0
     assert np.round(QC["se_diff_pz"].iloc[0], 6) == 0
-    assert pd.isna(QC["se_N"].iloc[0])
 
 
 def test_neff_check_eaf(
@@ -41,8 +37,8 @@ def test_neff_check_eaf(
     gwas_df = gwas_df.withColumn("effectAlleleFrequencyFromSource", f.lit(0.5))
     gwas._df = gwas_df
 
-    QC = SummaryStatisticsQC.get_quality_control_metrics(
-        gwas=gwas, limit=100000, min_count=100, n_total=100000
+    QC = SummaryStatisticsQC.sumstat_n_eff_check(
+        gwas_for_qc=gwas, limit=100000, min_count=100, n_total=100000
     )
     QC = QC.toPandas()
     assert np.round(QC["se_N"].iloc[0], 4) == 0.5586
@@ -59,11 +55,9 @@ def test_several_studyid(
     )
     gwas._df = gwas_df
 
-    QC = SummaryStatisticsQC.get_quality_control_metrics(
-        gwas=gwas, limit=100000, min_count=100, n_total=100000
-    )
+    QC = SummaryStatisticsQC.get_quality_control_metrics(gwas=gwas)
     QC = QC.toPandas()
-    assert QC.shape == (2, 8)
+    assert QC.shape == (2, 7)
 
 
 def test_sanity_filter_remove_inf_values(

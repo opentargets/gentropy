@@ -19,19 +19,19 @@ def test_convert_to_square_matrix(spark: SparkSession) -> None:
     mock_sl_overlap = StudyLocusOverlap(
         _df=spark.createDataFrame(
             [
-                (1, 2, "variant2"),
+                ("1", "2", "eqtl", "CHROM1", "variant2", None),
             ],
-            "leftStudyLocusId LONG, rightStudyLocusId LONG, tagVariantId STRING",
+            StudyLocusOverlap.get_schema(),
         ),
         _schema=StudyLocusOverlap.get_schema(),
     )
 
     expected_df = spark.createDataFrame(
         [
-            (1, 2, "variant2"),
-            (2, 1, "variant2"),
+            ("1", "2", "eqtl", "CHROM1", "variant2", None),
+            ("2", "1", "eqtl", "CHROM1", "variant2", None),
         ],
-        "leftStudyLocusId LONG, rightStudyLocusId LONG, tagVariantId STRING",
+        StudyLocusOverlap.get_schema(),
     )
     observed_df = mock_sl_overlap._convert_to_square_matrix().df
 

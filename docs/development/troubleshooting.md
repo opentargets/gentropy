@@ -49,3 +49,19 @@ Some functions on MacOS may throw a java error:
 This can be resolved by adding the follow line to your `~/.zshrc`:
 
 `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
+
+## Creating development dataproc cluster (OT users only)
+
+To start dataproc cluster in the development mode run
+
+```
+make create-dev-cluster
+```
+
+The command above will prepare 3 different resources:
+
+- gentropy package
+- cli script
+- cluster setup script
+
+and based on the branch ref (for example `dev`) will create a namespaced folder under GCS (`gs://genetics_etl_python_playground/initialisation/gentropy/dev`) with the three files described above. These files will be then used to create the cluster environment.

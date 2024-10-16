@@ -95,7 +95,6 @@ class OpenTargetsVariant:
                 variant_df = variant_df.withColumn(
                     col, create_empty_column_if_not_exists(col)
                 )
-
         return (
             variant_df.filter(f.col("variantId").isNotNull())
             .withColumn(

@@ -6,7 +6,7 @@ import re
 import sys
 from functools import reduce, wraps
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, TypeVar
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -270,13 +270,13 @@ def neglog_pvalue_to_mantissa_and_exponent(p_value: Column) -> tuple[Column, Col
         +--------+--------------+--------------+
         |negLogPv|pValueMantissa|pValueExponent|
         +--------+--------------+--------------+
-        |    4.56|     3.6307805|            -5|
-        | 2109.23|     1.6982436|         -2110|
+        |    4.56|     2.7542286|            -5|
+        | 2109.23|     5.8884363|         -2110|
         +--------+--------------+--------------+
         <BLANKLINE>
     """
     exponent: Column = f.ceil(p_value)
-    mantissa: Column = f.pow(f.lit(10), (p_value - exponent + f.lit(1)))
+    mantissa: Column = f.pow(f.lit(10), (exponent - p_value))
 
     return (
         mantissa.cast(t.FloatType()).alias("pValueMantissa"),
@@ -382,6 +382,8 @@ def order_array_of_structs_by_two_fields(
     """Sort array of structs by a field in descending order and by an other field in an ascending order.
 
     This function doesn't deal with null values, assumes the sort columns are not nullable.
+    The sorting function compares the descending_column first, in case when two values from descending_column are equal
+    it compares the ascending_column. When values in both columns are equal, the rows order is preserved.
 
     Args:
         array_name (str): Column name with array of structs
@@ -406,6 +408,20 @@ def order_array_of_structs_by_two_fields(
     |[{1.0, 45, First}, {1.0, 125, Second}, {0.5, 232, Third}, {0.5, 233, Fourth}]|
     +-----------------------------------------------------------------------------+
     <BLANKLINE>
+    >>> data = [(1.0, 45, 'First'), (1.0, 45, 'Second'), (0.5, 233, 'Fourth'), (1.0, 125, 'Third'),]
+    >>> (
+    ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
+    ...    .groupBy(f.lit('c'))
+    ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
+    ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
+    ...    .show(truncate=False)
+    ... )
+    +----------------------------------------------------------------------------+
+    |sorted_list                                                                 |
+    +----------------------------------------------------------------------------+
+    |[{1.0, 45, First}, {1.0, 45, Second}, {1.0, 125, Third}, {0.5, 233, Fourth}]|
+    +----------------------------------------------------------------------------+
+    <BLANKLINE>
     """
     return f.expr(
         f"""
@@ -425,18 +441,20 @@ def order_array_of_structs_by_two_fields(
                 when left.{descending_column} > right.{descending_column} then -1
                 when left.{descending_column} == right.{descending_column} and left.{ascending_column} > right.{ascending_column} then 1
                 when left.{descending_column} == right.{descending_column} and left.{ascending_column} < right.{ascending_column} then -1
+                when left.{ascending_column} == right.{ascending_column} and left.{descending_column} == right.{descending_column} then 0
         end)
         """
     )
 
-def map_column_by_dictionary(col: Column, mapping_dict: Dict[str, str]) -> Column:
+
+def map_column_by_dictionary(col: Column, mapping_dict: dict[str, Any]) -> Column:
     """Map column values to dictionary values by key.
 
     Missing consequence label will be converted to None, unmapped consequences will be mapped as None.
 
     Args:
         col (Column): Column containing labels to map.
-        mapping_dict (Dict[str, str]): Dictionary with mapping key/value pairs.
+        mapping_dict (dict[str, Any]): Dictionary with mapping key/value pairs.
 
     Returns:
         Column: Column with mapped values.
@@ -524,7 +542,7 @@ def get_value_from_row(row: Row, column: str) -> Any:
 
 
 def enforce_schema(
-    expected_schema: t.StructType,
+    expected_schema: t.ArrayType | t.StructType | Column | str,
 ) -> Callable[..., Any]:
     """A function to enforce the schema of a function output follows expectation.
 
@@ -540,7 +558,7 @@ def enforce_schema(
         return ...
 
     Args:
-        expected_schema (t.StructType): The expected schema of the output.
+        expected_schema (t.ArrayType | t.StructType | Column | str): The expected schema of the output.
 
     Returns:
         Callable[..., Any]: A decorator function.
@@ -596,14 +614,21 @@ def rename_all_columns(df: DataFrame, prefix: str) -> DataFrame:
     )
 
 
-def safe_array_union(a: Column, b: Column) -> Column:
+def safe_array_union(
+    a: Column, b: Column, fields_order: list[str] | None = None
+) -> Column:
     """Merge the content of two optional columns.
 
-    The function assumes the array columns have the same schema. Otherwise, the function will fail.
+    The function assumes the array columns have the same schema.
+    If the `fields_order` is passed, the function assumes that it deals with array of structs and sorts the nested
+    struct fields by the provided `fields_order` before conducting array_merge.
+    If the `fields_order` is not passed and both columns are <array<struct<...>> type then function assumes struct fields have the same order,
+    otherwise the function will raise an AnalysisException.
 
     Args:
         a (Column): One optional array column.
         b (Column): The other optional array column.
+        fields_order (list[str] | None): The order of the fields in the struct. Defaults to None.
 
     Returns:
         Column: array column with merged content.
@@ -626,10 +651,86 @@ def safe_array_union(a: Column, b: Column) -> Column:
         |  null|
         +------+
         <BLANKLINE>
+        >>> schema="arr2: array<struct<b:int,a:string>>, arr: array<struct<a:string,b:int>>"
+        >>> data = [([(1,"a",), (2, "c")],[("a", 1,)]),]
+        >>> df = spark.createDataFrame(data=data, schema=schema)
+        >>> df.select(safe_array_union(f.col("arr"), f.col("arr2"), fields_order=["a", "b"]).alias("merged")).show()
+        +----------------+
+        |          merged|
+        +----------------+
+        |[{a, 1}, {c, 2}]|
+        +----------------+
+        <BLANKLINE>
+        >>> schema="arr2: array<struct<b:int,a:string>>, arr: array<struct<a:string,b:int>>"
+        >>> data = [([(1,"a",), (2, "c")],[("a", 1,)]),]
+        >>> df = spark.createDataFrame(data=data, schema=schema)
+        >>> df.select(safe_array_union(f.col("arr"), f.col("arr2")).alias("merged")).show() # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        pyspark.sql.utils.AnalysisException: ...
     """
+    if fields_order:
+        # sort the nested struct fields by the provided order
+        a = sort_array_struct_by_columns(a, fields_order)
+        b = sort_array_struct_by_columns(b, fields_order)
     return f.when(a.isNotNull() & b.isNotNull(), f.array_union(a, b)).otherwise(
         f.coalesce(a, b)
     )
+
+
+def sort_array_struct_by_columns(column: Column, fields_order: list[str]) -> Column:
+    """Sort nested struct fields by provided fields order.
+
+    Args:
+        column (Column): Column with array of structs.
+        fields_order (list[str]): List of field names to sort by.
+
+    Returns:
+        Column: Sorted column.
+
+    Examples:
+        >>> schema="arr: array<struct<b:int,a:string>>"
+        >>> data = [([(1,"a",), (2, "c")],)]
+        >>> fields_order = ["a", "b"]
+        >>> df = spark.createDataFrame(data=data, schema=schema)
+        >>> df.select(sort_array_struct_by_columns(f.col("arr"), fields_order).alias("sorted")).show()
+        +----------------+
+        |          sorted|
+        +----------------+
+        |[{c, 2}, {a, 1}]|
+        +----------------+
+        <BLANKLINE>
+    """
+    column_name = extract_column_name(column)
+    fields_order_expr = ", ".join([f"x.{field}" for field in fields_order])
+    return f.expr(
+        f"sort_array(transform({column_name}, x -> struct({fields_order_expr})), False)"
+    ).alias(column_name)
+
+
+def extract_column_name(column: Column) -> str:
+    """Extract column name from a column expression.
+
+    Args:
+        column (Column): Column expression.
+
+    Returns:
+        str: Column name.
+
+    Raises:
+        ValueError: If the column name cannot be extracted.
+
+    Examples:
+        >>> extract_column_name(f.col('col1'))
+        'col1'
+        >>> extract_column_name(f.sort_array(f.col('col1')))
+        'sort_array(col1, true)'
+    """
+    pattern = re.compile("^Column<'(?P<name>.*)'>?")
+
+    _match = pattern.search(str(column))
+    if not _match:
+        raise ValueError(f"Cannot extract column name from {column}")
+    return _match.group("name")
 
 
 def create_empty_column_if_not_exists(
@@ -655,3 +756,94 @@ def create_empty_column_if_not_exists(
         <BLANKLINE>
     """
     return f.lit(None).cast(col_schema).alias(col_name)
+
+
+def get_standard_error_from_confidence_interval(lower: Column, upper: Column) -> Column:
+    """Compute the standard error from the confidence interval.
+
+    Args:
+        lower (Column): The lower bound of the confidence interval.
+        upper (Column): The upper bound of the confidence interval.
+
+    Returns:
+        Column: The standard error.
+
+    Examples:
+        >>> data = [(0.5, 1.5), (None, 2.5), (None, None)]
+        >>> (
+        ...    spark.createDataFrame(data, ['lower', 'upper'])
+        ...    .select(
+        ...        get_standard_error_from_confidence_interval(f.col('lower'), f.col('upper')).alias('standard_error')
+        ...    )
+        ...    .show()
+        ... )
+        +-------------------+
+        |     standard_error|
+        +-------------------+
+        |0.25510204081632654|
+        |               null|
+        |               null|
+        +-------------------+
+        <BLANKLINE>
+    """
+    return (upper - lower) / (2 * 1.96)
+
+
+def get_nested_struct_schema(dtype: t.DataType) -> t.StructType:
+    """Get the bottom StructType from a nested ArrayType type.
+
+    Args:
+        dtype (t.DataType): The nested data structure.
+
+    Returns:
+        t.StructType: The nested struct schema.
+
+    Raises:
+        TypeError: If the input data type is not a nested struct.
+
+    Examples:
+        >>> get_nested_struct_schema(t.ArrayType(t.StructType([t.StructField('a', t.StringType())])))
+        StructType([StructField('a', StringType(), True)])
+
+        >>> get_nested_struct_schema(t.ArrayType(t.ArrayType(t.StructType([t.StructField("a", t.StringType())]))))
+        StructType([StructField('a', StringType(), True)])
+    """
+    if isinstance(dtype, t.StructField):
+        dtype = dtype.dataType
+
+    match dtype:
+        case t.StructType(fields=_):
+            return dtype
+        case t.ArrayType(elementType=dtype):
+            return get_nested_struct_schema(dtype)
+        case _:
+            raise TypeError("The input data type must be a nested struct.")
+
+
+def get_struct_field_schema(schema: t.StructType, name: str) -> t.DataType:
+    """Get schema for underlying struct field.
+
+    Args:
+        schema (t.StructType): Provided schema where the name should be looked in.
+        name (str): Name of the field to look in the schema
+
+    Returns:
+        t.DataType: Data type of the StructField with provided name
+
+    Raises:
+        ValueError: If provided name is not present in the input schema
+
+    Examples:
+        >>> get_struct_field_schema(t.StructType([t.StructField("a", t.StringType())]), "a")
+        StringType()
+
+        >>> get_struct_field_schema(t.StructType([t.StructField("a", t.StringType())]), "b") # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ...
+        ValueError: Provided name b is not present in the schema
+
+    """
+    matching_fields = [f for f in schema.fields if f.name == name]
+    if not matching_fields:
+        raise ValueError("Provided name %s is not present in the schema.", name)
+    return matching_fields[0].dataType

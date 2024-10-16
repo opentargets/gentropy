@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
 
@@ -13,8 +14,6 @@ from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
-    from gentropy.dataset.study_index import StudyIndex
-
 
 def test_study_locus_overlap_creation(
     mock_study_locus_overlap: StudyLocusOverlap,
@@ -23,11 +22,9 @@ def test_study_locus_overlap_creation(
     assert isinstance(mock_study_locus_overlap, StudyLocusOverlap)
 
 
-def test_study_locus_overlap_from_associations(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex
-) -> None:
+def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> None:
     """Test colocalisation creation from mock associations."""
-    overlaps = StudyLocusOverlap.from_associations(mock_study_locus, mock_study_index)
+    overlaps = StudyLocusOverlap.from_associations(mock_study_locus)
     assert isinstance(overlaps, StudyLocusOverlap)
 
 
@@ -38,21 +35,21 @@ def test_study_locus_overlap_from_associations(
             # observed - input DataFrame representing gwas and nongwas data to find overlapping signals
             [
                 {
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "studyId": "A",
                     "studyType": "gwas",
                     "chromosome": "1",
                     "tagVariantId": "A",
                 },
                 {
-                    "studyLocusId": 2,
+                    "studyLocusId": "2",
                     "studyId": "B",
                     "studyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "A",
                 },
                 {
-                    "studyLocusId": 3,
+                    "studyLocusId": "3",
                     "studyId": "C",
                     "studyType": "gwas",
                     "chromosome": "1",
@@ -63,14 +60,19 @@ def test_study_locus_overlap_from_associations(
             False,
             # expected - output DataFrame with overlapping signals
             [
-                {"leftStudyLocusId": 1, "rightStudyLocusId": 2, "chromosome": "1"},
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                },
             ],
         ),
         (
             # observed - input DataFrame representing intra-study data to find overlapping signals in the same study
             [
                 {
-                    "studyLocusId": 1,
+                    "studyLocusId": "1",
                     "studyId": "A",
                     "studyType": "gwas",
                     "chromosome": "1",
@@ -78,7 +80,7 @@ def test_study_locus_overlap_from_associations(
                     "tagVariantId": "A",
                 },
                 {
-                    "studyLocusId": 2,
+                    "studyLocusId": "2",
                     "studyId": "A",
                     "studyType": "gwas",
                     "chromosome": "1",
@@ -86,7 +88,7 @@ def test_study_locus_overlap_from_associations(
                     "tagVariantId": "A",
                 },
                 {
-                    "studyLocusId": 3,
+                    "studyLocusId": "3",
                     "studyId": "B",
                     "studyType": "gwas",
                     "chromosome": "1",
@@ -97,7 +99,14 @@ def test_study_locus_overlap_from_associations(
             # intrastudy - bool of whether or not to use inter-study or intra-study logic
             True,
             # expected - output DataFrame with overlapping signals
-            [{"leftStudyLocusId": 2, "rightStudyLocusId": 1, "chromosome": "1"}],
+            [
+                {
+                    "leftStudyLocusId": "2",
+                    "rightStudyLocusId": "1",
+                    "rightStudyType": "gwas",
+                    "chromosome": "1",
+                }
+            ],
         ),
     ],
 )
@@ -110,7 +119,7 @@ def test_overlapping_peaks(
     """Test overlapping signals between GWAS-GWAS and GWAS-Molecular trait to make sure that mQTLs are always on the right."""
     mock_schema = t.StructType(
         [
-            t.StructField("studyLocusId", t.LongType()),
+            t.StructField("studyLocusId", t.StringType()),
             t.StructField("studyId", t.StringType()),
             t.StructField("studyType", t.StringType()),
             t.StructField("chromosome", t.StringType()),
@@ -120,8 +129,9 @@ def test_overlapping_peaks(
     )
     expected_schema = t.StructType(
         [
-            t.StructField("leftStudyLocusId", t.LongType()),
-            t.StructField("rightStudyLocusId", t.LongType()),
+            t.StructField("leftStudyLocusId", t.StringType()),
+            t.StructField("rightStudyLocusId", t.StringType()),
+            t.StructField("rightStudyType", t.StringType()),
             t.StructField("chromosome", t.StringType()),
         ]
     )
@@ -129,3 +139,30 @@ def test_overlapping_peaks(
     result_df = StudyLocus._overlapping_peaks(observed_df, intrastudy)
     expected_df = spark.createDataFrame(expected, expected_schema)
     assert result_df.collect() == expected_df.collect()
+
+
+class TestStudyLocusOverlap:
+    """Test the overlapping of StudyLocus dataset."""
+
+    @pytest.fixture(autouse=True)
+    def setup(
+        self: TestStudyLocusOverlap, study_locus_sample_for_colocalisation: StudyLocus
+    ) -> None:
+        """Get sample dataset."""
+        # Store imput dataset:
+        self.study_locus = study_locus_sample_for_colocalisation
+
+        # Call locus overlap:
+        self.overlaps = study_locus_sample_for_colocalisation.find_overlaps()
+
+    def test_coloc_return_type(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert isinstance(self.overlaps, StudyLocusOverlap)
+
+    def test_coloc_not_null(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert self.overlaps.df.count() != 0
+
+    def test_coloc_study_type_not_null(self: TestStudyLocusOverlap) -> None:
+        """Test get_schema."""
+        assert self.overlaps.filter(f.col("rightStudyType").isNull()).df.count() == 0

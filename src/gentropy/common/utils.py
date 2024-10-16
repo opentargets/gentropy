@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from math import floor, log10
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 import hail as hl
 import numpy as np
@@ -17,46 +17,6 @@ if TYPE_CHECKING:
     from hail.table import Table
     from numpy.typing import NDArray
     from pyspark.sql import Column
-
-
-def parse_region(region: str) -> Tuple[str, int, int]:
-    """Parse region string to chr:start-end.
-
-    Args:
-        region (str): Genomic region expected to follow chr##:#,###-#,### format or ##:####-#####.
-
-    Returns:
-        Tuple[str, int, int]: Chromosome, start position, end position
-
-    Raises:
-        ValueError: If the end and start positions cannot be casted to integer or not all three values value error is raised.
-
-    Examples:
-        >>> parse_region('chr6:28,510,120-33,480,577')
-        ('6', 28510120, 33480577)
-        >>> parse_region('6:28510120-33480577')
-        ('6', 28510120, 33480577)
-        >>> parse_region('6:28510120')
-        Traceback (most recent call last):
-            ...
-        ValueError: Genomic region should follow a ##:####-#### format.
-        >>> parse_region('6:28510120-foo')
-        Traceback (most recent call last):
-            ...
-        ValueError: Start and the end position of the region has to be integer.
-    """
-    region = region.replace(":", "-").replace(",", "")
-    try:
-        (chromosome, start_position, end_position) = region.split("-")
-    except ValueError as err:
-        raise ValueError("Genomic region should follow a ##:####-#### format.") from err
-
-    try:
-        return (chromosome.replace("chr", ""), int(start_position), int(end_position))
-    except ValueError as err:
-        raise ValueError(
-            "Start and the end position of the region has to be integer."
-        ) from err
 
 
 def calculate_confidence_interval(

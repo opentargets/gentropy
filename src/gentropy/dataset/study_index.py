@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.biosample_index import BiosampleIndex
     from gentropy.dataset.gene_index import GeneIndex
 
 
@@ -29,15 +30,15 @@ class StudyQualityCheck(Enum):
         UNRESOLVED_TARGET (str): Target/gene identifier could not match to reference - Labelling failing target.
         UNRESOLVED_DISEASE (str): Disease identifier could not match to referece or retired identifier - labelling failing disease
         UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
+        UNKNOWN_BIOSAMPLE (str): Flagging if a biosample identifier is not found in the reference.
         DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
-        NO_GENE_PROVIDED (str): Flagging QTL studies if the measured
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
     UNRESOLVED_DISEASE = "No valid disease identifier found."
     UNKNOWN_STUDY_TYPE = "This type of study is not supported."
+    UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference."
     DUPLICATED_STUDY = "The identifier of this study is not unique."
-    NO_GENE_PROVIDED = "QTL study doesn't have gene assigned."
 
 
 @dataclass
@@ -402,6 +403,47 @@ class StudyIndex(Dataset):
                     f.col("qualityControls"),
                     ~f.col("isIdFound"),
                     StudyQualityCheck.UNRESOLVED_TARGET,
+                ),
+            )
+            .drop("isIdFound")
+        )
+
+        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
+
+    def validate_biosample(self: StudyIndex, biosample_index: BiosampleIndex) -> StudyIndex:
+        """Validating biosample identifiers in the study index against the provided biosample index.
+
+        Args:
+            biosample_index (BiosampleIndex): Biosample index containing a reference of biosample identifiers e.g. cell types, tissues, cell lines, etc.
+
+        Returns:
+            StudyIndex: where non-gwas studies are flagged if biosampleIndex could not be validated.
+        """
+        biosample_set = biosample_index.df.select("biosampleId", f.lit(True).alias("isIdFound"))
+
+        # If biosampleId in df, we need to drop it:
+        if "biosampleId" in self.df.columns:
+            self.df = self.df.drop("biosampleId")
+
+        # As the biosampleFromSourceId is not a mandatory field of study index, we return if the column is not there:
+        if "biosampleFromSourceId" not in self.df.columns:
+            return self
+
+        validated_df = (
+            self.df.join(biosample_set, self.df.biosampleFromSourceId == biosample_set.biosampleId, how="left")
+            .withColumn(
+                "isIdFound",
+                f.when(
+                    (f.col("studyType") != "gwas") & (f.col("isIdFound").isNull()),
+                    f.lit(False),
+                ).otherwise(f.lit(True)),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~f.col("isIdFound"),
+                    StudyQualityCheck.UNKNOWN_BIOSAMPLE,
                 ),
             )
             .drop("isIdFound")

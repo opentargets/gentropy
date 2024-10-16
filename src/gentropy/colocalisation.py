@@ -8,8 +8,7 @@ from importlib import import_module
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.colocalisation import Coloc
 
 
@@ -23,18 +22,22 @@ class ColocalisationStep:
         self,
         session: Session,
         credible_set_path: str,
-        study_index_path: str,
         coloc_path: str,
         colocalisation_method: str,
+        priorc1: float = 1e-4,
+        priorc2: float = 1e-4,
+        priorc12: float = 1e-5,
     ) -> None:
         """Run Colocalisation step.
 
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
-            study_index_path (str): Input study index path.
             coloc_path (str): Output Colocalisation path.
             colocalisation_method (str): Colocalisation method.
+            priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
+            priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
+            priorc12 (float): Prior on variant being causal for both traits. Defaults to 1e-5.
         """
         colocalisation_class = self._get_colocalisation_class(colocalisation_method)
         # Extract
@@ -47,15 +50,12 @@ class ColocalisationStep:
                 session, credible_set_path, recursiveFileLookup=True
             )
         )
-        si = StudyIndex.from_parquet(
-            session, study_index_path, recursiveFileLookup=True
-        )
 
         # Transform
-        overlaps = credible_set.filter_credible_set(
-            CredibleInterval.IS95
-        ).find_overlaps(si)
-        colocalisation_results = colocalisation_class.colocalise(overlaps)  # type: ignore
+        overlaps = credible_set.find_overlaps()
+        colocalisation_results = colocalisation_class.colocalise(  # type: ignore
+            overlaps, priorc1=priorc1, priorc2=priorc2, priorc12=priorc12
+        )
 
         # Load
         colocalisation_results.df.write.mode(session.write_mode).parquet(

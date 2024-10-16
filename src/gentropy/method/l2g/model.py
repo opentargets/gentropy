@@ -114,7 +114,7 @@ class LocusToGeneModel:
 
         pd_dataframe.iteritems = pd_dataframe.items
 
-        feature_matrix_pdf = feature_matrix.df.toPandas()
+        feature_matrix_pdf = feature_matrix._df.toPandas()
         # L2G score is the probability the classifier assigns to the positive class (the second element in the probability array)
         feature_matrix_pdf["score"] = self.model.predict_proba(
             # We drop the fixed columns to only pass the feature values to the classifier
@@ -135,8 +135,7 @@ class LocusToGeneModel:
             path (str): Path to save the persisted model. Should end with .skops
 
         Raises:
-            ValueError: If the model has not been fitted yet
-            ValueError: If the path does not end with .skops
+            ValueError: If the model has not been fitted yet or if the path does not end with .skops
         """
         if self.model is None:
             raise ValueError("Model has not been fitted yet.")
@@ -215,7 +214,7 @@ class LocusToGeneModel:
             local_repo (str): Path to the folder where the contents of the model repo + the documentation are located. This is used to push the model to the Hugging Face Hub.
 
         Raises:
-            Exception: If the push to the Hugging Face Hub fails
+            RuntimeError: If the push to the Hugging Face Hub fails
         """
         from sklearn import __version__ as sklearn_version
 
@@ -241,4 +240,4 @@ class LocusToGeneModel:
                 for p in Path(local_repo).glob("*"):
                     p.unlink()
                 Path(local_repo).rmdir()
-            raise e
+            raise RuntimeError from e

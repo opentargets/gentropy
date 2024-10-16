@@ -79,7 +79,12 @@ class ECaviar:
                         f.col("statistics.right_posteriorProbability"),
                     ),
                 )
-                .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
+                .groupBy(
+                    "leftStudyLocusId",
+                    "rightStudyLocusId",
+                    "rightStudyType",
+                    "chromosome",
+                )
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
@@ -112,7 +117,7 @@ class Coloc:
     """
 
     METHOD_NAME: str = "COLOC"
-    METHOD_METRIC: str = "llr"
+    METHOD_METRIC: str = "h4"
     PSEUDOCOUNT: float = 1e-10
 
     @staticmethod
@@ -168,7 +173,12 @@ class Coloc:
                     f.col("left_logBF") + f.col("right_logBF"),
                 )
                 # Group by overlapping peak and generating dense vectors of log_BF:
-                .groupBy("chromosome", "leftStudyLocusId", "rightStudyLocusId")
+                .groupBy(
+                    "chromosome",
+                    "leftStudyLocusId",
+                    "rightStudyLocusId",
+                    "rightStudyType",
+                )
                 .agg(
                     f.count("*").alias("numberColocalisingVariants"),
                     fml.array_to_vector(f.collect_list(f.col("left_logBF"))).alias(
@@ -245,13 +255,10 @@ class Coloc:
                 .withColumn("h2", f.col("posteriors").getItem(2))
                 .withColumn("h3", f.col("posteriors").getItem(3))
                 .withColumn("h4", f.col("posteriors").getItem(4))
-                .withColumn("h4h3", f.col("h4") / f.col("h3"))
-                .withColumn("log2h4h3", f.log2(f.col("h4h3")))
                 # clean up
                 .drop(
                     "posteriors",
                     "allBF",
-                    "h4h3",
                     "lH0bf",
                     "lH1bf",
                     "lH2bf",
