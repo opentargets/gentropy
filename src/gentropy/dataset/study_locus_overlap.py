@@ -68,12 +68,12 @@ class StudyLocusOverlap(Dataset):
 
         # Calculate the beta ratio and get the sign, then calculate the average sign across all variants in the locus
         beta_ratio_sign = (both_betas_not_null_overlaps
-            .withColumn("beta_ratio_sign",
+            .withColumn("betaRatioSign",
                         f.signum(f.col("left_beta") / f.col("right_beta")))
             .groupBy("leftStudyLocusId",
                     "rightStudyLocusId",
                     "chromosome")
-            .agg(f.avg("beta_ratio_sign").alias("beta_ratio_sign_avg")))
+            .agg(f.avg("betaRatioSign").alias("betaRatioSignAverage")))
 
         # Return the beta ratio sign
         return beta_ratio_sign
