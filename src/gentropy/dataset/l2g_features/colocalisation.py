@@ -113,7 +113,7 @@ def common_neighbourhood_colocalisation_feature_logic(
     regional_mean_per_study_locus = (
         local_max.filter(f.col("biotype") == "protein_coding")
         .groupBy("studyLocusId")
-        .agg(f.mean("eQtlColocH4Maximum").alias("regional_mean"))
+        .agg(f.mean(local_feature_name).alias("regional_mean"))
     )
     return (
         local_max.join(regional_mean_per_study_locus, "studyLocusId", "left")
