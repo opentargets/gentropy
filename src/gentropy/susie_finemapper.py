@@ -28,6 +28,7 @@ from gentropy.common.spark_helpers import (
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 from gentropy.method.carma import CARMA
+from gentropy.method.ld import LDAnnotator
 from gentropy.method.ld_matrix_interface import LDMatrixInterface
 from gentropy.method.sumstat_imputation import SummaryStatisticsImputation
 from gentropy.method.susie_inf import SUSIE_inf
@@ -709,6 +710,23 @@ class SusieFineMapperStep:
             )[0]["ldPopulation"].alias("majorPopulation"),
         ).collect()[0]["majorPopulation"]
 
+        major_population = (
+            study_index_df.select(
+                "studyId",
+                order_array_of_structs_by_field(
+                    "ldPopulationStructure", "relativeSampleSize"
+                ).alias("ldPopulationStructure"),
+            )
+            .withColumn(
+                "majorPopulation",
+                f.when(
+                    f.col("ldPopulationStructure").isNotNull(),
+                    LDAnnotator._get_major_population(f.col("ldPopulationStructure")),
+                ),
+            )
+            .collect()[0]["majorPopulation"]
+        )
+
         N_total = int(study_index_df.select("nSamples").collect()[0]["nSamples"])
         if N_total is None:
             N_total = 100_000
@@ -775,7 +793,7 @@ class SusieFineMapperStep:
             .collect()[0]["FailedQC"]
         )
         if x_boolean:
-            logging.warning("analysis Flags check failed for this study")
+            logging.warning("Analysis Flags check failed for this study")
             return None
 
         schema = StudyLocus.get_schema()
