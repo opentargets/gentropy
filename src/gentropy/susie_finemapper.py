@@ -127,7 +127,6 @@ class SusieFineMapperStep:
             if result_logging["study_locus"] is not None:
                 # Write result
                 df = result_logging["study_locus"].df
-
                 df = df.withColumn("qualityControls", f.lit(None))
                 df = df.withColumn(
                     "qualityControls",
@@ -137,8 +136,8 @@ class SusieFineMapperStep:
                         StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
                     ),
                 )
-
                 df.write.mode(session.write_mode).parquet(study_locus_output)
+            if result_logging["log"] is not None:
                 # Write log
                 result_logging["log"].to_parquet(
                     study_locus_output + ".log",
@@ -325,8 +324,8 @@ class SusieFineMapperStep:
         df = pd.DataFrame(
             {
                 "credibleSetIndex": cred_set_index,
-                "purityMeanR2": purity_mean_r2,
-                "purityMinR2": purity_min_r2,
+                "purityMeanR2": list_purity_mean_r2,
+                "purityMinR2": list_purity_min_r2,
                 "zScore": z_values,
                 "neglogpval": neglogpval,
             }
@@ -358,6 +357,7 @@ class SusieFineMapperStep:
         cred_sets = cred_sets.filter(
             (f.col("neglogpval") >= -np.log10(lead_pval_threshold))
             & (f.col("credibleSetlog10BF") >= cs_lbf_thr * 0.4342944819)
+            & (~f.isnan(f.col("credibleSetlog10BF")))
             & (f.col("purityMinR2") >= purity_min_r2_threshold)
             & (f.col("purityMeanR2") >= purity_mean_r2_threshold)
         )
@@ -600,21 +600,40 @@ class SusieFineMapperStep:
 
         end_time = time.time()
 
-        log_df = pd.DataFrame(
-            {
-                "studyId": studyId,
-                "region": region,
-                "N_gwas_before_dedupl": N_gwas_before_dedupl,
-                "N_gwas": N_gwas,
-                "N_ld": N_ld,
-                "N_overlap": N_after_merge,
-                "N_outliers": N_outliers,
-                "N_imputed": N_imputed,
-                "N_final_to_fm": len(ld_to_fm),
-                "elapsed_time": end_time - start_time,
-            },
-            index=[0],
-        )
+        if study_locus is not None:
+            log_df = pd.DataFrame(
+                {
+                    "studyId": studyId,
+                    "region": region,
+                    "N_gwas_before_dedupl": N_gwas_before_dedupl,
+                    "N_gwas": N_gwas,
+                    "N_ld": N_ld,
+                    "N_overlap": N_after_merge,
+                    "N_outliers": N_outliers,
+                    "N_imputed": N_imputed,
+                    "N_final_to_fm": len(ld_to_fm),
+                    "elapsed_time": end_time - start_time,
+                    "number_of_CS": study_locus.df.count(),
+                },
+                index=[0],
+            )
+        else:
+            log_df = pd.DataFrame(
+                {
+                    "studyId": studyId,
+                    "region": region,
+                    "N_gwas_before_dedupl": N_gwas_before_dedupl,
+                    "N_gwas": N_gwas,
+                    "N_ld": N_ld,
+                    "N_overlap": N_after_merge,
+                    "N_outliers": N_outliers,
+                    "N_imputed": N_imputed,
+                    "N_final_to_fm": len(ld_to_fm),
+                    "elapsed_time": end_time - start_time,
+                    "number_of_CS": 0,
+                },
+                index=[0],
+            )
 
         return {
             "study_locus": study_locus,
