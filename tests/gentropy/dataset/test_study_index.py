@@ -444,7 +444,6 @@ class TestDiseaseValidation:
                 "backgroundTraitFromSourceMappedIds", f.array().cast("array<string>")
             )
         )
-        study_df.show()
         # Mock study index:
         self.study_index = StudyIndex(
             _df=study_df,
