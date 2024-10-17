@@ -70,3 +70,25 @@ class BiosampleIndex(Dataset):
             _df=aggregated_df,
             _schema=BiosampleIndex.get_schema()
             )
+
+    def retain_rows_with_ancestor_id(
+        self: BiosampleIndex,
+        ancestor_ids : list[str]
+        ) -> BiosampleIndex:
+        """Filter the biosample index to retain only rows with the given ancestor IDs.
+
+        Args:
+            ancestor_ids (list[str]): Ancestor IDs to filter on.
+
+        Returns:
+            BiosampleIndex: Filtered biosample index.
+        """
+        # Create a Spark array of ancestor IDs prior to filtering
+        ancestor_ids_array = f.array(*[f.lit(id) for id in ancestor_ids])
+
+        return BiosampleIndex(
+            _df=self.df.filter(
+                f.size(f.array_intersect(f.col("ancestors"), ancestor_ids_array)) > 0
+            ),
+            _schema=BiosampleIndex.get_schema()
+            )
