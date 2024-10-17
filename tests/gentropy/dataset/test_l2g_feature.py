@@ -638,6 +638,11 @@ class TestCommonVepFeatureLogic:
                 [
                     {
                         "studyLocusId": "1",
+                        "geneId": "gene3",
+                        "vepMean": "0.00",
+                    },
+                    {
+                        "studyLocusId": "1",
                         "geneId": "gene1",
                         "vepMean": "0.33",
                     },
@@ -651,6 +656,11 @@ class TestCommonVepFeatureLogic:
             (
                 "vepMaximum",
                 [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene3",
+                        "vepMaximum": "0.00",
+                    },
                     {
                         "studyLocusId": "1",
                         "geneId": "gene1",
@@ -704,11 +714,15 @@ class TestCommonVepFeatureLogic:
         Because the genes in the vicinity are all non coding, the neighbourhood features should equal the local ones.
         """
         feature_name = "vepMaximumNeighbourhood"
+        non_protein_coding_gene_index = GeneIndex(
+            _df=sample_gene_index.df.filter(f.col("geneId") != "gene3"),
+            _schema=GeneIndex.get_schema(),
+        )
         observed_df = (
             common_neighbourhood_vep_feature_logic(
                 self.sample_study_locus,
                 variant_index=sample_variant_index,
-                gene_index=sample_gene_index,
+                gene_index=non_protein_coding_gene_index,
                 feature_name=feature_name,
             )
             .withColumn(feature_name, f.round(f.col(feature_name), 2))
@@ -721,7 +735,7 @@ class TestCommonVepFeatureLogic:
                 (
                     ["1", "gene1", 0.0],
                     ["1", "gene2", 0.34],
-                ),  # (0.66-0.66) and (1.0 -0.66)
+                ),  # (0.66-0.66) and (1.0-0.66)
                 ["studyLocusId", "geneId", feature_name],
             )
             .orderBy(feature_name)
@@ -751,11 +765,16 @@ class TestCommonVepFeatureLogic:
             )
             expected_df = (
                 spark.createDataFrame(
-                    (["1", "gene1", 0.0], ["1", "gene2", 0.34]),
+                    # regional mean is 0.66/2 = 0.33
+                    (
+                        ["1", "gene3", -0.33],
+                        ["1", "gene1", 0.33],
+                        ["1", "gene2", 0.67],
+                    ),  # (0 - 0.33) and (0.66-0.33) and (1.0 -0.33)
                     ["studyLocusId", "geneId", feature_name],
                 )
-                .select("studyLocusId", "geneId", feature_name)
                 .orderBy(feature_name)
+                .select("studyLocusId", "geneId", feature_name)
             )
             assert (
                 observed_df.collect() == expected_df.collect()
