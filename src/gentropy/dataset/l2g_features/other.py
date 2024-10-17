@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
-from pyspark.sql.window import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.gene_index import GeneIndex
@@ -38,7 +37,6 @@ def common_genecount_feature_logic(
     Returns:
             DataFrame: Feature dataset
     """
-
     study_loci_window = (
         study_loci_to_annotate.df.withColumn(
             "window_start", f.col("position") - (genomic_window / 2)
