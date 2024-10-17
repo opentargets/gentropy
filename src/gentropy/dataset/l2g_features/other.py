@@ -31,7 +31,7 @@ def common_genecount_feature_logic(
             that will be used for annotation
         gene_index (GeneIndex): Dataset containing information related to all genes in release.
         feature_name (str): The name of the feature
-        genomic_window (str): The maximum window size to consider
+        genomic_window (int): The maximum window size to consider
         protein_coding_only (bool): Whether to only consider protein coding genes in calculation.
 
     Returns:
