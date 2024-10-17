@@ -20,6 +20,53 @@ if TYPE_CHECKING:
     from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 
+def get_tag_variant_source(statistics: Column) -> Column:
+    """Get the source of the tag variant for a locus-overlap row.
+
+    Args:
+        statistics (Column): statistics column
+
+    Returns:
+        Column: source of the tag variant
+
+    Examples:
+        >>> data = [('a', 'b'),(None, 'b'),('a', None),]
+        >>> (
+        ...     spark.createDataFrame(data, ['a', 'b'])
+        ...     .select(
+        ...         'a', 'b',
+        ...         get_tag_variant_source(
+        ...             f.struct(
+        ...                 f.col('a').alias('left_posteriorProbability'),
+        ...                 f.col('b').alias('right_posteriorProbability'),
+        ...             )
+        ...         ).alias('source')
+        ...     )
+        ...     .show()
+        ... )
+        +----+----+------+
+        |   a|   b|source|
+        +----+----+------+
+        |   a|   b|  both|
+        |null|   b| right|
+        |   a|null|  left|
+        +----+----+------+
+        <BLANKLINE>
+    """
+    return (
+        # Both posterior probabilities are not null:
+        f.when(
+            statistics.left_posteriorProbability.isNotNull()
+            & statistics.right_posteriorProbability.isNotNull(),
+            f.lit("both"),
+        )
+        # Only the left posterior probability is not null:
+        .when(statistics.left_posteriorProbability.isNotNull(), f.lit("left"))
+        # It must be right only:
+        .otherwise(f.lit("right"))
+    )
+
+
 class ECaviar:
     """ECaviar-based colocalisation analysis.
 
@@ -72,12 +119,14 @@ class ECaviar:
         """
         return Colocalisation(
             _df=(
-                overlapping_signals.df.withColumn(
-                    "clpp",
-                    ECaviar._get_clpp(
-                        f.col("statistics.left_posteriorProbability"),
-                        f.col("statistics.right_posteriorProbability"),
-                    ),
+                overlapping_signals.df.withColumns(
+                    {
+                        "clpp": ECaviar._get_clpp(
+                            f.col("statistics.left_posteriorProbability"),
+                            f.col("statistics.right_posteriorProbability"),
+                        ),
+                        "tagVariantSource": get_tag_variant_source(f.col("statistics")),
+                    }
                 )
                 .groupBy(
                     "leftStudyLocusId",
@@ -86,7 +135,13 @@ class ECaviar:
                     "chromosome",
                 )
                 .agg(
-                    f.count("*").alias("numberColocalisingVariants"),
+                    # Count the number of tag variants that can be found in both loci:
+                    f.size(
+                        f.filter(
+                            f.collect_list(f.col("tagVariantSource")),
+                            lambda x: x == "both",
+                        )
+                    ).alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
                 )
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
@@ -164,7 +219,10 @@ class Coloc:
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
-                overlapping_signals.df.select("*", "statistics.*")
+                overlapping_signals.df.withColumn(
+                    "tagVariantSource", get_tag_variant_source(f.col("statistics"))
+                )
+                .select("*", "statistics.*")
                 # Before summing log_BF columns nulls need to be filled with 0:
                 .fillna(0, subset=["left_logBF", "right_logBF"])
                 # Sum of log_BFs for each pair of signals
@@ -180,7 +238,12 @@ class Coloc:
                     "rightStudyType",
                 )
                 .agg(
-                    f.count("*").alias("numberColocalisingVariants"),
+                    f.size(
+                        f.filter(
+                            f.collect_list(f.col("tagVariantSource")),
+                            lambda x: x == "both",
+                        )
+                    ).alias("numberColocalisingVariants"),
                     fml.array_to_vector(f.collect_list(f.col("left_logBF"))).alias(
                         "left_logBF"
                     ),
