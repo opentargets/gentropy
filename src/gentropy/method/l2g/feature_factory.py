@@ -1,6 +1,6 @@
 """Factory that computes features based on an input list."""
 
-from __future__ import annotations
+from __future__ import annotations  # noqa: I001
 
 from typing import Any, Iterator, Mapping
 
@@ -27,6 +27,14 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceSentinelTssNeighbourhoodFeature,
     DistanceTssMeanFeature,
     DistanceTssMeanNeighbourhoodFeature,
+)
+from gentropy.dataset.l2g_features.intervals import (
+    DhsPmtrMeanFeature,
+    DhsPmtrMeanNeighbourhoodFeature,
+    EnhTssMeanFeature,
+    EnhTssMeanNeighbourhoodFeature,
+    PchicMeanFeature,
+    PchicMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.vep import (
@@ -119,6 +127,12 @@ class FeatureFactory:
         "vepMeanNeighbourhood": VepMeanNeighbourhoodFeature,
         "vepMaximum": VepMaximumFeature,
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
+        "pchicMean": PchicMeanFeature,
+        "pchicMeanNeighbourhood": PchicMeanNeighbourhoodFeature,
+        "enhTssMean": EnhTssMeanFeature,
+        "enhTssMeanNeighbourhood": EnhTssMeanNeighbourhoodFeature,
+        "dhsPmtrMean": DhsPmtrMeanFeature,
+        "dhsPmtrMeanNeighbourhood": DhsPmtrMeanNeighbourhoodFeature,
     }
 
     def __init__(
