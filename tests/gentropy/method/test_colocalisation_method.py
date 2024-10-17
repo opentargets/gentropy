@@ -5,17 +5,24 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from pandas.testing import assert_frame_equal
+from pyspark.sql import SparkSession
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType
+
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation import Coloc, ECaviar
-from pandas.testing import assert_frame_equal
-from pyspark.sql import SparkSession
-from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
     """Test coloc."""
     assert isinstance(Coloc.colocalise(mock_study_locus_overlap), Colocalisation)
+    assert isinstance(
+        Coloc.colocalise(
+            mock_study_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5
+        ),
+        Colocalisation,
+    )
 
 
 @pytest.mark.parametrize(
@@ -26,8 +33,9 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp",
                     "statistics": {"left_logBF": 10.3, "right_logBF": 10.5},
@@ -49,15 +57,17 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
                     "statistics": {"left_logBF": 10.3, "right_logBF": 10.5},
                 },
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
                     "statistics": {"left_logBF": 10.3, "right_logBF": 10.5},
@@ -116,8 +126,9 @@ def test_coloc_no_logbf(
             spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": 1,
-                        "rightStudyLocusId": 2,
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp",
                         "statistics": {
@@ -128,8 +139,9 @@ def test_coloc_no_logbf(
                 ],
                 schema=StructType(
                     [
-                        StructField("leftStudyLocusId", LongType(), False),
-                        StructField("rightStudyLocusId", LongType(), False),
+                        StructField("leftStudyLocusId", StringType(), False),
+                        StructField("rightStudyLocusId", StringType(), False),
+                        StructField("rightStudyType", StringType(), False),
                         StructField("chromosome", StringType(), False),
                         StructField("tagVariantId", StringType(), False),
                         StructField(

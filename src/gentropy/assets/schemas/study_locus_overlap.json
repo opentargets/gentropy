@@ -4,13 +4,19 @@
       "metadata": {},
       "name": "leftStudyLocusId",
       "nullable": false,
-      "type": "long"
+      "type": "string"
     },
     {
       "metadata": {},
       "name": "rightStudyLocusId",
       "nullable": false,
-      "type": "long"
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "rightStudyType",
+      "nullable": false,
+      "type": "string"
     },
     {
       "metadata": {},

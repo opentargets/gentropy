@@ -136,22 +136,8 @@ class EqtlCatalogueFinemapping:
         """
         ss_ftp_path_template = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats"
         return (
-            lbf.withColumn(
-                "dataset_id",
-                cls._extract_dataset_id_from_file_path(f.input_file_name()),
-            )
-            .join(
-                (
-                    credible_sets.withColumn(
-                        "dataset_id",
-                        cls._extract_dataset_id_from_file_path(f.input_file_name()),
-                    )
-                    .withColumn(
-                        "credibleSetIndex",
-                        cls._extract_credible_set_index(f.col("cs_id")),
-                    )
-                    .join(f.broadcast(studies_metadata), on="dataset_id")
-                ),
+            lbf.join(
+                credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
                 on=["molecular_trait_id", "region", "variant", "dataset_id"],
                 how="inner",
             )
@@ -206,6 +192,7 @@ class EqtlCatalogueFinemapping:
                 f.lit(True).alias("hasSumstats"),
                 f.col("molecular_trait_id"),
                 f.col("pmid").alias("pubmedId"),
+                f.col("condition_label").alias("condition"),
             )
         )
 
@@ -259,7 +246,7 @@ class EqtlCatalogueFinemapping:
                 .select(
                     *study_locus_cols,
                     StudyLocus.assign_study_locus_id(
-                        f.col("studyId"), f.col("variantId")
+                        ["studyId", "variantId", "finemappingMethod"]
                     ),
                     StudyLocus.calculate_credible_set_log10bf(
                         f.col("locus.logBF")
@@ -284,11 +271,26 @@ class EqtlCatalogueFinemapping:
         Returns:
             DataFrame: Credible sets DataFrame.
         """
-        return session.spark.read.csv(
-            credible_set_path,
-            sep="\t",
-            header=True,
-            schema=cls.raw_credible_set_schema,
+        return (
+            session.spark.read.csv(
+                credible_set_path,
+                sep="\t",
+                header=True,
+                schema=cls.raw_credible_set_schema,
+            )
+            .withColumns(
+                {
+                    # Adding dataset id based on the input file name:
+                    "dataset_id": cls._extract_dataset_id_from_file_path(
+                        f.input_file_name()
+                    ),
+                    # Parsing credible set index from the cs_id:
+                    "credibleSetIndex": cls._extract_credible_set_index(f.col("cs_id")),
+                }
+            )
+            # Remove duplicates caused by explosion of single variants to multiple rsid-s:
+            .drop("rsid")
+            .distinct()
         )
 
     @classmethod
@@ -306,9 +308,16 @@ class EqtlCatalogueFinemapping:
         Returns:
             DataFrame: Log Bayes Factors DataFrame.
         """
-        return session.spark.read.csv(
-            lbf_path,
-            sep="\t",
-            header=True,
-            schema=cls.raw_lbf_schema,
+        return (
+            session.spark.read.csv(
+                lbf_path,
+                sep="\t",
+                header=True,
+                schema=cls.raw_lbf_schema,
+            )
+            .withColumn(
+                "dataset_id",
+                cls._extract_dataset_id_from_file_path(f.input_file_name()),
+            )
+            .distinct()
         )

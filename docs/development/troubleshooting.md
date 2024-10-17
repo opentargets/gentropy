@@ -39,3 +39,29 @@ Another solution which helps is to remove Node, NodeJS, and npm from your system
 On Ubuntu, this can be done using `sudo apt remove node nodejs npm`, followed by `sudo apt autoremove`. But in some cases, depending on your existing installation, you may need to also manually remove some files. See [this StackOverflow answer](https://stackoverflow.com/a/41057802) for guidance.
 
 After running these commands, you are advised to open a fresh shell, and then also reinstall Pyenv and Poetry to make sure they pick up the changes (see relevant section above).
+
+## MacOS
+
+Some functions on MacOS may throw a java error:
+
+`python3.10/site-packages/py4j/protocol.py:326: Py4JJavaError`
+
+This can be resolved by adding the follow line to your `~/.zshrc`:
+
+`export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
+
+## Creating development dataproc cluster (OT users only)
+
+To start dataproc cluster in the development mode run
+
+```
+make create-dev-cluster
+```
+
+The command above will prepare 3 different resources:
+
+- gentropy package
+- cli script
+- cluster setup script
+
+and based on the branch ref (for example `dev`) will create a namespaced folder under GCS (`gs://genetics_etl_python_playground/initialisation/gentropy/dev`) with the three files described above. These files will be then used to create the cluster environment.

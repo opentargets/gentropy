@@ -3,14 +3,14 @@
 from typing import Any
 
 import pytest
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.summary_statistics import SummaryStatistics
 
 from docs.src_snippets.howto.python_api.c_applying_methods import (
     apply_class_method_clumping,
     apply_class_method_pics,
     apply_instance_method,
 )
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,5 @@
 """Clumps GWAS significant variants to generate a studyLocus dataset of independent variants."""
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -20,6 +19,7 @@ class LDclumping:
     @staticmethod
     def _is_lead_linked(
         study_id: Column,
+        chromosome: Column,
         variant_id: Column,
         p_value_exponent: Column,
         p_value_mantissa: Column,
@@ -29,6 +29,7 @@ class LDclumping:
 
         Args:
             study_id (Column): studyId
+            chromosome (Column): chromosome
             variant_id (Column): Lead variant id
             p_value_exponent (Column): p-value exponent
             p_value_mantissa (Column): p-value mantissa
@@ -37,30 +38,30 @@ class LDclumping:
         Returns:
             Column: Boolean in which True indicates that the lead is linked to another tag in the same dataset.
         """
-        leads_in_study = f.collect_set(variant_id).over(Window.partitionBy(study_id))
-        tags_in_studylocus = f.array_union(
-            # Get all tag variants from the credible set per studyLocusId
-            f.transform(ld_set, lambda x: x.tagVariantId),
-            # And append the lead variant so that the intersection is the same for all studyLocusIds in a study
-            f.array(variant_id),
+        # Partitoning data by study and chromosome - this is the scope for looking for linked loci.
+        # Within the partition, we order the data by increasing p-value, and we collect the more significant lead variants in the window.
+        windowspec = (
+            Window.partitionBy(study_id, chromosome)
+            .orderBy(p_value_exponent.asc(), p_value_mantissa.asc())
+            .rowsBetween(Window.unboundedPreceding, Window.currentRow)
         )
-        intersect_lead_tags = f.array_sort(
-            f.array_intersect(leads_in_study, tags_in_studylocus)
-        )
-        return (
-            # If the lead is in the credible set, we rank the peaks by p-value
-            f.when(
-                f.size(intersect_lead_tags) > 0,
-                f.row_number().over(
-                    Window.partitionBy(study_id, intersect_lead_tags).orderBy(
-                        p_value_exponent, p_value_mantissa
-                    )
-                )
-                > 1,
+        more_significant_leads = f.collect_set(variant_id).over(windowspec)
+
+        # Collect all variants from the ld_set + adding the lead variant to the list to make sure that the lead is always in the list.
+        tags_in_studylocus = f.array_distinct(
+            f.array_union(
+                f.array(variant_id),
+                f.transform(ld_set, lambda x: x.getField("tagVariantId")),
             )
-            # If the intersection is empty (lead is not in the credible set or cred set is empty), the association is not linked
-            .otherwise(f.lit(False))
         )
+
+        # If more than one tags of the ld_set can be found in the list of the more significant leads, the lead is linked.
+        # Study loci without variantId is considered as not linked.
+        # Also leads that were not found in the LD index is also considered as not linked.
+        return f.when(
+            variant_id.isNotNull(),
+            f.size(f.array_intersect(more_significant_leads, tags_in_studylocus)) > 1,
+        ).otherwise(f.lit(False))
 
     @classmethod
     def clump(cls: type[LDclumping], associations: StudyLocus) -> StudyLocus:
