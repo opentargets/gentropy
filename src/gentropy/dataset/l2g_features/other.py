@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql.window import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.gene_index import GeneIndex
@@ -37,26 +38,45 @@ def common_genecount_feature_logic(
     Returns:
             DataFrame: Feature dataset
     """
-    if protein_coding_only:
-        gene_index.df = gene_index.df.filter(f.col("biotype") == "protein_coding")
 
-    return (
+    study_loci_window = (
         study_loci_to_annotate.df.withColumn(
             "window_start", f.col("position") - (genomic_window / 2)
         )
         .withColumn("window_end", f.col("position") + (genomic_window / 2))
-        .alias("study_loci_window")
-        .join(
+        .withColumnRenamed("chromosome", "SL_chromosome")
+    )
+
+    if protein_coding_only:
+        gene_index.df = gene_index.df.filter(f.col("biotype") == "protein_coding")
+
+    distinct_gene_counts = (
+        study_loci_window.join(
             gene_index.df.alias("genes"),
-            (
-                (f.col("study_loci_window.chromosome") == f.col("genes.chromosome"))
-                & (f.col("genes.tss") >= f.col("study_loci_window.window_start"))
-                & (f.col("genes.tss") <= f.col("study_loci_window.window_end"))
+            on=(
+                (f.col("SL_chromosome") == f.col("genes.chromosome"))
+                & (f.col("genes.tss") >= f.col("window_start"))
+                & (f.col("genes.tss") <= f.col("window_end"))
             ),
-            how="left",
+            how="inner",
         )
         .groupBy("studyLocusId")
         .agg(f.countDistinct("geneId").alias(feature_name))
+    )
+
+    return (
+        study_loci_window.join(
+            gene_index.df.alias("genes"),
+            on=(
+                (f.col("SL_chromosome") == f.col("genes.chromosome"))
+                & (f.col("genes.tss") >= f.col("window_start"))
+                & (f.col("genes.tss") <= f.col("window_end"))
+            ),
+            how="inner",
+        )
+        .join(distinct_gene_counts, on="studyLocusId", how="inner")
+        .select("studyLocusId", "geneId", feature_name)
+        .distinct()
     )
 
 
@@ -93,10 +113,10 @@ class GeneCountFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 gene_count_df,
-                id_vars="studyLocusId",
+                id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
-            ).withColumn("featureName", f.lit(cls.feature_name)),
+            ),
             _schema=cls.get_schema(),
         )
 
@@ -135,9 +155,9 @@ class ProteinGeneCountFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 gene_count_df,
-                id_vars="studyLocusId",
+                id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
-            ).withColumn("featureName", f.lit(cls.feature_name)),
+            ),
             _schema=cls.get_schema(),
         )
