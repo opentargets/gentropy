@@ -57,8 +57,8 @@ class TestFinemap:
 def test__finemap_udf() -> None:
     """Test the _finemap UDF with a simple case."""
     ld_set = [
-        Row(variantId="var1", r2Overall=0.8),
-        Row(variantId="var2", r2Overall=1),
+        Row(tagVariantId="var1", r2Overall=0.8),
+        Row(tagVariantId="var2", r2Overall=1),
     ]
     result = PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
     expected = [
