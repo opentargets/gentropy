@@ -18,24 +18,6 @@ class TestOntologyParger:
     SAMPLE_UBERON_PATH = "tests/gentropy/data_samples/uberon_sample.json"
     SAMPLE_EFO_PATH = "tests/gentropy/data_samples/efo_biosample_sample.json"
 
-    def test_cell_ontology_parser(
-        self: TestOntologyParger, spark: SparkSession
-    ) -> None:
-        """Test cell ontology parser."""
-        cell_ontology = extract_ontology_from_json(
-            self.SAMPLE_CELL_ONTOLOGY_PATH, spark
-        )
-        assert isinstance(
-            cell_ontology, BiosampleIndex
-        ), "Cell ontology subset is not parsed correctly to BiosampleIndex."
-
-    def test_uberon_parser(self: TestOntologyParger, spark: SparkSession) -> None:
-        """Test uberon parser."""
-        uberon = extract_ontology_from_json(self.SAMPLE_UBERON_PATH, spark)
-        assert isinstance(
-            uberon, BiosampleIndex
-        ), "Uberon subset is not parsed correctly to BiosampleIndex."
-
     def test_ontology_parser(self: TestOntologyParger, spark: SparkSession) -> None:
         """Test all ontology parsers."""
         cell_ontology = extract_ontology_from_json(
