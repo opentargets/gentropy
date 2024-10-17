@@ -161,7 +161,8 @@ class PICS:
                 continue
 
             # Chaing chema:
-            tag_dict["variantId"] = tag_dict.pop("tagVariantId")
+            if "tagVariantId" in tag_dict:
+                tag_dict["variantId"] = tag_dict.pop("tagVariantId")
 
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
