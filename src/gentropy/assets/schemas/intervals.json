@@ -20,6 +20,12 @@
     },
     {
       "metadata": {},
+      "name": "variantId",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
       "name": "geneId",
       "nullable": false,
       "type": "string"

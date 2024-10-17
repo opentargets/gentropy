@@ -8,6 +8,7 @@ import pytest
 from pyspark.sql.types import ArrayType, DoubleType, StringType, StructField, StructType
 
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
@@ -16,18 +17,6 @@ from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
-
-
-def test_select_features_inheritance(
-    spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
-) -> None:
-    """Test L2GFeatureMatrix.select_features method inherits the instance attributes in the new instance."""
-    new_instance = mock_l2g_feature_matrix.select_features(
-        features_list=["distanceTssMean"]
-    )
-    assert new_instance.features_list == ["distanceTssMean"]
-    # Because the feature matrix contains the gold standard flag information, the new fixed colums should be the same
-    assert "goldStandardSet" in new_instance.fixed_cols
 
 
 class TestFromFeaturesList:
@@ -40,11 +29,12 @@ class TestFromFeaturesList:
         self: TestFromFeaturesList,
     ) -> None:
         """Test building feature matrix for a SL with the eQtlColocH4Maximum feature."""
-        features_list = ["eQtlColocH4Maximum"]
+        features_list = ["eQtlColocH4Maximum", "pchicMean"]
         loader = L2GFeatureInputLoader(
             colocalisation=self.sample_colocalisation,
             study_index=self.sample_study_index,
             study_locus=self.sample_study_locus,
+            intervals=self.sample_intervals,
         )
         fm = L2GFeatureMatrix.from_features_list(
             self.sample_study_locus, features_list, loader
@@ -58,11 +48,12 @@ class TestFromFeaturesList:
         self: TestFromFeaturesList,
     ) -> None:
         """Test building feature matrix for a gold standard with the eQtlColocH4Maximum feature."""
-        features_list = ["eQtlColocH4Maximum"]
+        features_list = ["eQtlColocH4Maximum", "pchicMean"]
         loader = L2GFeatureInputLoader(
             colocalisation=self.sample_colocalisation,
             study_index=self.sample_study_index,
             study_locus=self.sample_study_locus,
+            intervals=self.sample_intervals,
         )
         fm = L2GFeatureMatrix.from_features_list(
             self.sample_gold_standard, features_list, loader
@@ -153,4 +144,23 @@ class TestFromFeaturesList:
                 ],
             ),
             _schema=Colocalisation.get_schema(),
+        )
+        self.sample_intervals = Intervals(
+            _df=spark.createDataFrame(
+                [
+                    ("X", 100, 200, "var1", "g1", 10, "javierre2016", "pchic"),
+                    ("X", 300, 400, "var2", "g1", 20, "javierre2016", "pchic"),
+                ],
+                [
+                    "chromosome",
+                    "start",
+                    "end",
+                    "variantId",
+                    "geneId",
+                    "resourceScore",
+                    "datasourceId",
+                    "datatypeId",
+                ],
+            ),
+            _schema=Intervals.get_schema(),
         )
