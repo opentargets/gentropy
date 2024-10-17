@@ -303,7 +303,7 @@ class TestCommonColocalisationFeatureLogic:
             study_locus=self.sample_study_locus,
             gene_index=sample_gene_index,
             variant_index=sample_variant_index,
-        ).withColumn(feature_name, f.round(f.col(feature_name), 2))
+        ).withColumn(feature_name, f.round(f.col(feature_name), 3))
         # expected average is (0.81 + 0)/2 = 0.405
         expected_df = spark.createDataFrame(
             [
