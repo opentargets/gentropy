@@ -81,7 +81,6 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         .withColumnSpec("h2", percentNulls=0.1)
         .withColumnSpec("h3", percentNulls=0.1)
         .withColumnSpec("h4", percentNulls=0.1)
-        .withColumnSpec("log2h4h3", percentNulls=0.1)
         .withColumnSpec("clpp", percentNulls=0.1)
         .withColumnSpec(
             "colocalisationMethod",
@@ -460,22 +459,20 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_finemapping_credible_sets(spark: SparkSession) -> DataFrame:
+def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
-    return spark.read.option("delimiter", "\t").csv(
-        "tests/gentropy/data_samples/QTD000584.credible_sets.tsv",
-        header=True,
-        schema=EqtlCatalogueFinemapping.raw_credible_set_schema,
+    return EqtlCatalogueFinemapping.read_credible_set_from_source(
+        session,
+        credible_set_path=["tests/gentropy/data_samples/QTD000584.credible_sets.tsv"],
     )
 
 
 @pytest.fixture()
-def sample_eqtl_catalogue_finemapping_lbf(spark: SparkSession) -> DataFrame:
+def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
-    return spark.read.option("delimiter", "\t").csv(
-        "tests/gentropy/data_samples/QTD000584.lbf_variable.txt",
-        header=True,
-        schema=EqtlCatalogueFinemapping.raw_lbf_schema,
+    return EqtlCatalogueFinemapping.read_lbf_from_source(
+        session,
+        lbf_path=["tests/gentropy/data_samples/QTD000584.lbf_variable.txt"],
     )
 
 
