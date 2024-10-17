@@ -733,8 +733,11 @@ class SusieFineMapperStep:
         # Desision tree - qulityControls
         invalid_reasons = [
             "The PZ QC check values are not within the expected range.",
-            "adfasfd",
-            "asdfasdf",
+            "GWAS Catalog study has not been curated by Open Targets.",
+            "The number of SNPs in the study is below the expected threshold.",
+            "The mean beta QC check value is not within the expected range.",
+            "The GC lambda value is not within the expected range.",
+            "Harmonized summary statistics are not available or empty.",
         ]
         x_boolean = (
             study_index_df.withColumn(
@@ -916,6 +919,14 @@ class SusieFineMapperStep:
             upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
         )
         np.fill_diagonal(gnomad_ld, 1)
+
+        # Desision tree - number of variants
+        if gwas_index.count() < 100:
+            logging.warning("Less than 100 variants after joining GWAS and LD index")
+            return None
+        elif gwas_index.count() >= 15_000:
+            logging.warning("More than 15000 variants after joining GWAS and LD index")
+            return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,
