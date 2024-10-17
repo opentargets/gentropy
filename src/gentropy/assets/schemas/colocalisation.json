@@ -72,6 +72,12 @@
       "type": "double",
       "nullable": true,
       "metadata": {}
+    },
+    {
+      "name": "betaRatioSignAverage",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
     }
   ]
 }
