@@ -160,6 +160,9 @@ class PICS:
                 # If PICS cannot be calculated, we drop the variant from the credible set
                 continue
 
+            # Chaing chema:
+            tag_dict["variantId"] = tag_dict.pop("tagVariantId")
+
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
                 lead_neglog_p, tag_dict["r2Overall"], k
