@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
 
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
@@ -41,12 +42,27 @@ def test_parse_susie_results(
     )
 
 
-def test_credsets_from_susie_results(processed_finemapping_df: DataFrame) -> None:
-    """Test creating a study locus from SuSIE results."""
-    assert isinstance(
-        EqtlCatalogueFinemapping.from_susie_results(processed_finemapping_df),
-        StudyLocus,
-    )
+class TestEqtlCatalogueStudyLocus:
+    """Test the correctness of the study locus dataset from eQTL Catalogue."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, processed_finemapping_df: DataFrame) -> DataFrame:
+        """Set up the test."""
+        self.study_locus = EqtlCatalogueFinemapping.from_susie_results(
+            processed_finemapping_df
+        )
+
+    def test_credsets_from_susie_results(self: TestEqtlCatalogueStudyLocus) -> None:
+        """Test creating a study locus from SuSIE results."""
+        assert isinstance(self.study_locus, StudyLocus)
+
+    def test_locus_uniqueness(self: TestEqtlCatalogueStudyLocus) -> None:
+        """Test the uniqueness of the locus."""
+        find_discrepancies = self.study_locus.df.select(
+            f.size("locus").alias("locus_size"),
+            f.size(f.array_distinct("locus")).alias("locus_distinct_size"),
+        ).filter(f.col("locus_size") != f.col("locus_distinct_size"))
+        assert find_discrepancies.count() == 0
 
 
 def test_studies_from_susie_results(processed_finemapping_df: DataFrame) -> None:

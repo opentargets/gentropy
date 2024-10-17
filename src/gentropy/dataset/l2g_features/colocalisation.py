@@ -158,6 +158,13 @@ def common_neighbourhood_colocalisation_feature_logic(
         colocalisation=colocalisation,
         study_index=study_index,
         study_locus=study_locus,
+    ).join(gene_index.df.select("geneId", "biotype"), "geneId", "left")
+    # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+    # (non protein coding genes in the vicinity are excluded see #3552)
+    regional_mean_per_study_locus = (
+        local_max.filter(f.col("biotype") == "protein_coding")
+        .groupBy("studyLocusId")
+        .agg(f.mean(local_feature_name).alias("regional_mean"))
     )
     extended_local_max = local_max.unionByName(
         extend_missing_colocalisation_to_neighbourhood_genes(
