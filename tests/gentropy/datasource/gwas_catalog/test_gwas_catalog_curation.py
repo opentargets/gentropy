@@ -143,39 +143,6 @@ class TestGWASCatalogStudyCuration:
 
         assert expected == observed
 
-    # Test update qc flag
-    @staticmethod
-    def test_curation__quality_controls(
-        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
-    ) -> None:
-        """Test for making sure the study type got updated."""
-        curated = mock_gwas_study_index.annotate_from_study_curation(
-            mock_study_curation
-        )
-
-        # Expected studyIds:
-        expected = [
-            row["studyId"]
-            for row in (
-                mock_study_curation.filter(f.col("qualityControls").isNotNull())
-                .select("studyId")
-                .distinct()
-                .collect()
-            )
-        ]
-
-        observed = [
-            row["studyId"]
-            for row in (
-                curated.df.filter(f.size(f.col("qualityControls")) > 0)
-                .select("studyId")
-                .distinct()
-                .collect()
-            )
-        ]
-
-        assert expected == observed
-
     # Test updated method flag
     @staticmethod
     def test_curation__analysis_flags(

@@ -13,6 +13,7 @@ from pyspark.sql import functions as f
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
+from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -32,13 +33,29 @@ class StudyQualityCheck(Enum):
         UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
         UNKNOWN_BIOSAMPLE (str): Flagging if a biosample identifier is not found in the reference.
         DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
+        SUMSTATS_NOT_AVAILABLE (str): Flagging if harmonized summary statistics are not available or empty.
+        NO_OT_CURATION (str): Flagging if a study has not been curated by Open Targets.
+        FAILED_MEAN_BETA_CHECK (str): Flagging if the mean beta QC check value is not within the expected range.
+        FAILED_PZ_CHECK (str): Flagging if the PZ QC check values are not within the expected range.
+        FAILED_GC_LAMBDA_CHECK (str): Flagging if the GC lambda value is not within the expected range.
+        SMALL_NUMBER_OF_SNPS (str): Flagging if the number of SNPs in the study is below the expected threshold.
     """
 
-    UNRESOLVED_TARGET = "Target/gene identifier could not match to reference."
-    UNRESOLVED_DISEASE = "No valid disease identifier found."
-    UNKNOWN_STUDY_TYPE = "This type of study is not supported."
-    UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference."
-    DUPLICATED_STUDY = "The identifier of this study is not unique."
+    UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
+    UNRESOLVED_DISEASE = "No valid disease identifier found"
+    UNKNOWN_STUDY_TYPE = "This type of study is not supported"
+    UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference"
+    DUPLICATED_STUDY = "The identifier of this study is not unique"
+    SUMSTATS_NOT_AVAILABLE = "Harmonized summary statistics are not available or empty"
+    NO_OT_CURATION = "GWAS Catalog study has not been curated by Open Targets"
+    FAILED_MEAN_BETA_CHECK = (
+        "The mean beta QC check value is not within the expected range"
+    )
+    FAILED_PZ_CHECK = "The PZ QC check values are not within the expected range"
+    FAILED_GC_LAMBDA_CHECK = "The GC lambda value is not within the expected range"
+    SMALL_NUMBER_OF_SNPS = (
+        "The number of SNPs in the study is below the expected threshold"
+    )
 
 
 @dataclass
@@ -410,7 +427,9 @@ class StudyIndex(Dataset):
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
-    def validate_biosample(self: StudyIndex, biosample_index: BiosampleIndex) -> StudyIndex:
+    def validate_biosample(
+        self: StudyIndex, biosample_index: BiosampleIndex
+    ) -> StudyIndex:
         """Validating biosample identifiers in the study index against the provided biosample index.
 
         Args:
@@ -419,7 +438,9 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: where non-gwas studies are flagged if biosampleIndex could not be validated.
         """
-        biosample_set = biosample_index.df.select("biosampleId", f.lit(True).alias("isIdFound"))
+        biosample_set = biosample_index.df.select(
+            "biosampleId", f.lit(True).alias("isIdFound")
+        )
 
         # If biosampleId in df, we need to drop it:
         if "biosampleId" in self.df.columns:
@@ -430,7 +451,11 @@ class StudyIndex(Dataset):
             return self
 
         validated_df = (
-            self.df.join(biosample_set, self.df.biosampleFromSourceId == biosample_set.biosampleId, how="left")
+            self.df.join(
+                biosample_set,
+                self.df.biosampleFromSourceId == biosample_set.biosampleId,
+                how="left",
+            )
             .withColumn(
                 "isIdFound",
                 f.when(
@@ -450,3 +475,118 @@ class StudyIndex(Dataset):
         )
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
+
+    def annotate_sumstats_qc(
+        self: StudyIndex,
+        sumstats_qc: DataFrame,
+        threshold_mean_beta: float = 0.05,
+        threshold_mean_diff_pz: float = 0.05,
+        threshold_se_diff_pz: float = 0.05,
+        threshold_min_gc_lambda: float = 0.7,
+        threshold_max_gc_lambda: float = 2.5,
+        threshold_min_n_variants: int = 2_000_000,
+    ) -> StudyIndex:
+        """Annotate summary stats QC information.
+
+        Args:
+            sumstats_qc (DataFrame): containing summary statistics-based quality controls.
+            threshold_mean_beta (float): Threshold for mean beta check. Defaults to 0.05.
+            threshold_mean_diff_pz (float): Threshold for mean diff PZ check. Defaults to 0.05.
+            threshold_se_diff_pz (float): Threshold for SE diff PZ check. Defaults to 0.05.
+            threshold_min_gc_lambda (float): Minimum threshold for GC lambda check. Defaults to 0.7.
+            threshold_max_gc_lambda (float): Maximum threshold for GC lambda check. Defaults to 2.5.
+            threshold_min_n_variants (int): Minimum number of variants for SuSiE check. Defaults to 2_000_000.
+
+        Returns:
+            StudyIndex: Updated study index with QC information
+        """
+        # convert all columns in sumstats_qc dataframe in array of structs grouped by studyId
+        cols = [c for c in sumstats_qc.columns if c != "studyId"]
+
+        studies = self.df
+
+        melted_df = convert_from_wide_to_long(
+            sumstats_qc,
+            id_vars=["studyId"],
+            value_vars=cols,
+            var_name="QCCheckName",
+            value_name="QCCheckValue",
+        )
+
+        qc_df = (
+            melted_df.groupBy("studyId")
+            .agg(
+                f.map_from_entries(
+                    f.collect_list(
+                        f.struct(f.col("QCCheckName"), f.col("QCCheckValue"))
+                    )
+                ).alias("sumStatQCValues")
+            )
+            .select("studyId", "sumstatQCValues")
+        )
+
+        df = (
+            studies.drop("sumStatQCValues", "hasSumstats")
+            .join(
+                qc_df.withColumn("hasSumstats", f.lit(True)), how="left", on="studyId"
+            )
+            .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~f.col("hasSumstats"),
+                    StudyQualityCheck.SUMSTATS_NOT_AVAILABLE,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~(f.abs(f.col("sumstatQCValues.mean_beta")) <= threshold_mean_beta),
+                    StudyQualityCheck.FAILED_MEAN_BETA_CHECK,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~(
+                        (
+                            f.abs(f.col("sumstatQCValues.mean_diff_pz"))
+                            <= threshold_mean_diff_pz
+                        )
+                        & (f.col("sumstatQCValues.se_diff_pz") <= threshold_se_diff_pz)
+                    ),
+                    StudyQualityCheck.FAILED_PZ_CHECK,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    ~(
+                        (f.col("sumstatQCValues.gc_lambda") <= threshold_max_gc_lambda)
+                        & (
+                            f.col("sumstatQCValues.gc_lambda")
+                            >= threshold_min_gc_lambda
+                        )
+                    ),
+                    StudyQualityCheck.FAILED_GC_LAMBDA_CHECK,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    (f.col("sumstatQCValues.n_variants") < threshold_min_n_variants),
+                    StudyQualityCheck.SMALL_NUMBER_OF_SNPS,
+                ),
+            )
+        )
+
+        # Annotate study index with QC information:
+        return StudyIndex(
+            _df=df,
+            _schema=StudyIndex.get_schema(),
+        )
