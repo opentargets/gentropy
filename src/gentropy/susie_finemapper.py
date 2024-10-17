@@ -63,6 +63,12 @@ class SusieFineMapperStep:
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
+        Method require a `study_locus_manifest_path` file that will contain ["study_locus_input", "study_locus_output", "log_file"]. `log_file`
+        is optional parameter to the manifest. In case it does not exist, the logs from the finemapper are saved under the same directory
+        as the `study_locus_output` with `.log` suffix.
+        Each execution of the method will only evaluate a single row from the `study_locus_manifest` that is inferred from the `study_locus_index`
+        variable.
+
         Args:
             session (Session): Spark session
             study_index_path (str): path to the study index
@@ -88,6 +94,9 @@ class SusieFineMapperStep:
         row = study_locus_manifest.loc[study_locus_index]
         study_locus_input = row["study_locus_input"]
         study_locus_output = row["study_locus_output"]
+        log_output = study_locus_output + ".log"
+        if "log_output" in study_locus_manifest.columns:
+            log_output = study_locus_manifest["log_output"]
 
         # Read studyLocus
         study_locus = (
@@ -140,7 +149,7 @@ class SusieFineMapperStep:
             if result_logging["log"] is not None:
                 # Write log
                 result_logging["log"].to_parquet(
-                    study_locus_output + ".log",
+                    log_output,
                     engine="pyarrow",
                     index=False,
                 )
