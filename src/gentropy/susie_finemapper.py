@@ -599,21 +599,40 @@ class SusieFineMapperStep:
 
         end_time = time.time()
 
-        log_df = pd.DataFrame(
-            {
-                "studyId": studyId,
-                "region": region,
-                "N_gwas_before_dedupl": N_gwas_before_dedupl,
-                "N_gwas": N_gwas,
-                "N_ld": N_ld,
-                "N_overlap": N_after_merge,
-                "N_outliers": N_outliers,
-                "N_imputed": N_imputed,
-                "N_final_to_fm": len(ld_to_fm),
-                "elapsed_time": end_time - start_time,
-            },
-            index=[0],
-        )
+        if study_locus is not None:
+            log_df = pd.DataFrame(
+                {
+                    "studyId": studyId,
+                    "region": region,
+                    "N_gwas_before_dedupl": N_gwas_before_dedupl,
+                    "N_gwas": N_gwas,
+                    "N_ld": N_ld,
+                    "N_overlap": N_after_merge,
+                    "N_outliers": N_outliers,
+                    "N_imputed": N_imputed,
+                    "N_final_to_fm": len(ld_to_fm),
+                    "elapsed_time": end_time - start_time,
+                    "number_of_CS": study_locus.df.count(),
+                },
+                index=[0],
+            )
+        else:
+            log_df = pd.DataFrame(
+                {
+                    "studyId": studyId,
+                    "region": region,
+                    "N_gwas_before_dedupl": N_gwas_before_dedupl,
+                    "N_gwas": N_gwas,
+                    "N_ld": N_ld,
+                    "N_overlap": N_after_merge,
+                    "N_outliers": N_outliers,
+                    "N_imputed": N_imputed,
+                    "N_final_to_fm": len(ld_to_fm),
+                    "elapsed_time": end_time - start_time,
+                    "number_of_CS": 0,
+                },
+                index=[0],
+            )
 
         return {
             "study_locus": study_locus,
