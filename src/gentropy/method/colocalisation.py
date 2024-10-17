@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Protocol
 import numpy as np
 import pyspark.ml.functions as fml
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
@@ -172,7 +173,9 @@ class ECaviar(ColocalisationMethodInterface):
                             f.collect_list(f.col("tagVariantSource")),
                             lambda x: x == "both",
                         )
-                    ).alias("numberColocalisingVariants"),
+                    )
+                    .cast(t.LongType())
+                    .alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
                 )
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
@@ -288,7 +291,9 @@ class Coloc(ColocalisationMethodInterface):
                             f.collect_list(f.col("tagVariantSource")),
                             lambda x: x == "both",
                         )
-                    ).alias("numberColocalisingVariants"),
+                    )
+                    .cast(t.LongType())
+                    .alias("numberColocalisingVariants"),
                     fml.array_to_vector(f.collect_list(f.col("left_logBF"))).alias(
                         "left_logBF"
                     ),
