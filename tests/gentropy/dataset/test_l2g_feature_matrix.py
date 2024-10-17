@@ -5,9 +5,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.sql.types import ArrayType, DoubleType, StringType, StructField, StructType
+from pyspark.sql.types import (
+    ArrayType,
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
@@ -89,6 +97,8 @@ class TestFromFeaturesList:
                         "1",
                         "var1",
                         "gwas1",
+                        "X",
+                        "1",
                         [
                             {"variantId": "var1", "posteriorProbability": 0.8},
                             {"variantId": "var12", "posteriorProbability": 0.2},
@@ -98,6 +108,8 @@ class TestFromFeaturesList:
                         "2",
                         "var2",
                         "eqtl1",
+                        "X",
+                        "10",
                         [
                             {"variantId": "var2", "posteriorProbability": 1.0},
                         ],
@@ -108,6 +120,8 @@ class TestFromFeaturesList:
                         StructField("studyLocusId", StringType(), True),
                         StructField("variantId", StringType(), True),
                         StructField("studyId", StringType(), True),
+                        StructField("chromosome", StringType(), True),
+                        StructField("position", IntegerType(), True),
                         StructField(
                             "locus",
                             ArrayType(
@@ -153,4 +167,19 @@ class TestFromFeaturesList:
                 ],
             ),
             _schema=Colocalisation.get_schema(),
+        )
+        self.sample_gene_index = GeneIndex(
+            _df=spark.createDataFrame(
+                [
+                    ("g1", "X", "protein_coding", "200"),
+                    ("g2", "X", "protein_coding", "300"),
+                ],
+                [
+                    "geneId",
+                    "chromosome",
+                    "biotype",
+                    "tss",
+                ],
+            ),
+            _schema=GeneIndex.get_schema(),
         )
