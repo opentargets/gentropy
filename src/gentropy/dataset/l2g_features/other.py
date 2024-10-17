@@ -49,9 +49,9 @@ def common_genecount_feature_logic(
         .join(
             gene_index.df.alias("genes"),
             (
-                (f.col("annotated.chromosome") == f.col("genes.chromosome"))
-                & (f.col("genes.tss") >= f.col("annotated.window_start"))
-                & (f.col("genes.tss") <= f.col("annotated.window_end"))
+                (f.col("study_loci_window.chromosome") == f.col("genes.chromosome"))
+                & (f.col("genes.tss") >= f.col("study_loci_window.window_start"))
+                & (f.col("genes.tss") <= f.col("study_loci_window.window_end"))
             ),
             how="left",
         )
