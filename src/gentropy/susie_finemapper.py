@@ -324,8 +324,8 @@ class SusieFineMapperStep:
         df = pd.DataFrame(
             {
                 "credibleSetIndex": cred_set_index,
-                "purityMeanR2": purity_mean_r2,
-                "purityMinR2": purity_min_r2,
+                "purityMeanR2": list_purity_mean_r2,
+                "purityMinR2": list_purity_min_r2,
                 "zScore": z_values,
                 "neglogpval": neglogpval,
             }
@@ -357,6 +357,7 @@ class SusieFineMapperStep:
         cred_sets = cred_sets.filter(
             (f.col("neglogpval") >= -np.log10(lead_pval_threshold))
             & (f.col("credibleSetlog10BF") >= cs_lbf_thr * 0.4342944819)
+            & (~f.isnan(f.col("credibleSetlog10BF")))
             & (f.col("purityMinR2") >= purity_min_r2_threshold)
             & (f.col("purityMeanR2") >= purity_mean_r2_threshold)
         )
