@@ -48,11 +48,12 @@ class TestFromFeaturesList:
         self: TestFromFeaturesList,
     ) -> None:
         """Test building feature matrix for a SL with the eQtlColocH4Maximum feature."""
-        features_list = ["eQtlColocH4Maximum"]
+        features_list = ["eQtlColocH4Maximum", "geneCount500kb"]
         loader = L2GFeatureInputLoader(
             colocalisation=self.sample_colocalisation,
             study_index=self.sample_study_index,
             study_locus=self.sample_study_locus,
+            gene_index=self.sample_gene_index,
         )
         fm = L2GFeatureMatrix.from_features_list(
             self.sample_study_locus, features_list, loader
@@ -98,7 +99,7 @@ class TestFromFeaturesList:
                         "var1",
                         "gwas1",
                         "X",
-                        "1",
+                        2,
                         [
                             {"variantId": "var1", "posteriorProbability": 0.8},
                             {"variantId": "var12", "posteriorProbability": 0.2},
@@ -109,7 +110,7 @@ class TestFromFeaturesList:
                         "var2",
                         "eqtl1",
                         "X",
-                        "10",
+                        10,
                         [
                             {"variantId": "var2", "posteriorProbability": 1.0},
                         ],
@@ -171,8 +172,8 @@ class TestFromFeaturesList:
         self.sample_gene_index = GeneIndex(
             _df=spark.createDataFrame(
                 [
-                    ("g1", "X", "protein_coding", "200"),
-                    ("g2", "X", "protein_coding", "300"),
+                    ("g1", "X", "protein_coding", 200),
+                    ("g2", "X", "protein_coding", 300),
                 ],
                 [
                     "geneId",
