@@ -68,7 +68,7 @@ def get_tag_variant_source(statistics: Column) -> Column:
         .otherwise(f.lit("right"))
     )
 
-  
+
 class ColocalisationMethodInterface(Protocol):
     """Colocalisation method interface."""
 
