@@ -696,6 +696,12 @@ class SusieFineMapperStep:
 
         study_index_df = study_index._df
         study_index_df = study_index_df.filter(f.col("studyId") == studyId)
+
+        # Desision tree - study index
+        if study_index_df.count() == 0:
+            logging.warning("No study index found for the studyId")
+            return None
+
         major_population = study_index_df.select(
             "studyId",
             order_array_of_structs_by_field(
@@ -708,6 +714,66 @@ class SusieFineMapperStep:
             N_total = 100_000
 
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
+
+        # Desision tree - studyType
+        if study_index_df.select("studyType").collect()[0]["studyType"] != "gwas":
+            logging.warning("Study type is not GWAS")
+            return None
+
+        # Desision tree - ancestry
+        if major_population not in ["nfe", "csa", "afr"]:
+            logging.warning("Major ancestry is not nfe, csa or afr")
+            return None
+
+        # Desision tree - hasSumstats
+        if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:
+            logging.warning("No sumstats found for the studyId")
+            return None
+
+        # Desision tree - qulityControls
+        invalid_reasons = [
+            "The PZ QC check values are not within the expected range.",
+            "adfasfd",
+            "asdfasdf",
+        ]
+        x_boolean = (
+            study_index_df.withColumn(
+                "FailedQC",
+                f.arrays_overlap(
+                    f.col("qualityControls"),
+                    f.array([f.lit(reason) for reason in invalid_reasons]),
+                ),
+            )
+            .select("FailedQC")
+            .collect()[0]["FailedQC"]
+        )
+        if x_boolean:
+            logging.warning("Quality control check failed for this study")
+            return None
+
+        # Desision tree - analysisFlags
+        invalid_reasons = [
+            "Multivariate analysis",
+            "ExWAS",
+            "Non-additive model",
+            "GxG",
+            "GxE",
+            "Case-case study",
+        ]
+        x_boolean = (
+            study_index_df.withColumn(
+                "FailedQC",
+                f.arrays_overlap(
+                    f.col("analysisFlags"),
+                    f.array([f.lit(reason) for reason in invalid_reasons]),
+                ),
+            )
+            .select("FailedQC")
+            .collect()[0]["FailedQC"]
+        )
+        if x_boolean:
+            logging.warning("analysis Flags check failed for this study")
+            return None
 
         schema = StudyLocus.get_schema()
         gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
