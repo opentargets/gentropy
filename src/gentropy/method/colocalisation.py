@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 import pyspark.ml.functions as fml
@@ -14,13 +14,41 @@ from gentropy.common.utils import get_logsum
 from gentropy.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from numpy.typing import NDArray
     from pyspark.sql import Column
 
     from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 
-class ECaviar:
+class ColocalisationMethodInterface(Protocol):
+    """Colocalisation method interface."""
+
+    METHOD_NAME: str
+    METHOD_METRIC: str
+
+    @classmethod
+    def colocalise(
+        cls, overlapping_signals: StudyLocusOverlap, **kwargs: Any
+    ) -> Colocalisation:
+        """Method to generate the colocalisation.
+
+        Args:
+            overlapping_signals (StudyLocusOverlap): Overlapping study loci.
+            **kwargs (Any): Additional keyword arguments to the colocalise method.
+
+
+        Returns:
+            Colocalisation: loci colocalisation
+
+        Raises:
+            NotImplementedError: Implement in derivative classes.
+        """
+        raise NotImplementedError("Implement in derivative classes.")
+
+
+class ECaviar(ColocalisationMethodInterface):
     """ECaviar-based colocalisation analysis.
 
     It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.
@@ -60,12 +88,15 @@ class ECaviar:
 
     @classmethod
     def colocalise(
-        cls: type[ECaviar], overlapping_signals: StudyLocusOverlap
+        cls: type[ECaviar],
+        overlapping_signals: StudyLocusOverlap,
+        **kwargs: Any,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping signals.
+            **kwargs (Any): Additional parameters passed to the colocalise method.
 
         Returns:
             Colocalisation: colocalisation results based on eCAVIAR.
@@ -95,7 +126,7 @@ class ECaviar:
         )
 
 
-class Coloc:
+class Coloc(ColocalisationMethodInterface):
     """Calculate bayesian colocalisation based on overlapping signals from credible sets.
 
     Based on the [R COLOC package](https://github.com/chr1swallace/coloc/blob/main/R/claudia.R), which uses the Bayes factors from the credible set to estimate the posterior probability of colocalisation. This method makes the simplifying assumption that **only one single causal variant** exists for any given trait in any genomic region.
@@ -143,22 +174,36 @@ class Coloc:
     def colocalise(
         cls: type[Coloc],
         overlapping_signals: StudyLocusOverlap,
-        priorc1: float = 1e-4,
-        priorc2: float = 1e-4,
-        priorc12: float = 1e-5,
+        **kwargs: float,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
+            **kwargs (float): Additional parameters passed to the colocalise method.
 
+        Keyword Args:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
 
         Returns:
             Colocalisation: Colocalisation results
+
+        Raises:
+            TypeError: When passed incorrect prior argument types.
         """
+        # Ensure priors are always present, even if not passed
+        priorc1 = kwargs.get("priorc1") or 1e-4
+        priorc2 = kwargs.get("priorc2") or 1e-4
+        priorc12 = kwargs.get("priorc12") or 1e-5
+        priors = [priorc1, priorc2, priorc12]
+        if any(not isinstance(prior, float) for prior in priors):
+            raise TypeError(
+                "Passed incorrect type(s) for prior parameters. got %s",
+                {type(p): p for p in priors},
+            )
+
         # register udfs
         logsum = f.udf(get_logsum, DoubleType())
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
