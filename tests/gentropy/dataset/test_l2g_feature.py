@@ -34,6 +34,7 @@ from gentropy.dataset.l2g_features.colocalisation import (
     SQtlColocH4MaximumNeighbourhoodFeature,
     common_colocalisation_feature_logic,
     common_neighbourhood_colocalisation_feature_logic,
+    extend_missing_colocalisation_to_neighbourhood_genes,
 )
 from gentropy.dataset.l2g_features.distance import (
     DistanceFootprintMeanFeature,
@@ -248,10 +249,46 @@ class TestCommonColocalisationFeatureLogic:
             observed_df.collect() == expected_df.collect()
         ), "The feature values are not as expected."
 
-    def test__common_neighbourhood_colocalisation_feature_logic(
+    def test_extend_missing_colocalisation_to_neighbourhood_genes(
         self: TestCommonColocalisationFeatureLogic,
         spark: SparkSession,
         sample_gene_index: GeneIndex,
+        sample_variant_index: VariantIndex,
+    ) -> None:
+        """Test the extend_missing_colocalisation_to_neighbourhood_genes function."""
+        local_features = spark.createDataFrame(
+            [
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene1",
+                    "eQtlColocH4Maximum": 0.81,
+                },
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene2",
+                    "eQtlColocH4Maximum": 0.9,
+                },
+            ],
+        )
+        observed_df = extend_missing_colocalisation_to_neighbourhood_genes(
+            feature_name="eQtlColocH4Maximum",
+            local_features=local_features,
+            variant_index=sample_variant_index,
+            gene_index=sample_gene_index,
+            study_locus=self.sample_study_locus,
+        ).select("studyLocusId", "geneId", "eQtlColocH4Maximum")
+        expected_df = spark.createDataFrame(
+            [{"geneId": "gene3", "studyLocusId": "1", "eQtlColocH4Maximum": 0.0}]
+        ).select("studyLocusId", "geneId", "eQtlColocH4Maximum")
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), "The feature values are not as expected."
+
+    def test_common_neighbourhood_colocalisation_feature_logic(
+        self: TestCommonColocalisationFeatureLogic,
+        spark: SparkSession,
+        sample_gene_index: GeneIndex,
+        sample_variant_index: VariantIndex,
     ) -> None:
         """Test the common logic of the neighbourhood colocalisation features."""
         feature_name = "eQtlColocH4MaximumNeighbourhood"
@@ -265,19 +302,20 @@ class TestCommonColocalisationFeatureLogic:
             study_index=self.sample_studies,
             study_locus=self.sample_study_locus,
             gene_index=sample_gene_index,
+            variant_index=sample_variant_index,
         ).withColumn(feature_name, f.round(f.col(feature_name), 2))
-        # expected average is (0.81)/1 = 0.81
+        # expected average is (0.81 + 0)/2 = 0.405
         expected_df = spark.createDataFrame(
             [
                 {
                     "studyLocusId": "1",
                     "geneId": "gene1",
-                    "eQtlColocH4MaximumNeighbourhood": 0.0,  # 0.81 - 0.81
+                    "eQtlColocH4MaximumNeighbourhood": 0.405,  # 0.81 - 0.405
                 },
                 {
                     "studyLocusId": "1",
                     "geneId": "gene2",
-                    "eQtlColocH4MaximumNeighbourhood": 0.09,  # 0.9 - 0.81
+                    "eQtlColocH4MaximumNeighbourhood": 0.495,  # 0.9 - 0.405
                 },
             ],
         ).select("studyLocusId", "geneId", "eQtlColocH4MaximumNeighbourhood")
