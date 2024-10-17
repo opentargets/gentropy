@@ -139,7 +139,7 @@ class ProteinGeneCountFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dictionary containing dependencies, with gene index and window size
 
         Returns:
-            GeneCountFeature: Feature dataset
+            ProteinGeneCountFeature: Feature dataset
         """
         genomic_window = 500000
         gene_count_df = common_genecount_feature_logic(
