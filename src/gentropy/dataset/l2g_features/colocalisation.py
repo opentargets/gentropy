@@ -235,7 +235,13 @@ class EQtlColocClppMaximumFeature(L2GFeature):
 class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        GeneIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "eQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -320,7 +326,13 @@ class PQtlColocClppMaximumFeature(L2GFeature):
 class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        GeneIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "pQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -404,7 +416,13 @@ class SQtlColocClppMaximumFeature(L2GFeature):
 class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        GeneIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "sQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -488,7 +506,13 @@ class EQtlColocH4MaximumFeature(L2GFeature):
 class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        GeneIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "eQtlColocH4MaximumNeighbourhood"
 
     @classmethod
@@ -572,7 +596,13 @@ class PQtlColocH4MaximumFeature(L2GFeature):
 class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        GeneIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "pQtlColocH4MaximumNeighbourhood"
 
     @classmethod
@@ -656,7 +686,13 @@ class SQtlColocH4MaximumFeature(L2GFeature):
 class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, GeneIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        GeneIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "sQtlColocH4MaximumNeighbourhood"
 
     @classmethod
