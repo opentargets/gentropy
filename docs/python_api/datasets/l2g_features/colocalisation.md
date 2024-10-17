@@ -20,4 +20,5 @@ title: From colocalisation
 ## Common logic
 
 ::: gentropy.dataset.l2g_features.colocalisation.common_colocalisation_feature_logic
+::: gentropy.dataset.l2g_features.colocalisation.extend_missing_colocalisation_to_neighbourhood_genes
 ::: gentropy.dataset.l2g_features.colocalisation.common_neighbourhood_colocalisation_feature_logic
