@@ -45,11 +45,14 @@ def common_genecount_feature_logic(
             "window_start", f.col("position") - (genomic_window / 2)
         )
         .withColumn("window_end", f.col("position") + (genomic_window / 2))
+        .alias("study_loci_window")
         .join(
-            gene_index.df,
-            (study_loci_to_annotate.df["chromosome"] == gene_index.df["chromosome"])
-            & (gene_index.df["tss"] >= study_loci_to_annotate.df["window_start"])
-            & (gene_index.df["tss"] <= study_loci_to_annotate.df["window_end"]),
+            gene_index.df.alias("genes"),
+            (
+                (f.col("annotated.chromosome") == f.col("genes.chromosome"))
+                & (f.col("genes.tss") >= f.col("annotated.window_start"))
+                & (f.col("genes.tss") <= f.col("annotated.window_end"))
+            ),
             how="left",
         )
         .groupBy("studyLocusId")
