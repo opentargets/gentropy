@@ -61,14 +61,12 @@ class ColocalisationStep:
 
         # Transform
         overlaps = credible_set.find_overlaps()
-        overlaps.df.show()
 
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise
         if colocalisation_method_params:
             coloc = partial(coloc, **colocalisation_method_params)
         colocalisation_results = coloc(overlaps)
-        colocalisation_results.df.show()
         # Load
         colocalisation_results.df.write.mode(session.write_mode).parquet(
             f"{coloc_path}/{colocalisation_method.lower()}"

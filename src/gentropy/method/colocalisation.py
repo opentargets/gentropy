@@ -30,13 +30,13 @@ class ColocalisationMethodInterface(Protocol):
 
     @classmethod
     def colocalise(
-        cls, overlapping_signals: StudyLocusOverlap, **kwargs: dict[str, Any]
+        cls, overlapping_signals: StudyLocusOverlap, **kwargs: Any
     ) -> Colocalisation:
         """Method to generate the colocalisation.
 
         Args:
             overlapping_signals (StudyLocusOverlap): Overlapping study loci.
-            **kwargs (dict[str,Any]): Additional keyword arguments to the colocalise method.
+            **kwargs (Any): Additional keyword arguments to the colocalise method.
 
 
         Returns:
@@ -90,13 +90,13 @@ class ECaviar(ColocalisationMethodInterface):
     def colocalise(
         cls: type[ECaviar],
         overlapping_signals: StudyLocusOverlap,
-        **kwargs: dict[str, Any],
+        **kwargs: Any,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping signals.
-            **kwargs (dict[str, Any]): Additional parameters passed to the colocalise method.
+            **kwargs (Any): Additional parameters passed to the colocalise method.
 
         Returns:
             Colocalisation: colocalisation results based on eCAVIAR.
@@ -174,13 +174,13 @@ class Coloc(ColocalisationMethodInterface):
     def colocalise(
         cls: type[Coloc],
         overlapping_signals: StudyLocusOverlap,
-        **kwargs: dict[str, Any],
+        **kwargs: float,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
-            **kwargs (dict[str, Any]): Additional parameters passed to the colocalise method.
+            **kwargs (float): Additional parameters passed to the colocalise method.
 
         Keyword Args:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
