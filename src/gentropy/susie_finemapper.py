@@ -324,8 +324,8 @@ class SusieFineMapperStep:
         df = pd.DataFrame(
             {
                 "credibleSetIndex": cred_set_index,
-                "purityMeanR2": purity_mean_r2,
-                "purityMinR2": purity_min_r2,
+                "purityMeanR2": list_purity_mean_r2,
+                "purityMinR2": list_purity_min_r2,
                 "zScore": z_values,
                 "neglogpval": neglogpval,
             }
