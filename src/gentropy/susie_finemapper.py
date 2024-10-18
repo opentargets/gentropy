@@ -743,7 +743,7 @@ class SusieFineMapperStep:
             "gwas",
             "pqtl",
         ]:
-            logging.warning("Study type is not GWAS")
+            logging.warning("Study type is not GWAS or non gwas catalog pqtl")
             return None
 
         # Desision tree - ancestry
