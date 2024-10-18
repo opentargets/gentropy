@@ -739,7 +739,10 @@ class SusieFineMapperStep:
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
         # Desision tree - studyType
-        if study_index_df.select("studyType").collect()[0]["studyType"] != "gwas":
+        if study_index_df.select("studyType").collect()[0]["studyType"] in [
+            "gwas",
+            "pqtl",
+        ]:
             logging.warning("Study type is not GWAS")
             return None
 
