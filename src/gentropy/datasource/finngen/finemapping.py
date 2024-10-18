@@ -206,6 +206,7 @@ class FinnGenFinemapping:
         spark: SparkSession,
         finngen_susie_finemapping_snp_files: (str | list[str]),
         finngen_susie_finemapping_cs_summary_files: (str | list[str]),
+        finngen_release_prefix: str,
         credset_lbf_threshold: float = 0.8685889638065036,
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
@@ -261,6 +262,7 @@ class FinnGenFinemapping:
             spark (SparkSession): SparkSession object.
             finngen_susie_finemapping_snp_files (str | list[str]): SuSIE finemapping output filename(s).
             finngen_susie_finemapping_cs_summary_files (str | list[str]): filename of SuSIE finemapping credible set summaries.
+            finngen_release_prefix (str): Finngen project release prefix. Should look like FINNGEN_R*.
             credset_lbf_threshold (float, optional): Filter out credible sets below, Default 0.8685889638065036 == np.log10(np.exp(2)), this is threshold from publication.
 
         Returns:
@@ -295,7 +297,9 @@ class FinnGenFinemapping:
             .filter(f.col("cs").cast(t.IntegerType()) > 0)
             .select(
                 # Add study idenfitier.
-                f.col("trait").cast(t.StringType()).alias("studyId"),
+                f.concat_ws("_", f.lit(finngen_release_prefix), f.col("trait"))
+                .cast(t.StringType())
+                .alias("studyId"),
                 f.col("region"),
                 # Add variant information.
                 f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
@@ -408,7 +412,10 @@ class FinnGenFinemapping:
                 (f.col("credibleSetlog10BF") > credset_lbf_threshold)
                 | (f.col("credibleSetIndex") == 1)
             )
-            .withColumn("studyId", f.col("trait"))
+            .withColumn(
+                "studyId",
+                f.concat_ws("_", f.lit(finngen_release_prefix), f.col("trait")),
+            )
         )
 
         processed_finngen_finemapping_df = processed_finngen_finemapping_df.join(
