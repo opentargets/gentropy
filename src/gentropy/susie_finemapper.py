@@ -736,6 +736,9 @@ class SusieFineMapperStep:
             .collect()[0]["majorPopulation"]
         )
 
+        if major_population == "eas":
+            major_population = "csa"
+
         N_total = int(study_index_df.select("nSamples").collect()[0]["nSamples"])
         if N_total is None:
             N_total = 100_000
