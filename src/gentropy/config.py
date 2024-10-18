@@ -57,6 +57,7 @@ class BiosampleIndexConfig(StepConfig):
 
     cell_ontology_input_path: str = MISSING
     uberon_input_path: str = MISSING
+    efo_input_path: str = MISSING
     biosample_index_path: str = MISSING
     _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
 
