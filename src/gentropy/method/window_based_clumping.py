@@ -12,7 +12,7 @@ from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
 from gentropy.config import WindowBasedClumpingStepConfig
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -154,22 +154,38 @@ class WindowBasedClumping:
 
     @staticmethod
     def clump(
-        summary_statistics: SummaryStatistics,
+        unclumped_associations: SummaryStatistics | StudyLocus,
         distance: int = WindowBasedClumpingStepConfig().distance,
-        gwas_significance: float = WindowBasedClumpingStepConfig().gwas_significance,
     ) -> StudyLocus:
-        """Clump significant signals from summary statistics based on window.
+        """Clump single point associations from summary statistics or study locus dataset based on window.
 
         Args:
-            summary_statistics (SummaryStatistics): Summary statistics to be used for clumping.
+            unclumped_associations (SummaryStatistics | StudyLocus): Input dataset to be used for clumping. Assumes that the input dataset is already filtered for significant variants.
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
-            gwas_significance (float): GWAS significance threshold. Defaults to 5e-8.
 
         Returns:
-            StudyLocus: clumped summary statistics (without locus collection)
-
-            Check WindowBasedClumpingStepConfig object for default values
+            StudyLocus: clumped associations, where the clumped variants are flagged.
         """
+        # Quality check expression that flags variants that are not considered lead variant:
+        qc_check = f.col("semiIndices")[f.col("pvRank") - 1] <= 0
+
+        # The quality control expression will depend on the input dataset, as the column might be already present:
+        qc_expression = (
+            # When the column is already present and the condition is met, the value is appended to the array, otherwise keep as is:
+            f.when(
+                qc_check,
+                f.array_union(
+                    f.col("qualityControls"),
+                    f.array(f.lit(StudyLocusQualityCheck.WINDOW_CLUMPED.value)),
+                ),
+            ).otherwise(f.col("qualityControls"))
+            if "qualityControls" in unclumped_associations.df.columns
+            # If column is not there yet, initialize it with the flag value, or an empty array:
+            else f.when(
+                qc_check, f.array(f.lit(StudyLocusQualityCheck.WINDOW_CLUMPED.value))
+            ).otherwise(f.array().cast(t.ArrayType(t.StringType())))
+        )
+
         # Create window for locus clusters
         # - variants where the distance between subsequent variants is below the defined threshold.
         # - Variants are sorted by descending significance
@@ -179,11 +195,8 @@ class WindowBasedClumping:
 
         return StudyLocus(
             _df=(
-                summary_statistics
-                # Dropping snps below significance - all subsequent steps are done on significant variants:
-                .pvalue_filter(gwas_significance)
-                .df
-                # Clustering summary variants for efficient windowing (complexity reduction):
+                unclumped_associations.df
+                # Clustering variants for efficient windowing (complexity reduction):
                 .withColumn(
                     "cluster_id",
                     WindowBasedClumping._cluster_peaks(
@@ -207,7 +220,7 @@ class WindowBasedClumping:
                         ),
                     ).otherwise(f.array()),
                 )
-                # Get semi indices only ONCE per cluster:
+                # Collect top loci per cluster:
                 .withColumn(
                     "semiIndices",
                     f.when(
@@ -230,20 +243,16 @@ class WindowBasedClumping:
                         ),
                     ).otherwise(f.col("semiIndices")),
                 )
-                # Keeping semi indices only:
-                .filter(f.col("semiIndices")[f.col("pvRank") - 1] > 0)
-                .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
                 # Adding study-locus id:
                 .withColumn(
                     "studyLocusId",
                     StudyLocus.assign_study_locus_id(
-                        f.col("studyId"), f.col("variantId")
+                        ["studyId", "variantId"]
                     ),
                 )
                 # Initialize QC column as array of strings:
-                .withColumn(
-                    "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
-                )
+                .withColumn("qualityControls", qc_expression)
+                .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
             ),
             _schema=StudyLocus.get_schema(),
         )

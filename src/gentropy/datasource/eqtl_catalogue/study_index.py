@@ -45,6 +45,15 @@ class EqtlCatalogueStudyIndex:
         ]
     )
     raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/092e01a9601feb404f1c88f86311b43b907a88f6/data_tables/dataset_metadata_upcoming.tsv"
+    method_to_study_type_mapping = {
+        "ge": "eqtl",
+        "exon": "eqtl",
+        "tx": "eqtl",
+        "microarray": "eqtl",
+        "leafcutter": "sqtl",
+        "aptamer": "pqtl",
+        "txrev": "tuqtl",
+    }
 
     @classmethod
     def _identify_study_type(
@@ -76,17 +85,8 @@ class EqtlCatalogueStudyIndex:
             +------------+---------+----------+
             <BLANKLINE>
         """
-        method_to_study_type_mapping = {
-            "ge": "eqtl",
-            "exon": "eqtl",
-            "tx": "eqtl",
-            "microarray": "eqtl",
-            "leafcutter": "sqtl",
-            "aptamer": "pqtl",
-            "txrev": "tuqtl",
-        }
         qtl_type_mapping = f.create_map(
-            *[f.lit(x) for x in chain(*method_to_study_type_mapping.items())]
+            *[f.lit(x) for x in chain(*cls.method_to_study_type_mapping.items())]
         )[quantification_method_col]
         return f.when(
             biosample_col.startswith("CL"), f.concat(f.lit("sc"), qtl_type_mapping)

@@ -26,7 +26,7 @@ This section contains information about the data source harmonisation tools avai
 2. GWAS catalog's [harmonisation pipeline](https://www.ebi.ac.uk/gwas/docs/methods/summary-statistics#_harmonised_summary_statistics_data)
 3. Ensembl's [Variant Effect Predictor](https://www.ensembl.org/info/docs/tools/vep/index.html)
 
-## Linkage desiquilibrium
+## Linkage disequilibrium
 
 1. [GnomAD](gnomad/_gnomad.md) v2.1.1 LD matrixes (7 ancestries)
 
@@ -37,3 +37,8 @@ This section contains information about the data source harmonisation tools avai
 ## Gene annotation
 
 1. [Open Targets Platform Target Dataset](open_targets/target.md) (derived from Ensembl)
+
+## Biological samples
+
+1. [Uberon](biosample_ontologies/_uberon.md)
+2. [Cell Ontology](biosample_ontologies/_cell_ontology.md)

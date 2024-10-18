@@ -13,3 +13,4 @@ site/
 .env
 .coverage*
 wandb/
+hail*.log

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.gwas_catalog.associations import (
     GWASCatalogCuratedAssociationsParser,
@@ -30,6 +31,7 @@ class GWASCatalogIngestionStep:
         gnomad_variant_path: str,
         catalog_studies_out: str,
         catalog_associations_out: str,
+        distance: int = WindowBasedClumpingStepConfig().distance,
         gwas_catalog_study_curation_file: str | None = None,
         inclusion_list_path: str | None = None,
     ) -> None:
@@ -44,6 +46,7 @@ class GWASCatalogIngestionStep:
             gnomad_variant_path (str): Path to GnomAD variants.
             catalog_studies_out (str): Output GWAS catalog studies path.
             catalog_associations_out (str): Output GWAS catalog associations path.
+            distance (int): Distance, within which tagging variants are collected around the semi-index.
             gwas_catalog_study_curation_file (str | None): file of the curation table. Optional.
             inclusion_list_path (str | None): optional inclusion list (parquet)
         """
@@ -86,4 +89,9 @@ class GWASCatalogIngestionStep:
 
         # Load
         study_index.df.write.mode(session.write_mode).parquet(catalog_studies_out)
-        study_locus.df.write.mode(session.write_mode).parquet(catalog_associations_out)
+
+        (
+            study_locus.window_based_clumping(distance)
+            .df.write.mode(session.write_mode)
+            .parquet(catalog_associations_out)
+        )

@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
+from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.utils import parse_region, split_pvalue
+from gentropy.common.utils import split_pvalue
 from gentropy.config import LocusBreakerClumpingConfig, WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 
@@ -76,10 +77,11 @@ class SummaryStatistics(Dataset):
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
         return WindowBasedClumping.clump(
-            self,
+            # Before clumping, we filter the summary statistics by p-value:
+            self.pvalue_filter(gwas_significance),
             distance=distance,
-            gwas_significance=gwas_significance,
-        )
+            # After applying the clumping, we filter the clumped loci by the flag:
+        ).valid_rows(["WINDOW_CLUMPED"])
 
     def locus_breaker_clumping(
         self: SummaryStatistics,
@@ -90,7 +92,7 @@ class SummaryStatistics(Dataset):
     ) -> StudyLocus:
         """Generate study-locus from summary statistics using locus-breaker clumping method with locus boundaries.
 
-        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.locus_breaker]
+        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.LocusBreakerClumping]
 
         Args:
             baseline_pvalue_cutoff (float, optional): Baseline significance we consider for the locus.
@@ -112,25 +114,25 @@ class SummaryStatistics(Dataset):
             flanking_distance,
         )
 
-    def exclude_region(self: SummaryStatistics, region: str) -> SummaryStatistics:
+    def exclude_region(
+        self: SummaryStatistics, region: GenomicRegion
+    ) -> SummaryStatistics:
         """Exclude a region from the summary stats dataset.
 
         Args:
-            region (str): region given in "chr##:#####-####" format
+            region (GenomicRegion): Genomic region to be excluded.
 
         Returns:
             SummaryStatistics: filtered summary statistics.
         """
-        (chromosome, start_position, end_position) = parse_region(region)
-
         return SummaryStatistics(
             _df=(
                 self.df.filter(
                     ~(
-                        (f.col("chromosome") == chromosome)
+                        (f.col("chromosome") == region.chromosome)
                         & (
-                            (f.col("position") >= start_position)
-                            & (f.col("position") <= end_position)
+                            (f.col("position") >= region.start)
+                            & (f.col("position") <= region.end)
                         )
                     )
                 )

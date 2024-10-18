@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
-from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from pyspark.sql import DataFrame
+
+from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession

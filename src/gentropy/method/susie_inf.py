@@ -23,6 +23,9 @@ class SUSIE_inf:
 
     Note: code copied from fine-mapping-inf package as a placeholder
     https://github.com/FinucaneLab/fine-mapping-inf
+
+    Raises:
+        RuntimeError: if missing LD or if unsupported variance estimation
     """
 
     @staticmethod
@@ -89,8 +92,7 @@ class SUSIE_inf:
                 lbf -- length-p array of log-Bayes-factors for each CS
 
         Raises:
-            RuntimeError: if missing LD
-            RuntimeError: if unsupported variance estimation method
+            RuntimeError: if missing LD or if unsupported variance estimation method
         """
         p = len(z)
         # Precompute V,D^2 in the SVD X=UDV', and V'X'y and y'y
@@ -428,6 +430,7 @@ class SUSIE_inf:
 
         Raises:
             RuntimeError: if missing inputs for purity filtering
+            ValueError: if either LD or V, Dsq are None
         """
         if (V is None or Dsq is None or n is None) and LD is None:
             raise RuntimeError("Missing inputs for purity filtering")
