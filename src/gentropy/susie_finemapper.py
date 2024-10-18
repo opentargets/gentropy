@@ -712,13 +712,6 @@ class SusieFineMapperStep:
             logging.warning("No study index found for the studyId")
             return None
 
-        major_population = study_index_df.select(
-            "studyId",
-            order_array_of_structs_by_field(
-                "ldPopulationStructure", "relativeSampleSize"
-            )[0]["ldPopulation"].alias("majorPopulation"),
-        ).collect()[0]["majorPopulation"]
-
         major_population = (
             study_index_df.select(
                 "studyId",
@@ -785,6 +778,7 @@ class SusieFineMapperStep:
             return None
 
         # Desision tree - analysisFlags
+        study_index_df = study_index_df.drop("FailedQC")
         invalid_reasons = [
             "Multivariate analysis",
             "ExWAS",
