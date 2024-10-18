@@ -230,7 +230,9 @@ class GWASCatalogCuratedAssociationsParser:
             "chromosome",
             # Calculate the position in Ensembl coordinates for indels:
             GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(
-                f.col("position"), f.col("referenceAllele"), f.col("alternateAllele")
+                f.col("position"),
+                f.col("referenceAllele"),
+                f.col("alternateAllele"),
             ).alias("ensemblPosition"),
             # Keeping GnomAD position:
             "position",
@@ -240,11 +242,7 @@ class GWASCatalogCuratedAssociationsParser:
             "alleleFrequencies",
             variant_index.max_maf().alias("maxMaf"),
         ).join(
-            f.broadcast(
-                gwas_associations_subset.select(
-                    "chromosome", "ensemblPosition"
-                ).distinct()
-            ),
+            gwas_associations_subset.select("chromosome", "ensemblPosition").distinct(),
             on=["chromosome", "ensemblPosition"],
             how="inner",
         )
@@ -253,7 +251,7 @@ class GWASCatalogCuratedAssociationsParser:
         # based on rsIds or allele concordance)
         filtered_associations = (
             gwas_associations_subset.join(
-                f.broadcast(va_subset),
+                va_subset,
                 on=["chromosome", "ensemblPosition"],
                 how="left",
             )
@@ -1108,7 +1106,10 @@ class GWASCatalogCuratedAssociationsParser:
         pvalue_threshold is keeped in sync with the WindowBasedClumpingStep gwas_significance.
         """
         return StudyLocusGWASCatalog(
-            _df=gwas_associations.withColumn(
+            _df=gwas_associations
+            # drop duplicate rows
+            .distinct()
+            .withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(StringType())
             )
             .transform(
