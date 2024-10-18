@@ -34,6 +34,7 @@ from gentropy.dataset.l2g_features.colocalisation import (
     SQtlColocH4MaximumNeighbourhoodFeature,
     common_colocalisation_feature_logic,
     common_neighbourhood_colocalisation_feature_logic,
+    extend_missing_colocalisation_to_neighbourhood_genes,
 )
 from gentropy.dataset.l2g_features.distance import (
     DistanceFootprintMeanFeature,
@@ -135,10 +136,75 @@ def sample_gene_index(spark: SparkSession) -> GeneIndex:
                     "biotype": "lncRNA",
                     "chromosome": "1",
                 },
+                {
+                    "geneId": "gene3",
+                    "biotype": "protein_coding",
+                    "chromosome": "1",
+                },
             ],
             GeneIndex.get_schema(),
         ),
         _schema=GeneIndex.get_schema(),
+    )
+
+
+@pytest.fixture(scope="module")
+def sample_variant_index(spark: SparkSession) -> VariantIndex:
+    """Create a sample variant index for testing."""
+    return VariantIndex(
+        _df=spark.createDataFrame(
+            [
+                (
+                    "var1",
+                    "chrom",
+                    1,
+                    "A",
+                    "T",
+                    [
+                        {
+                            "targetId": "gene1",
+                            "consequenceScore": 0.66,
+                            "isEnsemblCanonical": True,
+                        },
+                        {
+                            "targetId": "gene2",
+                            "consequenceScore": 1.0,
+                            "isEnsemblCanonical": True,
+                        },
+                        {
+                            "targetId": "gene3",
+                            "consequenceScore": 0.0,
+                            "isEnsemblCanonical": True,
+                        },
+                    ],
+                ),
+            ],
+            schema=StructType(
+                [
+                    StructField("variantId", StringType(), True),
+                    StructField("chromosome", StringType(), True),
+                    StructField("position", IntegerType(), True),
+                    StructField("referenceAllele", StringType(), True),
+                    StructField("alternateAllele", StringType(), True),
+                    StructField(
+                        "transcriptConsequences",
+                        ArrayType(
+                            StructType(
+                                [
+                                    StructField("targetId", StringType(), True),
+                                    StructField(
+                                        "isEnsemblCanonical", BooleanType(), True
+                                    ),
+                                    StructField("consequenceScore", FloatType(), True),
+                                ]
+                            )
+                        ),
+                        True,
+                    ),
+                ]
+            ),
+        ),
+        _schema=VariantIndex.get_schema(),
     )
 
 
@@ -183,10 +249,46 @@ class TestCommonColocalisationFeatureLogic:
             observed_df.collect() == expected_df.collect()
         ), "The feature values are not as expected."
 
-    def test__common_neighbourhood_colocalisation_feature_logic(
+    def test_extend_missing_colocalisation_to_neighbourhood_genes(
         self: TestCommonColocalisationFeatureLogic,
         spark: SparkSession,
         sample_gene_index: GeneIndex,
+        sample_variant_index: VariantIndex,
+    ) -> None:
+        """Test the extend_missing_colocalisation_to_neighbourhood_genes function."""
+        local_features = spark.createDataFrame(
+            [
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene1",
+                    "eQtlColocH4Maximum": 0.81,
+                },
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene2",
+                    "eQtlColocH4Maximum": 0.9,
+                },
+            ],
+        )
+        observed_df = extend_missing_colocalisation_to_neighbourhood_genes(
+            feature_name="eQtlColocH4Maximum",
+            local_features=local_features,
+            variant_index=sample_variant_index,
+            gene_index=sample_gene_index,
+            study_locus=self.sample_study_locus,
+        ).select("studyLocusId", "geneId", "eQtlColocH4Maximum")
+        expected_df = spark.createDataFrame(
+            [{"geneId": "gene3", "studyLocusId": "1", "eQtlColocH4Maximum": 0.0}]
+        ).select("studyLocusId", "geneId", "eQtlColocH4Maximum")
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), "The feature values are not as expected."
+
+    def test_common_neighbourhood_colocalisation_feature_logic(
+        self: TestCommonColocalisationFeatureLogic,
+        spark: SparkSession,
+        sample_gene_index: GeneIndex,
+        sample_variant_index: VariantIndex,
     ) -> None:
         """Test the common logic of the neighbourhood colocalisation features."""
         feature_name = "eQtlColocH4MaximumNeighbourhood"
@@ -200,19 +302,20 @@ class TestCommonColocalisationFeatureLogic:
             study_index=self.sample_studies,
             study_locus=self.sample_study_locus,
             gene_index=sample_gene_index,
-        ).withColumn(feature_name, f.round(f.col(feature_name), 2))
-        # expected average is (0.81)/1 = 0.81
+            variant_index=sample_variant_index,
+        ).withColumn(feature_name, f.round(f.col(feature_name), 3))
+        # expected average is (0.81 + 0)/2 = 0.405
         expected_df = spark.createDataFrame(
             [
                 {
                     "studyLocusId": "1",
                     "geneId": "gene1",
-                    "eQtlColocH4MaximumNeighbourhood": 0.0,  # 0.81 - 0.81
+                    "eQtlColocH4MaximumNeighbourhood": 0.405,  # 0.81 - 0.405
                 },
                 {
                     "studyLocusId": "1",
                     "geneId": "gene2",
-                    "eQtlColocH4MaximumNeighbourhood": 0.09,  # 0.9 - 0.81
+                    "eQtlColocH4MaximumNeighbourhood": 0.495,  # 0.9 - 0.405
                 },
             ],
         ).select("studyLocusId", "geneId", "eQtlColocH4MaximumNeighbourhood")
@@ -232,7 +335,7 @@ class TestCommonColocalisationFeatureLogic:
                 [
                     {
                         "studyLocusId": "1",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
                     },
@@ -281,25 +384,25 @@ class TestCommonColocalisationFeatureLogic:
                 [
                     {
                         "studyLocusId": "1",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
                     },
                     {
                         "studyLocusId": "2",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study2",  # this is a QTL (same gee)
                         "chromosome": "1",
                     },
                     {
                         "studyLocusId": "3",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study3",  # this is another QTL (same gene)
                         "chromosome": "1",
                     },
                     {
                         "studyLocusId": "4",
-                        "variantId": "lead1",
+                        "variantId": "var1",
                         "studyId": "study4",  # this is another QTL (diff gene)
                         "chromosome": "1",
                     },
@@ -535,6 +638,11 @@ class TestCommonVepFeatureLogic:
                 [
                     {
                         "studyLocusId": "1",
+                        "geneId": "gene3",
+                        "vepMean": "0.00",
+                    },
+                    {
+                        "studyLocusId": "1",
                         "geneId": "gene1",
                         "vepMean": "0.33",
                     },
@@ -548,6 +656,11 @@ class TestCommonVepFeatureLogic:
             (
                 "vepMaximum",
                 [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene3",
+                        "vepMaximum": "0.00",
+                    },
                     {
                         "studyLocusId": "1",
                         "geneId": "gene1",
@@ -567,12 +680,13 @@ class TestCommonVepFeatureLogic:
         spark: SparkSession,
         feature_name: str,
         expected_data: dict[str, Any],
+        sample_variant_index: VariantIndex,
     ) -> None:
         """Test the logic of the function that extracts features from VEP's functional consequences."""
         observed_df = (
             common_vep_feature_logic(
                 self.sample_study_locus,
-                variant_index=self.sample_variant_index,
+                variant_index=sample_variant_index,
                 feature_name=feature_name,
             )
             .orderBy(feature_name)
@@ -593,17 +707,22 @@ class TestCommonVepFeatureLogic:
         self: TestCommonVepFeatureLogic,
         spark: SparkSession,
         sample_gene_index: GeneIndex,
+        sample_variant_index: VariantIndex,
     ) -> None:
         """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity.
 
         Because the genes in the vicinity are all non coding, the neighbourhood features should equal the local ones.
         """
         feature_name = "vepMaximumNeighbourhood"
+        non_protein_coding_gene_index = GeneIndex(
+            _df=sample_gene_index.df.filter(f.col("geneId") != "gene3"),
+            _schema=GeneIndex.get_schema(),
+        )
         observed_df = (
             common_neighbourhood_vep_feature_logic(
                 self.sample_study_locus,
-                variant_index=self.sample_variant_index,
-                gene_index=sample_gene_index,
+                variant_index=sample_variant_index,
+                gene_index=non_protein_coding_gene_index,
                 feature_name=feature_name,
             )
             .withColumn(feature_name, f.round(f.col(feature_name), 2))
@@ -616,7 +735,7 @@ class TestCommonVepFeatureLogic:
                 (
                     ["1", "gene1", 0.0],
                     ["1", "gene2", 0.34],
-                ),  # (0.66-0.66) and (1.0 -0.66)
+                ),  # (0.66-0.66) and (1.0-0.66)
                 ["studyLocusId", "geneId", feature_name],
             )
             .orderBy(feature_name)
@@ -630,13 +749,14 @@ class TestCommonVepFeatureLogic:
             self: TestCommonVepFeatureLogic,
             spark: SparkSession,
             sample_gene_index: GeneIndex,
+            sample_variant_index: VariantIndex,
         ) -> None:
             """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
             feature_name = "vepMaximumNeighbourhood"
             observed_df = (
                 common_neighbourhood_vep_feature_logic(
                     self.sample_study_locus,
-                    variant_index=self.sample_variant_index,
+                    variant_index=sample_variant_index,
                     gene_index=sample_gene_index,
                     feature_name=feature_name,
                 )
@@ -645,11 +765,16 @@ class TestCommonVepFeatureLogic:
             )
             expected_df = (
                 spark.createDataFrame(
-                    (["1", "gene1", 0.0], ["1", "gene2", 0.34]),
+                    # regional mean is 0.66/2 = 0.33
+                    (
+                        ["1", "gene3", -0.33],
+                        ["1", "gene1", 0.33],
+                        ["1", "gene2", 0.67],
+                    ),  # (0 - 0.33) and (0.66-0.33) and (1.0 -0.33)
                     ["studyLocusId", "geneId", feature_name],
                 )
-                .select("studyLocusId", "geneId", feature_name)
                 .orderBy(feature_name)
+                .select("studyLocusId", "geneId", feature_name)
             )
             assert (
                 observed_df.collect() == expected_df.collect()
@@ -677,56 +802,4 @@ class TestCommonVepFeatureLogic:
                 StudyLocus.get_schema(),
             ),
             _schema=StudyLocus.get_schema(),
-        )
-        self.sample_variant_index = VariantIndex(
-            _df=spark.createDataFrame(
-                [
-                    (
-                        "var1",
-                        "chrom",
-                        1,
-                        "A",
-                        "T",
-                        [
-                            {
-                                "targetId": "gene1",
-                                "consequenceScore": 0.66,
-                                "isEnsemblCanonical": True,
-                            },
-                            {
-                                "targetId": "gene2",
-                                "consequenceScore": 1.0,
-                                "isEnsemblCanonical": True,
-                            },
-                        ],
-                    ),
-                ],
-                schema=StructType(
-                    [
-                        StructField("variantId", StringType(), True),
-                        StructField("chromosome", StringType(), True),
-                        StructField("position", IntegerType(), True),
-                        StructField("referenceAllele", StringType(), True),
-                        StructField("alternateAllele", StringType(), True),
-                        StructField(
-                            "transcriptConsequences",
-                            ArrayType(
-                                StructType(
-                                    [
-                                        StructField("targetId", StringType(), True),
-                                        StructField(
-                                            "isEnsemblCanonical", BooleanType(), True
-                                        ),
-                                        StructField(
-                                            "consequenceScore", FloatType(), True
-                                        ),
-                                    ]
-                                )
-                            ),
-                            True,
-                        ),
-                    ]
-                ),
-            ),
-            _schema=VariantIndex.get_schema(),
         )
