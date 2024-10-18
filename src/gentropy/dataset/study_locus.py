@@ -1175,7 +1175,7 @@ class StudyLocus(Dataset):
         df = self.df.withColumn(
             "confidence",
             f.when(
-                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSiE"]))
+                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSie"]))
                 & (
                     ~f.array_contains(
                         f.col("qualityControls"),
@@ -1185,7 +1185,7 @@ class StudyLocus(Dataset):
                 CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
             )
             .when(
-                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSiE"]))
+                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSie"]))
                 & (
                     f.array_contains(
                         f.col("qualityControls"),
