@@ -729,6 +729,7 @@ class SusieFineMapperStep:
             .collect()[0]["majorPopulation"]
         )
 
+        # This is a temporary solution
         if major_population == "eas":
             major_population = "csa"
 
