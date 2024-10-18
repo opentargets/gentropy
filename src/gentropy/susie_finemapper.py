@@ -76,8 +76,8 @@ class SusieFineMapperStep:
             study_locus_index (int): Index (0-based) of the locus in the manifest to process in this call
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
             lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
-            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets, default is 0
-            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets, default is 0.25
+            purity_mean_r2_threshold (float): threshold for purity mean r2 qc metrics for filtering credible sets, default is 0
+            purity_min_r2_threshold (float): threshold for purity min r2 qc metrics for filtering credible sets, default is 0.25
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
             susie_est_tausq (bool): estimate tau squared, default is False
@@ -96,7 +96,7 @@ class SusieFineMapperStep:
         study_locus_output = row["study_locus_output"]
         log_output = study_locus_output + ".log"
         if "log_output" in study_locus_manifest.columns:
-            log_output = study_locus_manifest["log_output"]
+            log_output = study_locus_manifest["log_output"] + ".log"
 
         # Read studyLocus
         study_locus = (
