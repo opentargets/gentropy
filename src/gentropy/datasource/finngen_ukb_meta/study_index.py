@@ -1,4 +1,5 @@
 """Study Index for Finngen data source."""
+
 from __future__ import annotations
 
 from urllib.request import urlopen
@@ -32,35 +33,42 @@ class FinngenUkbMetaStudyIndex(StudyIndex):
             StudyIndex: Parsed and annotated FinnGen UKB meta-analysis study table.
         """
         # Read the raw study index and process.
-        study_index_df = (
-            spark.read.csv(raw_study_index_path_from_tsv, sep="\t", header=True)
-            .select(
-                f.lit("gwas").alias("studyType"),
-                f.lit("FINNGEN_R11_UKB_META").alias("projectId"),
-                f.col("_gentropy_study_id").alias("studyId"),
-                f.col("name").alias("traitFromSource"),
-                f.lit(True).alias("hasSumstats"),
-                f.col("_gentropy_summary_stats_link").alias("summarystatsLocation"),
-                (f.col("fg_n_cases") + f.col("ukbb_n_cases") + f.col("fg_n_controls") + f.col("ukbb_n_controls")).cast("integer").alias("nSamples"),
-                f.array(
-                    f.struct(
-                        (f.col("fg_n_cases") + f.col("fg_n_controls")).cast("integer").alias("sampleSize"),
-                        f.lit("Finnish").alias("ancestry"),
-                    ),
-                    f.struct(
-                        (f.col("ukbb_n_cases") + f.col("ukbb_n_controls")).cast("integer").alias("sampleSize"),
-                        f.lit("European").alias("ancestry"),
-                    ),
-                ).alias("discoverySamples"),
+        study_index_df = spark.read.csv(
+            raw_study_index_path_from_tsv, sep="\t", header=True
+        ).select(
+            f.lit("gwas").alias("studyType"),
+            f.lit("FINNGEN_R11_UKB_META").alias("projectId"),
+            f.col("_gentropy_study_id").alias("studyId"),
+            f.col("name").alias("traitFromSource"),
+            f.lit(True).alias("hasSumstats"),
+            f.col("_gentropy_summary_stats_link").alias("summarystatsLocation"),
+            (
+                f.col("fg_n_cases")
+                + f.col("ukbb_n_cases")
+                + f.col("fg_n_controls")
+                + f.col("ukbb_n_controls")
             )
+            .cast("integer")
+            .alias("nSamples"),
+            f.array(
+                f.struct(
+                    (f.col("fg_n_cases") + f.col("fg_n_controls"))
+                    .cast("integer")
+                    .alias("sampleSize"),
+                    f.lit("Finnish").alias("ancestry"),
+                ),
+                f.struct(
+                    (f.col("ukbb_n_cases") + f.col("ukbb_n_controls"))
+                    .cast("integer")
+                    .alias("sampleSize"),
+                    f.lit("European").alias("ancestry"),
+                ),
+            ).alias("discoverySamples"),
         )
         # Add population structure.
-        study_index_df = (
-            study_index_df
-            .withColumn(
-                "ldPopulationStructure",
-                cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
-            )
+        study_index_df = study_index_df.withColumn(
+            "ldPopulationStructure",
+            cls.aggregate_and_map_ancestries(f.col("discoverySamples")),
         )
         # Create study index.
         study_index = StudyIndex(
@@ -75,6 +83,6 @@ class FinngenUkbMetaStudyIndex(StudyIndex):
         study_index = FinnGenStudyIndex.join_efo_mapping(
             study_index,
             efo_curation_mapping,
-            finngen_release_prefix="FINNGEN_R11",
+            finngen_release="R11",
         )
         return study_index
