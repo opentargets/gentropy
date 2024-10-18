@@ -208,20 +208,23 @@ class GWASCatalogCuratedAssociationsParser:
             `alternateAllele`, `chromosome`, `position` with variant metadata
         """
         # Subset of GWAS Catalog associations required for resolving variant IDs:
-        gwas_associations_subset = gwas_associations.select(
-            "studyLocusId",
-            f.col("CHR_ID").alias("chromosome"),
-            # The positions from GWAS Catalog are from ensembl that causes discrepancy for indels:
-            f.col("CHR_POS").cast(IntegerType()).alias("ensemblPosition"),
-            # List of all SNPs associated with the variant
-            GWASCatalogCuratedAssociationsParser._collect_rsids(
-                f.split(f.col("SNPS"), "; ").getItem(0),
-                f.col("SNP_ID_CURRENT"),
-                f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
-            ).alias("rsIdsGwasCatalog"),
-            GWASCatalogCuratedAssociationsParser._extract_risk_allele(
-                f.col("STRONGEST SNP-RISK ALLELE")
-            ).alias("riskAllele"),
+        gwas_associations_subset = (
+            gwas_associations.select(
+                "studyLocusId",
+                f.col("CHR_ID").alias("chromosome"),
+                # The positions from GWAS Catalog are from ensembl that causes discrepancy for indels:
+                f.col("CHR_POS").cast(IntegerType()).alias("ensemblPosition"),
+                # List of all SNPs associated with the variant
+                GWASCatalogCuratedAssociationsParser._collect_rsids(
+                    f.split(f.col("SNPS"), "; ").getItem(0),
+                    f.col("SNP_ID_CURRENT"),
+                    f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
+                ).alias("rsIdsGwasCatalog"),
+                GWASCatalogCuratedAssociationsParser._extract_risk_allele(
+                    f.col("STRONGEST SNP-RISK ALLELE")
+                ).alias("riskAllele"),
+            )
+            .persist()
         )
 
         # Subset of variant annotation required for GWAS Catalog annotations:
@@ -230,7 +233,9 @@ class GWASCatalogCuratedAssociationsParser:
             "chromosome",
             # Calculate the position in Ensembl coordinates for indels:
             GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(
-                f.col("position"), f.col("referenceAllele"), f.col("alternateAllele")
+                f.col("position"),
+                f.col("referenceAllele"),
+                f.col("alternateAllele"),
             ).alias("ensemblPosition"),
             # Keeping GnomAD position:
             "position",
@@ -240,11 +245,7 @@ class GWASCatalogCuratedAssociationsParser:
             "alleleFrequencies",
             variant_index.max_maf().alias("maxMaf"),
         ).join(
-            f.broadcast(
-                gwas_associations_subset.select(
-                    "chromosome", "ensemblPosition"
-                ).distinct()
-            ),
+            gwas_associations_subset.select("chromosome", "ensemblPosition").distinct(),
             on=["chromosome", "ensemblPosition"],
             how="inner",
         )
@@ -253,7 +254,7 @@ class GWASCatalogCuratedAssociationsParser:
         # based on rsIds or allele concordance)
         filtered_associations = (
             gwas_associations_subset.join(
-                f.broadcast(va_subset),
+                va_subset,
                 on=["chromosome", "ensemblPosition"],
                 how="left",
             )
@@ -1108,7 +1109,10 @@ class GWASCatalogCuratedAssociationsParser:
         pvalue_threshold is keeped in sync with the WindowBasedClumpingStep gwas_significance.
         """
         return StudyLocusGWASCatalog(
-            _df=gwas_associations.withColumn(
+            _df=gwas_associations
+            # drop duplicate rows
+            .distinct()
+            .withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(StringType())
             )
             .transform(
