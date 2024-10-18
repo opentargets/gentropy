@@ -126,6 +126,8 @@ class GnomADVariants:
                             )
                         ]
                     ),
+                    # Extract rsIds:
+                    rsIds=ht.rsid,
                 )
                 .key_by("chromosome", "position")
                 .drop("locus", "alleles")
