@@ -723,6 +723,8 @@ class SusieFineMapperStep:
         if N_total is None:
             N_total = 100_000
 
+        locusStart = max(locusStart, 0)
+
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
         schema = StudyLocus.get_schema()
