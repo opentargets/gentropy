@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from urllib.request import urlopen
-
 from gentropy.common.session import Session
 from gentropy.config import FinngenStudiesConfig
 from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
@@ -35,26 +33,26 @@ class FinnGenStudiesStep:
             efo_curation_mapping_url (str): URL to the EFO curation mapping file
             sample_size (int): Number of individuals that participated in sample collection, derived from finngen release metadata.
         """
+        _match = FinnGenStudyIndex.validate_release_prefix(finngen_release_prefix)
+        release_prefix = _match["prefix"]
+        release = _match["release"]
+
+        efo_curation_df = FinnGenStudyIndex.read_efo_curation(
+            session.spark,
+            efo_curation_mapping_url,
+        )
         study_index = FinnGenStudyIndex.from_source(
             session.spark,
             finngen_phenotype_table_url,
-            finngen_release_prefix,
+            release_prefix,
             finngen_summary_stats_url_prefix,
             finngen_summary_stats_url_suffix,
             sample_size,
         )
-
-        # NOTE: hack to allow spark to read directly from the URL.
-        csv_data = urlopen(efo_curation_mapping_url).readlines()
-        csv_rows = [row.decode("utf8") for row in csv_data]
-        rdd = session.spark.sparkContext.parallelize(csv_rows)
-        # NOTE: type annotations for spark.read.csv miss the fact that the first param can be [RDD[str]]
-        efo_curation_mapping = session.spark.read.csv(rdd, header=True, sep="\t")
-
         study_index_with_efo = FinnGenStudyIndex.join_efo_mapping(
             study_index,
-            efo_curation_mapping,
-            finngen_release_prefix,
+            efo_curation_df,
+            release,
         )
         study_index_with_efo.df.write.mode(session.write_mode).parquet(
             finngen_study_index_out
