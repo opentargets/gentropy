@@ -415,6 +415,13 @@ class SusieFineMapperStep:
         cred_sets = cred_sets.withColumn("locusStart", f.lit(locusStart))
         cred_sets = cred_sets.withColumn("locusEnd", f.lit(locusEnd))
 
+        cred_sets = cred_sets.drop("beta").withColumn(
+            "beta",
+            f.expr("""
+                filter(locus, x -> x.variantId = variantId)[0].beta
+            """),
+        )
+
         return StudyLocus(
             _df=cred_sets,
             _schema=StudyLocus.get_schema(),
@@ -716,6 +723,8 @@ class SusieFineMapperStep:
         if N_total is None:
             N_total = 100_000
 
+        locusStart = max(locusStart, 0)
+
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
         schema = StudyLocus.get_schema()
@@ -859,6 +868,14 @@ class SusieFineMapperStep:
             upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
         )
         np.fill_diagonal(gnomad_ld, 1)
+
+        # Desision tree - number of variants
+        if gwas_index.count() < 100:
+            logging.warning("Less than 100 variants after joining GWAS and LD index")
+            return None
+        elif gwas_index.count() >= 15_000:
+            logging.warning("More than 15000 variants after joining GWAS and LD index")
+            return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,
