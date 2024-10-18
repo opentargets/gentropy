@@ -96,7 +96,7 @@ class SusieFineMapperStep:
         study_locus_output = row["study_locus_output"]
         log_output = study_locus_output + ".log"
         if "log_output" in study_locus_manifest.columns:
-            log_output = study_locus_manifest["log_output"] + ".log"
+            log_output = row["log_output"] + ".log"
 
         # Read studyLocus
         study_locus = (
