@@ -17,6 +17,12 @@ from gentropy.method.colocalisation import Coloc, ECaviar
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
     """Test coloc."""
     assert isinstance(Coloc.colocalise(mock_study_locus_overlap), Colocalisation)
+    assert isinstance(
+        Coloc.colocalise(
+            mock_study_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5
+        ),
+        Colocalisation,
+    )
 
 
 @pytest.mark.parametrize(
@@ -128,6 +134,8 @@ def test_coloc_no_logbf(
                         "statistics": {
                             "left_logBF": None,
                             "right_logBF": None,
+                            "left_posteriorProbability": None,
+                            "right_posteriorProbability": None,
                         },  # irrelevant for COLOC
                     }
                 ],
@@ -144,6 +152,12 @@ def test_coloc_no_logbf(
                                 [
                                     StructField("left_logBF", DoubleType(), True),
                                     StructField("right_logBF", DoubleType(), True),
+                                    StructField(
+                                        "left_posteriorProbability", DoubleType(), True
+                                    ),
+                                    StructField(
+                                        "right_posteriorProbability", DoubleType(), True
+                                    ),
                                 ]
                             ),
                         ),
