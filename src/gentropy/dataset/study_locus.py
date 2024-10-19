@@ -82,6 +82,7 @@ class StudyLocusQualityCheck(Enum):
         IN_MHC (str): Flagging study loci in the MHC region
         REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
         EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
+        ABNORMAL_PIPS (str): Flagging study loci with a sum of PIPs that are not in [0.99,1]
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -111,6 +112,7 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
+    ABNORMAL_PIPS = "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
 
 
 class CredibleInterval(Enum):
@@ -358,6 +360,45 @@ class StudyLocus(Dataset):
             calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
             < f.lit(-np.log10(pvalue_cutoff)),
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
+        )
+
+    def qc_abnormal_pips(
+        self: StudyLocus,
+        sum_pips_lower_threshold: float,
+        sum_pips_upper_threshold: float
+    ) -> StudyLocus:
+        """Filter study-locus by sum of posterior inclusion probabilities to ensure that the sum of PIPs is within a given range.
+
+        Args:
+            sum_pips_lower_threshold (float): Lower threshold for the sum of PIPs.
+            sum_pips_upper_threshold (float): Upper threshold for the sum of PIPs.
+
+        Returns:
+            StudyLocus: Filtered study-locus dataset.
+        """
+        flag = self.df.withColumn(
+            "sumPosteriorProbability",
+            f.aggregate(
+                f.col("locus"),
+                f.lit(0.0),
+                lambda acc, x: acc + x["posteriorProbability"]
+            )).filter((f.col("sumPosteriorProbability") < 0.99) | (f.col("sumPosteriorProbability") > 1.0))
+
+        return StudyLocus(
+            _df=(
+                self.df.join(
+                    flag, self.df.studyLocusId == flag.studyLocusId, "left"
+                )
+                # Flagging loci with failed studies:
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.size(f.col("sumPosteriorProbability")) > 0,
+                        StudyLocusQualityCheck.ABNORMAL_PIPS
+                    ),
+                ).drop("sumPosteriorProbability")),
+            _schema=self.get_schema()
         )
 
     @staticmethod
