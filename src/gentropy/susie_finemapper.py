@@ -63,6 +63,12 @@ class SusieFineMapperStep:
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
+        Method require a `study_locus_manifest_path` file that will contain ["study_locus_input", "study_locus_output", "log_file"]. `log_file`
+        is optional parameter to the manifest. In case it does not exist, the logs from the finemapper are saved under the same directory
+        as the `study_locus_output` with `.log` suffix.
+        Each execution of the method will only evaluate a single row from the `study_locus_manifest` that is inferred from the `study_locus_index`
+        variable.
+
         Args:
             session (Session): Spark session
             study_index_path (str): path to the study index
@@ -70,8 +76,8 @@ class SusieFineMapperStep:
             study_locus_index (int): Index (0-based) of the locus in the manifest to process in this call
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
             lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
-            purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets, default is 0
-            purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets, default is 0.25
+            purity_mean_r2_threshold (float): threshold for purity mean r2 qc metrics for filtering credible sets, default is 0
+            purity_min_r2_threshold (float): threshold for purity min r2 qc metrics for filtering credible sets, default is 0.25
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
             susie_est_tausq (bool): estimate tau squared, default is False
@@ -88,6 +94,9 @@ class SusieFineMapperStep:
         row = study_locus_manifest.loc[study_locus_index]
         study_locus_input = row["study_locus_input"]
         study_locus_output = row["study_locus_output"]
+        log_output = study_locus_output + ".log"
+        if "log_output" in study_locus_manifest.columns:
+            log_output = row["log_output"] + ".log"
 
         # Read studyLocus
         study_locus = (
@@ -140,7 +149,7 @@ class SusieFineMapperStep:
             if result_logging["log"] is not None:
                 # Write log
                 result_logging["log"].to_parquet(
-                    study_locus_output + ".log",
+                    log_output,
                     engine="pyarrow",
                     index=False,
                 )
@@ -324,8 +333,8 @@ class SusieFineMapperStep:
         df = pd.DataFrame(
             {
                 "credibleSetIndex": cred_set_index,
-                "purityMeanR2": purity_mean_r2,
-                "purityMinR2": purity_min_r2,
+                "purityMeanR2": list_purity_mean_r2,
+                "purityMinR2": list_purity_min_r2,
                 "zScore": z_values,
                 "neglogpval": neglogpval,
             }
@@ -357,6 +366,7 @@ class SusieFineMapperStep:
         cred_sets = cred_sets.filter(
             (f.col("neglogpval") >= -np.log10(lead_pval_threshold))
             & (f.col("credibleSetlog10BF") >= cs_lbf_thr * 0.4342944819)
+            & (~f.isnan(f.col("credibleSetlog10BF")))
             & (f.col("purityMinR2") >= purity_min_r2_threshold)
             & (f.col("purityMeanR2") >= purity_mean_r2_threshold)
         )
@@ -404,6 +414,13 @@ class SusieFineMapperStep:
         cred_sets = cred_sets.drop("neglogpval")
         cred_sets = cred_sets.withColumn("locusStart", f.lit(locusStart))
         cred_sets = cred_sets.withColumn("locusEnd", f.lit(locusEnd))
+
+        cred_sets = cred_sets.drop("beta").withColumn(
+            "beta",
+            f.expr("""
+                filter(locus, x -> x.variantId = variantId)[0].beta
+            """),
+        )
 
         return StudyLocus(
             _df=cred_sets,
@@ -706,6 +723,8 @@ class SusieFineMapperStep:
         if N_total is None:
             N_total = 100_000
 
+        locusStart = max(locusStart, 0)
+
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
         schema = StudyLocus.get_schema()
@@ -849,6 +868,14 @@ class SusieFineMapperStep:
             upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
         )
         np.fill_diagonal(gnomad_ld, 1)
+
+        # Desision tree - number of variants
+        if gwas_index.count() < 100:
+            logging.warning("Less than 100 variants after joining GWAS and LD index")
+            return None
+        elif gwas_index.count() >= 15_000:
+            logging.warning("More than 15000 variants after joining GWAS and LD index")
+            return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,
