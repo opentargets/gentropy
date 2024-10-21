@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from functools import reduce
 from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
 from wandb import login as wandb_login
 
+from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
+from gentropy.config import LocusToGeneConfig, LocusToGeneFeatureMatrixConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
@@ -30,7 +34,7 @@ class LocusToGeneFeatureMatrixStep:
         self,
         session: Session,
         *,
-        features_list: list[str],
+        features_list: list[str] = LocusToGeneFeatureMatrixConfig().features_list,
         credible_set_path: str,
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
@@ -93,20 +97,24 @@ class LocusToGeneStep:
     def __init__(
         self,
         session: Session,
-        hyperparameters: dict[str, Any],
+        hyperparameters: dict[str, Any] = LocusToGeneConfig().hyperparameters,
         *,
         run_mode: str,
-        features_list: list[str],
-        download_from_hub: bool,
+        features_list: list[str] = LocusToGeneConfig().features_list,
+        download_from_hub: bool = LocusToGeneConfig().download_from_hub,
         wandb_run_name: str,
+        model_path: str | None = None,
         credible_set_path: str,
         feature_matrix_path: str,
-        model_path: str | None = None,
         gold_standard_curation_path: str | None = None,
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
+        gene_index_path: str | None = None,
+        interval_path: dict[str, str] | None = None,
+        liftover_chain_file_path: str | None = None,
+        liftover_max_length_difference: int = 100,
         predictions_path: str | None = None,
-        hf_hub_repo_id: str | None,
+        hf_hub_repo_id: str | None = LocusToGeneConfig().hf_hub_repo_id,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -117,12 +125,16 @@ class LocusToGeneStep:
             features_list (list[str]): List of features to use for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
             wandb_run_name (str): Name of the run to track model training in Weights and Biases
+            model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
-            model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             gold_standard_curation_path (str | None): Path to the gold standard curation file
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
+            gene_index_path (str | None = None):  Path to the gene index
+            interval_path (dict[str, str] | None) : Path and source of interval input datasets
+            liftover_chain_file_path (str | None) : Path to the liftover chain file
+            liftover_max_length_difference (int) : Maximum allowed difference for liftover
             predictions_path (str | None): Path to the L2G predictions output dataset
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
 
@@ -156,6 +168,40 @@ class LocusToGeneStep:
             if variant_index_path
             else None
         )
+        self.gene_index = (
+            GeneIndex.from_parquet(session, gene_index_path)
+            if gene_index_path
+            else None
+        )
+        self.lift = (
+            LiftOverSpark(
+                liftover_chain_file_path,
+                liftover_max_length_difference,
+            )
+            if liftover_chain_file_path
+            else None
+        )
+
+        if self.variant_index and self.gene_index and self.lift and interval_path:
+            self.intervals = Intervals(
+                _df=reduce(
+                    lambda x, y: x.unionByName(y, allowMissingColumns=True),
+                    # create interval instances by parsing each source
+                    [
+                        Intervals.from_source(
+                            session.spark,
+                            source_name,
+                            source_path,
+                            self.gene_index,
+                            self.lift,
+                        ).df
+                        for source_name, source_path in interval_path.items()
+                    ],
+                )
+            ).overlap_variant_index(variant_index=self.variant_index)
+
+        else:
+            raise ValueError("variant_index is None, cannot join with intervals.")
 
         if run_mode == "predict":
             self.run_predict()
@@ -173,13 +219,7 @@ class LocusToGeneStep:
             self.run_train()
 
     def run_predict(self) -> None:
-        """Run the prediction step.
-
-        Raises:
-            ValueError: If predictions_path is not provided for prediction mode
-        """
-        if not self.predictions_path:
-            raise ValueError("predictions_path must be provided for prediction mode")
+        """Run the prediction step."""
         predictions = L2GPrediction.from_credible_set(
             self.session,
             self.credible_set,
@@ -189,10 +229,11 @@ class LocusToGeneStep:
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.df.write.mode(self.session.write_mode).parquet(
-            self.predictions_path
-        )
-        self.session.logger.info("L2G predictions saved successfully.")
+        if self.predictions_path:
+            predictions.df.write.mode(self.session.write_mode).parquet(
+                self.predictions_path
+            )
+            self.session.logger.info(self.predictions_path)
 
     def run_train(self) -> None:
         """Run the training step."""
@@ -243,21 +284,20 @@ class LocusToGeneStep:
         if self.gs_curation and self.interactions and self.variant_index:
             study_locus_overlap = StudyLocus(
                 _df=self.credible_set.df.join(
-                    self.gs_curation.select(
-                        f.concat_ws(
-                            "_",
-                            f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                            f.col("sentinel_variant.locus_GRCh38.position"),
-                            f.col("sentinel_variant.alleles.reference"),
-                            f.col("sentinel_variant.alleles.alternative"),
-                        ).alias("variantId"),
-                        f.col("association_info.otg_id").alias("studyId"),
+                    f.broadcast(
+                        self.gs_curation.select(
+                            f.concat_ws(
+                                "_",
+                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                                f.col("sentinel_variant.locus_GRCh38.position"),
+                                f.col("sentinel_variant.alleles.reference"),
+                                f.col("sentinel_variant.alleles.alternative"),
+                            ).alias("variantId"),
+                            f.col("association_info.otg_id").alias("studyId"),
+                        )
                     ),
-                    on=[
-                        "studyId",
-                        "variantId",
-                    ],
-                    how="inner",
+                    ["studyId", "variantId"],
+                    "inner",
                 ),
                 _schema=StudyLocus.get_schema(),
             ).find_overlaps()
@@ -275,6 +315,5 @@ class LocusToGeneStep:
                 )
                 .fill_na()
                 .select_features(self.features_list)
-                .persist()
             )
         raise ValueError("Dependencies for train mode not set.")
