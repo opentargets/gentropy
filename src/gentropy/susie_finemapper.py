@@ -416,6 +416,13 @@ class SusieFineMapperStep:
         cred_sets = cred_sets.withColumn("locusStart", f.lit(locusStart))
         cred_sets = cred_sets.withColumn("locusEnd", f.lit(locusEnd))
 
+        cred_sets = cred_sets.drop("beta").withColumn(
+            "beta",
+            f.expr("""
+                filter(locus, x -> x.variantId = variantId)[0].beta
+            """),
+        )
+
         return StudyLocus(
             _df=cred_sets,
             _schema=StudyLocus.get_schema(),
@@ -736,6 +743,8 @@ class SusieFineMapperStep:
         N_total = int(study_index_df.select("nSamples").collect()[0]["nSamples"])
         if N_total is None:
             N_total = 100_000
+
+        locusStart = max(locusStart, 0)
 
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
