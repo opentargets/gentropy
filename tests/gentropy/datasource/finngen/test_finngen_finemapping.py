@@ -44,6 +44,7 @@ def test_finngen_finemapping_from_finngen_susie_finemapping(
             spark=spark,
             finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
             finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
+            finngen_release_prefix="FINNGEN_R11",
         ),
         StudyLocus,
     )
@@ -77,9 +78,12 @@ def test_finngen_finemapping_ingestion_step(
         finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
         finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
         finngen_finemapping_lead_pvalue_threshold=1e-5,
+        finngen_release_prefix="FINNGEN_R11",
     )
     assert output_path.is_dir()
     assert (output_path / "_SUCCESS").exists()
 
     cs = StudyLocus.from_parquet(session=session, path=str(output_path))
     assert cs.df.count() == 1
+    study_id: str = cs.df.select("studyId").collect()[0]["studyId"]
+    assert study_id.startswith("FINNGEN_R11_")

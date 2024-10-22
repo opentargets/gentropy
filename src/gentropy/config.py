@@ -38,6 +38,7 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
+    colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
@@ -56,6 +57,7 @@ class BiosampleIndexConfig(StepConfig):
 
     cell_ontology_input_path: str = MISSING
     uberon_input_path: str = MISSING
+    efo_input_path: str = MISSING
     biosample_index_path: str = MISSING
     _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
 
@@ -168,13 +170,14 @@ class FinngenFinemappingConfig(StepConfig):
         "gs://finngen-public-data-r11/finemap/full/susie/*.snp.bgz"
     )
     finngen_susie_finemapping_cs_summary_files: str = (
-        "gs://finngen-public-data-r11/finemap/summary/*.cred.summary.tsv"
+        "gs://finngen-public-data-r11/finemap/summary/*SUSIE.cred.summary.tsv"
     )
     finngen_finemapping_out: str = MISSING
+    finngen_finemapping_lead_pvalue_threshold: float = 1e-5
+    finngen_release_prefix: str = "FINNGEN_R11"
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
-    finngen_finemapping_lead_pvalue_threshold: float = 1e-5
 
 
 @dataclass
@@ -222,13 +225,12 @@ class LDBasedClumpingConfig(StepConfig):
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
-    session: Any = field(default_factory=lambda: {"extended_spark_conf": None})
     run_mode: str = MISSING
-    predictions_path: str = MISSING
     credible_set_path: str = MISSING
-    variant_index_path: str = MISSING
+    feature_matrix_path: str = MISSING
+    predictions_path: str | None = None
+    variant_index_path: str | None = None
     model_path: str | None = None
-    feature_matrix_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
     features_list: list[str] = field(

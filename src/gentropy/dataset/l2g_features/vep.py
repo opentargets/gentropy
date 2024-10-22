@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
-from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.gene_index import GeneIndex
@@ -92,35 +91,30 @@ def common_neighbourhood_vep_feature_logic(
         DataFrame: Feature dataset
     """
     local_feature_name = feature_name.replace("Neighbourhood", "")
-    # First compute mean distances to a gene
     local_metric = common_vep_feature_logic(
         study_loci_to_annotate,
         feature_name=local_feature_name,
         variant_index=variant_index,
+    ).join(
+        # Bring gene classification
+        gene_index.df.select("geneId", "biotype"),
+        "geneId",
+        "inner",
+    )
+    # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+    # (non protein coding genes in the vicinity are excluded see #3552)
+    regional_mean_per_study_locus = (
+        local_metric.filter(f.col("biotype") == "protein_coding")
+        .groupBy("studyLocusId")
+        .agg(f.mean(local_feature_name).alias("regional_mean"))
     )
     return (
-        # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        local_metric.join(
-            # Bring gene classification
-            gene_index.df.select("geneId", "biotype"),
-            "geneId",
-            "inner",
-        )
+        local_metric.join(regional_mean_per_study_locus, "studyLocusId", "left")
         .withColumn(
-            "regional_metric",
-            f.coalesce(
-                # Calculate mean based on protein coding genes
-                f.mean(
-                    f.when(
-                        f.col("biotype") == "protein_coding", f.col(local_feature_name)
-                    )
-                ).over(Window.partitionBy("studyLocusId")),
-                # Default to 0 if there are no protein coding genes
-                f.lit(0),
-            ),
+            feature_name,
+            f.col(local_feature_name) - f.coalesce(f.col("regional_mean"), f.lit(0.0)),
         )
-        .withColumn(feature_name, f.col(local_feature_name) - f.col("regional_metric"))
-        .drop("regional_metric", local_feature_name, "biotype")
+        .drop("regional_mean", local_feature_name, "biotype")
     )
 
 

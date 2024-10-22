@@ -88,7 +88,7 @@ class Colocalisation(Dataset):
 
         method_colocalisation_metric = ColocalisationStep._get_colocalisation_class(
             filter_by_colocalisation_method
-        ).METHOD_METRIC  # type: ignore
+        ).METHOD_METRIC
 
         coloc_filtering_expr = [
             f.col("rightGeneId").isNotNull(),
