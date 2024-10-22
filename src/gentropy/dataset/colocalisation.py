@@ -62,7 +62,12 @@ class Colocalisation(Dataset):
 
         valid_qtls = list(
             set(EqtlCatalogueStudyIndex.method_to_study_type_mapping.values())
-        )
+        ) + [
+            f"sc{qtl}"
+            for qtl in set(
+                EqtlCatalogueStudyIndex.method_to_study_type_mapping.values()
+            )
+        ]
 
         if filter_by_qtls:
             filter_by_qtls = (
