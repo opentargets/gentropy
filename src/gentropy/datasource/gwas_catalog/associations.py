@@ -228,26 +228,29 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
         # Subset of variant annotation required for GWAS Catalog annotations:
-        va_subset = variant_index.df.select(
-            "variantId",
-            "chromosome",
-            # Calculate the position in Ensembl coordinates for indels:
-            GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(
-                f.col("position"),
-                f.col("referenceAllele"),
-                f.col("alternateAllele"),
-            ).alias("ensemblPosition"),
-            # Keeping GnomAD position:
-            "position",
-            f.col("rsIds").alias("rsIdsGnomad"),
-            "referenceAllele",
-            "alternateAllele",
-            "alleleFrequencies",
-            variant_index.max_maf().alias("maxMaf"),
-        ).join(
-            gwas_associations_subset.select("chromosome", "ensemblPosition").distinct(),
-            on=["chromosome", "ensemblPosition"],
-            how="inner",
+        va_subset = (
+            variant_index.df.select(
+                "variantId",
+                "chromosome",
+                # Calculate the position in Ensembl coordinates for indels:
+                GWASCatalogCuratedAssociationsParser.convert_gnomad_position_to_ensembl(
+                    f.col("position"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                ).alias("ensemblPosition"),
+                # Keeping GnomAD position:
+                "position",
+                f.col("rsIds").alias("rsIdsGnomad"),
+                "referenceAllele",
+                "alternateAllele",
+                "alleleFrequencies",
+                variant_index.max_maf().alias("maxMaf"),
+            ).join(
+                gwas_associations_subset.select("chromosome", "ensemblPosition").distinct(),
+                on=["chromosome", "ensemblPosition"],
+                how="inner",
+            )
+            .persist()
         )
 
         # Semi-resolved ids (still contains duplicates when conclusion was not possible to make
