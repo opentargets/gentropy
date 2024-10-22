@@ -289,6 +289,7 @@ class GWASCatalogCuratedAssociationsParser:
                 # but there is corresponding variant for the same association
                 | f.col("concordanceFilter")
             )
+            .persist()
         )
 
         # Keep only highest maxMaf variant per studyLocusId
