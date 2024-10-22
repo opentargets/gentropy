@@ -767,14 +767,20 @@ class SusieFineMapperStep:
             return None
 
         # Desision tree - qulityControls
-        invalid_reasons = [
-            "The PZ QC check values are not within the expected range",
-            "GWAS Catalog study has not been curated by Open Targets",
-            "The number of SNPs in the study is below the expected threshold",
-            "The mean beta QC check value is not within the expected range",
-            "The GC lambda value is not within the expected range",
-            "Harmonized summary statistics are not available or empty",
+        keys_reasons = [
+            "SMALL_NUMBER_OF_SNPS",
+            "FAILED_GC_LAMBDA_CHECK",
+            "FAILED_PZ_CHECK",
+            "FAILED_MEAN_BETA_CHECK",
+            "NO_OT_CURATION",
+            "SUMSTATS_NOT_AVAILABLE",
         ]
+
+        qc_mappings_dict = StudyIndex.get_QC_mappings()
+        invalid_reasons = [
+            qc_mappings_dict[key] for key in keys_reasons if key in qc_mappings_dict
+        ]
+
         x_boolean = (
             study_index_df.withColumn(
                 "FailedQC",
