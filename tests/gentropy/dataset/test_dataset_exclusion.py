@@ -24,11 +24,11 @@ class TestDataExclusion:
         # Good study no flag:
         ("S1", None),
         # Good study permissive flag:
-        ("S2", "This type of study is not supported."),
-        ("S2", "No valid disease identifier found."),
+        ("S2", "This type of study is not supported"),
+        ("S2", "No valid disease identifier found"),
         # Bad study:
-        ("S3", "The identifier of this study is not unique."),
-        ("S3", "This type of study is not supported."),
+        ("S3", "The identifier of this study is not unique"),
+        ("S3", "This type of study is not supported"),
     ]
 
     @pytest.fixture(autouse=True)
