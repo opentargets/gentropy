@@ -293,7 +293,7 @@ class LocusToGeneEvidenceStep:
         evidence_output_path: str,
         locus_to_gene_threshold: float = LocusToGeneEvidenceStepConfig().locus_to_gene_threshold,
     ) -> None:
-        """Initialise the step and run the logic.
+        """Initialise the step and generate disease/target evidence.
 
         Args:
             session (Session): Session object that contains the Spark session
