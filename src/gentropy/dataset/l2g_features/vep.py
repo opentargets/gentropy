@@ -114,7 +114,7 @@ def common_neighbourhood_vep_feature_logic(
             feature_name,
             f.col(local_feature_name) - f.coalesce(f.col("regional_mean"), f.lit(0.0)),
         )
-        .drop("regional_metric", local_feature_name, "biotype")
+        .drop("regional_mean", local_feature_name, "biotype")
     )
 
 
