@@ -768,12 +768,12 @@ class SusieFineMapperStep:
 
         # Desision tree - qulityControls
         invalid_reasons = [
-            "The PZ QC check values are not within the expected range.",
-            "GWAS Catalog study has not been curated by Open Targets.",
-            "The number of SNPs in the study is below the expected threshold.",
-            "The mean beta QC check value is not within the expected range.",
-            "The GC lambda value is not within the expected range.",
-            "Harmonized summary statistics are not available or empty.",
+            "The PZ QC check values are not within the expected range",
+            "GWAS Catalog study has not been curated by Open Targets",
+            "The number of SNPs in the study is below the expected threshold",
+            "The mean beta QC check value is not within the expected range",
+            "The GC lambda value is not within the expected range",
+            "Harmonized summary statistics are not available or empty",
         ]
         x_boolean = (
             study_index_df.withColumn(
