@@ -10,6 +10,7 @@ from wandb import login as wandb_login
 
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
+from gentropy.config import LocusToGeneEvidenceStepConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -278,3 +279,45 @@ class LocusToGeneStep:
                 .persist()
             )
         raise ValueError("Dependencies for train mode not set.")
+
+
+class LocusToGeneEvidenceStep:
+    """Locus to gene evidence step."""
+
+    def __init__(
+        self,
+        session: Session,
+        locus_to_gene_predictions_path: str,
+        credible_set_path: str,
+        study_index_path: str,
+        evidence_output_path: str,
+        locus_to_gene_threshold: float = LocusToGeneEvidenceStepConfig().locus_to_gene_threshold,
+    ) -> None:
+        """Initialise the step and run the logic.
+
+        Args:
+            session (Session): Session object that contains the Spark session
+            locus_to_gene_predictions_path (str): Path to the L2G predictions dataset
+            credible_set_path (str): Path to the credible set dataset
+            study_index_path (str): Path to the study index dataset
+            evidence_output_path (str): Path to the L2G evidence output dataset
+            locus_to_gene_threshold (float, optional): Threshold to consider a gene as a target. Defaults to 0.05.
+        """
+        # Reading the predictions
+        locus_to_gene_prediction = L2GPrediction.from_parquet(
+            session, locus_to_gene_predictions_path
+        )
+        # Reading the credible set
+        credible_sets = StudyLocus.from_parquet(session, credible_set_path)
+
+        # Reading the study index
+        study_index = StudyIndex.from_parquet(session, study_index_path)
+
+        # Generate evidence and save file:
+        (
+            locus_to_gene_prediction.to_disease_target_evidence(
+                credible_sets, study_index, locus_to_gene_threshold
+            )
+            .write.mode(session.write_mode)
+            .parquet(evidence_output_path)
+        )
