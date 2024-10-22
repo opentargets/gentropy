@@ -1,4 +1,6 @@
 """Utility functions for Biosample ontology processing."""
+import re
+
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql.types import ArrayType, StringType
@@ -92,12 +94,22 @@ def extract_ontology_from_json(
         f.col("edge.pred").alias("predicate"),
         f.col("edge.obj").alias("object")
     )
-    df_edges = df_edges.withColumn("subject", f.regexp_replace(f.col("subject"), "http://purl.obolibrary.org/obo/", ""))
-    df_edges = df_edges.withColumn("object", f.regexp_replace(f.col("object"), "http://purl.obolibrary.org/obo/", ""))
+
+    # Remove certain URL prefixes from IDs
+    urls_to_remove = [
+        "http://purl.obolibrary.org/obo/",
+        "http://www.ebi.ac.uk/efo/"
+    ]
+    # Create a regex pattern that matches any of the URLs
+    escaped_urls_pattern = "|".join([re.escape(url) for url in urls_to_remove])
+
+
+    df_edges = df_edges.withColumn("subject", f.regexp_replace(f.col("subject"), escaped_urls_pattern, ""))
+    df_edges = df_edges.withColumn("object", f.regexp_replace(f.col("object"), escaped_urls_pattern, ""))
 
     # Extract the relevant information from the nodes
     transformed_df = df_nodes.select(
-    f.regexp_replace(f.col("node.id"), "http://purl.obolibrary.org/obo/", "").alias("biosampleId"),
+    f.regexp_replace(f.col("node.id"), escaped_urls_pattern, "").alias("biosampleId"),
     f.coalesce(f.col("node.lbl"), f.col("node.id")).alias("biosampleName"),
     f.col("node.meta.definition.val").alias("description"),
     f.collect_set(f.col("node.meta.xrefs.val")).over(Window.partitionBy("node.id")).getItem(0).alias("xrefs"),
