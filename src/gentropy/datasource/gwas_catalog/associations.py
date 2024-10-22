@@ -208,20 +208,23 @@ class GWASCatalogCuratedAssociationsParser:
             `alternateAllele`, `chromosome`, `position` with variant metadata
         """
         # Subset of GWAS Catalog associations required for resolving variant IDs:
-        gwas_associations_subset = gwas_associations.select(
-            "studyLocusId",
-            f.col("CHR_ID").alias("chromosome"),
-            # The positions from GWAS Catalog are from ensembl that causes discrepancy for indels:
-            f.col("CHR_POS").cast(IntegerType()).alias("ensemblPosition"),
-            # List of all SNPs associated with the variant
-            GWASCatalogCuratedAssociationsParser._collect_rsids(
-                f.split(f.col("SNPS"), "; ").getItem(0),
-                f.col("SNP_ID_CURRENT"),
-                f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
-            ).alias("rsIdsGwasCatalog"),
-            GWASCatalogCuratedAssociationsParser._extract_risk_allele(
-                f.col("STRONGEST SNP-RISK ALLELE")
-            ).alias("riskAllele"),
+        gwas_associations_subset = (
+            gwas_associations.select(
+                "studyLocusId",
+                f.col("CHR_ID").alias("chromosome"),
+                # The positions from GWAS Catalog are from ensembl that causes discrepancy for indels:
+                f.col("CHR_POS").cast(IntegerType()).alias("ensemblPosition"),
+                # List of all SNPs associated with the variant
+                GWASCatalogCuratedAssociationsParser._collect_rsids(
+                    f.split(f.col("SNPS"), "; ").getItem(0),
+                    f.col("SNP_ID_CURRENT"),
+                    f.split(f.col("STRONGEST SNP-RISK ALLELE"), "; ").getItem(0),
+                ).alias("rsIdsGwasCatalog"),
+                GWASCatalogCuratedAssociationsParser._extract_risk_allele(
+                    f.col("STRONGEST SNP-RISK ALLELE")
+                ).alias("riskAllele"),
+            )
+            .persist()
         )
 
         # Subset of variant annotation required for GWAS Catalog annotations:
