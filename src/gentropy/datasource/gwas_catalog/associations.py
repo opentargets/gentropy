@@ -224,7 +224,6 @@ class GWASCatalogCuratedAssociationsParser:
                     f.col("STRONGEST SNP-RISK ALLELE")
                 ).alias("riskAllele"),
             )
-            .persist()
         )
 
         # Subset of variant annotation required for GWAS Catalog annotations:
@@ -250,7 +249,6 @@ class GWASCatalogCuratedAssociationsParser:
                 on=["chromosome", "ensemblPosition"],
                 how="inner",
             )
-            .persist()
         )
 
         # Semi-resolved ids (still contains duplicates when conclusion was not possible to make
@@ -289,7 +287,6 @@ class GWASCatalogCuratedAssociationsParser:
                 # but there is corresponding variant for the same association
                 | f.col("concordanceFilter")
             )
-            .persist()
         )
 
         # Keep only highest maxMaf variant per studyLocusId
@@ -1114,8 +1111,6 @@ class GWASCatalogCuratedAssociationsParser:
         """
         return StudyLocusGWASCatalog(
             _df=gwas_associations
-            # drop duplicate rows
-            .distinct()
             .withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(StringType())
             )
