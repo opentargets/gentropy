@@ -28,6 +28,7 @@ from gentropy.common.spark_helpers import (
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 from gentropy.method.carma import CARMA
+from gentropy.method.ld import LDAnnotator
 from gentropy.method.ld_matrix_interface import LDMatrixInterface
 from gentropy.method.sumstat_imputation import SummaryStatisticsImputation
 from gentropy.method.susie_inf import SUSIE_inf
@@ -415,6 +416,13 @@ class SusieFineMapperStep:
         cred_sets = cred_sets.withColumn("locusStart", f.lit(locusStart))
         cred_sets = cred_sets.withColumn("locusEnd", f.lit(locusEnd))
 
+        cred_sets = cred_sets.drop("beta").withColumn(
+            "beta",
+            f.expr("""
+                filter(locus, x -> x.variantId = variantId)[0].beta
+            """),
+        )
+
         return StudyLocus(
             _df=cred_sets,
             _schema=StudyLocus.get_schema(),
@@ -705,18 +713,113 @@ class SusieFineMapperStep:
 
         study_index_df = study_index._df
         study_index_df = study_index_df.filter(f.col("studyId") == studyId)
-        major_population = study_index_df.select(
-            "studyId",
-            order_array_of_structs_by_field(
-                "ldPopulationStructure", "relativeSampleSize"
-            )[0]["ldPopulation"].alias("majorPopulation"),
-        ).collect()[0]["majorPopulation"]
+
+        # Desision tree - study index
+        if study_index_df.count() == 0:
+            logging.warning("No study index found for the studyId")
+            return None
+
+        major_population = (
+            study_index_df.select(
+                "studyId",
+                order_array_of_structs_by_field(
+                    "ldPopulationStructure", "relativeSampleSize"
+                ).alias("ldPopulationStructure"),
+            )
+            .withColumn(
+                "majorPopulation",
+                f.when(
+                    f.col("ldPopulationStructure").isNotNull(),
+                    LDAnnotator._get_major_population(f.col("ldPopulationStructure")),
+                ),
+            )
+            .collect()[0]["majorPopulation"]
+        )
+
+        # This is a temporary solution
+        if major_population == "eas":
+            major_population = "csa"
 
         N_total = int(study_index_df.select("nSamples").collect()[0]["nSamples"])
         if N_total is None:
             N_total = 100_000
 
+        locusStart = max(locusStart, 0)
+
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
+
+        # Desision tree - studyType
+        if study_index_df.select("studyType").collect()[0]["studyType"] in [
+            "gwas",
+            "pqtl",
+        ]:
+            logging.warning("Study type is not GWAS or non gwas catalog pqtl")
+            return None
+
+        # Desision tree - ancestry
+        if major_population not in ["nfe", "csa", "afr"]:
+            logging.warning("Major ancestry is not nfe, csa or afr")
+            return None
+
+        # Desision tree - hasSumstats
+        if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:
+            logging.warning("No sumstats found for the studyId")
+            return None
+
+        # Desision tree - qulityControls
+        keys_reasons = [
+            "SMALL_NUMBER_OF_SNPS",
+            "FAILED_GC_LAMBDA_CHECK",
+            "FAILED_PZ_CHECK",
+            "FAILED_MEAN_BETA_CHECK",
+            "NO_OT_CURATION",
+            "SUMSTATS_NOT_AVAILABLE",
+        ]
+
+        qc_mappings_dict = StudyIndex.get_QC_mappings()
+        invalid_reasons = [
+            qc_mappings_dict[key] for key in keys_reasons if key in qc_mappings_dict
+        ]
+
+        x_boolean = (
+            study_index_df.withColumn(
+                "FailedQC",
+                f.arrays_overlap(
+                    f.col("qualityControls"),
+                    f.array([f.lit(reason) for reason in invalid_reasons]),
+                ),
+            )
+            .select("FailedQC")
+            .collect()[0]["FailedQC"]
+        )
+        if x_boolean:
+            logging.warning("Quality control check failed for this study")
+            return None
+
+        # Desision tree - analysisFlags
+        study_index_df = study_index_df.drop("FailedQC")
+        invalid_reasons = [
+            "Multivariate analysis",
+            "ExWAS",
+            "Non-additive model",
+            "GxG",
+            "GxE",
+            "Case-case study",
+        ]
+        x_boolean = (
+            study_index_df.withColumn(
+                "FailedQC",
+                f.arrays_overlap(
+                    f.col("analysisFlags"),
+                    f.array([f.lit(reason) for reason in invalid_reasons]),
+                ),
+            )
+            .select("FailedQC")
+            .collect()[0]["FailedQC"]
+        )
+        if x_boolean:
+            logging.warning("Analysis Flags check failed for this study")
+            return None
 
         schema = StudyLocus.get_schema()
         gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
@@ -859,6 +962,14 @@ class SusieFineMapperStep:
             upper_triangle + upper_triangle.T - np.diag(upper_triangle.diagonal())
         )
         np.fill_diagonal(gnomad_ld, 1)
+
+        # Desision tree - number of variants
+        if gwas_index.count() < 100:
+            logging.warning("Less than 100 variants after joining GWAS and LD index")
+            return None
+        elif gwas_index.count() >= 15_000:
+            logging.warning("More than 15000 variants after joining GWAS and LD index")
+            return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,

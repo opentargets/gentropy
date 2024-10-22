@@ -57,6 +57,7 @@ class BiosampleIndexConfig(StepConfig):
 
     cell_ontology_input_path: str = MISSING
     uberon_input_path: str = MISSING
+    efo_input_path: str = MISSING
     biosample_index_path: str = MISSING
     _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
 
@@ -67,44 +68,36 @@ class GWASCatalogStudyCurationConfig(StepConfig):
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
     gwas_catalog_study_curation_out: str = MISSING
     gwas_catalog_study_curation_file: str = MISSING
     _target_: str = "gentropy.gwas_catalog_study_curation.GWASCatalogStudyCurationStep"
 
 
 @dataclass
-class GWASCatalogStudyInclusionConfig(StepConfig):
-    """GWAS Catalog study inclusion step configuration."""
+class GWASCatalogStudyIndexGenerationStep(StepConfig):
+    """GWAS Catalog study index generation."""
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_associations_file: str = MISSING
-    gwas_catalog_study_curation_file: str = MISSING
-    variant_annotation_path: str = MISSING
-    harmonised_study_file: str = MISSING
-    criteria: str = MISSING
-    inclusion_list_path: str = MISSING
-    exclusion_list_path: str = MISSING
+    study_index_path: str = MISSING
+    gwas_catalog_study_curation_file: str | None = None
+    sumstats_qc_path: str | None = None
     _target_: str = (
-        "gentropy.gwas_catalog_study_inclusion.GWASCatalogStudyInclusionGenerator"
+        "gentropy.gwas_catalog_study_index.GWASCatalogStudyIndexGenerationStep"
     )
 
 
 @dataclass
-class GWASCatalogIngestionConfig(StepConfig):
+class GWASCatalogTopHitIngestionConfig(StepConfig):
     """GWAS Catalog ingestion step configuration."""
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
-    gwas_catalog_study_curation_file: str | None = None
-    inclusion_list_path: str | None = None
-    _target_: str = "gentropy.gwas_catalog_ingestion.GWASCatalogIngestionStep"
+    _target_: str = "gentropy.gwas_catalog_top_hits.GWASCatalogTopHitIngestionStep"
 
 
 @dataclass
@@ -657,16 +650,18 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="gwas_catalog_study_inclusion",
-        node=GWASCatalogStudyInclusionConfig,
-    )
-    cs.store(
-        group="step", name="gwas_catalog_ingestion", node=GWASCatalogIngestionConfig
+        name="gwas_catalog_study_index",
+        node=GWASCatalogStudyIndexGenerationStep,
     )
     cs.store(
         group="step",
         name="gwas_catalog_sumstat_preprocess",
         node=GWASCatalogSumstatsPreprocessConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_top_hit_ingestion",
+        node=GWASCatalogTopHitIngestionConfig,
     )
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
