@@ -211,7 +211,7 @@ class FinnGenFinemapping:
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
-        The finngen_susue_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
+        The finngen_susie_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
             - trait: phenotype
             - region: region for which the fine-mapping was run.
             - v, rsid: variant ids
@@ -312,8 +312,7 @@ class FinnGenFinemapping:
                 f.col("allele2").cast(t.StringType()).alias("alt"),
                 # Parse p-value into mantissa and exponent.
                 *parse_pvalue(f.col("p")),
-                # Add beta, standard error, and allele frequency information.
-                f.col("beta").cast("double"),
+                # Add standard error, and allele frequency information.
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
                 f.lit("SuSie").cast("string").alias("finemappingMethod"),
@@ -323,6 +322,10 @@ class FinnGenFinemapping:
                 ],
                 *[
                     f.col(f"lbf_variable{i}").cast(t.DoubleType()).alias(f"lbf_{i}")
+                    for i in range(1, 11)
+                ],
+                *[
+                    f.col(f"mean{i}").cast(t.DoubleType()).alias("beta_{i}")
                     for i in range(1, 11)
                 ],
             )
@@ -375,6 +378,31 @@ class FinnGenFinemapping:
                 "lbf_8",
                 "lbf_9",
                 "lbf_10",
+            )
+            .withColumn(
+                "beta",
+                f.when(f.col("credibleSetIndex") == 1, f.col("beta_1"))
+                .when(f.col("credibleSetIndex") == 2, f.col("beta_2"))
+                .when(f.col("credibleSetIndex") == 3, f.col("beta_3"))
+                .when(f.col("credibleSetIndex") == 4, f.col("beta_4"))
+                .when(f.col("credibleSetIndex") == 5, f.col("beta_5"))
+                .when(f.col("credibleSetIndex") == 6, f.col("beta_6"))
+                .when(f.col("credibleSetIndex") == 7, f.col("beta_7"))
+                .when(f.col("credibleSetIndex") == 8, f.col("beta_8"))
+                .when(f.col("credibleSetIndex") == 9, f.col("beta_9"))
+                .when(f.col("credibleSetIndex") == 10, f.col("beta_10")),
+            )
+            .drop(
+                "beta_1",
+                "beta_2",
+                "beta_3",
+                "beta_4",
+                "beta_5",
+                "beta_6",
+                "beta_7",
+                "beta_8",
+                "beta_9",
+                "beta_10",
             )
         )
 
@@ -459,7 +487,7 @@ class FinnGenFinemapping:
                         f.col("logBF").cast("double").alias("logBF"),
                         f.col("pValueMantissa").cast("float").alias("pValueMantissa"),
                         f.col("pValueExponent").cast("integer").alias("pValueExponent"),
-                        f.col("beta").cast("double").alias("beta"),
+                        f.col("beta").cast("double"),
                         f.col("standardError").cast("double").alias("standardError"),
                     )
                 ).alias("locus"),
