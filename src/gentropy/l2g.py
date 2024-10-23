@@ -319,5 +319,5 @@ class LocusToGeneEvidenceStep:
                 credible_sets, study_index, locus_to_gene_threshold
             )
             .write.mode(session.write_mode)
-            .parquet(evidence_output_path)
+            .json(evidence_output_path)
         )

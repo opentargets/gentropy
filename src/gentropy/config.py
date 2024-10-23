@@ -723,7 +723,7 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="l2g_evidence",
+        name="locus_to_gene_evidence",
         node=LocusToGeneEvidenceStepConfig,
     )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
