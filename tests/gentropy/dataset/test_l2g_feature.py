@@ -867,8 +867,6 @@ class TestCommonGeneCountFeatureLogic:
             .select("studyLocusId", "geneId", feature_name)
             .orderBy("studyLocusId", "geneId")
         )
-        print("Observed Data:", observed_df.collect())
-        print("Expected Data:", expected_df.collect())
         assert (
             observed_df.collect() == expected_df.collect()
         ), f"Expected and observed dataframes do not match for feature {feature_name}."
