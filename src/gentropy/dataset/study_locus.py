@@ -82,6 +82,8 @@ class StudyLocusQualityCheck(Enum):
         IN_MHC (str): Flagging study loci in the MHC region
         REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
         EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
+        OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
+        INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -111,6 +113,7 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
+    INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
 
 
 class CredibleInterval(Enum):
@@ -200,6 +203,34 @@ class StudyLocus(Dataset):
             _df=(
                 self.df.drop("studyType").join(
                     study_index.study_type_lut(), on="studyId", how="left"
+                )
+            ),
+            _schema=self.get_schema(),
+        )
+
+    def validate_chromosome_label(self: StudyLocus) -> StudyLocus:
+        """Flagging study loci, where chromosome is coded not as 1:22, X, Y, Xy and MT.
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        # QC column might not be present in the variant index schema, so we have to be ready to handle it:
+        qc_select_expression = (
+            f.col("qualityControls")
+            if "qualityControls" in self.df.columns
+            else f.lit(None).cast(ArrayType(StringType()))
+        )
+        valid_chromosomes = [str(i) for i in range(1, 23)] + ["X", "Y", "XY", "MT"]
+
+        return StudyLocus(
+            _df=(
+                self.df.withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        qc_select_expression,
+                        ~f.col("chromosome").isin(valid_chromosomes),
+                        StudyLocusQualityCheck.INVALID_CHROMOSOME,
+                    ),
                 )
             ),
             _schema=self.get_schema(),
