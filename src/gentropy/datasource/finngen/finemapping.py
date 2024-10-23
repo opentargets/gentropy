@@ -325,7 +325,7 @@ class FinnGenFinemapping:
                     for i in range(1, 11)
                 ],
                 *[
-                    f.col(f"mean{i}").cast(t.DoubleType()).alias("beta_{i}")
+                    f.col(f"mean{i}").cast(t.DoubleType()).alias(f"beta_{i}")
                     for i in range(1, 11)
                 ],
             )
@@ -381,7 +381,7 @@ class FinnGenFinemapping:
             )
             .withColumn(
                 "beta",
-                f.when(f.col("credibleSetIndex") == 1, f.col("beta_1"))
+                f.when(f.col("credibleSetIndex") == 1, f.col("bmea_1"))
                 .when(f.col("credibleSetIndex") == 2, f.col("beta_2"))
                 .when(f.col("credibleSetIndex") == 3, f.col("beta_3"))
                 .when(f.col("credibleSetIndex") == 4, f.col("beta_4"))
