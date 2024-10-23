@@ -209,7 +209,7 @@ class GWASCatalogCuratedAssociationsParser:
         """
         # Subset of GWAS Catalog associations required for resolving variant IDs:
         gwas_associations_subset = gwas_associations.select(
-            "studyLocusId",
+            "rowId",
             f.col("CHR_ID").alias("chromosome"),
             # The positions from GWAS Catalog are from ensembl that causes discrepancy for indels:
             f.col("CHR_POS").cast(IntegerType()).alias("ensemblPosition"),
@@ -258,7 +258,7 @@ class GWASCatalogCuratedAssociationsParser:
             .withColumn(
                 "rsIdFilter",
                 GWASCatalogCuratedAssociationsParser._flag_mappings_to_retain(
-                    f.col("studyLocusId"),
+                    f.col("rowId"),
                     GWASCatalogCuratedAssociationsParser._compare_rsids(
                         f.col("rsIdsGnomad"), f.col("rsIdsGwasCatalog")
                     ),
@@ -267,7 +267,7 @@ class GWASCatalogCuratedAssociationsParser:
             .withColumn(
                 "concordanceFilter",
                 GWASCatalogCuratedAssociationsParser._flag_mappings_to_retain(
-                    f.col("studyLocusId"),
+                    f.col("rowId"),
                     GWASCatalogCuratedAssociationsParser._check_concordance(
                         f.col("riskAllele"),
                         f.col("referenceAllele"),
@@ -285,11 +285,11 @@ class GWASCatalogCuratedAssociationsParser:
             )
         )
 
-        # Keep only highest maxMaf variant per studyLocusId
+        # Keep only highest maxMaf variant per rowId
         fully_mapped_associations = get_record_with_maximum_value(
-            filtered_associations, grouping_col="studyLocusId", sorting_col="maxMaf"
+            filtered_associations, grouping_col="rowId", sorting_col="maxMaf"
         ).select(
-            "studyLocusId",
+            "rowId",
             "variantId",
             "referenceAllele",
             "alternateAllele",
@@ -298,7 +298,7 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
         return gwas_associations.join(
-            fully_mapped_associations, on="studyLocusId", how="left"
+            fully_mapped_associations, on="rowId", how="left"
         )
 
     @staticmethod
@@ -1107,7 +1107,8 @@ class GWASCatalogCuratedAssociationsParser:
         """
         return StudyLocusGWASCatalog(
             _df=gwas_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id().cast(StringType())
+                # temporary column
+                "rowId", f.monotonically_increasing_id().cast(StringType())
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
@@ -1135,6 +1136,14 @@ class GWASCatalogCuratedAssociationsParser:
             )
             # Harmonising effect to beta value and flip effect if needed:
             .transform(cls.harmonise_association_effect_to_beta)
+            .withColumnRenamed("STUDY ACCESSION", "studyId")
+            # Adding study-locus id:
+            .withColumn(
+                "studyLocusId",
+                StudyLocus.assign_study_locus_id(
+                    ["studyId", "variantId"]
+                ),
+            )
             .select(
                 # INSIDE STUDY-LOCUS SCHEMA:
                 "studyLocusId",
@@ -1142,7 +1151,7 @@ class GWASCatalogCuratedAssociationsParser:
                 # Mapped genomic location of the variant (; separated list)
                 "chromosome",
                 "position",
-                f.col("STUDY ACCESSION").alias("studyId"),
+                "studyId",
                 # p-value of the association, string: split into exponent and mantissa.
                 *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
                 # Capturing phenotype granularity at the association level
