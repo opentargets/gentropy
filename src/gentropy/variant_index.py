@@ -56,7 +56,7 @@ class VariantIndexStep:
             variant_index.df.withColumn(
                 "variantId",
                 VariantIndex.hash_long_variant_ids(
-                    col("variantId"), col("chromosome"), col("position")
+                    col("variantId"), col("chromosome"), col("position"), hash_threshold
                 ),
             )
             .repartitionByRange("chromosome", "position")
