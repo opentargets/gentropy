@@ -44,13 +44,16 @@ def common_genecount_feature_logic(
         .withColumn("window_end", f.col("position") + (genomic_window / 2))
         .withColumnRenamed("chromosome", "SL_chromosome")
     )
+    gene_index_filter = gene_index.df
 
     if protein_coding_only:
-        gene_index.df = gene_index.df.filter(f.col("biotype") == "protein_coding")
+        gene_index_filter = gene_index_filter.filter(
+            f.col("biotype") == "protein_coding"
+        )
 
     distinct_gene_counts = (
         study_loci_window.join(
-            gene_index.df.alias("genes"),
+            gene_index_filter.alias("genes"),
             on=(
                 (f.col("SL_chromosome") == f.col("genes.chromosome"))
                 & (f.col("genes.tss") >= f.col("window_start"))
@@ -59,12 +62,12 @@ def common_genecount_feature_logic(
             how="inner",
         )
         .groupBy("studyLocusId")
-        .agg(f.countDistinct("geneId").alias(feature_name))
+        .agg(f.approx_count_distinct("geneId").alias(feature_name))
     )
 
     return (
         study_loci_window.join(
-            gene_index.df.alias("genes"),
+            gene_index_filter.alias("genes"),
             on=(
                 (f.col("SL_chromosome") == f.col("genes.chromosome"))
                 & (f.col("genes.tss") >= f.col("window_start"))
@@ -81,7 +84,6 @@ def common_genecount_feature_logic(
 class GeneCountFeature(L2GFeature):
     """Counts the number of genes within a specified window size from the study locus."""
 
-    fill_na_value = 0  # Default fill value if gene count is missing
     feature_dependency_type = GeneIndex
     feature_name = "geneCount500kb"
 
@@ -122,7 +124,6 @@ class GeneCountFeature(L2GFeature):
 class ProteinGeneCountFeature(L2GFeature):
     """Counts the number of protein coding genes within a specified window size from the study locus."""
 
-    fill_na_value = 0  # Default fill value if gene count is missing
     feature_dependency_type = GeneIndex
     feature_name = "proteinGeneCount500kb"
 
