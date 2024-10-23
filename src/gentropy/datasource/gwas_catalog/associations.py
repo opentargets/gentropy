@@ -1106,10 +1106,7 @@ class GWASCatalogCuratedAssociationsParser:
         pvalue_threshold is keeped in sync with the WindowBasedClumpingStep gwas_significance.
         """
         return StudyLocusGWASCatalog(
-            _df=gwas_associations
-            # drop duplicate rows
-            .distinct()
-            .withColumn(
+            _df=gwas_associations.withColumn(
                 "studyLocusId", f.monotonically_increasing_id().cast(StringType())
             )
             .transform(
