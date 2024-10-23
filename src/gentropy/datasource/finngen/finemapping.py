@@ -487,7 +487,7 @@ class FinnGenFinemapping:
                         f.col("logBF").cast("double").alias("logBF"),
                         f.col("pValueMantissa").cast("float").alias("pValueMantissa"),
                         f.col("pValueExponent").cast("integer").alias("pValueExponent"),
-                        f.col("beta").cast("double"),
+                        f.col("beta").cast("double").alias("beta"),
                         f.col("standardError").cast("double").alias("standardError"),
                     )
                 ).alias("locus"),
