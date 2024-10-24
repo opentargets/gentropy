@@ -71,7 +71,7 @@ def test_map_variants_to_variant_index(
     assert isinstance(
         GWASCatalogCuratedAssociationsParser._map_variants_to_gnomad_variants(
             sample_gwas_catalog_associations.withColumn(
-                "studyLocusId", f.monotonically_increasing_id().cast(StringType())
+                "rowId", f.monotonically_increasing_id().cast(StringType())
             ),
             mock_variant_index,
         ),
