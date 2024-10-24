@@ -505,8 +505,10 @@ class FinnGenFinemapping:
             )
             .withColumns(
                 {
-                    "locusStart": f.split(f.split("region", ":")[1], "-")[0],
-                    "locusEnd": f.split(f.split("region", ":")[1], "-")[1],
+                    "locusStart": f.split(f.split("region", ":")[1], "-")[0].cast(
+                        "int"
+                    ),
+                    "locusEnd": f.split(f.split("region", ":")[1], "-")[1].cast("int"),
                 }
             )
         ).withColumn(
