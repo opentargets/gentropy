@@ -940,7 +940,6 @@ class TestCommonProteinCodingFeatureLogic:
         expected_data: list[dict[str, Any]],
     ) -> None:
         """Test the logic of the common_protein_coding_feature_logic function."""
-
         # Call the function to be tested
         observed_df = (
             common_protein_coding_feature_logic(
