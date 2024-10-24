@@ -44,7 +44,7 @@ class VariantIndexStep:
                 session=session,
                 path=gnomad_variant_annotations_path,
                 recursiveFileLookup=True,
-                threshold=hash_threshold,
+                id_threshold=hash_threshold,
             )
 
             # Update file with extra annotations:

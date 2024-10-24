@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 class VariantIndex(Dataset):
     """Dataset for representing variants and methods applied on them."""
 
-    threshold: int = field(default=300)
+    id_threshold: int = field(default=300)
 
     def __post_init__(self: VariantIndex) -> None:
         """Forcing the presence of empty arrays even if the schema allows missing values.
@@ -54,7 +54,7 @@ class VariantIndex(Dataset):
                 f.col("variantId"),
                 f.col("chromosome"),
                 f.col("position"),
-                self.threshold,
+                self.id_threshold,
             ),
         )
 

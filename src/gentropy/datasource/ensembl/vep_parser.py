@@ -93,7 +93,7 @@ class VariantEffectPredictorParser:
                 vep_data, hash_threshold
             ),
             _schema=VariantIndex.get_schema(),
-            threshold=hash_threshold,
+            id_threshold=hash_threshold,
         )
 
     @staticmethod
