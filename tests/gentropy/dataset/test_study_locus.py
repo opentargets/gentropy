@@ -1081,3 +1081,43 @@ class TestStudyLocusSuSiERedundancyFlagging:
             )
             .count()
         ) == 3
+
+
+def test_qc_valid_chromosomes(
+    spark: SparkSession,
+) -> None:
+    """Testing if chredible sets with invalid chromosomes are properly flagged."""
+    df = spark.createDataFrame(
+        [
+            # Chromosome is fine:
+            ("1", "v1", "s1", "X", []),
+            ("2", "v2", "s1", "1", []),
+            # Should be flagged:
+            ("3", "v3", "s1", "11325", []),
+            ("4", "v4", "s1", "CICAFUL", []),
+        ],
+        schema=t.StructType(
+            [
+                t.StructField("studyLocusId", t.StringType(), False),
+                t.StructField("variantId", t.StringType(), False),
+                t.StructField("studyId", t.StringType(), False),
+                t.StructField("chromosome", t.StringType(), False),
+                t.StructField("qualityControls", t.ArrayType(t.StringType()), False),
+            ]
+        ),
+    )
+
+    sl = StudyLocus(_df=df, _schema=StudyLocus.get_schema()).validate_chromosome_label()
+
+    # Assert return type:
+    assert isinstance(sl, StudyLocus)
+
+    # Assert flagging correctness:
+    for row in sl.df.collect():
+        if row["chromosome"] in ["1", "X"]:
+            assert not row["qualityControls"]
+        else:
+            assert (
+                StudyLocusQualityCheck.INVALID_CHROMOSOME.value
+                in row["qualityControls"]
+            )

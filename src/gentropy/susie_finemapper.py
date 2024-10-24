@@ -131,6 +131,7 @@ class SusieFineMapperStep:
             imputed_r2_threshold=imputed_r2_threshold,
             ld_score_threshold=ld_score_threshold,
             ld_min_r2=ld_min_r2,
+            log_output=log_output,
         )
 
         if result_logging is not None:
@@ -149,11 +150,35 @@ class SusieFineMapperStep:
                 df.write.mode(session.write_mode).parquet(study_locus_output)
             if result_logging["log"] is not None:
                 # Write log
-                result_logging["log"].to_parquet(
-                    log_output,
-                    engine="pyarrow",
-                    index=False,
-                )
+                result_logging["log"].to_csv(log_output, index=False, sep="\t")
+
+    @staticmethod
+    def _empty_log_mg(studyId: str, region: str, error_mg: str, path_out: str) -> None:
+        """Create an empty log DataFrame with error message.
+
+        Args:
+            studyId (str): study ID
+            region (str): region
+            error_mg (str): error message
+            path_out (str): output path
+        """
+        pd.DataFrame(
+            {
+                "studyId": studyId,
+                "region": region,
+                "N_gwas_before_dedupl": 0,
+                "N_gwas": 0,
+                "N_ld": 0,
+                "N_overlap": 0,
+                "N_outliers": 0,
+                "N_imputed": 0,
+                "N_final_to_fm": 0,
+                "elapsed_time": 0,
+                "number_of_CS": 0,
+                "error": error_mg,
+            },
+            index=[0],
+        ).to_csv(path_out, index=False, sep="\t")
 
     @staticmethod
     def susie_inf_to_studylocus(  # noqa: C901
@@ -631,6 +656,7 @@ class SusieFineMapperStep:
                     "N_final_to_fm": len(ld_to_fm),
                     "elapsed_time": end_time - start_time,
                     "number_of_CS": study_locus.df.count(),
+                    "error": "",
                 },
                 index=[0],
             )
@@ -648,6 +674,7 @@ class SusieFineMapperStep:
                     "N_final_to_fm": len(ld_to_fm),
                     "elapsed_time": end_time - start_time,
                     "number_of_CS": 0,
+                    "error": "",
                 },
                 index=[0],
             )
@@ -678,6 +705,7 @@ class SusieFineMapperStep:
         purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
+        log_output: str = "",
     ) -> dict[str, Any] | None:
         """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
 
@@ -699,6 +727,7 @@ class SusieFineMapperStep:
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
+            log_output (str): path to the log output
 
         Returns:
             dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
@@ -716,6 +745,13 @@ class SusieFineMapperStep:
 
         # Desision tree - study index
         if study_index_df.count() == 0:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region="",
+                    error_mg="No study index found for the studyId",
+                    path_out=log_output,
+                )
             logging.warning("No study index found for the studyId")
             return None
 
@@ -749,20 +785,41 @@ class SusieFineMapperStep:
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
         # Desision tree - studyType
-        if study_index_df.select("studyType").collect()[0]["studyType"] in [
+        if study_index_df.select("studyType").collect()[0]["studyType"] not in [
             "gwas",
             "pqtl",
         ]:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="Study type is not GWAS or non gwas catalog pqtl",
+                    path_out=log_output,
+                )
             logging.warning("Study type is not GWAS or non gwas catalog pqtl")
             return None
 
         # Desision tree - ancestry
         if major_population not in ["nfe", "csa", "afr"]:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="Major ancestry is not nfe, csa or afr",
+                    path_out=log_output,
+                )
             logging.warning("Major ancestry is not nfe, csa or afr")
             return None
 
         # Desision tree - hasSumstats
         if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="No sumstats found for the studyId",
+                    path_out=log_output,
+                )
             logging.warning("No sumstats found for the studyId")
             return None
 
@@ -793,6 +850,13 @@ class SusieFineMapperStep:
             .collect()[0]["FailedQC"]
         )
         if x_boolean:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="Quality control check failed for this study",
+                    path_out=log_output,
+                )
             logging.warning("Quality control check failed for this study")
             return None
 
@@ -818,6 +882,13 @@ class SusieFineMapperStep:
             .collect()[0]["FailedQC"]
         )
         if x_boolean:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="Analysis Flags check failed for this study",
+                    path_out=log_output,
+                )
             logging.warning("Analysis Flags check failed for this study")
             return None
 
@@ -875,6 +946,13 @@ class SusieFineMapperStep:
                 "z", "chromosome", "position", "beta", "StandardError"
             )
             if gwas_index.rdd.isEmpty():
+                if log_output != "":
+                    SusieFineMapperStep._empty_log_mg(
+                        studyId=studyId,
+                        region=region,
+                        error_mg="No overlapping variants in the LD Index",
+                        path_out=log_output,
+                    )
                 logging.warning("No overlapping variants in the LD Index")
                 return None
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
@@ -894,6 +972,13 @@ class SusieFineMapperStep:
                 gwas_index = gwas_index.iloc[indices, :]
 
                 if len(gwas_index) == 0:
+                    if log_output != "":
+                        SusieFineMapperStep._empty_log_mg(
+                            studyId=studyId,
+                            region=region,
+                            error_mg="No overlapping variants in the LD Index",
+                            path_out=log_output,
+                        )
                     logging.warning("No overlapping variants in the LD Index")
                     return None
 
@@ -906,6 +991,13 @@ class SusieFineMapperStep:
                 gwas_index = gwas_index.iloc[indices, :]
 
                 if len(gwas_index) == 0:
+                    if log_output != "":
+                        SusieFineMapperStep._empty_log_mg(
+                            studyId=studyId,
+                            region=region,
+                            error_mg="No overlapping variants in the LD Index",
+                            path_out=log_output,
+                        )
                     logging.warning("No overlapping variants in the LD Index")
                     return None
 
@@ -916,6 +1008,13 @@ class SusieFineMapperStep:
                 ld_index.select("variantId", "idx", "alleleOrder"), on="variantId"
             ).sort("idx")
             if gwas_index.rdd.isEmpty():
+                if log_output != "":
+                    SusieFineMapperStep._empty_log_mg(
+                        studyId=studyId,
+                        region=region,
+                        error_mg="No overlapping variants in the LD Index",
+                        path_out=log_output,
+                    )
                 logging.warning("No overlapping variants in the LD Index")
                 return None
             gwas_index = ld_index
@@ -936,6 +1035,13 @@ class SusieFineMapperStep:
                 gwas_index = gwas_index.iloc[indices, :]
 
                 if len(gwas_index) == 0:
+                    if log_output != "":
+                        SusieFineMapperStep._empty_log_mg(
+                            studyId=studyId,
+                            region=region,
+                            error_mg="No overlapping variants in the LD Index",
+                            path_out=log_output,
+                        )
                     logging.warning("No overlapping variants in the LD Index")
                     return None
 
@@ -948,6 +1054,13 @@ class SusieFineMapperStep:
                 gwas_index = gwas_index.iloc[indices, :]
 
                 if len(gwas_index) == 0:
+                    if log_output != "":
+                        SusieFineMapperStep._empty_log_mg(
+                            studyId=studyId,
+                            region=region,
+                            error_mg="No overlapping variants in the LD Index",
+                            path_out=log_output,
+                        )
                     logging.warning("No overlapping variants in the LD Index")
                     return None
 
@@ -965,9 +1078,23 @@ class SusieFineMapperStep:
 
         # Desision tree - number of variants
         if gwas_index.count() < 100:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="Less than 100 variants after joining GWAS and LD index",
+                    path_out=log_output,
+                )
             logging.warning("Less than 100 variants after joining GWAS and LD index")
             return None
         elif gwas_index.count() >= 15_000:
+            if log_output != "":
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="More than 15000 variants after joining GWAS and LD index",
+                    path_out=log_output,
+                )
             logging.warning("More than 15000 variants after joining GWAS and LD index")
             return None
 
