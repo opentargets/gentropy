@@ -290,7 +290,7 @@ class LocusToGeneEvidenceStep:
         credible_set_path: str,
         study_index_path: str,
         evidence_output_path: str,
-        locus_to_gene_threshold: float = 0.05,
+        locus_to_gene_threshold: float,
     ) -> None:
         """Initialise the step and generate disease/target evidence.
 
