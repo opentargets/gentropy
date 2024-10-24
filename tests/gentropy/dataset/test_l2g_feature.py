@@ -63,6 +63,7 @@ from gentropy.dataset.l2g_features.other import (
     common_genecount_feature_logic,
     GeneCountFeature,
     ProteinGeneCountFeature,
+    CredibleSetConfidenceFeature,
 )
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
@@ -102,6 +103,7 @@ if TYPE_CHECKING:
         VepMeanNeighbourhoodFeature,
         GeneCountFeature,
         ProteinGeneCountFeature,
+        CredibleSetConfidenceFeature,
     ],
 )
 def test_feature_factory_return_type(
