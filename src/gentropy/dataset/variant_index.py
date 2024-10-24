@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 class VariantIndex(Dataset):
     """Dataset for representing variants and methods applied on them."""
 
+    threshold: int = field(default=300)
+
     def __post_init__(self: VariantIndex) -> None:
         """Forcing the presence of empty arrays even if the schema allows missing values.
 
@@ -45,7 +47,16 @@ class VariantIndex(Dataset):
         }
 
         # Not returning, but changing the data:
-        self.df = self.df.withColumns(array_columns)
+        self.df = self.df.withColumns(array_columns).withColumn(
+            # Hashing long variant identifiers:
+            "variantId",
+            self.hash_long_variant_ids(
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                self.threshold,
+            ),
+        )
 
     @classmethod
     def get_schema(cls: type[VariantIndex]) -> StructType:
@@ -58,7 +69,7 @@ class VariantIndex(Dataset):
 
     @staticmethod
     def hash_long_variant_ids(
-        variant_id: Column, chromosome: Column, position: Column, threshold: int = 100
+        variant_id: Column, chromosome: Column, position: Column, threshold: int
     ) -> Column:
         """Hash long variant identifiers.
 
@@ -132,20 +143,20 @@ class VariantIndex(Dataset):
         select_expressions = []
 
         # Collect columns by iterating over the variant index schema:
-        for field in VariantIndex.get_schema():
-            column = field.name
+        for schema_field in VariantIndex.get_schema():
+            column = schema_field.name
 
             # If an annotation column can be found in both datasets:
             if (column in self.df.columns) and (column in annotation_source.df.columns):
                 # Arrays are merged:
-                if isinstance(field.dataType, t.ArrayType):
+                if isinstance(schema_field.dataType, t.ArrayType):
                     fields_order = None
-                    if isinstance(field.dataType.elementType, t.StructType):
+                    if isinstance(schema_field.dataType.elementType, t.StructType):
                         # Extract the schema of the array to get the order of the fields:
                         array_schema = [
-                            field
-                            for field in VariantIndex.get_schema().fields
-                            if field.name == column
+                            schema_field
+                            for schema_field in VariantIndex.get_schema().fields
+                            if schema_field.name == column
                         ][0].dataType
                         fields_order = get_nested_struct_schema(
                             array_schema
