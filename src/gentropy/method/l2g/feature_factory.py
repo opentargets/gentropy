@@ -1,3 +1,4 @@
+# isort: skip_file
 """Factory that computes features based on an input list."""
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.other import (
     GeneCountFeature,
     ProteinGeneCountFeature,
+    ProteinCodingFeature,
 )
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
@@ -125,6 +127,7 @@ class FeatureFactory:
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
+        "isProteinCoding": ProteinCodingFeature,
     }
 
     def __init__(
