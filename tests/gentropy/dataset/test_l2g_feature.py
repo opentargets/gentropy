@@ -1,5 +1,5 @@
 # pylint: disable=too-few-public-methods
-# isort: skip_file
+
 """Test locus-to-gene feature generation."""
 
 from __future__ import annotations
@@ -8,17 +8,6 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
-from pyspark.sql.types import (
-    ArrayType,
-    BooleanType,
-    FloatType,
-    IntegerType,
-    LongType,
-    StringType,
-    StructField,
-    StructType,
-)
-
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.colocalisation import (
@@ -51,6 +40,13 @@ from gentropy.dataset.l2g_features.distance import (
     common_neighbourhood_distance_feature_logic,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.other import (
+    GeneCountFeature,
+    ProteinCodingFeature,
+    ProteinGeneCountFeature,
+    common_genecount_feature_logic,
+    common_protein_coding_feature_logic,
+)
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
     VepMaximumNeighbourhoodFeature,
@@ -59,45 +55,20 @@ from gentropy.dataset.l2g_features.vep import (
     common_neighbourhood_vep_feature_logic,
     common_vep_feature_logic,
 )
-from gentropy.dataset.l2g_features.other import (
-    common_genecount_feature_logic,
-    common_protein_coding_feature_logic,
-    GeneCountFeature,
-    ProteinGeneCountFeature,
-    ProteinCodingFeature,
-)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
-
-if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
-
-
-@pytest.mark.parametrize(
-    "feature_class",
-    [
-        EQtlColocH4MaximumFeature,
-        PQtlColocH4MaximumFeature,
-        SQtlColocH4MaximumFeature,
-        EQtlColocClppMaximumFeature,
-        PQtlColocClppMaximumFeature,
-        SQtlColocClppMaximumFeature,
-        EQtlColocClppMaximumNeighbourhoodFeature,
-        PQtlColocClppMaximumNeighbourhoodFeature,
-        SQtlColocClppMaximumNeighbourhoodFeature,
-        EQtlColocH4MaximumNeighbourhoodFeature,
-        PQtlColocH4MaximumNeighbourhoodFeature,
-        SQtlColocH4MaximumNeighbourhoodFeature,
-        DistanceTssMeanFeature,
-        DistanceTssMeanNeighbourhoodFeature,
-        DistanceFootprintMeanFeature,
-        DistanceFootprintMeanNeighbourhoodFeature,
-        DistanceSentinelTssFeature,
-        DistanceSentinelTssNeighbourhoodFeature,
-        DistanceSentinelFootprintFeature,
-        DistanceSentinelFootprintNeighbourhoodFeature,
+from pyspark.sql.types import (
+    ArrayType,
+    BooleanType,
+    FloatType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
         VepMaximumFeature,
         VepMeanFeature,
         VepMaximumNeighbourhoodFeature,
@@ -922,6 +893,7 @@ class TestCommonGeneCountFeatureLogic:
 
 
 class TestCommonProteinCodingFeatureLogic:
+    """Test the CommonProteinCodingFeature methods."""
     @pytest.mark.parametrize(
         ("expected_data"),
         [
@@ -940,7 +912,6 @@ class TestCommonProteinCodingFeatureLogic:
         expected_data: list[dict[str, Any]],
     ) -> None:
         """Test the logic of the common_protein_coding_feature_logic function."""
-        # Call the function to be tested
         observed_df = (
             common_protein_coding_feature_logic(
                 study_loci_to_annotate=self.sample_study_locus,
@@ -957,11 +928,6 @@ class TestCommonProteinCodingFeatureLogic:
             .select("studyLocusId", "geneId", "isProteinCoding500kb")
             .orderBy("studyLocusId", "geneId")
         )
-
-        print("Observed Data:", observed_df.collect())
-        print("Expected Data:", expected_df.collect())
-
-        # Perform the comparison between observed and expected data
         assert (
             observed_df.collect() == expected_df.collect()
         ), "Expected and observed DataFrames do not match."
