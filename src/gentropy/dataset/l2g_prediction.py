@@ -107,14 +107,22 @@ class L2GPrediction(Dataset):
 
         return (
             self.df.filter(f.col("score") >= l2g_threshold)
-            .join(study_locus.df, on="studyLocusId", how="inner")
-            .join(study_index.df.drop("geneId"), on="studyId", how="inner")
+            .join(
+                study_locus.df.select("studyLocusId", "studyId"),
+                on="studyLocusId",
+                how="inner",
+            )
+            .join(
+                study_index.df.select("studyId", "diseaseIds"),
+                on="studyId",
+                how="inner",
+            )
             .select(
                 f.lit(datatype_id).alias("datatypeId"),
                 f.lit(datasource_id).alias("datasourceId"),
                 f.col("geneId").alias("targetFromSourceId"),
                 f.explode(f.col("diseaseIds")).alias("diseaseFromSourceMappedId"),
                 f.col("score").alias("resourceScore"),
-                f.col("studyLocusId").alias("studyLocusId"),
+                "studyLocusId",
             )
         )

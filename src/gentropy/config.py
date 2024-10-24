@@ -613,11 +613,6 @@ class StudyValidationStepConfig(StepConfig):
 class LocusToGeneEvidenceStepConfig(StepConfig):
     """Configuration of the locus to gene evidence step."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": False,
-        }
-    )
     locus_to_gene_predictions_path: str = MISSING
     credible_set_path: str = MISSING
     study_index_path: str = MISSING

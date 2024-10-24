@@ -10,7 +10,6 @@ from wandb import login as wandb_login
 
 from gentropy.common.session import Session
 from gentropy.common.utils import access_gcp_secret
-from gentropy.config import LocusToGeneEvidenceStepConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -291,7 +290,7 @@ class LocusToGeneEvidenceStep:
         credible_set_path: str,
         study_index_path: str,
         evidence_output_path: str,
-        locus_to_gene_threshold: float = LocusToGeneEvidenceStepConfig().locus_to_gene_threshold,
+        locus_to_gene_threshold: float = 0.05,
     ) -> None:
         """Initialise the step and generate disease/target evidence.
 
