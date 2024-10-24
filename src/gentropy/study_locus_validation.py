@@ -49,6 +49,8 @@ class StudyLocusValidationStep:
             .filter_credible_set(credible_interval=CredibleInterval.IS99)
             # Annotate credible set confidence:
             .assign_confidence()
+            # Flagging credible sets that are duplicated:
+            .validate_unique_study_locus_id()
         ).persist()  # we will need this for 2 types of outputs
 
         study_locus_with_qc.valid_rows(invalid_qc_reasons, invalid=True).df.write.mode(
