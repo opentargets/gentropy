@@ -62,7 +62,7 @@ from gentropy.dataset.l2g_features.vep import (
 )
 from gentropy.dataset.l2g_features.other import (
     common_genecount_feature_logic,
-    common_protein_coding_feature_logic,
+    is_protein_coding_feature_logic,
     GeneCountFeature,
     ProteinGeneCountFeature,
     ProteinCodingFeature,
@@ -937,14 +937,14 @@ class TestCommonProteinCodingFeatureLogic:
             ),
         ],
     )
-    def test_common_protein_coding_feature_logic(
+    def test_is_protein_coding_feature_logic(
         self: TestCommonProteinCodingFeatureLogic,
         spark: SparkSession,
         expected_data: list[dict[str, Any]],
     ) -> None:
-        """Test the logic of the common_protein_coding_feature_logic function."""
+        """Test the logic of the is_protein_coding_feature_logic function."""
         observed_df = (
-            common_protein_coding_feature_logic(
+            is_protein_coding_feature_logic(
                 study_loci_to_annotate=self.sample_study_locus,
                 gene_index=self.sample_gene_index,
                 feature_name="isProteinCoding500kb",

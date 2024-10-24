@@ -81,7 +81,7 @@ def common_genecount_feature_logic(
     )
 
 
-def common_protein_coding_feature_logic(
+def is_protein_coding_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     *,
     gene_index: GeneIndex,
@@ -211,7 +211,7 @@ class ProteinCodingFeature(L2GFeature):
     """Indicates whether a gene is protein-coding within a specified window size from the study locus."""
 
     feature_dependency_type = GeneIndex
-    feature_name = "isProteinCoding500kb"
+    feature_name = "isProteinCoding1mb"
 
     @classmethod
     def compute(
@@ -228,8 +228,8 @@ class ProteinCodingFeature(L2GFeature):
         Returns:
             ProteinCodingFeature: Feature dataset with 1 if the gene is protein-coding, 0 otherwise
         """
-        genomic_window = 500000
-        protein_coding_df = common_protein_coding_feature_logic(
+        genomic_window = 1000000
+        protein_coding_df = is_protein_coding_feature_logic(
             study_loci_to_annotate=study_loci_to_annotate,
             feature_name=cls.feature_name,
             genomic_window=genomic_window,

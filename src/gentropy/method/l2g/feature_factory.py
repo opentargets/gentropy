@@ -127,7 +127,7 @@ class FeatureFactory:
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
-        "isProteinCoding": ProteinCodingFeature,
+        "isProteinCoding1mb": ProteinCodingFeature,
     }
 
     def __init__(
