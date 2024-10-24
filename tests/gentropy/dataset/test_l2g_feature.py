@@ -1,4 +1,5 @@
 # pylint: disable=too-few-public-methods
+# isort: skip_file
 
 """Test locus-to-gene feature generation."""
 
@@ -8,6 +9,17 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
+from pyspark.sql.types import (
+    ArrayType,
+    BooleanType,
+    FloatType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
+
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.colocalisation import (
@@ -40,13 +52,6 @@ from gentropy.dataset.l2g_features.distance import (
     common_neighbourhood_distance_feature_logic,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
-from gentropy.dataset.l2g_features.other import (
-    GeneCountFeature,
-    ProteinCodingFeature,
-    ProteinGeneCountFeature,
-    common_genecount_feature_logic,
-    common_protein_coding_feature_logic,
-)
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
     VepMaximumNeighbourhoodFeature,
@@ -55,20 +60,45 @@ from gentropy.dataset.l2g_features.vep import (
     common_neighbourhood_vep_feature_logic,
     common_vep_feature_logic,
 )
+from gentropy.dataset.l2g_features.other import (
+    common_genecount_feature_logic,
+    common_protein_coding_feature_logic,
+    GeneCountFeature,
+    ProteinGeneCountFeature,
+    ProteinCodingFeature,
+)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
-from pyspark.sql.types import (
-    ArrayType,
-    BooleanType,
-    FloatType,
-    IntegerType,
-    LongType,
-    StringType,
-    StructField,
-    StructType,
-)
+
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
+
+
+@pytest.mark.parametrize(
+    "feature_class",
+    [
+        EQtlColocH4MaximumFeature,
+        PQtlColocH4MaximumFeature,
+        SQtlColocH4MaximumFeature,
+        EQtlColocClppMaximumFeature,
+        PQtlColocClppMaximumFeature,
+        SQtlColocClppMaximumFeature,
+        EQtlColocClppMaximumNeighbourhoodFeature,
+        PQtlColocClppMaximumNeighbourhoodFeature,
+        SQtlColocClppMaximumNeighbourhoodFeature,
+        EQtlColocH4MaximumNeighbourhoodFeature,
+        PQtlColocH4MaximumNeighbourhoodFeature,
+        SQtlColocH4MaximumNeighbourhoodFeature,
+        DistanceTssMeanFeature,
+        DistanceTssMeanNeighbourhoodFeature,
+        DistanceFootprintMeanFeature,
+        DistanceFootprintMeanNeighbourhoodFeature,
+        DistanceSentinelTssFeature,
+        DistanceSentinelTssNeighbourhoodFeature,
+        DistanceSentinelFootprintFeature,
+        DistanceSentinelFootprintNeighbourhoodFeature,
         VepMaximumFeature,
         VepMeanFeature,
         VepMaximumNeighbourhoodFeature,
@@ -893,7 +923,8 @@ class TestCommonGeneCountFeatureLogic:
 
 
 class TestCommonProteinCodingFeatureLogic:
-    """Test the CommonProteinCodingFeature methods."""
+    """Test the CommonGeneCountFeatureLogic methods."""
+
     @pytest.mark.parametrize(
         ("expected_data"),
         [
