@@ -37,7 +37,9 @@ class CredibleSetQCStep:
             study_index_path (str | None): Path to study index file.
             ld_min_r2 (float): Minimum R2 for LD estimation. Default is 0.8.
         """
-        cred_sets = StudyLocus.from_parquet(session, credible_sets_path).coalesce(200)
+        cred_sets = StudyLocus.from_parquet(
+            session, credible_sets_path, recursiveFileLookup=True
+        ).coalesce(200)
         if clump and ld_index_path is not None and study_index_path is not None:
             ld_index = LDIndex.from_parquet(session, ld_index_path)
             study_index = StudyIndex.from_parquet(session, study_index_path)
