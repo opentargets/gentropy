@@ -1121,3 +1121,58 @@ def test_qc_valid_chromosomes(
                 StudyLocusQualityCheck.INVALID_CHROMOSOME.value
                 in row["qualityControls"]
             )
+
+
+class TestStudyLocusDuplicationFlagging:
+    """Collection of tests related to flagging redundant credible sets."""
+
+    STUDY_LOCUS_DATA = [
+        # Non-duplicated:
+        ("1", "v1", "s1", "pics"),
+        # Triplicate:
+        ("3", "v3", "s1", "pics"),
+        ("3", "v3", "s1", "pics"),
+        ("3", "v3", "s1", "pics"),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("finemappingMethod", t.StringType(), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusDuplicationFlagging, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ).withColumn(
+                "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        # Run validation:
+        self.validated = self.study_locus.validate_unique_study_locus_id()
+
+    def test_duplication_flag_type(self: TestStudyLocusDuplicationFlagging) -> None:
+        """Test duplication flagging return type."""
+        assert isinstance(self.validated, StudyLocus)
+
+    def test_duplication_flag_no_data_loss(
+        self: TestStudyLocusDuplicationFlagging,
+    ) -> None:
+        """Test duplication flagging no data loss."""
+        assert self.validated.df.count() == self.study_locus.df.count()
+
+    def test_duplication_flag_correctness(
+        self: TestStudyLocusDuplicationFlagging,
+    ) -> None:
+        """Make sure that the end, there are two study loci that pass the validation."""
+        assert self.validated.df.filter(f.size("qualityControls") == 0).count() == 2
+
+        assert self.validated.df.filter(f.size("qualityControls") > 0).count() == 2
