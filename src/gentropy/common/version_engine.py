@@ -101,7 +101,11 @@ class VersionEngine:
 
 
 class DatasourceVersionSeeker(ABC):
-    """Interface for datasource version seeker."""
+    """Interface for datasource version seeker.
+
+    Raises:
+        NotImplementedError: if method is not implemented in the subclass
+    """
 
     @staticmethod
     @abstractmethod
@@ -115,7 +119,7 @@ class DatasourceVersionSeeker(ABC):
             str: seeked version
 
         Raises:
-            ValueError: if version can not be seeked
+            NotImplementedError: if method is not implemented in the subclass
 
         """
         raise NotImplementedError

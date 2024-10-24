@@ -22,6 +22,12 @@
           "fields": [
             {
               "metadata": {},
+              "name": "hgvsg",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
               "name": "cadd_phred",
               "nullable": true,
               "type": "double"
@@ -315,6 +321,42 @@
               "name": "amino_acids",
               "nullable": true,
               "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "hgvsg",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "hgvsc",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "hgvsp",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "appris",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "mane_select",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "tssdistance",
+              "nullable": true,
+              "type": "long"
             },
             {
               "metadata": {},

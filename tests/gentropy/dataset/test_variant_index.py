@@ -5,11 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from gentropy.dataset.gene_index import GeneIndex
-from gentropy.dataset.v2g import V2G
-from gentropy.dataset.variant_index import VariantIndex
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
+
+from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -20,33 +19,27 @@ def test_variant_index_creation(mock_variant_index: VariantIndex) -> None:
     assert isinstance(mock_variant_index, VariantIndex)
 
 
-def test_get_plof_v2g(
-    mock_variant_index: VariantIndex, mock_gene_index: GeneIndex
-) -> None:
-    """Test get_plof_v2g with mock variant annotation."""
-    assert isinstance(mock_variant_index.get_plof_v2g(mock_gene_index), V2G)
-
-
-def test_get_distance_to_tss(
-    mock_variant_index: VariantIndex, mock_gene_index: GeneIndex
-) -> None:
-    """Test get_distance_to_tss with mock variant annotation."""
-    assert isinstance(mock_variant_index.get_distance_to_tss(mock_gene_index), V2G)
-
-
 class TestVariantIndex:
     """Collection of tests around the functionality and shape of the variant index."""
 
     MOCK_ANNOTATION_DATA = [
         ("v1", "c1", 2, "T", "A", ["rs5"], "really bad consequence"),
-        ("v4", "c1", 5, "T", "A", ["rs6"], "mild consequence"),
+        (
+            "v4_long",
+            "c1",
+            5,
+            "T",
+            "A",
+            ["rs6"],
+            "mild consequence",
+        ),  # should be hashed automatically
     ]
 
     MOCK_DATA = [
         ("v1", "c1", 2, "T", "A", ["rs1"]),
         ("v2", "c1", 3, "T", "A", ["rs2", "rs3"]),
         ("v3", "c1", 4, "T", "A", None),
-        ("v4", "c1", 5, "T", "A", None),
+        ("v4_long", "c1", 5, "T", "A", None),  # should be hashed automatically
     ]
 
     MOCK_SCHEMA = t.StructType(
@@ -84,7 +77,7 @@ class TestVariantIndex:
         self.df = spark.createDataFrame(self.MOCK_DATA, schema=self.MOCK_SCHEMA)
         # Loading variant index:
         self.variant_index = VariantIndex(
-            _df=self.df, _schema=VariantIndex.get_schema()
+            _df=self.df, _schema=VariantIndex.get_schema(), id_threshold=2
         )
 
         # Loading annotation variant index:
@@ -93,6 +86,7 @@ class TestVariantIndex:
                 self.MOCK_ANNOTATION_DATA, schema=self.MOCK_ANNOTATION_SCHEMA
             ),
             _schema=VariantIndex.get_schema(),
+            id_threshold=2,
         )
 
     def test_init_type(self: TestVariantIndex) -> None:
@@ -146,3 +140,36 @@ class TestVariantIndex:
             .count()
             == 2
         )
+
+    def test_variantid_column_hashed(self: TestVariantIndex) -> None:
+        """Make sure the variantId column is hashed during initialisation. Threshold is set to 2, so var_4_long should be hashed."""
+        assert (
+            self.variant_index.df.filter(f.col("variantId").startswith("OTVAR")).count()
+            != 0
+        )
+
+    @pytest.mark.parametrize(
+        "distance_type", ["distanceFromTss", "distanceFromFootprint"]
+    )
+    def test_get_distance_to_gene(
+        self: TestVariantIndex, mock_variant_index: VariantIndex, distance_type: str
+    ) -> None:
+        """Assert that the function returns a df with the requested columns."""
+        expected_cols = ["variantId", "targetId", distance_type]
+        observed = mock_variant_index.get_distance_to_gene(distance_type=distance_type)
+        for col in expected_cols:
+            assert col in observed.columns, f"Column {col} not in {observed.columns}"
+
+    def test_get_loftee(
+        self: TestVariantIndex, mock_variant_index: VariantIndex
+    ) -> None:
+        """Assert that the function returns a df with the requested columns."""
+        expected_cols = [
+            "variantId",
+            "targetId",
+            "lofteePrediction",
+            "isHighQualityPlof",
+        ]
+        observed = mock_variant_index.get_loftee()
+        for col in expected_cols:
+            assert col in observed.columns, f"Column {col} not in {observed.columns}"

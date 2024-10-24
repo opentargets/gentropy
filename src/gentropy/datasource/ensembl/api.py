@@ -20,7 +20,7 @@ def fetch_coordinates_from_rsids(
         Exception: If an error occurs while processing the batches.
 
     Example:
-        >>> fetch_coordinates_from_rsids(["rs75493593"])
+        >>> fetch_coordinates_from_rsids(["rs75493593"])  # doctest: +SKIP
         {'rs75493593': ['17_7041768_G_C', '17_7041768_G_T']}
     """
 

@@ -2,111 +2,105 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from functools import reduce
 from typing import TYPE_CHECKING, Type
 
-from gentropy.common.schemas import parse_spark_schema
+from typing_extensions import Self
+
 from gentropy.common.spark_helpers import convert_from_long_to_wide
-from gentropy.dataset.dataset import Dataset
-from gentropy.method.l2g.feature_factory import ColocalisationFactory, StudyLocusFactory
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 
 if TYPE_CHECKING:
-    from pyspark.sql.types import StructType
+    from pyspark.sql import DataFrame
 
-    from gentropy.dataset.colocalisation import Colocalisation
-    from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.study_locus import StudyLocus
-    from gentropy.dataset.v2g import V2G
 
 
-@dataclass
-class L2GFeatureMatrix(Dataset):
-    """Dataset with features for Locus to Gene prediction.
+class L2GFeatureMatrix:
+    """Dataset with features for Locus to Gene prediction."""
 
-    Attributes:
-        features_list (list[str] | None): List of features to use. If None, all possible features are used.
-        fixed_cols (list[str]): Columns that should be kept fixed in the feature matrix, although not considered as features.
-        mode (str): Mode of the feature matrix. Defaults to "train". Can be either "train" or "predict".
-    """
-
-    features_list: list[str] | None = None
-    fixed_cols: list[str] = field(default_factory=lambda: ["studyLocusId", "geneId"])
-    mode: str = "train"
-
-    def __post_init__(self: L2GFeatureMatrix) -> None:
+    def __init__(
+        self,
+        _df: DataFrame,
+        features_list: list[str] | None = None,
+        with_gold_standard: bool = False,
+    ) -> None:
         """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
 
-        Raises:
-            ValueError: If the mode is neither 'train' nor 'predict'.
-        """
-        if self.mode not in ["train", "predict"]:
-            raise ValueError("Mode should be either 'train' or 'predict'")
-        if self.mode == "train":
-            self.fixed_cols = self.fixed_cols + ["goldStandardSet"]
-        self.features_list = self.features_list or [
-            col for col in self._df.columns if col not in self.fixed_cols
-        ]
-        self.validate_schema()
-
-    @classmethod
-    def generate_features(
-        cls: Type[L2GFeatureMatrix],
-        features_list: list[str],
-        credible_set: StudyLocus,
-        study_index: StudyIndex,
-        variant_gene: V2G,
-        colocalisation: Colocalisation,
-    ) -> L2GFeatureMatrix:
-        """Generate features from the gentropy datasets.
-
         Args:
-            features_list (list[str]): List of features to generate
-            credible_set (StudyLocus): Credible set dataset
-            study_index (StudyIndex): Study index dataset
-            variant_gene (V2G): Variant to gene dataset
-            colocalisation (Colocalisation): Colocalisation dataset
-
-        Returns:
-            L2GFeatureMatrix: L2G feature matrix dataset
-
-        Raises:
-            ValueError: If the feature matrix is empty
+            _df (DataFrame): Feature matrix dataset
+            features_list (list[str] | None): List of features to use. If None, all possible features are used.
+            with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
         """
-        if features_dfs := [
-            # Extract features
-            ColocalisationFactory._get_max_coloc_per_credible_set(
-                colocalisation,
-                credible_set,
-                study_index,
-            ).df,
-            StudyLocusFactory._get_tss_distance_features(credible_set, variant_gene).df,
-            StudyLocusFactory._get_vep_features(credible_set, variant_gene).df,
-        ]:
-            fm = reduce(
-                lambda x, y: x.unionByName(y),
-                features_dfs,
-            )
-        else:
-            raise ValueError("No features found")
+        self.with_gold_standard = with_gold_standard
+        self.fixed_cols = ["studyLocusId", "geneId"]
+        if self.with_gold_standard:
+            self.fixed_cols.append("goldStandardSet")
 
-        # raise error if the feature matrix is empty
-        return cls(
-            _df=convert_from_long_to_wide(
-                fm, ["studyLocusId", "geneId"], "featureName", "featureValue"
-            ),
-            _schema=cls.get_schema(),
-            features_list=features_list,
+        self.features_list = features_list or [
+            col for col in _df.columns if col not in self.fixed_cols
+        ]
+        self._df = _df.selectExpr(
+            self.fixed_cols
+            + [
+                f"CAST({feature} AS FLOAT) AS {feature}"
+                for feature in self.features_list
+            ]
         )
 
     @classmethod
-    def get_schema(cls: type[L2GFeatureMatrix]) -> StructType:
-        """Provides the schema for the L2gFeatureMatrix dataset.
+    def from_features_list(
+        cls: Type[L2GFeatureMatrix],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        features_list: list[str],
+        features_input_loader: L2GFeatureInputLoader,
+    ) -> L2GFeatureMatrix:
+        """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): Study locus pairs to annotate
+            features_list (list[str]): List of feature names to be computed.
+            features_input_loader (L2GFeatureInputLoader): Object that contais features input.
 
         Returns:
-            StructType: Schema for the L2gFeatureMatrix dataset
+            L2GFeatureMatrix: L2G feature matrix dataset
         """
-        return parse_spark_schema("l2g_feature_matrix.json")
+        features_long_df = reduce(
+            lambda x, y: x.unionByName(y, allowMissingColumns=True),
+            [
+                # Compute all features and merge them into a single dataframe
+                feature.df
+                for feature in FeatureFactory(
+                    study_loci_to_annotate, features_list
+                ).generate_features(features_input_loader)
+            ],
+        )
+        if isinstance(study_loci_to_annotate, L2GGoldStandard):
+            return cls(
+                _df=convert_from_long_to_wide(
+                    # Add gold standard set to the feature matrix
+                    features_long_df.join(
+                        study_loci_to_annotate.df.select(
+                            "studyLocusId", "geneId", "goldStandardSet"
+                        ),
+                        ["studyLocusId", "geneId"],
+                    ),
+                    ["studyLocusId", "geneId", "goldStandardSet"],
+                    "featureName",
+                    "featureValue",
+                ),
+                with_gold_standard=True,
+            )
+        return cls(
+            _df=convert_from_long_to_wide(
+                features_long_df,
+                ["studyLocusId", "geneId"],
+                "featureName",
+                "featureValue",
+            ),
+            with_gold_standard=False,
+        )
 
     def calculate_feature_missingness_rate(
         self: L2GFeatureMatrix,
@@ -145,14 +139,14 @@ class L2GFeatureMatrix(Dataset):
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
         """
-        self.df = self._df.fillna(value, subset=subset)
+        self._df = self._df.fillna(value, subset=subset)
         return self
 
     def select_features(
         self: L2GFeatureMatrix,
         features_list: list[str] | None,
     ) -> L2GFeatureMatrix:
-        """Select a subset of features from the feature matrix.
+        """Returns a new object with a subset of features from the original feature matrix.
 
         Args:
             features_list (list[str] | None): List of features to select
@@ -164,6 +158,25 @@ class L2GFeatureMatrix(Dataset):
             ValueError: If no features have been selected.
         """
         if features_list := features_list or self.features_list:
-            self.df = self._df.select(self.fixed_cols + features_list)
-            return self
+            # cast to float every feature in the features_list
+            return L2GFeatureMatrix(
+                _df=self._df.selectExpr(
+                    self.fixed_cols
+                    + [
+                        f"CAST({feature} AS FLOAT) AS {feature}"
+                        for feature in features_list
+                    ]
+                ),
+                features_list=features_list,
+                with_gold_standard=self.with_gold_standard,
+            )
         raise ValueError("features_list cannot be None")
+
+    def persist(self: Self) -> Self:
+        """Persist the feature matrix in memory.
+
+        Returns:
+            Self: Persisted Dataset
+        """
+        self._df = self._df.persist()
+        return self

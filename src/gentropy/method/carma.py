@@ -1,4 +1,5 @@
 """CARMA outlier detection method."""
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -18,7 +19,10 @@ class CARMA:
 
     @staticmethod
     def time_limited_CARMA_spike_slab_noEM(
-        z: np.ndarray, ld: np.ndarray, sec_threshold: float = 600
+        z: np.ndarray,
+        ld: np.ndarray,
+        sec_threshold: float = 600,
+        tau: float = 0.04,
     ) -> dict[str, Any]:
         """The wrapper for the CARMA_spike_slab_noEM function that runs the function in a separate thread and terminates it if it takes too long.
 
@@ -26,6 +30,7 @@ class CARMA:
             z (np.ndarray): Numeric vector representing z-scores.
             ld (np.ndarray): Numeric matrix representing the linkage disequilibrium (LD) matrix.
             sec_threshold (float): The time threshold in seconds.
+            tau (float): Tuning parameter controlling the level of shrinkage of the LD matrix
 
         Returns:
             dict[str, Any]: A dictionary containing the following results:
@@ -38,7 +43,9 @@ class CARMA:
         try:
             # Execute CARMA.CARMA_spike_slab_noEM with a timeout
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(CARMA.CARMA_spike_slab_noEM, z=z, ld=ld)
+                future = executor.submit(
+                    CARMA.CARMA_spike_slab_noEM, z=z, ld=ld, tau=tau
+                )
                 result = future.result(timeout=sec_threshold)
         except concurrent.futures.TimeoutError:
             # If execution exceeds the timeout, return None
@@ -71,7 +78,7 @@ class CARMA:
             all_inner_iter (int): The number of inner iterations in each CARMA iteration.
             epsilon_threshold (float): Threshold for convergence in CARMA iterations.
             num_causal (int): Maximal number of causal variants to be selected in the final model.
-            tau (float): Tuning parameter controlling the degree of sparsity in the Spike-and-Slab prior.
+            tau (float): Tuning parameter controlling the level of shrinkage of the LD matrix.
             outlier_switch (bool): Whether to consider outlier detection in the analysis.
             outlier_BF_index (float): Bayes Factor threshold for identifying outliers.
 
@@ -604,7 +611,7 @@ class CARMA:
             num_causal (int): Maximal number of causal variants to be selected in the final model.
             outlier_switch (bool): Whether to consider outlier detection in the analysis.
             input_conditional_S_list (list[int] | None): The conditional set. Defaults to None.
-            tau (float): Tuning parameter controlling the degree of sparsity in the Spike-and-Slab prior.
+            tau (float): Tuning parameter controlling the level of shrinkage of the LD matrix.
             epsilon (float): Threshold for convergence in CARMA iterations.
             inner_all_iter (int): The number of inner iterations in each CARMA iteration.
             outlier_BF_index (float | None): Bayes Factor threshold for identifying outliers. Defaults to None.

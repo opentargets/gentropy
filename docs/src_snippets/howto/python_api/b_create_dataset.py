@@ -42,6 +42,7 @@ def create_from_pandas() -> SummaryStatistics:
     """Create a dataset from a path with Pandas files."""
     # --8<-- [start:create_from_pandas_import]
     import pyspark.pandas as ps
+
     from gentropy.dataset.summary_statistics import SummaryStatistics
 
     # --8<-- [end:create_from_pandas_import]

@@ -58,6 +58,12 @@
       "metadata": {}
     },
     {
+      "name": "biosampleId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "pubmedId",
       "type": "string",
       "nullable": true,
@@ -248,6 +254,23 @@
     {
       "name": "hasSumstats",
       "type": "boolean",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "condition",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "sumstatQCValues",
+      "type": {
+        "type": "map",
+        "keyType": "string",
+        "valueType": "float",
+        "valueContainsNull": true
+      },
       "nullable": true,
       "metadata": {}
     }

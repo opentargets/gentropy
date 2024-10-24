@@ -134,11 +134,13 @@ class Session:
     ) -> DataFrame:
         """Generic function to read a file or folder into a Spark dataframe.
 
+        The `recursiveFileLookup` flag when set to True will skip all partition columns, but read files from all subdirectories.
+
         Args:
             path (str | list[str]): path to the dataset
             format (str): file format. Defaults to parquet.
             schema (StructType | str | None): Schema to use when reading the data.
-            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `recursiveFileLookup` and `mergeSchema` are set to True by default.
+            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `mergeSchema` is set to True, `recursiveFileLookup` is set to False by default.
 
         Returns:
             DataFrame: Dataframe
@@ -147,7 +149,7 @@ class Session:
         if schema is None:
             kwargs["inferSchema"] = kwargs.get("inferSchema", True)
         kwargs["mergeSchema"] = kwargs.get("mergeSchema", True)
-        kwargs["recursiveFileLookup"] = kwargs.get("recursiveFileLookup", True)
+        kwargs["recursiveFileLookup"] = kwargs.get("recursiveFileLookup", False)
         return self.spark.read.load(path, format=format, schema=schema, **kwargs)
 
 

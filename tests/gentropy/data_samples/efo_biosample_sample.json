@@ -1,0 +1,1424 @@
+{
+  "graphs": [
+    {
+      "id": "http://www.ebi.ac.uk/efo/efo.owl",
+      "meta": {
+        "basicPropertyValues": [
+          {
+            "pred": "http://purl.obolibrary.org/obo/format-version",
+            "val": "1.4"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Catherine Leroy"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Dani Welter"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Drashtti Vasant"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Ele Holloway"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Eleanor Williams"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Emma Kate Hastings"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Gautier Koscielny"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Helen Parkinson"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "James Malone"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Jon Ison"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Laura Huerta Martinez"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Natalja Kurbatova"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Olamidipupo Ajigboye"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Paola Roncaglia"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Simon Jupp"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Sirarat Sarntivijai"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Tomasz Adamusiak"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Trish Whetzel"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/creator",
+            "val": "Zoe May Pendlington"
+          },
+          {
+            "pred": "http://purl.org/dc/elements/1.1/rights",
+            "val": "Copyright [2014] EMBL - European Bioinformatics Institute\nLicensed under the Apache License, Version 2.0 (the \"License\"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the\nLicense. "
+          },
+          {
+            "pred": "http://purl.org/dc/terms/license",
+            "val": "www.apache.org/licenses/LICENSE-2.0"
+          },
+          {
+            "pred": "http://www.w3.org/2000/01/rdf-schema#comment",
+            "val": "2024-10-15"
+          },
+          {
+            "pred": "http://www.w3.org/2002/07/owl#versionInfo",
+            "val": "3.71.0"
+          }
+        ],
+        "version": "http://www.ebi.ac.uk/efo/releases/v3.71.0/efo.owl"
+      },
+      "nodes": [
+        {
+          "id": "http://dbpedia.org/resource/China",
+          "lbl": "China",
+          "type": "CLASS",
+          "meta": {
+            "xrefs": [
+              {
+                "val": "GAZ:00002845"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://dbpedia.org/resource/India",
+          "lbl": "India",
+          "type": "CLASS",
+          "meta": {
+            "xrefs": [
+              {
+                "val": "GAZ:00002839"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://dbpedia.org/resource/Iran",
+          "lbl": "Iran",
+          "type": "CLASS",
+          "meta": {
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "Iran (Islamic Republic of)"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "Iran (Islamic Republic of)"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "GAZ:00004474"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://dbpedia.org/resource/Japan",
+          "lbl": "Japan",
+          "type": "CLASS",
+          "meta": {
+            "xrefs": [
+              {
+                "val": "GAZ:00002747"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://dbpedia.org/resource/North_Korea",
+          "lbl": "North Korea",
+          "type": "CLASS",
+          "meta": {
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "Democratic People's Republic of Korea"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "GAZ:00002801"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://dbpedia.org/resource/Philippines",
+          "lbl": "Philippines",
+          "type": "CLASS",
+          "meta": {
+            "xrefs": [
+              {
+                "val": "GAZ:00004525"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://purl.obolibrary.org/obo/IAO_0000118",
+                "val": "The Philippines"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CLO_0036460",
+          "lbl": "GM06944",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "TRANSLOCATED CHROMOSOME"
+            },
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "GM06944 cell"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CLO_0036870",
+          "lbl": "GM07029",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "INTERNATIONAL HAPMAP PROJECT - CEPH (PLATE I) [UTAH RESIDENTS WITH ANCESTRY FROM NORTHERN AND WESTERN EUROPE] CEPH/UTAH PEDIGREE 1340 CYTOCHROME P450, SUBFAMILY IIC, POLYPEPTIDE 19; CYP2C19"
+            },
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "GM07029 cell"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000000",
+          "lbl": "cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A material entity of anatomical origin (part of or deriving from an organism) that has as its parts a maximally connected cell compartment surrounded by a plasma membrane.",
+              "xrefs": ["CARO:mah"]
+            },
+            "comments": [
+              "The definition of cell is intended to represent all cells, and thus a cell is defined as a material entity and not an anatomical structure, which implies that it is part of an organism (or the entirety of one)."
+            ],
+            "subsets": [
+              "http://purl.obolibrary.org/obo/cl#cellxgene_subset",
+              "http://purl.obolibrary.org/obo/ubprop#_upper_level"
+            ],
+            "xrefs": [
+              {
+                "val": "CALOHA:TS-2035"
+              },
+              {
+                "val": "CALOHA:TS-2035\n"
+              },
+              {
+                "val": "FBbt:00007002"
+              },
+              {
+                "val": "FMA:68646"
+              },
+              {
+                "val": "FMA:68646\n "
+              },
+              {
+                "val": "GO:0005623"
+              },
+              {
+                "val": "GO:0005623\n"
+              },
+              {
+                "val": "KUPO:0000002"
+              },
+              {
+                "val": "KUPO:0000002\n\n"
+              },
+              {
+                "val": "MESH:D002477"
+              },
+              {
+                "val": "NCIt:C12508"
+              },
+              {
+                "val": "NCIt:C48694"
+              },
+              {
+                "val": "VHOG:0001533"
+              },
+              {
+                "val": "VHOG:0001533\n\n"
+              },
+              {
+                "val": "WBbt:0004017"
+              },
+              {
+                "val": "WBbt:0004017\n"
+              },
+              {
+                "val": "XAO:0003012"
+              },
+              {
+                "val": "XAO:0003012\n\n"
+              },
+              {
+                "val": "ZFA:0009000"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000002",
+          "lbl": "obsolete immortal cell line cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "OBSOLETE: A cell line cell that is expected to be capable of an unlimited number of divisions, and is thus able to support indefinite growth/propagation in vitro as part of a immortal cell line.",
+              "xrefs": ["ReO:mhb"]
+            },
+            "comments": [
+              "Obsoleted in July 2013 and replaced by the CLO 'immortal cell line cell' class, as a result of CLO-OBI-CL alignment efforts.\n\nCovers cells actively being cultured or stored in a quiescent state for future use."
+            ],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "continuous cell line cell"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "permanent cell line cell"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://purl.obolibrary.org/obo/IAO_0100001",
+                "val": "http://purl.obolibrary.org/obo/CLO_0000019"
+              },
+              {
+                "pred": "http://purl.obolibrary.org/obo/IAO_0100001",
+                "val": "http://purl.obolibrary.org/obo/CLO_0000019"
+              },
+              {
+                "pred": "http://www.ebi.ac.uk/efo/obsoleted_in_version",
+                "val": "3.16.0"
+              },
+              {
+                "pred": "http://www.ebi.ac.uk/efo/reason_for_obsolescence",
+                "val": "Use http://purl.obolibrary.org/obo/CLO_0000019"
+              }
+            ],
+            "deprecated": true
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000007",
+          "lbl": "early embryonic cell (metazoa)",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A cell found in the embryo before the formation of all the gem layers is complete.",
+              "xrefs": ["GOC:tfm"]
+            },
+            "xrefs": [
+              {
+                "val": "ZFA:0009002"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000010",
+          "lbl": "cultured cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A cell in vitro that is or has been maintained or propagated as part of a cell culture.",
+              "xrefs": ["ReO:mhb"]
+            },
+            "comments": [
+              "Note that this class was re-labeled to 'cultured cell' instead of 'cell line cell', as it intent was clarified to cover any cultured cells of multicellular and unicellular organisms. This includes cells actively being cultured, or cells that have been cultured but are stored in a quiescent state for future use. In having been cultured, cells must establish homeostasis and often replicate in a foreign environment. Accomodation of this stress initiates a selection of cells fit for such challenges, wherein necessary adaptive biochemical and.or genetic changes can occur. These changes can set them apart from the in vivo cells from which they derive, and such changes will typically accumulate and change over increasing time in culture."
+            ],
+            "xrefs": [
+              {
+                "val": "MESH:D002478"
+              },
+              {
+                "val": "MO:562"
+              },
+              {
+                "val": "MeSH:D002460"
+              },
+              {
+                "val": "NCIt:C16403"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000015",
+          "lbl": "male germ cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A germ cell that supports male gamete production. In some species, non-germ cells known as Sertoli cells also play a role in spermatogenesis.",
+              "xrefs": [
+                "PMID:29462262",
+                "https://orcid.org/0000-0001-5208-3432"
+              ]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/cl#cellxgene_subset"],
+            "xrefs": [
+              {
+                "val": "FMA:72290"
+              },
+              {
+                "val": "MA:0002765"
+              },
+              {
+                "val": "VHOG:0001531"
+              },
+              {
+                "val": "ncithesaurus:Spermatogenic_Cell"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+                "val": "https://github.com/obophenotype/cell-ontology/issues/574"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000019",
+          "lbl": "sperm",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A mature male germ cell that develops from a spermatid.",
+              "xrefs": ["GOC:tfm", "MESH:D013094"]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/cl#cellxgene_subset"],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "sperm cell"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "spermatozoid"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "spermatozoon"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0001277"
+              },
+              {
+                "val": "BTO:0002046"
+              },
+              {
+                "val": "CALOHA:TS-0949"
+              },
+              {
+                "val": "FBbt:00004954"
+              },
+              {
+                "val": "FMA:67338"
+              },
+              {
+                "val": "MA:0002765"
+              },
+              {
+                "val": "MAT:0000131"
+              },
+              {
+                "val": "MeSH:D012661"
+              },
+              {
+                "val": "NCIt:C12602"
+              },
+              {
+                "val": "NCIt:C13277"
+              },
+              {
+                "val": "SAEL:93"
+              },
+              {
+                "val": "WBbt:0005321"
+              },
+              {
+                "val": "WBbt:0006798"
+              },
+              {
+                "val": "ZFA:0009006"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000023",
+          "lbl": "oocyte",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A female germ cell that has entered meiosis.",
+              "xrefs": ["GOC:tfm", "ISBN:0721662544"]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/cl#cellxgene_subset"],
+            "synonyms": [
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "oogonium"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0000964"
+              },
+              {
+                "val": "CALOHA:TS-0711"
+              },
+              {
+                "val": "FBbt:00004886"
+              },
+              {
+                "val": "FMA:18644"
+              },
+              {
+                "val": "MESH:D009865"
+              },
+              {
+                "val": "NCIt:C12598"
+              },
+              {
+                "val": "SNOMEDCT:86082002"
+              },
+              {
+                "val": "WBbt:0006797"
+              },
+              {
+                "val": "ZFA:0001109"
+              },
+              {
+                "val": "ZFA:0009008"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000025",
+          "lbl": "egg cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A female gamete where meiosis has progressed to metaphase II and is able to participate in fertilization.",
+              "xrefs": ["GOC:tfm", "ISBN:0721662544"]
+            },
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "mature oocyte"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "ovum"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0000369"
+              },
+              {
+                "val": "BTO:0003801"
+              },
+              {
+                "val": "CALOHA:TS-2191"
+              },
+              {
+                "val": "FBbt:00057012"
+              },
+              {
+                "val": "FMA:67343"
+              },
+              {
+                "val": "MAT:0000213"
+              },
+              {
+                "val": "MESH:D010063"
+              },
+              {
+                "val": "MeSH:D010063"
+              },
+              {
+                "val": "PO:0020094"
+              },
+              {
+                "val": "SNOMEDCT:73153001"
+              },
+              {
+                "val": "ZFA:0001570"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://xmlns.com/foaf/0.1/depiction",
+                "val": "https://www.swissbiopics.org/api/image/Egg_cell.svg"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000031",
+          "lbl": "neuroblast (sensu Vertebrata)",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A cell that will develop into a neuron often after a migration phase.",
+              "xrefs": ["GOC:NV", "http://en.wikipedia.org/wiki/Neuroblast"]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/cl#cellxgene_subset"],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "neuroblast"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0000930"
+              },
+              {
+                "val": "FMA:70563"
+              },
+              {
+                "val": "ZFA:0009011"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000034",
+          "lbl": "stem cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A relatively undifferentiated cell that retains the ability to divide and proliferate throughout life to provide progenitor cells that can differentiate into specialized cells.",
+              "xrefs": ["GOC:tfm", "MESH:D013234"]
+            },
+            "comments": [
+              "This term applies to metazoan. For plant stem cells, consider using PO:0004011 ‘initial cell’ or its parent PO:0004010 ‘meristematic cell’."
+            ],
+            "subsets": [
+              "http://purl.obolibrary.org/obo/cl#cellxgene_subset",
+              "http://purl.obolibrary.org/obo/cl#general_cell_types_upper_slim",
+              "http://purl.obolibrary.org/obo/uberon/core#human_reference_atlas"
+            ],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "animal stem cell"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "CALOHA:TS-2086"
+              },
+              {
+                "val": "FMA:63368"
+              },
+              {
+                "val": "NCIt:C12662"
+              },
+              {
+                "val": "SNOMEDCT:419758009"
+              },
+              {
+                "val": "ZFA:0005957"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://purl.obolibrary.org/obo/RO_0002175",
+                "val": "http://purl.obolibrary.org/obo/NCBITaxon_9606"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000037",
+          "lbl": "hematopoietic stem cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A stem cell from which all cells of the lymphoid and myeloid lineages develop, including blood cells and cells of the immune system. Hematopoietic stem cells lack cell markers of effector cells (lin-negative). Lin-negative is defined by lacking one or more of the following cell surface markers: CD2, CD3 epsilon, CD4, CD5 ,CD8 alpha chain, CD11b, CD14, CD19, CD20, CD56, ly6G, ter119.",
+              "xrefs": [
+                "GOC:add",
+                "GOC:dsd",
+                "GOC:tfm",
+                "PMID:19022770",
+                "http://en.wikipedia.org/wiki/Hematopoietic_stem_cell"
+              ]
+            },
+            "comments": [
+              "Markers differ between species, and two sets of markers have been described for mice. HSCs are reportedly CD34-positive, CD45-positive, CD48-negative, CD150-positive, CD133-positive, and CD244-negative."
+            ],
+            "subsets": [
+              "http://purl.obolibrary.org/obo/cl#blood_and_immune_upper_slim",
+              "http://purl.obolibrary.org/obo/cl#cellxgene_subset",
+              "http://purl.obolibrary.org/obo/uberon/core#human_reference_atlas"
+            ],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "blood forming stem cell"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "hemopoietic stem cell"
+              },
+              {
+                "synonymType": "http://purl.obolibrary.org/obo/OMO_0003000",
+                "pred": "hasRelatedSynonym",
+                "val": "HSC"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "colony forming unit hematopoietic"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0000725"
+              },
+              {
+                "val": "CALOHA:TS-0448"
+              },
+              {
+                "val": "FMA:86475"
+              },
+              {
+                "val": "MESH:D006412"
+              },
+              {
+                "val": "NCIt:C12551"
+              },
+              {
+                "val": "SNOMEDCT:418318001"
+              },
+              {
+                "val": "VHOG:0001485"
+              },
+              {
+                "val": "ZFA:0009014"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://purl.obolibrary.org/obo/RO_0002175",
+                "val": "http://purl.obolibrary.org/obo/NCBITaxon_9606"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000038",
+          "lbl": "erythroid progenitor cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A progenitor cell committed to the erythroid lineage.",
+              "xrefs": ["GOC:add", "ISBN:0721601464"]
+            },
+            "subsets": [
+              "http://purl.obolibrary.org/obo/cl#blood_and_immune_upper_slim",
+              "http://purl.obolibrary.org/obo/cl#cellxgene_subset"
+            ],
+            "synonyms": [
+              {
+                "synonymType": "http://purl.obolibrary.org/obo/OMO_0003000",
+                "pred": "hasRelatedSynonym",
+                "val": "BFU-E"
+              },
+              {
+                "synonymType": "http://purl.obolibrary.org/obo/OMO_0003000",
+                "pred": "hasRelatedSynonym",
+                "val": "CFU-E"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "blast forming unit erythroid"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "burst forming unit erythroid"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "colony forming unit erythroid"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "erythroid stem cell"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0004911"
+              },
+              {
+                "val": "NCIt:C12526"
+              },
+              {
+                "val": "ZFA:0009015"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000040",
+          "lbl": "monoblast",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A myeloid progenitor cell committed to the monocyte lineage. This cell is CD11b-positive, has basophilic cytoplasm, euchromatin, and the presence of a nucleolus.",
+              "xrefs": [
+                "GOC:add",
+                "PMID:1104740",
+                "http://en.wikipedia.org/wiki/Monoblast",
+                "http://www.copewithcytokines.de"
+              ]
+            },
+            "comments": [
+              "Morphology: mononuclear cell, diameter 12-20 _M, non-granular, N/C ratio 3/1 - 4/1; markers: CD11b (shared with many other myeloid cells); location: Adult: bone marrow; fetal: liver, Yolk Sac; role or process: hematopoiesis, monocyte development; lineage: hematopoietic, myeloid."
+            ],
+            "synonyms": [
+              {
+                "synonymType": "http://purl.obolibrary.org/obo/OMO_0003000",
+                "pred": "hasRelatedSynonym",
+                "val": "CFU-M"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "colony forming unit macrophage"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "colony forming unit monocyte"
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "monocyte stem cell"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "CALOHA:TS-1195"
+              },
+              {
+                "val": "FMA:83553"
+              },
+              {
+                "val": "NCIt:C13014"
+              },
+              {
+                "val": "SNOMEDCT:53945006"
+              },
+              {
+                "val": "ZFA:0009017"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000041",
+          "lbl": "mature eosinophil",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A fully differentiated eosinophil, a granular leukocyte with a nucleus that usually has two lobes connected by one or more slender threads, and cytoplasm containing coarse, round granules that are uniform in size and which can be stained by the dye eosin. Cells are also differentiated from other granulocytes by a small nuclear-to-cytoplasm ratio (1:3). This cell type is CD49d-positive.",
+              "xrefs": [
+                "GOC:add",
+                "GOC:dsd",
+                "GOC:tfm",
+                "ISBN:0721601464",
+                "http://www.cap.org"
+              ]
+            },
+            "comments": [
+              "Eosinophils are CD125-positive (IL-5R), GM-CSFR-positive, IL-3R-positive, VLA4-positive. They can also express MHC Class I & II, CD4, CD9, CD11a, CD11b, CD11c, CD13, CD15, CD16, CD17, CD18, CD24, CD25,CD28, CD29, CD32, CD33, CD35, CD37, CD39, CD43, CD44, CD45, CD45RB, CD45RO, CD46, CD47, CD48, CD49d, CD49f, CD50, CD52, CD53, CD54, CD55, CD58, CD59, CD62L, CD63, CD65, CD66, CD69, CD71, CD76, CD80, CD81, CD82, CD86, CD87, CD88, CD89, CD92, CD95, CD97, CD98, CD99, CD100, CD101, CD116, CD117, CD119, CD120, CD123, CD124, CD125, CD131, CD137, CD139, CD148, CD149, CD151, CD153, CD156, CD162, CD161, CD162, CD165, CD174, CD182, CD183, CD191, CD192, CD193, CD196, CD213, IL9R, ad integrin, beta-7 integrin, FceRI, IL13Ra1, TGFbR, PAFR, LTB4R, C3aR, CystLT1R, CystLT2R, fMLPR, CRTH2 (PGD2 receptor), histamine 4R, IDO, KYN, PAR-2, Siglec-8, Siglec-10, LIR1, LIR2, LIR3, LIR7, TLR7, TLR8, and VLA-4. Eosinophils can also secrete CXCL1, eotaxin-1, GM-CSF, IL-2, IL-3, IL-4, IL-5, IL-6, IL-8, IL-10, IL-12, IL-13, IL-16, IL-18, IFN-gamma, LTC4, MIP-1alpha, NGF, PAF, RANTES, substance P, TGF-alpha, TGF-beta, TNF-alpha, and VIP."
+            ],
+            "subsets": [
+              "http://purl.obolibrary.org/obo/uberon/core#human_reference_atlas"
+            ],
+            "synonyms": [
+              {
+                "pred": "hasBroadSynonym",
+                "val": "polymorphonuclear leucocyte"
+              },
+              {
+                "pred": "hasBroadSynonym",
+                "val": "polymorphonuclear leukocyte"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "mature eosinocyte"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "mature eosinophil leucocyte"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "mature eosinophil leukocyte"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://purl.obolibrary.org/obo/IAO_0000116",
+                "val": "The status of eosinophils as true professional antigen presenting cells is unclear, despite their ability to present exogenous peptides and peptides processed from exogenous proteins (in certain studies) via MHC Class II and activate T cells. Per the equivalence axioms, 'eosinophil' is reasoned to be a subclass of 'professional antigen presenting cell', though the role of eosinophils as such in the body may be limited."
+              },
+              {
+                "pred": "http://purl.obolibrary.org/obo/RO_0002175",
+                "val": "http://purl.obolibrary.org/obo/NCBITaxon_9606"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000042",
+          "lbl": "neutrophilic myeloblast",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A myeloblast committed to the neutrophil lineage. This cell type is GATA-1 positive, C/EBPa-positive, AML-1-positive, c-myb-positive and has low expression of PU.1 transcription factor.",
+              "xrefs": [
+                "GOC:add",
+                "ISBN:0721601464",
+                "PMID:12560239",
+                "PMID:15514007"
+              ]
+            },
+            "comments": [
+              "These cells are CD11b-negative, CD15-negative, CD16-negative, CD35-negative, CD49d-positive, CD68-positive, lactotransferrin-negative, and fMLP receptor-negative. They are found in the Band 3 fraction."
+            ],
+            "synonyms": [
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "neutrophilic granuloblast"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "ZFA:0009018"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000043",
+          "lbl": "mature basophil",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A fully differentiated basophil, a granular leukocyte with an irregularly shaped, pale-staining nucleus that is partially constricted into two lobes, and with cytoplasm that contains coarse granules of variable size. Basophils contain vasoactive amines such as histamine and serotonin, which are released on appropriate stimulation.",
+              "xrefs": [
+                "GOC:add",
+                "GOC:dsd",
+                "GOC:tfm",
+                "ISBN:0721601464",
+                "PMID:18466030",
+                "PMID:19231594",
+                "PMID:20837449",
+                "http://www.cap.org"
+              ]
+            },
+            "comments": [
+              "Mature basophils are also capable of producing IL-3, IL-5, IL-6, IL-8, IL-13, IL-25, CCL22, tslp, vegf, and LTC4."
+            ],
+            "synonyms": [
+              {
+                "pred": "hasBroadSynonym",
+                "val": "polymorphonuclear leucocyte"
+              },
+              {
+                "pred": "hasBroadSynonym",
+                "val": "polymorphonuclear leukocyte"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "mature basophil leucocyte"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "mature basophil leukocyte"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0001026"
+              },
+              {
+                "val": "CALOHA:TS-0688"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000047",
+          "lbl": "neural stem cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "An undifferentiated neural cell that originates from the neuroectoderm and has the capacity both to perpetually self-renew without differentiating and to generate multiple central nervous system neuronal and glial cell types.",
+              "xrefs": ["PMID:30639325"]
+            },
+            "subsets": ["http://purl.obolibrary.org/obo/cl#cellxgene_subset"],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "NSC"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "neuronal stem cell",
+                "xrefs": ["PMID:16305818"]
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0002881"
+              },
+              {
+                "val": "CALOHA:TS-2360"
+              },
+              {
+                "val": "FMA:86684"
+              },
+              {
+                "val": "NCIt:C12985"
+              },
+              {
+                "val": "ZFA:0009019"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000048",
+          "lbl": "multi fate stem cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A stem cell that can give rise to multiple lineages of cells.",
+              "xrefs": ["GOC:add"]
+            },
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "multi-fate stem cell"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "multifate stem cell"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "multipotent cell"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "multipotent stem cell"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "FMA:84789"
+              },
+              {
+                "val": "ZFA:0009020"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000049",
+          "lbl": "common myeloid progenitor",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A progenitor cell committed to myeloid lineage, including the megakaryocyte and erythroid lineages.",
+              "xrefs": ["GOC:add", "ISBN:0878932437", "MESH:D023461"]
+            },
+            "comments": [
+              "This cell type is intended to be compatible with any vertebrate common myeloid progenitor.  For mammalian CMP known to be CD34-positive, please use the term 'common myeloid progenitor, CD34-positive' (CL_0001059)."
+            ],
+            "subsets": [
+              "http://purl.obolibrary.org/obo/cl#cellxgene_subset",
+              "http://purl.obolibrary.org/obo/uberon/core#human_reference_atlas"
+            ],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "common myeloid precursor"
+              },
+              {
+                "synonymType": "http://purl.obolibrary.org/obo/OMO_0003000",
+                "pred": "hasRelatedSynonym",
+                "val": "CFU-GEMM",
+                "xrefs": ["ISBN:0878932437"]
+              },
+              {
+                "synonymType": "http://purl.obolibrary.org/obo/OMO_0003000",
+                "pred": "hasRelatedSynonym",
+                "val": "CFU-S",
+                "xrefs": ["ISBN:0878932437"]
+              },
+              {
+                "synonymType": "http://purl.obolibrary.org/obo/OMO_0003000",
+                "pred": "hasRelatedSynonym",
+                "val": "CMP",
+                "xrefs": ["ISBN:0878932437"]
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "colony forming unit granulocyte, erythrocyte, macrophage, and megakaryocyte",
+                "xrefs": ["ISBN:0878932437"]
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "multipotential myeloid stem cell",
+                "xrefs": ["ISBN:0878932437"]
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "myeloid stem cell",
+                "xrefs": ["ISBN:0878932437"]
+              },
+              {
+                "pred": "hasRelatedSynonym",
+                "val": "pluripotent stem cell (bone marrow)",
+                "xrefs": ["ISBN:0878932437"]
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "BTO:0004730"
+              },
+              {
+                "val": "ZFA:0009021"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://purl.obolibrary.org/obo/RO_0002175",
+                "val": "http://purl.obolibrary.org/obo/NCBITaxon_9606"
+              }
+            ]
+          }
+        },
+        {
+          "id": "http://purl.obolibrary.org/obo/CL_0000050",
+          "lbl": "megakaryocyte-erythroid progenitor cell",
+          "type": "CLASS",
+          "meta": {
+            "definition": {
+              "val": "A progenitor cell committed to the megakaryocyte and erythroid lineages.",
+              "xrefs": [
+                "GOC:add",
+                "GOC:dsd",
+                "GOC:tfm",
+                "MESH:D055015",
+                "PMID:16647566",
+                "http://en.wikipedia.org/wiki/Megakaryocyte-erythroid_progenitor_cell"
+              ]
+            },
+            "comments": [
+              "MEPs are reportedly CD19-negative, CD34-negative, CD45RA-negative, CD110-positive, CD117-positive, and SCA1-negative and reportedly express the transcription factors GATA-1 and NF-E2."
+            ],
+            "subsets": [
+              "http://purl.obolibrary.org/obo/cl#cellxgene_subset",
+              "http://purl.obolibrary.org/obo/uberon/core#human_reference_atlas"
+            ],
+            "synonyms": [
+              {
+                "pred": "hasExactSynonym",
+                "val": "CFU-EM"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "CFU-MegE"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "MEP"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "Meg/E progenitor"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "colony forming unit erythroid megakaryocyte"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "megakaryocyte/erythrocyte progenitor"
+              },
+              {
+                "pred": "hasExactSynonym",
+                "val": "megakaryocyte/erythroid progenitor cell"
+              }
+            ],
+            "xrefs": [
+              {
+                "val": "ZFA:0009022"
+              }
+            ],
+            "basicPropertyValues": [
+              {
+                "pred": "http://purl.obolibrary.org/obo/RO_0002175",
+                "val": "http://purl.obolibrary.org/obo/NCBITaxon_9606"
+              }
+            ]
+          }
+        }
+      ],
+      "edges": [
+        {
+          "sub": "http://dbpedia.org/resource/China",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/NCIT_C25464"
+        },
+        {
+          "sub": "http://dbpedia.org/resource/India",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/NCIT_C25464"
+        },
+        {
+          "sub": "http://dbpedia.org/resource/Iran",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/NCIT_C25464"
+        },
+        {
+          "sub": "http://dbpedia.org/resource/Japan",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/NCIT_C25464"
+        },
+        {
+          "sub": "http://dbpedia.org/resource/North_Korea",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/NCIT_C25464"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000000",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/GO_0005575"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000002",
+          "pred": "is_a",
+          "obj": "http://www.w3.org/2002/07/owl#Thing"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000007",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0002321"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000010",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000010",
+          "pred": "http://purl.obolibrary.org/obo/RO_0000056",
+          "obj": "http://www.ebi.ac.uk/efo/EFO_0002694"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000015",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000586"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000019",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000015"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000019",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/UBERON_0000061"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000019",
+          "pred": "http://purl.obolibrary.org/obo/BFO_0000050",
+          "obj": "http://purl.obolibrary.org/obo/UBERON_0000079"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000023",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000586"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000023",
+          "pred": "http://purl.obolibrary.org/obo/BFO_0000050",
+          "obj": "http://purl.obolibrary.org/obo/UBERON_0000474"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000025",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000586"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000025",
+          "pred": "is_a",
+          "obj": "http://www.ebi.ac.uk/efo/EFO_0000988"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000031",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000055"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000034",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_1000497",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0008019",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0002494",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0002351",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0002319",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0002319",
+          "pred": "is_a",
+          "obj": "http://www.ebi.ac.uk/efo/EFO_0002963"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0002319",
+          "pred": "http://purl.obolibrary.org/obo/RO_0001025",
+          "obj": "http://purl.obolibrary.org/obo/UBERON_0001016"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0002321",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0002092",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0001063",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000988",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000670",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000628",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000586",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000520",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000520",
+          "pred": "is_a",
+          "obj": "http://www.ebi.ac.uk/efo/EFO_0000324"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000521",
+          "pred": "is_a",
+          "obj": "http://purl.obolibrary.org/obo/CL_0000000"
+        },
+        {
+          "sub": "http://purl.obolibrary.org/obo/CL_0000521",
+          "pred": "is_a",
+          "obj": "http://www.ebi.ac.uk/efo/EFO_0000324"
+        }
+      ]
+    }
+  ]
+}

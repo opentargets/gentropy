@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.config import EqtlCatalogueConfig
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
@@ -20,6 +21,7 @@ class EqtlCatalogueStep:
         eqtl_catalogue_paths_imported: str,
         eqtl_catalogue_study_index_out: str,
         eqtl_catalogue_credible_sets_out: str,
+        eqtl_lead_pvalue_threshold: float = EqtlCatalogueConfig().eqtl_lead_pvalue_threshold,
     ) -> None:
         """Run eQTL Catalogue ingestion step.
 
@@ -29,6 +31,7 @@ class EqtlCatalogueStep:
             eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.
             eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.
             eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.
+            eqtl_lead_pvalue_threshold (float, optional): Lead p-value threshold. Defaults to EqtlCatalogueConfig().eqtl_lead_pvalue_threshold.
         """
         # Extract
         studies_metadata = EqtlCatalogueStudyIndex.read_studies_from_source(
@@ -58,13 +61,19 @@ class EqtlCatalogueStep:
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
             credible_sets_df, lbf_df, studies_metadata
         )
-        credible_sets = EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
-        study_index = EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
 
-        # Load
-        study_index.df.write.mode(session.write_mode).parquet(
-            eqtl_catalogue_study_index_out
+        (
+            EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
+            # Writing the output:
+            .df.write.mode(session.write_mode)
+            .parquet(eqtl_catalogue_study_index_out)
         )
-        credible_sets.df.write.mode(session.write_mode).parquet(
-            eqtl_catalogue_credible_sets_out
+
+        (
+            EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
+            # Flagging sub-significnat loci:
+            .validate_lead_pvalue(pvalue_cutoff=eqtl_lead_pvalue_threshold)
+            # Writing the output:
+            .df.write.mode(session.write_mode)
+            .parquet(eqtl_catalogue_credible_sets_out)
         )
