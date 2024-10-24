@@ -934,7 +934,6 @@ class TestCredibleSetConfidenceFeatureLogic:
     def test_compute(
         self: TestCredibleSetConfidenceFeatureLogic,
         spark: SparkSession,
-        expected_data: dict[str, Any],
     ) -> None:
         """Test the logic of the function that scores a credible set's confidence."""
         sample_study_loci_to_annotate = self.sample_study_locus
