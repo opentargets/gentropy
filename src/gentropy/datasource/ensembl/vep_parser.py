@@ -59,7 +59,7 @@ class VariantEffectPredictorParser:
         cls: type[VariantEffectPredictorParser],
         spark: SparkSession,
         vep_output_path: str | list[str],
-        hash_threshold: int = 100,
+        hash_threshold: int,
         **kwargs: bool | float | int | str | None,
     ) -> VariantIndex:
         """Extract variant index from VEP output.
@@ -67,7 +67,7 @@ class VariantEffectPredictorParser:
         Args:
             spark (SparkSession): Spark session.
             vep_output_path (str | list[str]): Path to the VEP output.
-            hash_threshold (int): Threshold above which variant identifiers will be hashed. Default is 100,
+            hash_threshold (int): Threshold above which variant identifiers will be hashed.
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.json.
 
         Returns:
@@ -93,6 +93,7 @@ class VariantEffectPredictorParser:
                 vep_data, hash_threshold
             ),
             _schema=VariantIndex.get_schema(),
+            id_threshold=hash_threshold,
         )
 
     @staticmethod
