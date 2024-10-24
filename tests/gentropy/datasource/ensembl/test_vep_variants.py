@@ -113,7 +113,7 @@ class TestVEPParser:
     ) -> None:
         """Test if the variant index can be extracted from the VEP output."""
         variant_index = VariantEffectPredictorParser.extract_variant_index_from_vep(
-            spark, self.SAMPLE_VEP_DATA_PATH
+            spark, self.SAMPLE_VEP_DATA_PATH, hash_threshold=100
         )
 
         assert isinstance(
