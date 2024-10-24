@@ -219,6 +219,33 @@ def sample_variant_index(spark: SparkSession) -> VariantIndex:
     )
 
 
+@pytest.fixture(scope="module")
+def sample_variant_index_schema() -> StructType:
+    """Partial schema of the variant index."""
+    return StructType(
+        [
+            StructField("variantId", StringType(), True),
+            StructField("chromosome", StringType(), True),
+            StructField("position", IntegerType(), True),
+            StructField("referenceAllele", StringType(), True),
+            StructField("alternateAllele", StringType(), True),
+            StructField(
+                "transcriptConsequences",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("distanceFromTss", LongType(), True),
+                            StructField("targetId", StringType(), True),
+                            StructField("isEnsemblCanonical", BooleanType(), True),
+                        ]
+                    )
+                ),
+                True,
+            ),
+        ]
+    )
+
+
 class TestCommonColocalisationFeatureLogic:
     """Test the common logic of the colocalisation features."""
 
@@ -546,7 +573,11 @@ class TestCommonDistanceFeatureLogic:
         ), "Output doesn't meet the expectation."
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestCommonDistanceFeatureLogic, spark: SparkSession) -> None:
+    def _setup(
+        self: TestCommonDistanceFeatureLogic,
+        spark: SparkSession,
+        sample_variant_index_schema: StructType,
+    ) -> None:
         """Set up testing fixtures."""
         self.distance_type = "distanceFromTss"
         self.sample_study_locus = StudyLocus(
@@ -572,28 +603,6 @@ class TestCommonDistanceFeatureLogic:
                 StudyLocus.get_schema(),
             ),
             _schema=StudyLocus.get_schema(),
-        )
-        self.variant_index_schema = StructType(
-            [
-                StructField("variantId", StringType(), True),
-                StructField("chromosome", StringType(), True),
-                StructField("position", IntegerType(), True),
-                StructField("referenceAllele", StringType(), True),
-                StructField("alternateAllele", StringType(), True),
-                StructField(
-                    "transcriptConsequences",
-                    ArrayType(
-                        StructType(
-                            [
-                                StructField("distanceFromTss", LongType(), True),
-                                StructField("targetId", StringType(), True),
-                                StructField("isEnsemblCanonical", BooleanType(), True),
-                            ]
-                        )
-                    ),
-                    True,
-                ),
-            ]
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -632,7 +641,7 @@ class TestCommonDistanceFeatureLogic:
                         ],
                     ),
                 ],
-                self.variant_index_schema,
+                sample_variant_index_schema,
             ),
             _schema=VariantIndex.get_schema(),
         )
@@ -916,4 +925,75 @@ class TestCommonGeneCountFeatureLogic:
                 GeneIndex.get_schema(),
             ),
             _schema=GeneIndex.get_schema(),
+        )
+
+
+class TestCredibleSetConfidenceFeatureLogic:
+    """Test the CredibleSetConfidenceFeature method."""
+
+    def test_compute(
+        self: TestCredibleSetConfidenceFeatureLogic,
+        spark: SparkSession,
+        feature_name: str,
+        expected_data: dict[str, Any],
+    ) -> None:
+        """Test the logic of the function that scores a credible set's confidence."""
+        sample_study_loci_to_annotate = self.sample_study_locus
+        observed_df = CredibleSetConfidenceFeature.compute(
+            study_loci_to_annotate=sample_study_loci_to_annotate,
+            feature_dependency={
+                "study_locus": self.sample_study_locus,
+                "variant_index": self.sample_variant_index,
+            },
+        )
+        assert observed_df.df.first()["featureValue"] == 0.25
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestCredibleSetConfidenceFeatureLogic,
+        spark: SparkSession,
+        sample_variant_index_schema: StructType,
+    ) -> None:
+        """Set up testing fixtures."""
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "lead1",
+                        "studyId": "study1",
+                        "confidence": "PICS fine-mapped credible set based on reported top hit",
+                        "chromosome": "1",
+                        "locus": [
+                            {
+                                "variantId": "lead1",
+                            },
+                        ],
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.sample_variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        "lead1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {
+                                "distanceFromTss": 10,
+                                "targetId": "gene1",
+                                "isEnsemblCanonical": True,
+                            },
+                        ],
+                    )
+                ],
+                sample_variant_index_schema,
+            ),
+            _schema=VariantIndex.get_schema(),
         )

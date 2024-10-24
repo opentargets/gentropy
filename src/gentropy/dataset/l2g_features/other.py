@@ -184,16 +184,19 @@ class CredibleSetConfidenceFeature(L2GFeature):
         Returns:
             CredibleSetConfidenceFeature: Feature dataset
         """
-        full_credible_set = feature_dependency["study_locus"].select(
+        full_credible_set = feature_dependency["study_locus"].df.select(
+            "studyLocusId",
             "studyId",
             f.explode("locus.variantId").alias("variantId"),
-            cls.score_credible_set_confidence(f.col("confidence")).alias("score"),
+            cls.score_credible_set_confidence(f.col("confidence")).alias(
+                cls.feature_name
+            ),
         )
 
         return cls(
             _df=convert_from_wide_to_long(
                 (
-                    study_loci_to_annotate.df
+                    study_loci_to_annotate.df.drop("studyLocusId")
                     # Annotate genes
                     .join(
                         feature_dependency["variant_index"].df.select(
@@ -207,6 +210,7 @@ class CredibleSetConfidenceFeature(L2GFeature):
                     )
                     # Annotate credible set confidence
                     .join(full_credible_set, ["variantId", "studyId"], "left")
+                    .select("studyLocusId", "geneId", cls.feature_name)
                 ),
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
