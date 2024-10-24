@@ -109,7 +109,7 @@ class VariantIndex(Dataset):
             )
             # If chromosome and position are given, but alleles are too long, create hash:
             .when(
-                f.length(variant_id) > threshold,
+                f.length(variant_id) >= threshold,
                 f.concat_ws(
                     "_",
                     f.lit("OTVAR"),
