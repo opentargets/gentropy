@@ -6,11 +6,13 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
 import pyspark.sql.functions as f
+from pyspark.sql import DataFrame
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.model import LocusToGeneModel
 
@@ -83,3 +85,44 @@ class L2GPrediction(Dataset):
         )
 
         return l2g_model.predict(fm, session)
+
+    def to_disease_target_evidence(
+        self: L2GPrediction,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
+        l2g_threshold: float = 0.05,
+    ) -> DataFrame:
+        """Convert locus to gene predictions to disease target evidence.
+
+        Args:
+            study_locus (StudyLocus): Study locus dataset
+            study_index (StudyIndex): Study index dataset
+            l2g_threshold (float): Threshold to consider a gene as a target. Defaults to 0.05.
+
+        Returns:
+            DataFrame: Disease target evidence
+        """
+        datasource_id = "gwas_credible_sets"
+        datatype_id = "genetic_association"
+
+        return (
+            self.df.filter(f.col("score") >= l2g_threshold)
+            .join(
+                study_locus.df.select("studyLocusId", "studyId"),
+                on="studyLocusId",
+                how="inner",
+            )
+            .join(
+                study_index.df.select("studyId", "diseaseIds"),
+                on="studyId",
+                how="inner",
+            )
+            .select(
+                f.lit(datatype_id).alias("datatypeId"),
+                f.lit(datasource_id).alias("datasourceId"),
+                f.col("geneId").alias("targetFromSourceId"),
+                f.explode(f.col("diseaseIds")).alias("diseaseFromSourceMappedId"),
+                f.col("score").alias("resourceScore"),
+                "studyLocusId",
+            )
+        )
