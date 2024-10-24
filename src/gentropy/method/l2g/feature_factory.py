@@ -30,6 +30,7 @@ from gentropy.dataset.l2g_features.distance import (
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.other import (
+    CredibleSetConfidenceFeature,
     GeneCountFeature,
     ProteinGeneCountFeature,
 )
@@ -125,6 +126,7 @@ class FeatureFactory:
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
+        "credibleSetConfidence": CredibleSetConfidenceFeature,
     }
 
     def __init__(
