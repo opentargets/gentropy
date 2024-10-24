@@ -503,6 +503,12 @@ class FinnGenFinemapping:
                 on=["studyId", "region", "credibleSetIndex"],
                 how="inner",
             )
+            .withColumns(
+                {
+                    "locusStart": f.split(f.split("region", ":")[1], "-")[0],
+                    "locusEnd": f.split(f.split("region", ":")[1], "-")[1],
+                }
+            )
         ).withColumn(
             "studyLocusId",
             StudyLocus.assign_study_locus_id(
