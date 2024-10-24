@@ -618,6 +618,18 @@ class StudyValidationStepConfig(StepConfig):
 
 
 @dataclass
+class LocusToGeneEvidenceStepConfig(StepConfig):
+    """Configuration of the locus to gene evidence step."""
+
+    locus_to_gene_predictions_path: str = MISSING
+    credible_set_path: str = MISSING
+    study_index_path: str = MISSING
+    evidence_output_path: str = MISSING
+    locus_to_gene_threshold: float = 0.05
+    _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
+
+
+@dataclass
 class StudyLocusValidationStepConfig(StepConfig):
     """Configuration of the study index validation step.
 
@@ -711,5 +723,10 @@ def register_config() -> None:
         group="step",
         name="study_validation",
         node=StudyValidationStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="locus_to_gene_evidence",
+        node=LocusToGeneEvidenceStepConfig,
     )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
