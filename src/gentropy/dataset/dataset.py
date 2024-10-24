@@ -67,6 +67,30 @@ class Dataset(ABC):
         return self._schema
 
     @classmethod
+    def _process_class_params(
+        cls, params: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Separate class initialization parameters from spark session parameters.
+
+        Args:
+            params (dict[str, Any]): Combined parameters dictionary
+
+        Returns:
+            tuple[dict[str, Any], dict[str, Any]]: (class_params, spark_params)
+        """
+        # Get all field names from the class (including parent classes)
+        class_field_names = {
+            field.name
+            for cls_ in cls.__mro__
+            if hasattr(cls_, "__dataclass_fields__")
+            for field in cls_.__dataclass_fields__.values()
+        }
+        # Separate parameters
+        class_params = {k: v for k, v in params.items() if k in class_field_names}
+        spark_params = {k: v for k, v in params.items() if k not in class_field_names}
+        return class_params, spark_params
+
+    @classmethod
     @abstractmethod
     def get_schema(cls: type[Self]) -> StructType:
         """Abstract method to get the schema. Must be implemented by child classes.
@@ -120,10 +144,14 @@ class Dataset(ABC):
             ValueError: Parquet file is empty
         """
         schema = cls.get_schema()
-        df = session.load_data(path, format="parquet", schema=schema, **kwargs)
+
+        # Separate class params from spark params
+        class_params, spark_params = cls._process_class_params(kwargs)
+
+        df = session.load_data(path, format="parquet", schema=schema, **spark_params)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
-        return cls(_df=df, _schema=schema)
+        return cls(_df=df, _schema=schema, **class_params)
 
     def filter(self: Self, condition: Column) -> Self:
         """Creates a new instance of a Dataset with the DataFrame filtered by the condition.
@@ -321,7 +349,10 @@ class Dataset(ABC):
         Returns:
             Column: column with a unique identifier
         """
-        hashable_columns = [f.when(f.col(column).cast("string").isNull(), f.lit("None"))
-                                 .otherwise(f.col(column).cast("string"))
-                                 for column in uniqueness_defining_columns]
+        hashable_columns = [
+            f.when(f.col(column).cast("string").isNull(), f.lit("None")).otherwise(
+                f.col(column).cast("string")
+            )
+            for column in uniqueness_defining_columns
+        ]
         return f.md5(f.concat(*hashable_columns))
