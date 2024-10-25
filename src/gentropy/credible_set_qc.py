@@ -32,6 +32,9 @@ class CredibleSetQCStep:
         Due to the large number of partitions at the input credible_set_path after finemapping, the
         best strategy it is to repartition and save the dataset after deduplication.
 
+        The `clump` mode will perform additional LD based clumping on the input credible sets.
+        Enabling `clump` mode requires providing `ld_index_path`, `study_index_path` and `ld_min_r2`.
+
         Args:
             session (Session): Session object.
             credible_sets_path (str): Path to credible sets file.

@@ -479,7 +479,8 @@ class SUSIE_inf:
     ) -> StudyLocus:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
 
-        In case of duplicated loci, the filtering retains the loci wth the highest credibleSetlog10BF
+        In case of duplicated loci, the filtering retains the loci wth the highest credibleSetlog10BF.
+
 
         Args:
             cred_sets (StudyLocus): StudyLocus object with credible sets to filter/clump
@@ -488,7 +489,7 @@ class SUSIE_inf:
             clump (bool): Whether to clump the credible sets by LD, default is False
             ld_index (LDIndex | None): LDIndex object
             study_index (StudyIndex | None): StudyIndex object
-            ld_min_r2 (float): LD R2 threshold for clumping, default is 0.8
+            ld_min_r2 (float | None): LD R2 threshold for clumping, default is 0.8
 
         Returns:
             StudyLocus: Credible sets which pass filters and LD clumping.
