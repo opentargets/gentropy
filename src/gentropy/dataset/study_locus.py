@@ -425,8 +425,8 @@ class StudyLocus(Dataset):
                 f.when(
                     (f.col("sumPosteriorProbability") < sum_pips_lower_threshold) |
                     (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
-                    "outside"
-                ).otherwise("within")))
+                    True
+                ).otherwise(False)))
 
         return StudyLocus(
             _df=(flag
@@ -435,7 +435,7 @@ class StudyLocus(Dataset):
                     "qualityControls",
                     self.update_quality_flag(
                         qc_select_expression,
-                        f.col("pipOutOfRange") == "outside",
+                        f.col("pipOutOfRange"),
                         StudyLocusQualityCheck.ABNORMAL_PIPS
                     ),
                 ).drop("sumPosteriorProbability", "pipOutOfRange")),
