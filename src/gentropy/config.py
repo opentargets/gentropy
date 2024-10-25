@@ -262,7 +262,7 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
-            "isProteinCoding1mb",
+            "isProteinCoding",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -334,7 +334,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
-            "isProteinCoding1mb",
+            "isProteinCoding",
         ]
     )
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"

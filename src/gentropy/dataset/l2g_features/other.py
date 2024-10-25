@@ -212,7 +212,7 @@ class ProteinCodingFeature(L2GFeature):
     """Indicates whether a gene is protein-coding within a specified window size from the study locus."""
 
     feature_dependency_type = GeneIndex
-    feature_name = "isProteinCoding1mb"
+    feature_name = "isProteinCoding"
 
     @classmethod
     def compute(

@@ -128,7 +128,7 @@ class FeatureFactory:
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
-        "isProteinCoding1mb": ProteinCodingFeature,
+        "isProteinCoding": ProteinCodingFeature,
         "credibleSetConfidence": CredibleSetConfidenceFeature,
     }
 
