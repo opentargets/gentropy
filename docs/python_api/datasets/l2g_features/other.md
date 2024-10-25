@@ -11,4 +11,4 @@ title: Other features
 ## Common logic
 
 ::: gentropy.dataset.l2g_features.other.common_genecount_feature_logic
-::: gentropy.dataset.l2g_features.other.common_protein_coding_feature_logic
+::: gentropy.dataset.l2g_features.other.is_protein_coding_feature_logic
