@@ -40,10 +40,14 @@ class CredibleSetQCStep:
         cred_sets = StudyLocus.from_parquet(
             session, credible_sets_path, recursiveFileLookup=True
         ).coalesce(200)
-        if ld_index_path:
-            ld_index = LDIndex.from_parquet(session, ld_index_path)
-        if study_index_path:
-            study_index = StudyIndex.from_parquet(session, study_index_path)
+        ld_index = (
+            LDIndex.from_parquet(session, ld_index_path) if ld_index_path else None
+        )
+        study_index = (
+            StudyIndex.from_parquet(session, study_index_path)
+            if study_index_path
+            else None
+        )
         cred_sets_clean = SUSIE_inf.credible_set_qc(
             cred_sets,
             p_value_threshold,
