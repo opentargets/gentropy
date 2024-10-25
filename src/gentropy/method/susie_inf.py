@@ -510,7 +510,7 @@ class SUSIE_inf:
             .filter(f.col("rn") == 1)
             .drop("rn")
         )
-        if clump 
+        if clump
            assert study_index, "Running in clump mode, which requires study_index."
            assert ld_index  "Running in clump mode, which requires ld_index."
            cred_sets = (
