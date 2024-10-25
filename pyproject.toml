@@ -37,12 +37,12 @@ google-cloud-secret-manager = "^2.20.0"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^4.0.0"
-mypy = "^1.11"
+mypy = "^1.12"
 pep8-naming = "^0.14.1"
 interrogate = "^1.7.0"
 isort = "^5.13.2"
 darglint = "^1.8.1"
-ruff = "^0.6.1"
+ruff = "^0.7.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3"

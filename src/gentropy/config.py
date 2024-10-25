@@ -68,44 +68,36 @@ class GWASCatalogStudyCurationConfig(StepConfig):
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
     gwas_catalog_study_curation_out: str = MISSING
     gwas_catalog_study_curation_file: str = MISSING
     _target_: str = "gentropy.gwas_catalog_study_curation.GWASCatalogStudyCurationStep"
 
 
 @dataclass
-class GWASCatalogStudyInclusionConfig(StepConfig):
-    """GWAS Catalog study inclusion step configuration."""
+class GWASCatalogStudyIndexGenerationStep(StepConfig):
+    """GWAS Catalog study index generation."""
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_associations_file: str = MISSING
-    gwas_catalog_study_curation_file: str = MISSING
-    variant_annotation_path: str = MISSING
-    harmonised_study_file: str = MISSING
-    criteria: str = MISSING
-    inclusion_list_path: str = MISSING
-    exclusion_list_path: str = MISSING
+    study_index_path: str = MISSING
+    gwas_catalog_study_curation_file: str | None = None
+    sumstats_qc_path: str | None = None
     _target_: str = (
-        "gentropy.gwas_catalog_study_inclusion.GWASCatalogStudyInclusionGenerator"
+        "gentropy.gwas_catalog_study_index.GWASCatalogStudyIndexGenerationStep"
     )
 
 
 @dataclass
-class GWASCatalogIngestionConfig(StepConfig):
+class GWASCatalogTopHitIngestionConfig(StepConfig):
     """GWAS Catalog ingestion step configuration."""
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
-    gwas_catalog_study_curation_file: str | None = None
-    inclusion_list_path: str | None = None
-    _target_: str = "gentropy.gwas_catalog_ingestion.GWASCatalogIngestionStep"
+    _target_: str = "gentropy.gwas_catalog_top_hits.GWASCatalogTopHitIngestionStep"
 
 
 @dataclass
@@ -266,6 +258,9 @@ class LocusToGeneConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # other
+            "geneCount500kb",
+            "proteinGeneCount500kb",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -333,6 +328,9 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # other
+            "geneCount500kb",
+            "proteinGeneCount500kb",
         ]
     )
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
@@ -618,6 +616,18 @@ class StudyValidationStepConfig(StepConfig):
 
 
 @dataclass
+class LocusToGeneEvidenceStepConfig(StepConfig):
+    """Configuration of the locus to gene evidence step."""
+
+    locus_to_gene_predictions_path: str = MISSING
+    credible_set_path: str = MISSING
+    study_index_path: str = MISSING
+    evidence_output_path: str = MISSING
+    locus_to_gene_threshold: float = 0.05
+    _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
+
+
+@dataclass
 class StudyLocusValidationStepConfig(StepConfig):
     """Configuration of the study index validation step.
 
@@ -658,16 +668,18 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="gwas_catalog_study_inclusion",
-        node=GWASCatalogStudyInclusionConfig,
-    )
-    cs.store(
-        group="step", name="gwas_catalog_ingestion", node=GWASCatalogIngestionConfig
+        name="gwas_catalog_study_index",
+        node=GWASCatalogStudyIndexGenerationStep,
     )
     cs.store(
         group="step",
         name="gwas_catalog_sumstat_preprocess",
         node=GWASCatalogSumstatsPreprocessConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_top_hit_ingestion",
+        node=GWASCatalogTopHitIngestionConfig,
     )
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
@@ -709,5 +721,10 @@ def register_config() -> None:
         group="step",
         name="study_validation",
         node=StudyValidationStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="locus_to_gene_evidence",
+        node=LocusToGeneEvidenceStepConfig,
     )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
