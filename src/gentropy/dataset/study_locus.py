@@ -410,25 +410,33 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Filtered study-locus dataset.
         """
+        # QC column might not be present so we have to be ready to handle it:
+        qc_select_expression = (
+            f.col("qualityControls")
+            if "qualityControls" in self.df.columns
+            else f.lit(None).cast(ArrayType(StringType()))
+        )
+
         flag = self.df.withColumn(
             "sumPosteriorProbability",
             f.aggregate(
                 f.col("locus"),
                 f.lit(0.0),
                 lambda acc, x: acc + x["posteriorProbability"]
-            )).filter((f.col("sumPosteriorProbability") < 0.99) | (f.col("sumPosteriorProbability") > 1.0))
+            )).filter((f.col("sumPosteriorProbability") < 0.99) | (f.col("sumPosteriorProbability") > 1.0)
+            .select("studyLocusId","sumPosteriorProbability"))
 
         return StudyLocus(
             _df=(
                 self.df.join(
-                    flag, self.df.studyLocusId == flag.studyLocusId, "left"
+                    flag, "studyLocusId", "left"
                 )
                 # Flagging loci with failed studies:
                 .withColumn(
                     "qualityControls",
-                    StudyLocus.update_quality_flag(
-                        f.col("qualityControls"),
-                        f.size(f.col("sumPosteriorProbability")) > 0,
+                    self.update_quality_flag(
+                        qc_select_expression,
+                        f.col("sumPosteriorProbability").isNotNull(),
                         StudyLocusQualityCheck.ABNORMAL_PIPS
                     ),
                 ).drop("sumPosteriorProbability")),
