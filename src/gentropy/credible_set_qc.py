@@ -17,12 +17,13 @@ class CredibleSetQCStep:
         session: Session,
         credible_sets_path: str,
         output_path: str,
-        p_value_threshold: float = 1e-5,
-        purity_min_r2: float = 0.01,
-        clump: bool = False,
-        ld_index_path: str | None = None,
-        study_index_path: str | None = None,
-        ld_min_r2: float = 0.8,
+        p_value_threshold: float,
+        purity_min_r2: float,
+        clump: bool,
+        ld_index_path: str | None,
+        study_index_path: str | None,
+        ld_min_r2: float | None,
+        n_partitions: int | None,
     ) -> None:
         """Run credible set quality control step.
 
@@ -30,16 +31,21 @@ class CredibleSetQCStep:
             session (Session): Session object.
             credible_sets_path (str): Path to credible sets file.
             output_path (str): Path to write the output file.
-            p_value_threshold (float): P-value threshold for credible set quality control. Default is 1e-5.
-            purity_min_r2 (float): Minimum R2 for purity estimation. Default is 0.01.
-            clump (bool): Whether to clump the credible sets by LD. Default is False.
+            p_value_threshold (float): P-value threshold for credible set quality control.
+            purity_min_r2 (float): Minimum R2 for purity estimation.
+            clump (bool): Whether to clump the credible sets by LD.
             ld_index_path (str | None): Path to LD index file.
             study_index_path (str | None): Path to study index file.
-            ld_min_r2 (float): Minimum R2 for LD estimation. Default is 0.8.
+            ld_min_r2 (float | None): Minimum R2 for LD estimation.
+            n_partitions (int | None): Number of partitions to coalesce the dataset after reading. Defaults to 200
+
+            Check defaults used by steps in hydra configuration (src/gentropy/config.py)
+
+            Due to the large number of partitions at the input credible_set_path after finemapping, the
+            best strategy it is to repartition and save the dataset after deduplication.
         """
-        cred_sets = StudyLocus.from_parquet(
-            session, credible_sets_path, recursiveFileLookup=True
-        ).coalesce(200)
+        n_partitions = n_partitions or 200
+
         ld_index = (
             LDIndex.from_parquet(session, ld_index_path) if ld_index_path else None
         )
@@ -48,6 +54,11 @@ class CredibleSetQCStep:
             if study_index_path
             else None
         )
+
+        cred_sets = StudyLocus.from_parquet(
+            session, credible_sets_path, recursiveFileLookup=True
+        ).coalesce(n_partitions)
+
         cred_sets_clean = SUSIE_inf.credible_set_qc(
             cred_sets,
             p_value_threshold,

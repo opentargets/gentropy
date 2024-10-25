@@ -15,7 +15,7 @@ from scipy.special import logsumexp
 
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 
 @dataclass
@@ -475,11 +475,11 @@ class SUSIE_inf:
         clump: bool = False,
         ld_index: LDIndex | None = None,
         study_index: StudyIndex | None = None,
-        ld_min_r2: float = 0.8,
+        ld_min_r2: float | None = 0.8,
     ) -> StudyLocus:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
 
-        In case of duplicated loci, the filtering retains the loci wth the highest credibleSetLog10BF
+        In case of duplicated loci, the filtering retains the loci wth the highest credibleSetlog10BF
 
         Args:
             cred_sets (StudyLocus): StudyLocus object with credible sets to filter/clump
@@ -514,13 +514,14 @@ class SUSIE_inf:
         if clump:
             assert study_index, "Running in clump mode, which requires study_index."
             assert ld_index, "Running in clump mode, which requires ld_index."
+            assert ld_min_r2, "Running in clump mode, which requires ld_min_r2 value."
             cred_sets = (
                 cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
                 .clump()
                 .filter(
                     ~f.array_contains(
                         f.col("qualityControls"),
-                        "Explained by a more significant variant in high LD (clumped)",
+                        StudyLocusQualityCheck.LD_CLUMPED.value,
                     )
                 )
             )

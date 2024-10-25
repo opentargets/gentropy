@@ -593,12 +593,14 @@ class CredibleSetQCConfig(StepConfig):
     """Credible set quality control step configuration."""
 
     credible_sets_path: str = MISSING
-    study_index_path: str = MISSING
-    ld_index_path: str = MISSING
     output_path: str = MISSING
     p_value_threshold: float = 1e-5
     purity_min_r2: float = 0.01
-    ld_min_r2: float = 0.8
+    clump: bool = False
+    ld_index_path: str | None = None
+    study_index_path: str | None = None
+    ld_min_r2: float | None = 0.8
+    n_partitions: int | None = 200
     _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
 
 
