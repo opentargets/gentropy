@@ -9,6 +9,7 @@ import numpy as np
 import pyspark.sql.functions as f
 import scipy.linalg
 import scipy.special
+from pyspark.sql.window import Window
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import logsumexp
 
@@ -469,43 +470,59 @@ class SUSIE_inf:
     @staticmethod
     def credible_set_qc(
         cred_sets: StudyLocus,
-        study_index: StudyIndex,
-        ld_index: LDIndex,
         p_value_threshold: float = 1e-5,
         purity_min_r2: float = 0.01,
+        clump: bool = False,
+        ld_index: LDIndex | None = None,
+        study_index: StudyIndex | None = None,
         ld_min_r2: float = 0.8,
     ) -> StudyLocus:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
 
+        In case of duplicated loci, the filtering retains the loci wth the highest credibleSetLog10BF
+
         Args:
             cred_sets (StudyLocus): StudyLocus object with credible sets to filter/clump
-            study_index (StudyIndex): StudyIndex object
-            ld_index (LDIndex): LDIndex object
             p_value_threshold (float): p-value threshold for filtering credible sets, default is 1e-5
             purity_min_r2 (float): min-R2 purity threshold for filtering credible sets, default is 0.01
+            clump (bool): Whether to clump the credible sets by LD, default is False
+            ld_index (LDIndex | None): LDIndex object
+            study_index (StudyIndex | None): StudyIndex object
             ld_min_r2 (float): LD R2 threshold for clumping, default is 0.8
 
         Returns:
             StudyLocus: Credible sets which pass filters and LD clumping.
         """
-        df = (
+        cred_sets.df = (
             cred_sets.df.withColumn(
                 "pValue", f.col("pValueMantissa") * f.pow(10, f.col("pValueExponent"))
             )
             .filter(f.col("pValue") <= p_value_threshold)
             .filter(f.col("purityMinR2") >= purity_min_r2)
             .drop("pValue")
+            .withColumn(
+                "rn",
+                f.row_number().over(
+                    Window.partitionBy("studyLocusId").orderBy(
+                        f.desc("credibleSetLog10BF")
+                    )
+                ),
+            )
+            .filter(f.col("rn") == 1)
+            .drop("rn")
         )
-        cred_sets.df = df
-        cred_sets = (
-            cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
-            .clump()
-            .filter(
-                ~f.array_contains(
-                    f.col("qualityControls"),
-                    "Explained by a more significant variant in high LD (clumped)",
+        if clump:
+            assert study_index, "Running in clump mode, which requires study_index."
+            assert ld_index, "Running in clump mode, which requires ld_index."
+            cred_sets = (
+                cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
+                .clump()
+                .filter(
+                    ~f.array_contains(
+                        f.col("qualityControls"),
+                        "Explained by a more significant variant in high LD (clumped)",
+                    )
                 )
             )
-        )
 
         return cred_sets
