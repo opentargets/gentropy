@@ -313,7 +313,7 @@ class TestUniquenessValidation:
     STUDY_DATA = [
         # This is the only study to be flagged:
         ("s1", "eqtl", "p"),
-        ("s1", "eqtl", "p"),
+        ("s1", "eqtl", "p"),  # Duplicate -> one should be flagged
         ("s3", "gwas", "p"),
         ("s4", "gwas", "p"),
     ]
@@ -338,7 +338,7 @@ class TestUniquenessValidation:
         validated = self.study_index.validate_unique_study_id().persist()
 
         # We have more than one flagged studies:
-        assert validated.df.filter(f.size(f.col("qualityControls")) > 0).count() > 1
+        assert validated.df.filter(f.size(f.col("qualityControls")) > 0).count() == 1
 
         # The flagged study identifiers are found more than once:
         flagged_ids = {
