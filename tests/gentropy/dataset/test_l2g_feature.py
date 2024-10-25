@@ -1,3 +1,5 @@
+# pylint: disable=too-few-public-methods
+# isort: skip_file
 """Test locus-to-gene feature generation."""
 
 from __future__ import annotations
@@ -57,6 +59,12 @@ from gentropy.dataset.l2g_features.vep import (
     common_neighbourhood_vep_feature_logic,
     common_vep_feature_logic,
 )
+from gentropy.dataset.l2g_features.other import (
+    common_genecount_feature_logic,
+    GeneCountFeature,
+    ProteinGeneCountFeature,
+    CredibleSetConfidenceFeature,
+)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
@@ -93,6 +101,9 @@ if TYPE_CHECKING:
         VepMeanFeature,
         VepMaximumNeighbourhoodFeature,
         VepMeanNeighbourhoodFeature,
+        GeneCountFeature,
+        ProteinGeneCountFeature,
+        CredibleSetConfidenceFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -205,6 +216,33 @@ def sample_variant_index(spark: SparkSession) -> VariantIndex:
             ),
         ),
         _schema=VariantIndex.get_schema(),
+    )
+
+
+@pytest.fixture(scope="module")
+def sample_variant_index_schema() -> StructType:
+    """Partial schema of the variant index."""
+    return StructType(
+        [
+            StructField("variantId", StringType(), True),
+            StructField("chromosome", StringType(), True),
+            StructField("position", IntegerType(), True),
+            StructField("referenceAllele", StringType(), True),
+            StructField("alternateAllele", StringType(), True),
+            StructField(
+                "transcriptConsequences",
+                ArrayType(
+                    StructType(
+                        [
+                            StructField("distanceFromTss", LongType(), True),
+                            StructField("targetId", StringType(), True),
+                            StructField("isEnsemblCanonical", BooleanType(), True),
+                        ]
+                    )
+                ),
+                True,
+            ),
+        ]
     )
 
 
@@ -391,7 +429,7 @@ class TestCommonColocalisationFeatureLogic:
                     {
                         "studyLocusId": "2",
                         "variantId": "var1",
-                        "studyId": "study2",  # this is a QTL (same gee)
+                        "studyId": "study2",  # this is a QTL (same gene)
                         "chromosome": "1",
                     },
                     {
@@ -535,7 +573,11 @@ class TestCommonDistanceFeatureLogic:
         ), "Output doesn't meet the expectation."
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestCommonDistanceFeatureLogic, spark: SparkSession) -> None:
+    def _setup(
+        self: TestCommonDistanceFeatureLogic,
+        spark: SparkSession,
+        sample_variant_index_schema: StructType,
+    ) -> None:
         """Set up testing fixtures."""
         self.distance_type = "distanceFromTss"
         self.sample_study_locus = StudyLocus(
@@ -561,28 +603,6 @@ class TestCommonDistanceFeatureLogic:
                 StudyLocus.get_schema(),
             ),
             _schema=StudyLocus.get_schema(),
-        )
-        self.variant_index_schema = StructType(
-            [
-                StructField("variantId", StringType(), True),
-                StructField("chromosome", StringType(), True),
-                StructField("position", IntegerType(), True),
-                StructField("referenceAllele", StringType(), True),
-                StructField("alternateAllele", StringType(), True),
-                StructField(
-                    "transcriptConsequences",
-                    ArrayType(
-                        StructType(
-                            [
-                                StructField("distanceFromTss", LongType(), True),
-                                StructField("targetId", StringType(), True),
-                                StructField("isEnsemblCanonical", BooleanType(), True),
-                            ]
-                        )
-                    ),
-                    True,
-                ),
-            ]
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -621,7 +641,7 @@ class TestCommonDistanceFeatureLogic:
                         ],
                     ),
                 ],
-                self.variant_index_schema,
+                sample_variant_index_schema,
             ),
             _schema=VariantIndex.get_schema(),
         )
@@ -802,4 +822,176 @@ class TestCommonVepFeatureLogic:
                 StudyLocus.get_schema(),
             ),
             _schema=StudyLocus.get_schema(),
+        )
+
+
+class TestCommonGeneCountFeatureLogic:
+    """Test the CommonGeneCountFeatureLogic methods."""
+
+    @pytest.mark.parametrize(
+        ("feature_name", "expected_data", "protein_coding_only"),
+        [
+            (
+                "geneCount",
+                [
+                    {"studyLocusId": "1", "geneId": "gene1", "geneCount": 3},
+                    {"studyLocusId": "1", "geneId": "gene2", "geneCount": 3},
+                    {"studyLocusId": "1", "geneId": "gene3", "geneCount": 3},
+                ],
+                False,  # Test case for all genes
+            ),
+            (
+                "geneCountProteinCoding",
+                [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene1",
+                        "geneCountProteinCoding": 2,
+                    },
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene2",
+                        "geneCountProteinCoding": 2,
+                    },
+                ],
+                True,  # Test case for protein-coding genes only
+            ),
+        ],
+    )
+    def test_common_genecount_feature_logic(
+        self: TestCommonGeneCountFeatureLogic,
+        spark: SparkSession,
+        feature_name: str,
+        expected_data: list[dict[str, Any]],
+        protein_coding_only: bool,
+    ) -> None:
+        """Test the common logic of the gene count features."""
+        observed_df = common_genecount_feature_logic(
+            study_loci_to_annotate=self.sample_study_locus,
+            gene_index=self.sample_gene_index,
+            feature_name=feature_name,
+            genomic_window=500000,
+            protein_coding_only=protein_coding_only,
+        ).orderBy("studyLocusId", "geneId")
+        expected_df = (
+            spark.createDataFrame(expected_data)
+            .select("studyLocusId", "geneId", feature_name)
+            .orderBy("studyLocusId", "geneId")
+        )
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), f"Expected and observed dataframes do not match for feature {feature_name}."
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestCommonGeneCountFeatureLogic, spark: SparkSession) -> None:
+        """Set up testing fixtures."""
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                        "position": 1000000,
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.sample_gene_index = GeneIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "geneId": "gene1",
+                        "chromosome": "1",
+                        "tss": 950000,
+                        "biotype": "protein_coding",
+                    },
+                    {
+                        "geneId": "gene2",
+                        "chromosome": "1",
+                        "tss": 1050000,
+                        "biotype": "protein_coding",
+                    },
+                    {
+                        "geneId": "gene3",
+                        "chromosome": "1",
+                        "tss": 1010000,
+                        "biotype": "non_coding",
+                    },
+                ],
+                GeneIndex.get_schema(),
+            ),
+            _schema=GeneIndex.get_schema(),
+        )
+
+
+class TestCredibleSetConfidenceFeatureLogic:
+    """Test the CredibleSetConfidenceFeature method."""
+
+    def test_compute(
+        self: TestCredibleSetConfidenceFeatureLogic,
+        spark: SparkSession,
+    ) -> None:
+        """Test the logic of the function that scores a credible set's confidence."""
+        sample_study_loci_to_annotate = self.sample_study_locus
+        observed_df = CredibleSetConfidenceFeature.compute(
+            study_loci_to_annotate=sample_study_loci_to_annotate,
+            feature_dependency={
+                "study_locus": self.sample_study_locus,
+                "variant_index": self.sample_variant_index,
+            },
+        )
+        assert observed_df.df.first()["featureValue"] == 0.25
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestCredibleSetConfidenceFeatureLogic,
+        spark: SparkSession,
+        sample_variant_index_schema: StructType,
+    ) -> None:
+        """Set up testing fixtures."""
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "lead1",
+                        "studyId": "study1",
+                        "confidence": "PICS fine-mapped credible set based on reported top hit",
+                        "chromosome": "1",
+                        "locus": [
+                            {
+                                "variantId": "lead1",
+                            },
+                        ],
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.sample_variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        "lead1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {
+                                "distanceFromTss": 10,
+                                "targetId": "gene1",
+                                "isEnsemblCanonical": True,
+                            },
+                        ],
+                    )
+                ],
+                sample_variant_index_schema,
+            ),
+            _schema=VariantIndex.get_schema(),
         )
