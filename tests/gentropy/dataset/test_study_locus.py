@@ -259,6 +259,7 @@ test_unique_variants_in_locus_test_schema = StructType(
                 StructType(
                     [
                         StructField("variantId", StringType(), True),
+                        StructField("posteriorProbability", DoubleType(), True),
                     ]
                 )
             ),
@@ -484,8 +485,8 @@ def test_annotate_credible_sets(
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
 
 
-def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
-    """Test qc_abnormal_pips with an abnormal locus."""
+def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
+    """Test qc_abnormal_pips with a well-behaving locus."""
     # Input data
     sl = StudyLocus(
         _df=spark.createDataFrame(
@@ -494,11 +495,14 @@ def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
         ),
         _schema=StudyLocus.get_schema(),
     )
-    assert sl.qc_abnormal_pips(0.99, 1).df.count() == 0, "something"
+    assert (
+        sl.qc_abnormal_pips(0.99, 1).df.filter(f.size("qualityControls") > 0).count()
+        == 0
+    ), "Expected number of rows differ from observed."
 
 
-def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
-    """Test qc_abnormal_pips with a well-behaving locus."""
+def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
+    """Test qc_abnormal_pips with an abnormal locus."""
     # Input data
     sl = StudyLocus(
         _df=spark.createDataFrame(
@@ -507,7 +511,10 @@ def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
         ),
         _schema=StudyLocus.get_schema(),
     )
-    assert sl.qc_abnormal_pips(0.99, 1).df.count() == 1, "something"
+    assert (
+        sl.qc_abnormal_pips(0.99, 1).df.filter(f.size("qualityControls") > 0).count()
+        == 1
+    ), "Expected number of rows differ from observed."
 
 
 def test_annotate_ld(
