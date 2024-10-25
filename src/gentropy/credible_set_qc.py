@@ -40,10 +40,11 @@ class CredibleSetQCStep:
         cred_sets = StudyLocus.from_parquet(
             session, credible_sets_path, recursiveFileLookup=True
         ).coalesce(200)
-        if clump and ld_index_path is not None and study_index_path is not None:
-            ld_index = LDIndex.from_parquet(session, ld_index_path)
-            study_index = StudyIndex.from_parquet(session, study_index_path)
-            cred_sets_clean = SUSIE_inf.credible_set_qc(
+        if ld_index_path:
+            ld_index =  LDIndex.from_parquet(session, ld_index_path)
+        if study_index_path:
+            study_indedx = StudyIndex.from_parquet(session, study_index_path)
+        cred_sets_clean = SUSIE_inf.credible_set_qc(
                 cred_sets,
                 p_value_threshold,
                 purity_min_r2,
@@ -51,12 +52,6 @@ class CredibleSetQCStep:
                 ld_index,
                 study_index,
                 ld_min_r2,
-            )
-        else:
-            cred_sets_clean = SUSIE_inf.credible_set_qc(
-                cred_sets,
-                p_value_threshold,
-                purity_min_r2,
             )
 
         cred_sets_clean.df.write.mode(session.write_mode).parquet(output_path)
