@@ -27,6 +27,11 @@ class CredibleSetQCStep:
     ) -> None:
         """Run credible set quality control step.
 
+        Check defaults used by steps in hydra configuration `gentropy.config.CredibleSetQCStepConfig`
+
+        Due to the large number of partitions at the input credible_set_path after finemapping, the
+        best strategy it is to repartition and save the dataset after deduplication.
+
         Args:
             session (Session): Session object.
             credible_sets_path (str): Path to credible sets file.
@@ -38,11 +43,6 @@ class CredibleSetQCStep:
             study_index_path (str | None): Path to study index file.
             ld_min_r2 (float | None): Minimum R2 for LD estimation.
             n_partitions (int | None): Number of partitions to coalesce the dataset after reading. Defaults to 200
-
-            Check defaults used by steps in hydra configuration (src/gentropy/config.py)
-
-            Due to the large number of partitions at the input credible_set_path after finemapping, the
-            best strategy it is to repartition and save the dataset after deduplication.
         """
         n_partitions = n_partitions or 200
 
@@ -68,5 +68,7 @@ class CredibleSetQCStep:
             study_index,
             ld_min_r2,
         )
-
-        cred_sets_clean.df.write.mode(session.write_mode).parquet(output_path)
+        # ensure the saved object is still a valid StudyLocus
+        StudyLocus(
+            _df=cred_sets_clean.df, _schema=StudyLocus.get_schema()
+        ).df.write.mode(session.write_mode).parquet(output_path)

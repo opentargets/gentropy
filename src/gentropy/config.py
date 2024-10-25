@@ -589,7 +589,7 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
-class CredibleSetQCConfig(StepConfig):
+class CredibleSetQCStepConfig(StepConfig):
     """Credible set quality control step configuration."""
 
     credible_sets_path: str = MISSING
@@ -734,3 +734,4 @@ def register_config() -> None:
         node=LocusToGeneEvidenceStepConfig,
     )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
+    cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
