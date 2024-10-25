@@ -509,8 +509,10 @@ class SUSIE_inf:
             .filter(f.col("rn") == 1)
             .drop("rn")
         )
-        if clump and study_index is not None and ld_index is not None:
-            cred_sets = (
+        if clump 
+           assert study_index, "Running in clump mode, which requires study_index."
+           assert ld_index  "Running in clump mode, which requires ld_index."
+           cred_sets = (
                 cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
                 .clump()
                 .filter(
