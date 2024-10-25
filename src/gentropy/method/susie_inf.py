@@ -478,6 +478,7 @@ class SUSIE_inf:
         ld_min_r2: float = 0.8,
     ) -> StudyLocus:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
+
         In case of duplicated loci, the filtering retains the loci wth the highest credibleSetLog10BF
 
         Args:
@@ -510,10 +511,10 @@ class SUSIE_inf:
             .filter(f.col("rn") == 1)
             .drop("rn")
         )
-        if clump 
-           assert study_index, "Running in clump mode, which requires study_index."
-           assert ld_index  "Running in clump mode, which requires ld_index."
-           cred_sets = (
+        if clump:
+            assert study_index, "Running in clump mode, which requires study_index."
+            assert ld_index, "Running in clump mode, which requires ld_index."
+            cred_sets = (
                 cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
                 .clump()
                 .filter(
