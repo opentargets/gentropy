@@ -66,7 +66,7 @@ def common_distance_feature_logic(
         )
         .withColumn(
             "distance_score",
-            f.log10(distance_score_expr) / f.log10(f.lit(genomic_window)),
+            f.log10(distance_score_expr) / f.log10(f.lit(genomic_window + 1)),
         )
         .groupBy("studyLocusId", "geneId")
         .agg(agg_expr.alias(feature_name))
@@ -111,7 +111,7 @@ def common_neighbourhood_distance_feature_logic(
         .withColumn(
             feature_name,
             (f.col(local_feature_name) - f.col("regional_metric"))
-            / f.log10(f.lit(genomic_window)),
+            / f.log10(f.lit(genomic_window + 1)),
         )
         .drop("regional_metric", local_feature_name)
     )
