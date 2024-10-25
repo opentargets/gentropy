@@ -82,12 +82,9 @@ class StudyLocusQualityCheck(Enum):
         IN_MHC (str): Flagging study loci in the MHC region
         REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
         EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
-    <<<<<<< HEAD
         ABNORMAL_PIPS (str): Flagging study loci with a sum of PIPs that are not in [0.99,1]
-    =======
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
-    >>>>>>> origin/dev
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -417,13 +414,13 @@ class StudyLocus(Dataset):
             else f.lit(None).cast(ArrayType(StringType()))
         )
 
-        flag = self.df.withColumn(
+        flag = (self.df.withColumn(
             "sumPosteriorProbability",
             f.aggregate(
                 f.col("locus"),
                 f.lit(0.0),
                 lambda acc, x: acc + x["posteriorProbability"]
-            )).filter((f.col("sumPosteriorProbability") < 0.99) | (f.col("sumPosteriorProbability") > 1.0)
+            )).filter((f.col("sumPosteriorProbability") < 0.99) | (f.col("sumPosteriorProbability") > 1.0))
             .select("studyLocusId","sumPosteriorProbability"))
 
         return StudyLocus(
