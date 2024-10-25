@@ -395,8 +395,8 @@ class StudyLocus(Dataset):
 
     def qc_abnormal_pips(
         self: StudyLocus,
-        sum_pips_lower_threshold: float,
-        sum_pips_upper_threshold: float
+        sum_pips_lower_threshold: float = 0.99,
+        sum_pips_upper_threshold: float = 1.0001, # Set slightly above 1 to account for floating point errors
     ) -> StudyLocus:
         """Filter study-locus by sum of posterior inclusion probabilities to ensure that the sum of PIPs is within a given range.
 
@@ -420,23 +420,25 @@ class StudyLocus(Dataset):
                 f.col("locus"),
                 f.lit(0.0),
                 lambda acc, x: acc + x["posteriorProbability"]
-            )).filter((f.col("sumPosteriorProbability") < 0.99) | (f.col("sumPosteriorProbability") > 1.0))
-            .select("studyLocusId","sumPosteriorProbability"))
+            )).withColumn(
+                "pipOutOfRange",
+                f.when(
+                    (f.col("sumPosteriorProbability") < sum_pips_lower_threshold) |
+                    (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
+                    "outside"
+                ).otherwise("within")))
 
         return StudyLocus(
-            _df=(
-                self.df.join(
-                    flag, "studyLocusId", "left"
-                )
+            _df=(flag
                 # Flagging loci with failed studies:
                 .withColumn(
                     "qualityControls",
                     self.update_quality_flag(
                         qc_select_expression,
-                        f.col("sumPosteriorProbability").isNotNull(),
+                        f.col("pipOutOfRange") == "outside",
                         StudyLocusQualityCheck.ABNORMAL_PIPS
                     ),
-                ).drop("sumPosteriorProbability")),
+                ).drop("sumPosteriorProbability", "pipOutOfRange")),
             _schema=self.get_schema()
         )
 

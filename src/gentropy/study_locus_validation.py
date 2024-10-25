@@ -46,7 +46,7 @@ class StudyLocusValidationStep:
             .qc_redundant_top_hits_from_PICS()  # Flagging top hits from studies with PICS summary statistics
             .qc_explained_by_SuSiE()  # Flagging credible sets in regions explained by SuSiE
             # Flagging credible sets with PIP > 1 or PIP < 0.99
-            .qc_abnormal_pips(sum_pips_lower_threshold=0.99,sum_pips_upper_threshold=1)
+            .qc_abnormal_pips(sum_pips_lower_threshold=0.99,sum_pips_upper_threshold=1.0001)
             # Annotates credible intervals and filter to only keep 99% credible sets
             .filter_credible_set(credible_interval=CredibleInterval.IS99)
             # Annotate credible set confidence:

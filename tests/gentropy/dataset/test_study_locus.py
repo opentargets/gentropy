@@ -496,8 +496,7 @@ def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
         _schema=StudyLocus.get_schema(),
     )
     assert (
-        sl.qc_abnormal_pips(0.99, 1).df.filter(f.size("qualityControls") > 0).count()
-        == 0
+        sl.qc_abnormal_pips().df.filter(f.size("qualityControls") > 0).count() == 0
     ), "Expected number of rows differ from observed."
 
 
@@ -512,8 +511,7 @@ def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
         _schema=StudyLocus.get_schema(),
     )
     assert (
-        sl.qc_abnormal_pips(0.99, 1).df.filter(f.size("qualityControls") > 0).count()
-        == 1
+        sl.qc_abnormal_pips().df.filter(f.size("qualityControls") > 0).count() == 1
     ), "Expected number of rows differ from observed."
 
 
