@@ -473,15 +473,15 @@ class TestCommonDistanceFeatureLogic:
                     {
                         "studyLocusId": "1",
                         "geneId": "gene2",
-                        "distanceSentinelTss": 0.95,
+                        "distanceSentinelTss": 0.92,
                     },
                 ],
             ),
             (
                 "distanceTssMean",
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.09},
-                    {"studyLocusId": "1", "geneId": "gene2", "distanceTssMean": 0.65},
+                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.08},
+                    {"studyLocusId": "1", "geneId": "gene2", "distanceTssMean": 0.63},
                 ],
             ),
         ],
@@ -536,7 +536,7 @@ class TestCommonDistanceFeatureLogic:
             .orderBy(f.col(feature_name).asc())
         )
         expected_df = spark.createDataFrame(
-            (["1", "gene1", -0.48], ["1", "gene2", 0.48]),
+            (["1", "gene1", -0.44], ["1", "gene2", 0.44]),
             ["studyLocusId", "geneId", feature_name],
         ).orderBy(feature_name)
         assert (
