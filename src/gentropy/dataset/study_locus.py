@@ -553,11 +553,14 @@ class StudyLocus(Dataset):
             +------------------+
             |credibleSetlog10BF|
             +------------------+
-            |         1.4765565|
+            |         0.6412604|
             +------------------+
             <BLANKLINE>
         """
-        logsumexp_udf = f.udf(lambda x: get_logsum(x), FloatType())
+        # log10=log/log(10)=log*0.43429448190325176
+        logsumexp_udf = f.udf(
+            lambda x: (get_logsum(x) * 0.43429448190325176), FloatType()
+        )
         return logsumexp_udf(logbfs).cast("double").alias("credibleSetlog10BF")
 
     @classmethod
