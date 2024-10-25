@@ -248,6 +248,25 @@ test_unique_variants_in_locus_test_data = [
     ),
 ]
 
+test_unique_variants_in_locus_test_schema = StructType(
+    [
+        StructField("studyLocusId", StringType(), True),
+        StructField("studyId", StringType(), True),
+        StructField("variantId", StringType(), True),
+        StructField(
+            "locus",
+            ArrayType(
+                StructType(
+                    [
+                        StructField("variantId", StringType(), True),
+                    ]
+                )
+            ),
+            True,
+        ),
+    ]
+)
+
 
 @pytest.mark.parametrize(
     ("observed", "expected"),
@@ -258,26 +277,9 @@ def test_unique_variants_in_locus(
 ) -> None:
     """Test unique variants in locus."""
     # assert isinstance(mock_study_locus.test_unique_variants_in_locus(), DataFrame)
-    schema = StructType(
-        [
-            StructField("studyLocusId", StringType(), True),
-            StructField("studyId", StringType(), True),
-            StructField("variantId", StringType(), True),
-            StructField(
-                "locus",
-                ArrayType(
-                    StructType(
-                        [
-                            StructField("variantId", StringType(), True),
-                        ]
-                    )
-                ),
-                True,
-            ),
-        ]
-    )
     data_sl = StudyLocus(
-        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
+        _df=spark.createDataFrame(observed, test_unique_variants_in_locus_test_schema),
+        _schema=StudyLocus.get_schema(),
     )
     expected_df = spark.createDataFrame(
         expected, schema="variantId: string, chromosome: string"
@@ -440,6 +442,27 @@ test_annotate_credible_sets_test_data = [
         ],
     ),
 ]
+test_annotate_credible_sets_test_schema = StructType(
+    [
+        StructField("studyLocusId", StringType(), True),
+        StructField("studyId", StringType(), True),
+        StructField("variantId", StringType(), True),
+        StructField(
+            "locus",
+            ArrayType(
+                StructType(
+                    [
+                        StructField("variantId", StringType(), True),
+                        StructField("posteriorProbability", DoubleType(), True),
+                        StructField("is95CredibleSet", BooleanType(), True),
+                        StructField("is99CredibleSet", BooleanType(), True),
+                    ]
+                )
+            ),
+            True,
+        ),
+    ]
+)
 
 
 @pytest.mark.parametrize(
@@ -450,32 +473,13 @@ def test_annotate_credible_sets(
     spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test annotate_credible_sets."""
-    schema = StructType(
-        [
-            StructField("studyLocusId", StringType(), True),
-            StructField("studyId", StringType(), True),
-            StructField("variantId", StringType(), True),
-            StructField(
-                "locus",
-                ArrayType(
-                    StructType(
-                        [
-                            StructField("variantId", StringType(), True),
-                            StructField("posteriorProbability", DoubleType(), True),
-                            StructField("is95CredibleSet", BooleanType(), True),
-                            StructField("is99CredibleSet", BooleanType(), True),
-                        ]
-                    )
-                ),
-                True,
-            ),
-        ]
-    )
     data_sl = StudyLocus(
-        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
+        _df=spark.createDataFrame(observed, test_annotate_credible_sets_test_schema),
+        _schema=StudyLocus.get_schema(),
     )
     expected_sl = StudyLocus(
-        _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
+        _df=spark.createDataFrame(expected, test_annotate_credible_sets_test_schema),
+        _schema=StudyLocus.get_schema(),
     )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
 
@@ -485,7 +489,8 @@ def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
     # Input data
     sl = StudyLocus(
         _df=spark.createDataFrame(
-            test_annotate_credible_sets_test_data[1][0], StudyLocus.get_schema()
+            test_annotate_credible_sets_test_data[1][0],
+            test_annotate_credible_sets_test_schema,
         ),
         _schema=StudyLocus.get_schema(),
     )
@@ -497,7 +502,8 @@ def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
     # Input data
     sl = StudyLocus(
         _df=spark.createDataFrame(
-            test_unique_variants_in_locus_test_data[0][0], StudyLocus.get_schema()
+            test_unique_variants_in_locus_test_data[0][0],
+            test_unique_variants_in_locus_test_schema,
         ),
         _schema=StudyLocus.get_schema(),
     )
