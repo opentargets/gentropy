@@ -261,6 +261,7 @@ class LocusToGeneConfig(StepConfig):
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
+            "credibleSetConfidence",
             "isProteinCoding1mb",
         ]
     )
@@ -332,6 +333,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
+            "credibleSetConfidence",
             "isProteinCoding1mb",
         ]
     )

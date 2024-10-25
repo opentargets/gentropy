@@ -7,6 +7,7 @@ title: Other features
 ::: gentropy.dataset.l2g_features.other.GeneCountFeature
 ::: gentropy.dataset.l2g_features.other.ProteinGeneCountFeature
 ::: gentropy.dataset.l2g_features.other.ProteinCodingFeature
+::: gentropy.dataset.l2g_features.other.CredibleSetConfidenceFeature
 
 ## Common logic
 
