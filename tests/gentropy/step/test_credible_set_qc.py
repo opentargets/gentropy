@@ -141,7 +141,7 @@ class TestCredibleSetQCStep:
         cs = StudyLocus.from_parquet(
             session, self.output_path, recursiveFileLookup=True
         )
-        assert cs.df.count() == 2  # Row A where LogGB == 3.0 and row D
+        assert cs.df.count() == 2  # Row A where LogBF == 3.0 and row D
         assert cs.df.rdd.getNumPartitions() == self.n_partitions
         data = {
             row["studyLocusId"]: row["credibleSetlog10BF"] for row in cs.df.collect()
