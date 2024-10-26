@@ -322,7 +322,9 @@ class Dataset(ABC):
 
     @staticmethod
     def flag_duplicates(test_column: Column) -> Column:
-        """Return True for duplicated values in column.
+        """Return True for rows, where the value was already seen in column.
+
+        This implementation allows keeping the first occurrence of the value.
 
         Args:
             test_column (Column): Column to check for duplicates
@@ -331,12 +333,7 @@ class Dataset(ABC):
             Column: Column with a boolean flag for duplicates
         """
         return (
-            f.count(test_column).over(
-                Window.partitionBy(test_column).rowsBetween(
-                    Window.unboundedPreceding, Window.unboundedFollowing
-                )
-            )
-            > 1
+            f.row_number().over(Window.partitionBy(test_column).orderBy(f.rand())) > 1
         )
 
     @staticmethod
