@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
     from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.ld_index import LDIndex
-    from gentropy.dataset.study_index import StudyIndex
+    from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
     from gentropy.dataset.summary_statistics import SummaryStatistics
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -74,7 +74,7 @@ class StudyLocusQualityCheck(Enum):
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
-        FAILED_STUDY (str): Flagging study loci if the study has failed QC
+        FLAGGED_STUDY (str): Study has quality control flag(s)
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
         DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique
         INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
@@ -84,6 +84,7 @@ class StudyLocusQualityCheck(Enum):
         EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
+        SUMMARY_STATISTICS_AVAILABLE (str): Study locus from curated top hit is dropped because summary statistics are available
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -100,7 +101,7 @@ class StudyLocusQualityCheck(Enum):
     NOT_QUALIFYING_LD_BLOCK = (
         "LD block does not contain variants at the required R^2 threshold"
     )
-    FAILED_STUDY = "Study has failed quality controls"
+    FLAGGED_STUDY = "Study has quality control flag(s)"
     MISSING_STUDY = "Study not found in the study index"
     DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
     INVALID_VARIANT_IDENTIFIER = (
@@ -114,6 +115,9 @@ class StudyLocusQualityCheck(Enum):
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
+    SUMMARY_STATISTICS_AVAILABLE = (
+        "Curated top hit is flagged because summary statistics are available"
+    )
 
 
 class CredibleInterval(Enum):
@@ -141,7 +145,8 @@ class StudyLocus(Dataset):
         """Flagging study loci if the corresponding study has issues.
 
         There are two different potential flags:
-        - failed study: flagging locus if the corresponding study has failed a quality check.
+        - flagged study: flagging locus if the study has quality control flags.
+        - study with summary statistics for top hit: flagging locus if the study has available summary statistics.
         - missing study: flagging locus if the study was not found in the reference study index.
 
         Args:
@@ -157,6 +162,7 @@ class StudyLocus(Dataset):
             else f.lit(None).cast(StringType())
         )
 
+        # The study Id of the study index needs to be kept, because we would not know which study was in the index after the left join:
         study_flags = study_index.df.select(
             f.col("studyId").alias("study_studyId"),
             qc_select_expression.alias("study_qualityControls"),
@@ -167,13 +173,29 @@ class StudyLocus(Dataset):
                 self.df.join(
                     study_flags, f.col("studyId") == f.col("study_studyId"), "left"
                 )
-                # Flagging loci with failed studies:
+                # Flagging loci with flagged studies - without propagating the actual flags:
                 .withColumn(
                     "qualityControls",
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
                         f.size(f.col("study_qualityControls")) > 0,
-                        StudyLocusQualityCheck.FAILED_STUDY,
+                        StudyLocusQualityCheck.FLAGGED_STUDY,
+                    ),
+                )
+                # Flagging top-hits, where the study has available summary statistics:
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.array_contains(
+                            f.col("qualityControls"),
+                            StudyLocusQualityCheck.TOP_HIT.value,
+                        )
+                        & ~f.array_contains(
+                            f.col("study_qualityControls"),
+                            StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value,
+                        ),
+                        StudyLocusQualityCheck.SUMMARY_STATISTICS_AVAILABLE,
                     ),
                 )
                 # Flagging loci where no studies were found:
@@ -586,28 +608,6 @@ class StudyLocus(Dataset):
             dict[str, str]: Mapping between flag name and QC column category value.
         """
         return {member.name: member.value for member in StudyLocusQualityCheck}
-
-    def filter_by_study_type(self: StudyLocus, study_type: str) -> StudyLocus:
-        """Creates a new StudyLocus dataset filtered by study type.
-
-        Args:
-            study_type (str): Study type to filter for. Can be one of `gwas`, `eqtl`, `pqtl`, `eqtl`.
-
-        Returns:
-            StudyLocus: Filtered study-locus dataset.
-
-        Raises:
-            ValueError: If study type is not supported.
-        """
-        if study_type not in ["gwas", "eqtl", "pqtl", "sqtl"]:
-            raise ValueError(
-                f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
-            )
-        new_df = self.df.filter(f.col("studyType") == study_type).drop("studyType")
-        return StudyLocus(
-            _df=new_df,
-            _schema=self._schema,
-        )
 
     def filter_credible_set(
         self: StudyLocus,

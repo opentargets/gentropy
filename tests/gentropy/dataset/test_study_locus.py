@@ -151,41 +151,6 @@ def test_find_overlaps(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus.find_overlaps(), StudyLocusOverlap)
 
 
-@pytest.mark.parametrize(
-    "study_type, expected_sl_count", [("gwas", 1), ("eqtl", 1), ("pqtl", 0)]
-)
-def test_filter_by_study_type(
-    spark: SparkSession, study_type: str, expected_sl_count: int
-) -> None:
-    """Test filter by study type."""
-    # Input data
-    sl = StudyLocus(
-        _df=spark.createDataFrame(
-            [
-                {
-                    # from gwas
-                    "studyLocusId": "1",
-                    "variantId": "lead1",
-                    "studyId": "study1",
-                    "studyType": "gwas",
-                },
-                {
-                    # from eqtl
-                    "studyLocusId": "2",
-                    "variantId": "lead2",
-                    "studyId": "study2",
-                    "studyType": "eqtl",
-                },
-            ],
-            StudyLocus.get_schema(),
-        ),
-        _schema=StudyLocus.get_schema(),
-    )
-
-    observed = sl.filter_by_study_type(study_type)
-    assert observed.df.count() == expected_sl_count
-
-
 def test_annotate_locus_statistics(
     mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
 ) -> None:
@@ -749,7 +714,7 @@ class TestStudyLocusValidation:
             self.study_locus.validate_study(self.study_index)
             .df.filter(
                 f.array_contains(
-                    f.col("qualityControls"), StudyLocusQualityCheck.FAILED_STUDY.value
+                    f.col("qualityControls"), StudyLocusQualityCheck.FLAGGED_STUDY.value
                 )
             )
             .count()
