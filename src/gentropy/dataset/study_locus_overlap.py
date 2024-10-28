@@ -61,10 +61,12 @@ class StudyLocusOverlap(Dataset):
         """
         expanded_overlaps = self.df.select("*", "statistics.*").drop("statistics")
 
-        # Drop any rows where the beta is null
+        # Drop any rows where the beta is null or zero
         both_betas_not_null_overlaps = (expanded_overlaps
+            .filter(f.col("left_beta").isNotNull())
             .filter(f.col("right_beta").isNotNull())
-            .filter(f.col("left_beta").isNotNull()))
+            .filter(f.col("left_beta") != 0)
+            .filter(f.col("right_beta") != 0))
 
         # Calculate the beta ratio and get the sign, then calculate the average sign across all variants in the locus
         beta_ratio_sign = (both_betas_not_null_overlaps
