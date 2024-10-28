@@ -82,6 +82,7 @@ class StudyLocusQualityCheck(Enum):
         IN_MHC (str): Flagging study loci in the MHC region
         REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
         EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
+        ABNORMAL_PIPS (str): Flagging study loci with a sum of PIPs that are not in [0.99,1]
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
         SUMMARY_STATISTICS_AVAILABLE (str): Study locus from curated top hit is dropped because summary statistics are available
@@ -114,6 +115,7 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
+    ABNORMAL_PIPS = "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
     SUMMARY_STATISTICS_AVAILABLE = (
         "Curated top hit is flagged because summary statistics are available"
@@ -413,6 +415,55 @@ class StudyLocus(Dataset):
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
 
+    def qc_abnormal_pips(
+        self: StudyLocus,
+        sum_pips_lower_threshold: float = 0.99,
+        sum_pips_upper_threshold: float = 1.0001, # Set slightly above 1 to account for floating point errors
+    ) -> StudyLocus:
+        """Filter study-locus by sum of posterior inclusion probabilities to ensure that the sum of PIPs is within a given range.
+
+        Args:
+            sum_pips_lower_threshold (float): Lower threshold for the sum of PIPs.
+            sum_pips_upper_threshold (float): Upper threshold for the sum of PIPs.
+
+        Returns:
+            StudyLocus: Filtered study-locus dataset.
+        """
+        # QC column might not be present so we have to be ready to handle it:
+        qc_select_expression = (
+            f.col("qualityControls")
+            if "qualityControls" in self.df.columns
+            else f.lit(None).cast(ArrayType(StringType()))
+        )
+
+        flag = (self.df.withColumn(
+            "sumPosteriorProbability",
+            f.aggregate(
+                f.col("locus"),
+                f.lit(0.0),
+                lambda acc, x: acc + x["posteriorProbability"]
+            )).withColumn(
+                "pipOutOfRange",
+                f.when(
+                    (f.col("sumPosteriorProbability") < sum_pips_lower_threshold) |
+                    (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
+                    True
+                ).otherwise(False)))
+
+        return StudyLocus(
+            _df=(flag
+                # Flagging loci with failed studies:
+                .withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        qc_select_expression,
+                        f.col("pipOutOfRange"),
+                        StudyLocusQualityCheck.ABNORMAL_PIPS
+                    ),
+                ).drop("sumPosteriorProbability", "pipOutOfRange")),
+            _schema=self.get_schema()
+        )
+
     @staticmethod
     def _overlapping_peaks(
         credset_to_overlap: DataFrame, intra_study_overlap: bool = False
@@ -575,11 +626,14 @@ class StudyLocus(Dataset):
             +------------------+
             |credibleSetlog10BF|
             +------------------+
-            |         1.4765565|
+            |         0.6412604|
             +------------------+
             <BLANKLINE>
         """
-        logsumexp_udf = f.udf(lambda x: get_logsum(x), FloatType())
+        # log10=log/log(10)=log*0.43429448190325176
+        logsumexp_udf = f.udf(
+            lambda x: (get_logsum(x) * 0.43429448190325176), FloatType()
+        )
         return logsumexp_udf(logbfs).cast("double").alias("credibleSetlog10BF")
 
     @classmethod
