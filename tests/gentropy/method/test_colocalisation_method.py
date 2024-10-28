@@ -151,6 +151,8 @@ def test_coloc_no_logbf(
                             "right_logBF": None,
                             "left_beta": 0.1,
                             "right_beta": 0.2,
+                            "left_posteriorProbability": None,
+                            "right_posteriorProbability": None,
                         },  # irrelevant for COLOC
                     }
                 ],
@@ -169,6 +171,12 @@ def test_coloc_no_logbf(
                                     StructField("right_logBF", DoubleType(), True),
                                     StructField("left_beta", DoubleType(), False),
                                     StructField("right_beta", DoubleType(), False),
+                                    StructField(
+                                        "left_posteriorProbability", DoubleType(), True
+                                    ),
+                                    StructField(
+                                        "right_posteriorProbability", DoubleType(), True
+                                    ),
                                 ]
                             ),
                         ),

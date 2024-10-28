@@ -206,11 +206,12 @@ class FinnGenFinemapping:
         spark: SparkSession,
         finngen_susie_finemapping_snp_files: (str | list[str]),
         finngen_susie_finemapping_cs_summary_files: (str | list[str]),
+        finngen_release_prefix: str,
         credset_lbf_threshold: float = 0.8685889638065036,
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
-        The finngen_susue_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
+        The finngen_susie_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
             - trait: phenotype
             - region: region for which the fine-mapping was run.
             - v, rsid: variant ids
@@ -261,6 +262,7 @@ class FinnGenFinemapping:
             spark (SparkSession): SparkSession object.
             finngen_susie_finemapping_snp_files (str | list[str]): SuSIE finemapping output filename(s).
             finngen_susie_finemapping_cs_summary_files (str | list[str]): filename of SuSIE finemapping credible set summaries.
+            finngen_release_prefix (str): Finngen project release prefix. Should look like FINNGEN_R*.
             credset_lbf_threshold (float, optional): Filter out credible sets below, Default 0.8685889638065036 == np.log10(np.exp(2)), this is threshold from publication.
 
         Returns:
@@ -295,7 +297,9 @@ class FinnGenFinemapping:
             .filter(f.col("cs").cast(t.IntegerType()) > 0)
             .select(
                 # Add study idenfitier.
-                f.col("trait").cast(t.StringType()).alias("studyId"),
+                f.concat_ws("_", f.lit(finngen_release_prefix), f.col("trait"))
+                .cast(t.StringType())
+                .alias("studyId"),
                 f.col("region"),
                 # Add variant information.
                 f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
@@ -308,8 +312,7 @@ class FinnGenFinemapping:
                 f.col("allele2").cast(t.StringType()).alias("alt"),
                 # Parse p-value into mantissa and exponent.
                 *parse_pvalue(f.col("p")),
-                # Add beta, standard error, and allele frequency information.
-                f.col("beta").cast("double"),
+                # Add standard error, and allele frequency information.
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
                 f.lit("SuSie").cast("string").alias("finemappingMethod"),
@@ -319,6 +322,10 @@ class FinnGenFinemapping:
                 ],
                 *[
                     f.col(f"lbf_variable{i}").cast(t.DoubleType()).alias(f"lbf_{i}")
+                    for i in range(1, 11)
+                ],
+                *[
+                    f.col(f"mean{i}").cast(t.DoubleType()).alias(f"beta_{i}")
                     for i in range(1, 11)
                 ],
             )
@@ -372,6 +379,31 @@ class FinnGenFinemapping:
                 "lbf_9",
                 "lbf_10",
             )
+            .withColumn(
+                "beta",
+                f.when(f.col("credibleSetIndex") == 1, f.col("beta_1"))
+                .when(f.col("credibleSetIndex") == 2, f.col("beta_2"))
+                .when(f.col("credibleSetIndex") == 3, f.col("beta_3"))
+                .when(f.col("credibleSetIndex") == 4, f.col("beta_4"))
+                .when(f.col("credibleSetIndex") == 5, f.col("beta_5"))
+                .when(f.col("credibleSetIndex") == 6, f.col("beta_6"))
+                .when(f.col("credibleSetIndex") == 7, f.col("beta_7"))
+                .when(f.col("credibleSetIndex") == 8, f.col("beta_8"))
+                .when(f.col("credibleSetIndex") == 9, f.col("beta_9"))
+                .when(f.col("credibleSetIndex") == 10, f.col("beta_10")),
+            )
+            .drop(
+                "beta_1",
+                "beta_2",
+                "beta_3",
+                "beta_4",
+                "beta_5",
+                "beta_6",
+                "beta_7",
+                "beta_8",
+                "beta_9",
+                "beta_10",
+            )
         )
 
         bgzip_compressed_cs_summaries = cls._infer_block_gzip_compression(
@@ -408,7 +440,10 @@ class FinnGenFinemapping:
                 (f.col("credibleSetlog10BF") > credset_lbf_threshold)
                 | (f.col("credibleSetIndex") == 1)
             )
-            .withColumn("studyId", f.col("trait"))
+            .withColumn(
+                "studyId",
+                f.concat_ws("_", f.lit(finngen_release_prefix), f.col("trait")),
+            )
         )
 
         processed_finngen_finemapping_df = processed_finngen_finemapping_df.join(
@@ -467,6 +502,14 @@ class FinnGenFinemapping:
                 toploci_df,
                 on=["studyId", "region", "credibleSetIndex"],
                 how="inner",
+            )
+            .withColumns(
+                {
+                    "locusStart": f.split(f.split("region", ":")[1], "-")[0].cast(
+                        "int"
+                    ),
+                    "locusEnd": f.split(f.split("region", ":")[1], "-")[1].cast("int"),
+                }
             )
         ).withColumn(
             "studyLocusId",
