@@ -21,6 +21,7 @@ from gentropy.common.spark_helpers import (
 from gentropy.common.utils import get_logsum
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.study_index import StudyQualityCheck
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.clump import LDclumping
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
 
     from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.ld_index import LDIndex
-    from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
+    from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -115,7 +116,9 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
-    ABNORMAL_PIPS = "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
+    ABNORMAL_PIPS = (
+        "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
+    )
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
     SUMMARY_STATISTICS_AVAILABLE = (
         "Curated top hit is flagged because summary statistics are available"
@@ -418,7 +421,7 @@ class StudyLocus(Dataset):
     def qc_abnormal_pips(
         self: StudyLocus,
         sum_pips_lower_threshold: float = 0.99,
-        sum_pips_upper_threshold: float = 1.0001, # Set slightly above 1 to account for floating point errors
+        sum_pips_upper_threshold: float = 1.0001,  # Set slightly above 1 to account for floating point errors
     ) -> StudyLocus:
         """Filter study-locus by sum of posterior inclusion probabilities to ensure that the sum of PIPs is within a given range.
 
@@ -436,32 +439,36 @@ class StudyLocus(Dataset):
             else f.lit(None).cast(ArrayType(StringType()))
         )
 
-        flag = (self.df.withColumn(
+        flag = self.df.withColumn(
             "sumPosteriorProbability",
             f.aggregate(
                 f.col("locus"),
                 f.lit(0.0),
-                lambda acc, x: acc + x["posteriorProbability"]
-            )).withColumn(
-                "pipOutOfRange",
-                f.when(
-                    (f.col("sumPosteriorProbability") < sum_pips_lower_threshold) |
-                    (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
-                    True
-                ).otherwise(False)))
+                lambda acc, x: acc + x["posteriorProbability"],
+            ),
+        ).withColumn(
+            "pipOutOfRange",
+            f.when(
+                (f.col("sumPosteriorProbability") < sum_pips_lower_threshold)
+                | (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
+                True,
+            ).otherwise(False),
+        )
 
         return StudyLocus(
-            _df=(flag
+            _df=(
+                flag
                 # Flagging loci with failed studies:
                 .withColumn(
                     "qualityControls",
                     self.update_quality_flag(
                         qc_select_expression,
                         f.col("pipOutOfRange"),
-                        StudyLocusQualityCheck.ABNORMAL_PIPS
+                        StudyLocusQualityCheck.ABNORMAL_PIPS,
                     ),
-                ).drop("sumPosteriorProbability", "pipOutOfRange")),
-            _schema=self.get_schema()
+                ).drop("sumPosteriorProbability", "pipOutOfRange")
+            ),
+            _schema=self.get_schema(),
         )
 
     @staticmethod
