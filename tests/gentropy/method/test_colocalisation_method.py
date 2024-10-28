@@ -17,6 +17,12 @@ from gentropy.method.colocalisation import Coloc, ECaviar
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
     """Test coloc."""
     assert isinstance(Coloc.colocalise(mock_study_locus_overlap), Colocalisation)
+    assert isinstance(
+        Coloc.colocalise(
+            mock_study_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5
+        ),
+        Colocalisation,
+    )
 
 
 @pytest.mark.parametrize(
