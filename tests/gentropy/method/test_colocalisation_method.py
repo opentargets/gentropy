@@ -212,6 +212,8 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
                             "right_logBF": 10.3,
                             "left_beta": None,
                             "right_beta": None,
+                            "left_posteriorProbability": None,
+                            "right_posteriorProbability": None,
                         },  # irrelevant for COLOC
                     }
                 ],
@@ -230,6 +232,12 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
                                     StructField("right_logBF", DoubleType(), False),
                                     StructField("left_beta", DoubleType(), True),
                                     StructField("right_beta", DoubleType(), True),
+                                    StructField(
+                                        "left_posteriorProbability", DoubleType(), True
+                                    ),
+                                    StructField(
+                                        "right_posteriorProbability", DoubleType(), True
+                                    ),
                                 ]
                             ),
                         ),
