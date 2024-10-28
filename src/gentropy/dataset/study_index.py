@@ -9,9 +9,9 @@ from enum import Enum
 from itertools import chain
 from typing import TYPE_CHECKING
 
-from pypsark.sql.window import Window
 from pyspark.sql import functions as f
 from pyspark.sql.types import ArrayType, StringType, StructType
+from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
