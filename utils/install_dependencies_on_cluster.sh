@@ -62,7 +62,7 @@ function main() {
     echo "Install package..."
     # NOTE: ensure the gentropy is reinstalled each time without version cache
     # see https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-force-reinstall
-    run_with_retry pip install --force-reinstall ${PACKAGENAME}
+    run_with_retry pip install --force-reinstall --ignore-installed ${PACKAGENAME}
 
 }
 
