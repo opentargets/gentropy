@@ -602,7 +602,7 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: Deconvoluted study index dataset.
         """
-        # Windowin by study ID assume random order, but this is OK, because we are not selecting rows by a specific order.
+        # Windowing by study ID assume random order, but this is OK, because we are not selecting rows by a specific order.
         study_id_window = Window.partitionBy("studyId").orderBy(f.rand())
 
         # For certain aggregation, the full window is needed to be considered:

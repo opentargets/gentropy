@@ -192,11 +192,12 @@ class StudyLocus(Dataset):
                     "qualityControls",
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
+                        # Condition is true, if the study has summary statistics available and the locus is a top hit:
                         f.array_contains(
                             f.col("qualityControls"),
                             StudyLocusQualityCheck.TOP_HIT.value,
                         )
-                        & ~f.array_contains(
+                        & f.array_contains(
                             f.col("study_qualityControls"),
                             StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value,
                         ),
