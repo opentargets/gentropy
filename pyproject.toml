@@ -35,7 +35,7 @@ pandas = { extras = ["gcp", "parquet"], version = "^2.2.2" }
 skops = ">=0.9,<0.11"
 google-cloud-secret-manager = "^2.20.0"
 shap = "^0.46.0"
-matplotlib = "^3.9.2"
+matplotlib = "3.7.3"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^4.0.0"
