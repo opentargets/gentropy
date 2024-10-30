@@ -203,72 +203,84 @@ def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     )
 
 
+def test_qc_abnormal_pips(mock_study_locus: StudyLocus) -> None:
+    """Test that the qc_abnormal_pips method returns a StudyLocus object."""
+    assert isinstance(mock_study_locus.qc_abnormal_pips(0.99, 1), StudyLocus)
+
+
+# Used primarily for test_unique_variants_in_locus but also for other tests
+test_unique_variants_in_locus_test_data = [
+    (
+        # Locus is not null, should return union between variants in locus and lead variant
+        [
+            (
+                "1",
+                "traitA",
+                "22_varA",
+                [
+                    {"variantId": "22_varA", "posteriorProbability": 0.44},
+                    {"variantId": "22_varB", "posteriorProbability": 0.015},
+                ],
+            ),
+        ],
+        [
+            (
+                "22_varA",
+                "22",
+            ),
+            (
+                "22_varB",
+                "22",
+            ),
+        ],
+    ),
+    (
+        # locus is null, should return lead variant
+        [
+            ("1", "traitA", "22_varA", None),
+        ],
+        [
+            (
+                "22_varA",
+                "22",
+            ),
+        ],
+    ),
+]
+
+test_unique_variants_in_locus_test_schema = StructType(
+    [
+        StructField("studyLocusId", StringType(), True),
+        StructField("studyId", StringType(), True),
+        StructField("variantId", StringType(), True),
+        StructField(
+            "locus",
+            ArrayType(
+                StructType(
+                    [
+                        StructField("variantId", StringType(), True),
+                        StructField("posteriorProbability", DoubleType(), True),
+                    ]
+                )
+            ),
+            True,
+        ),
+    ]
+)
+
+
 @pytest.mark.parametrize(
     ("observed", "expected"),
-    [
-        (
-            # Locus is not null, should return union between variants in locus and lead variant
-            [
-                (
-                    "1",
-                    "traitA",
-                    "22_varA",
-                    [
-                        {"variantId": "22_varA", "posteriorProbability": 0.44},
-                        {"variantId": "22_varB", "posteriorProbability": 0.015},
-                    ],
-                ),
-            ],
-            [
-                (
-                    "22_varA",
-                    "22",
-                ),
-                (
-                    "22_varB",
-                    "22",
-                ),
-            ],
-        ),
-        (
-            # locus is null, should return lead variant
-            [
-                ("1", "traitA", "22_varA", None),
-            ],
-            [
-                (
-                    "22_varA",
-                    "22",
-                ),
-            ],
-        ),
-    ],
+    test_unique_variants_in_locus_test_data,
 )
 def test_unique_variants_in_locus(
     spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test unique variants in locus."""
     # assert isinstance(mock_study_locus.test_unique_variants_in_locus(), DataFrame)
-    schema = StructType(
-        [
-            StructField("studyLocusId", StringType(), True),
-            StructField("studyId", StringType(), True),
-            StructField("variantId", StringType(), True),
-            StructField(
-                "locus",
-                ArrayType(
-                    StructType(
-                        [
-                            StructField("variantId", StringType(), True),
-                        ]
-                    )
-                ),
-                True,
-            ),
-        ]
-    )
     data_sl = StudyLocus(
-        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
+        _df=spark.createDataFrame(observed, test_unique_variants_in_locus_test_schema),
+        _schema=StudyLocus.get_schema(),
     )
     expected_df = spark.createDataFrame(
         expected, schema="variantId: string, chromosome: string"
@@ -286,185 +298,221 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus.clump(), StudyLocus)
 
 
+# Used primarily for test_annotate_credible_sets but also for other tests
+test_annotate_credible_sets_test_data = [
+    (
+        # Simple case
+        [
+            # Observed
+            (
+                "1",
+                "traitA",
+                "leadB",
+                [{"variantId": "tagVariantA", "posteriorProbability": 1.0}],
+            ),
+        ],
+        [
+            # Expected
+            (
+                "1",
+                "traitA",
+                "leadB",
+                [
+                    {
+                        "variantId": "tagVariantA",
+                        "posteriorProbability": 1.0,
+                        "is95CredibleSet": True,
+                        "is99CredibleSet": True,
+                    }
+                ],
+            )
+        ],
+    ),
+    (
+        # Unordered credible set
+        [
+            # Observed
+            (
+                "1",
+                "traitA",
+                "leadA",
+                [
+                    {"variantId": "tagVariantA", "posteriorProbability": 0.44},
+                    {"variantId": "tagVariantB", "posteriorProbability": 0.015},
+                    {"variantId": "tagVariantC", "posteriorProbability": 0.04},
+                    {"variantId": "tagVariantD", "posteriorProbability": 0.005},
+                    {"variantId": "tagVariantE", "posteriorProbability": 0.5},
+                    {"variantId": "tagVariantNull", "posteriorProbability": None},
+                    {"variantId": "tagVariantNull", "posteriorProbability": None},
+                ],
+            )
+        ],
+        [
+            # Expected
+            (
+                "1",
+                "traitA",
+                "leadA",
+                [
+                    {
+                        "variantId": "tagVariantE",
+                        "posteriorProbability": 0.5,
+                        "is95CredibleSet": True,
+                        "is99CredibleSet": True,
+                    },
+                    {
+                        "variantId": "tagVariantA",
+                        "posteriorProbability": 0.44,
+                        "is95CredibleSet": True,
+                        "is99CredibleSet": True,
+                    },
+                    {
+                        "variantId": "tagVariantC",
+                        "posteriorProbability": 0.04,
+                        "is95CredibleSet": True,
+                        "is99CredibleSet": True,
+                    },
+                    {
+                        "variantId": "tagVariantB",
+                        "posteriorProbability": 0.015,
+                        "is95CredibleSet": False,
+                        "is99CredibleSet": True,
+                    },
+                    {
+                        "variantId": "tagVariantD",
+                        "posteriorProbability": 0.005,
+                        "is95CredibleSet": False,
+                        "is99CredibleSet": False,
+                    },
+                    {
+                        "variantId": "tagVariantNull",
+                        "posteriorProbability": None,
+                        "is95CredibleSet": False,
+                        "is99CredibleSet": False,
+                    },
+                    {
+                        "variantId": "tagVariantNull",
+                        "posteriorProbability": None,
+                        "is95CredibleSet": False,
+                        "is99CredibleSet": False,
+                    },
+                ],
+            )
+        ],
+    ),
+    (
+        # Null credible set
+        [
+            # Observed
+            (
+                "1",
+                "traitA",
+                "leadB",
+                None,
+            ),
+        ],
+        [
+            # Expected
+            (
+                "1",
+                "traitA",
+                "leadB",
+                None,
+            )
+        ],
+    ),
+    (
+        # Empty credible set
+        [
+            # Observed
+            (
+                "1",
+                "traitA",
+                "leadB",
+                [],
+            ),
+        ],
+        [
+            # Expected
+            (
+                "1",
+                "traitA",
+                "leadB",
+                None,
+            )
+        ],
+    ),
+]
+test_annotate_credible_sets_test_schema = StructType(
+    [
+        StructField("studyLocusId", StringType(), True),
+        StructField("studyId", StringType(), True),
+        StructField("variantId", StringType(), True),
+        StructField(
+            "locus",
+            ArrayType(
+                StructType(
+                    [
+                        StructField("variantId", StringType(), True),
+                        StructField("posteriorProbability", DoubleType(), True),
+                        StructField("is95CredibleSet", BooleanType(), True),
+                        StructField("is99CredibleSet", BooleanType(), True),
+                    ]
+                )
+            ),
+            True,
+        ),
+    ]
+)
+
+
 @pytest.mark.parametrize(
     ("observed", "expected"),
-    [
-        (
-            # Simple case
-            [
-                # Observed
-                (
-                    "1",
-                    "traitA",
-                    "leadB",
-                    [{"variantId": "tagVariantA", "posteriorProbability": 1.0}],
-                ),
-            ],
-            [
-                # Expected
-                (
-                    "1",
-                    "traitA",
-                    "leadB",
-                    [
-                        {
-                            "variantId": "tagVariantA",
-                            "posteriorProbability": 1.0,
-                            "is95CredibleSet": True,
-                            "is99CredibleSet": True,
-                        }
-                    ],
-                )
-            ],
-        ),
-        (
-            # Unordered credible set
-            [
-                # Observed
-                (
-                    "1",
-                    "traitA",
-                    "leadA",
-                    [
-                        {"variantId": "tagVariantA", "posteriorProbability": 0.44},
-                        {"variantId": "tagVariantB", "posteriorProbability": 0.015},
-                        {"variantId": "tagVariantC", "posteriorProbability": 0.04},
-                        {"variantId": "tagVariantD", "posteriorProbability": 0.005},
-                        {"variantId": "tagVariantE", "posteriorProbability": 0.5},
-                        {"variantId": "tagVariantNull", "posteriorProbability": None},
-                        {"variantId": "tagVariantNull", "posteriorProbability": None},
-                    ],
-                )
-            ],
-            [
-                # Expected
-                (
-                    "1",
-                    "traitA",
-                    "leadA",
-                    [
-                        {
-                            "variantId": "tagVariantE",
-                            "posteriorProbability": 0.5,
-                            "is95CredibleSet": True,
-                            "is99CredibleSet": True,
-                        },
-                        {
-                            "variantId": "tagVariantA",
-                            "posteriorProbability": 0.44,
-                            "is95CredibleSet": True,
-                            "is99CredibleSet": True,
-                        },
-                        {
-                            "variantId": "tagVariantC",
-                            "posteriorProbability": 0.04,
-                            "is95CredibleSet": True,
-                            "is99CredibleSet": True,
-                        },
-                        {
-                            "variantId": "tagVariantB",
-                            "posteriorProbability": 0.015,
-                            "is95CredibleSet": False,
-                            "is99CredibleSet": True,
-                        },
-                        {
-                            "variantId": "tagVariantD",
-                            "posteriorProbability": 0.005,
-                            "is95CredibleSet": False,
-                            "is99CredibleSet": False,
-                        },
-                        {
-                            "variantId": "tagVariantNull",
-                            "posteriorProbability": None,
-                            "is95CredibleSet": False,
-                            "is99CredibleSet": False,
-                        },
-                        {
-                            "variantId": "tagVariantNull",
-                            "posteriorProbability": None,
-                            "is95CredibleSet": False,
-                            "is99CredibleSet": False,
-                        },
-                    ],
-                )
-            ],
-        ),
-        (
-            # Null credible set
-            [
-                # Observed
-                (
-                    "1",
-                    "traitA",
-                    "leadB",
-                    None,
-                ),
-            ],
-            [
-                # Expected
-                (
-                    "1",
-                    "traitA",
-                    "leadB",
-                    None,
-                )
-            ],
-        ),
-        (
-            # Empty credible set
-            [
-                # Observed
-                (
-                    "1",
-                    "traitA",
-                    "leadB",
-                    [],
-                ),
-            ],
-            [
-                # Expected
-                (
-                    "1",
-                    "traitA",
-                    "leadB",
-                    None,
-                )
-            ],
-        ),
-    ],
+    test_annotate_credible_sets_test_data,
 )
 def test_annotate_credible_sets(
     spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test annotate_credible_sets."""
-    schema = StructType(
-        [
-            StructField("studyLocusId", StringType(), True),
-            StructField("studyId", StringType(), True),
-            StructField("variantId", StringType(), True),
-            StructField(
-                "locus",
-                ArrayType(
-                    StructType(
-                        [
-                            StructField("variantId", StringType(), True),
-                            StructField("posteriorProbability", DoubleType(), True),
-                            StructField("is95CredibleSet", BooleanType(), True),
-                            StructField("is99CredibleSet", BooleanType(), True),
-                        ]
-                    )
-                ),
-                True,
-            ),
-        ]
-    )
     data_sl = StudyLocus(
-        _df=spark.createDataFrame(observed, schema), _schema=StudyLocus.get_schema()
+        _df=spark.createDataFrame(observed, test_annotate_credible_sets_test_schema),
+        _schema=StudyLocus.get_schema(),
     )
     expected_sl = StudyLocus(
-        _df=spark.createDataFrame(expected, schema), _schema=StudyLocus.get_schema()
+        _df=spark.createDataFrame(expected, test_annotate_credible_sets_test_schema),
+        _schema=StudyLocus.get_schema(),
     )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
+
+
+def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
+    """Test qc_abnormal_pips with a well-behaving locus."""
+    # Input data
+    sl = StudyLocus(
+        _df=spark.createDataFrame(
+            test_annotate_credible_sets_test_data[1][0],
+            test_annotate_credible_sets_test_schema,
+        ),
+        _schema=StudyLocus.get_schema(),
+    )
+    assert (
+        sl.qc_abnormal_pips().df.filter(f.size("qualityControls") > 0).count() == 0
+    ), "Expected number of rows differ from observed."
+
+
+def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
+    """Test qc_abnormal_pips with an abnormal locus."""
+    # Input data
+    sl = StudyLocus(
+        _df=spark.createDataFrame(
+            test_unique_variants_in_locus_test_data[0][0],
+            test_unique_variants_in_locus_test_schema,
+        ),
+        _schema=StudyLocus.get_schema(),
+    )
+    assert (
+        sl.qc_abnormal_pips().df.filter(f.size("qualityControls") > 0).count() == 1
+    ), "Expected number of rows differ from observed."
 
 
 def test_annotate_ld(
@@ -1121,3 +1169,58 @@ def test_qc_valid_chromosomes(
                 StudyLocusQualityCheck.INVALID_CHROMOSOME.value
                 in row["qualityControls"]
             )
+
+
+class TestStudyLocusDuplicationFlagging:
+    """Collection of tests related to flagging redundant credible sets."""
+
+    STUDY_LOCUS_DATA = [
+        # Non-duplicated:
+        ("1", "v1", "s1", "pics"),
+        # Triplicate:
+        ("3", "v3", "s1", "pics"),
+        ("3", "v3", "s1", "pics"),
+        ("3", "v3", "s1", "pics"),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("finemappingMethod", t.StringType(), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusDuplicationFlagging, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ).withColumn(
+                "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        # Run validation:
+        self.validated = self.study_locus.validate_unique_study_locus_id()
+
+    def test_duplication_flag_type(self: TestStudyLocusDuplicationFlagging) -> None:
+        """Test duplication flagging return type."""
+        assert isinstance(self.validated, StudyLocus)
+
+    def test_duplication_flag_no_data_loss(
+        self: TestStudyLocusDuplicationFlagging,
+    ) -> None:
+        """Test duplication flagging no data loss."""
+        assert self.validated.df.count() == self.study_locus.df.count()
+
+    def test_duplication_flag_correctness(
+        self: TestStudyLocusDuplicationFlagging,
+    ) -> None:
+        """Make sure that the end, there are two study loci that pass the validation."""
+        assert self.validated.df.filter(f.size("qualityControls") == 0).count() == 2
+
+        assert self.validated.df.filter(f.size("qualityControls") > 0).count() == 2

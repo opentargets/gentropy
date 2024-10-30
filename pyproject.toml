@@ -38,7 +38,7 @@ shap = "^0.46.0"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^4.0.0"
-mypy = "^1.12"
+mypy = "^1.13"
 pep8-naming = "^0.14.1"
 interrogate = "^1.7.0"
 isort = "^5.13.2"
