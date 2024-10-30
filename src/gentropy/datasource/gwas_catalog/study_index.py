@@ -261,6 +261,13 @@ class StudyIndexGWASCatalogParser:
                     "backgroundTraitFromSourceMappedIds"
                 ),
                 cls.parse_cohorts(f.col("COHORT")).alias("cohorts"),
+                # Flagging all studies as summary statistics not available:
+                f.lit(False).alias("hasSumstats"),
+                StudyIndexGWASCatalog.update_quality_flag(
+                    f.array().cast(t.ArrayType(t.StringType())),
+                    f.lit(True),
+                    StudyQualityCheck.SUMSTATS_NOT_AVAILABLE,
+                ),
             ),
             _schema=StudyIndexGWASCatalog.get_schema(),
         )
