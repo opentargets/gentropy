@@ -180,7 +180,7 @@ class EqtlCatalogueFinemapping:
                 ).alias("studyId"),
                 f.col("tissue_id").alias("biosampleFromSourceId"),
                 EqtlCatalogueStudyIndex._identify_study_type(
-                    f.col("quant_method"), f.col("tissue_id")
+                    f.col("quant_method")
                 ).alias("studyType"),
                 f.col("study_label").alias("projectId"),
                 f.concat_ws(

@@ -42,9 +42,10 @@ class EqtlCatalogueStudyIndex:
             StructField("sample_size", IntegerType(), True),
             StructField("quant_method", StringType(), True),
             StructField("pmid", StringType(), True),
+            StructField("study_type", StringType(), True),
         ]
     )
-    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/092e01a9601feb404f1c88f86311b43b907a88f6/data_tables/dataset_metadata_upcoming.tsv"
+    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/refs/heads/master/data_tables/dataset_metadata_upcoming.tsv"
     method_to_study_type_mapping = {
         "ge": "eqtl",
         "exon": "eqtl",
@@ -59,7 +60,6 @@ class EqtlCatalogueStudyIndex:
     def _identify_study_type(
         cls: type[EqtlCatalogueStudyIndex],
         quantification_method_col: Column,
-        biosample_col: Column,
     ) -> Column:
         """Identify the study type based on the method to quantify the trait and the biosample where the trait was measured.
 
@@ -68,7 +68,6 @@ class EqtlCatalogueStudyIndex:
 
         Args:
             quantification_method_col (Column): column with the label of the method to quantify the trait. Available methods are [here](https://www.ebi.ac.uk/eqtl/Methods/)
-            biosample_col (Column): column with the label of the biosample where the trait was measured.
 
         Returns:
             Column: The study type.
@@ -89,7 +88,7 @@ class EqtlCatalogueStudyIndex:
             *[f.lit(x) for x in chain(*cls.method_to_study_type_mapping.items())]
         )[quantification_method_col]
         return f.when(
-            biosample_col.startswith("CL"), f.concat(f.lit("sc"), qtl_type_mapping)
+            f.col("study_type") == "single-cell", f.concat(f.lit("sc"), qtl_type_mapping)
         ).otherwise(qtl_type_mapping)
 
     @classmethod

@@ -42,15 +42,14 @@ create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependen
 		--image-version 2.1 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
-		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh \
+		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh,gs://ot-team/tobi/initialisation/set_up_dataproc.sh \
 		--metadata="PACKAGE=$(BUCKET_NAME)/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl" \
 		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-4 \
 		--worker-boot-disk-size 500 \
 		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
 		--optional-components=JUPYTER \
-		--enable-component-gateway \
-		--max-idle=60m
+		--enable-component-gateway
 
 make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
