@@ -324,6 +324,22 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
 
     Returns:
         Column: column of harmonic sums
+
+    Examples:
+        >>> from pyspark.sql import Row
+        >>> df = spark.createDataFrame([
+        ...     Row([0.3, 0.8, 1.0]),
+        ...     Row([0.7, 0.2, 0.9]),
+        ...     ], ["input_array"]
+        ... )
+        >>> df.select("*", calculate_harmonic_sum(f.col("input_array")).alias("harmonic_sum")).show()
+        +---------------+------------------+
+        |    input_array|      harmonic_sum|
+        +---------------+------------------+
+        |[0.3, 0.8, 1.0]|0.7502326177269538|
+        |[0.7, 0.2, 0.9]|0.6674366756805108|
+        +---------------+------------------+
+        <BLANKLINE>
     """
     return f.aggregate(
         f.arrays_zip(
