@@ -42,10 +42,6 @@ def common_distance_feature_logic(
     distances_dataset = variant_index.get_distance_to_gene(distance_type=distance_type)
     if "Mean" in feature_name:
         # Weighting by the SNP contribution is only applied when we are averaging all distances
-        distance_score_expr = (
-            f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
-        ) * f.col("posteriorProbability")
-        agg_expr = f.mean(f.col("distance_score"))
         df = study_loci_to_annotate.df.withColumn(
             "variantInLocus", f.explode_outer("locus")
         ).select(
@@ -53,11 +49,15 @@ def common_distance_feature_logic(
             f.col("variantInLocus.variantId").alias("variantId"),
             f.col("variantInLocus.posteriorProbability").alias("posteriorProbability"),
         )
+        distance_score_expr = (
+            f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
+        ) * f.col("posteriorProbability")
+        agg_expr = f.sum(f.col("distance_score"))
     elif "Sentinel" in feature_name:
+        df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
         # For minimum distances we calculate the unweighted distance between the sentinel (lead) and the gene. This
         distance_score_expr = f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
         agg_expr = f.first(f.col("distance_score"))
-        df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
     return (
         df.join(
             distances_dataset.withColumnRenamed("targetId", "geneId"),
@@ -66,10 +66,15 @@ def common_distance_feature_logic(
         )
         .withColumn(
             "distance_score",
-            f.log10(distance_score_expr) / f.log10(f.lit(genomic_window + 1)),
+            distance_score_expr,
         )
         .groupBy("studyLocusId", "geneId")
-        .agg(agg_expr.alias(feature_name))
+        .agg(agg_expr.alias("distance_score_agg"))
+        .withColumn(
+            feature_name,
+            f.log10(f.col("distance_score_agg")) / f.log10(f.lit(genomic_window + 1)),
+        )
+        .drop("distance_score_agg")
     )
 
 
@@ -303,15 +308,15 @@ class DistanceFootprintMeanFeature(L2GFeature):
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
                     **feature_dependency,
+                ).withColumn(
+                    cls.feature_name,
+                    f.when(f.col(cls.feature_name) < 0, f.lit(0.0)).otherwise(
+                        f.col(cls.feature_name)
+                    ),
                 ),
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
-            ).withColumn(
-                cls.feature_name,
-                f.when(f.col(cls.feature_name) < 0, f.lit(0.0)).otherwise(
-                    f.col(cls.feature_name)
-                ),
             ),
             _schema=cls.get_schema(),
         )
