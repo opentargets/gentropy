@@ -60,7 +60,14 @@ class GWASCatalogTopHitIngestionStep:
             ),
         )
         # Load
-        study_index.df.write.mode(session.write_mode).parquet(catalog_studies_out)
+        (
+            study_index
+            # Flag all studies without sumstats
+            .add_no_sumstats_flag()
+            # Save dataset:
+            .df.write.mode(session.write_mode)
+            .parquet(catalog_studies_out)
+        )
 
         (
             study_locus.window_based_clumping(distance)
