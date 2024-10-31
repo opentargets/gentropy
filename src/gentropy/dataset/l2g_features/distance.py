@@ -120,7 +120,6 @@ def common_neighbourhood_distance_feature_logic(
 class DistanceTssMeanFeature(L2GFeature):
     """Average distance of all tagging variants to gene TSS."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceTssMean"
 
@@ -147,6 +146,11 @@ class DistanceTssMeanFeature(L2GFeature):
                     feature_name=cls.feature_name,
                     distance_type=distance_type,
                     **feature_dependency,
+                ).withColumn(
+                    cls.feature_name,
+                    f.when(f.col(cls.feature_name) < 0, f.lit(0.0)).otherwise(
+                        f.col(cls.feature_name)
+                    ),
                 ),
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
@@ -159,7 +163,6 @@ class DistanceTssMeanFeature(L2GFeature):
 class DistanceTssMeanNeighbourhoodFeature(L2GFeature):
     """Minimum mean distance to TSS for all genes in the vicinity of a studyLocus."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceTssMeanNeighbourhood"
 
@@ -198,7 +201,6 @@ class DistanceTssMeanNeighbourhoodFeature(L2GFeature):
 class DistanceSentinelTssFeature(L2GFeature):
     """Distance of the sentinel variant to gene TSS. This is not weighted by the causal probability."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceSentinelTss"
 
@@ -237,7 +239,6 @@ class DistanceSentinelTssFeature(L2GFeature):
 class DistanceSentinelTssNeighbourhoodFeature(L2GFeature):
     """Distance between the sentinel variant and a gene TSS as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceSentinelTssNeighbourhood"
 
@@ -276,7 +277,6 @@ class DistanceSentinelTssNeighbourhoodFeature(L2GFeature):
 class DistanceFootprintMeanFeature(L2GFeature):
     """Average distance of all tagging variants to the footprint of a gene."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceFootprintMean"
 
@@ -307,6 +307,11 @@ class DistanceFootprintMeanFeature(L2GFeature):
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
+            ).withColumn(
+                cls.feature_name,
+                f.when(f.col(cls.feature_name) < 0, f.lit(0.0)).otherwise(
+                    f.col(cls.feature_name)
+                ),
             ),
             _schema=cls.get_schema(),
         )
@@ -315,7 +320,6 @@ class DistanceFootprintMeanFeature(L2GFeature):
 class DistanceFootprintMeanNeighbourhoodFeature(L2GFeature):
     """Minimum mean distance to footprint for all genes in the vicinity of a studyLocus."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceFootprintMeanNeighbourhood"
 
@@ -354,7 +358,6 @@ class DistanceFootprintMeanNeighbourhoodFeature(L2GFeature):
 class DistanceSentinelFootprintFeature(L2GFeature):
     """Distance between the sentinel variant and the footprint of a gene."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceSentinelFootprint"
 
@@ -393,7 +396,6 @@ class DistanceSentinelFootprintFeature(L2GFeature):
 class DistanceSentinelFootprintNeighbourhoodFeature(L2GFeature):
     """Distance between the sentinel variant and a gene footprint as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
-    fill_na_value = 500_000
     feature_dependency_type = VariantIndex
     feature_name = "distanceSentinelFootprintNeighbourhood"
 
