@@ -513,7 +513,7 @@ class TestCommonDistanceFeatureLogic:
             (
                 "distanceTssMean",
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.08},
+                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.52},
                     {"studyLocusId": "1", "geneId": "gene2", "distanceTssMean": 0.63},
                 ],
             ),
