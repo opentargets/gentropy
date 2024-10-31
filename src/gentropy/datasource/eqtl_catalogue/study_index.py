@@ -64,7 +64,6 @@ class EqtlCatalogueStudyIndex:
         """Identify the study type based on the method to quantify the trait and the biosample where the trait was measured.
 
         The quantification method identifies the type of molecular QTLs that were found.
-        The biosample identifies the biosample where the trait was measured, distinguishing between bulk and single cell.
 
         Args:
             quantification_method_col (Column): column with the label of the method to quantify the trait. Available methods are [here](https://www.ebi.ac.uk/eqtl/Methods/)
@@ -73,7 +72,7 @@ class EqtlCatalogueStudyIndex:
             Column: The study type.
 
         Examples:
-            >>> df = spark.createDataFrame([("ge", "CL_1"), ("leafcutter", "UBERON_2"), ("tx", "EFO_3")], ["quant_method", "tissue_id"])
+            >>> df = spark.createDataFrame([("ge", "CL_1", "bulk"), ("leafcutter", "UBERON_2, "bulk"), ("tx", "EFO_3", "single-cell)], ["quant_method", "tissue_id", "study_type"])
             >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"), f.col("tissue_id"))).show()
             +------------+---------+----------+
             |quant_method|tissue_id|study_type|
