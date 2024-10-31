@@ -315,3 +315,22 @@ def copy_to_gcs(source_path: str, destination_blob: str) -> None:
     bucket = client.bucket(bucket_name=urlparse(destination_blob).hostname)
     blob = bucket.blob(blob_name=urlparse(destination_blob).path.lstrip("/"))
     blob.upload_from_filename(source_path)
+
+def calculate_harmonic_sum(input_array: Column) -> Column:
+    """Calculate the harmonic sum of an array.
+
+    Args:
+        input_array (Column): input array of doubles
+
+    Returns:
+        Column: column of harmonic sums
+    """
+    return f.aggregate(
+        f.arrays_zip(
+            f.sort_array(input_array, False).alias("score"),
+            f.sequence(f.lit(1), f.size(input_array)).alias("pos")
+        ),
+        f.lit(0.0),
+        lambda acc, x: acc
+        + x["score"]/f.pow(x["pos"], 2)/f.lit(sum(1 / ((i + 1)**2) for i in range(100)))
+    )
