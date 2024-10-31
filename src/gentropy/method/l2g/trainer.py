@@ -18,19 +18,20 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from wandb import Image
-from wandb.data_types import Table
+
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.method.l2g.model import LocusToGeneModel
+from wandb.data_types import Image, Table
+from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_sweep import sweep as wandb_sweep
 from wandb.sklearn import plot_classifier
 from wandb.wandb_agent import agent as wandb_agent
 
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.method.l2g.model import LocusToGeneModel
-
 if TYPE_CHECKING:
     from matplotlib.axes._axes import Axes
     from shap._explanation import Explanation
+
     from wandb.sdk.wandb_run import Run
 
 
@@ -43,13 +44,21 @@ class LocusToGeneTrainer:
 
     # Initialise vars
     features_list: list[str] | None = None
-    target_labels: list[str] | None = None
+    label_col: str = "goldStandardSet"
     x_train: pd.DataFrame | None = None
     y_train: pd.Series | None = None
     x_test: pd.DataFrame | None = None
     y_test: pd.Series | None = None
     run: Run | None = None
     wandb_l2g_project_name: str = "gentropy-locus-to-gene"
+
+    def __post_init__(self) -> None:
+        """Set default features_list to feature_matrix's features_list if not provided."""
+        self.features_list = (
+            self.feature_matrix.features_list
+            if self.features_list is None
+            else self.features_list
+        )
 
     def fit(
         self: LocusToGeneTrainer,
@@ -90,13 +99,14 @@ class LocusToGeneTrainer:
         Raises:
             ValueError: Train data not set, cannot get SHAP values.
         """
-        if self.x_train and self.x_test:
+        if self.x_train is not None and self.x_test is not None:
+            training_data = pd.concat([self.x_train, self.x_test], ignore_index=True)
             explainer = shap.TreeExplainer(
-                model,
-                data=self.x_train.append(self.x_test, ignore_index=True),
+                model.model,
+                data=training_data,
                 feature_perturbation="interventional",
             )
-            return explainer(self.x_train)
+            return explainer(training_data)
         raise ValueError("Train data not set.")
 
     def log_plot_image_to_wandb(
@@ -133,6 +143,9 @@ class LocusToGeneTrainer:
 
         Args:
             wandb_run_name (str): Name of the W&B run
+
+        Raises:
+            ValueError: If dependencies are not available.
         """
         if (
             self.x_train is not None
@@ -201,7 +214,7 @@ class LocusToGeneTrainer:
                 }
             )
             # Plot marginal contribution of each feature
-            explanation = self._get_shap_explanation(self.model.model)
+            explanation = self._get_shap_explanation(self.model)
             self.log_plot_image_to_wandb(
                 "Feature Contribution",
                 shap.plots.bar(
@@ -223,6 +236,10 @@ class LocusToGeneTrainer:
                         show=False,
                     ),
                 )
+            wandb_termlog("Logged Shapley contributions.")
+            self.run.finish()
+        else:
+            raise ValueError("Something went wrong, couldn't log to W&B.")
 
     def train(
         self: LocusToGeneTrainer,
@@ -239,20 +256,12 @@ class LocusToGeneTrainer:
         data_df = self.feature_matrix._df.drop("geneId", "studyLocusId").toPandas()
 
         # Encode labels in `goldStandardSet` to a numeric value
-        data_df["goldStandardSet"] = data_df["goldStandardSet"].map(
-            self.model.label_encoder
-        )
+        data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
 
         # Ensure all columns are numeric and split
         data_df = data_df.apply(pd.to_numeric)
-        self.feature_cols = [
-            col
-            for col in data_df.columns
-            if col not in ["studyLocusId", "goldStandardSet"]
-        ]
-        label_col = "goldStandardSet"
-        X = data_df[self.feature_cols].copy()
-        y = data_df[label_col].copy()
+        X = data_df[self.features_list].copy()
+        y = data_df[self.label_col].copy()
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
