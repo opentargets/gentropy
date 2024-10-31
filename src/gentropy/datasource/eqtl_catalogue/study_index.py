@@ -72,15 +72,15 @@ class EqtlCatalogueStudyIndex:
             Column: The study type.
 
         Examples:
-            >>> df = spark.createDataFrame([("ge", "CL_1", "bulk"), ("leafcutter", "UBERON_2, "bulk"), ("tx", "EFO_3", "single-cell)], ["quant_method", "tissue_id", "study_type"])
-            >>> df.withColumn("study_type", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"), f.col("tissue_id"))).show()
-            +------------+---------+----------+
-            |quant_method|tissue_id|study_type|
-            +------------+---------+----------+
-            |          ge|     CL_1|    sceqtl|
-            |  leafcutter| UBERON_2|      sqtl|
-            |          tx|    EFO_3|      eqtl|
-            +------------+---------+----------+
+            >>> df = spark.createDataFrame([("ge", "CL_1", "bulk"), ("leafcutter", "UBERON_2", "bulk"), ("tx", "EFO_3", "single-cell")], ["quant_method", "tissue_id", "study_type"])
+            >>> df.withColumn("studyType", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"))).show()
+            +------------+---------+-----------+---------+
+            |quant_method|tissue_id| study_type|studyType|
+            +------------+---------+-----------+---------+
+            |          ge|     CL_1|       bulk|     eqtl|
+            |  leafcutter| UBERON_2|       bulk|     sqtl|
+            |          tx|    EFO_3|single-cell|   sceqtl|
+            +------------+---------+-----------+---------+
             <BLANKLINE>
         """
         qtl_type_mapping = f.create_map(
