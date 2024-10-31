@@ -332,5 +332,5 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
         ),
         f.lit(0.0),
         lambda acc, x: acc
-        + x["score"]/f.pow(x["pos"], 2)/f.lit(sum(1 / ((i + 1)**2) for i in range(100)))
+        + x["score"]/f.pow(x["pos"], 2)/f.lit(sum(1 / ((i + 1)**2) for i in range(1000)))
     )
