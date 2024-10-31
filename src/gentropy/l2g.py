@@ -352,7 +352,7 @@ class LocusToGeneAssociationsStep:
 
         # Read in the L2G evidence
         disease_target_evidence = (
-            session.spark.read.parquet(evidence_input_path)
+            session.spark.read.json(evidence_input_path)
             .select(
                 f.col("targetFromSourceId").alias("targetId"),
                 f.col("diseaseFromSourceMappedId").alias("diseaseId"),
