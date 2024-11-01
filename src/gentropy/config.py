@@ -633,6 +633,15 @@ class LocusToGeneEvidenceStepConfig(StepConfig):
     locus_to_gene_threshold: float = 0.05
     _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
 
+@dataclass
+class LocusToGeneAssociationsStepConfig(StepConfig):
+    """Configuration of the locus to gene association step."""
+
+    evidence_input_path: str = MISSING
+    disease_index_path: str = MISSING
+    direct_associations_output_path: str = MISSING
+    indirect_associations_output_path: str = MISSING
+    _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
 
 @dataclass
 class StudyLocusValidationStepConfig(StepConfig):
@@ -733,6 +742,11 @@ def register_config() -> None:
         group="step",
         name="locus_to_gene_evidence",
         node=LocusToGeneEvidenceStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="locus_to_gene_associations",
+        node=LocusToGeneAssociationsStepConfig,
     )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
