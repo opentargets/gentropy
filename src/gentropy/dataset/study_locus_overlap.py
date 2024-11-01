@@ -59,27 +59,28 @@ class StudyLocusOverlap(Dataset):
             DataFrame: A dataframe containing left and right loci IDs, chromosome
             and the average sign of the beta ratio
         """
-        expanded_overlaps = self.df.select("*", "statistics.*").drop("statistics")
-
-        # Drop any rows where the beta is null or zero
-        both_betas_not_null_overlaps = (expanded_overlaps
-            .filter(f.col("left_beta").isNotNull())
-            .filter(f.col("right_beta").isNotNull())
-            .filter(f.col("left_beta") != 0)
-            .filter(f.col("right_beta") != 0))
-
-        # Calculate the beta ratio and get the sign, then calculate the average sign across all variants in the locus
-        beta_ratio_sign = (both_betas_not_null_overlaps
-            .withColumn("betaRatioSign",
-                        f.signum(f.col("left_beta") / f.col("right_beta")))
-            .groupBy("leftStudyLocusId",
-                    "rightStudyLocusId",
-                    "chromosome")
-            .agg(f.avg("betaRatioSign").alias("betaRatioSignAverage")))
-
-        # Return the beta ratio sign
-        return beta_ratio_sign
-
+        return (
+            # Unpack statistics column:
+            self.df.select("*", "statistics.*")
+            .drop("statistics")
+            # Drop any rows where the beta is null or zero
+            .filter(
+                f.col("left_beta").isNotNull() &
+                f.col("right_beta").isNotNull() &
+                (f.col("left_beta") != 0) &
+                (f.col("right_beta") != 0)
+            )
+            # Calculate the beta ratio and get the sign, then calculate the average sign across all variants in the locus
+            .withColumn(
+                "betaRatioSign",
+                f.signum(f.col("left_beta") / f.col("right_beta"))
+            )
+            # Aggregate beta signs:
+            .groupBy("leftStudyLocusId","rightStudyLocusId","chromosome")
+            .agg(
+                f.avg("betaRatioSign").alias("betaRatioSignAverage")
+            )
+        )
 
     def _convert_to_square_matrix(self: StudyLocusOverlap) -> StudyLocusOverlap:
         """Convert the dataset to a square matrix.
