@@ -506,9 +506,10 @@ class VariantIndexConfig(StepConfig):
 class ConvertToVcfStepConfig(StepConfig):
     """Variant to VCF step configuration."""
 
-    source_path: str = MISSING
-    source_format: str = MISSING
-    vcf_path: str = MISSING
+    source_paths: list[str] = MISSING
+    source_formats: list[str] = MISSING
+    output_path: str = MISSING
+    partition_size: int = 2000
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
 
 

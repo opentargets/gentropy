@@ -142,4 +142,13 @@ class TestConvertToVcfStep:
                 ],
                 columns=["#CHROM", "POS"],
             )
-        )
+        ), "Variant sorting does not match expectations."
+
+    def test_raises_assertion_imbalanced_arg_ratios(self, session: Session) -> None:
+        """Test imbalanced argument ratio exception.
+
+        Test if passing uneven number of sources to paths, not 1:1 ratio should result in assertion
+        """
+        with pytest.raises(AssertionError) as e:
+            ConvertToVcfStep(session, ["dummy_path"], ["json", "json"], "output", 10)
+            assert e.value[0] == "Must provide format for each source path."
