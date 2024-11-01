@@ -315,38 +315,3 @@ def copy_to_gcs(source_path: str, destination_blob: str) -> None:
     bucket = client.bucket(bucket_name=urlparse(destination_blob).hostname)
     blob = bucket.blob(blob_name=urlparse(destination_blob).path.lstrip("/"))
     blob.upload_from_filename(source_path)
-
-def calculate_harmonic_sum(input_array: Column) -> Column:
-    """Calculate the harmonic sum of an array.
-
-    Args:
-        input_array (Column): input array of doubles
-
-    Returns:
-        Column: column of harmonic sums
-
-    Examples:
-        >>> from pyspark.sql import Row
-        >>> df = spark.createDataFrame([
-        ...     Row([0.3, 0.8, 1.0]),
-        ...     Row([0.7, 0.2, 0.9]),
-        ...     ], ["input_array"]
-        ... )
-        >>> df.select("*", calculate_harmonic_sum(f.col("input_array")).alias("harmonic_sum")).show()
-        +---------------+------------------+
-        |    input_array|      harmonic_sum|
-        +---------------+------------------+
-        |[0.3, 0.8, 1.0]|0.7502326177269538|
-        |[0.7, 0.2, 0.9]|0.6674366756805108|
-        +---------------+------------------+
-        <BLANKLINE>
-    """
-    return f.aggregate(
-        f.arrays_zip(
-            f.sort_array(input_array, False).alias("score"),
-            f.sequence(f.lit(1), f.size(input_array)).alias("pos")
-        ),
-        f.lit(0.0),
-        lambda acc, x: acc
-        + x["score"]/f.pow(x["pos"], 2)/f.lit(sum(1 / ((i + 1)**2) for i in range(1000)))
-    )
