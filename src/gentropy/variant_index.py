@@ -112,4 +112,6 @@ class ConvertToVcfStep:
             .persist()
         )
         # Write
-        partitioned_variants.write.csv(output_path, sep="\t", header=True)
+        partitioned_variants.write.mode(session.write_mode).csv(
+            output_path, sep="\t", header=True
+        )
