@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type
 
+import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
@@ -147,6 +149,23 @@ class LocusToGeneModel:
             copy_to_gcs(local_path, path)
         else:
             sio.dump(self.model, path)
+
+    @staticmethod
+    def load_feature_matrix_from_wandb(wandb_run_name: str) -> pd.DataFrame:
+        """Loads dataset of feature matrix used during a wandb run.
+
+        Args:
+            wandb_run_name (str): Name of the wandb run to load the feature matrix from
+
+        Returns:
+            pd.DataFrame: Feature matrix used during the wandb run
+        """
+        with open(wandb_run_name) as f:
+            raw_data = json.load(f)
+
+        data = raw_data["data"]
+        columns = raw_data["columns"]
+        return pd.DataFrame(data, columns=columns)
 
     def _create_hugging_face_model_card(
         self: LocusToGeneModel,
