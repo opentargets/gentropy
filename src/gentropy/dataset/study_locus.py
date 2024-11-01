@@ -82,6 +82,7 @@ class StudyLocusQualityCheck(Enum):
         IN_MHC (str): Flagging study loci in the MHC region
         REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
         EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
+        ABNORMAL_PIPS (str): Flagging study loci with a sum of PIPs that are not in [0.99,1]
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
     """
@@ -113,6 +114,7 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
+    ABNORMAL_PIPS = "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
 
 
@@ -389,6 +391,55 @@ class StudyLocus(Dataset):
             calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
             < f.lit(-np.log10(pvalue_cutoff)),
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
+        )
+
+    def qc_abnormal_pips(
+        self: StudyLocus,
+        sum_pips_lower_threshold: float = 0.99,
+        sum_pips_upper_threshold: float = 1.0001, # Set slightly above 1 to account for floating point errors
+    ) -> StudyLocus:
+        """Filter study-locus by sum of posterior inclusion probabilities to ensure that the sum of PIPs is within a given range.
+
+        Args:
+            sum_pips_lower_threshold (float): Lower threshold for the sum of PIPs.
+            sum_pips_upper_threshold (float): Upper threshold for the sum of PIPs.
+
+        Returns:
+            StudyLocus: Filtered study-locus dataset.
+        """
+        # QC column might not be present so we have to be ready to handle it:
+        qc_select_expression = (
+            f.col("qualityControls")
+            if "qualityControls" in self.df.columns
+            else f.lit(None).cast(ArrayType(StringType()))
+        )
+
+        flag = (self.df.withColumn(
+            "sumPosteriorProbability",
+            f.aggregate(
+                f.col("locus"),
+                f.lit(0.0),
+                lambda acc, x: acc + x["posteriorProbability"]
+            )).withColumn(
+                "pipOutOfRange",
+                f.when(
+                    (f.col("sumPosteriorProbability") < sum_pips_lower_threshold) |
+                    (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
+                    True
+                ).otherwise(False)))
+
+        return StudyLocus(
+            _df=(flag
+                # Flagging loci with failed studies:
+                .withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        qc_select_expression,
+                        f.col("pipOutOfRange"),
+                        StudyLocusQualityCheck.ABNORMAL_PIPS
+                    ),
+                ).drop("sumPosteriorProbability", "pipOutOfRange")),
+            _schema=self.get_schema()
         )
 
     @staticmethod

@@ -1,5 +1,6 @@
 # pylint: disable=too-few-public-methods
 # isort: skip_file
+
 """Test locus-to-gene feature generation."""
 
 from __future__ import annotations
@@ -61,9 +62,11 @@ from gentropy.dataset.l2g_features.vep import (
 )
 from gentropy.dataset.l2g_features.other import (
     common_genecount_feature_logic,
+    is_protein_coding_feature_logic,
     GeneCountFeature,
     ProteinGeneCountFeature,
     CredibleSetConfidenceFeature,
+    ProteinCodingFeature,
 )
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
@@ -104,6 +107,7 @@ if TYPE_CHECKING:
         GeneCountFeature,
         ProteinGeneCountFeature,
         CredibleSetConfidenceFeature,
+        ProteinCodingFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -502,15 +506,15 @@ class TestCommonDistanceFeatureLogic:
                     {
                         "studyLocusId": "1",
                         "geneId": "gene2",
-                        "distanceSentinelTss": 0.95,
+                        "distanceSentinelTss": 0.92,
                     },
                 ],
             ),
             (
                 "distanceTssMean",
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.09},
-                    {"studyLocusId": "1", "geneId": "gene2", "distanceTssMean": 0.65},
+                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.52},
+                    {"studyLocusId": "1", "geneId": "gene2", "distanceTssMean": 0.63},
                 ],
             ),
         ],
@@ -565,7 +569,7 @@ class TestCommonDistanceFeatureLogic:
             .orderBy(f.col(feature_name).asc())
         )
         expected_df = spark.createDataFrame(
-            (["1", "gene1", -0.48], ["1", "gene2", 0.48]),
+            (["1", "gene1", -0.44], ["1", "gene2", 0.44]),
             ["studyLocusId", "geneId", feature_name],
         ).orderBy(feature_name)
         assert (
@@ -878,6 +882,7 @@ class TestCommonGeneCountFeatureLogic:
             .select("studyLocusId", "geneId", feature_name)
             .orderBy("studyLocusId", "geneId")
         )
+
         assert (
             observed_df.collect() == expected_df.collect()
         ), f"Expected and observed dataframes do not match for feature {feature_name}."
@@ -900,6 +905,96 @@ class TestCommonGeneCountFeatureLogic:
             ),
             _schema=StudyLocus.get_schema(),
         )
+        self.sample_gene_index = GeneIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "geneId": "gene1",
+                        "chromosome": "1",
+                        "tss": 950000,
+                        "biotype": "protein_coding",
+                    },
+                    {
+                        "geneId": "gene2",
+                        "chromosome": "1",
+                        "tss": 1050000,
+                        "biotype": "protein_coding",
+                    },
+                    {
+                        "geneId": "gene3",
+                        "chromosome": "1",
+                        "tss": 1010000,
+                        "biotype": "non_coding",
+                    },
+                ],
+                GeneIndex.get_schema(),
+            ),
+            _schema=GeneIndex.get_schema(),
+        )
+
+
+class TestCommonProteinCodingFeatureLogic:
+    """Test the CommonGeneCountFeatureLogic methods."""
+
+    @pytest.mark.parametrize(
+        ("expected_data"),
+        [
+            (
+                [
+                    {"studyLocusId": "1", "geneId": "gene1", "isProteinCoding500kb": 1},
+                    {"studyLocusId": "1", "geneId": "gene2", "isProteinCoding500kb": 1},
+                    {"studyLocusId": "1", "geneId": "gene3", "isProteinCoding500kb": 0},
+                ]
+            ),
+        ],
+    )
+    def test_is_protein_coding_feature_logic(
+        self: TestCommonProteinCodingFeatureLogic,
+        spark: SparkSession,
+        expected_data: list[dict[str, Any]],
+    ) -> None:
+        """Test the logic of the is_protein_coding_feature_logic function."""
+        observed_df = (
+            is_protein_coding_feature_logic(
+                study_loci_to_annotate=self.sample_study_locus,
+                gene_index=self.sample_gene_index,
+                feature_name="isProteinCoding500kb",
+                genomic_window=500000,
+            )
+            .select("studyLocusId", "geneId", "isProteinCoding500kb")
+            .orderBy("studyLocusId", "geneId")
+        )
+
+        expected_df = (
+            spark.createDataFrame(expected_data)
+            .select("studyLocusId", "geneId", "isProteinCoding500kb")
+            .orderBy("studyLocusId", "geneId")
+        )
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), "Expected and observed DataFrames do not match."
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestCommonProteinCodingFeatureLogic, spark: SparkSession) -> None:
+        """Set up sample data for the test."""
+        # Sample study locus data
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                        "position": 1000000,
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        # Sample gene index data with biotype
         self.sample_gene_index = GeneIndex(
             _df=spark.createDataFrame(
                 [

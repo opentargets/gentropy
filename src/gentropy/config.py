@@ -262,6 +262,7 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
+            "isProteinCoding",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -333,6 +334,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
+            "isProteinCoding",
         ]
     )
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
@@ -587,16 +589,18 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
-class CredibleSetQCConfig(StepConfig):
+class CredibleSetQCStepConfig(StepConfig):
     """Credible set quality control step configuration."""
 
     credible_sets_path: str = MISSING
-    study_index_path: str = MISSING
-    ld_index_path: str = MISSING
     output_path: str = MISSING
     p_value_threshold: float = 1e-5
     purity_min_r2: float = 0.01
-    ld_min_r2: float = 0.8
+    clump: bool = False
+    ld_index_path: str | None = None
+    study_index_path: str | None = None
+    ld_min_r2: float | None = 0.8
+    n_partitions: int | None = 200
     _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
 
 
@@ -628,6 +632,15 @@ class LocusToGeneEvidenceStepConfig(StepConfig):
     locus_to_gene_threshold: float = 0.05
     _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
 
+@dataclass
+class LocusToGeneAssociationsStepConfig(StepConfig):
+    """Configuration of the locus to gene association step."""
+
+    evidence_input_path: str = MISSING
+    disease_index_path: str = MISSING
+    direct_associations_output_path: str = MISSING
+    indirect_associations_output_path: str = MISSING
+    _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
 
 @dataclass
 class StudyLocusValidationStepConfig(StepConfig):
@@ -729,4 +742,10 @@ def register_config() -> None:
         name="locus_to_gene_evidence",
         node=LocusToGeneEvidenceStepConfig,
     )
+    cs.store(
+        group="step",
+        name="locus_to_gene_associations",
+        node=LocusToGeneAssociationsStepConfig,
+    )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
+    cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
