@@ -106,7 +106,9 @@ class ConvertToVcfStep:
         variant_count = merged_variants.count()
         n_partitions = int(math.ceil(variant_count / partition_size))
         partitioned_variants = (
-            merged_variants.repartitionByRange(n_partitions, f.col("#CHROM"))
+            merged_variants.repartitionByRange(
+                n_partitions, f.col("#CHROM"), f.col("POS")
+            )
             .sortWithinPartitions(f.col("#CHROM").asc(), f.col("POS").asc())
             # Due to the large number of partitions ensure we do not lose the partitions before saving them
             .persist()
