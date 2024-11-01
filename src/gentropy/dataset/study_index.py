@@ -638,6 +638,17 @@ class StudyIndex(Dataset):
                         f.lit(False),
                     ).otherwise(True),
                 )
+                # For studies without summary statistics, we remove the "Not curated by Open Targets" flag:
+                .withColumn(
+                    "qualityControls",
+                    f.when(
+                        ~f.col("hasSumstats"),
+                        f.array_remove(
+                            f.col("qualityControls"),
+                            StudyQualityCheck.NO_OT_CURATION.value,
+                        ),
+                    ).otherwise(f.col("qualityControls")),
+                )
                 # If top hits are not kept, we remove the "sumstats not available" flag from all QC lists:
                 .withColumn(
                     "qualityControls",
