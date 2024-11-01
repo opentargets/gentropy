@@ -9,7 +9,8 @@ from sklearn.ensemble import GradientBoostingClassifier
 from wandb import login as wandb_login
 
 from gentropy.common.session import Session
-from gentropy.common.utils import access_gcp_secret, calculate_harmonic_sum
+from gentropy.common.spark_helpers import calculate_harmonic_sum
+from gentropy.common.utils import access_gcp_secret
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
