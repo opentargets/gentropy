@@ -17,7 +17,7 @@ from pyspark.sql.types import (
 
 from gentropy.common.session import Session
 from gentropy.common.utils import parse_pvalue
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
@@ -166,7 +166,7 @@ class EqtlCatalogueFinemapping:
                 f.col("se").alias("standardError"),
                 f.col("credibleSetIndex"),
                 f.col("logBF"),
-                f.lit("SuSie").alias("finemappingMethod"),
+                f.lit(FinemappingMethod.SUSIE.value).alias("finemappingMethod"),
                 # Study metadata
                 f.col("molecular_trait_id").alias("traitFromSource"),
                 f.col("gene_id").alias("geneId"),

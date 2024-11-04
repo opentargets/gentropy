@@ -13,7 +13,7 @@ from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.common.spark_helpers import get_top_ranked_in_window
 from gentropy.common.utils import parse_pvalue
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 
 
 @dataclass
@@ -315,7 +315,7 @@ class FinnGenFinemapping:
                 # Add standard error, and allele frequency information.
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
-                f.lit("SuSie").cast("string").alias("finemappingMethod"),
+                f.lit(FinemappingMethod.SUSIE.value).alias("finemappingMethod"),
                 *[
                     f.col(f"alpha{i}").cast(t.DoubleType()).alias(f"alpha_{i}")
                     for i in range(1, 11)
