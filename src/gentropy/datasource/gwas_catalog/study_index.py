@@ -647,6 +647,22 @@ class StudyIndexGWASCatalog(StudyIndex):
             _schema=StudyIndexGWASCatalog.get_schema(),
         )
 
+    def add_no_sumstats_flag(self: StudyIndexGWASCatalog) -> StudyIndexGWASCatalog:
+        """Add a flag to the study index if no summary statistics are available.
+
+        Returns:
+            StudyIndexGWASCatalog: Updated study index.
+        """
+        self.df = self.df.withColumn(
+            "qualityControls",
+            StudyIndex.update_quality_flag(
+                f.col("qualityControls"),
+                ~f.col("hasSumstats"),
+                StudyQualityCheck.SUMSTATS_NOT_AVAILABLE,
+            ),
+        )
+        return self
+
     @staticmethod
     def _parse_gwas_catalog_study_id(sumstats_path_column: str) -> Column:
         """Extract GWAS Catalog study accession from the summary statistics path.
