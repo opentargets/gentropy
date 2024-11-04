@@ -86,7 +86,7 @@ class StudyLocusQualityCheck(Enum):
         ABNORMAL_PIPS (str): Flagging study loci with a sum of PIPs that are not in [0.99,1]
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
-        SUMMARY_STATISTICS_AVAILABLE (str): Study locus from curated top hit is dropped because summary statistics are available
+        TOP_HIT_AND_SUMMARY_STATS (str): Curated top hit is flagged because summary statistics are available for study
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -120,8 +120,8 @@ class StudyLocusQualityCheck(Enum):
         "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
     )
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
-    SUMMARY_STATISTICS_AVAILABLE = (
-        "Curated top hit is flagged because summary statistics are available"
+    TOP_HIT_AND_SUMMARY_STATS = (
+        "Curated top hit is flagged because summary statistics are available for study"
     )
 
 
@@ -201,7 +201,7 @@ class StudyLocus(Dataset):
                             f.col("study_qualityControls"),
                             StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value,
                         ),
-                        StudyLocusQualityCheck.SUMMARY_STATISTICS_AVAILABLE,
+                        StudyLocusQualityCheck.TOP_HIT_AND_SUMMARY_STATS,
                     ),
                 )
                 # Flagging loci where no studies were found:
