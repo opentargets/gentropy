@@ -62,8 +62,8 @@ class StudyValidationStep:
 
         # Running validation:
         study_index_with_qc = (
-            study_index.validate_unique_study_id()  # Flagging duplicated study ids
-            .validate_study_type()  # Flagging non-supported study types.
+            study_index.deconvolute_studies()  # Deconvolute studies where the same study is ingested from multiple sources
+            .validate_study_type()  # Flagging non-supported study types
             .validate_target(target_index)  # Flagging QTL studies with invalid targets
             .validate_disease(disease_index)  # Flagging invalid EFOs
             .validate_biosample(
