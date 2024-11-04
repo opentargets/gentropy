@@ -197,7 +197,7 @@ class StudyLocus(Dataset):
                             f.col("qualityControls"),
                             StudyLocusQualityCheck.TOP_HIT.value,
                         )
-                        & f.array_contains(
+                        & ~f.array_contains(
                             f.col("study_qualityControls"),
                             StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value,
                         ),
