@@ -152,7 +152,7 @@ class L2GFeatureMatrix:
                     col,
                     f.when(
                         f.col(col).isNull(),
-                        f.mean(f.col(col)).over(Window.partitionBy("geneId")),
+                        f.mean(f.col(col)).over(Window.partitionBy("studyLocusId")),
                     ).otherwise(f.col(col)),
                 )
         self._df = self._df.fillna(na_value, subset=subset)

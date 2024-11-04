@@ -201,16 +201,16 @@ def test_fill_na(spark: SparkSession) -> None:
                     "anotherFeature": None,
                 },
                 {
-                    "studyLocusId": "2",
-                    "geneId": "gene1",
+                    "studyLocusId": "1",
+                    "geneId": "gene2",
                     "proteinGeneCount500kb": 4.0,
                     "geneCount500kb": 10.0,
                     "isProteinCoding": 1.0,
                     "anotherFeature": None,
                 },
                 {
-                    "studyLocusId": "3",
-                    "geneId": "gene1",
+                    "studyLocusId": "1",
+                    "geneId": "gene3",
                     "proteinGeneCount500kb": None,
                     "geneCount500kb": None,
                     "isProteinCoding": None,
@@ -220,12 +220,12 @@ def test_fill_na(spark: SparkSession) -> None:
             schema="studyLocusId STRING, geneId STRING, proteinGeneCount500kb DOUBLE, geneCount500kb DOUBLE, isProteinCoding DOUBLE, anotherFeature DOUBLE",
         ),
     )
-    observed_df = sample_fm.fill_na()._df.filter(f.col("studyLocusId") == "3")
+    observed_df = sample_fm.fill_na()._df.filter(f.col("geneId") == "gene3")
     expected_df_missing_row = spark.createDataFrame(
         [
             {
-                "studyLocusId": "3",
-                "geneId": "gene1",
+                "studyLocusId": "1",
+                "geneId": "gene3",
                 "proteinGeneCount500kb": 3.5,
                 "geneCount500kb": 9.0,
                 "isProteinCoding": 1.0,
