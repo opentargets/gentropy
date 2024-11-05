@@ -149,22 +149,15 @@ class L2GPrediction(Dataset):
         ]
 
         # Aggregating all features into a single map column:
-        aggregated_features = (
-            feature_matrix._df.withColumn(
-                "locusToGeneFeatures",
-                f.create_map(
-                    *sum(
-                        [
-                            (f.lit(colname), f.col(colname))
-                            for colname in columns_to_map
-                        ],
-                        (),
-                    )
-                ),
-            )
-            .drop(*columns_to_map)
-            .show(1, False, True)
-        )
+        aggregated_features = feature_matrix._df.withColumn(
+            "locusToGeneFeatures",
+            f.create_map(
+                *sum(
+                    [(f.lit(colname), f.col(colname)) for colname in columns_to_map],
+                    (),
+                )
+            ),
+        ).drop(*columns_to_map)
         return L2GPrediction(
             _df=self.df.join(aggregated_features, on=prediction_id_columns, how="left"),
             _schema=self.get_schema(),
