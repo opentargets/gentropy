@@ -127,7 +127,7 @@ class L2GPrediction(Dataset):
             )
         )
 
-    def add_features(
+    def add_locus_to_gene_features(
         self: L2GPrediction, feature_matrix: L2GFeatureMatrix
     ) -> L2GPrediction:
         """Add features to the L2G predictions.

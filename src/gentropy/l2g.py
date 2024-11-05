@@ -190,7 +190,7 @@ class LocusToGeneStep:
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.add_features(self.feature_matrix).df.write.mode(
+        predictions.add_locus_to_gene_features(self.feature_matrix).df.write.mode(
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
