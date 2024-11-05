@@ -190,9 +190,9 @@ class LocusToGeneStep:
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.df.write.mode(self.session.write_mode).parquet(
-            self.predictions_path
-        )
+        predictions.add_features(self.feature_matrix).df.write.mode(
+            self.session.write_mode
+        ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
@@ -322,6 +322,7 @@ class LocusToGeneEvidenceStep:
             .json(evidence_output_path)
         )
 
+
 class LocusToGeneAssociationsStep:
     """Locus to gene associations step."""
 
@@ -343,39 +344,41 @@ class LocusToGeneAssociationsStep:
             indirect_associations_output_path (str): Path to the indirect associations output dataset
         """
         # Read in the disease index
-        disease_index = (
-            session.spark.read.parquet(disease_index_path)
-            .select(
-                f.col("id").alias("diseaseId"),
-                f.explode("ancestors").alias("ancestorDiseaseId")
-            )
+        disease_index = session.spark.read.parquet(disease_index_path).select(
+            f.col("id").alias("diseaseId"),
+            f.explode("ancestors").alias("ancestorDiseaseId"),
         )
 
         # Read in the L2G evidence
-        disease_target_evidence = (
-            session.spark.read.json(evidence_input_path)
-            .select(
-                f.col("targetFromSourceId").alias("targetId"),
-                f.col("diseaseFromSourceMappedId").alias("diseaseId"),
-                f.col("resourceScore")
-            )
+        disease_target_evidence = session.spark.read.json(evidence_input_path).select(
+            f.col("targetFromSourceId").alias("targetId"),
+            f.col("diseaseFromSourceMappedId").alias("diseaseId"),
+            f.col("resourceScore"),
         )
 
         # Generate direct assocations and save file
         (
-            disease_target_evidence
-            .groupBy("targetId", "diseaseId")
+            disease_target_evidence.groupBy("targetId", "diseaseId")
             .agg(f.collect_set("resourceScore").alias("scores"))
-            .select("targetId", "diseaseId", calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"))
-            .write.mode(session.write_mode).parquet(direct_associations_output_path)
+            .select(
+                "targetId",
+                "diseaseId",
+                calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
+            )
+            .write.mode(session.write_mode)
+            .parquet(direct_associations_output_path)
         )
 
         # Generate indirect assocations and save file
         (
-            disease_target_evidence
-            .join(disease_index, on="diseaseId", how="inner")
+            disease_target_evidence.join(disease_index, on="diseaseId", how="inner")
             .groupBy("targetId", "ancestorDiseaseId")
             .agg(f.collect_set("resourceScore").alias("scores"))
-            .select("targetId", "ancestorDiseaseId", calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"))
-            .write.mode(session.write_mode).parquet(indirect_associations_output_path)
+            .select(
+                "targetId",
+                "ancestorDiseaseId",
+                calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
+            )
+            .write.mode(session.write_mode)
+            .parquet(indirect_associations_output_path)
         )

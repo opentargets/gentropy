@@ -126,3 +126,46 @@ class L2GPrediction(Dataset):
                 "studyLocusId",
             )
         )
+
+    def add_features(
+        self: L2GPrediction, feature_matrix: L2GFeatureMatrix
+    ) -> L2GPrediction:
+        """Add features to the L2G predictions.
+
+        Args:
+            feature_matrix (L2GFeatureMatrix): Feature matrix dataset
+
+        Returns:
+            L2GPrediction: L2G predictions with additional features
+        """
+        # Columns identifying a studyLocus/gene pair
+        prediction_id_columns = ["studyLocusId", "geneId"]
+
+        # L2G matrix columns to build the map:
+        columns_to_map = [
+            column
+            for column in feature_matrix._df.columns
+            if column not in prediction_id_columns
+        ]
+
+        # Aggregating all features into a single map column:
+        aggregated_features = (
+            feature_matrix._df.withColumn(
+                "locusToGeneFeatures",
+                f.create_map(
+                    *sum(
+                        [
+                            (f.lit(colname), f.col(colname))
+                            for colname in columns_to_map
+                        ],
+                        (),
+                    )
+                ),
+            )
+            .drop(*columns_to_map)
+            .show(1, False, True)
+        )
+        return L2GPrediction(
+            _df=self.df.join(aggregated_features, on=prediction_id_columns, how="left"),
+            _schema=self.get_schema(),
+        )
