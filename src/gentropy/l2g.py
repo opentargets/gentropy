@@ -84,7 +84,9 @@ class LocusToGeneFeatureMatrixStep:
             gene_index=gene_index,
         )
 
-        fm = credible_set.build_feature_matrix(features_list, features_input_loader)
+        fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
+            features_list, features_input_loader
+        )
         fm._df.write.mode(session.write_mode).parquet(feature_matrix_path)
 
 
