@@ -46,7 +46,7 @@ class EqtlCatalogueStudyIndex:
         ]
     )
     raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/refs/heads/master/data_tables/dataset_metadata_upcoming.tsv"
-    method_to_study_type_mapping = {
+    method_to_qtl_type_mapping = {
         "ge": "eqtl",
         "exon": "eqtl",
         "tx": "eqtl",
@@ -59,33 +59,27 @@ class EqtlCatalogueStudyIndex:
     @classmethod
     def _identify_study_type(
         cls: type[EqtlCatalogueStudyIndex],
-        quantification_method_col: Column,
     ) -> Column:
         """Identify the study type based on the method to quantify the trait and the biosample where the trait was measured.
-
-        The quantification method identifies the type of molecular QTLs that were found.
-
-        Args:
-            quantification_method_col (Column): column with the label of the method to quantify the trait. Available methods are [here](https://www.ebi.ac.uk/eqtl/Methods/)
 
         Returns:
             Column: The study type.
 
         Examples:
-            >>> df = spark.createDataFrame([("ge", "CL_1", "bulk"), ("leafcutter", "UBERON_2", "bulk"), ("tx", "EFO_3", "single-cell")], ["quant_method", "tissue_id", "study_type"])
-            >>> df.withColumn("studyType", EqtlCatalogueStudyIndex._identify_study_type(f.col("quant_method"))).show()
-            +------------+---------+-----------+---------+
-            |quant_method|tissue_id| study_type|studyType|
-            +------------+---------+-----------+---------+
-            |          ge|     CL_1|       bulk|     eqtl|
-            |  leafcutter| UBERON_2|       bulk|     sqtl|
-            |          tx|    EFO_3|single-cell|   sceqtl|
-            +------------+---------+-----------+---------+
+            >>> df = spark.createDataFrame([("ge", "bulk"), ("leafcutter", "bulk"), ("tx", "single-cell")], ["quant_method", "study_type"])
+            >>> df.withColumn("studyType", EqtlCatalogueStudyIndex._identify_study_type()).show()
+            +------------+-----------+---------+
+            |quant_method| study_type|studyType|
+            +------------+-----------+---------+
+            |          ge|       bulk|     eqtl|
+            |  leafcutter|       bulk|     sqtl|
+            |          tx|single-cell|   sceqtl|
+            +------------+-----------+---------+
             <BLANKLINE>
         """
         qtl_type_mapping = f.create_map(
-            *[f.lit(x) for x in chain(*cls.method_to_study_type_mapping.items())]
-        )[quantification_method_col]
+            *[f.lit(x) for x in chain(*cls.method_to_qtl_type_mapping.items())]
+        )["quant_method"]
         return f.when(
             f.col("study_type") == "single-cell", f.concat(f.lit("sc"), qtl_type_mapping)
         ).otherwise(qtl_type_mapping)
