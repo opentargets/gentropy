@@ -79,7 +79,7 @@ class EqtlCatalogueStudyIndex:
         """
         qtl_type_mapping = f.create_map(
             *[f.lit(x) for x in chain(*cls.method_to_qtl_type_mapping.items())]
-        )["quant_method"]
+        )[f.col("quant_method")]
         return f.when(
             f.col("study_type") == "single-cell", f.concat(f.lit("sc"), qtl_type_mapping)
         ).otherwise(qtl_type_mapping)
