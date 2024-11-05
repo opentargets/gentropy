@@ -143,7 +143,11 @@ class L2GFeatureMatrix:
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
         """
-        cols_to_impute = ["proteinGeneCount500kb", "geneCount500kb", "isProteinCoding"]
+        cols_to_impute = [
+            "proteinGeneCount500kb",
+            "geneCount500kb",
+            "credibleSetConfidence",
+        ]
         for col in cols_to_impute:
             if col not in self._df.columns:
                 continue
