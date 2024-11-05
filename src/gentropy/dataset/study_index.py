@@ -10,6 +10,8 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
+from pyspark.sql.types import ArrayType, StringType, StructType
+from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
@@ -588,5 +590,160 @@ class StudyIndex(Dataset):
         # Annotate study index with QC information:
         return StudyIndex(
             _df=df,
+            _schema=StudyIndex.get_schema(),
+        )
+
+    def deconvolute_studies(self: StudyIndex) -> StudyIndex:
+        """Deconvolute the study index dataset.
+
+        When ingesting the study index dataset, the same studyId might be ingested from more than one source.
+        In such cases, the data needs to be merged and the quality control flags need to be combined.
+
+        Returns:
+            StudyIndex: Deconvoluted study index dataset.
+        """
+        # Windowing by study ID assume random order, but this is OK, because we are not selecting rows by a specific order.
+        study_id_window = Window.partitionBy("studyId").orderBy(f.rand())
+
+        # For certain aggregation, the full window is needed to be considered:
+        full_study_id_window = study_id_window.orderBy("studyId").rangeBetween(
+            Window.unboundedPreceding, Window.unboundedFollowing
+        )
+
+        # Temporary columns to drop at the end:
+        columns_to_drop = ["keepTopHit", "mostGranular", "rank"]
+
+        return StudyIndex(
+            _df=(
+                self.df
+                # Initialising quality controls column, if not present:
+                .withColumn(
+                    "qualityControls",
+                    f.when(
+                        f.col("qualityControls").isNull(),
+                        f.array().cast(ArrayType(StringType())),
+                    ).otherwise(f.col("qualityControls")),
+                )
+                # Keeping top hit studies unless the same study is available from a summmary statistics source:
+                # This value will be set for all rows for the same `studyId`:
+                .withColumn(
+                    "keepTopHit",
+                    f.when(
+                        f.array_contains(
+                            f.collect_set(f.col("hasSumstats")).over(
+                                full_study_id_window
+                            ),
+                            True,
+                        ),
+                        f.lit(False),
+                    ).otherwise(True),
+                )
+                # For studies without summary statistics, we remove the "Not curated by Open Targets" flag:
+                .withColumn(
+                    "qualityControls",
+                    f.when(
+                        ~f.col("hasSumstats"),
+                        f.array_remove(
+                            f.col("qualityControls"),
+                            StudyQualityCheck.NO_OT_CURATION.value,
+                        ),
+                    ).otherwise(f.col("qualityControls")),
+                )
+                # If top hits are not kept, we remove the "sumstats not available" flag from all QC lists:
+                .withColumn(
+                    "qualityControls",
+                    f.when(
+                        ~f.col("keepTopHit"),
+                        f.array_remove(
+                            f.col("qualityControls"),
+                            StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value,
+                        ),
+                    ).otherwise(f.col("qualityControls")),
+                )
+                # Then propagate quality checks for all sources of the same study:
+                .withColumn(
+                    "qualityControls",
+                    f.array_distinct(
+                        f.flatten(
+                            f.collect_set("qualityControls").over(full_study_id_window)
+                        )
+                    ),
+                )
+                # Propagating sumstatQCValues -> map, cannot be flatten:
+                .withColumn(
+                    "sumstatQCValues",
+                    f.first("sumstatQCValues", ignorenulls=True).over(
+                        full_study_id_window
+                    ),
+                )
+                # Propagating analysisFlags:
+                .withColumn(
+                    "analysisFlags",
+                    f.flatten(
+                        f.collect_list("analysisFlags").over(full_study_id_window)
+                    ),
+                )
+                # Propagating hasSumstatsFlag - if no flag, leave null:
+                .withColumn(
+                    "hasSumstats",
+                    f.when(
+                        # There's a true:
+                        f.array_contains(
+                            f.collect_set("hasSumstats").over(full_study_id_window),
+                            True,
+                        ),
+                        f.lit(True),
+                    ).when(
+                        # There's a false:
+                        f.array_contains(
+                            f.collect_set("hasSumstats").over(full_study_id_window),
+                            False,
+                        ),
+                        f.lit(False),
+                    ),
+                )
+                # Propagating disease: when different sets of diseases available for the same study,
+                # we pick the shortest list, becasuse we assume, that is the most accurate disease assignment:
+                .withColumn(
+                    "mostGranular",
+                    f.size(f.col("traitFromSourceMappedIds"))
+                    == f.min(f.size(f.col("traitFromSourceMappedIds"))).over(
+                        full_study_id_window
+                    ),
+                )
+                # Remove less granular disease mappings:
+                .withColumn(
+                    "traitFromSourceMappedIds",
+                    f.when(f.col("mostGranular"), f.col("traitFromSourceMappedIds")),
+                )
+                # Propagate mapped disease:
+                .withColumn(
+                    "traitFromSourceMappedIds",
+                    f.last(f.col("traitFromSourceMappedIds"), True).over(
+                        full_study_id_window
+                    ),
+                )
+                # Repeating these steps for the `traitFromSource` column:
+                .withColumn(
+                    "traitFromSource",
+                    f.when(f.col("mostGranular"), f.col("traitFromSource")),
+                )
+                # Propagate disease:
+                .withColumn(
+                    "traitFromSource",
+                    f.last(f.col("traitFromSource"), True).over(full_study_id_window),
+                )
+                # Distinct study types are joined together into a string. So, if there's ambiguite, the study will be flagged when the study type is validated:
+                .withColumn(
+                    "studyType",
+                    f.concat_ws(
+                        ",", f.collect_set("studyType").over(full_study_id_window)
+                    ),
+                )
+                # At this point, all studies in one window is expected to be identical. Let's just pick one:
+                .withColumn("rank", f.row_number().over(study_id_window))
+                .filter(f.col("rank") == 1)
+                .drop(*columns_to_drop)
+            ),
             _schema=StudyIndex.get_schema(),
         )

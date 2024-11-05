@@ -9,6 +9,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from wandb import login as wandb_login
 
 from gentropy.common.session import Session
+from gentropy.common.spark_helpers import calculate_harmonic_sum
 from gentropy.common.utils import access_gcp_secret
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
@@ -273,7 +274,6 @@ class LocusToGeneStep:
                 gold_standards.build_feature_matrix(
                     self.feature_matrix, self.credible_set
                 )
-                .fill_na()
                 .select_features(self.features_list)
                 .persist()
             )
@@ -319,4 +319,65 @@ class LocusToGeneEvidenceStep:
             )
             .write.mode(session.write_mode)
             .json(evidence_output_path)
+        )
+
+
+class LocusToGeneAssociationsStep:
+    """Locus to gene associations step."""
+
+    def __init__(
+        self,
+        session: Session,
+        evidence_input_path: str,
+        disease_index_path: str,
+        direct_associations_output_path: str,
+        indirect_associations_output_path: str,
+    ) -> None:
+        """Create direct and indirect association datasets.
+
+        Args:
+            session (Session): Session object that contains the Spark session
+            evidence_input_path (str): Path to the L2G evidence input dataset
+            disease_index_path (str): Path to disease index file
+            direct_associations_output_path (str): Path to the direct associations output dataset
+            indirect_associations_output_path (str): Path to the indirect associations output dataset
+        """
+        # Read in the disease index
+        disease_index = session.spark.read.parquet(disease_index_path).select(
+            f.col("id").alias("diseaseId"),
+            f.explode("ancestors").alias("ancestorDiseaseId"),
+        )
+
+        # Read in the L2G evidence
+        disease_target_evidence = session.spark.read.json(evidence_input_path).select(
+            f.col("targetFromSourceId").alias("targetId"),
+            f.col("diseaseFromSourceMappedId").alias("diseaseId"),
+            f.col("resourceScore"),
+        )
+
+        # Generate direct assocations and save file
+        (
+            disease_target_evidence.groupBy("targetId", "diseaseId")
+            .agg(f.collect_set("resourceScore").alias("scores"))
+            .select(
+                "targetId",
+                "diseaseId",
+                calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
+            )
+            .write.mode(session.write_mode)
+            .parquet(direct_associations_output_path)
+        )
+
+        # Generate indirect assocations and save file
+        (
+            disease_target_evidence.join(disease_index, on="diseaseId", how="inner")
+            .groupBy("targetId", "ancestorDiseaseId")
+            .agg(f.collect_set("resourceScore").alias("scores"))
+            .select(
+                "targetId",
+                "ancestorDiseaseId",
+                calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
+            )
+            .write.mode(session.write_mode)
+            .parquet(indirect_associations_output_path)
         )
