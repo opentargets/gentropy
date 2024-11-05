@@ -60,7 +60,7 @@ class EqtlCatalogueStudyIndex:
     def _identify_study_type(
         cls: type[EqtlCatalogueStudyIndex],
     ) -> Column:
-        """Identify the study type based on the method to quantify the trait and the biosample where the trait was measured.
+        """Identify the qtl type based on the quantification method and eqtl catalogue study type.
 
         Returns:
             Column: The study type.
