@@ -179,9 +179,7 @@ class EqtlCatalogueFinemapping:
                     f.col("molecular_trait_id"),
                 ).alias("studyId"),
                 f.col("tissue_id").alias("biosampleFromSourceId"),
-                EqtlCatalogueStudyIndex._identify_study_type(
-                    f.col("quant_method")
-                ).alias("studyType"),
+                EqtlCatalogueStudyIndex._identify_study_type().alias("studyType"),
                 f.col("study_label").alias("projectId"),
                 f.concat_ws(
                     "/",
