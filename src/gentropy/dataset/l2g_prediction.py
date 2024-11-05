@@ -138,6 +138,10 @@ class L2GPrediction(Dataset):
         Returns:
             L2GPrediction: L2G predictions with additional features
         """
+        # Testing if `locusToGeneFeatures` column already exists:
+        if "locusToGeneFeatures" in self.df.columns:
+            self.df = self.df.drop("locusToGeneFeatures")
+
         # Columns identifying a studyLocus/gene pair
         prediction_id_columns = ["studyLocusId", "geneId"]
 
