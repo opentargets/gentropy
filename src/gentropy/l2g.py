@@ -274,7 +274,6 @@ class LocusToGeneStep:
                 gold_standards.build_feature_matrix(
                     self.feature_matrix, self.credible_set
                 )
-                .fill_na()
                 .select_features(self.features_list)
                 .persist()
             )
