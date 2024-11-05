@@ -228,7 +228,7 @@ def test_fill_na(spark: SparkSession) -> None:
                 "geneId": "gene3",
                 "proteinGeneCount500kb": 3.5,
                 "geneCount500kb": 9.0,
-                "isProteinCoding": 1.0,
+                "isProteinCoding": 0.0,
                 "anotherFeature": 0.0,
             },
         ],
