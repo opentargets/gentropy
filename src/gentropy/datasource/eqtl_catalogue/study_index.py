@@ -45,7 +45,7 @@ class EqtlCatalogueStudyIndex:
             StructField("study_type", StringType(), True),
         ]
     )
-    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/refs/heads/master/data_tables/dataset_metadata_upcoming.tsv"
+    raw_studies_metadata_path = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv"
     method_to_qtl_type_mapping = {
         "ge": "eqtl",
         "exon": "eqtl",
