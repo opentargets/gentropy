@@ -820,7 +820,7 @@ class StudyLocus(Dataset):
             self,
             features_list,
             features_input_loader,
-        )
+        ).fill_na()
 
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
