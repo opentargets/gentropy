@@ -174,7 +174,6 @@ def common_neighbourhood_colocalisation_feature_logic(
         extended_local_max.join(
             gene_index.df.select("geneId", "biotype"), "geneId", "left"
         )
-        .filter(f.col("biotype") == "protein_coding")
         .groupBy("studyLocusId")
         .agg(f.max(local_feature_name).alias("regional_max"))
     )
