@@ -107,6 +107,8 @@ class FinnGenFinemapping:
             StructField("region", StringType(), True),
             StructField("cs_number", StringType(), True),
             StructField("cs_log10bf", DoubleType(), True),
+            StructField("cs_avg_r2", DoubleType(), True),
+            StructField("cs_min_r2", DoubleType(), True),
         ]
     )
 
@@ -184,6 +186,8 @@ class FinnGenFinemapping:
         region=hl.tstr,
         cs_number=hl.tstr,
         cs_log10bf=hl.tfloat64,
+        cs_avg_r2=hl.tfloat64,
+        cs_min_r2=hl.tfloat64,
     )
 
     @staticmethod
@@ -435,6 +439,8 @@ class FinnGenFinemapping:
                 f.col("trait"),
                 f.col("cs_number").cast("integer").alias("credibleSetIndex"),
                 f.col("cs_log10bf").cast("double").alias("credibleSetlog10BF"),
+                f.col("cs_avg_r2").cast("double").alias("purityMeanR2"),
+                f.col("cs_min_r2").cast("double").alias("purityMinR2"),
             )
             .filter(
                 (f.col("credibleSetlog10BF") > credset_lbf_threshold)
@@ -471,6 +477,8 @@ class FinnGenFinemapping:
             "credibleSetIndex",
             "finemappingMethod",
             "credibleSetlog10BF",
+            "purityMeanR2",
+            "purityMinR2",
         )
 
         processed_finngen_finemapping_df = (
