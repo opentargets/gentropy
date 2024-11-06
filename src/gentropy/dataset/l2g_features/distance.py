@@ -111,12 +111,15 @@ def common_neighbourhood_distance_feature_logic(
         # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
         local_metric.withColumn(
             "regional_metric",
-            f.mean(f.col(local_feature_name)).over(Window.partitionBy("studyLocusId")),
+            f.max(f.col(local_feature_name)).over(Window.partitionBy("studyLocusId")),
         )
         .withColumn(
             feature_name,
-            (f.col(local_feature_name) - f.col("regional_metric"))
-            / f.log10(f.lit(genomic_window + 1)),
+            (
+                (f.col(local_feature_name) - f.col("regional_metric"))
+                / f.log10(f.lit(genomic_window + 1))
+            )
+            + 1,
         )
         .drop("regional_metric", local_feature_name)
     )
