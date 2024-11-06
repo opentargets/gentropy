@@ -84,7 +84,9 @@ class LocusToGeneFeatureMatrixStep:
             gene_index=gene_index,
         )
 
-        fm = credible_set.build_feature_matrix(features_list, features_input_loader)
+        fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
+            features_list, features_input_loader
+        )
         fm._df.write.mode(session.write_mode).parquet(feature_matrix_path)
 
 
@@ -190,9 +192,9 @@ class LocusToGeneStep:
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.df.write.mode(self.session.write_mode).parquet(
-            self.predictions_path
-        )
+        predictions.add_locus_to_gene_features(self.feature_matrix).df.write.mode(
+            self.session.write_mode
+        ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
