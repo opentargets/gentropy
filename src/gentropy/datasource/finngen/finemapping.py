@@ -105,7 +105,7 @@ class FinnGenFinemapping:
         [
             StructField("trait", StringType(), True),
             StructField("region", StringType(), True),
-            StructField("cs", StringType(), True),
+            StructField("cs_number", StringType(), True),
             StructField("cs_log10bf", DoubleType(), True),
         ]
     )
@@ -182,7 +182,7 @@ class FinnGenFinemapping:
     summary_hail_schema: hl.tstruct = hl.tstruct(
         trait=hl.tstr,
         region=hl.tstr,
-        cs=hl.tstr,
+        cs_number=hl.tstr,
         cs_log10bf=hl.tfloat64,
     )
 
@@ -241,7 +241,7 @@ class FinnGenFinemapping:
         The finngen_susie_finemapping_cs_summary_files are files that Contains credible set summaries from SuSiE fine-mapping for all genome-wide significant regions with following schema:
             - trait: phenotype
             - region: region for which the fine-mapping was run.
-            - cs_99: running number for independent credible sets in a region, assigned to 99% PIP
+            - cs_number: running number for independent credible sets in a region, assigned to 99% PIP
             - cs_log10bf: Log10 bayes factor of comparing the solution of this model (cs independent credible sets) to cs -1 credible sets
             - cs_avg_r2: Average correlation R2 between variants in the credible set
             - cs_min_r2: minimum r2 between variants in the credible set
