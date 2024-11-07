@@ -319,7 +319,7 @@ class FinnGenFinemapping:
                 # Add standard error, and allele frequency information.
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
-                f.lit("SuSiE").cast("string").alias("finemappingMethod"),
+                f.lit("SuSie").cast("string").alias("finemappingMethod"),
                 *[
                     f.col(f"alpha{i}").cast(t.DoubleType()).alias(f"alpha_{i}")
                     for i in range(1, 11)
