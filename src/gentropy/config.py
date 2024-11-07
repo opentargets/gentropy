@@ -274,6 +274,7 @@ class LocusToGeneConfig(StepConfig):
     )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
+    hf_model_commit_message: str | None = "chore: update model"
     download_from_hub: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
@@ -633,6 +634,7 @@ class LocusToGeneEvidenceStepConfig(StepConfig):
     locus_to_gene_threshold: float = 0.05
     _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
 
+
 @dataclass
 class LocusToGeneAssociationsStepConfig(StepConfig):
     """Configuration of the locus to gene association step."""
@@ -642,6 +644,7 @@ class LocusToGeneAssociationsStepConfig(StepConfig):
     direct_associations_output_path: str = MISSING
     indirect_associations_output_path: str = MISSING
     _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
+
 
 @dataclass
 class StudyLocusValidationStepConfig(StepConfig):
