@@ -109,6 +109,7 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
+        l2g_threshold: float | None,
         hf_hub_repo_id: str | None,
         hf_model_commit_message: str | None = "chore: update model",
     ) -> None:
@@ -128,6 +129,7 @@ class LocusToGeneStep:
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
+            l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
 
@@ -149,6 +151,7 @@ class LocusToGeneStep:
         self.hf_hub_repo_id = hf_hub_repo_id
         self.download_from_hub = download_from_hub
         self.hf_model_commit_message = hf_model_commit_message
+        self.l2g_threshold = l2g_threshold or 0.0
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -195,7 +198,9 @@ class LocusToGeneStep:
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.add_locus_to_gene_features(self.feature_matrix).df.write.mode(
+        predictions.filter(
+            f.col("score") >= self.l2g_threshold
+        ).add_locus_to_gene_features(self.feature_matrix).df.write.mode(
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
