@@ -26,7 +26,11 @@ from gentropy.common.spark_helpers import (
     order_array_of_structs_by_field,
 )
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus import (
+    FinemappingMethod,
+    StudyLocus,
+    StudyLocusQualityCheck,
+)
 from gentropy.method.carma import CARMA
 from gentropy.method.ld import LDAnnotator
 from gentropy.method.ld_matrix_interface import LDMatrixInterface
@@ -290,7 +294,7 @@ class SusieFineMapperStep:
                         "region": f.lit(region),
                         "credibleSetIndex": f.lit(counter),
                         "credibleSetlog10BF": f.lit(cs_lbf_value * 0.4342944819),
-                        "finemappingMethod": f.lit("SuSiE-inf"),
+                        "finemappingMethod": f.lit(FinemappingMethod.SUSIE_INF.value),
                     }
                 )
                 .withColumn(
