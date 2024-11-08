@@ -8,7 +8,11 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus import (
+    FinemappingMethod,
+    StudyLocus,
+    StudyLocusQualityCheck,
+)
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
@@ -213,9 +217,11 @@ class PICS:
         """
         # Finemapping method is an optional column:
         finemapping_method_expression = (
-            f.lit("pics")
+            f.lit(FinemappingMethod.PICS.value)
             if "finemappingMethod" not in associations.df.columns
-            else f.coalesce(f.col("finemappingMethod"), f.lit("pics"))
+            else f.coalesce(
+                f.col("finemappingMethod"), f.lit(FinemappingMethod.PICS.value)
+            )
         )
 
         # Flagging expression for loci that do not qualify for PICS:
