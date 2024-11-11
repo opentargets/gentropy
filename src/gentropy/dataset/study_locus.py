@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
+from pyspark.sql import Window
 from pyspark.sql.types import ArrayType, FloatType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
@@ -509,23 +511,21 @@ class StudyLocus(Dataset):
             "tagVariantId",
         )
         # Define join condition - if intra_study_overlap is True, finds overlaps within the same study. Otherwise finds gwas vs everything overlaps for coloc.
-        join_condition = (
-            [
+        join_condition = [
+            f.col("left.chromosome") == f.col("right.chromosome"),
+            f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+            (f.col("right.studyType") != "gwas")
+            | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+            f.col("left.studyType") == f.lit("gwas"),
+        ]
+        if intra_study_overlap:
+            join_condition = [
                 f.col("left.studyId") == f.col("right.studyId"),
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                 f.col("left.studyLocusId") > f.col("right.studyLocusId"),
                 f.col("left.region") != f.col("right.region"),
             ]
-            if intra_study_overlap
-            else [
-                f.col("left.chromosome") == f.col("right.chromosome"),
-                f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                (f.col("right.studyType") != "gwas")
-                | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
-                f.col("left.studyType") == f.lit("gwas"),
-            ]
-        )
 
         return (
             credset_to_overlap.alias("left")
@@ -1349,3 +1349,77 @@ class StudyLocus(Dataset):
             _df=df,
             _schema=self.get_schema(),
         )
+
+    @staticmethod
+    def add_pileups(variant_df: DataFrame) -> DataFrame:
+        """Add pileup column to the dataset.
+
+        Args:
+            variant_df (DataFrame): Spark dataframe containing chromosome and position fields.
+
+        Returns:
+            DataFrame: Returns position pileups.
+
+        The `pileup` column consists of the number of occurrences of
+        each variant position from list of the tag variants across all
+        dataset.
+        """
+        # fmt: off
+        assert "chromosome" in variant_df.columns, "Can not calculate pileup without chromosome."
+        assert "position" in variant_df.columns, "Can not calculate pileup without position."
+        # fmt: on
+        window = Window.partitionBy("chromosome", "position").orderBy("position")
+        return variant_df.withColumn("pileup", f.count(f.col("position")).over(window))
+
+    def pileup_partition(self, pileup_sum_per_partition: int = 60_000) -> StudyLocus:
+        """Add a `pileupSumPartitionId` column to the input dataset.
+
+        Args:
+            pileup_sum_per_partition (int): Sum of pileup(s) that should be put into a single partition.
+
+        Returns:
+            StudyLocus: Returns StudyLocus object partitioned by pileup sums.
+
+        The partitioning algorithm calculates the pileups (number of occurrences of each variant position) of
+        tag variants extracted from `loci` object. Then the pileups are summed across studyLocusId and partitioned
+        by bucket depending on the bucket id derived from the rolling sum division with `pileup_sum_per_partition`.
+
+        """
+        # Calculate variant dataset
+        variant_df = self.df.withColumn(
+            "tagPosition",
+            f.regexp_extract(
+                f.explode("locus").get("variantId"),
+                pattern=r".*_(\d+).*",
+                idx=1,
+            )
+            .cast(t.IntegerType())
+            .select(
+                f.col("tagPosition").alias("position"),
+                f.col("chromosome"),
+            ),
+        )
+
+        # Calculate the pileups per variant position
+        pileup_df = (
+            self.add_pileups(variant_df)
+            .dropDuplicates(["studyLocusId", "position", "pileup"])
+            .groupby("studyLocusId")
+            .agg(f.sum("pileup").alias("pileupSum"))
+            .select("studyLocusId", "pileupSum")
+        ).cache()
+
+        # Calculate the rolling sum over the pileup to collect partition bins
+        window = Window().partitionBy("chromosome", "studyType").orderBy("position")
+        cs = (
+            self.df.join(pileup_df, how="left", on="studyLocusId")
+            .withColumn(
+                "pileupSumPartitionId",
+                f.round(
+                    f.sum(f.col("pileupSum")).over(window) / pileup_sum_per_partition
+                ).cast(t.IntegerType()),
+            )
+            .repartition("pileupSumPartitionId")
+            .drop("pileupSumPartitionId")
+        )
+        return StudyLocus(_df=cs, _schema=self.get_schema())
