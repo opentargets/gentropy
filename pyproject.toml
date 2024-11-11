@@ -75,7 +75,7 @@ ipykernel = "^6.28.0"
 google-cloud-dataproc = "^5.8.0"
 pydoclint = ">=0.3.8,<0.6.0"
 prettier = "^0.0.7"
-deptry = ">=0.12,<0.21"
+deptry = ">=0.12,<0.22"
 yamllint = "^1.33.0"
 
 [tool.semantic_release]
