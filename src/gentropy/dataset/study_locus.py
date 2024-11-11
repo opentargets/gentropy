@@ -543,7 +543,6 @@ class StudyLocus(Dataset):
             )
             .distinct()
             .repartition("chromosome")
-            .persist()
         )
 
     @staticmethod
@@ -757,7 +756,6 @@ class StudyLocus(Dataset):
                 f.col("locus.pValueExponent").alias("pValueExponent"),
                 f.col("locus.beta").alias("beta"),
             )
-            .persist()
         )
 
         # overlapping study-locus
