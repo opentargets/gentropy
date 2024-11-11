@@ -84,7 +84,9 @@ class LocusToGeneFeatureMatrixStep:
             gene_index=gene_index,
         )
 
-        fm = credible_set.build_feature_matrix(features_list, features_input_loader)
+        fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
+            features_list, features_input_loader
+        )
         fm._df.write.mode(session.write_mode).parquet(feature_matrix_path)
 
 
@@ -107,7 +109,9 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
+        l2g_threshold: float | None,
         hf_hub_repo_id: str | None,
+        hf_model_commit_message: str | None = "chore: update model",
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -125,7 +129,9 @@ class LocusToGeneStep:
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
+            l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
+            hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -144,6 +150,8 @@ class LocusToGeneStep:
         self.wandb_run_name = wandb_run_name
         self.hf_hub_repo_id = hf_hub_repo_id
         self.download_from_hub = download_from_hub
+        self.hf_model_commit_message = hf_model_commit_message
+        self.l2g_threshold = l2g_threshold or 0.0
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -190,9 +198,11 @@ class LocusToGeneStep:
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.df.write.mode(self.session.write_mode).parquet(
-            self.predictions_path
-        )
+        predictions.filter(
+            f.col("score") >= self.l2g_threshold
+        ).add_locus_to_gene_features(self.feature_matrix).df.write.mode(
+            self.session.write_mode
+        ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
@@ -217,7 +227,7 @@ class LocusToGeneStep:
             ).train(self.wandb_run_name)
             if trained_model.training_data and trained_model.model and self.model_path:
                 trained_model.save(self.model_path)
-                if self.hf_hub_repo_id:
+                if self.hf_hub_repo_id and self.hf_model_commit_message:
                     hf_hub_token = access_gcp_secret(
                         "hfhub-key", "open-targets-genetics-dev"
                     )
@@ -229,7 +239,7 @@ class LocusToGeneStep:
                             "goldStandardSet", "geneId"
                         ).toPandas(),
                         repo_id=self.hf_hub_repo_id,
-                        commit_message="chore: update model",
+                        commit_message=self.hf_model_commit_message,
                     )
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
