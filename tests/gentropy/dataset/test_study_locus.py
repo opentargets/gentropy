@@ -629,7 +629,7 @@ class TestStudyLocusValidation:
 
     STUDY_LOCUS_DATA = [
         # Won't be flagged:
-        ("1", "v1", "s1", 1.0, -8, [], "pics"),
+        ("1", "v1", "s1", 1.0, -8, [], "PICS"),
         # Already flagged, needs to be tested if the flag reamins unique:
         (
             "2",
@@ -638,7 +638,7 @@ class TestStudyLocusValidation:
             5.0,
             -4,
             [StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG.value],
-            "pics",
+            "PICS",
         ),
         # To be flagged:
         ("3", "v3", "s3", 1.0, -4, [], "SuSiE-inf"),
@@ -869,18 +869,18 @@ class TestStudyLocusRedundancyFlagging:
     """Collection of tests related to flagging redundant credible sets."""
 
     STUDY_LOCUS_DATA = [
-        ("1", "v1", "s1", "pics", []),
-        ("2", "v2", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        ("3", "v3", "s1", "pics", []),
-        ("3", "v3", "s1", "pics", []),
-        ("1", "v1", "s1", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        ("1", "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        ("1", "v1", "s2", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s1", "PICS", []),
+        ("2", "v2", "s1", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("3", "v3", "s1", "PICS", []),
+        ("3", "v3", "s1", "PICS", []),
+        ("1", "v1", "s1", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s2", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s2", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
         ("1", "v1", "s3", "SuSie", []),
-        ("1", "v1", "s3", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
-        ("1", "v1", "s4", "pics", []),
+        ("1", "v1", "s3", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s4", "PICS", []),
         ("1", "v1", "s4", "SuSie", []),
-        ("1", "v1", "s4", "pics", [StudyLocusQualityCheck.TOP_HIT.value]),
+        ("1", "v1", "s4", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(
@@ -946,7 +946,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
             "v1",
             "s1",
             "X",
-            "pics",
+            "PICS",
             1,
             3,
             [
@@ -962,7 +962,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
             "v2",
             "s1",
             "X",
-            "pics",
+            "PICS",
             4,
             5,
             [
@@ -977,7 +977,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
             "v3",
             "s1",
             "X",
-            "pics",
+            "PICS",
             6,
             7,
             [
@@ -1004,7 +1004,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
             "v5",
             "s1",
             "X",
-            "pics",
+            "PICS",
             5,
             5,
             [
@@ -1018,7 +1018,7 @@ class TestStudyLocusSuSiERedundancyFlagging:
             "v6",
             "s2",
             "X",
-            "pics",
+            "PICS",
             3,
             5,
             [
@@ -1141,11 +1141,11 @@ class TestStudyLocusDuplicationFlagging:
 
     STUDY_LOCUS_DATA = [
         # Non-duplicated:
-        ("1", "v1", "s1", "pics"),
+        ("1", "v1", "s1", "PICS"),
         # Triplicate:
-        ("3", "v3", "s1", "pics"),
-        ("3", "v3", "s1", "pics"),
-        ("3", "v3", "s1", "pics"),
+        ("3", "v3", "s1", "PICS"),
+        ("3", "v3", "s1", "PICS"),
+        ("3", "v3", "s1", "PICS"),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(

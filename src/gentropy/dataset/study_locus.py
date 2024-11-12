@@ -139,6 +139,20 @@ class CredibleInterval(Enum):
     IS99 = "is99CredibleSet"
 
 
+class FinemappingMethod(Enum):
+    """Finemapping method enum.
+
+    Attributes:
+        PICS (str): PICS
+        SUSIE (str): SuSiE method
+        SUSIE_INF (str): SuSiE-inf method implemented in `gentropy`
+    """
+
+    PICS = "PICS"
+    SUSIE = "SuSie"
+    SUSIE_INF = "SuSiE-inf"
+
+
 @dataclass
 class StudyLocus(Dataset):
     """Study-Locus dataset.
@@ -1056,7 +1070,7 @@ class StudyLocus(Dataset):
             StudyLocus: Updated study locus with redundant top hits flagged.
         """
         studies_with_pics_sumstats = (
-            self.df.filter(f.col("finemappingMethod") == "pics")
+            self.df.filter(f.col("finemappingMethod") == FinemappingMethod.PICS.value)
             # Returns True if the study contains any PICS associations from summary statistics
             .withColumn(
                 "hasPicsSumstats",
@@ -1095,7 +1109,11 @@ class StudyLocus(Dataset):
         """
         # unique study-regions covered by SuSie credible sets
         susie_study_regions = (
-            self.filter(f.col("finemappingMethod") == "SuSiE-inf")
+            self.filter(
+                f.col("finemappingMethod").isin(
+                    FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
+                )
+            )
             .df.select(
                 "studyId",
                 "chromosome",
@@ -1108,7 +1126,11 @@ class StudyLocus(Dataset):
 
         # non SuSiE credible sets (studyLocusId) overlapping in any variant with SuSiE locus
         redundant_study_locus = (
-            self.filter(f.col("finemappingMethod") != "SuSiE-inf")
+            self.filter(
+                ~f.col("finemappingMethod").isin(
+                    FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
+                )
+            )
             .df.withColumn("l", f.explode("locus"))
             .select(
                 "studyLocusId",
@@ -1141,7 +1163,12 @@ class StudyLocus(Dataset):
                         # credible set in SuSiE overlapping region
                         f.col("inSuSiE")
                         # credible set not based on SuSiE
-                        & (f.col("finemappingMethod") != "SuSiE-inf"),
+                        & (
+                            ~f.col("finemappingMethod").isin(
+                                FinemappingMethod.SUSIE.value,
+                                FinemappingMethod.SUSIE_INF.value,
+                            )
+                        ),
                         StudyLocusQualityCheck.EXPLAINED_BY_SUSIE,
                     ),
                 )
@@ -1268,7 +1295,12 @@ class StudyLocus(Dataset):
         df = self.df.withColumn(
             "confidence",
             f.when(
-                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSie"]))
+                (
+                    f.col("finemappingMethod").isin(
+                        FinemappingMethod.SUSIE.value,
+                        FinemappingMethod.SUSIE_INF.value,
+                    )
+                )
                 & (
                     ~f.array_contains(
                         f.col("qualityControls"),
@@ -1278,7 +1310,12 @@ class StudyLocus(Dataset):
                 CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
             )
             .when(
-                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSie"]))
+                (
+                    f.col("finemappingMethod").isin(
+                        FinemappingMethod.SUSIE.value,
+                        FinemappingMethod.SUSIE_INF.value,
+                    )
+                )
                 & (
                     f.array_contains(
                         f.col("qualityControls"),
@@ -1288,7 +1325,7 @@ class StudyLocus(Dataset):
                 CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
             )
             .when(
-                (f.col("finemappingMethod") == "pics")
+                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
                 & (
                     ~f.array_contains(
                         f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
@@ -1297,7 +1334,7 @@ class StudyLocus(Dataset):
                 CredibleSetConfidenceClasses.PICSED_SUMMARY_STATS.value,
             )
             .when(
-                (f.col("finemappingMethod") == "pics")
+                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
                 & (
                     f.array_contains(
                         f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
