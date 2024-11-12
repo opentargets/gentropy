@@ -280,6 +280,15 @@ class PICS:
                         StudyLocusQualityCheck.NOT_QUALIFYING_LD_BLOCK,
                     ),
                 )
+                # Flagging all PICS loci with OUT_OF_SAMPLE_LD flag:
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.lit(True),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
+                    ),
+                )
                 .withColumn(
                     "finemappingMethod",
                     finemapping_method_expression,
