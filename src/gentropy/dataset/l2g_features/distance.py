@@ -8,6 +8,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
@@ -84,6 +85,7 @@ def common_neighbourhood_distance_feature_logic(
     variant_index: VariantIndex,
     feature_name: str,
     distance_type: str,
+    gene_index: GeneIndex,
     genomic_window: int = 500_000,
 ) -> DataFrame:
     """Calculate the distance feature that correlates any variant in a credible set with any gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.
@@ -93,6 +95,7 @@ def common_neighbourhood_distance_feature_logic(
         variant_index (VariantIndex): The dataset containing distance to gene information
         feature_name (str): The name of the feature
         distance_type (str): The type of distance to gene
+        gene_index (GeneIndex): The dataset containing gene information
         genomic_window (int): The maximum window size to consider
 
     Returns:
@@ -106,6 +109,11 @@ def common_neighbourhood_distance_feature_logic(
         distance_type=distance_type,
         variant_index=variant_index,
         genomic_window=genomic_window,
+    ).join(
+        # Bring gene classification
+        gene_index.df.select("geneId", "biotype"),
+        "geneId",
+        "inner",
     )
     return (
         # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
@@ -121,7 +129,13 @@ def common_neighbourhood_distance_feature_logic(
                 / f.coalesce(f.col("regional_max"), f.lit(0.0)),
             ).otherwise(f.lit(0.0)),
         )
-        .drop("regional_max", local_feature_name)
+        .withColumn(
+            feature_name,
+            f.when(f.col(feature_name) < 0, f.lit(0.0))
+            .when(f.col(feature_name) > 1, f.lit(1.0))
+            .otherwise(f.col(feature_name)),
+        )
+        .drop("regional_max", local_feature_name, "biotype")
     )
 
 
