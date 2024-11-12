@@ -342,6 +342,18 @@
             },
             {
               "metadata": {},
+              "name": "gene_symbol",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "biotype",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
               "name": "appris",
               "nullable": true,
               "type": "string"
