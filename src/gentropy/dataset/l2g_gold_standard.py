@@ -135,7 +135,7 @@ class L2GGoldStandard(Dataset):
             .drop("studyId", "variantId")
             .distinct(),
             with_gold_standard=True,
-        )
+        ).fill_na()
 
     def filter_unique_associations(
         self: L2GGoldStandard,

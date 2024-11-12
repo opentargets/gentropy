@@ -221,6 +221,7 @@ class LocusToGeneConfig(StepConfig):
     credible_set_path: str = MISSING
     feature_matrix_path: str = MISSING
     predictions_path: str | None = None
+    l2g_threshold: float | None = 0.05
     variant_index_path: str | None = None
     model_path: str | None = None
     gold_standard_curation_path: str | None = None
@@ -274,6 +275,7 @@ class LocusToGeneConfig(StepConfig):
     )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
+    hf_model_commit_message: str | None = "chore: update model"
     download_from_hub: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
@@ -506,9 +508,10 @@ class VariantIndexConfig(StepConfig):
 class ConvertToVcfStepConfig(StepConfig):
     """Variant to VCF step configuration."""
 
-    source_path: str = MISSING
-    source_format: str = MISSING
-    vcf_path: str = MISSING
+    source_paths: list[str] = MISSING
+    source_formats: list[str] = MISSING
+    output_path: str = MISSING
+    partition_size: int = 2000
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
 
 
@@ -632,6 +635,7 @@ class LocusToGeneEvidenceStepConfig(StepConfig):
     locus_to_gene_threshold: float = 0.05
     _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
 
+
 @dataclass
 class LocusToGeneAssociationsStepConfig(StepConfig):
     """Configuration of the locus to gene association step."""
@@ -641,6 +645,7 @@ class LocusToGeneAssociationsStepConfig(StepConfig):
     direct_associations_output_path: str = MISSING
     indirect_associations_output_path: str = MISSING
     _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
+
 
 @dataclass
 class StudyLocusValidationStepConfig(StepConfig):

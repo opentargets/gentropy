@@ -291,10 +291,10 @@ class CredibleSetConfidenceFeature(L2GFeature):
                             ),
                         ),
                         on="variantId",
-                        how="left",
+                        how="inner",
                     )
                     # Annotate credible set confidence
-                    .join(full_credible_set, ["variantId", "studyId"], "left")
+                    .join(full_credible_set, ["variantId", "studyId"])
                     .select("studyLocusId", "geneId", cls.feature_name)
                 ),
                 id_vars=("studyLocusId", "geneId"),

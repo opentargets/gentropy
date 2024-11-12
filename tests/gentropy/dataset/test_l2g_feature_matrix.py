@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pyspark.sql.functions as f
 import pytest
 from pyspark.sql.types import (
     ArrayType,
@@ -184,3 +185,59 @@ class TestFromFeaturesList:
             ),
             _schema=GeneIndex.get_schema(),
         )
+
+
+def test_fill_na(spark: SparkSession) -> None:
+    """Tests L2GFeatureMatrix.fill_na, particularly the imputation logic."""
+    sample_fm = L2GFeatureMatrix(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene1",
+                    "proteinGeneCount500kb": 3.0,
+                    "geneCount500kb": 8.0,
+                    "isProteinCoding": 1.0,
+                    "anotherFeature": None,
+                },
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene2",
+                    "proteinGeneCount500kb": 4.0,
+                    "geneCount500kb": 10.0,
+                    "isProteinCoding": 1.0,
+                    "anotherFeature": None,
+                },
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene3",
+                    "proteinGeneCount500kb": None,
+                    "geneCount500kb": None,
+                    "isProteinCoding": None,
+                    "anotherFeature": None,
+                },
+            ],
+            schema="studyLocusId STRING, geneId STRING, proteinGeneCount500kb DOUBLE, geneCount500kb DOUBLE, isProteinCoding DOUBLE, anotherFeature DOUBLE",
+        ),
+    )
+    observed_df = sample_fm.fill_na()._df.filter(f.col("geneId") == "gene3")
+    expected_df_missing_row = spark.createDataFrame(
+        [
+            {
+                "studyLocusId": "1",
+                "geneId": "gene3",
+                "proteinGeneCount500kb": 3.5,
+                "geneCount500kb": 9.0,
+                "isProteinCoding": 0.0,
+                "anotherFeature": 0.0,
+            },
+        ],
+    ).select(
+        "studyLocusId",
+        "geneId",
+        "proteinGeneCount500kb",
+        "geneCount500kb",
+        "isProteinCoding",
+        "anotherFeature",
+    )
+    assert observed_df.collect() == expected_df_missing_row.collect()

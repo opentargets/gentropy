@@ -21,6 +21,7 @@ from gentropy.common.spark_helpers import (
 from gentropy.common.utils import get_logsum
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.study_index import StudyQualityCheck
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.clump import LDclumping
@@ -74,7 +75,7 @@ class StudyLocusQualityCheck(Enum):
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
-        FAILED_STUDY (str): Flagging study loci if the study has failed QC
+        FLAGGED_STUDY (str): Study has quality control flag(s)
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
         DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique
         INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
@@ -85,6 +86,7 @@ class StudyLocusQualityCheck(Enum):
         ABNORMAL_PIPS (str): Flagging study loci with a sum of PIPs that are not in [0.99,1]
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
+        TOP_HIT_AND_SUMMARY_STATS (str): Curated top hit is flagged because summary statistics are available for study
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -101,7 +103,7 @@ class StudyLocusQualityCheck(Enum):
     NOT_QUALIFYING_LD_BLOCK = (
         "LD block does not contain variants at the required R^2 threshold"
     )
-    FAILED_STUDY = "Study has failed quality controls"
+    FLAGGED_STUDY = "Study has quality control flag(s)"
     MISSING_STUDY = "Study not found in the study index"
     DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
     INVALID_VARIANT_IDENTIFIER = (
@@ -114,8 +116,13 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
-    ABNORMAL_PIPS = "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
+    ABNORMAL_PIPS = (
+        "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
+    )
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
+    TOP_HIT_AND_SUMMARY_STATS = (
+        "Curated top hit is flagged because summary statistics are available for study"
+    )
 
 
 class CredibleInterval(Enum):
@@ -132,6 +139,20 @@ class CredibleInterval(Enum):
     IS99 = "is99CredibleSet"
 
 
+class FinemappingMethod(Enum):
+    """Finemapping method enum.
+
+    Attributes:
+        PICS (str): PICS
+        SUSIE (str): SuSiE method
+        SUSIE_INF (str): SuSiE-inf method implemented in `gentropy`
+    """
+
+    PICS = "PICS"
+    SUSIE = "SuSie"
+    SUSIE_INF = "SuSiE-inf"
+
+
 @dataclass
 class StudyLocus(Dataset):
     """Study-Locus dataset.
@@ -143,7 +164,8 @@ class StudyLocus(Dataset):
         """Flagging study loci if the corresponding study has issues.
 
         There are two different potential flags:
-        - failed study: flagging locus if the corresponding study has failed a quality check.
+        - flagged study: flagging locus if the study has quality control flags.
+        - study with summary statistics for top hit: flagging locus if the study has available summary statistics.
         - missing study: flagging locus if the study was not found in the reference study index.
 
         Args:
@@ -159,6 +181,7 @@ class StudyLocus(Dataset):
             else f.lit(None).cast(StringType())
         )
 
+        # The study Id of the study index needs to be kept, because we would not know which study was in the index after the left join:
         study_flags = study_index.df.select(
             f.col("studyId").alias("study_studyId"),
             qc_select_expression.alias("study_qualityControls"),
@@ -169,13 +192,30 @@ class StudyLocus(Dataset):
                 self.df.join(
                     study_flags, f.col("studyId") == f.col("study_studyId"), "left"
                 )
-                # Flagging loci with failed studies:
+                # Flagging loci with flagged studies - without propagating the actual flags:
                 .withColumn(
                     "qualityControls",
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
                         f.size(f.col("study_qualityControls")) > 0,
-                        StudyLocusQualityCheck.FAILED_STUDY,
+                        StudyLocusQualityCheck.FLAGGED_STUDY,
+                    ),
+                )
+                # Flagging top-hits, where the study has available summary statistics:
+                .withColumn(
+                    "qualityControls",
+                    StudyLocus.update_quality_flag(
+                        f.col("qualityControls"),
+                        # Condition is true, if the study has summary statistics available and the locus is a top hit:
+                        f.array_contains(
+                            f.col("qualityControls"),
+                            StudyLocusQualityCheck.TOP_HIT.value,
+                        )
+                        & ~f.array_contains(
+                            f.col("study_qualityControls"),
+                            StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value,
+                        ),
+                        StudyLocusQualityCheck.TOP_HIT_AND_SUMMARY_STATS,
                     ),
                 )
                 # Flagging loci where no studies were found:
@@ -396,7 +436,7 @@ class StudyLocus(Dataset):
     def qc_abnormal_pips(
         self: StudyLocus,
         sum_pips_lower_threshold: float = 0.99,
-        sum_pips_upper_threshold: float = 1.0001, # Set slightly above 1 to account for floating point errors
+        sum_pips_upper_threshold: float = 1.0001,  # Set slightly above 1 to account for floating point errors
     ) -> StudyLocus:
         """Filter study-locus by sum of posterior inclusion probabilities to ensure that the sum of PIPs is within a given range.
 
@@ -414,32 +454,36 @@ class StudyLocus(Dataset):
             else f.lit(None).cast(ArrayType(StringType()))
         )
 
-        flag = (self.df.withColumn(
+        flag = self.df.withColumn(
             "sumPosteriorProbability",
             f.aggregate(
                 f.col("locus"),
                 f.lit(0.0),
-                lambda acc, x: acc + x["posteriorProbability"]
-            )).withColumn(
-                "pipOutOfRange",
-                f.when(
-                    (f.col("sumPosteriorProbability") < sum_pips_lower_threshold) |
-                    (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
-                    True
-                ).otherwise(False)))
+                lambda acc, x: acc + x["posteriorProbability"],
+            ),
+        ).withColumn(
+            "pipOutOfRange",
+            f.when(
+                (f.col("sumPosteriorProbability") < sum_pips_lower_threshold)
+                | (f.col("sumPosteriorProbability") > sum_pips_upper_threshold),
+                True,
+            ).otherwise(False),
+        )
 
         return StudyLocus(
-            _df=(flag
+            _df=(
+                flag
                 # Flagging loci with failed studies:
                 .withColumn(
                     "qualityControls",
                     self.update_quality_flag(
                         qc_select_expression,
                         f.col("pipOutOfRange"),
-                        StudyLocusQualityCheck.ABNORMAL_PIPS
+                        StudyLocusQualityCheck.ABNORMAL_PIPS,
                     ),
-                ).drop("sumPosteriorProbability", "pipOutOfRange")),
-            _schema=self.get_schema()
+                ).drop("sumPosteriorProbability", "pipOutOfRange")
+            ),
+            _schema=self.get_schema(),
         )
 
     @staticmethod
@@ -641,28 +685,6 @@ class StudyLocus(Dataset):
         """
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
-    def filter_by_study_type(self: StudyLocus, study_type: str) -> StudyLocus:
-        """Creates a new StudyLocus dataset filtered by study type.
-
-        Args:
-            study_type (str): Study type to filter for. Can be one of `gwas`, `eqtl`, `pqtl`, `eqtl`.
-
-        Returns:
-            StudyLocus: Filtered study-locus dataset.
-
-        Raises:
-            ValueError: If study type is not supported.
-        """
-        if study_type not in ["gwas", "eqtl", "pqtl", "sqtl"]:
-            raise ValueError(
-                f"Study type {study_type} not supported. Supported types are: gwas, eqtl, pqtl, sqtl."
-            )
-        new_df = self.df.filter(f.col("studyType") == study_type).drop("studyType")
-        return StudyLocus(
-            _df=new_df,
-            _schema=self._schema,
-        )
-
     def filter_credible_set(
         self: StudyLocus,
         credible_interval: CredibleInterval,
@@ -798,7 +820,7 @@ class StudyLocus(Dataset):
             self,
             features_list,
             features_input_loader,
-        )
+        ).fill_na()
 
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
@@ -1048,7 +1070,7 @@ class StudyLocus(Dataset):
             StudyLocus: Updated study locus with redundant top hits flagged.
         """
         studies_with_pics_sumstats = (
-            self.df.filter(f.col("finemappingMethod") == "pics")
+            self.df.filter(f.col("finemappingMethod") == FinemappingMethod.PICS.value)
             # Returns True if the study contains any PICS associations from summary statistics
             .withColumn(
                 "hasPicsSumstats",
@@ -1087,7 +1109,11 @@ class StudyLocus(Dataset):
         """
         # unique study-regions covered by SuSie credible sets
         susie_study_regions = (
-            self.filter(f.col("finemappingMethod") == "SuSiE-inf")
+            self.filter(
+                f.col("finemappingMethod").isin(
+                    FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
+                )
+            )
             .df.select(
                 "studyId",
                 "chromosome",
@@ -1100,7 +1126,11 @@ class StudyLocus(Dataset):
 
         # non SuSiE credible sets (studyLocusId) overlapping in any variant with SuSiE locus
         redundant_study_locus = (
-            self.filter(f.col("finemappingMethod") != "SuSiE-inf")
+            self.filter(
+                ~f.col("finemappingMethod").isin(
+                    FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
+                )
+            )
             .df.withColumn("l", f.explode("locus"))
             .select(
                 "studyLocusId",
@@ -1133,7 +1163,12 @@ class StudyLocus(Dataset):
                         # credible set in SuSiE overlapping region
                         f.col("inSuSiE")
                         # credible set not based on SuSiE
-                        & (f.col("finemappingMethod") != "SuSiE-inf"),
+                        & (
+                            ~f.col("finemappingMethod").isin(
+                                FinemappingMethod.SUSIE.value,
+                                FinemappingMethod.SUSIE_INF.value,
+                            )
+                        ),
                         StudyLocusQualityCheck.EXPLAINED_BY_SUSIE,
                     ),
                 )
@@ -1260,7 +1295,12 @@ class StudyLocus(Dataset):
         df = self.df.withColumn(
             "confidence",
             f.when(
-                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSie"]))
+                (
+                    f.col("finemappingMethod").isin(
+                        FinemappingMethod.SUSIE.value,
+                        FinemappingMethod.SUSIE_INF.value,
+                    )
+                )
                 & (
                     ~f.array_contains(
                         f.col("qualityControls"),
@@ -1270,7 +1310,12 @@ class StudyLocus(Dataset):
                 CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
             )
             .when(
-                (f.col("finemappingMethod").isin(["SuSiE-inf", "SuSie"]))
+                (
+                    f.col("finemappingMethod").isin(
+                        FinemappingMethod.SUSIE.value,
+                        FinemappingMethod.SUSIE_INF.value,
+                    )
+                )
                 & (
                     f.array_contains(
                         f.col("qualityControls"),
@@ -1280,7 +1325,7 @@ class StudyLocus(Dataset):
                 CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
             )
             .when(
-                (f.col("finemappingMethod") == "pics")
+                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
                 & (
                     ~f.array_contains(
                         f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
@@ -1289,7 +1334,7 @@ class StudyLocus(Dataset):
                 CredibleSetConfidenceClasses.PICSED_SUMMARY_STATS.value,
             )
             .when(
-                (f.col("finemappingMethod") == "pics")
+                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
                 & (
                     f.array_contains(
                         f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value

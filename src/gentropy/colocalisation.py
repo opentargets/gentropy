@@ -8,7 +8,7 @@ from typing import Any, Type
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.method.colocalisation import Coloc, ColocalisationMethodInterface
 
 
@@ -56,7 +56,9 @@ class ColocalisationStep:
         )
         if colocalisation_method == Coloc.METHOD_NAME.lower():
             credible_set = credible_set.filter(
-                col("finemappingMethod").isin("SuSie", "SuSiE-inf")
+                col("finemappingMethod").isin(
+                    FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
+                )
             )
 
         # Transform
