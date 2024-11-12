@@ -105,7 +105,7 @@ class LocusToGeneTrainer:
                 data=training_data,
                 feature_perturbation="interventional",
             )
-            return explainer(training_data)
+            return explainer(training_data, check_additivity=False)
         raise ValueError("Train data not set.")
 
     def log_plot_image_to_wandb(
