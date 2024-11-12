@@ -172,7 +172,9 @@ def common_neighbourhood_colocalisation_feature_logic(
     # (non protein coding genes in the vicinity are excluded see #3552)
     regional_max_per_study_locus = (
         extended_local_max.join(
-            gene_index.df.select("geneId", "biotype"), "geneId", "left"
+            gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
+            "geneId",
+            "inner",
         )
         .groupBy("studyLocusId")
         .agg(f.max(local_feature_name).alias("regional_max"))
