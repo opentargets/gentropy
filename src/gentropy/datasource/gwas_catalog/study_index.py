@@ -657,7 +657,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             "qualityControls",
             StudyIndex.update_quality_flag(
                 f.col("qualityControls"),
-                ~f.col("hasSumstats"),
+                f.lit(True),
                 StudyQualityCheck.SUMSTATS_NOT_AVAILABLE,
             ),
         )
