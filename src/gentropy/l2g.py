@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
@@ -22,6 +22,9 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -109,6 +112,8 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
+        limit_gold_standard_to_protein_coding: bool = False,
+        gene_index_path: str | None = None,
         l2g_threshold: float | None,
         hf_hub_repo_id: str | None,
         hf_model_commit_message: str | None = "chore: update model",
@@ -129,6 +134,8 @@ class LocusToGeneStep:
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
+            limit_gold_standard_to_protein_coding (bool): Indication if the gold standard should be filtered by protein coding genes. Useful only during `train` mode. Defaults to False.
+            gene_index_path (str | None): Path to the gene index dataset. Required when running in `limit_gold_standard_to_protein_coding`.
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
@@ -152,6 +159,10 @@ class LocusToGeneStep:
         self.download_from_hub = download_from_hub
         self.hf_model_commit_message = hf_model_commit_message
         self.l2g_threshold = l2g_threshold or 0.0
+        self.gene_index_path = gene_index_path
+        self.limit_gold_standard_to_protein_coding = (
+            limit_gold_standard_to_protein_coding
+        )
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -174,6 +185,7 @@ class LocusToGeneStep:
                 if gold_standard_curation_path
                 else None
             )
+
             self.interactions = (
                 self.session.spark.read.parquet(gene_interactions_path)
                 if gene_interactions_path
@@ -220,6 +232,7 @@ class LocusToGeneStep:
                 model=GradientBoostingClassifier(random_state=42),
                 hyperparameters=self.hyperparameters,
             )
+
             wandb_login(key=wandb_key)
             trained_model = LocusToGeneTrainer(
                 model=l2g_model,
@@ -242,6 +255,37 @@ class LocusToGeneStep:
                         commit_message=self.hf_model_commit_message,
                     )
 
+    def _limit_gold_standard_to_protein_coding(self) -> DataFrame:
+        """Limit gold standard to protein coding set.
+
+        Returns:
+            DataFrame: Protein coding section of gold standard.
+
+        Raises:
+            ValueError: When gold standard or gene_index are not provided.
+        """
+        if not self.gene_index_path:
+            raise ValueError(
+                "Running training with gold standard limited to protein coding genes requires specifying `gene_index_path`."
+            )
+        if self.gs_curation is None:
+            raise ValueError("Running training requires gold standard.")
+
+        gene_index = GeneIndex.from_parquet(
+            session=self.session, path=self.gene_index_path
+        )
+
+        protein_coding_gene_index = f.broadcast(
+            gene_index.protein_coding().df.select("geneId")
+        ).alias("r")
+
+        gold_standard = self.gs_curation.alias("l").join(
+            protein_coding_gene_index,
+            on=[f.col("l.gold_standard_info.geneId") == f.col("r.geneId")],
+            how="inner",
+        )
+        return gold_standard
+
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.
 
@@ -251,6 +295,9 @@ class LocusToGeneStep:
         Raises:
             ValueError: Not all training dependencies are defined
         """
+        if self.limit_gold_standard_to_protein_coding:
+            self.gs_curation = self._limit_gold_standard_to_protein_coding()
+
         if self.gs_curation and self.interactions and self.variant_index:
             study_locus_overlap = StudyLocus(
                 _df=self.credible_set.df.join(

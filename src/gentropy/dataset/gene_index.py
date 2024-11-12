@@ -1,4 +1,5 @@
 """Gene index dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +13,15 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
+
+
+from enum import Enum
+
+
+class Biotype(Enum):
+    """Enum representing vep biotypes."""
+
+    protein_coding = ["protein_coding"]
 
 
 @dataclass
@@ -72,3 +82,11 @@ class GeneIndex(Dataset):
             ).alias("geneSymbol"),
             "*",
         )
+
+    def protein_coding(self) -> GeneIndex:
+        """Get the protein coding subset of gene index.
+
+        Returns:
+            GeneIndex: Filtered out by protein coding genes.
+        """
+        return self.filter_by_biotypes(Biotype.protein_coding.value)
