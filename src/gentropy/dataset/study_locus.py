@@ -1449,6 +1449,7 @@ class StudyLocus(Dataset):
                 .repartitionByRange(
                     partition_count, "studyType", "chromosome", "pileupSumPartitionId"
                 )
+                .sortWithinPartitions("studyType", "chromosome", "pileupSumPartitionId")
                 .drop("pileupSumPartitionId")
             ),
             _schema=StudyLocus.get_schema(),
