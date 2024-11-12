@@ -20,7 +20,7 @@ from gentropy.common.spark_helpers import (
     get_struct_field_schema,
     order_array_of_structs_by_field,
 )
-from gentropy.common.utils import get_logsum
+from gentropy.common.utils import extract_chromosome, extract_position, get_logsum
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import StudyQualityCheck
@@ -1371,6 +1371,32 @@ class StudyLocus(Dataset):
         window = Window.partitionBy("chromosome", "position").orderBy("position")
         return variant_df.withColumn("pileup", f.count(f.col("position")).over(window))
 
+    def get_tag_variant_position_table(self) -> DataFrame:
+        """Get the table with tag variant positions.
+
+        Returns:
+            DataFrame: with
+        """
+        return (
+            self.df.select(
+                "studyLocusId",
+                "chromosome",
+                f.explode("locus.variantId").alias("variantId"),
+            )
+            .select(
+                extract_chromosome(f.col("variantId")).alias("tagChromosome"),
+                extract_position(f.col("variantId")).alias("position"),
+                "chromosome",
+                "studyLocusId",
+            )
+            # NOTE: Ensure that if lead variant has different chromosome then tag, we do not count tag,
+            # to prevent further join from introducing nulls!
+            .filter(f.col("chromosome") == f.col("tagChromosome"))
+            .select(
+                f.col("tagChromosome").alias("chromosome"), "position", "studyLocusId"
+            )
+        )
+
     def pileup_partition(self, pileup_sum_per_partition: int = 60_000) -> StudyLocus:
         """Add a `pileupSumPartitionId` column to the input dataset.
 
@@ -1385,41 +1411,45 @@ class StudyLocus(Dataset):
         by bucket depending on the bucket id derived from the rolling sum division with `pileup_sum_per_partition`.
 
         """
-        # Calculate variant dataset
-        variant_df = self.df.withColumn(
-            "tagPosition",
-            f.regexp_extract(
-                f.explode("locus").get("variantId"),
-                pattern=r".*_(\d+).*",
-                idx=1,
-            )
-            .cast(t.IntegerType())
-            .select(
-                f.col("tagPosition").alias("position"),
-                f.col("chromosome"),
-            ),
-        )
-
+        # Calculate variant table
+        position_table = self.get_tag_variant_position_table()
         # Calculate the pileups per variant position
         pileup_df = (
-            self.add_pileups(variant_df)
+            self.add_pileups(position_table)
             .dropDuplicates(["studyLocusId", "position", "pileup"])
             .groupby("studyLocusId")
             .agg(f.sum("pileup").alias("pileupSum"))
             .select("studyLocusId", "pileupSum")
-        ).cache()
-
-        # Calculate the rolling sum over the pileup to collect partition bins
-        window = Window().partitionBy("chromosome", "studyType").orderBy("position")
-        cs = (
-            self.df.join(pileup_df, how="left", on="studyLocusId")
-            .withColumn(
-                "pileupSumPartitionId",
-                f.round(
-                    f.sum(f.col("pileupSum")).over(window) / pileup_sum_per_partition
-                ).cast(t.IntegerType()),
-            )
-            .repartition("pileupSumPartitionId")
-            .drop("pileupSumPartitionId")
         )
-        return StudyLocus(_df=cs, _schema=self.get_schema())
+        # Calculate the rolling sum over the pileup to collect partition bins
+        window = (
+            Window()
+            .partitionBy("studyType", "chromosome")
+            .orderBy("position")
+            .rowsBetween(Window.unboundedPreceding, 0)
+        )
+        cs = self.df.join(
+            f.broadcast(pileup_df), how="left", on="studyLocusId"
+        ).withColumn(
+            "pileupSumPartitionId",
+            f.round(
+                f.sum(f.col("pileupSum")).over(window) / pileup_sum_per_partition
+            ).cast(t.IntegerType()),
+        )
+        # Get the unique partition count
+        partition_count = (
+            cs.select("chromosome", "studyType", "pileupSumPartitionId")
+            .dropDuplicates(["chromosome", "pileupSumPartitionId", "studyType"])
+            .count()
+        )
+        # Repartition the dataset
+        return StudyLocus(
+            _df=(
+                cs.drop("pileupSum")
+                .repartitionByRange(
+                    partition_count, "studyType", "chromosome", "pileupSumPartitionId"
+                )
+                .drop("pileupSumPartitionId")
+            ),
+            _schema=StudyLocus.get_schema(),
+        )

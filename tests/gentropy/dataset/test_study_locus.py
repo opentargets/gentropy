@@ -7,7 +7,7 @@ from typing import Any
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
-from pyspark.sql import Column, Row, SparkSession
+from pyspark.sql import Column, DataFrame, Row, SparkSession
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
@@ -1189,3 +1189,123 @@ class TestStudyLocusDuplicationFlagging:
         assert self.validated.df.filter(f.size("qualityControls") == 0).count() == 2
 
         assert self.validated.df.filter(f.size("qualityControls") > 0).count() == 2
+
+    class TestStudyLocusPartitioning:
+        """Test partitioning specific for colocalisation."""
+
+        @pytest.fixture
+        def variant_table(self, spark: SparkSession) -> DataFrame:
+            """Setup variant table for adding pileup tests."""
+            variant_df = spark.createDataFrame(
+                data=[
+                    ("1", 1),
+                    ("1", 1),
+                    ("1", 1),
+                    ("2", 2),
+                    ("2", 2),
+                    ("3", 1),
+                ],
+                schema=t.StructType(
+                    [
+                        t.StructField("chromosome", t.StringType()),
+                        t.StructField("position", t.IntegerType()),
+                    ]
+                ),
+            )
+            return variant_df
+
+        def test_add_pileups(self, variant_table: DataFrame) -> None:
+            """Test adding pileup column to the variant table."""
+            # fmt: off
+            pileup_df = StudyLocus.add_pileups(variant_table)
+            assert "pileup" in pileup_df.columns, "pileup column is missing"
+            assert pileup_df.count() == variant_table.count(), "Expect the same row count"
+
+            values = [p["pileup"] for p in pileup_df.select("pileup").collect()]
+            exp_values = [3, 3, 3, 2, 2, 1]
+            assert values == exp_values, "Pileup column contains incorrect values"
+            # fmt: on
+
+        def test_add_pileup_expectations(self, variant_table: DataFrame) -> None:
+            """Test if method checks if the expectations are met for calculating the pileup when passed input."""
+            with pytest.raises(AssertionError) as e:
+                StudyLocus.add_pileups(variant_table.select("position"))
+                assert e.value.args[0] == "Can not calculate pileup without chromosome."
+
+            with pytest.raises(AssertionError) as e:
+                StudyLocus.add_pileups(variant_table.select("chromosome"))
+                assert e.value.args[0] == "Can not calculate pileup without position."
+
+        @pytest.fixture
+        def partition_credible_set(self, spark: SparkSession) -> StudyLocus:
+            """Setup credible set for pileup partitioning test."""
+            # fmt: off
+            df = spark.createDataFrame(
+                data=[
+                    # pileupSum = 2 + 2
+                    ([("1_10_C_T",), ("1_11_C_T",)], "1", "A1", "gwas", 10, "1_10_C_T", "Study1"),
+                    # pileupSum = 2
+                    ([("1_10_C_A",)], "1", "B1", "gwas", 10, "1_10_C_T", "Study1"),
+                    # pileupSum = 3
+                    ([("2_10_C_T",)], "2", "A2", "gwas", 10, "2_10_C_T", "Study1"),
+                    # pileupSum = 3
+                    ([("2_10_C_T",)], "2", "B2", "gwas", 10, "2_10_C_T", "Study1"),
+                    # pileupSum = 3
+                    ([("2_10_C_T",)], "2", "C2", "gwas", 10, "2_10_C_T", "Study1"),
+                    # pileupSum = 2 + 0 (incorrect chromosome)
+                    ([("1_11_C_T",), ("2_10_C_T",)], "1", "D2", "gwas", 10, "1_10_C_T", "Study1"),
+                    # pileupSum = 12
+                    ([("1_20_C_T",)], "1", "A3", "gwas", 20, "1_20_C_T", "Study1"),
+                    ([("1_20_C_T",)], "1", "B3", "gwas", 20, "1_20_C_T", "Study1"),
+                    ([("1_20_C_T",)], "1", "C3", "gwas", 20, "1_20_C_T", "Study1"),
+                    ([("1_20_C_T",)], "1", "D3", "gwas", 20, "1_20_C_T", "Study1"),
+                    ([("1_20_C_T",)], "1", "E3", "gwas", 20, "1_20_C_T", "Study1"),
+                    ([("1_20_C_T",)], "1", "F3", "gwas", 20, "1_20_C_T", "Study1"),
+                    ([("1_20_C_T",)], "1", "A4", "pqtl", 20, "1_20_C_T", "Study2"),
+                    ([("1_20_C_T",)], "1", "B4", "pqtl", 20, "1_20_C_T", "Study2"),
+                    ([("1_20_C_T",)], "1", "C4", "pqtl", 20, "1_20_C_T", "Study2"),
+                    ([("1_20_C_T",)], "1", "D4", "pqtl", 20, "1_20_C_T", "Study2"),
+                    ([("1_20_C_T",)], "1", "E4", "pqtl", 20, "1_20_C_T", "Study2"),
+                    ([("1_20_C_T",)], "1", "F4", "pqtl", 20, "1_20_C_T", "Study2"),
+                ],
+                # fmt: on
+                schema=t.StructType(
+                    [
+                        t.StructField(
+                            "locus",
+                            t.ArrayType(
+                                t.StructType(
+                                    [t.StructField("variantId", t.StringType())]
+                                )
+                            ),
+                        ),
+                        t.StructField("chromosome", t.StringType()),
+                        t.StructField("studyLocusId", t.StringType()),
+                        t.StructField("studyType", t.StringType()),
+                        t.StructField("position", t.IntegerType()),
+                        t.StructField("variantId", t.StringType()),
+                        t.StructField("studyId", t.StringType())
+                    ]
+                ),
+            )
+            return StudyLocus(_df=df, _schema=StudyLocus.get_schema())
+
+        def test_get_variant_position_table(
+            self, partition_credible_set: StudyLocus
+        ) -> None:
+            """Test extracting variant position table from study locus."""
+            # fmt: off
+            position_table = partition_credible_set.get_tag_variant_position_table()
+            cols = set(position_table.columns)
+            assert cols == {"position", "chromosome", "studyLocusId"}, "Incorrect columns."
+            # NOTE: + 1 comes from the one locus with two variants, other should be skipped
+            # as the chromosome is different then the lead variant.
+            assert position_table.count() == partition_credible_set.df.count() + 1, "Incorrect shape"
+            # fmt: on
+
+        def test_pileup_partition(self, partition_credible_set: StudyLocus) -> None:
+            """Test partitioning position pileup."""
+            # fmt: off
+            assert partition_credible_set.pileup_partition(pileup_sum_per_partition=6).df.rdd.getNumPartitions() == 7 + 6 + 2
+            assert partition_credible_set.pileup_partition(pileup_sum_per_partition=50).df.rdd.getNumPartitions() == 3 + 2 + 1
+            # fmt: on

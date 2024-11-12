@@ -343,7 +343,7 @@ def extract_chromosome(variant_id: Column) -> Column:
         <BLANKLINE>
 
     """
-    return f.regexp_extract(variant_id, r"^(.*)_\d+_.*$", 1)
+    return f.regexp_extract(variant_id, r"^(.*)_\d+_.*$", 1).cast(t.StringType())
 
 
 def extract_position(variant_id: Column) -> Column:
@@ -370,4 +370,4 @@ def extract_position(variant_id: Column) -> Column:
         <BLANKLINE>
 
     """
-    return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
+    return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1).cast(t.IntegerType())
