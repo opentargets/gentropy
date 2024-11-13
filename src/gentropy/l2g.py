@@ -225,6 +225,7 @@ class LocusToGeneStep:
                 model=l2g_model,
                 feature_matrix=self._annotate_gold_standards_w_feature_matrix(),
             ).train(self.wandb_run_name)
+
             if trained_model.training_data and trained_model.model and self.model_path:
                 trained_model.save(self.model_path)
                 if self.hf_hub_repo_id and self.hf_model_commit_message:
