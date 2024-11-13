@@ -95,7 +95,6 @@ class VariantEffectPredictorParser:
             _schema=VariantIndex.get_schema(),
             id_threshold=hash_threshold,
         )
-        # return VariantEffectPredictorParser.process_vep_output(vep_data, hash_threshold)
 
     @staticmethod
     def _extract_ensembl_xrefs(colocated_variants: Column) -> Column:
