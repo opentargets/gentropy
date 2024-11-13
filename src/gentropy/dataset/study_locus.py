@@ -509,7 +509,7 @@ class StudyLocus(Dataset):
             "chromosome",
             "region",
             "tagVariantId",
-        )
+        ).persist()
         # Define join condition - if intra_study_overlap is True, finds overlaps within the same study. Otherwise finds gwas vs everything overlaps for coloc.
         join_condition = [
             f.col("left.chromosome") == f.col("right.chromosome"),
@@ -543,7 +543,6 @@ class StudyLocus(Dataset):
             )
             .distinct()
             .repartition("chromosome")
-            .persist()
         )
 
     @staticmethod

@@ -66,10 +66,13 @@ class ColocalisationStep:
 
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise
+        # Save the query plan
+
         if colocalisation_method_params:
             coloc = partial(coloc, **colocalisation_method_params)
         colocalisation_results = coloc(overlaps)
         # Load
+
         colocalisation_results.df.write.mode(session.write_mode).parquet(
             f"{coloc_path}/{colocalisation_method.lower()}"
         )
