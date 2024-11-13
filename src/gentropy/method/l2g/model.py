@@ -63,7 +63,8 @@ class LocusToGeneModel:
             client = storage.Client()
             bucket = storage.Bucket(client=client, name=bucket_name)
             blob = storage.Blob(name=blob_name, bucket=bucket)
-            loaded_model = sio.loads(blob.download_as_string(client=client))
+            data = blob.download_as_string(client=client)
+            loaded_model = sio.loads(data, trusted=sio.get_untrusted_types(data=data))
         else:
             loaded_model = sio.load(path, trusted=sio.get_untrusted_types(file=path))
 
