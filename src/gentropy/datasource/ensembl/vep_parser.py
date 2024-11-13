@@ -95,6 +95,7 @@ class VariantEffectPredictorParser:
             _schema=VariantIndex.get_schema(),
             id_threshold=hash_threshold,
         )
+        # return VariantEffectPredictorParser.process_vep_output(vep_data, hash_threshold)
 
     @staticmethod
     def _extract_ensembl_xrefs(colocated_variants: Column) -> Column:
@@ -660,6 +661,8 @@ class VariantEffectPredictorParser:
                 map_column_by_dictionary(
                     f.col("most_severe_consequence"), sequence_ontology_map
                 ).alias("mostSevereConsequenceId"),
+                # Propagate most severe consequence:
+                "most_severe_consequence",
                 # Extract HGVS identifier:
                 f.when(
                     f.size("transcript_consequences") > 0,
@@ -732,6 +735,8 @@ class VariantEffectPredictorParser:
                                 "polyphenPrediction"
                             ),
                             transcript.transcript_id.alias("transcriptId"),
+                            transcript.biotype.alias("biotype"),
+                            transcript.gene_symbol.alias("approvedSymbol"),
                         ),
                     ),
                 ).alias("transcriptConsequences"),
@@ -806,8 +811,260 @@ class VariantEffectPredictorParser:
                     hash_threshold,
                 ),
             )
+            # Generating a temporary column with only protein coding transcripts:
+            .withColumn(
+                "proteinCodingTranscripts",
+                f.filter(
+                    f.col("transcriptConsequences"),
+                    lambda x: x.getItem("biotype") == "protein_coding",
+                ),
+            )
+            # Generate variant descrioption:
+            .withColumn(
+                "variantDescription",
+                cls._compose_variant_description(
+                    # Passing the most severe consequence:
+                    f.col("most_severe_consequence"),
+                    # The first transcript:
+                    f.filter(
+                        f.col("transcriptConsequences"),
+                        lambda vep: vep.transcriptIndex == 1,
+                    ).getItem(0),
+                    # The first protein coding transcript:
+                    order_array_of_structs_by_field(
+                        "proteinCodingTranscripts", "transcriptIndex"
+                    )[f.size("proteinCodingTranscripts") - 1],
+                ),
+            )
             # Dropping intermediate xref columns:
-            .drop(*["ensembl_xrefs", "omim_xrefs", "clinvar_xrefs", "protvar_xrefs"])
+            .drop(
+                *[
+                    "ensembl_xrefs",
+                    "omim_xrefs",
+                    "clinvar_xrefs",
+                    "protvar_xrefs",
+                    "most_severe_consequence",
+                    "proteinCodingTranscripts",
+                ]
+            )
             # Drooping rows with null position:
             .filter(f.col("position").isNotNull())
         )
+
+    @classmethod
+    def _compose_variant_description(
+        cls: type[VariantEffectPredictorParser],
+        most_severe_consequence: Column,
+        first_transcript: Column,
+        first_protein_coding: Column,
+    ) -> Column:
+        """Compose variant description based on the most severe consequence.
+
+        Args:
+            most_severe_consequence (Column): Most severe consequence
+            first_transcript (Column): First transcript
+            first_protein_coding (Column): First protein coding transcript
+
+        Returns:
+            Column: Variant description
+        """
+        return (
+            # When there's no transcript whatsoever:
+            f.when(
+                first_transcript.isNull(),
+                f.lit("Intergenic variant no gene in window"),
+            )
+            # When the biotype of the first gene is protein coding:
+            .when(
+                first_transcript.getItem("biotype") == "protein_coding",
+                cls._process_protein_coding_transcript(
+                    first_transcript, most_severe_consequence
+                ),
+            )
+            # When the first gene is not protein coding, we also pass the first protein coding gene:
+            .otherwise(
+                cls._process_non_protein_coding_transcript(
+                    most_severe_consequence, first_transcript, first_protein_coding
+                )
+            )
+        )
+
+    @staticmethod
+    def _process_consequence_term(consequence_term: Column) -> Column:
+        """Cleaning up consequence term: capitalizing and replacing underscores.
+
+        Args:
+            consequence_term (Column): Consequence term.
+
+        Returns:
+            Column: Cleaned up consequence term.
+        """
+        last = f.when(consequence_term.contains("variant"), f.lit("")).otherwise(
+            " variant"
+        )
+        return f.concat(f.regexp_replace(f.initcap(consequence_term), "_", " "), last)
+
+    @staticmethod
+    def _process_overlap(transcript: Column) -> Column:
+        """Process overlap with gene: if the variant overlaps with the gene, return the gene name or distance.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: string column with overlap description.
+        """
+        gene_label = f.when(
+            transcript.getField("approvedSymbol").isNotNull(),
+            transcript.getField("approvedSymbol"),
+        ).otherwise(transcript.getField("targetId"))
+
+        return f.when(
+            transcript.getField("distanceFromFootprint") == 0,
+            # "overlapping with CCDC8"
+            f.concat(f.lit(" overlapping with "), gene_label),
+        ).otherwise(
+            # " 123 basepair away from CCDC8"
+            f.concat(
+                f.lit(" "),
+                transcript.getField("distanceFromFootprint"),
+                f.lit(" basepair away from "),
+                gene_label,
+            )
+        )
+
+    @staticmethod
+    def _process_aa_change(transcript: Column) -> Column:
+        """Extract amino acid change information from transcript when available.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Amino acid change information.
+        """
+        return f.when(
+            transcript.getField("aminoAcidChange").isNotNull(),
+            f.concat(
+                f.lit(", causing amio-acid change: "),
+                transcript.getField("aminoAcidChange"),
+                f.lit(" with "),
+                f.lower(transcript.getField("impact")),
+                f.lit(" impact."),
+            ),
+        ).otherwise(f.lit("."))
+
+    @staticmethod
+    def _process_lof(transcript: Column) -> Column:
+        """Process loss of function annotation from loftee prediction.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Loss of function annotation.
+        """
+        return f.when(
+            transcript.getField("lofteePrediction").isNotNull()
+            & (transcript.getField("lofteePrediction") == "HC"),
+            f.lit(" A high-confidence loss-of-function variant by loftee."),
+        ).otherwise(f.lit(""))
+
+    @classmethod
+    def _process_protein_coding_transcript(
+        cls: type[VariantEffectPredictorParser],
+        transcript: Column,
+        most_severe_consequence: Column,
+    ) -> Column:
+        """Extract information from the first, protein coding transcript.
+
+        Args:
+            transcript (Column): Transcript.
+            most_severe_consequence (Column): Most severe consequence.
+
+        Returns:
+            Column: Variant description.
+        """
+        # Process consequence term:
+        consequence_text = cls._process_consequence_term(most_severe_consequence)
+
+        # Does it overlap with the gene:
+        overlap = cls._process_overlap(transcript)
+
+        # Does it cause amino acid change:
+        amino_acid_change = cls._process_aa_change(transcript)
+
+        # Processing lof annotation:
+        lof_assessment = cls._process_lof(transcript)
+
+        # Concat all together:
+        return f.concat(consequence_text, overlap, amino_acid_change, lof_assessment)
+
+    @staticmethod
+    def _adding_biotype(transcript: Column) -> Column:
+        """Adding biotype information to the variant description.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Biotype information.
+        """
+        return f.concat(
+            f.lit(", a "),
+            f.regexp_replace(transcript.getField("biotype"), "_", " "),
+            f.lit(" gene."),
+        )
+
+    @staticmethod
+    def _parse_protein_coding_transcript(transcript: Column) -> Column:
+        """Parse the closest, not first protein coding transcript: extract gene symbol and distance.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Protein coding transcript information.
+        """
+        return f.when(
+            transcript.isNotNull(),
+            f.concat(
+                f.lit(" The closest protein-coding gene is "),
+                transcript.getField("approvedSymbol"),
+                f.lit(" ("),
+                transcript.getField("distanceFromFootprint"),
+                f.lit(" basepair away)."),
+            ),
+        ).otherwise(f.lit(""))
+
+    @classmethod
+    def _process_non_protein_coding_transcript(
+        cls: type[VariantEffectPredictorParser],
+        most_severe_consequence: Column,
+        first_transcript: Column,
+        first_protein_coding: Column,
+    ) -> Column:
+        """Extract information from the first, non-protein coding transcript.
+
+        Args:
+            most_severe_consequence (Column): Most severe consequence.
+            first_transcript (Column): First transcript.
+            first_protein_coding (Column): First protein coding transcript.
+
+        Returns:
+            Column: Variant description.
+        """
+        # Process consequence term:
+        consequence_text = cls._process_consequence_term(most_severe_consequence)
+
+        # Does it overlap with the gene:
+        overlap = cls._process_overlap(first_transcript)
+
+        # Adding biotype:
+        biotype = cls._adding_biotype(first_transcript)
+
+        # Adding protein coding gene:
+        protein_transcript = cls._parse_protein_coding_transcript(first_protein_coding)
+
+        # Concat all together:
+        return f.concat(consequence_text, overlap, biotype, protein_transcript)

@@ -194,6 +194,18 @@
             },
             {
               "metadata": {},
+              "name": "approvedSymbol",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "biotype",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
               "name": "transcriptId",
               "nullable": true,
               "type": "string"
@@ -271,6 +283,12 @@
         },
         "type": "array"
       }
+    },
+    {
+      "metadata": {},
+      "name": "variantDescription",
+      "nullable": false,
+      "type": "string"
     }
   ],
   "type": "struct"
