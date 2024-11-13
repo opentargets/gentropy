@@ -1025,11 +1025,16 @@ class VariantEffectPredictorParser:
         Returns:
             Column: Protein coding transcript information.
         """
+        gene_label = f.when(
+            transcript.getField("approvedSymbol").isNotNull(),
+            transcript.getField("approvedSymbol"),
+        ).otherwise(transcript.getField("targetId"))
+
         return f.when(
             transcript.isNotNull(),
             f.concat(
                 f.lit(" The closest protein-coding gene is "),
-                transcript.getField("approvedSymbol"),
+                gene_label,
                 f.lit(" ("),
                 transcript.getField("distanceFromFootprint"),
                 f.lit(" basepair away)."),
